@@ -14,6 +14,13 @@ from .deduction_analyzer import DeductionAnalyzer
 from .credit_optimizer import CreditOptimizer
 from .tax_strategy_advisor import TaxStrategyAdvisor
 from .tax_rules_engine import TaxRulesEngine, TaxRule, RuleCategory, RuleSeverity
+from .entity_optimizer import (
+    EntityStructureOptimizer,
+    EntityType,
+    EntityAnalysis,
+    EntityComparisonResult,
+    ReasonableSalaryAnalysis,
+)
 
 __all__ = [
     "TaxRecommendationEngine",
@@ -25,4 +32,10 @@ __all__ = [
     "TaxRule",
     "RuleCategory",
     "RuleSeverity",
+    # Entity structure optimization
+    "EntityStructureOptimizer",
+    "EntityType",
+    "EntityAnalysis",
+    "EntityComparisonResult",
+    "ReasonableSalaryAnalysis",
 ]
