@@ -1,0 +1,605 @@
+"""
+Scenario Service - Application service for what-if scenario operations.
+
+This service provides tax scenario analysis capabilities:
+- Creating and calculating what-if scenarios
+- Comparing multiple scenarios
+- Filing status optimization
+- Applying recommended scenarios to returns
+
+This is an APPLICATION SERVICE - it orchestrates domain operations
+but contains no business logic itself.
+"""
+
+import copy
+import time
+from datetime import datetime
+from typing import Optional, Dict, Any, List, Tuple
+from uuid import UUID, uuid4
+
+from .logging_config import get_logger
+from .tax_return_service import TaxReturnService
+
+# Import domain models
+from domain import (
+    Scenario,
+    ScenarioType,
+    ScenarioStatus,
+    ScenarioModification,
+    ScenarioResult,
+    ScenarioCreated,
+    ScenarioCalculated,
+    ScenarioCompared,
+    publish_event,
+)
+
+# Import existing models and calculator
+from models.tax_return import TaxReturn
+from models.taxpayer import FilingStatus
+from calculator.engine import FederalTaxEngine, CalculationBreakdown
+from database.persistence import get_persistence
+
+
+logger = get_logger(__name__)
+
+
+class ScenarioService:
+    """
+    Application service for tax scenario operations.
+
+    Provides what-if analysis capabilities:
+    - Filing status comparison
+    - Retirement contribution scenarios
+    - Deduction bunching
+    - Entity structure analysis
+    - Multi-scenario comparison
+    """
+
+    def __init__(
+        self,
+        tax_return_service: Optional[TaxReturnService] = None,
+        federal_engine: Optional[FederalTaxEngine] = None
+    ):
+        """
+        Initialize ScenarioService.
+
+        Args:
+            tax_return_service: Service for tax return operations
+            federal_engine: Federal tax calculation engine
+        """
+        self._tax_return_service = tax_return_service or TaxReturnService()
+        self._federal_engine = federal_engine or FederalTaxEngine()
+        self._persistence = get_persistence()
+        self._logger = get_logger(__name__)
+        # In-memory scenario storage (would be DB in production)
+        self._scenarios: Dict[str, Scenario] = {}
+
+    def create_scenario(
+        self,
+        return_id: str,
+        name: str,
+        scenario_type: ScenarioType,
+        modifications: List[Dict[str, Any]],
+        description: Optional[str] = None
+    ) -> Scenario:
+        """
+        Create a new scenario.
+
+        Args:
+            return_id: Base return identifier
+            name: Scenario name
+            scenario_type: Type of scenario
+            modifications: List of modifications to apply
+            description: Optional description
+
+        Returns:
+            Created Scenario
+        """
+        # Load base return
+        base_return = self._persistence.load_return(return_id)
+        if not base_return:
+            raise ValueError(f"Return not found: {return_id}")
+
+        # Create scenario
+        scenario = Scenario(
+            return_id=UUID(return_id),
+            name=name,
+            scenario_type=scenario_type,
+            description=description,
+            base_snapshot=copy.deepcopy(base_return),
+            modifications=[
+                ScenarioModification(
+                    field_path=m["field_path"],
+                    original_value=m.get("original_value"),
+                    new_value=m["new_value"],
+                    description=m.get("description")
+                )
+                for m in modifications
+            ]
+        )
+
+        # Store scenario
+        self._scenarios[str(scenario.scenario_id)] = scenario
+
+        # Publish event
+        publish_event(ScenarioCreated(
+            scenario_id=scenario.scenario_id,
+            return_id=UUID(return_id),
+            name=name,
+            scenario_type=scenario_type.value,
+            modifications=[m.to_dict() for m in scenario.modifications],
+            aggregate_id=scenario.scenario_id,
+            aggregate_type="scenario",
+        ))
+
+        self._logger.info(
+            f"Created scenario: {name}",
+            extra={'extra_data': {
+                'scenario_id': str(scenario.scenario_id),
+                'return_id': return_id,
+                'type': scenario_type.value,
+            }}
+        )
+
+        return scenario
+
+    def calculate_scenario(self, scenario_id: str) -> Scenario:
+        """
+        Calculate tax results for a scenario.
+
+        Args:
+            scenario_id: Scenario identifier
+
+        Returns:
+            Updated Scenario with results
+        """
+        scenario = self._scenarios.get(scenario_id)
+        if not scenario:
+            raise ValueError(f"Scenario not found: {scenario_id}")
+
+        start_time = time.time()
+
+        # Apply modifications to base snapshot
+        modified_data = self._apply_modifications(
+            scenario.base_snapshot,
+            scenario.modifications
+        )
+
+        # Calculate with modified data
+        try:
+            tax_return = TaxReturn(**modified_data)
+            breakdown = self._federal_engine.calculate(tax_return)
+
+            # Calculate base for comparison
+            base_return = TaxReturn(**scenario.base_snapshot)
+            base_breakdown = self._federal_engine.calculate(base_return)
+
+            # Calculate savings
+            savings = base_breakdown.total_tax - breakdown.total_tax
+            savings_percent = (savings / base_breakdown.total_tax * 100) if base_breakdown.total_tax > 0 else 0
+
+            # Create result
+            result = ScenarioResult(
+                total_tax=breakdown.total_tax,
+                federal_tax=breakdown.total_tax,
+                effective_rate=breakdown.effective_tax_rate,
+                marginal_rate=breakdown.marginal_tax_rate,
+                base_tax=base_breakdown.total_tax,
+                savings=savings,
+                savings_percent=savings_percent,
+                taxable_income=breakdown.taxable_income,
+                total_deductions=breakdown.deduction_amount,
+                total_credits=breakdown.total_credits,
+                breakdown={
+                    "agi": breakdown.agi,
+                    "ordinary_tax": breakdown.ordinary_income_tax,
+                    "preferential_tax": breakdown.preferential_income_tax,
+                    "se_tax": breakdown.self_employment_tax,
+                    "amt": breakdown.alternative_minimum_tax,
+                }
+            )
+
+            scenario.set_result(result)
+
+            computation_time_ms = int((time.time() - start_time) * 1000)
+
+            # Publish event
+            publish_event(ScenarioCalculated(
+                scenario_id=scenario.scenario_id,
+                return_id=scenario.return_id,
+                total_tax=breakdown.total_tax,
+                effective_rate=breakdown.effective_tax_rate,
+                savings_vs_base=savings,
+                computation_time_ms=computation_time_ms,
+                aggregate_id=scenario.scenario_id,
+                aggregate_type="scenario",
+            ))
+
+            self._logger.info(
+                f"Calculated scenario: {scenario.name}",
+                extra={'extra_data': {
+                    'scenario_id': scenario_id,
+                    'total_tax': breakdown.total_tax,
+                    'savings': savings,
+                }}
+            )
+
+            return scenario
+
+        except Exception as e:
+            self._logger.error(f"Scenario calculation failed: {e}")
+            raise
+
+    def get_scenario(self, scenario_id: str) -> Optional[Scenario]:
+        """Get a scenario by ID."""
+        return self._scenarios.get(scenario_id)
+
+    def get_scenarios_for_return(self, return_id: str) -> List[Scenario]:
+        """Get all scenarios for a return."""
+        return [
+            s for s in self._scenarios.values()
+            if str(s.return_id) == return_id
+        ]
+
+    def delete_scenario(self, scenario_id: str) -> bool:
+        """Delete a scenario."""
+        if scenario_id in self._scenarios:
+            del self._scenarios[scenario_id]
+            return True
+        return False
+
+    def compare_scenarios(
+        self,
+        scenario_ids: List[str],
+        return_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Compare multiple scenarios.
+
+        Args:
+            scenario_ids: List of scenario IDs to compare
+            return_id: Optional return ID for context
+
+        Returns:
+            Comparison results
+        """
+        scenarios = []
+        for sid in scenario_ids:
+            scenario = self._scenarios.get(sid)
+            if scenario:
+                # Calculate if not already done
+                if scenario.result is None:
+                    self.calculate_scenario(sid)
+                scenarios.append(scenario)
+
+        if not scenarios:
+            raise ValueError("No valid scenarios found")
+
+        # Find the winner (lowest tax)
+        winner = min(scenarios, key=lambda s: s.result.total_tax if s.result else float('inf'))
+        max_savings = max(s.result.savings if s.result else 0 for s in scenarios)
+
+        # Mark winner as recommended
+        winner.mark_as_recommended(f"Lowest tax liability: ${winner.result.total_tax:,.2f}")
+
+        comparison_id = uuid4()
+
+        # Build comparison data
+        comparison = {
+            "comparison_id": str(comparison_id),
+            "return_id": return_id,
+            "scenarios": [s.to_comparison_dict() for s in scenarios],
+            "winner": {
+                "scenario_id": str(winner.scenario_id),
+                "name": winner.name,
+                "total_tax": winner.result.total_tax if winner.result else 0,
+                "savings": winner.result.savings if winner.result else 0,
+            },
+            "max_savings": max_savings,
+            "compared_at": datetime.utcnow().isoformat(),
+        }
+
+        # Publish event
+        publish_event(ScenarioCompared(
+            comparison_id=comparison_id,
+            return_id=UUID(return_id) if return_id else winner.return_id,
+            scenario_ids=[s.scenario_id for s in scenarios],
+            winner_scenario_id=winner.scenario_id,
+            max_savings=max_savings,
+            comparison_summary=f"Best option: {winner.name} saves ${max_savings:,.2f}",
+            aggregate_id=comparison_id,
+            aggregate_type="scenario",
+        ))
+
+        self._logger.info(
+            f"Compared {len(scenarios)} scenarios",
+            extra={'extra_data': {
+                'comparison_id': str(comparison_id),
+                'winner': winner.name,
+                'max_savings': max_savings,
+            }}
+        )
+
+        return comparison
+
+    def get_filing_status_scenarios(
+        self,
+        return_id: str,
+        eligible_statuses: Optional[List[str]] = None
+    ) -> List[Scenario]:
+        """
+        Generate filing status comparison scenarios.
+
+        Args:
+            return_id: Base return identifier
+            eligible_statuses: Optional list of statuses to compare
+
+        Returns:
+            List of filing status scenarios
+        """
+        base_return = self._persistence.load_return(return_id)
+        if not base_return:
+            raise ValueError(f"Return not found: {return_id}")
+
+        current_status = base_return.get("taxpayer", {}).get("filing_status", "single")
+
+        # Determine eligible statuses
+        if eligible_statuses is None:
+            eligible_statuses = self._get_eligible_filing_statuses(base_return)
+
+        scenarios = []
+        for status in eligible_statuses:
+            # Create scenario for each status
+            scenario = self.create_scenario(
+                return_id=return_id,
+                name=f"Filing Status: {self._format_status_name(status)}",
+                scenario_type=ScenarioType.FILING_STATUS,
+                modifications=[{
+                    "field_path": "taxpayer.filing_status",
+                    "original_value": current_status,
+                    "new_value": status,
+                    "description": f"Change filing status to {status}"
+                }],
+                description=f"Calculate taxes using {self._format_status_name(status)} filing status"
+            )
+
+            # Calculate immediately
+            self.calculate_scenario(str(scenario.scenario_id))
+            scenarios.append(scenario)
+
+        self._logger.info(
+            f"Generated {len(scenarios)} filing status scenarios",
+            extra={'extra_data': {'return_id': return_id}}
+        )
+
+        return scenarios
+
+    def get_retirement_scenarios(
+        self,
+        return_id: str,
+        contribution_amounts: Optional[List[float]] = None
+    ) -> List[Scenario]:
+        """
+        Generate retirement contribution scenarios.
+
+        Args:
+            return_id: Base return identifier
+            contribution_amounts: Optional list of amounts to test
+
+        Returns:
+            List of retirement scenarios
+        """
+        base_return = self._persistence.load_return(return_id)
+        if not base_return:
+            raise ValueError(f"Return not found: {return_id}")
+
+        current_401k = base_return.get("deductions", {}).get("retirement_contributions", 0)
+
+        # Default contribution levels to test
+        if contribution_amounts is None:
+            age_50_plus = base_return.get("taxpayer", {}).get("is_age_50_plus", False)
+            max_contrib = 23500 + (7500 if age_50_plus else 0)  # 2025 limits
+            contribution_amounts = [
+                current_401k,
+                min(current_401k + 5000, max_contrib),
+                min(current_401k + 10000, max_contrib),
+                max_contrib,  # Max out
+            ]
+            contribution_amounts = sorted(set(contribution_amounts))
+
+        scenarios = []
+        for amount in contribution_amounts:
+            if amount == current_401k:
+                name = f"Current 401k: ${amount:,.0f}"
+            elif amount >= 23500:
+                name = f"Max 401k: ${amount:,.0f}"
+            else:
+                name = f"401k: ${amount:,.0f}"
+
+            scenario = self.create_scenario(
+                return_id=return_id,
+                name=name,
+                scenario_type=ScenarioType.RETIREMENT,
+                modifications=[{
+                    "field_path": "deductions.retirement_contributions",
+                    "original_value": current_401k,
+                    "new_value": amount,
+                    "description": f"401k contribution of ${amount:,.0f}"
+                }],
+                description=f"Calculate taxes with ${amount:,.0f} in 401k contributions"
+            )
+
+            self.calculate_scenario(str(scenario.scenario_id))
+            scenarios.append(scenario)
+
+        return scenarios
+
+    def apply_scenario(
+        self,
+        scenario_id: str,
+        session_id: str
+    ) -> Dict[str, Any]:
+        """
+        Apply a scenario's modifications to the base return.
+
+        Args:
+            scenario_id: Scenario to apply
+            session_id: Session identifier
+
+        Returns:
+            Updated return data
+        """
+        scenario = self._scenarios.get(scenario_id)
+        if not scenario:
+            raise ValueError(f"Scenario not found: {scenario_id}")
+
+        return_id = str(scenario.return_id)
+
+        # Apply modifications
+        modified_data = self._apply_modifications(
+            scenario.base_snapshot,
+            scenario.modifications
+        )
+
+        # Update the return
+        result = self._tax_return_service.update_return(
+            return_id=return_id,
+            session_id=session_id,
+            updates=modified_data,
+            recalculate=True
+        )
+
+        # Mark scenario as applied
+        scenario.status = ScenarioStatus.APPLIED
+
+        self._logger.info(
+            f"Applied scenario to return",
+            extra={'extra_data': {
+                'scenario_id': scenario_id,
+                'return_id': return_id,
+            }}
+        )
+
+        return result
+
+    def _apply_modifications(
+        self,
+        base_data: Dict[str, Any],
+        modifications: List[ScenarioModification]
+    ) -> Dict[str, Any]:
+        """Apply modifications to base data."""
+        data = copy.deepcopy(base_data)
+
+        for mod in modifications:
+            self._set_nested_value(data, mod.field_path, mod.new_value)
+
+        return data
+
+    def _set_nested_value(
+        self,
+        data: Dict[str, Any],
+        path: str,
+        value: Any
+    ) -> None:
+        """Set a value in nested dictionary using dot notation."""
+        keys = path.split(".")
+        current = data
+
+        for key in keys[:-1]:
+            if key not in current:
+                current[key] = {}
+            current = current[key]
+
+        current[keys[-1]] = value
+
+    def _get_nested_value(
+        self,
+        data: Dict[str, Any],
+        path: str,
+        default: Any = None
+    ) -> Any:
+        """Get a value from nested dictionary using dot notation."""
+        keys = path.split(".")
+        current = data
+
+        for key in keys:
+            if isinstance(current, dict) and key in current:
+                current = current[key]
+            else:
+                return default
+
+        return current
+
+    def _get_eligible_filing_statuses(self, return_data: Dict[str, Any]) -> List[str]:
+        """Determine eligible filing statuses based on return data."""
+        taxpayer = return_data.get("taxpayer", {})
+        is_married = taxpayer.get("is_married", False)
+        has_dependents = len(taxpayer.get("dependents", [])) > 0
+        spouse_died_this_year = taxpayer.get("spouse_died_this_year", False)
+        spouse_died_last_year = taxpayer.get("spouse_died_last_year", False)
+
+        statuses = []
+
+        if is_married and not spouse_died_this_year:
+            statuses.append("married_joint")
+            statuses.append("married_separate")
+        else:
+            statuses.append("single")
+
+        # Head of household requires unmarried + qualifying person
+        if not is_married and has_dependents:
+            statuses.append("head_of_household")
+
+        # Qualifying widow(er) - spouse died in prior 2 years + dependent child
+        if (spouse_died_this_year or spouse_died_last_year) and has_dependents:
+            statuses.append("qualifying_widow")
+
+        return statuses
+
+    def _format_status_name(self, status: str) -> str:
+        """Format filing status for display."""
+        names = {
+            "single": "Single",
+            "married_joint": "Married Filing Jointly",
+            "married_separate": "Married Filing Separately",
+            "head_of_household": "Head of Household",
+            "qualifying_widow": "Qualifying Surviving Spouse",
+        }
+        return names.get(status, status.replace("_", " ").title())
+
+    def create_what_if_scenario(
+        self,
+        return_id: str,
+        name: str,
+        modifications: Dict[str, Any]
+    ) -> Scenario:
+        """
+        Create a generic what-if scenario.
+
+        Args:
+            return_id: Base return identifier
+            name: Scenario name
+            modifications: Dict of field_path -> new_value
+
+        Returns:
+            Created scenario
+        """
+        base_return = self._persistence.load_return(return_id)
+        if not base_return:
+            raise ValueError(f"Return not found: {return_id}")
+
+        mod_list = []
+        for field_path, new_value in modifications.items():
+            original = self._get_nested_value(base_return, field_path)
+            mod_list.append({
+                "field_path": field_path,
+                "original_value": original,
+                "new_value": new_value,
+            })
+
+        return self.create_scenario(
+            return_id=return_id,
+            name=name,
+            scenario_type=ScenarioType.WHAT_IF,
+            modifications=mod_list
+        )
