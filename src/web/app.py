@@ -837,6 +837,39 @@ async def get_document_processing_status(document_id: str, request: Request):
     session_id = request.cookies.get("tax_session_id") or ""
     persistence = _get_persistence()
 
+    # Check in-memory store first (for tests and quick lookups)
+    if document_id in _DOCUMENTS:
+        doc_data = _DOCUMENTS[document_id]
+        doc_session_id = doc_data.get("session_id")
+
+        # Verify session ownership
+        if doc_session_id and doc_session_id != session_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        status = doc_data.get("status", "unknown")
+        result = doc_data.get("result")
+
+        if status == "completed" and result:
+            return JSONResponse({
+                "document_id": document_id,
+                "status": "completed",
+                "document_type": getattr(result, "document_type", None) or (result.get("document_type") if isinstance(result, dict) else None),
+                "tax_year": getattr(result, "tax_year", None) or (result.get("tax_year") if isinstance(result, dict) else None),
+                "ocr_confidence": getattr(result, "ocr_confidence", None) or (result.get("ocr_confidence") if isinstance(result, dict) else None),
+                "extraction_confidence": getattr(result, "extraction_confidence", None) or (result.get("extraction_confidence") if isinstance(result, dict) else None),
+            })
+        elif doc_data.get("task_id"):
+            return JSONResponse({
+                "document_id": document_id,
+                "status": status,
+                "task_id": doc_data["task_id"],
+            })
+        else:
+            return JSONResponse({
+                "document_id": document_id,
+                "status": status,
+            })
+
     # C3: Check database for document
     doc_record = persistence.load_document_result(document_id, session_id=session_id)
     if doc_record:

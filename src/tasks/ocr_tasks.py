@@ -37,6 +37,33 @@ class TaskStatus:
     RETRYING = "retrying"
 
 
+def _run_async(coro):
+    """
+    Run an async coroutine from sync context, handling existing event loops.
+
+    Works in both sync context (Celery workers) and async context (FastAPI tests).
+    """
+    import asyncio
+
+    try:
+        # Check if there's already a running event loop
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # No running loop - create a new one (normal sync context)
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(coro)
+        finally:
+            loop.close()
+    else:
+        # There's a running loop - we need to handle this differently
+        # Create a new thread to run the coroutine
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(asyncio.run, coro)
+            return future.result(timeout=30)
+
+
 def _store_document_status(
     document_id: str,
     status: str,
@@ -51,7 +78,6 @@ def _store_document_status(
     """
     try:
         from cache.redis_client import RedisClient
-        import asyncio
 
         async def _store():
             client = RedisClient()
@@ -76,12 +102,7 @@ def _store_document_status(
             finally:
                 await client.close()
 
-        # Run async code in sync context
-        loop = asyncio.new_event_loop()
-        try:
-            loop.run_until_complete(_store())
-        finally:
-            loop.close()
+        _run_async(_store())
 
     except Exception as e:
         logger.warning(f"Failed to store document status: {e}")
@@ -93,7 +114,6 @@ def _get_document_status(document_id: str) -> Optional[Dict[str, Any]]:
     """
     try:
         from cache.redis_client import RedisClient
-        import asyncio
 
         async def _get():
             client = RedisClient()
@@ -103,11 +123,7 @@ def _get_document_status(document_id: str) -> Optional[Dict[str, Any]]:
             finally:
                 await client.close()
 
-        loop = asyncio.new_event_loop()
-        try:
-            return loop.run_until_complete(_get())
-        finally:
-            loop.close()
+        return _run_async(_get())
 
     except Exception as e:
         logger.warning(f"Failed to get document status: {e}")
