@@ -120,9 +120,22 @@ class RulesBasedRecommender:
         # Income sources
         if hasattr(tax_return, 'income') and tax_return.income:
             income = tax_return.income
+            # Get wages from get_total_wages() method or w2_forms
+            wages = 0
+            if hasattr(income, 'get_total_wages'):
+                wages = income.get_total_wages() or 0
+            elif hasattr(income, 'w2_forms') and income.w2_forms:
+                wages = sum(w2.wages or 0 for w2 in income.w2_forms)
+
+            # Get total income
+            total_income = 0
+            if hasattr(income, 'get_total_income'):
+                total_income = income.get_total_income() or 0
+
             context.update({
-                "has_wages": (getattr(income, 'wages', 0) or 0) > 0,
-                "wages": getattr(income, 'wages', 0) or 0,
+                "has_wages": wages > 0,
+                "wages": wages,
+                "total_income": total_income,
                 "has_self_employment": (getattr(income, 'self_employment_income', 0) or 0) > 0,
                 "self_employment_income": getattr(income, 'self_employment_income', 0) or 0,
                 "has_investment_income": self._has_investment_income(income),
@@ -204,21 +217,23 @@ class RulesBasedRecommender:
     def _has_investment_income(self, income) -> bool:
         """Check if taxpayer has investment income."""
         return (
-            (getattr(income, 'dividends_qualified', 0) or 0) > 0 or
-            (getattr(income, 'dividends_ordinary', 0) or 0) > 0 or
-            (getattr(income, 'interest_taxable', 0) or 0) > 0 or
-            (getattr(income, 'capital_gains_short', 0) or 0) != 0 or
-            (getattr(income, 'capital_gains_long', 0) or 0) != 0
+            (getattr(income, 'dividend_income', 0) or 0) > 0 or
+            (getattr(income, 'qualified_dividends', 0) or 0) > 0 or
+            (getattr(income, 'interest_income', 0) or 0) > 0 or
+            (getattr(income, 'taxable_interest', 0) or 0) > 0 or
+            (getattr(income, 'short_term_capital_gains', 0) or 0) != 0 or
+            (getattr(income, 'long_term_capital_gains', 0) or 0) != 0
         )
 
     def _get_investment_income(self, income) -> float:
         """Get total investment income."""
         return (
-            (getattr(income, 'dividends_qualified', 0) or 0) +
-            (getattr(income, 'dividends_ordinary', 0) or 0) +
-            (getattr(income, 'interest_taxable', 0) or 0) +
-            max(0, getattr(income, 'capital_gains_short', 0) or 0) +
-            max(0, getattr(income, 'capital_gains_long', 0) or 0)
+            (getattr(income, 'dividend_income', 0) or 0) +
+            (getattr(income, 'qualified_dividends', 0) or 0) +
+            (getattr(income, 'interest_income', 0) or 0) +
+            (getattr(income, 'taxable_interest', 0) or 0) +
+            max(0, getattr(income, 'short_term_capital_gains', 0) or 0) +
+            max(0, getattr(income, 'long_term_capital_gains', 0) or 0)
         )
 
     def _has_k1_income(self, income) -> bool:
