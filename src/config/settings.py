@@ -4,9 +4,9 @@ Centralized configuration for the tax platform.
 """
 
 from functools import lru_cache
-from typing import Optional
+from typing import List, Optional
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -106,10 +106,46 @@ class Settings(BaseSettings):
     api_workers: int = Field(default=4, description="Number of API workers")
 
     # Security
+    # CRITICAL: Must be set via APP_SECRET_KEY environment variable in production
+    # Generate with: python -c "import secrets; print(secrets.token_hex(32))"
     secret_key: str = Field(
-        default="change-me-in-production",
-        description="Secret key for signing"
+        default="change-me-in-production-INSECURE",
+        description="Secret key for signing - MUST be set in production"
     )
+
+    # Additional security settings
+    jwt_secret_key: Optional[str] = Field(
+        default=None,
+        description="JWT signing key - auto-generated if not set (set JWT_SECRET_KEY in production)"
+    )
+    encryption_key: Optional[str] = Field(
+        default=None,
+        description="Data encryption key - auto-generated if not set (set ENCRYPTION_MASTER_KEY in production)"
+    )
+    serializer_key: Optional[str] = Field(
+        default=None,
+        description="Serialization signing key - auto-generated if not set (set SERIALIZER_SECRET_KEY in production)"
+    )
+
+    # Security enforcement
+    enforce_https: bool = Field(
+        default=False,
+        description="Enforce HTTPS in production"
+    )
+    enable_rate_limiting: bool = Field(
+        default=True,
+        description="Enable API rate limiting"
+    )
+
+    def validate_production_secrets(self) -> bool:
+        """Validate that production has proper secrets configured."""
+        if self.environment == "production":
+            if "INSECURE" in self.secret_key or self.secret_key == "change-me-in-production":
+                raise ValueError(
+                    "CRITICAL: APP_SECRET_KEY must be set in production. "
+                    "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+                )
+        return True
     cors_origins: list = Field(
         default=["http://localhost:3000", "http://localhost:8000"],
         description="Allowed CORS origins"

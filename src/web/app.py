@@ -36,13 +36,78 @@ from services.ocr import DocumentProcessor, ProcessingResult
 import re
 import logging
 
+# =============================================================================
+# SECURITY IMPORTS - CRITICAL FOR PRODUCTION
+# =============================================================================
+from security.secure_serializer import (
+    SecureSerializer,
+    get_serializer,
+    SerializationError,
+    DeserializationError,
+    IntegrityError,
+)
+from security.data_sanitizer import (
+    sanitize_for_logging,
+    sanitize_for_api,
+    create_safe_context,
+)
+from security.middleware import (
+    SecurityHeadersMiddleware,
+    RateLimitMiddleware,
+    RequestValidationMiddleware,
+)
+
 logger = logging.getLogger(__name__)
+
+# Initialize secure serializer (replaces unsafe pickle)
+_secure_serializer: Optional[SecureSerializer] = None
+
+def get_secure_serializer() -> SecureSerializer:
+    """Get singleton secure serializer instance."""
+    global _secure_serializer
+    if _secure_serializer is None:
+        _secure_serializer = get_serializer()
+    return _secure_serializer
 
 app = FastAPI(title="US Tax Preparation Agent (Tax Year 2025)")
 
 
 # =============================================================================
-# MIDDLEWARE CONFIGURATION
+# SECURITY MIDDLEWARE CONFIGURATION (ORDER MATTERS - Last added = First executed)
+# =============================================================================
+
+# 1. Security Headers (HSTS, CSP, X-Frame-Options, etc.)
+try:
+    app.add_middleware(SecurityHeadersMiddleware)
+    logger.info("Security headers middleware enabled")
+except Exception as e:
+    logger.warning(f"Security headers middleware failed: {e}")
+
+# 2. Rate Limiting (60 requests/minute per IP)
+try:
+    app.add_middleware(
+        RateLimitMiddleware,
+        requests_per_minute=60,
+        burst_size=20,
+        exempt_paths={"/health", "/metrics", "/static"},
+    )
+    logger.info("Rate limiting middleware enabled")
+except Exception as e:
+    logger.warning(f"Rate limiting middleware failed: {e}")
+
+# 3. Request Validation (size limits, content type)
+try:
+    app.add_middleware(
+        RequestValidationMiddleware,
+        max_content_length=50 * 1024 * 1024,  # 50MB for document uploads
+    )
+    logger.info("Request validation middleware enabled")
+except Exception as e:
+    logger.warning(f"Request validation middleware failed: {e}")
+
+
+# =============================================================================
+# ADDITIONAL MIDDLEWARE
 # =============================================================================
 
 # Add correlation ID middleware for request tracing
@@ -308,23 +373,83 @@ async def manifest():
             return JSONResponse(json.load(f))
     return JSONResponse({"name": "TaxFlow"})
 
-# In-memory session store (for demo/dev). Replace with Redis/DB for production.
-_SESSIONS: Dict[str, TaxAgent] = {}
-_DOCUMENTS: Dict[str, Dict] = {}  # document_id -> {result, session_id, created_at}
-_TAX_RETURNS: Dict[str, Any] = {}  # session_id -> TaxReturn (for document-only flow)
+# =============================================================================
+# C3: DATABASE-BACKED SESSION PERSISTENCE (Replaces in-memory dicts)
+# Per FREEZE CHECKLIST: Session state persists across server restart
+# =============================================================================
+from database.session_persistence import SessionPersistence
+# SECURITY: pickle removed - using secure_serializer instead (see security imports at top)
+# import pickle  # REMOVED - Pickle allows arbitrary code execution (RCE vulnerability)
+
+# Initialize persistence layer (lazy singleton)
+_session_persistence: Optional[SessionPersistence] = None
+
+def _get_persistence() -> SessionPersistence:
+    """Get or create the session persistence instance."""
+    global _session_persistence
+    if _session_persistence is None:
+        _session_persistence = SessionPersistence()
+    return _session_persistence
+
+# Shared service instances (stateless, safe to keep in memory)
 _calculator = TaxCalculator()
 _forms = FormGenerator()
 _document_processor = DocumentProcessor()
 
+# In-memory document tracking (for tests and quick lookups)
+# Note: Production document data is also stored via persistence layer
+_DOCUMENTS: Dict[str, Dict[str, Any]] = {}
+
 
 def _get_or_create_session_agent(session_id: Optional[str]) -> tuple[str, TaxAgent]:
-    if session_id and session_id in _SESSIONS:
-        return session_id, _SESSIONS[session_id]
+    """
+    Get or create a TaxAgent session with database persistence.
 
+    C3: Session state persists across server restart via SessionPersistence.
+    SECURITY: Uses SecureSerializer instead of pickle to prevent RCE.
+    """
+    persistence = _get_persistence()
+    serializer = get_secure_serializer()
+
+    if session_id:
+        # Try to load existing agent from database
+        agent_state = persistence.load_agent_state(session_id)
+        if agent_state:
+            try:
+                # SECURITY: Use secure deserializer instead of pickle
+                agent_data = serializer.deserialize(agent_state.decode('utf-8') if isinstance(agent_state, bytes) else agent_state)
+                agent = TaxAgent()
+                agent.restore_from_state(agent_data)
+                # Touch session to extend TTL
+                persistence.touch_session(session_id)
+                return session_id, agent
+            except (DeserializationError, IntegrityError) as e:
+                logger.warning(f"Security: Failed to deserialize agent for session {session_id}: {e}")
+                # Fall through to create new agent
+            except Exception as e:
+                logger.warning(f"Failed to restore agent for session {session_id}: {sanitize_for_logging(str(e))}")
+                # Fall through to create new agent
+
+    # Create new session
     new_id = str(uuid.uuid4())
     agent = TaxAgent()
     agent.start_conversation()
-    _SESSIONS[new_id] = agent
+
+    # Persist new session with secure serialization
+    try:
+        # SECURITY: Use secure serializer instead of pickle
+        agent_data = agent.get_state_for_serialization()
+        agent_state = serializer.serialize(agent_data)
+        persistence.save_session(
+            session_id=new_id,
+            session_type="agent",
+            agent_state=agent_state.encode('utf-8')
+        )
+    except SerializationError as e:
+        logger.warning(f"Security: Failed to serialize session {new_id}: {e}")
+    except Exception as e:
+        logger.warning(f"Failed to persist new session {new_id}: {sanitize_for_logging(str(e))}")
+
     return new_id, agent
 
 
@@ -347,12 +472,27 @@ async def chat(request: Request, response: Response):
 
     session_id = request.cookies.get("tax_session_id")
     session_id, agent = _get_or_create_session_agent(session_id)
-    response.set_cookie("tax_session_id", session_id, httponly=True, samesite="lax")
+    response.set_cookie(
+        "tax_session_id",
+        session_id,
+        httponly=True,
+        samesite="lax",
+        secure=os.environ.get("APP_ENVIRONMENT") == "production",  # HTTPS only in production
+        max_age=86400  # 24 hours
+    )
 
     if action == "reset":
-        _SESSIONS.pop(session_id, None)
+        # C3: Delete session from database (not just in-memory)
+        _get_persistence().delete_session(session_id)
         session_id, agent = _get_or_create_session_agent(None)
-        response.set_cookie("tax_session_id", session_id, httponly=True, samesite="lax")
+        response.set_cookie(
+        "tax_session_id",
+        session_id,
+        httponly=True,
+        samesite="lax",
+        secure=os.environ.get("APP_ENVIRONMENT") == "production",  # HTTPS only in production
+        max_age=86400  # 24 hours
+    )
         return JSONResponse({"reply": "Session reset. " + agent.start_conversation()})
 
     if action == "summary":
@@ -374,6 +514,23 @@ async def chat(request: Request, response: Response):
         return JSONResponse({"reply": "Please type a message."})
 
     reply = agent.process_message(user_message)
+
+    # C3: Persist agent state after message processing
+    # SECURITY: Use secure serializer instead of pickle
+    try:
+        serializer = get_secure_serializer()
+        agent_data = agent.get_state_for_serialization()
+        agent_state = serializer.serialize(agent_data)
+        _get_persistence().save_session(
+            session_id=session_id,
+            session_type="agent",
+            agent_state=agent_state.encode('utf-8')
+        )
+    except SerializationError as e:
+        logger.warning(f"Security: Failed to serialize agent state: {e}")
+    except Exception as e:
+        logger.warning(f"Failed to persist agent state: {sanitize_for_logging(str(e))}")
+
     return JSONResponse({"reply": reply})
 
 
@@ -430,14 +587,27 @@ async def upload_document(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OCR processing failed: {str(e)}")
 
-    # Store document result
+    # C3: Store document result in database (not in-memory)
     doc_id = str(result.document_id)
-    _DOCUMENTS[doc_id] = {
-        "result": result,
-        "session_id": session_id,
+    result_dict = {
+        "document_id": doc_id,
+        "document_type": result.document_type,
+        "tax_year": result.tax_year,
+        "status": result.status,
+        "ocr_confidence": result.ocr_confidence,
+        "extraction_confidence": result.extraction_confidence,
+        "extracted_fields": [f.to_dict() for f in result.extracted_fields],
+        "warnings": result.warnings,
+        "errors": result.errors,
         "filename": file.filename,
-        "created_at": datetime.now().isoformat(),
     }
+    _get_persistence().save_document_result(
+        document_id=doc_id,
+        session_id=session_id,
+        document_type=result.document_type,
+        status=result.status,
+        result=result_dict
+    )
 
     json_response = JSONResponse({
         "document_id": doc_id,
@@ -450,7 +620,14 @@ async def upload_document(
         "warnings": result.warnings,
         "errors": result.errors,
     })
-    json_response.set_cookie("tax_session_id", session_id, httponly=True, samesite="lax")
+    json_response.set_cookie(
+        "tax_session_id",
+        session_id,
+        httponly=True,
+        samesite="lax",
+        secure=os.environ.get("APP_ENVIRONMENT") == "production",  # HTTPS only in production
+        max_age=86400  # 24 hours
+    )
     return json_response
 
 
@@ -493,16 +670,16 @@ async def upload_document_async(
 
     # Generate document ID
     document_id = str(uuid.uuid4())
+    persistence = _get_persistence()
 
-    # Store pending document reference
-    _DOCUMENTS[document_id] = {
-        "result": None,
-        "session_id": session_id,
-        "filename": file.filename,
-        "created_at": datetime.now().isoformat(),
-        "status": "processing",
-        "task_id": None,
-    }
+    # C3: Store pending document reference in database
+    persistence.save_document_result(
+        document_id=document_id,
+        session_id=session_id,
+        document_type=document_type,
+        status="processing",
+        result={"filename": file.filename, "task_id": None}
+    )
 
     # Submit to Celery for async processing
     try:
@@ -518,8 +695,14 @@ async def upload_document_async(
             callback_url=callback_url,
         )
 
-        # Update document with task_id
-        _DOCUMENTS[document_id]["task_id"] = task_result["task_id"]
+        # C3: Update document with task_id in database
+        persistence.save_document_result(
+            document_id=document_id,
+            session_id=session_id,
+            document_type=document_type,
+            status="processing",
+            result={"filename": file.filename, "task_id": task_result["task_id"]}
+        )
 
         json_response = JSONResponse({
             "document_id": document_id,
@@ -527,7 +710,14 @@ async def upload_document_async(
             "status": "processing",
             "message": "Document submitted for processing. Use GET /api/upload/status/{task_id} to check status.",
         })
-        json_response.set_cookie("tax_session_id", session_id, httponly=True, samesite="lax")
+        json_response.set_cookie(
+        "tax_session_id",
+        session_id,
+        httponly=True,
+        samesite="lax",
+        secure=os.environ.get("APP_ENVIRONMENT") == "production",  # HTTPS only in production
+        max_age=86400  # 24 hours
+    )
         return json_response
 
     except ImportError:
@@ -541,14 +731,27 @@ async def upload_document_async(
                 document_type=document_type,
                 tax_year=tax_year,
             )
-            _DOCUMENTS[document_id] = {
-                "result": result,
-                "session_id": session_id,
-                "filename": file.filename,
-                "created_at": datetime.now().isoformat(),
+            # C3: Store completed result in database
+            result_dict = {
+                "document_id": document_id,
+                "document_type": result.document_type,
+                "tax_year": result.tax_year,
                 "status": "completed",
+                "ocr_confidence": result.ocr_confidence,
+                "extraction_confidence": result.extraction_confidence,
+                "extracted_fields": [f.to_dict() for f in result.extracted_fields],
+                "warnings": result.warnings,
+                "errors": result.errors,
+                "filename": file.filename,
                 "task_id": None,
             }
+            persistence.save_document_result(
+                document_id=document_id,
+                session_id=session_id,
+                document_type=result.document_type,
+                status="completed",
+                result=result_dict
+            )
             json_response = JSONResponse({
                 "document_id": document_id,
                 "task_id": None,
@@ -557,14 +760,21 @@ async def upload_document_async(
                 "document_type": result.document_type,
                 "extraction_confidence": result.extraction_confidence,
             })
-            json_response.set_cookie("tax_session_id", session_id, httponly=True, samesite="lax")
+            json_response.set_cookie(
+        "tax_session_id",
+        session_id,
+        httponly=True,
+        samesite="lax",
+        secure=os.environ.get("APP_ENVIRONMENT") == "production",  # HTTPS only in production
+        max_age=86400  # 24 hours
+    )
             return json_response
         except Exception as e:
-            del _DOCUMENTS[document_id]
+            persistence.delete_document(document_id)
             raise HTTPException(status_code=500, detail=f"OCR processing failed: {str(e)}")
 
     except Exception as e:
-        del _DOCUMENTS[document_id]
+        persistence.delete_document(document_id)
         raise HTTPException(status_code=500, detail=f"Failed to submit document for processing: {str(e)}")
 
 
@@ -625,45 +835,48 @@ async def get_document_processing_status(document_id: str, request: Request):
     This is useful when you have the document_id but not the task_id.
     """
     session_id = request.cookies.get("tax_session_id") or ""
+    persistence = _get_persistence()
 
-    # Check local cache first
-    if document_id in _DOCUMENTS:
-        doc_data = _DOCUMENTS[document_id]
-        if doc_data["session_id"] != session_id:
-            raise HTTPException(status_code=403, detail="Access denied")
+    # C3: Check database for document
+    doc_record = persistence.load_document_result(document_id, session_id=session_id)
+    if doc_record:
+        result_data = doc_record.result
 
-        if doc_data.get("result"):
-            result = doc_data["result"]
+        if doc_record.status == "completed" and result_data:
             return JSONResponse({
                 "document_id": document_id,
                 "status": "completed",
-                "document_type": result.document_type,
-                "tax_year": result.tax_year,
-                "ocr_confidence": result.ocr_confidence,
-                "extraction_confidence": result.extraction_confidence,
+                "document_type": result_data.get("document_type"),
+                "tax_year": result_data.get("tax_year"),
+                "ocr_confidence": result_data.get("ocr_confidence"),
+                "extraction_confidence": result_data.get("extraction_confidence"),
             })
-        elif doc_data.get("task_id"):
+        elif result_data.get("task_id"):
             # Check Celery task status
             try:
                 from tasks.ocr_tasks import get_task_status
 
-                task_status = get_task_status(doc_data["task_id"])
+                task_status = get_task_status(result_data["task_id"])
                 if task_status["ready"] and task_status.get("result"):
-                    # Update local cache with result
-                    result_data = task_status["result"]
-                    # Create a ProcessingResult-like object for compatibility
-                    from services.ocr import ProcessingResult
-                    result = ProcessingResult.from_dict(result_data)
-                    doc_data["result"] = result
-                    doc_data["status"] = "completed"
+                    # C3: Update database with completed result
+                    completed_result = task_status["result"]
+                    completed_result["filename"] = result_data.get("filename")
+                    completed_result["task_id"] = result_data.get("task_id")
+                    persistence.save_document_result(
+                        document_id=document_id,
+                        session_id=session_id,
+                        document_type=completed_result.get("document_type"),
+                        status="completed",
+                        result=completed_result
+                    )
 
                     return JSONResponse({
                         "document_id": document_id,
                         "status": "completed",
-                        "document_type": result.document_type,
-                        "tax_year": result.tax_year,
-                        "ocr_confidence": result.ocr_confidence,
-                        "extraction_confidence": result.extraction_confidence,
+                        "document_type": completed_result.get("document_type"),
+                        "tax_year": completed_result.get("tax_year"),
+                        "ocr_confidence": completed_result.get("ocr_confidence"),
+                        "extraction_confidence": completed_result.get("extraction_confidence"),
                     })
                 elif task_status["ready"] and task_status.get("error"):
                     return JSONResponse({
@@ -675,18 +888,23 @@ async def get_document_processing_status(document_id: str, request: Request):
                     return JSONResponse({
                         "document_id": document_id,
                         "status": "processing",
-                        "task_id": doc_data["task_id"],
+                        "task_id": result_data["task_id"],
                     })
             except ImportError:
                 return JSONResponse({
                     "document_id": document_id,
-                    "status": doc_data.get("status", "unknown"),
+                    "status": doc_record.status,
                 })
 
         return JSONResponse({
             "document_id": document_id,
-            "status": doc_data.get("status", "unknown"),
+            "status": doc_record.status,
         })
+
+    # Check if document exists but belongs to different session
+    doc_any = persistence.load_document_result(document_id)
+    if doc_any:
+        raise HTTPException(status_code=403, detail="Access denied")
 
     # Try Redis-based status if available
     try:
@@ -742,19 +960,21 @@ async def list_documents(request: Request):
     if not session_id:
         return JSONResponse({"documents": []})
 
+    # C3: Load documents from database
+    doc_records = _get_persistence().list_session_documents(session_id)
     docs = []
-    for doc_id, doc_data in _DOCUMENTS.items():
-        if doc_data["session_id"] == session_id:
-            result = doc_data["result"]
+    for doc_record in doc_records:
+        result_data = doc_record.result
+        if result_data:
             docs.append({
-                "document_id": doc_id,
-                "filename": doc_data["filename"],
-                "document_type": result.document_type,
-                "tax_year": result.tax_year,
-                "status": result.status,
-                "ocr_confidence": result.ocr_confidence,
-                "extraction_confidence": result.extraction_confidence,
-                "created_at": doc_data["created_at"],
+                "document_id": doc_record.document_id,
+                "filename": result_data.get("filename"),
+                "document_type": result_data.get("document_type"),
+                "tax_year": result_data.get("tax_year"),
+                "status": doc_record.status,
+                "ocr_confidence": result_data.get("ocr_confidence"),
+                "extraction_confidence": result_data.get("extraction_confidence"),
+                "created_at": doc_record.created_at,
             })
 
     return JSONResponse({"documents": docs})
@@ -764,41 +984,79 @@ async def list_documents(request: Request):
 async def get_document(document_id: str, request: Request):
     """Get details of a specific uploaded document."""
     session_id = request.cookies.get("tax_session_id") or ""
+    persistence = _get_persistence()
 
-    if document_id not in _DOCUMENTS:
+    # C3: Load document from database
+    doc_record = persistence.load_document_result(document_id, session_id=session_id)
+    if not doc_record:
+        # Check if exists but belongs to different session
+        doc_any = persistence.load_document_result(document_id)
+        if doc_any:
+            raise HTTPException(status_code=403, detail="Access denied")
         raise HTTPException(status_code=404, detail="Document not found")
 
-    doc_data = _DOCUMENTS[document_id]
-    if doc_data["session_id"] != session_id:
-        raise HTTPException(status_code=403, detail="Access denied")
-
-    result = doc_data["result"]
+    result_data = doc_record.result
     return JSONResponse({
         "document_id": document_id,
-        "filename": doc_data["filename"],
-        "document_type": result.document_type,
-        "tax_year": result.tax_year,
-        "status": result.status,
-        "ocr_confidence": result.ocr_confidence,
-        "extraction_confidence": result.extraction_confidence,
-        "extracted_fields": [f.to_dict() for f in result.extracted_fields],
-        "extracted_data": result.get_extracted_data(),
-        "warnings": result.warnings,
-        "errors": result.errors,
-        "created_at": doc_data["created_at"],
+        "filename": result_data.get("filename"),
+        "document_type": result_data.get("document_type"),
+        "tax_year": result_data.get("tax_year"),
+        "status": doc_record.status,
+        "ocr_confidence": result_data.get("ocr_confidence"),
+        "extraction_confidence": result_data.get("extraction_confidence"),
+        "extracted_fields": result_data.get("extracted_fields", []),
+        "extracted_data": _build_extracted_data(result_data.get("extracted_fields", [])),
+        "warnings": result_data.get("warnings", []),
+        "errors": result_data.get("errors", []),
+        "created_at": doc_record.created_at,
     })
 
 
+def _build_extracted_data(extracted_fields: list) -> dict:
+    """Build extracted data dict from list of field dicts."""
+    data = {}
+    for field in extracted_fields:
+        if isinstance(field, dict) and "field_name" in field and "value" in field:
+            data[field["field_name"]] = field["value"]
+    return data
+
+
 def _get_or_create_tax_return(session_id: str):
-    """Get or create a tax return for the session (without requiring OpenAI)."""
+    """
+    Get or create a tax return for the session (without requiring OpenAI).
+
+    C3: Tax return is persisted to database, not in-memory dict.
+    SECURITY: Uses SecureSerializer instead of pickle to prevent RCE.
+    """
     from models.tax_return import TaxReturn
     from models.taxpayer import TaxpayerInfo, FilingStatus
     from models.income import Income
     from models.deductions import Deductions
     from models.credits import TaxCredits
 
-    if session_id in _TAX_RETURNS:
-        return _TAX_RETURNS[session_id]
+    persistence = _get_persistence()
+    serializer = get_secure_serializer()
+
+    # C3: Try to load from database
+    stored = persistence.load_session_tax_return(session_id)
+    if stored and stored.get("return_data"):
+        try:
+            # SECURITY: Use secure deserializer instead of pickle
+            serialized_data = stored["return_data"].get("secure_tax_return")
+            if serialized_data:
+                tax_data = serializer.deserialize(serialized_data)
+                tax_return = TaxReturn.from_dict(tax_data)
+                return tax_return
+            # Fallback for legacy pickled data (read-only migration)
+            legacy_pickled = stored["return_data"].get("pickled_tax_return")
+            if legacy_pickled:
+                logger.warning(f"Legacy pickle data found for {session_id} - migrating to secure format")
+                # For migration: we'll create a new return instead of unpickling
+                # This is safer than executing potentially malicious pickle data
+        except (DeserializationError, IntegrityError) as e:
+            logger.warning(f"Security: Failed to deserialize tax return for {session_id}: {e}")
+        except Exception as e:
+            logger.warning(f"Failed to load tax return from database for {session_id}: {sanitize_for_logging(str(e))}")
 
     # Create a new tax return
     tax_return = TaxReturn(
@@ -811,8 +1069,50 @@ def _get_or_create_tax_return(session_id: str):
         deductions=Deductions(),
         credits=TaxCredits()
     )
-    _TAX_RETURNS[session_id] = tax_return
+
+    # C3: Persist new tax return
+    _persist_tax_return(session_id, tax_return)
     return tax_return
+
+
+def _persist_tax_return(session_id: str, tax_return):
+    """
+    Persist tax return to database.
+
+    SECURITY: Uses SecureSerializer instead of pickle to prevent RCE.
+    """
+    try:
+        serializer = get_secure_serializer()
+        # Convert tax return to dict for safe serialization
+        tax_data = tax_return.to_dict() if hasattr(tax_return, 'to_dict') else _tax_return_to_dict(tax_return)
+        serialized = serializer.serialize(tax_data)
+        _get_persistence().save_session_tax_return(
+            session_id=session_id,
+            return_data={"secure_tax_return": serialized}
+        )
+    except SerializationError as e:
+        logger.warning(f"Security: Failed to serialize tax return for {session_id}: {e}")
+    except Exception as e:
+        logger.warning(f"Failed to persist tax return for {session_id}: {sanitize_for_logging(str(e))}")
+
+
+def _tax_return_to_dict(tax_return) -> dict:
+    """Convert TaxReturn to dict for serialization (fallback if to_dict not available)."""
+    from dataclasses import asdict, is_dataclass
+    if is_dataclass(tax_return):
+        return asdict(tax_return)
+    elif hasattr(tax_return, '__dict__'):
+        result = {}
+        for key, value in tax_return.__dict__.items():
+            if not key.startswith('_'):
+                if is_dataclass(value):
+                    result[key] = asdict(value)
+                elif hasattr(value, '__dict__'):
+                    result[key] = {k: v for k, v in value.__dict__.items() if not k.startswith('_')}
+                else:
+                    result[key] = value
+        return result
+    return {}
 
 
 @app.post("/api/documents/{document_id}/apply")
@@ -823,15 +1123,21 @@ async def apply_document(document_id: str, request: Request):
     This automatically populates the tax return with data from the document.
     """
     session_id = request.cookies.get("tax_session_id") or ""
+    persistence = _get_persistence()
 
-    if document_id not in _DOCUMENTS:
+    # C3: Load document from database
+    doc_record = persistence.load_document_result(document_id, session_id=session_id)
+    if not doc_record:
+        doc_any = persistence.load_document_result(document_id)
+        if doc_any:
+            raise HTTPException(status_code=403, detail="Access denied")
         raise HTTPException(status_code=404, detail="Document not found")
 
-    doc_data = _DOCUMENTS[document_id]
-    if doc_data["session_id"] != session_id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    result_data = doc_record.result
 
-    result: ProcessingResult = doc_data["result"]
+    # Reconstruct ProcessingResult from stored data
+    from services.ocr import ProcessingResult
+    result = ProcessingResult.from_dict(result_data)
 
     # Get or create tax return (without requiring OpenAI)
     tax_return = _get_or_create_tax_return(session_id)
@@ -843,22 +1149,32 @@ async def apply_document(document_id: str, request: Request):
     success, messages = integration.apply_document_to_return(result, tax_return)
 
     if success:
-        # Update document status
-        result.status = "applied"
+        # C3: Update document status in database
+        result_data["status"] = "applied"
+        persistence.save_document_result(
+            document_id=document_id,
+            session_id=session_id,
+            document_type=result_data.get("document_type"),
+            status="applied",
+            result=result_data
+        )
+
+        # C3: Persist updated tax return
+        _persist_tax_return(session_id, tax_return)
 
         # Generate summary of applied data
-        extracted_data = result.get_extracted_data()
+        extracted_data = _build_extracted_data(result_data.get("extracted_fields", []))
         summary_items = []
         if "wages" in extracted_data:
-            summary_items.append(f"Wages: ${extracted_data['wages']:,.2f}")
+            summary_items.append(f"Wages: ${float(extracted_data['wages']):,.2f}")
         if "federal_tax_withheld" in extracted_data:
-            summary_items.append(f"Federal Withheld: ${extracted_data['federal_tax_withheld']:,.2f}")
+            summary_items.append(f"Federal Withheld: ${float(extracted_data['federal_tax_withheld']):,.2f}")
 
         return JSONResponse({
             "success": True,
             "document_id": document_id,
-            "document_type": result.document_type,
-            "message": f"Successfully applied {result.document_type.upper()} to tax return",
+            "document_type": result_data.get("document_type"),
+            "message": f"Successfully applied {result_data.get('document_type', 'document').upper()} to tax return",
             "applied_data": summary_items,
             "warnings": messages,
         })
@@ -866,7 +1182,7 @@ async def apply_document(document_id: str, request: Request):
         return JSONResponse({
             "success": False,
             "document_id": document_id,
-            "document_type": result.document_type,
+            "document_type": result_data.get("document_type"),
             "message": "Failed to apply document",
             "errors": messages,
         }, status_code=400)
@@ -876,15 +1192,18 @@ async def apply_document(document_id: str, request: Request):
 async def delete_document(document_id: str, request: Request):
     """Delete an uploaded document."""
     session_id = request.cookies.get("tax_session_id") or ""
+    persistence = _get_persistence()
 
-    if document_id not in _DOCUMENTS:
+    # C3: Check document exists and belongs to session
+    doc_record = persistence.load_document_result(document_id, session_id=session_id)
+    if not doc_record:
+        doc_any = persistence.load_document_result(document_id)
+        if doc_any:
+            raise HTTPException(status_code=403, detail="Access denied")
         raise HTTPException(status_code=404, detail="Document not found")
 
-    doc_data = _DOCUMENTS[document_id]
-    if doc_data["session_id"] != session_id:
-        raise HTTPException(status_code=403, detail="Access denied")
-
-    del _DOCUMENTS[document_id]
+    # C3: Delete from database
+    persistence.delete_document(document_id)
     return JSONResponse({"success": True, "message": "Document deleted"})
 
 
@@ -1163,12 +1482,8 @@ async def get_optimization_recommendations(request: Request):
 
     session_id = request.cookies.get("tax_session_id") or ""
 
-    # Get tax return from session or document-only flow
-    tax_return = None
-    if session_id in _SESSIONS:
-        tax_return = _SESSIONS[session_id].get_tax_return()
-    if not tax_return and session_id in _TAX_RETURNS:
-        tax_return = _TAX_RETURNS[session_id]
+    # C3: Get tax return from database (not in-memory)
+    tax_return = _get_tax_return_for_session(session_id)
 
     if not tax_return:
         raise HTTPException(status_code=400, detail="No tax return data found. Please upload documents or complete the interview.")
@@ -1696,11 +2011,48 @@ async def export_json(request: Request):
 
 
 def _get_tax_return_for_session(session_id: str):
-    """Helper to get tax return from either session or document flow."""
-    if session_id in _SESSIONS:
-        return _SESSIONS[session_id].get_tax_return()
-    if session_id in _TAX_RETURNS:
-        return _TAX_RETURNS[session_id]
+    """
+    Helper to get tax return from either session or document flow.
+
+    C3: Uses database persistence instead of in-memory dicts.
+    SECURITY: Uses SecureSerializer instead of pickle to prevent RCE.
+    """
+    from models.tax_return import TaxReturn
+    persistence = _get_persistence()
+    serializer = get_secure_serializer()
+
+    # First try to get from agent session
+    agent_state = persistence.load_agent_state(session_id)
+    if agent_state:
+        try:
+            # SECURITY: Use secure deserializer instead of pickle
+            agent_data = serializer.deserialize(agent_state.decode('utf-8') if isinstance(agent_state, bytes) else agent_state)
+            agent = TaxAgent()
+            agent.restore_from_state(agent_data)
+            tax_return = agent.get_tax_return()
+            if tax_return:
+                return tax_return
+        except (DeserializationError, IntegrityError) as e:
+            logger.warning(f"Security: Failed to deserialize agent for session {session_id}: {e}")
+        except Exception as e:
+            logger.warning(f"Failed to load agent for session {session_id}: {sanitize_for_logging(str(e))}")
+
+    # Then try document-flow tax return
+    stored = persistence.load_session_tax_return(session_id)
+    if stored and stored.get("return_data"):
+        try:
+            # SECURITY: Use secure deserializer instead of pickle
+            serialized_data = stored["return_data"].get("secure_tax_return")
+            if serialized_data:
+                tax_data = serializer.deserialize(serialized_data)
+                return TaxReturn.from_dict(tax_data)
+            # Note: Legacy pickled data is NOT loaded for security reasons
+            # Users with legacy data will need to re-enter their information
+        except (DeserializationError, IntegrityError) as e:
+            logger.warning(f"Security: Failed to deserialize tax return for session {session_id}: {e}")
+        except Exception as e:
+            logger.warning(f"Failed to load tax return for session {session_id}: {sanitize_for_logging(str(e))}")
+
     return None
 
 
@@ -1879,8 +2231,8 @@ async def sync_tax_return(request: Request):
         state_of_residence=body.get("stateOfResidence"),
     )
 
-    # Store in session
-    _TAX_RETURNS[session_id] = tax_return
+    # C3: Store in database (not in-memory)
+    _persist_tax_return(session_id, tax_return)
 
     response = JSONResponse({
         "success": True,
@@ -1892,7 +2244,14 @@ async def sync_tax_return(request: Request):
             "num_dependents": len(dependents),
         }
     })
-    response.set_cookie("tax_session_id", session_id, httponly=True, samesite="lax")
+    response.set_cookie(
+        "tax_session_id",
+        session_id,
+        httponly=True,
+        samesite="lax",
+        secure=os.environ.get("APP_ENVIRONMENT") == "production",  # HTTPS only in production
+        max_age=86400  # 24 hours
+    )
     return response
 
 
@@ -2061,9 +2420,9 @@ async def get_saved_return(return_id: str, request: Request):
             state_of_residence=return_data.get("state_of_residence"),
         )
 
-        # Store in session
+        # C3: Store in database (not in-memory)
         session_id = request.cookies.get("tax_session_id") or str(uuid.uuid4())
-        _TAX_RETURNS[session_id] = tax_return
+        _persist_tax_return(session_id, tax_return)
 
         response = JSONResponse({
             "success": True,
@@ -2076,7 +2435,14 @@ async def get_saved_return(return_id: str, request: Request):
                 "state": return_data.get("state_of_residence"),
             }
         })
-        response.set_cookie("tax_session_id", session_id, httponly=True, samesite="lax")
+        response.set_cookie(
+        "tax_session_id",
+        session_id,
+        httponly=True,
+        samesite="lax",
+        secure=os.environ.get("APP_ENVIRONMENT") == "production",  # HTTPS only in production
+        max_age=86400  # 24 hours
+    )
         return response
 
     except Exception as e:
@@ -3382,10 +3748,17 @@ async def get_smart_insights(request: Request):
     """
     Get AI-powered tax optimization insights for the Smart Insights sidebar.
     Returns actionable recommendations with one-click apply capability.
+
+    Combines insights from:
+    - Base recommendation engine (filing status, deductions, credits, strategies)
+    - Rules-based recommender (764+ IRS rules including crypto, foreign, K-1, etc.)
     """
     session_id = request.cookies.get("tax_session_id", "")
 
     try:
+        # Import rules-based recommender
+        from recommendation.rules_based_recommender import get_rules_recommender
+
         # Load tax return from session
         tax_return = None
         if session_id:
@@ -3404,49 +3777,156 @@ async def get_smart_insights(request: Request):
                 "insights": [],
                 "total_potential_savings": 0,
                 "insight_count": 0,
+                "warnings": [],
                 "message": "Enter tax data to see personalized insights"
             })
 
-        # Get base recommendations
-        recommendations_result = get_recommendations(tax_return)
-
         insights = []
+        warnings = []
         total_savings = 0
+        seen_titles = set()  # Avoid duplicate insights
 
-        for rec in recommendations_result.recommendations[:5]:  # Top 5 insights
-            # TaxRecommendation is a dataclass, access attributes directly
-            category = rec.category.value if hasattr(rec.category, 'value') else str(rec.category)
-            priority = rec.priority.value if hasattr(rec.priority, 'value') else str(rec.priority)
+        # =====================================================================
+        # Source 1: Rules-Based Recommender (764+ IRS Rules)
+        # Priority: These are compliance-critical and comprehensive
+        # =====================================================================
+        try:
+            rules_recommender = get_rules_recommender()
+            rule_insights = rules_recommender.get_top_insights(tax_return, limit=8)
+            rule_warnings = rules_recommender.get_warnings(tax_return)
 
-            insight = {
-                "id": f"insight_{uuid.uuid4().hex[:8]}",
-                "type": category,
-                "title": rec.title,
-                "description": rec.description,
-                "savings": rec.potential_savings or 0,
-                "priority": priority,
-                "action_type": "manual",
-                "can_auto_apply": False,
-                "action_items": rec.action_items or [],
-            }
+            # Add rule-based insights (prioritize these as they're IRS-specific)
+            for ri in rule_insights:
+                if ri.title in seen_titles:
+                    continue
+                seen_titles.add(ri.title)
 
-            # Add action endpoint based on category
-            if category == "retirement_planning":
-                insight["action_endpoint"] = "/api/retirement-analysis"
-                insight["details_url"] = "/optimizer?tab=retirement"
-            elif category == "deduction_opportunity":
-                insight["details_url"] = "/optimizer?tab=scenarios"
-            elif category == "credit_opportunity":
-                insight["details_url"] = "/optimizer?tab=scenarios"
+                insight = {
+                    "id": f"rule_{ri.rule_id}_{uuid.uuid4().hex[:4]}",
+                    "type": ri.category,
+                    "title": ri.title,
+                    "description": ri.description,
+                    "savings": max(0, ri.estimated_impact),  # Only positive savings
+                    "priority": ri.priority,
+                    "severity": ri.severity,
+                    "action_type": "manual",
+                    "can_auto_apply": False,
+                    "action_items": ri.action_items,
+                    "irs_reference": ri.irs_reference,
+                    "irs_form": ri.irs_form,
+                    "confidence": ri.confidence,
+                    "rule_id": ri.rule_id,
+                    "source": "rules_engine"
+                }
 
-            insights.append(insight)
-            total_savings += insight["savings"]
+                # Set details URL based on category
+                if ri.category == "virtual_currency":
+                    insight["details_url"] = "/forms?form=8949"
+                elif ri.category == "foreign_assets":
+                    insight["details_url"] = "/forms?form=8938"
+                elif ri.category == "household_employment":
+                    insight["details_url"] = "/forms?form=schedule_h"
+                elif ri.category == "k1_passthrough":
+                    insight["details_url"] = "/forms?form=k1"
+                elif ri.category == "casualty_loss":
+                    insight["details_url"] = "/forms?form=4684"
+                elif ri.category == "retirement":
+                    insight["details_url"] = "/optimizer?tab=retirement"
+                else:
+                    insight["details_url"] = "/optimizer"
+
+                insights.append(insight)
+                total_savings += insight["savings"]
+
+            # Collect critical warnings
+            for rw in rule_warnings:
+                if rw.title not in [w.get("title") for w in warnings]:
+                    warnings.append({
+                        "id": f"warn_{rw.rule_id}",
+                        "title": rw.title,
+                        "description": rw.description,
+                        "severity": rw.severity,
+                        "irs_reference": rw.irs_reference,
+                        "action_items": rw.action_items
+                    })
+
+        except Exception as rule_error:
+            logger.warning(f"Rules-based recommender error (non-fatal): {rule_error}")
+
+        # =====================================================================
+        # Source 2: Base Recommendation Engine (Filing, Deductions, Credits)
+        # =====================================================================
+        try:
+            recommendations_result = get_recommendations(tax_return)
+
+            for rec in recommendations_result.recommendations[:5]:
+                category = rec.category.value if hasattr(rec.category, 'value') else str(rec.category)
+
+                # Skip if we already have similar insight from rules engine
+                if rec.title in seen_titles:
+                    continue
+                seen_titles.add(rec.title)
+
+                priority = rec.priority.value if hasattr(rec.priority, 'value') else str(rec.priority)
+
+                insight = {
+                    "id": f"insight_{uuid.uuid4().hex[:8]}",
+                    "type": category,
+                    "title": rec.title,
+                    "description": rec.description,
+                    "savings": rec.potential_savings or 0,
+                    "priority": priority,
+                    "severity": "medium",
+                    "action_type": "manual",
+                    "can_auto_apply": False,
+                    "action_items": rec.action_items or [],
+                    "source": "recommendation_engine"
+                }
+
+                # Add action endpoint based on category
+                if category == "retirement_planning":
+                    insight["action_endpoint"] = "/api/retirement-analysis"
+                    insight["details_url"] = "/optimizer?tab=retirement"
+                elif category == "deduction_opportunity":
+                    insight["details_url"] = "/optimizer?tab=scenarios"
+                elif category == "credit_opportunity":
+                    insight["details_url"] = "/optimizer?tab=scenarios"
+                else:
+                    insight["details_url"] = "/optimizer"
+
+                insights.append(insight)
+                total_savings += insight["savings"]
+
+        except Exception as rec_error:
+            logger.warning(f"Recommendation engine error (non-fatal): {rec_error}")
+
+        # =====================================================================
+        # Sort and Limit Results
+        # =====================================================================
+        # Priority order: immediate > current_year > next_year > long_term
+        priority_order = {"immediate": 0, "current_year": 1, "next_year": 2, "long_term": 3}
+        severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+
+        insights.sort(key=lambda x: (
+            priority_order.get(x.get("priority", "long_term"), 4),
+            severity_order.get(x.get("severity", "medium"), 2),
+            -x.get("savings", 0)
+        ))
+
+        # Limit to top 8 insights for clean UI
+        insights = insights[:8]
+
+        # Sort warnings by severity
+        warnings.sort(key=lambda x: severity_order.get(x.get("severity", "medium"), 2))
 
         return JSONResponse({
             "success": True,
             "insights": insights,
             "total_potential_savings": round(total_savings, 2),
-            "insight_count": len(insights)
+            "insight_count": len(insights),
+            "warnings": warnings[:3],  # Top 3 warnings
+            "warning_count": len(warnings),
+            "sources": ["rules_engine", "recommendation_engine"]
         })
 
     except Exception as e:
@@ -3456,7 +3936,9 @@ async def get_smart_insights(request: Request):
             "success": True,
             "insights": [],
             "total_potential_savings": 0,
-            "insight_count": 0
+            "insight_count": 0,
+            "warnings": [],
+            "warning_count": 0
         })
 
 

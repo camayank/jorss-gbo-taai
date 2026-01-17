@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, ClassVar
 from pydantic import BaseModel, Field
 from .taxpayer import TaxpayerInfo
 from .income import Income
@@ -7,7 +7,11 @@ from .credits import TaxCredits
 
 
 class TaxReturn(BaseModel):
-    """Complete tax return information"""
+    """Complete tax return information
+
+    SECURITY NOTE: This model supports secure serialization via to_dict/from_dict
+    methods. Use these instead of pickle for session persistence.
+    """
     tax_year: int = 2025
     taxpayer: TaxpayerInfo
     income: Income
@@ -116,3 +120,49 @@ class TaxReturn(BaseModel):
         if self.tax_liability is not None:
             net_tax = self.tax_liability - self.total_credits
             self.refund_or_owed = self.total_payments - net_tax
+
+    # =========================================================================
+    # SECURE SERIALIZATION METHODS (replaces pickle for session persistence)
+    # =========================================================================
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert TaxReturn to dictionary for secure serialization.
+
+        SECURITY: Use this instead of pickle for session persistence.
+        Works with SecureSerializer for HMAC-signed, tamper-proof storage.
+
+        Returns:
+            Dictionary representation of the tax return.
+        """
+        # Use Pydantic's built-in serialization
+        try:
+            # Pydantic v2
+            return self.model_dump(mode='python')
+        except AttributeError:
+            # Pydantic v1 fallback
+            return self.dict()
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "TaxReturn":
+        """
+        Create TaxReturn from dictionary (deserialized from SecureSerializer).
+
+        SECURITY: Use this instead of pickle for session restoration.
+        Validates data structure and types before creating instance.
+
+        Args:
+            data: Dictionary containing tax return data.
+
+        Returns:
+            TaxReturn instance.
+
+        Raises:
+            ValidationError: If data is invalid or missing required fields.
+        """
+        try:
+            # Pydantic v2
+            return cls.model_validate(data)
+        except AttributeError:
+            # Pydantic v1 fallback
+            return cls.parse_obj(data)

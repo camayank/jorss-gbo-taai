@@ -13,7 +13,9 @@ from enum import Enum
 from datetime import datetime
 import json
 import csv
-import xml.etree.ElementTree as ET
+# SECURITY: Use safe XML parser to prevent XXE attacks
+from security.safe_xml import safe_parse_xml, XMLSecurityError
+import xml.etree.ElementTree as ET  # Only for element creation, NOT parsing
 from io import StringIO
 import re
 
@@ -196,15 +198,15 @@ class DataImporter:
             try:
                 json.loads(content)
                 return ImportFormat.JSON
-            except:
+            except (json.JSONDecodeError, ValueError):
                 pass
 
-        # XML detection
+        # XML detection (using safe parser to prevent XXE)
         if content_stripped.startswith('<?xml') or content_stripped.startswith('<'):
             try:
-                ET.fromstring(content)
+                safe_parse_xml(content)
                 return ImportFormat.XML
-            except:
+            except (ET.ParseError, XMLSecurityError):
                 pass
 
         # TXF detection (starts with V version line)
@@ -222,7 +224,7 @@ class DataImporter:
                     col_count = len(rows[0])
                     if all(len(row) == col_count for row in rows[:5]):
                         return ImportFormat.CSV
-            except:
+            except (csv.Error, ValueError):
                 pass
 
         # Default to JSON if can't detect
@@ -330,8 +332,8 @@ class DataImporter:
                 ))
 
     def _import_xml(self, content: str, result: ImportResult):
-        """Import from XML format."""
-        root = ET.fromstring(content)
+        """Import from XML format (using safe parser to prevent XXE attacks)."""
+        root = safe_parse_xml(content)
 
         # Handle IRS MeF format
         if 'irs' in root.tag.lower() or root.tag == 'Return':

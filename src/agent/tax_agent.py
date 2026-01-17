@@ -236,3 +236,113 @@ Let's get started! What is your first name?"""
         has_income = income.get_total_income() > 0
 
         return has_basic_info and has_income
+
+    # =========================================================================
+    # SECURE SERIALIZATION METHODS (for SecureSerializer - replaces pickle)
+    # =========================================================================
+
+    def get_state_for_serialization(self) -> Dict[str, Any]:
+        """
+        Get agent state as a dictionary for secure serialization.
+
+        SECURITY: This method provides a safe way to serialize agent state
+        without using pickle (which allows arbitrary code execution).
+
+        Returns:
+            Dictionary containing all agent state needed for restoration.
+        """
+        from dataclasses import asdict, is_dataclass
+
+        state = {
+            "collection_stage": self.collection_stage,
+            "messages": self.messages.copy(),  # Chat history
+            "model": self.model,
+        }
+
+        # Serialize tax return if present
+        if self.tax_return:
+            if hasattr(self.tax_return, 'to_dict'):
+                state["tax_return"] = self.tax_return.to_dict()
+            elif is_dataclass(self.tax_return):
+                state["tax_return"] = asdict(self.tax_return)
+            else:
+                # Manual serialization fallback
+                state["tax_return"] = self._serialize_tax_return(self.tax_return)
+        else:
+            state["tax_return"] = None
+
+        return state
+
+    def restore_from_state(self, state: Dict[str, Any]) -> None:
+        """
+        Restore agent state from a dictionary (deserialized from SecureSerializer).
+
+        SECURITY: This method restores agent state without executing arbitrary code.
+
+        Args:
+            state: Dictionary containing agent state from get_state_for_serialization()
+        """
+        # Restore basic state
+        self.collection_stage = state.get("collection_stage", "personal_info")
+        self.messages = state.get("messages", [])
+        self.model = state.get("model", os.getenv("OPENAI_MODEL", "gpt-4o"))
+
+        # Restore tax return if present
+        tax_return_data = state.get("tax_return")
+        if tax_return_data:
+            if hasattr(TaxReturn, 'from_dict'):
+                self.tax_return = TaxReturn.from_dict(tax_return_data)
+            else:
+                self.tax_return = self._deserialize_tax_return(tax_return_data)
+        else:
+            self.tax_return = None
+
+        # Ensure system prompt is in messages
+        if not self.messages or self.messages[0].get("role") != "system":
+            self._setup_system_prompt()
+
+    def _serialize_tax_return(self, tax_return: TaxReturn) -> Dict[str, Any]:
+        """Fallback method to serialize tax return to dict."""
+        from dataclasses import asdict, is_dataclass
+
+        if is_dataclass(tax_return):
+            return asdict(tax_return)
+
+        result = {}
+        for attr in ['taxpayer', 'income', 'deductions', 'credits']:
+            value = getattr(tax_return, attr, None)
+            if value:
+                if is_dataclass(value):
+                    result[attr] = asdict(value)
+                elif hasattr(value, '__dict__'):
+                    result[attr] = {k: v for k, v in value.__dict__.items() if not k.startswith('_')}
+        return result
+
+    def _deserialize_tax_return(self, data: Dict[str, Any]) -> TaxReturn:
+        """Fallback method to deserialize tax return from dict."""
+        taxpayer_data = data.get('taxpayer', {})
+        income_data = data.get('income', {})
+        deductions_data = data.get('deductions', {})
+        credits_data = data.get('credits', {})
+
+        # Handle filing status enum
+        filing_status = taxpayer_data.get('filing_status', 'single')
+        if isinstance(filing_status, str):
+            filing_status = FilingStatus(filing_status)
+
+        return TaxReturn(
+            taxpayer=TaxpayerInfo(
+                first_name=taxpayer_data.get('first_name', ''),
+                last_name=taxpayer_data.get('last_name', ''),
+                filing_status=filing_status,
+                ssn=taxpayer_data.get('ssn', ''),
+                date_of_birth=taxpayer_data.get('date_of_birth'),
+                phone=taxpayer_data.get('phone', ''),
+                email=taxpayer_data.get('email', ''),
+                occupation=taxpayer_data.get('occupation', ''),
+                address=taxpayer_data.get('address'),
+            ),
+            income=Income(**{k: v for k, v in income_data.items() if not k.startswith('_')}),
+            deductions=Deductions(**{k: v for k, v in deductions_data.items() if not k.startswith('_')}),
+            credits=TaxCredits(**{k: v for k, v in credits_data.items() if not k.startswith('_')}),
+        )
