@@ -278,6 +278,80 @@ class CalculationBreakdown:
     form_8995_loss_carryforward: float = 0.0
     form_8995_breakdown: Dict[str, Any] = field(default_factory=dict)
 
+    # =========================================================================
+    # New Income Types (comprehensive coverage)
+    # =========================================================================
+
+    # Form 1099-R Distributions (pensions, annuities, IRAs, 401k)
+    form_1099r_taxable: float = 0.0
+    form_1099r_early_distribution_penalty: float = 0.0
+    form_1099r_breakdown: Dict[str, Any] = field(default_factory=dict)
+
+    # Stock Compensation (ISO, NSO, RSA, RSU, ESPP)
+    stock_compensation_income: float = 0.0
+    stock_compensation_amt_preference: float = 0.0
+    stock_compensation_breakdown: Dict[str, Any] = field(default_factory=dict)
+
+    # Alimony (pre-2019 agreements only)
+    alimony_income: float = 0.0
+
+    # Debt Cancellation (Form 1099-C)
+    debt_cancellation_income: float = 0.0
+    debt_cancellation_breakdown: Dict[str, Any] = field(default_factory=dict)
+
+    # Miscellaneous Income
+    prizes_and_awards_income: float = 0.0
+    taxable_scholarship_income: float = 0.0
+    jury_duty_income: float = 0.0
+
+    # Form 1099-Q (529/Coverdell distributions)
+    form_1099q_taxable: float = 0.0
+    form_1099q_penalty: float = 0.0
+    form_1099q_breakdown: Dict[str, Any] = field(default_factory=dict)
+
+    # State Tax Refund Recovery
+    state_refund_taxable: float = 0.0
+    state_refund_breakdown: Dict[str, Any] = field(default_factory=dict)
+
+    # Form 1099-OID (Original Issue Discount)
+    form_1099oid_taxable: float = 0.0
+    form_1099oid_early_withdrawal_penalty: float = 0.0
+    form_1099oid_breakdown: Dict[str, Any] = field(default_factory=dict)
+
+    # Form 1099-PATR (Patronage Dividends from Cooperatives)
+    form_1099patr_taxable: float = 0.0
+    form_1099patr_section_199a: float = 0.0
+    form_1099patr_breakdown: Dict[str, Any] = field(default_factory=dict)
+
+    # Form 1099-LTC (Long-Term Care Benefits)
+    form_1099ltc_taxable: float = 0.0
+    form_1099ltc_gross: float = 0.0
+    form_1099ltc_breakdown: Dict[str, Any] = field(default_factory=dict)
+
+    # Form RRB-1099 (Railroad Retirement Benefits)
+    form_rrb1099_gross_sseb: float = 0.0
+    form_rrb1099_taxable: float = 0.0
+    form_rrb1099_breakdown: Dict[str, Any] = field(default_factory=dict)
+
+    # Form 4137 (Unreported Tip Income)
+    form_4137_unreported_tips: float = 0.0
+    form_4137_ss_tax: float = 0.0
+    form_4137_medicare_tax: float = 0.0
+    form_4137_total_tax: float = 0.0
+    form_4137_breakdown: Dict[str, Any] = field(default_factory=dict)
+
+    # Clergy Housing Allowance (Section 107)
+    clergy_housing_excludable: float = 0.0
+    clergy_housing_taxable: float = 0.0
+    clergy_housing_se_amount: float = 0.0
+    clergy_housing_breakdown: Dict[str, Any] = field(default_factory=dict)
+
+    # Military Combat Pay Exclusion (Section 112)
+    military_combat_pay_exclusion: float = 0.0
+    military_taxable_pay: float = 0.0
+    military_eitc_earned_income: float = 0.0
+    military_combat_pay_breakdown: Dict[str, Any] = field(default_factory=dict)
+
 
 class FederalTaxEngine:
     """
@@ -441,6 +515,110 @@ class FederalTaxEngine:
         # Populate gambling income breakdown (BR-0501 to BR-0510)
         breakdown.gambling_income = gambling_winnings
         breakdown.gambling_losses_deducted = inc.get_deductible_gambling_losses() if breakdown.deduction_type == "itemized" else 0.0
+
+        # =====================================================================
+        # Populate new income types
+        # =====================================================================
+
+        # Form 1099-R distributions (pensions, annuities, IRAs, 401k)
+        breakdown.form_1099r_taxable = inc.get_total_1099r_taxable()
+        breakdown.form_1099r_early_distribution_penalty = inc.get_1099r_early_distribution_penalty()
+        if inc.form_1099r_distributions:
+            breakdown.form_1099r_breakdown = {
+                'distribution_count': len(inc.form_1099r_distributions),
+                'total_gross': sum(d.gross_distribution for d in inc.form_1099r_distributions),
+                'total_taxable': breakdown.form_1099r_taxable,
+                'total_withholding': inc.get_total_1099r_withholding(),
+                'early_distribution_penalty': breakdown.form_1099r_early_distribution_penalty,
+            }
+
+        # Stock compensation (ISO, NSO, RSA, RSU, ESPP)
+        breakdown.stock_compensation_income = inc.get_total_stock_compensation_income()
+        breakdown.stock_compensation_amt_preference = inc.get_total_stock_compensation_amt_preference()
+        if inc.stock_compensation_events:
+            breakdown.stock_compensation_breakdown = {
+                'event_count': len(inc.stock_compensation_events),
+                'ordinary_income': breakdown.stock_compensation_income,
+                'amt_preference': breakdown.stock_compensation_amt_preference,
+                'total_withholding': inc.get_total_stock_compensation_withholding(),
+            }
+
+        # Alimony received (pre-2019 agreements only)
+        breakdown.alimony_income = inc.get_taxable_alimony_received()
+
+        # Debt cancellation income (Form 1099-C)
+        breakdown.debt_cancellation_income = inc.get_total_debt_cancellation_income()
+        if inc.form_1099c_debt_cancellation:
+            total_canceled = sum(d.amount_canceled for d in inc.form_1099c_debt_cancellation)
+            total_excluded = total_canceled - breakdown.debt_cancellation_income
+            breakdown.debt_cancellation_breakdown = {
+                'form_count': len(inc.form_1099c_debt_cancellation),
+                'total_canceled': total_canceled,
+                'total_excluded': total_excluded,
+                'taxable_amount': breakdown.debt_cancellation_income,
+            }
+
+        # Miscellaneous income
+        breakdown.prizes_and_awards_income = inc.prizes_and_awards
+        breakdown.taxable_scholarship_income = inc.taxable_scholarship
+        breakdown.jury_duty_income = inc.get_net_jury_duty_pay()
+
+        # Form 1099-Q (529/Coverdell distributions)
+        breakdown.form_1099q_taxable = inc.get_total_1099q_taxable()
+        breakdown.form_1099q_penalty = inc.get_total_1099q_penalty()
+        if inc.form_1099q_distributions:
+            breakdown.form_1099q_breakdown = inc.get_1099q_summary()
+
+        # State tax refund recovery
+        breakdown.state_refund_taxable = inc.get_total_taxable_state_refunds()
+        if inc.state_tax_refunds:
+            breakdown.state_refund_breakdown = inc.get_state_refund_summary()
+
+        # Form 1099-OID (Original Issue Discount)
+        breakdown.form_1099oid_taxable = inc.get_total_1099oid_taxable()
+        breakdown.form_1099oid_early_withdrawal_penalty = inc.get_total_1099oid_early_withdrawal_penalty()
+        if inc.form_1099oid:
+            breakdown.form_1099oid_breakdown = inc.get_1099oid_summary()
+
+        # Form 1099-PATR (Patronage Dividends from Cooperatives)
+        breakdown.form_1099patr_taxable = inc.get_total_1099patr_taxable()
+        breakdown.form_1099patr_section_199a = inc.get_total_1099patr_section_199a()
+        if inc.form_1099patr:
+            breakdown.form_1099patr_breakdown = inc.get_1099patr_summary()
+
+        # Form 1099-LTC (Long-Term Care Benefits)
+        breakdown.form_1099ltc_taxable = inc.get_total_1099ltc_taxable()
+        breakdown.form_1099ltc_gross = inc.get_total_1099ltc_gross()
+        if inc.form_1099ltc:
+            breakdown.form_1099ltc_breakdown = inc.get_1099ltc_summary()
+
+        # Form RRB-1099 (Railroad Retirement Benefits)
+        # Note: Taxable amount calculated after MAGI is determined (like Social Security)
+        breakdown.form_rrb1099_gross_sseb = inc.get_total_rrb1099_gross_sseb()
+        if inc.form_rrb1099:
+            breakdown.form_rrb1099_breakdown = inc.get_rrb1099_summary()
+
+        # Form 4137 (Unreported Tip Income)
+        breakdown.form_4137_unreported_tips = inc.get_total_unreported_tips()
+        breakdown.form_4137_ss_tax = inc.get_total_form4137_ss_tax()
+        breakdown.form_4137_medicare_tax = inc.get_total_form4137_medicare_tax()
+        breakdown.form_4137_total_tax = inc.get_total_form4137_tax()
+        if inc.form_4137_tips:
+            breakdown.form_4137_breakdown = inc.get_form4137_summary()
+
+        # Clergy Housing Allowance (Section 107)
+        breakdown.clergy_housing_excludable = inc.get_clergy_housing_excludable()
+        breakdown.clergy_housing_taxable = inc.get_clergy_housing_taxable()
+        breakdown.clergy_housing_se_amount = inc.get_clergy_housing_se_amount()
+        if inc.clergy_housing:
+            breakdown.clergy_housing_breakdown = inc.get_clergy_housing_summary()
+
+        # Military Combat Pay Exclusion (Section 112)
+        breakdown.military_combat_pay_exclusion = inc.get_military_combat_pay_exclusion()
+        breakdown.military_taxable_pay = inc.get_military_taxable_pay()
+        breakdown.military_eitc_earned_income = inc.get_military_eitc_earned_income()
+        if inc.military_combat_pay:
+            breakdown.military_combat_pay_breakdown = inc.get_military_combat_pay_summary()
 
         # Calculate capital gains/losses with carryforward (IRC Section 1211/1212)
         cap_result = inc.calculate_net_capital_gain_loss(
@@ -856,7 +1034,12 @@ class FederalTaxEngine:
                 tax_return.income.get_form_8995_summary() or {}
             )
 
-        # Total tax before credits (includes HSA, IRA penalties, and Form 5329 taxes)
+        # Total tax before credits (includes HSA, IRA penalties, Form 5329, 1099-R, and 1099-Q penalties)
+        # Note: 1099-R early distribution penalty is only added if Form 5329 is not handling it
+        additional_1099r_penalty = 0.0
+        if not tax_return.income.form_5329 and breakdown.form_1099r_early_distribution_penalty > 0:
+            additional_1099r_penalty = breakdown.form_1099r_early_distribution_penalty
+
         breakdown.total_tax_before_credits = round(
             breakdown.ordinary_income_tax +
             breakdown.preferential_income_tax +
@@ -866,7 +1049,10 @@ class FederalTaxEngine:
             breakdown.alternative_minimum_tax +
             breakdown.hsa_additional_tax +
             breakdown.ira_early_withdrawal_penalty +
-            breakdown.form_5329_total_additional_tax,
+            breakdown.form_5329_total_additional_tax +
+            additional_1099r_penalty +
+            breakdown.form_1099q_penalty +  # 10% penalty on non-qualified 529/Coverdell distributions
+            breakdown.form_4137_total_tax,  # SS/Medicare tax on unreported tips (Form 4137)
             2
         )
 

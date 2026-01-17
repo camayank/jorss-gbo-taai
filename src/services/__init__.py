@@ -45,6 +45,26 @@ def get_calculation_pipeline():
     from .calculation_pipeline import CalculationPipeline
     return CalculationPipeline()
 
+async def get_cached_calculation_pipeline():
+    """Get CachedCalculationPipeline instance (async).
+
+    Returns a pipeline that caches calculation results in Redis.
+    """
+    from .cached_calculation_pipeline import get_cached_pipeline
+    return await get_cached_pipeline()
+
+def create_cached_calculation_pipeline(**kwargs):
+    """Create a new CachedCalculationPipeline with options.
+
+    Args:
+        include_state: Include state tax calculation.
+        include_validation: Include validation steps.
+        ttl: Cache TTL in seconds.
+        enable_caching: Override to enable/disable caching.
+    """
+    from .cached_calculation_pipeline import create_cached_pipeline
+    return create_cached_pipeline(**kwargs)
+
 __all__ = [
     # OCR Services
     "DocumentProcessor",
@@ -56,4 +76,6 @@ __all__ = [
     "get_advisory_service",
     "get_validation_service",
     "get_calculation_pipeline",
+    "get_cached_calculation_pipeline",
+    "create_cached_calculation_pipeline",
 ]

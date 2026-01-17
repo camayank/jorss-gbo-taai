@@ -160,12 +160,19 @@ class TaxYearConfig:
 
     # Depreciation - Form 4562 / IRC Section 168 (MACRS)
     # Section 179 limits (IRC Section 179) - 2025 values
-    section_179_limit: float = 1220000.0  # Maximum Section 179 deduction
-    section_179_phaseout_threshold: float = 3050000.0  # Property threshold where limit begins phaseout
+    section_179_limit: float = 1250000.0  # Maximum Section 179 deduction (indexed annually)
+    section_179_phaseout_threshold: float = 3130000.0  # Property threshold where limit begins phaseout
     # Bonus depreciation (IRC Section 168(k)) - phases down after 2022
-    bonus_depreciation_rate: float = 0.60  # 60% for 2025 (was 100% through 2022, 80% 2023, 60% 2024-25)
+    # Schedule: 2022=100%, 2023=80%, 2024=60%, 2025=40%, 2026=20%, 2027+=0%
+    bonus_depreciation_rate: float = 0.40  # 40% for 2025
     # Listed property business use threshold
     listed_property_min_business_use: float = 50.0  # Must be >50% business to use MACRS
+    # Section 280F Luxury Auto Limits (2025)
+    luxury_auto_year1_with_bonus: float = 20400.0
+    luxury_auto_year1_without_bonus: float = 12400.0
+    luxury_auto_year2: float = 19800.0
+    luxury_auto_year3: float = 11900.0
+    luxury_auto_year4_plus: float = 7160.0
 
     # Adoption Credit - Form 8839 / IRC Section 23 (2025 values)
     adoption_credit_max: float = 16810.0  # Maximum credit per child

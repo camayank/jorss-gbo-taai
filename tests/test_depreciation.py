@@ -685,8 +685,8 @@ class TestMultipleAssets:
         depr = result.depreciation_breakdown
         assert depr['asset_count'] == 2
         assert depr['total_section_179'] == 50000.0
-        # Asset 2: $100k * 60% bonus = $60k
-        assert depr['total_bonus_depreciation'] == 60000.0
+        # Asset 2: $100k * 40% bonus (2025 rate) = $40k
+        assert depr['total_bonus_depreciation'] == 40000.0
 
 
 # ============================================
