@@ -2,6 +2,9 @@
 
 Manages collection and parsing of tax documents (W-2s, 1099s, etc.)
 with OCR support and intelligent data extraction.
+
+Persistence Safety: Documents are persisted to database via OnboardingPersistence
+to prevent data loss on restart (Prompt 1 compliance).
 """
 
 from __future__ import annotations
@@ -11,6 +14,9 @@ from typing import Dict, List, Optional, Any, Tuple
 from enum import Enum
 from datetime import datetime
 import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentType(Enum):
@@ -281,10 +287,22 @@ class DocumentCollector:
         ),
     }
 
-    def __init__(self):
-        """Initialize the document collector."""
+    def __init__(self, session_id: Optional[str] = None):
+        """
+        Initialize the document collector.
+
+        Args:
+            session_id: Optional session ID for persistence. If provided,
+                       documents will be auto-saved and restored from database.
+        """
+        self._session_id = session_id
+        self._persistence = None
         self._documents: Dict[str, ParsedDocument] = {}
         self._document_counter = 0
+
+        # Load persisted documents if session_id provided
+        if session_id:
+            self._load_persisted_documents()
 
     def get_expected_documents(self, profile: Any) -> List[SupportedDocument]:
         """Get list of expected documents based on taxpayer profile."""
@@ -409,6 +427,10 @@ class DocumentCollector:
         doc.raw_text = raw_text
 
         self._documents[document_id] = doc
+
+        # Persist document to database
+        self._persist_document(doc)
+
         return doc
 
     def _parse_w2(self, doc: ParsedDocument, text: str) -> ParsedDocument:
@@ -649,3 +671,122 @@ class DocumentCollector:
         """Get list of expected documents that haven't been uploaded."""
         uploaded_types = {doc.document_type for doc in self._documents.values()}
         return [d for d in expected if d.document_type not in uploaded_types]
+
+    # =========================================================================
+    # PERSISTENCE METHODS (Prompt 1: Persistence Safety)
+    # =========================================================================
+
+    def _get_persistence(self):
+        """Get or create the persistence instance."""
+        if self._persistence is None:
+            try:
+                from database.onboarding_persistence import get_onboarding_persistence
+                self._persistence = get_onboarding_persistence()
+            except Exception as e:
+                logger.warning(f"Failed to initialize persistence: {e}")
+        return self._persistence
+
+    def _persist_document(self, doc: ParsedDocument) -> None:
+        """Persist a document to database."""
+        if not self._session_id:
+            return
+
+        persistence = self._get_persistence()
+        if not persistence:
+            return
+
+        try:
+            # Convert fields to serializable format
+            fields_dict = {}
+            for field_name, field in doc.fields.items():
+                fields_dict[field_name] = {
+                    "field_name": field.field_name,
+                    "box_number": field.box_number,
+                    "raw_value": field.raw_value,
+                    "parsed_value": field.parsed_value,
+                    "confidence": field.confidence,
+                    "needs_review": field.needs_review,
+                    "validation_status": field.validation_status,
+                    "irs_mapping": field.irs_mapping,
+                }
+
+            persistence.save_document(
+                document_id=doc.document_id,
+                session_id=self._session_id,
+                document_type=doc.document_type.value,
+                status=doc.status.value,
+                filename=doc.filename,
+                uploaded_at=doc.uploaded_at,
+                processed_at=doc.processed_at,
+                tax_year=doc.tax_year,
+                issuer_name=doc.issuer_name,
+                issuer_ein=doc.issuer_ein,
+                recipient_name=doc.recipient_name,
+                overall_confidence=doc.overall_confidence,
+                fields=fields_dict,
+                fields_needing_review=doc.fields_needing_review,
+                extraction_warnings=doc.extraction_warnings,
+                raw_text=doc.raw_text
+            )
+        except Exception as e:
+            logger.error(f"Failed to persist document {doc.document_id}: {e}")
+
+    def _load_persisted_documents(self) -> None:
+        """Load documents from database."""
+        if not self._session_id:
+            return
+
+        persistence = self._get_persistence()
+        if not persistence:
+            return
+
+        try:
+            records = persistence.load_session_documents(self._session_id)
+            for record in records:
+                # Reconstruct ParsedDocument
+                doc = ParsedDocument(
+                    document_id=record.document_id,
+                    document_type=DocumentType(record.document_type),
+                    status=DocumentStatus(record.status),
+                    filename=record.filename,
+                    uploaded_at=record.uploaded_at,
+                    processed_at=record.processed_at,
+                    tax_year=record.tax_year,
+                    issuer_name=record.issuer_name,
+                    issuer_ein=record.issuer_ein,
+                    recipient_name=record.recipient_name,
+                    overall_confidence=record.overall_confidence,
+                    fields_needing_review=record.fields_needing_review,
+                    extraction_warnings=record.extraction_warnings,
+                    raw_text=record.raw_text
+                )
+
+                # Reconstruct fields
+                for field_name, field_data in record.fields.items():
+                    doc.fields[field_name] = ExtractedField(
+                        field_name=field_data.get("field_name", field_name),
+                        box_number=field_data.get("box_number"),
+                        raw_value=field_data.get("raw_value", ""),
+                        parsed_value=field_data.get("parsed_value"),
+                        confidence=field_data.get("confidence", 0.0),
+                        needs_review=field_data.get("needs_review", False),
+                        validation_status=field_data.get("validation_status", "pending"),
+                        irs_mapping=field_data.get("irs_mapping"),
+                    )
+
+                self._documents[doc.document_id] = doc
+
+            # Update counter to avoid ID collisions
+            if self._documents:
+                max_num = 0
+                for doc_id in self._documents.keys():
+                    try:
+                        num = int(doc_id.split("-")[-1])
+                        max_num = max(max_num, num)
+                    except (ValueError, IndexError):
+                        pass
+                self._document_counter = max_num
+
+            logger.info(f"Restored {len(records)} documents for session {self._session_id}")
+        except Exception as e:
+            logger.error(f"Failed to load persisted documents: {e}")

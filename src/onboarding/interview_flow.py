@@ -2,6 +2,9 @@
 
 Defines the complete tax interview flow with all questions organized
 into logical groups that adapt based on user responses.
+
+Persistence Safety: State is persisted to database via OnboardingPersistence
+to prevent data loss on restart (Prompt 1 compliance).
 """
 
 from __future__ import annotations
@@ -10,6 +13,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any, TYPE_CHECKING
 from enum import Enum
 from datetime import datetime
+import logging
 
 from onboarding.questionnaire_engine import (
     QuestionnaireEngine,
@@ -22,6 +26,8 @@ from onboarding.questionnaire_engine import (
 
 if TYPE_CHECKING:
     from models.tax_return import TaxReturn
+
+logger = logging.getLogger(__name__)
 
 
 class InterviewStage(Enum):
@@ -72,13 +78,28 @@ class InterviewFlow:
     This class orchestrates the interview process, determining which
     questions to ask based on the taxpayer's situation and previous
     answers. It provides a personalized, adaptive interview experience.
+
+    Persistence: When session_id is provided, state is automatically
+    persisted to database and restored on initialization.
     """
 
-    def __init__(self):
-        """Initialize the interview flow."""
+    def __init__(self, session_id: Optional[str] = None):
+        """
+        Initialize the interview flow.
+
+        Args:
+            session_id: Optional session ID for persistence. If provided,
+                       state will be auto-saved and restored from database.
+        """
+        self._session_id = session_id
+        self._persistence = None
         self._engine = QuestionnaireEngine()
         self._state = InterviewState()
         self._setup_questions()
+
+        # Load persisted state if session_id provided
+        if session_id:
+            self._load_persisted_state()
 
     def _setup_questions(self) -> None:
         """Set up all interview question groups."""
@@ -1499,6 +1520,9 @@ class InterviewFlow:
         self._state.last_activity = self._state.started_at
         self._state.current_stage = InterviewStage.PERSONAL_INFO
 
+        # Persist state after starting
+        self._persist_state()
+
         return {
             "status": "started",
             "current_group": self._engine.get_current_group(),
@@ -1568,6 +1592,9 @@ class InterviewFlow:
         # Move to next group
         self._engine.next_group()
 
+        # Persist state after successful submission
+        self._persist_state()
+
         return {
             "status": "success",
             "next_group": self.get_current_questions(),
@@ -1576,6 +1603,10 @@ class InterviewFlow:
     def go_back(self) -> Dict[str, Any]:
         """Go back to the previous group."""
         self._engine.previous_group()
+
+        # Persist state after navigation
+        self._persist_state()
+
         return self.get_current_questions()
 
     def get_progress(self) -> Dict[str, Any]:
@@ -1639,3 +1670,72 @@ class InterviewFlow:
             )
             self._state.started_at = state["interview_state"].get("started_at")
             self._state.last_activity = state["interview_state"].get("last_activity")
+
+    # =========================================================================
+    # PERSISTENCE METHODS (Prompt 1: Persistence Safety)
+    # =========================================================================
+
+    def _get_persistence(self):
+        """Get or create the persistence instance."""
+        if self._persistence is None:
+            try:
+                from database.onboarding_persistence import get_onboarding_persistence
+                self._persistence = get_onboarding_persistence()
+            except Exception as e:
+                logger.warning(f"Failed to initialize persistence: {e}")
+        return self._persistence
+
+    def _persist_state(self) -> None:
+        """Persist current state to database."""
+        if not self._session_id:
+            return
+
+        persistence = self._get_persistence()
+        if not persistence:
+            return
+
+        try:
+            persistence.save_interview_state(
+                session_id=self._session_id,
+                current_stage=self._state.current_stage.value,
+                started_at=self._state.started_at,
+                last_activity=self._state.last_activity,
+                is_complete=self._state.is_complete,
+                collected_data=self._state.collected_data,
+                detected_forms=self._state.detected_forms,
+                estimated_refund=self._state.estimated_refund,
+                progress_percentage=self._state.progress_percentage,
+                questionnaire_state=self._engine.export_state()
+            )
+        except Exception as e:
+            logger.error(f"Failed to persist interview state: {e}")
+
+    def _load_persisted_state(self) -> None:
+        """Load state from database if available."""
+        if not self._session_id:
+            return
+
+        persistence = self._get_persistence()
+        if not persistence:
+            return
+
+        try:
+            record = persistence.load_interview_state(self._session_id)
+            if record:
+                # Restore interview state
+                self._state.current_stage = InterviewStage(record.current_stage)
+                self._state.started_at = record.started_at
+                self._state.last_activity = record.last_activity
+                self._state.is_complete = record.is_complete
+                self._state.collected_data = record.collected_data
+                self._state.detected_forms = record.detected_forms
+                self._state.estimated_refund = record.estimated_refund
+                self._state.progress_percentage = record.progress_percentage
+
+                # Restore questionnaire engine state
+                if record.questionnaire_state:
+                    self._engine.import_state(record.questionnaire_state)
+
+                logger.info(f"Restored interview state for session {self._session_id}")
+        except Exception as e:
+            logger.error(f"Failed to load persisted interview state: {e}")
