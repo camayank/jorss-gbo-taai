@@ -864,7 +864,227 @@
     .breakdown-value.positive { color: var(--refund-green); }
     .breakdown-value.negative { color: var(--owed-red); }
 
-    /* ============ TIPS CARD ============ */
+    /* ============ SMART INSIGHTS SIDEBAR ============ */
+    .smart-insights-card {
+      background: white;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .insights-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .insights-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .insights-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .insights-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+
+    .insights-badge {
+      background: var(--success);
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .insights-loading {
+      text-align: center;
+      padding: 20px;
+      color: var(--gray-500);
+    }
+
+    .insights-loading .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--gray-200);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .insights-empty {
+      text-align: center;
+      padding: 20px;
+      color: var(--gray-500);
+    }
+
+    .insights-empty-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .insight-card {
+      background: var(--gray-50);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      border-left: 4px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .insight-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .insight-card.high-priority {
+      border-left-color: var(--success);
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(255,255,255,0) 100%);
+    }
+
+    .insight-card.medium-priority {
+      border-left-color: var(--warning);
+      background: linear-gradient(135deg, rgba(234, 179, 8, 0.08) 0%, rgba(255,255,255,0) 100%);
+    }
+
+    .insight-card.low-priority {
+      border-left-color: var(--primary);
+    }
+
+    .insight-card:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .insight-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .insight-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .insight-emoji {
+      font-size: 20px;
+    }
+
+    .insight-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray-900);
+      line-height: 1.3;
+    }
+
+    .insight-savings {
+      background: var(--success);
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+
+    .insight-description {
+      font-size: 13px;
+      color: var(--gray-600);
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .insight-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .insight-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .insight-btn-apply {
+      background: var(--success);
+      color: white;
+    }
+
+    .insight-btn-apply:hover {
+      background: #16a34a;
+      transform: translateY(-1px);
+    }
+
+    .insight-btn-dismiss {
+      background: var(--gray-200);
+      color: var(--gray-600);
+    }
+
+    .insight-btn-dismiss:hover {
+      background: var(--gray-300);
+    }
+
+    .insight-applied {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px;
+      background: rgba(34, 197, 94, 0.1);
+      border-radius: 8px;
+      color: var(--success);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .insights-total-savings {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--gray-200);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .total-savings-label {
+      font-size: 13px;
+      color: var(--gray-600);
+    }
+
+    .total-savings-amount {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--success);
+    }
+
+    /* Legacy tips styles for fallback */
     .tips-card {
       background: white;
       border-radius: 20px;
@@ -931,6 +1151,656 @@
     .tip-savings {
       color: var(--success);
       font-weight: 600;
+    }
+
+    /* ============ TAX OPTIMIZER MODAL ============ */
+    .tax-optimizer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .tax-optimizer-overlay.active {
+      display: flex;
+    }
+
+    .tax-optimizer-modal {
+      background: white;
+      border-radius: 24px;
+      width: 100%;
+      max-width: 900px;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .optimizer-header {
+      padding: 24px 32px;
+      border-bottom: 1px solid var(--gray-200);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .optimizer-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .optimizer-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .optimizer-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+
+    .optimizer-subtitle {
+      font-size: 13px;
+      color: var(--gray-500);
+      margin-top: 2px;
+    }
+
+    .optimizer-close {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: var(--gray-100);
+      color: var(--gray-600);
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .optimizer-close:hover {
+      background: var(--gray-200);
+      color: var(--gray-900);
+    }
+
+    .optimizer-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 16px 32px;
+      background: var(--gray-50);
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .optimizer-tab {
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      background: transparent;
+      color: var(--gray-600);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .optimizer-tab:hover {
+      background: var(--gray-200);
+    }
+
+    .optimizer-tab.active {
+      background: white;
+      color: var(--primary);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .optimizer-tab-icon {
+      font-size: 16px;
+    }
+
+    .optimizer-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px;
+    }
+
+    .optimizer-panel {
+      display: none;
+    }
+
+    .optimizer-panel.active {
+      display: block;
+    }
+
+    /* What-If Scenarios Panel */
+    .scenario-builder {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .scenario-builder {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .scenario-section {
+      background: var(--gray-50);
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .scenario-section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--gray-900);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .scenario-input-group {
+      margin-bottom: 16px;
+    }
+
+    .scenario-label {
+      font-size: 13px;
+      color: var(--gray-600);
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .scenario-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--gray-300);
+      border-radius: 10px;
+      font-size: 15px;
+      transition: all 0.2s ease;
+    }
+
+    .scenario-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .scenario-select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--gray-300);
+      border-radius: 10px;
+      font-size: 15px;
+      background: white;
+      cursor: pointer;
+    }
+
+    .scenario-compare-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .scenario-compare-btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .scenario-results {
+      margin-top: 24px;
+    }
+
+    .scenario-result-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 12px;
+      border: 2px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .scenario-result-card.winner {
+      border-color: var(--success);
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, white 100%);
+    }
+
+    .scenario-result-card.winner::before {
+      content: 'Best Option';
+      position: absolute;
+      top: -10px;
+      right: 16px;
+      background: var(--success);
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 6px;
+    }
+
+    .scenario-result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .scenario-result-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+
+    .scenario-result-tax {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+
+    .scenario-result-savings {
+      color: var(--success);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .scenario-result-details {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .scenario-detail-item {
+      text-align: center;
+    }
+
+    .scenario-detail-label {
+      font-size: 11px;
+      color: var(--gray-500);
+      text-transform: uppercase;
+    }
+
+    .scenario-detail-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin-top: 2px;
+    }
+
+    /* Entity Comparison Panel */
+    .entity-comparison {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .entity-comparison {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .entity-inputs {
+      background: var(--gray-50);
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .entity-results {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .entity-card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      border: 2px solid var(--gray-200);
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .entity-card.recommended {
+      border-color: var(--success);
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+    }
+
+    .entity-card.recommended::before {
+      content: 'Recommended';
+      position: absolute;
+      top: -10px;
+      left: 24px;
+      background: var(--success);
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 6px;
+    }
+
+    .entity-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .entity-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .entity-icon.sole-prop { background: #fef3c7; }
+    .entity-icon.s-corp { background: #dbeafe; }
+    .entity-icon.llc { background: #f3e8ff; }
+
+    .entity-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+
+    .entity-tax-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .entity-tax-row:last-child {
+      border-bottom: none;
+    }
+
+    .entity-tax-label {
+      font-size: 14px;
+      color: var(--gray-600);
+    }
+
+    .entity-tax-value {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+
+    .entity-total {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 2px solid var(--gray-200);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .entity-total-label {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+
+    .entity-total-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+
+    .entity-savings-badge {
+      display: inline-block;
+      background: var(--success);
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-left: 8px;
+    }
+
+    /* Salary Slider */
+    .salary-slider-container {
+      margin-top: 24px;
+      padding: 20px;
+      background: linear-gradient(135deg, #eef2ff 0%, #faf5ff 100%);
+      border-radius: 12px;
+    }
+
+    .salary-slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .salary-slider-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray-700);
+    }
+
+    .salary-slider-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .salary-slider {
+      width: 100%;
+      height: 8px;
+      -webkit-appearance: none;
+      background: linear-gradient(to right, var(--primary) 0%, var(--primary) 50%, #e5e7eb 50%, #e5e7eb 100%);
+      border-radius: 4px;
+      outline: none;
+    }
+
+    .salary-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      background: var(--primary);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+    }
+
+    /* Retirement Planning Panel */
+    .retirement-planning {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .retirement-planning {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .retirement-account-card {
+      background: var(--gray-50);
+      border-radius: 16px;
+      padding: 24px;
+      border: 2px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .retirement-account-card.has-contribution {
+      border-color: var(--primary);
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, white 100%);
+    }
+
+    .retirement-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .retirement-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+
+    .retirement-icon.type-401k { background: #dbeafe; }
+    .retirement-icon.type-ira { background: #dcfce7; }
+    .retirement-icon.type-hsa { background: #fce7f3; }
+    .retirement-icon.type-sep { background: #fef3c7; }
+
+    .retirement-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+
+    .retirement-limit {
+      font-size: 12px;
+      color: var(--gray-500);
+    }
+
+    .retirement-input-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .retirement-input {
+      flex: 1;
+      padding: 14px 16px;
+      border: 1px solid var(--gray-300);
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .retirement-max-btn {
+      padding: 14px 20px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .retirement-progress {
+      background: var(--gray-200);
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .retirement-progress-bar {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    .retirement-progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--gray-500);
+    }
+
+    .retirement-savings-preview {
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: rgba(34, 197, 94, 0.1);
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .retirement-savings-label {
+      font-size: 13px;
+      color: var(--gray-600);
+    }
+
+    .retirement-savings-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--success);
+    }
+
+    .retirement-summary {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfeff 100%);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .retirement-summary-left h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--gray-900);
+      margin-bottom: 4px;
+    }
+
+    .retirement-summary-left p {
+      font-size: 14px;
+      color: var(--gray-600);
+    }
+
+    .retirement-summary-right {
+      text-align: right;
+    }
+
+    .retirement-total-savings {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--success);
+    }
+
+    .retirement-total-label {
+      font-size: 13px;
+      color: var(--gray-500);
     }
 
     /* ============ INFO CARD ============ */
@@ -1992,6 +2862,20 @@
 
     .action-icon { font-size: 16px; }
 
+    .action-btn-primary {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      border-color: #6366f1;
+      color: white;
+    }
+
+    .action-btn-primary:hover {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      border-color: #4f46e5;
+      color: white;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
     /* Review Banner */
     .review-banner {
       background: linear-gradient(135deg, #10b981 0%, #059669 100%);
@@ -2088,6 +2972,75 @@
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
+    }
+
+    /* Quick Optimizer Links */
+    .op-quick-links {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(146, 64, 14, 0.15);
+    }
+
+    @media (max-width: 768px) {
+      .op-quick-links {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .op-quick-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: white;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 2px solid transparent;
+    }
+
+    .op-quick-link:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .oql-icon {
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .oql-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .oql-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray-900);
+      display: block;
+    }
+
+    .oql-desc {
+      font-size: 12px;
+      color: var(--gray-500);
+      display: block;
+    }
+
+    .oql-arrow {
+      font-size: 16px;
+      color: var(--gray-400);
+      flex-shrink: 0;
+      transition: transform 0.2s ease;
+    }
+
+    .op-quick-link:hover .oql-arrow {
+      transform: translateX(4px);
+      color: var(--primary);
     }
 
     /* Computation Panel */
@@ -3535,7 +4488,290 @@
       0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
       50% { box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
     }
+
+    /* ============ ALPINE.JS + HTMX INTEGRATION ============ */
+    /* Dynamic field visibility */
+    [x-cloak] { display: none !important; }
+
+    /* htmx loading indicator */
+    .htmx-request .htmx-indicator {
+      display: inline-block;
+    }
+    .htmx-indicator {
+      display: none;
+    }
+
+    /* Field state transitions */
+    .field-hidden {
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+      transition: opacity 0.2s, max-height 0.3s;
+    }
+    .field-visible {
+      opacity: 1;
+      max-height: 500px;
+      transition: opacity 0.2s, max-height 0.3s;
+    }
+
+    /* Validation feedback styles */
+    .validation-error {
+      color: var(--danger);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .validation-warning {
+      color: var(--warning);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .validation-success {
+      color: var(--success);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    /* Field requirement indicators */
+    .field-required label::after {
+      content: " *";
+      color: var(--danger);
+    }
+    .field-hint {
+      font-size: 12px;
+      color: var(--text-hint);
+      margin-top: 2px;
+    }
+
+    /* Optimization tip styles */
+    .optimization-tip {
+      background: var(--info-light);
+      border-left: 3px solid var(--info);
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin: 8px 0;
+    }
+    .optimization-tip strong {
+      color: var(--info);
+    }
+
+    /* Did you know hint */
+    .did-you-know {
+      background: var(--success-lighter);
+      border-left: 3px solid var(--success);
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin: 8px 0;
+    }
   </style>
+
+  <!-- Alpine.js - lightweight reactive framework -->
+  <script defer src="https://unpkg.com/alpinejs@3.14.3/dist/cdn.min.js"></script>
+
+  <!-- htmx - HTML-driven interactivity -->
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
+
+  <!-- Alpine.js Store and Configuration -->
+  <script>
+    // Wait for Alpine to be ready
+    document.addEventListener('alpine:init', () => {
+
+      // Global Tax Return State Store
+      Alpine.store('taxReturn', {
+        // Current wizard step
+        currentStep: 1,
+        totalSteps: 7,
+
+        // Filing status (drives many visibility rules)
+        filingStatus: null,
+
+        // Field states from backend rules engine
+        fieldStates: {},
+
+        // Validation messages
+        validationMessages: [],
+
+        // Optimization recommendations
+        recommendations: [],
+
+        // Computed values from backend
+        computed: {
+          age: null,
+          spouseAge: null,
+          totalIncome: 0,
+          agi: 0,
+          taxableIncome: 0,
+          totalTax: 0,
+          refundOrOwed: 0
+        },
+
+        // Smart defaults from rules engine
+        defaults: {
+          useStandardDeduction: true,
+          showSpouseFields: false,
+          is65OrOlder: false
+        },
+
+        // Track dirty fields for validation
+        dirtyFields: new Set(),
+
+        // Loading state
+        isLoading: false,
+
+        // Initialize from server-provided state
+        init() {
+          console.log('Alpine.js tax return store initialized');
+        },
+
+        // Fetch field states from backend
+        async updateFieldStates() {
+          this.isLoading = true;
+          try {
+            const response = await fetch('/api/validate/fields', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(this.getContext())
+            });
+            if (response.ok) {
+              const data = await response.json();
+              this.fieldStates = data.fields || {};
+              this.validationMessages = data.validation || [];
+              this.computed = { ...this.computed, ...data.computed };
+              this.defaults = { ...this.defaults, ...data.defaults };
+            }
+          } catch (error) {
+            console.error('Failed to update field states:', error);
+          } finally {
+            this.isLoading = false;
+          }
+        },
+
+        // Build context for rules engine
+        getContext() {
+          return {
+            step: this.currentStep,
+            filingStatus: this.filingStatus,
+            computed: this.computed,
+            // Include form data from the main app state
+            ...(window.taxData || {})
+          };
+        },
+
+        // Check if a field should be visible
+        isFieldVisible(fieldId) {
+          const state = this.fieldStates[fieldId];
+          return state ? state.visible !== false : true;
+        },
+
+        // Check if a field is required
+        isFieldRequired(fieldId) {
+          const state = this.fieldStates[fieldId];
+          return state ? state.requirement === 'mandatory' : false;
+        },
+
+        // Get field hint text
+        getFieldHint(fieldId) {
+          const state = this.fieldStates[fieldId];
+          return state ? state.hint : null;
+        },
+
+        // Mark field as dirty (touched by user)
+        markDirty(fieldId) {
+          this.dirtyFields.add(fieldId);
+        },
+
+        // Check if field has validation error
+        hasError(fieldId) {
+          if (!this.dirtyFields.has(fieldId)) return false;
+          return this.validationMessages.some(
+            msg => msg.field === fieldId && msg.severity === 'error'
+          );
+        },
+
+        // Get validation message for field
+        getValidationMessage(fieldId) {
+          return this.validationMessages.find(msg => msg.field === fieldId);
+        },
+
+        // Navigation helpers
+        nextStep() {
+          if (this.currentStep < this.totalSteps) {
+            this.currentStep++;
+            this.updateFieldStates();
+          }
+        },
+
+        prevStep() {
+          if (this.currentStep > 1) {
+            this.currentStep--;
+            this.updateFieldStates();
+          }
+        },
+
+        goToStep(step) {
+          if (step >= 1 && step <= this.totalSteps) {
+            this.currentStep = step;
+            this.updateFieldStates();
+          }
+        },
+
+        // Handle filing status change (triggers many visibility updates)
+        setFilingStatus(status) {
+          this.filingStatus = status;
+          this.defaults.showSpouseFields = ['married_joint', 'married_separate'].includes(status);
+          this.updateFieldStates();
+        }
+      });
+
+      // Recommendations Store
+      Alpine.store('recommendations', {
+        tips: [],
+        savings: 0,
+
+        async fetchRecommendations() {
+          try {
+            const context = Alpine.store('taxReturn').getContext();
+            const response = await fetch('/api/suggestions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(context)
+            });
+            if (response.ok) {
+              const data = await response.json();
+              this.tips = data.tips || [];
+              this.savings = data.potential_savings || 0;
+            }
+          } catch (error) {
+            console.error('Failed to fetch recommendations:', error);
+          }
+        }
+      });
+    });
+
+    // htmx configuration
+    document.addEventListener('DOMContentLoaded', () => {
+      // Configure htmx
+      htmx.config.defaultSwapStyle = 'innerHTML';
+      htmx.config.indicatorClass = 'htmx-indicator';
+
+      // Listen for htmx events
+      document.body.addEventListener('htmx:afterSwap', (event) => {
+        // Trigger Alpine to re-scan swapped content
+        Alpine.initTree(event.detail.elt);
+      });
+
+      // Listen for validation responses
+      document.body.addEventListener('htmx:afterRequest', (event) => {
+        if (event.detail.pathInfo.requestPath.includes('/api/validate/')) {
+          // Update Alpine store with validation result
+          const response = JSON.parse(event.detail.xhr.response);
+          if (response.validation) {
+            const store = Alpine.store('taxReturn');
+            store.validationMessages = response.validation;
+          }
+        }
+      });
+    });
+  </script>
 </head>
 <body>
   <!-- Mobile Progress Bar (top of screen) -->
@@ -5159,6 +6395,10 @@
 
             <!-- Action Bar -->
             <div class="review-actions">
+              <button class="action-btn action-btn-primary" id="btnTaxOptimizer" onclick="openTaxOptimizer('scenarios')">
+                <span class="action-icon">🎯</span>
+                <span>Tax Optimizer</span>
+              </button>
               <button class="action-btn" id="btnDownloadPDF">
                 <span class="action-icon">📄</span>
                 <span>Download PDF</span>
@@ -5167,7 +6407,7 @@
                 <span class="action-icon">🖨️</span>
                 <span>Print</span>
               </button>
-              <button class="action-btn" id="btnCompareStatuses">
+              <button class="action-btn" id="btnCompareStatuses" onclick="openTaxOptimizer('scenarios')">
                 <span class="action-icon">⚖️</span>
                 <span>Compare Filing Options</span>
               </button>
@@ -5202,6 +6442,33 @@
               </div>
               <div class="op-recommendations" id="opRecommendations">
                 <!-- Dynamically populated -->
+              </div>
+              <!-- Quick Optimizer Links -->
+              <div class="op-quick-links">
+                <div class="op-quick-link" onclick="openTaxOptimizer('scenarios')">
+                  <span class="oql-icon">🔄</span>
+                  <div class="oql-content">
+                    <span class="oql-title">What-If Scenarios</span>
+                    <span class="oql-desc">Compare filing options</span>
+                  </div>
+                  <span class="oql-arrow">→</span>
+                </div>
+                <div class="op-quick-link" onclick="openTaxOptimizer('entity')">
+                  <span class="oql-icon">🏢</span>
+                  <div class="oql-content">
+                    <span class="oql-title">Business Entity</span>
+                    <span class="oql-desc">S-Corp savings analysis</span>
+                  </div>
+                  <span class="oql-arrow">→</span>
+                </div>
+                <div class="op-quick-link" onclick="openTaxOptimizer('retirement')">
+                  <span class="oql-icon">💰</span>
+                  <div class="oql-content">
+                    <span class="oql-title">Retirement Planning</span>
+                    <span class="oql-desc">Maximize contributions</span>
+                  </div>
+                  <span class="oql-arrow">→</span>
+                </div>
               </div>
             </div>
 
@@ -5599,8 +6866,40 @@
           </div>
         </div>
 
-        <!-- Tips Card -->
-        <div class="tips-card" id="tipsCard">
+        <!-- Smart Insights Sidebar -->
+        <div class="smart-insights-card" id="smartInsightsCard">
+          <div class="insights-header">
+            <div class="insights-header-left">
+              <div class="insights-icon">🧠</div>
+              <div class="insights-title">Smart Insights</div>
+            </div>
+            <span class="insights-badge" id="insightsBadge" style="display: none;">0</span>
+          </div>
+
+          <!-- Loading State -->
+          <div class="insights-loading" id="insightsLoading" style="display: none;">
+            <div class="spinner"></div>
+            <div>Analyzing your data...</div>
+          </div>
+
+          <!-- Empty State -->
+          <div class="insights-empty" id="insightsEmpty">
+            <div class="insights-empty-icon">📋</div>
+            <div>Add income data to see personalized insights</div>
+          </div>
+
+          <!-- Insights Container -->
+          <div id="insightsContainer" style="display: none;"></div>
+
+          <!-- Total Potential Savings -->
+          <div class="insights-total-savings" id="insightsTotalSavings" style="display: none;">
+            <span class="total-savings-label">Total potential savings</span>
+            <span class="total-savings-amount" id="totalSavingsAmount">$0</span>
+          </div>
+        </div>
+
+        <!-- Legacy Tips Card (hidden by default) -->
+        <div class="tips-card" id="tipsCard" style="display: none;">
           <div class="tips-header">
             <div class="tips-icon">💡</div>
             <div class="tips-title">Tax Saving Tips</div>
@@ -9325,6 +10624,1237 @@ Generated by TaxFlow - Tax Year 2025
       }
     }
 
+    // ============ SMART INSIGHTS ============
+    const smartInsightsState = {
+      insights: [],
+      dismissedIds: new Set(),
+      appliedIds: new Set(),
+      isLoading: false,
+      lastFetchTime: 0,
+      fetchCooldown: 5000, // 5 seconds between fetches
+    };
+
+    async function fetchSmartInsights() {
+      // Check cooldown to prevent rapid re-fetching
+      const now = Date.now();
+      if (now - smartInsightsState.lastFetchTime < smartInsightsState.fetchCooldown) {
+        return;
+      }
+
+      // Don't fetch if no meaningful data
+      const wages = state.taxData?.wages || 0;
+      const hasIncome = wages > 0 || state.documents.length > 0;
+
+      if (!hasIncome) {
+        showInsightsEmpty();
+        return;
+      }
+
+      smartInsightsState.lastFetchTime = now;
+      showInsightsLoading();
+
+      try {
+        const response = await fetch('/api/smart-insights', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch insights');
+        }
+
+        const data = await response.json();
+        smartInsightsState.insights = data.insights || [];
+
+        // Filter out dismissed insights
+        const activeInsights = smartInsightsState.insights.filter(
+          i => !smartInsightsState.dismissedIds.has(i.id)
+        );
+
+        if (activeInsights.length === 0) {
+          showInsightsEmpty();
+        } else {
+          renderInsights(activeInsights);
+        }
+      } catch (error) {
+        console.error('Error fetching smart insights:', error);
+        // Fall back to local insights generation
+        generateLocalInsights();
+      }
+    }
+
+    function generateLocalInsights() {
+      const insights = [];
+      const comp = getLatestComputationOrNull();
+
+      if (!comp) {
+        showInsightsEmpty();
+        return;
+      }
+
+      const marginalRate = comp.marginalRate || 0.22;
+
+      // IRA contribution insight
+      const iraContrib = state.deductions['ira_amount'] || 0;
+      const iraLimit = 7000;
+      if (iraContrib < iraLimit) {
+        const additionalContrib = iraLimit - iraContrib;
+        const savings = Math.round(additionalContrib * marginalRate);
+        if (savings > 100) {
+          insights.push({
+            id: 'ira_contribution',
+            type: 'retirement',
+            category: 'Retirement',
+            title: 'Maximize IRA Contributions',
+            description: `Contributing an additional ${formatCurrency(additionalContrib)} to a Traditional IRA could reduce your taxable income.`,
+            estimated_savings: savings,
+            priority: 'high',
+            action_type: 'apply_deduction',
+            action_data: { field: 'ira_amount', value: iraLimit },
+          });
+        }
+      }
+
+      // HSA contribution insight
+      const hsaContrib = state.deductions['hsa_amount'] || 0;
+      const hsaLimit = state.filingStatus === 'married_joint' ? 8550 : 4300;
+      if (hsaContrib < hsaLimit) {
+        const additionalContrib = hsaLimit - hsaContrib;
+        const savings = Math.round(additionalContrib * marginalRate);
+        if (savings > 100) {
+          insights.push({
+            id: 'hsa_contribution',
+            type: 'retirement',
+            category: 'Healthcare',
+            title: 'Maximize HSA Contributions',
+            description: `If you have a high-deductible health plan, contributing ${formatCurrency(additionalContrib)} more to your HSA provides triple tax benefits.`,
+            estimated_savings: savings,
+            priority: 'high',
+            action_type: 'apply_deduction',
+            action_data: { field: 'hsa_amount', value: hsaLimit },
+          });
+        }
+      }
+
+      // Filing status optimization
+      if (state.filingStatus === 'single' && state.wizard.hasDependents === 'yes') {
+        insights.push({
+          id: 'filing_status_hoh',
+          type: 'filing_status',
+          category: 'Filing Status',
+          title: 'Consider Head of Household',
+          description: 'Based on your dependents, you may qualify for Head of Household status with lower tax rates and higher standard deduction.',
+          estimated_savings: 1500,
+          priority: 'medium',
+          action_type: 'change_filing_status',
+          action_data: { status: 'head_of_household' },
+        });
+      }
+
+      // 401k optimization for self-employed
+      if (state.taxData.selfEmploymentIncome > 0) {
+        const seIncome = state.taxData.selfEmploymentIncome;
+        const current401k = state.deductions['solo_401k'] || 0;
+        const maxContrib = Math.min(69000, seIncome * 0.25);
+        if (current401k < maxContrib && maxContrib > 10000) {
+          const savings = Math.round((maxContrib - current401k) * marginalRate);
+          insights.push({
+            id: 'solo_401k',
+            type: 'retirement',
+            category: 'Self-Employed',
+            title: 'Open a Solo 401(k)',
+            description: `As a self-employed individual, you could contribute up to ${formatCurrency(maxContrib)} to a Solo 401(k) and significantly reduce your tax burden.`,
+            estimated_savings: savings,
+            priority: 'high',
+            action_type: 'open_optimizer',
+            action_data: { tab: 'retirement' },
+          });
+        }
+      }
+
+      // Entity structure optimization for high self-employment income
+      if (state.taxData.selfEmploymentIncome > 50000) {
+        insights.push({
+          id: 'entity_structure',
+          type: 'entity',
+          category: 'Business Structure',
+          title: 'S-Corp Tax Savings',
+          description: 'With your self-employment income level, an S-Corp election could reduce self-employment taxes through reasonable salary structuring.',
+          estimated_savings: Math.round(state.taxData.selfEmploymentIncome * 0.05),
+          priority: 'medium',
+          action_type: 'open_optimizer',
+          action_data: { tab: 'entity' },
+        });
+      }
+
+      smartInsightsState.insights = insights;
+
+      const activeInsights = insights.filter(i => !smartInsightsState.dismissedIds.has(i.id));
+
+      if (activeInsights.length === 0) {
+        showInsightsEmpty();
+      } else {
+        renderInsights(activeInsights);
+      }
+    }
+
+    function getLatestComputationOrNull() {
+      try {
+        return computeTax();
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function showInsightsLoading() {
+      const loading = document.getElementById('insightsLoading');
+      const empty = document.getElementById('insightsEmpty');
+      const container = document.getElementById('insightsContainer');
+      const total = document.getElementById('insightsTotalSavings');
+      const badge = document.getElementById('insightsBadge');
+
+      if (loading) loading.style.display = 'block';
+      if (empty) empty.style.display = 'none';
+      if (container) container.style.display = 'none';
+      if (total) total.style.display = 'none';
+      if (badge) badge.style.display = 'none';
+    }
+
+    function showInsightsEmpty() {
+      const loading = document.getElementById('insightsLoading');
+      const empty = document.getElementById('insightsEmpty');
+      const container = document.getElementById('insightsContainer');
+      const total = document.getElementById('insightsTotalSavings');
+      const badge = document.getElementById('insightsBadge');
+
+      if (loading) loading.style.display = 'none';
+      if (empty) empty.style.display = 'block';
+      if (container) container.style.display = 'none';
+      if (total) total.style.display = 'none';
+      if (badge) badge.style.display = 'none';
+    }
+
+    function renderInsights(insights) {
+      const loading = document.getElementById('insightsLoading');
+      const empty = document.getElementById('insightsEmpty');
+      const container = document.getElementById('insightsContainer');
+      const total = document.getElementById('insightsTotalSavings');
+      const badge = document.getElementById('insightsBadge');
+      const totalAmount = document.getElementById('totalSavingsAmount');
+
+      if (loading) loading.style.display = 'none';
+      if (empty) empty.style.display = 'none';
+      if (container) container.style.display = 'block';
+
+      // Update badge
+      if (badge) {
+        badge.textContent = insights.length;
+        badge.style.display = insights.length > 0 ? 'inline-block' : 'none';
+      }
+
+      // Calculate total savings
+      const totalSavings = insights.reduce((sum, i) => sum + (i.estimated_savings || 0), 0);
+      if (total && totalSavings > 0) {
+        total.style.display = 'flex';
+        if (totalAmount) totalAmount.textContent = formatCurrency(totalSavings);
+      }
+
+      // Render insight cards
+      let html = '';
+      insights.forEach(insight => {
+        const isApplied = smartInsightsState.appliedIds.has(insight.id);
+        const priorityClass = insight.priority === 'high' ? 'high-priority' :
+                             insight.priority === 'medium' ? 'medium-priority' : 'low-priority';
+        const emoji = getInsightEmoji(insight.type);
+
+        html += `
+          <div class="insight-card ${priorityClass}" data-insight-id="${insight.id}">
+            <div class="insight-header">
+              <div class="insight-title-row">
+                <span class="insight-emoji">${emoji}</span>
+                <span class="insight-title">${insight.title}</span>
+              </div>
+              ${insight.estimated_savings > 0 ? `<span class="insight-savings">+${formatCurrency(insight.estimated_savings)}</span>` : ''}
+            </div>
+            <div class="insight-description">${insight.description}</div>
+            ${isApplied ? `
+              <div class="insight-applied">
+                <span>✓</span> Applied
+              </div>
+            ` : `
+              <div class="insight-actions">
+                <button class="insight-btn insight-btn-apply" onclick="applyInsight('${insight.id}')">
+                  Yes, Add This
+                </button>
+                <button class="insight-btn insight-btn-dismiss" onclick="dismissInsight('${insight.id}')">
+                  Not Now
+                </button>
+              </div>
+            `}
+          </div>
+        `;
+      });
+
+      if (container) container.innerHTML = html;
+    }
+
+    function getInsightEmoji(type) {
+      const emojis = {
+        'retirement': '💰',
+        'filing_status': '🏠',
+        'entity': '🏢',
+        'deduction': '📝',
+        'credit': '🎁',
+        'healthcare': '🏥',
+      };
+      return emojis[type] || '💡';
+    }
+
+    async function applyInsight(insightId) {
+      const insight = smartInsightsState.insights.find(i => i.id === insightId);
+      if (!insight) return;
+
+      try {
+        // First try server-side apply
+        const response = await fetch(`/api/smart-insights/${insightId}/apply`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ action_data: insight.action_data }),
+        });
+
+        if (response.ok) {
+          // Server applied successfully
+          smartInsightsState.appliedIds.add(insightId);
+
+          // Refresh the UI
+          const activeInsights = smartInsightsState.insights.filter(
+            i => !smartInsightsState.dismissedIds.has(i.id)
+          );
+          renderInsights(activeInsights);
+
+          // Update tax calculations
+          updateRefund();
+          showToast(`Applied: ${insight.title}`, 'success');
+          return;
+        }
+      } catch (error) {
+        console.log('Server apply failed, falling back to local:', error);
+      }
+
+      // Fall back to local application
+      applyInsightLocally(insight);
+    }
+
+    function applyInsightLocally(insight) {
+      switch (insight.action_type) {
+        case 'apply_deduction':
+          if (insight.action_data?.field && insight.action_data?.value !== undefined) {
+            state.deductions[insight.action_data.field] = insight.action_data.value;
+            // Update the corresponding input if it exists
+            const input = document.getElementById(insight.action_data.field);
+            if (input) {
+              input.value = insight.action_data.value;
+            }
+          }
+          break;
+
+        case 'change_filing_status':
+          if (insight.action_data?.status) {
+            state.filingStatus = insight.action_data.status;
+            updateInfoCard();
+          }
+          break;
+
+        case 'open_optimizer':
+          // Will be implemented when Tax Optimizer is created
+          if (insight.action_data?.tab) {
+            openTaxOptimizer(insight.action_data.tab);
+          }
+          break;
+
+        default:
+          console.log('Unknown action type:', insight.action_type);
+      }
+
+      smartInsightsState.appliedIds.add(insight.id);
+
+      // Refresh the UI
+      const activeInsights = smartInsightsState.insights.filter(
+        i => !smartInsightsState.dismissedIds.has(i.id)
+      );
+      renderInsights(activeInsights);
+
+      // Update tax calculations
+      updateRefund();
+      showToast(`Applied: ${insight.title}`, 'success');
+    }
+
+    async function dismissInsight(insightId) {
+      smartInsightsState.dismissedIds.add(insightId);
+
+      // Try to dismiss on server
+      try {
+        await fetch(`/api/smart-insights/${insightId}/dismiss`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+      } catch (error) {
+        console.log('Server dismiss failed:', error);
+      }
+
+      // Update UI
+      const activeInsights = smartInsightsState.insights.filter(
+        i => !smartInsightsState.dismissedIds.has(i.id)
+      );
+
+      if (activeInsights.length === 0) {
+        showInsightsEmpty();
+      } else {
+        renderInsights(activeInsights);
+      }
+    }
+
+    function showToast(message, type = 'info') {
+      // Create toast element if it doesn't exist
+      let toast = document.getElementById('smartToast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'smartToast';
+        toast.style.cssText = `
+          position: fixed;
+          bottom: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          z-index: 9999;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        `;
+        document.body.appendChild(toast);
+      }
+
+      toast.textContent = message;
+      toast.style.background = type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6';
+      toast.style.color = 'white';
+      toast.style.opacity = '1';
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+      }, 3000);
+    }
+
+    function openTaxOptimizer(tab = 'scenarios') {
+      // Placeholder - will be implemented when Tax Optimizer is created
+      console.log('Opening Tax Optimizer tab:', tab);
+      showToast('Tax Optimizer coming soon!', 'info');
+    }
+
+    function initSmartInsights() {
+      // Initial fetch with a slight delay to allow page load
+      setTimeout(() => {
+        fetchSmartInsights();
+      }, 1000);
+
+      // Re-fetch when significant data changes
+      // This will be called from updateRefund() and other data update functions
+    }
+
+    function refreshSmartInsights() {
+      // Force a refresh of insights, bypassing cooldown
+      smartInsightsState.lastFetchTime = 0;
+      fetchSmartInsights();
+    }
+
+    // ============ TAX OPTIMIZER ============
+    const taxOptimizerState = {
+      isOpen: false,
+      currentTab: 'scenarios',
+      entityData: null,
+      retirementLimits: {
+        '401k': 23500,
+        '401k_catchup': 7500,
+        'IRA': 7000,
+        'IRA_catchup': 1000,
+        'HSA_individual': 4300,
+        'HSA_family': 8550,
+        'SEP_max': 69000,
+      },
+    };
+
+    function openTaxOptimizer(tab = 'scenarios') {
+      const overlay = document.getElementById('taxOptimizerOverlay');
+      if (overlay) {
+        overlay.classList.add('active');
+        taxOptimizerState.isOpen = true;
+
+        // Switch to the specified tab
+        switchOptimizerTab(tab);
+
+        // Pre-populate with user data if available
+        populateOptimizerFromState();
+      }
+    }
+
+    function closeTaxOptimizer() {
+      const overlay = document.getElementById('taxOptimizerOverlay');
+      if (overlay) {
+        overlay.classList.remove('active');
+        taxOptimizerState.isOpen = false;
+      }
+    }
+
+    function switchOptimizerTab(tab) {
+      taxOptimizerState.currentTab = tab;
+
+      // Update tab buttons
+      document.querySelectorAll('.optimizer-tab').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.tab === tab) {
+          btn.classList.add('active');
+        }
+      });
+
+      // Update panels
+      document.querySelectorAll('.optimizer-panel').forEach(panel => {
+        panel.classList.remove('active');
+      });
+      const panel = document.getElementById(`panel-${tab}`);
+      if (panel) {
+        panel.classList.add('active');
+      }
+    }
+
+    function populateOptimizerFromState() {
+      // Pre-populate entity comparison with self-employment data if available
+      const seIncome = state.taxData?.selfEmploymentIncome || 0;
+      if (seIncome > 0) {
+        const revenueInput = document.getElementById('entityGrossRevenue');
+        if (revenueInput && !revenueInput.value) {
+          revenueInput.value = seIncome;
+        }
+      }
+
+      // Pre-populate filing status
+      const entityStatus = document.getElementById('entityFilingStatus');
+      if (entityStatus && state.filingStatus) {
+        entityStatus.value = state.filingStatus;
+      }
+
+      // Pre-populate retirement with existing deductions
+      if (state.deductions) {
+        const contrib401k = document.getElementById('contrib401k');
+        if (contrib401k && state.deductions['401k_amount']) {
+          contrib401k.value = state.deductions['401k_amount'];
+        }
+        const contribIRA = document.getElementById('contribIRA');
+        if (contribIRA && state.deductions['ira_amount']) {
+          contribIRA.value = state.deductions['ira_amount'];
+        }
+        const contribHSA = document.getElementById('contribHSA');
+        if (contribHSA && state.deductions['hsa_amount']) {
+          contribHSA.value = state.deductions['hsa_amount'];
+        }
+      }
+
+      // Update retirement calculations
+      updateRetirementSavings();
+    }
+
+    // ===== What-If Scenarios Functions =====
+    function updateScenarioInputs() {
+      const scenarioType = document.getElementById('scenarioType')?.value;
+
+      // Hide all input groups
+      document.getElementById('filingStatusInputs').style.display = 'none';
+      document.getElementById('incomeInputs').style.display = 'none';
+      document.getElementById('deductionInputs').style.display = 'none';
+
+      // Show relevant inputs
+      switch (scenarioType) {
+        case 'filing_status':
+          document.getElementById('filingStatusInputs').style.display = 'block';
+          break;
+        case 'income':
+          document.getElementById('incomeInputs').style.display = 'block';
+          // Pre-populate with current income
+          const incomeInput = document.getElementById('newIncomeAmount');
+          if (incomeInput && !incomeInput.value) {
+            incomeInput.value = state.taxData?.wages || 0;
+          }
+          break;
+        case 'deduction':
+          document.getElementById('deductionInputs').style.display = 'block';
+          break;
+        case 'retirement':
+          // No additional inputs, will compare current vs max
+          break;
+      }
+    }
+
+    async function runScenarioComparison() {
+      const scenarioType = document.getElementById('scenarioType')?.value;
+      const resultsContainer = document.getElementById('scenarioResults');
+
+      // Show loading
+      resultsContainer.innerHTML = `
+        <div class="insights-loading">
+          <div class="spinner"></div>
+          <div>Calculating scenarios...</div>
+        </div>
+      `;
+
+      try {
+        let results = [];
+        const currentWages = state.taxData?.wages || 75000;
+
+        switch (scenarioType) {
+          case 'filing_status':
+            results = await compareFilingStatuses(currentWages);
+            break;
+          case 'income':
+            const newIncome = parseFloat(document.getElementById('newIncomeAmount')?.value) || currentWages;
+            results = await compareIncomeScenarios(currentWages, newIncome);
+            break;
+          case 'deduction':
+            const dedType = document.getElementById('deductionType')?.value;
+            const dedAmount = parseFloat(document.getElementById('deductionAmount')?.value) || 0;
+            results = await compareDeductionScenarios(dedType, dedAmount);
+            break;
+          case 'retirement':
+            results = await compareRetirementScenarios();
+            break;
+        }
+
+        renderScenarioResults(results);
+      } catch (error) {
+        console.error('Scenario comparison error:', error);
+        resultsContainer.innerHTML = `
+          <div class="insights-empty">
+            <div class="insights-empty-icon">❌</div>
+            <div>Error running comparison. Please try again.</div>
+          </div>
+        `;
+      }
+    }
+
+    async function compareFilingStatuses(income) {
+      const statuses = [];
+      if (document.getElementById('compare_single')?.checked) statuses.push({ key: 'single', name: 'Single' });
+      if (document.getElementById('compare_mfj')?.checked) statuses.push({ key: 'married_joint', name: 'Married Filing Jointly' });
+      if (document.getElementById('compare_mfs')?.checked) statuses.push({ key: 'married_separate', name: 'Married Filing Separately' });
+      if (document.getElementById('compare_hoh')?.checked) statuses.push({ key: 'head_of_household', name: 'Head of Household' });
+
+      const results = statuses.map(status => {
+        const tax = computeTaxForStatus(status.key, income);
+        return {
+          name: status.name,
+          total_tax: tax.totalTax,
+          effective_rate: tax.effectiveRate,
+          taxable_income: tax.taxableIncome,
+          standard_deduction: tax.standardDeduction,
+        };
+      });
+
+      // Sort by total tax (lowest first)
+      results.sort((a, b) => a.total_tax - b.total_tax);
+
+      // Mark winner
+      if (results.length > 0) {
+        results[0].is_winner = true;
+        const baseTax = results[results.length - 1].total_tax;
+        results.forEach(r => {
+          r.savings = baseTax - r.total_tax;
+        });
+      }
+
+      return results;
+    }
+
+    function computeTaxForStatus(filingStatus, income) {
+      // 2025 standard deductions
+      const stdDeductions = {
+        'single': 15000,
+        'married_joint': 30000,
+        'married_separate': 15000,
+        'head_of_household': 22500,
+      };
+
+      // 2025 tax brackets (simplified)
+      const brackets = {
+        'single': [
+          { min: 0, max: 11925, rate: 0.10 },
+          { min: 11925, max: 48475, rate: 0.12 },
+          { min: 48475, max: 103350, rate: 0.22 },
+          { min: 103350, max: 197300, rate: 0.24 },
+          { min: 197300, max: 250525, rate: 0.32 },
+          { min: 250525, max: 626350, rate: 0.35 },
+          { min: 626350, max: Infinity, rate: 0.37 },
+        ],
+        'married_joint': [
+          { min: 0, max: 23850, rate: 0.10 },
+          { min: 23850, max: 96950, rate: 0.12 },
+          { min: 96950, max: 206700, rate: 0.22 },
+          { min: 206700, max: 394600, rate: 0.24 },
+          { min: 394600, max: 501050, rate: 0.32 },
+          { min: 501050, max: 751600, rate: 0.35 },
+          { min: 751600, max: Infinity, rate: 0.37 },
+        ],
+        'married_separate': [
+          { min: 0, max: 11925, rate: 0.10 },
+          { min: 11925, max: 48475, rate: 0.12 },
+          { min: 48475, max: 103350, rate: 0.22 },
+          { min: 103350, max: 197300, rate: 0.24 },
+          { min: 197300, max: 250525, rate: 0.32 },
+          { min: 250525, max: 375800, rate: 0.35 },
+          { min: 375800, max: Infinity, rate: 0.37 },
+        ],
+        'head_of_household': [
+          { min: 0, max: 17000, rate: 0.10 },
+          { min: 17000, max: 64850, rate: 0.12 },
+          { min: 64850, max: 103350, rate: 0.22 },
+          { min: 103350, max: 197300, rate: 0.24 },
+          { min: 197300, max: 250500, rate: 0.32 },
+          { min: 250500, max: 626350, rate: 0.35 },
+          { min: 626350, max: Infinity, rate: 0.37 },
+        ],
+      };
+
+      const standardDeduction = stdDeductions[filingStatus] || 15000;
+      const taxableIncome = Math.max(0, income - standardDeduction);
+      const bracketList = brackets[filingStatus] || brackets['single'];
+
+      let tax = 0;
+      let remaining = taxableIncome;
+
+      for (const bracket of bracketList) {
+        if (remaining <= 0) break;
+        const bracketWidth = bracket.max - bracket.min;
+        const taxableInBracket = Math.min(remaining, bracketWidth);
+        tax += taxableInBracket * bracket.rate;
+        remaining -= taxableInBracket;
+      }
+
+      const effectiveRate = income > 0 ? (tax / income) * 100 : 0;
+
+      return {
+        totalTax: Math.round(tax),
+        effectiveRate: effectiveRate.toFixed(1),
+        taxableIncome: Math.round(taxableIncome),
+        standardDeduction,
+      };
+    }
+
+    async function compareIncomeScenarios(currentIncome, newIncome) {
+      const currentStatus = state.filingStatus || 'single';
+      const currentTax = computeTaxForStatus(currentStatus, currentIncome);
+      const newTax = computeTaxForStatus(currentStatus, newIncome);
+
+      const results = [
+        {
+          name: `Current Income: ${formatCurrency(currentIncome)}`,
+          total_tax: currentTax.totalTax,
+          effective_rate: currentTax.effectiveRate,
+          taxable_income: currentTax.taxableIncome,
+        },
+        {
+          name: `New Income: ${formatCurrency(newIncome)}`,
+          total_tax: newTax.totalTax,
+          effective_rate: newTax.effectiveRate,
+          taxable_income: newTax.taxableIncome,
+        },
+      ];
+
+      // Mark winner (lower tax)
+      results.sort((a, b) => a.total_tax - b.total_tax);
+      results[0].is_winner = true;
+
+      const taxDiff = newTax.totalTax - currentTax.totalTax;
+      results[1].tax_change = taxDiff;
+
+      return results;
+    }
+
+    async function compareDeductionScenarios(deductionType, amount) {
+      const currentStatus = state.filingStatus || 'single';
+      const income = state.taxData?.wages || 75000;
+
+      const currentTax = computeTaxForStatus(currentStatus, income);
+
+      // Simulate adding deduction (would reduce taxable income if itemizing)
+      const deductionNames = {
+        'charitable': 'Charitable Donation',
+        'mortgage_interest': 'Mortgage Interest',
+        'state_taxes': 'State/Local Taxes',
+        'medical': 'Medical Expenses',
+      };
+
+      // For simplicity, estimate tax savings based on marginal rate
+      const marginalRate = getMarginalRate(currentStatus, income);
+      const potentialSavings = Math.round(amount * marginalRate);
+
+      const results = [
+        {
+          name: 'Current (Standard Deduction)',
+          total_tax: currentTax.totalTax,
+          effective_rate: currentTax.effectiveRate,
+          taxable_income: currentTax.taxableIncome,
+        },
+        {
+          name: `With ${formatCurrency(amount)} ${deductionNames[deductionType]}`,
+          total_tax: currentTax.totalTax - potentialSavings,
+          effective_rate: ((currentTax.totalTax - potentialSavings) / income * 100).toFixed(1),
+          taxable_income: currentTax.taxableIncome - amount,
+          savings: potentialSavings,
+          is_winner: potentialSavings > 0,
+        },
+      ];
+
+      return results;
+    }
+
+    async function compareRetirementScenarios() {
+      const currentStatus = state.filingStatus || 'single';
+      const income = state.taxData?.wages || 75000;
+      const currentTax = computeTaxForStatus(currentStatus, income);
+
+      const max401k = taxOptimizerState.retirementLimits['401k'];
+      const maxIRA = taxOptimizerState.retirementLimits['IRA'];
+      const totalMaxContrib = max401k + maxIRA;
+
+      const marginalRate = getMarginalRate(currentStatus, income);
+      const maxSavings = Math.round(totalMaxContrib * marginalRate);
+
+      const results = [
+        {
+          name: 'Current (No Additional Retirement)',
+          total_tax: currentTax.totalTax,
+          effective_rate: currentTax.effectiveRate,
+          taxable_income: currentTax.taxableIncome,
+        },
+        {
+          name: `Max 401(k): ${formatCurrency(max401k)}`,
+          total_tax: currentTax.totalTax - Math.round(max401k * marginalRate),
+          effective_rate: (((currentTax.totalTax - Math.round(max401k * marginalRate)) / income) * 100).toFixed(1),
+          taxable_income: currentTax.taxableIncome - max401k,
+          savings: Math.round(max401k * marginalRate),
+        },
+        {
+          name: `Max All: ${formatCurrency(totalMaxContrib)}`,
+          total_tax: currentTax.totalTax - maxSavings,
+          effective_rate: (((currentTax.totalTax - maxSavings) / income) * 100).toFixed(1),
+          taxable_income: currentTax.taxableIncome - totalMaxContrib,
+          savings: maxSavings,
+          is_winner: true,
+        },
+      ];
+
+      return results;
+    }
+
+    function getMarginalRate(filingStatus, income) {
+      // Simplified marginal rate lookup
+      const brackets = {
+        'single': [[11925, 0.10], [48475, 0.12], [103350, 0.22], [197300, 0.24], [250525, 0.32], [626350, 0.35], [Infinity, 0.37]],
+        'married_joint': [[23850, 0.10], [96950, 0.12], [206700, 0.22], [394600, 0.24], [501050, 0.32], [751600, 0.35], [Infinity, 0.37]],
+      };
+
+      const bracketList = brackets[filingStatus] || brackets['single'];
+      for (const [threshold, rate] of bracketList) {
+        if (income <= threshold) return rate;
+      }
+      return 0.37;
+    }
+
+    function renderScenarioResults(results) {
+      const container = document.getElementById('scenarioResults');
+      if (!results || results.length === 0) {
+        container.innerHTML = `
+          <div class="insights-empty">
+            <div class="insights-empty-icon">📊</div>
+            <div>No results to display</div>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      results.forEach(result => {
+        const winnerClass = result.is_winner ? 'winner' : '';
+        html += `
+          <div class="scenario-result-card ${winnerClass}" style="position: relative;">
+            ${result.is_winner ? '<span style="position: absolute; top: -8px; right: 16px; background: var(--success); color: white; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px;">BEST</span>' : ''}
+            <div class="scenario-result-header">
+              <div class="scenario-result-name">${result.name}</div>
+              <div>
+                <div class="scenario-result-tax">${formatCurrency(result.total_tax)}</div>
+                ${result.savings > 0 ? `<div class="scenario-result-savings">Save ${formatCurrency(result.savings)}</div>` : ''}
+              </div>
+            </div>
+            <div class="scenario-result-details">
+              <div class="scenario-detail-item">
+                <div class="scenario-detail-label">Effective Rate</div>
+                <div class="scenario-detail-value">${result.effective_rate}%</div>
+              </div>
+              <div class="scenario-detail-item">
+                <div class="scenario-detail-label">Taxable Income</div>
+                <div class="scenario-detail-value">${formatCurrency(result.taxable_income)}</div>
+              </div>
+              <div class="scenario-detail-item">
+                <div class="scenario-detail-label">Tax Owed</div>
+                <div class="scenario-detail-value">${formatCurrency(result.total_tax)}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    // ===== Entity Comparison Functions =====
+    async function compareEntities() {
+      const grossRevenue = parseFloat(document.getElementById('entityGrossRevenue')?.value) || 0;
+      const expenses = parseFloat(document.getElementById('entityExpenses')?.value) || 0;
+      const otherIncome = parseFloat(document.getElementById('entityOtherIncome')?.value) || 0;
+      const filingStatus = document.getElementById('entityFilingStatus')?.value || 'single';
+
+      if (grossRevenue <= 0) {
+        showToast('Please enter your gross business revenue', 'error');
+        return;
+      }
+
+      const resultsContainer = document.getElementById('entityResults');
+      resultsContainer.innerHTML = `
+        <div class="insights-loading">
+          <div class="spinner"></div>
+          <div>Analyzing entity structures...</div>
+        </div>
+      `;
+
+      try {
+        // Try API first
+        const response = await fetch('/api/entity-comparison', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gross_revenue: grossRevenue,
+            business_expenses: expenses,
+            other_income: otherIncome,
+            filing_status: filingStatus,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          taxOptimizerState.entityData = data;
+          renderEntityResults(data);
+
+          // Show salary slider
+          const slider = document.getElementById('salarySliderContainer');
+          if (slider) {
+            slider.style.display = 'block';
+            const netIncome = grossRevenue - expenses;
+            document.getElementById('salarySlider').max = netIncome;
+            document.getElementById('salarySliderMax').textContent = formatCurrency(netIncome).replace('$', '');
+
+            // Set initial value to reasonable salary (60% of net or suggested)
+            const reasonableSalary = data.s_corp?.reasonable_salary || Math.round(netIncome * 0.6);
+            document.getElementById('salarySlider').value = reasonableSalary;
+            document.getElementById('salarySliderValue').textContent = formatCurrency(reasonableSalary);
+          }
+          return;
+        }
+      } catch (error) {
+        console.log('API call failed, using local calculation:', error);
+      }
+
+      // Fall back to local calculation
+      const localResults = calculateEntityComparisonLocally(grossRevenue, expenses, otherIncome, filingStatus);
+      taxOptimizerState.entityData = localResults;
+      renderEntityResults(localResults);
+    }
+
+    function calculateEntityComparisonLocally(grossRevenue, expenses, otherIncome, filingStatus) {
+      const netIncome = grossRevenue - expenses;
+      const seTaxRate = 0.153; // 15.3% self-employment tax
+      const seTaxableBase = netIncome * 0.9235; // 92.35% of net SE income
+
+      // Sole Proprietorship
+      const solePropSETax = Math.round(seTaxableBase * seTaxRate);
+      const solePropDeduction = Math.round(solePropSETax / 2);
+      const solePropAGI = netIncome + otherIncome - solePropDeduction;
+      const solePropIncomeTax = computeTaxForStatus(filingStatus, solePropAGI).totalTax;
+      const solePropTotal = solePropSETax + solePropIncomeTax;
+
+      // S-Corp (using 60% as reasonable salary)
+      const reasonableSalary = Math.round(netIncome * 0.6);
+      const distribution = netIncome - reasonableSalary;
+      const sCorpPayrollTax = Math.round(reasonableSalary * seTaxRate);
+      const sCorpAGI = reasonableSalary + distribution + otherIncome;
+      const sCorpIncomeTax = computeTaxForStatus(filingStatus, sCorpAGI).totalTax;
+      const sCorpTotal = sCorpPayrollTax + sCorpIncomeTax;
+
+      // LLC (same as sole prop for single-member)
+      const llcTotal = solePropTotal;
+
+      const savings = solePropTotal - sCorpTotal;
+
+      return {
+        sole_proprietorship: {
+          entity_type: 'Sole Proprietorship',
+          self_employment_tax: solePropSETax,
+          income_tax: solePropIncomeTax,
+          total_tax: solePropTotal,
+        },
+        s_corp: {
+          entity_type: 'S-Corporation',
+          reasonable_salary: reasonableSalary,
+          distribution: distribution,
+          payroll_tax: sCorpPayrollTax,
+          income_tax: sCorpIncomeTax,
+          total_tax: sCorpTotal,
+        },
+        llc: {
+          entity_type: 'LLC (Single-Member)',
+          self_employment_tax: solePropSETax,
+          income_tax: solePropIncomeTax,
+          total_tax: llcTotal,
+        },
+        recommendation: savings > 3000 ? 's_corp' : 'sole_proprietorship',
+        max_savings: Math.max(0, savings),
+      };
+    }
+
+    function renderEntityResults(data) {
+      const container = document.getElementById('entityResults');
+      const recommended = data.recommendation || 's_corp';
+
+      const entities = [
+        { key: 'sole_proprietorship', icon: '📋', iconClass: 'sole-prop' },
+        { key: 's_corp', icon: '🏢', iconClass: 's-corp' },
+        { key: 'llc', icon: '📄', iconClass: 'llc' },
+      ];
+
+      let html = '';
+      entities.forEach(entity => {
+        const info = data[entity.key];
+        if (!info) return;
+
+        const isRecommended = entity.key === recommended;
+        const savingsVsSoleProp = data.sole_proprietorship.total_tax - info.total_tax;
+
+        html += `
+          <div class="entity-card ${isRecommended ? 'recommended' : ''}">
+            <div class="entity-header">
+              <div class="entity-icon ${entity.iconClass}">${entity.icon}</div>
+              <div class="entity-name">${info.entity_type}</div>
+            </div>
+
+            ${entity.key === 's_corp' ? `
+              <div class="entity-tax-row">
+                <span class="entity-tax-label">Reasonable Salary</span>
+                <span class="entity-tax-value">${formatCurrency(info.reasonable_salary || 0)}</span>
+              </div>
+              <div class="entity-tax-row">
+                <span class="entity-tax-label">Distribution</span>
+                <span class="entity-tax-value">${formatCurrency(info.distribution || 0)}</span>
+              </div>
+              <div class="entity-tax-row">
+                <span class="entity-tax-label">Payroll Tax</span>
+                <span class="entity-tax-value">${formatCurrency(info.payroll_tax || 0)}</span>
+              </div>
+            ` : `
+              <div class="entity-tax-row">
+                <span class="entity-tax-label">Self-Employment Tax</span>
+                <span class="entity-tax-value">${formatCurrency(info.self_employment_tax || 0)}</span>
+              </div>
+            `}
+
+            <div class="entity-tax-row">
+              <span class="entity-tax-label">Income Tax</span>
+              <span class="entity-tax-value">${formatCurrency(info.income_tax || 0)}</span>
+            </div>
+
+            <div class="entity-total">
+              <span class="entity-total-label">Total Tax</span>
+              <span class="entity-total-value">
+                ${formatCurrency(info.total_tax)}
+                ${savingsVsSoleProp > 0 ? `<span class="entity-savings-badge">Save ${formatCurrency(savingsVsSoleProp)}</span>` : ''}
+              </span>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    async function updateSalarySlider() {
+      const slider = document.getElementById('salarySlider');
+      const valueDisplay = document.getElementById('salarySliderValue');
+      const salary = parseInt(slider.value);
+
+      valueDisplay.textContent = formatCurrency(salary);
+
+      // Recalculate with new salary
+      const grossRevenue = parseFloat(document.getElementById('entityGrossRevenue')?.value) || 0;
+      const expenses = parseFloat(document.getElementById('entityExpenses')?.value) || 0;
+      const otherIncome = parseFloat(document.getElementById('entityOtherIncome')?.value) || 0;
+      const filingStatus = document.getElementById('entityFilingStatus')?.value || 'single';
+
+      try {
+        const response = await fetch('/api/entity-comparison/adjust-salary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gross_revenue: grossRevenue,
+            business_expenses: expenses,
+            owner_salary: salary,
+            filing_status: filingStatus,
+            other_income: otherIncome,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Update just the S-Corp card
+          updateSCorpCard(data);
+        }
+      } catch (error) {
+        console.log('Salary adjustment API failed:', error);
+      }
+    }
+
+    function updateSCorpCard(data) {
+      // Find and update the S-Corp card with new values
+      const sCorpInfo = data.s_corp;
+      if (!sCorpInfo) return;
+
+      // This is a simplified update - in production you'd update specific elements
+      const cards = document.querySelectorAll('.entity-card');
+      cards.forEach(card => {
+        if (card.querySelector('.entity-name')?.textContent === 'S-Corporation') {
+          const taxRows = card.querySelectorAll('.entity-tax-value');
+          if (taxRows.length >= 4) {
+            taxRows[0].textContent = formatCurrency(sCorpInfo.reasonable_salary || 0);
+            taxRows[1].textContent = formatCurrency(sCorpInfo.distribution || 0);
+            taxRows[2].textContent = formatCurrency(sCorpInfo.payroll_tax || 0);
+            taxRows[3].textContent = formatCurrency(sCorpInfo.income_tax || 0);
+          }
+          const totalValue = card.querySelector('.entity-total-value');
+          if (totalValue) {
+            const savingsVsSoleProp = taxOptimizerState.entityData?.sole_proprietorship?.total_tax - sCorpInfo.total_tax;
+            totalValue.innerHTML = `
+              ${formatCurrency(sCorpInfo.total_tax)}
+              ${savingsVsSoleProp > 0 ? `<span class="entity-savings-badge">Save ${formatCurrency(savingsVsSoleProp)}</span>` : ''}
+            `;
+          }
+        }
+      });
+    }
+
+    // ===== Retirement Planning Functions =====
+    function maxContribution(accountType) {
+      const limits = taxOptimizerState.retirementLimits;
+      let maxAmount = 0;
+
+      switch (accountType) {
+        case '401k':
+          maxAmount = limits['401k'];
+          document.getElementById('contrib401k').value = maxAmount;
+          break;
+        case 'IRA':
+          maxAmount = limits['IRA'];
+          document.getElementById('contribIRA').value = maxAmount;
+          break;
+        case 'HSA':
+          maxAmount = state.filingStatus === 'married_joint' ? limits['HSA_family'] : limits['HSA_individual'];
+          document.getElementById('contribHSA').value = maxAmount;
+          break;
+        case 'SEP':
+          const seIncome = state.taxData?.selfEmploymentIncome || 0;
+          maxAmount = Math.min(limits['SEP_max'], seIncome * 0.25);
+          document.getElementById('contribSEP').value = Math.round(maxAmount);
+          break;
+      }
+
+      updateRetirementSavings();
+    }
+
+    function updateRetirementSavings() {
+      const limits = taxOptimizerState.retirementLimits;
+      const marginalRate = getMarginalRate(state.filingStatus || 'single', state.taxData?.wages || 75000);
+
+      // 401k
+      const contrib401k = parseFloat(document.getElementById('contrib401k')?.value) || 0;
+      const limit401k = limits['401k'];
+      const pct401k = Math.min(100, (contrib401k / limit401k) * 100);
+      document.getElementById('progress401k').style.width = `${pct401k}%`;
+      document.getElementById('contrib401kPct').textContent = `${Math.round(pct401k)}%`;
+      const savings401k = Math.round(contrib401k * marginalRate);
+      document.getElementById('savings401k').textContent = formatCurrency(savings401k);
+      document.getElementById('retirement401k').classList.toggle('has-contribution', contrib401k > 0);
+
+      // IRA
+      const contribIRA = parseFloat(document.getElementById('contribIRA')?.value) || 0;
+      const limitIRA = limits['IRA'];
+      const pctIRA = Math.min(100, (contribIRA / limitIRA) * 100);
+      document.getElementById('progressIRA').style.width = `${pctIRA}%`;
+      document.getElementById('contribIRAPct').textContent = `${Math.round(pctIRA)}%`;
+      const savingsIRA = Math.round(contribIRA * marginalRate);
+      document.getElementById('savingsIRA').textContent = formatCurrency(savingsIRA);
+      document.getElementById('retirementIRA').classList.toggle('has-contribution', contribIRA > 0);
+
+      // HSA
+      const contribHSA = parseFloat(document.getElementById('contribHSA')?.value) || 0;
+      const limitHSA = state.filingStatus === 'married_joint' ? limits['HSA_family'] : limits['HSA_individual'];
+      document.getElementById('hsaLimitDisplay').textContent = formatCurrency(limitHSA).replace('$', '');
+      const pctHSA = Math.min(100, (contribHSA / limitHSA) * 100);
+      document.getElementById('progressHSA').style.width = `${pctHSA}%`;
+      document.getElementById('contribHSAPct').textContent = `${Math.round(pctHSA)}%`;
+      const savingsHSA = Math.round(contribHSA * marginalRate);
+      document.getElementById('savingsHSA').textContent = formatCurrency(savingsHSA);
+      document.getElementById('retirementHSA').classList.toggle('has-contribution', contribHSA > 0);
+
+      // SEP
+      const contribSEP = parseFloat(document.getElementById('contribSEP')?.value) || 0;
+      const seIncome = state.taxData?.selfEmploymentIncome || 0;
+      const limitSEP = Math.min(limits['SEP_max'], seIncome * 0.25);
+      const pctSEP = limitSEP > 0 ? Math.min(100, (contribSEP / limitSEP) * 100) : 0;
+      document.getElementById('progressSEP').style.width = `${pctSEP}%`;
+      document.getElementById('contribSEPPct').textContent = `${Math.round(pctSEP)}%`;
+      const savingsSEP = Math.round(contribSEP * marginalRate);
+      document.getElementById('savingsSEP').textContent = formatCurrency(savingsSEP);
+      document.getElementById('retirementSEP').classList.toggle('has-contribution', contribSEP > 0);
+
+      // Total
+      const totalSavings = savings401k + savingsIRA + savingsHSA + savingsSEP;
+      document.getElementById('totalRetirementSavings').textContent = formatCurrency(totalSavings);
+    }
+
+    // Close modal on overlay click
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('tax-optimizer-overlay')) {
+        closeTaxOptimizer();
+      }
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && taxOptimizerState.isOpen) {
+        closeTaxOptimizer();
+      }
+    });
+
     // ============ INIT ============
     function init() {
       setupUploadZone();
@@ -9341,6 +11871,9 @@ Generated by TaxFlow - Tax Year 2025
 
       // Initialize smart validation (conditional fields, auto-calculations)
       initSmartValidation();
+
+      // Initialize Smart Insights
+      initSmartInsights();
     }
 
     init();
@@ -9375,5 +11908,288 @@ Generated by TaxFlow - Tax Year 2025
       </div>
     </div>
   </nav>
+
+  <!-- Tax Optimizer Modal -->
+  <div class="tax-optimizer-overlay" id="taxOptimizerOverlay">
+    <div class="tax-optimizer-modal">
+      <div class="optimizer-header">
+        <div class="optimizer-header-left">
+          <div class="optimizer-icon">🎯</div>
+          <div>
+            <div class="optimizer-title">Tax Optimizer</div>
+            <div class="optimizer-subtitle">Explore strategies to minimize your tax burden</div>
+          </div>
+        </div>
+        <button class="optimizer-close" onclick="closeTaxOptimizer()">&times;</button>
+      </div>
+
+      <div class="optimizer-tabs">
+        <button class="optimizer-tab active" data-tab="scenarios" onclick="switchOptimizerTab('scenarios')">
+          <span class="optimizer-tab-icon">🔄</span>
+          What-If Scenarios
+        </button>
+        <button class="optimizer-tab" data-tab="entity" onclick="switchOptimizerTab('entity')">
+          <span class="optimizer-tab-icon">🏢</span>
+          Business Entity
+        </button>
+        <button class="optimizer-tab" data-tab="retirement" onclick="switchOptimizerTab('retirement')">
+          <span class="optimizer-tab-icon">💰</span>
+          Retirement Planning
+        </button>
+      </div>
+
+      <div class="optimizer-content">
+        <!-- What-If Scenarios Panel -->
+        <div class="optimizer-panel active" id="panel-scenarios">
+          <div class="scenario-builder">
+            <div class="scenario-section">
+              <div class="scenario-section-title">
+                <span>📝</span> Build Your Scenario
+              </div>
+              <div class="scenario-input-group">
+                <label class="scenario-label">Scenario Type</label>
+                <select class="scenario-select" id="scenarioType" onchange="updateScenarioInputs()">
+                  <option value="filing_status">Compare Filing Statuses</option>
+                  <option value="income">What If My Income Changes?</option>
+                  <option value="deduction">What If I Add a Deduction?</option>
+                  <option value="retirement">What If I Max Retirement?</option>
+                </select>
+              </div>
+
+              <div id="scenarioInputs">
+                <!-- Dynamic inputs based on scenario type -->
+                <div class="scenario-input-group" id="filingStatusInputs">
+                  <label class="scenario-label">Compare These Statuses</label>
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                      <input type="checkbox" id="compare_single" checked> Single
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                      <input type="checkbox" id="compare_mfj" checked> Married Filing Jointly
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                      <input type="checkbox" id="compare_mfs"> Married Filing Separately
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                      <input type="checkbox" id="compare_hoh"> Head of Household
+                    </label>
+                  </div>
+                </div>
+
+                <div class="scenario-input-group" id="incomeInputs" style="display: none;">
+                  <label class="scenario-label">New Income Amount</label>
+                  <input type="number" class="scenario-input" id="newIncomeAmount" placeholder="e.g., 85000">
+                </div>
+
+                <div class="scenario-input-group" id="deductionInputs" style="display: none;">
+                  <label class="scenario-label">Deduction Type</label>
+                  <select class="scenario-select" id="deductionType">
+                    <option value="charitable">Charitable Donation</option>
+                    <option value="mortgage_interest">Mortgage Interest</option>
+                    <option value="state_taxes">State/Local Taxes</option>
+                    <option value="medical">Medical Expenses</option>
+                  </select>
+                  <label class="scenario-label" style="margin-top: 12px;">Amount</label>
+                  <input type="number" class="scenario-input" id="deductionAmount" placeholder="e.g., 5000">
+                </div>
+              </div>
+
+              <button class="scenario-compare-btn" onclick="runScenarioComparison()">
+                Compare Scenarios
+              </button>
+            </div>
+
+            <div class="scenario-section">
+              <div class="scenario-section-title">
+                <span>📊</span> Results
+              </div>
+              <div id="scenarioResults">
+                <div class="insights-empty">
+                  <div class="insights-empty-icon">🎯</div>
+                  <div>Select a scenario type and click Compare to see results</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Business Entity Panel -->
+        <div class="optimizer-panel" id="panel-entity">
+          <div class="entity-comparison">
+            <div class="entity-inputs">
+              <div class="scenario-section-title">
+                <span>📋</span> Business Information
+              </div>
+              <div class="scenario-input-group">
+                <label class="scenario-label">Gross Business Revenue</label>
+                <input type="number" class="scenario-input" id="entityGrossRevenue" placeholder="e.g., 150000" value="">
+              </div>
+              <div class="scenario-input-group">
+                <label class="scenario-label">Business Expenses</label>
+                <input type="number" class="scenario-input" id="entityExpenses" placeholder="e.g., 30000" value="">
+              </div>
+              <div class="scenario-input-group">
+                <label class="scenario-label">Other Personal Income</label>
+                <input type="number" class="scenario-input" id="entityOtherIncome" placeholder="e.g., 50000" value="0">
+              </div>
+              <div class="scenario-input-group">
+                <label class="scenario-label">Filing Status</label>
+                <select class="scenario-select" id="entityFilingStatus">
+                  <option value="single">Single</option>
+                  <option value="married_joint">Married Filing Jointly</option>
+                  <option value="married_separate">Married Filing Separately</option>
+                  <option value="head_of_household">Head of Household</option>
+                </select>
+              </div>
+              <button class="scenario-compare-btn" onclick="compareEntities()">
+                Compare Structures
+              </button>
+
+              <!-- Salary Slider (shown after comparison) -->
+              <div class="salary-slider-container" id="salarySliderContainer" style="display: none;">
+                <div class="salary-slider-header">
+                  <span class="salary-slider-label">S-Corp Salary</span>
+                  <span class="salary-slider-value" id="salarySliderValue">$60,000</span>
+                </div>
+                <input type="range" class="salary-slider" id="salarySlider" min="0" max="150000" value="60000" oninput="updateSalarySlider()">
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--gray-500); margin-top: 4px;">
+                  <span>$0</span>
+                  <span>Max: $<span id="salarySliderMax">150,000</span></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="entity-results" id="entityResults">
+              <div class="insights-empty" style="padding: 60px 20px;">
+                <div class="insights-empty-icon">🏢</div>
+                <div>Enter your business information and click Compare to see entity structure analysis</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Retirement Planning Panel -->
+        <div class="optimizer-panel" id="panel-retirement">
+          <div class="retirement-planning">
+            <!-- 401(k) Card -->
+            <div class="retirement-account-card" id="retirement401k">
+              <div class="retirement-header">
+                <div class="retirement-icon type-401k">💼</div>
+                <div>
+                  <div class="retirement-name">401(k) / 403(b)</div>
+                  <div class="retirement-limit">2025 Limit: $23,500 (+$7,500 catch-up if 50+)</div>
+                </div>
+              </div>
+              <div class="retirement-input-row">
+                <input type="number" class="retirement-input" id="contrib401k" placeholder="0" value="0" oninput="updateRetirementSavings()">
+                <button class="retirement-max-btn" onclick="maxContribution('401k')">Max Out</button>
+              </div>
+              <div class="retirement-progress">
+                <div class="retirement-progress-bar" id="progress401k" style="width: 0%"></div>
+              </div>
+              <div class="retirement-progress-label">
+                <span id="contrib401kPct">0%</span>
+                <span>of $23,500</span>
+              </div>
+              <div class="retirement-savings-preview">
+                <span class="retirement-savings-label">Estimated tax savings</span>
+                <span class="retirement-savings-value" id="savings401k">$0</span>
+              </div>
+            </div>
+
+            <!-- Traditional IRA Card -->
+            <div class="retirement-account-card" id="retirementIRA">
+              <div class="retirement-header">
+                <div class="retirement-icon type-ira">📈</div>
+                <div>
+                  <div class="retirement-name">Traditional IRA</div>
+                  <div class="retirement-limit">2025 Limit: $7,000 (+$1,000 catch-up if 50+)</div>
+                </div>
+              </div>
+              <div class="retirement-input-row">
+                <input type="number" class="retirement-input" id="contribIRA" placeholder="0" value="0" oninput="updateRetirementSavings()">
+                <button class="retirement-max-btn" onclick="maxContribution('IRA')">Max Out</button>
+              </div>
+              <div class="retirement-progress">
+                <div class="retirement-progress-bar" id="progressIRA" style="width: 0%"></div>
+              </div>
+              <div class="retirement-progress-label">
+                <span id="contribIRAPct">0%</span>
+                <span>of $7,000</span>
+              </div>
+              <div class="retirement-savings-preview">
+                <span class="retirement-savings-label">Estimated tax savings</span>
+                <span class="retirement-savings-value" id="savingsIRA">$0</span>
+              </div>
+            </div>
+
+            <!-- HSA Card -->
+            <div class="retirement-account-card" id="retirementHSA">
+              <div class="retirement-header">
+                <div class="retirement-icon type-hsa">🏥</div>
+                <div>
+                  <div class="retirement-name">Health Savings Account (HSA)</div>
+                  <div class="retirement-limit">2025 Limit: $4,300 individual / $8,550 family</div>
+                </div>
+              </div>
+              <div class="retirement-input-row">
+                <input type="number" class="retirement-input" id="contribHSA" placeholder="0" value="0" oninput="updateRetirementSavings()">
+                <button class="retirement-max-btn" onclick="maxContribution('HSA')">Max Out</button>
+              </div>
+              <div class="retirement-progress">
+                <div class="retirement-progress-bar" id="progressHSA" style="width: 0%"></div>
+              </div>
+              <div class="retirement-progress-label">
+                <span id="contribHSAPct">0%</span>
+                <span>of $<span id="hsaLimitDisplay">4,300</span></span>
+              </div>
+              <div class="retirement-savings-preview">
+                <span class="retirement-savings-label">Estimated tax savings</span>
+                <span class="retirement-savings-value" id="savingsHSA">$0</span>
+              </div>
+            </div>
+
+            <!-- SEP-IRA Card (for self-employed) -->
+            <div class="retirement-account-card" id="retirementSEP">
+              <div class="retirement-header">
+                <div class="retirement-icon type-sep">🏪</div>
+                <div>
+                  <div class="retirement-name">SEP-IRA (Self-Employed)</div>
+                  <div class="retirement-limit">2025 Limit: 25% of net SE income, max $69,000</div>
+                </div>
+              </div>
+              <div class="retirement-input-row">
+                <input type="number" class="retirement-input" id="contribSEP" placeholder="0" value="0" oninput="updateRetirementSavings()">
+                <button class="retirement-max-btn" onclick="maxContribution('SEP')">Max Out</button>
+              </div>
+              <div class="retirement-progress">
+                <div class="retirement-progress-bar" id="progressSEP" style="width: 0%"></div>
+              </div>
+              <div class="retirement-progress-label">
+                <span id="contribSEPPct">0%</span>
+                <span>of max allowed</span>
+              </div>
+              <div class="retirement-savings-preview">
+                <span class="retirement-savings-label">Estimated tax savings</span>
+                <span class="retirement-savings-value" id="savingsSEP">$0</span>
+              </div>
+            </div>
+
+            <!-- Summary Row -->
+            <div class="retirement-summary">
+              <div class="retirement-summary-left">
+                <h3>Total Retirement Strategy</h3>
+                <p>Combined contributions and estimated tax impact</p>
+              </div>
+              <div class="retirement-summary-right">
+                <div class="retirement-total-savings" id="totalRetirementSavings">$0</div>
+                <div class="retirement-total-label">Estimated Annual Tax Savings</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
