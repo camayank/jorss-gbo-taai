@@ -26,9 +26,25 @@ from sqlalchemy import (
     Text, Enum, ForeignKey, Index, CheckConstraint, UniqueConstraint,
     event, JSON
 )
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import UUID, JSONB as PG_JSONB
 from sqlalchemy.orm import declarative_base, relationship, validates
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.types import TypeDecorator
+
+
+# Cross-database compatible JSON type
+# Uses JSONB on PostgreSQL, JSON on SQLite/others
+class JSONB(TypeDecorator):
+    """A portable JSONB type that works with both PostgreSQL and SQLite."""
+    impl = JSON
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(PG_JSONB())
+        else:
+            return dialect.type_descriptor(JSON())
+
 
 Base = declarative_base()
 
