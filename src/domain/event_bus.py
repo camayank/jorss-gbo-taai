@@ -279,7 +279,7 @@ class SQLiteEventStore(IEventStore):
                         if default == event_type_enum:
                             event_class = cls
                             break
-                except:
+                except (AttributeError, KeyError, TypeError):
                     pass
 
         if event_class is None:

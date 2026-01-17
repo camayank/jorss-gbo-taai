@@ -38,7 +38,7 @@ class TransactionManager:
         try:
             await session.execute(...)
             await tm.commit()
-        except:
+        except Exception:
             await tm.rollback()
             raise
         finally:

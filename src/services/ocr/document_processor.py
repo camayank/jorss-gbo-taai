@@ -17,6 +17,7 @@ import hashlib
 import logging
 import re
 from dataclasses import dataclass, field
+from decimal import InvalidOperation
 from typing import Optional, List, Dict, Any, Tuple
 from datetime import datetime
 from pathlib import Path
@@ -295,7 +296,12 @@ class DocumentProcessor:
         # Get templates for document type
         templates = get_templates_for_document(classification.document_type)
         if not templates:
-            warnings.append(f"No extraction templates for document type: {classification.document_type}")
+            # C4+H4: Specific manual entry warnings for complex documents
+            manual_entry_warning = self._get_manual_entry_warning(classification.document_type)
+            if manual_entry_warning:
+                warnings.append(manual_entry_warning)
+            else:
+                warnings.append(f"No extraction templates for document type: {classification.document_type}")
 
         # Extract fields
         extracted_fields = self.field_extractor.extract(ocr_result, templates)
@@ -406,7 +412,12 @@ class DocumentProcessor:
 
         templates = get_templates_for_document(classification.document_type)
         if not templates:
-            warnings.append(f"No extraction templates for document type: {classification.document_type}")
+            # C4+H4: Specific manual entry warnings for complex documents
+            manual_entry_warning = self._get_manual_entry_warning(classification.document_type)
+            if manual_entry_warning:
+                warnings.append(manual_entry_warning)
+            else:
+                warnings.append(f"No extraction templates for document type: {classification.document_type}")
 
         extracted_fields = self.field_extractor.extract(ocr_result, templates)
         extraction_confidence = self._calculate_extraction_confidence(extracted_fields, templates)
@@ -435,6 +446,61 @@ class DocumentProcessor:
             warnings=warnings,
             errors=errors,
         )
+
+    # C4+H4: Manual entry warnings for documents without extraction templates
+    MANUAL_ENTRY_WARNINGS = {
+        "k1": (
+            "MANUAL ENTRY REQUIRED: Schedule K-1 detected. K-1 forms contain complex "
+            "multi-entity income allocation data that requires manual entry. Key fields: "
+            "Box 1 (ordinary income), Box 2 (net rental income), Box 5 (interest), "
+            "Box 6 (dividends), Box 7 (royalties), Box 9a (Section 1231 gain). "
+            "Partner/shareholder basis tracking also requires manual calculation."
+        ),
+        "1098": (
+            "MANUAL ENTRY REQUIRED: Form 1098 (Mortgage Interest Statement) detected. "
+            "Please manually enter: Box 1 (mortgage interest received), Box 2 (points paid), "
+            "Box 4 (mortgage insurance premiums), Box 5 (real estate taxes). "
+            "Verify property address and lender information."
+        ),
+        "1098-e": (
+            "MANUAL ENTRY REQUIRED: Form 1098-E (Student Loan Interest) detected. "
+            "Please manually enter: Box 1 (student loan interest paid). "
+            "Maximum deduction is $2,500, subject to income limitations."
+        ),
+        "1098-t": (
+            "MANUAL ENTRY REQUIRED: Form 1098-T (Tuition Statement) detected. "
+            "Please manually enter: Box 1 (payments received), Box 2 (amounts billed), "
+            "Box 5 (scholarships/grants). Required for education credits (AOTC, LLC)."
+        ),
+        "1099-b": (
+            "MANUAL ENTRY REQUIRED: Form 1099-B (Broker Proceeds) detected. "
+            "Please manually enter: Box 1d (proceeds), Box 1e (cost basis), "
+            "date acquired, date sold. For complex transactions, Schedule D and "
+            "Form 8949 must be completed. Wash sale adjustments require manual review."
+        ),
+        "1099-r": (
+            "MANUAL ENTRY REQUIRED: Form 1099-R (Retirement Distributions) detected. "
+            "Please manually enter: Box 1 (gross distribution), Box 2a (taxable amount), "
+            "Box 4 (federal withholding), Box 7 (distribution code). "
+            "Distribution codes determine tax treatment and early withdrawal penalties."
+        ),
+        "1099-g": (
+            "MANUAL ENTRY REQUIRED: Form 1099-G (Government Payments) detected. "
+            "Please manually enter: Box 1 (unemployment compensation), "
+            "Box 2 (state/local tax refunds). Note: State refund may be taxable "
+            "only if taxpayer itemized in prior year."
+        ),
+    }
+
+    def _get_manual_entry_warning(self, document_type: str) -> Optional[str]:
+        """
+        Get manual entry warning for document types without extraction templates.
+
+        C4+H4: Provides specific guidance for complex documents that require
+        manual entry due to the complexity of their field structures.
+        """
+        doc_type_lower = document_type.lower()
+        return self.MANUAL_ENTRY_WARNINGS.get(doc_type_lower)
 
     def _classify_document(self, text: str) -> DocumentClassification:
         """
@@ -642,10 +708,28 @@ class DocumentIntegration:
 
     Handles mapping extracted fields to the appropriate
     tax return model fields and creating/updating records.
+
+    H1: Uses decimal_math.money() for proper rounding of financial values
+    to avoid floating point precision issues (e.g., 0.1 + 0.2 = 0.30000000000000004).
     """
 
     def __init__(self):
-        pass
+        # H1: Import decimal_math for proper money handling
+        from calculator.decimal_math import money
+        self._money = money
+
+    def _safe_money(self, value: Any) -> float:
+        """
+        H1: Convert value to properly rounded money amount.
+
+        Uses Decimal-based rounding to avoid floating point errors,
+        then converts back to float for model compatibility.
+        """
+        try:
+            return float(self._money(value or 0))
+        except (ValueError, TypeError, InvalidOperation):
+            logger.warning(f"Could not convert value to money: {value}")
+            return 0.0
 
     def apply_w2_to_return(
         self,
@@ -672,18 +756,19 @@ class DocumentIntegration:
             # Import here to avoid circular imports
             from models.income import W2Info
 
+            # H1: Use _safe_money for proper rounding of financial values
             w2 = W2Info(
                 employer_name=data.get("employer_name", "Unknown Employer"),
                 employer_ein=data.get("employer_ein", ""),
-                wages=float(data.get("wages", 0)),
-                federal_tax_withheld=float(data.get("federal_tax_withheld", 0)),
-                social_security_wages=float(data.get("social_security_wages", 0)),
-                social_security_tax=float(data.get("social_security_tax", 0)),
-                medicare_wages=float(data.get("medicare_wages", 0)),
-                medicare_tax=float(data.get("medicare_tax", 0)),
+                wages=self._safe_money(data.get("wages", 0)),
+                federal_tax_withheld=self._safe_money(data.get("federal_tax_withheld", 0)),
+                social_security_wages=self._safe_money(data.get("social_security_wages", 0)),
+                social_security_tax=self._safe_money(data.get("social_security_tax", 0)),
+                medicare_wages=self._safe_money(data.get("medicare_wages", 0)),
+                medicare_tax=self._safe_money(data.get("medicare_tax", 0)),
                 state=data.get("state", ""),
-                state_wages=float(data.get("state_wages", 0)),
-                state_tax=float(data.get("state_tax", 0)),
+                state_wages=self._safe_money(data.get("state_wages", 0)),
+                state_tax=self._safe_money(data.get("state_tax", 0)),
             )
 
             # Add W-2 to tax return
@@ -705,12 +790,12 @@ class DocumentIntegration:
         data = result.get_extracted_data()
 
         try:
-            # Add interest income to tax return
-            interest = float(data.get("interest_income", 0))
+            # H1: Add interest income to tax return with proper rounding
+            interest = self._safe_money(data.get("interest_income", 0))
             tax_return.income.interest_income += interest
 
             # Track tax-exempt interest separately
-            tax_exempt = float(data.get("tax_exempt_interest", 0))
+            tax_exempt = self._safe_money(data.get("tax_exempt_interest", 0))
             if hasattr(tax_return.income, 'tax_exempt_interest'):
                 tax_return.income.tax_exempt_interest += tax_exempt
 
@@ -731,15 +816,15 @@ class DocumentIntegration:
         data = result.get_extracted_data()
 
         try:
-            # Add dividend income
-            ordinary = float(data.get("ordinary_dividends", 0))
-            qualified = float(data.get("qualified_dividends", 0))
+            # H1: Add dividend income with proper rounding
+            ordinary = self._safe_money(data.get("ordinary_dividends", 0))
+            qualified = self._safe_money(data.get("qualified_dividends", 0))
 
             tax_return.income.ordinary_dividends += ordinary
             tax_return.income.qualified_dividends += qualified
 
             # Capital gain distributions go to capital gains
-            cap_gains = float(data.get("capital_gain_distributions", 0))
+            cap_gains = self._safe_money(data.get("capital_gain_distributions", 0))
             if cap_gains > 0:
                 tax_return.income.long_term_capital_gains += cap_gains
 
@@ -760,8 +845,8 @@ class DocumentIntegration:
         data = result.get_extracted_data()
 
         try:
-            # Add self-employment income
-            compensation = float(data.get("nonemployee_compensation", 0))
+            # H1: Add self-employment income with proper rounding
+            compensation = self._safe_money(data.get("nonemployee_compensation", 0))
             tax_return.income.self_employment_income += compensation
 
             return True, []

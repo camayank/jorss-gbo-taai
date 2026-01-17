@@ -18,6 +18,12 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
+import logging
+
+logger = logging.getLogger(__name__)
+
+# At-risk warning threshold (IRC Section 465)
+AT_RISK_WARNING_THRESHOLD = 10000
 
 
 class FarmType(str, Enum):
@@ -317,8 +323,24 @@ class ScheduleF(BaseModel):
         # Self-employment income (if materially participated)
         se_income = line_34 if self.materially_participated else 0.0
 
-        # Check if loss is deductible (at-risk rules)
+        # C2: At-risk rules warning (IRC Section 465)
+        # For losses > $10,000, taxpayer may need Form 6198 to determine
+        # at-risk limitation. This calculation assumes 100% at-risk which
+        # may overstate deductible loss if taxpayer has nonrecourse debt
+        # or is protected from loss by guarantees, stop-loss arrangements, etc.
         at_risk_amount = max(0, line_34)  # Simplified - assume full at-risk
+        at_risk_warning = None
+
+        if line_34 < 0 and abs(line_34) > AT_RISK_WARNING_THRESHOLD:
+            at_risk_warning = (
+                f"AT-RISK RULES MAY APPLY: Farm loss of ${abs(line_34):,.2f} exceeds "
+                f"${AT_RISK_WARNING_THRESHOLD:,} threshold. Per IRC Section 465, losses "
+                f"may be limited to taxpayer's at-risk amount. Form 6198 may be required. "
+                f"CPA should verify: (1) nonrecourse financing, (2) guarantees or stop-loss "
+                f"arrangements, (3) amounts borrowed from related parties. "
+                f"See IRS Publication 925 for at-risk rules."
+            )
+            logger.warning(at_risk_warning)
 
         return {
             'gross_income': round(line_9, 2),
@@ -329,6 +351,7 @@ class ScheduleF(BaseModel):
             'self_employment_income': round(se_income, 2),
             'materially_participated': self.materially_participated,
             'at_risk_amount': round(at_risk_amount, 2),
+            'at_risk_warning': at_risk_warning,
         }
 
     def calculate_schedule_f(self) -> Dict[str, Any]:

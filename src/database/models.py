@@ -1434,11 +1434,36 @@ def hash_ssn(ssn: str) -> str:
 
     Returns:
         64-character hexadecimal hash string
+
+    H3 SECURITY LIMITATION - DISCLOSED:
+    ====================================
+    This implementation uses a simple SHA256 hash WITHOUT a salt or pepper.
+
+    Known limitations:
+    1. SSNs have limited key space (~1 billion combinations). Pre-computed
+       rainbow tables could reverse hashes in <1 second with modern hardware.
+    2. Identical SSNs produce identical hashes, enabling correlation attacks
+       between records or databases.
+    3. This does NOT meet NIST SP 800-132 recommendations for password/secret
+       hashing which require adaptive functions (bcrypt, scrypt, Argon2).
+
+    Why this was accepted for FREEZE:
+    - SSN hash is used for LOOKUP ONLY (finding client by SSN), not storage
+    - Actual SSN is never stored in database (only the hash)
+    - Production deployment MUST use encrypted database connections
+    - Future enhancement: Add per-tenant salt stored in HSM
+
+    For production security hardening, consider:
+    - HMAC-SHA256 with environment-variable secret key
+    - Per-tenant salt stored in secure vault
+    - Migration to Argon2id with appropriate work factors
+
+    See: OWASP Cryptographic Failures, NIST SP 800-132
     """
     # Remove any formatting
     clean_ssn = ssn.replace("-", "").replace(" ", "")
 
-    # Create hash
+    # Create hash (H3: No salt - see limitation documentation above)
     return hashlib.sha256(clean_ssn.encode()).hexdigest()
 
 

@@ -25,6 +25,27 @@ from decimal import Decimal, ROUND_HALF_UP
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 from pydantic import BaseModel, Field, field_validator
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class DispositionRequiresManualReviewError(Exception):
+    """
+    C1: Raised when an asset disposition is encountered that requires manual CPA review.
+
+    This is a BLOCKING error - calculation cannot proceed without manual intervention.
+    The system does NOT calculate disposition-year depreciation to prevent silent reliance.
+
+    Required manual actions:
+    1. Calculate partial-year depreciation per convention (half-year, mid-quarter, mid-month)
+    2. Complete Form 4797 for gain/loss on disposition
+    3. Determine Section 1245/1250 recapture amounts
+    4. Update basis tracking for any replacement property
+
+    References: IRS Publication 946, Form 4797 Instructions
+    """
+    pass
 
 
 # =============================================================================
@@ -718,10 +739,26 @@ class Form4562(BaseModel):
         Returns:
             Current year MACRS depreciation amount
         """
-        # Skip if disposed
+        # C1: BLOCKING ERROR - Asset disposed this year
+        # Per IRS Pub 946, disposition year requires partial depreciation based on convention.
+        # Full implementation requires: mid-quarter vs half-year proration, Section 1245/1250
+        # recapture calculations, and Form 4797 integration.
+        #
+        # CRITICAL: We RAISE an exception here, not return 0.
+        # Returning 0 could be mistaken for "handled" - this is a CPA reliance risk.
+        # The calculation HALTS and requires explicit manual intervention.
         if asset.disposed_this_year:
-            # Disposition year: use convention to determine partial year
-            pass  # TODO: Handle disposition
+            error_msg = (
+                f"DISPOSITION REQUIRES MANUAL REVIEW - CALCULATION BLOCKED: "
+                f"Asset '{asset.description}' (cost basis ${asset.cost_basis:,.2f}) "
+                f"was disposed in tax year {self.tax_year}. "
+                f"Disposition-year depreciation is NOT calculated by this system. "
+                f"CPA must manually: (1) calculate partial-year depreciation per convention, "
+                f"(2) complete Form 4797, (3) determine Section 1245/1250 recapture. "
+                f"See IRS Publication 946."
+            )
+            logger.error(error_msg)
+            raise DispositionRequiresManualReviewError(error_msg)
 
         # Skip if fully depreciated
         if asset.is_fully_depreciated():

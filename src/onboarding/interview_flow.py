@@ -111,8 +111,14 @@ class InterviewFlow:
         self._setup_1099_income()
         self._setup_business_income()
         self._setup_investment_income()
+        self._setup_virtual_currency()  # NEW: Crypto/NFT rules (VC001-VC075)
         self._setup_retirement_income()
         self._setup_other_income()
+        self._setup_foreign_assets()  # NEW: FBAR/FATCA rules (FA001-FA064)
+        self._setup_k1_passthrough()  # NEW: K-1/Trust rules (K1001-K1060)
+        self._setup_household_employment()  # NEW: Schedule H rules (HH001-HH055)
+        self._setup_casualty_loss()  # NEW: Disaster loss rules (CL001-CL059)
+        self._setup_alimony_details()  # NEW: Alimony rules (AL001-AL068)
         self._setup_deductions_overview()
         self._setup_mortgage_deductions()
         self._setup_tax_deductions()
@@ -851,6 +857,542 @@ class InterviewFlow:
                     prefix="$",
                     placeholder="0.00",
                     required=False,
+                ),
+            ],
+        )
+        self._engine.add_group(group)
+
+    # =========================================================================
+    # NEW SPECIALIZED SECTIONS (Rules VC001-AL068)
+    # =========================================================================
+
+    def _setup_virtual_currency(self) -> None:
+        """Set up virtual currency/crypto questions (Rules VC001-VC075)."""
+        group = QuestionGroup(
+            id="virtual_currency",
+            title="Virtual Currency & Digital Assets",
+            description="Important: The IRS requires disclosure of all cryptocurrency transactions.",
+            icon="bitcoin",
+            order=9,
+            estimated_time="3 minutes",
+            show_if={"question_id": "crypto_transactions", "equals": True},
+            questions=[
+                Question(
+                    id="crypto_activities",
+                    text="What cryptocurrency activities did you have in 2025?",
+                    question_type=QuestionType.MULTI_CHOICE,
+                    help_text="Select all that apply - each has different tax treatment",
+                    choices=[
+                        Choice(
+                            value="sold",
+                            label="Sold cryptocurrency",
+                            description="Sold crypto for USD or other fiat currency",
+                        ),
+                        Choice(
+                            value="exchanged",
+                            label="Exchanged one crypto for another",
+                            description="Traded Bitcoin for Ethereum, etc. (taxable event)",
+                        ),
+                        Choice(
+                            value="purchased_goods",
+                            label="Used crypto to buy goods/services",
+                            description="Paid for items using cryptocurrency (taxable event)",
+                        ),
+                        Choice(
+                            value="mining",
+                            label="Mined cryptocurrency",
+                            description="Received crypto through mining (ordinary income)",
+                        ),
+                        Choice(
+                            value="staking",
+                            label="Received staking rewards",
+                            description="Earned rewards from proof-of-stake (ordinary income)",
+                        ),
+                        Choice(
+                            value="airdrop",
+                            label="Received airdrop or hard fork",
+                            description="Free crypto received (taxable when received)",
+                        ),
+                        Choice(
+                            value="nft",
+                            label="Bought or sold NFTs",
+                            description="NFTs may be taxed as collectibles (28% rate)",
+                        ),
+                        Choice(
+                            value="defi",
+                            label="DeFi activities (lending, liquidity)",
+                            description="Yield farming, liquidity pools, lending protocols",
+                        ),
+                    ],
+                ),
+                Question(
+                    id="crypto_gain_loss",
+                    text="What was your net gain or loss from crypto sales/exchanges?",
+                    question_type=QuestionType.CURRENCY,
+                    prefix="$",
+                    placeholder="0.00",
+                    help_text="Enter negative number for losses",
+                    data_path="income.crypto_gain_loss",
+                ),
+                Question(
+                    id="crypto_holding_period",
+                    text="Were most of your crypto sales long-term (held over 1 year)?",
+                    question_type=QuestionType.SINGLE_CHOICE,
+                    choices=[
+                        Choice(value="mostly_long", label="Mostly long-term (lower 0-20% rate)"),
+                        Choice(value="mostly_short", label="Mostly short-term (ordinary income rate)"),
+                        Choice(value="mixed", label="Mixed - both short and long-term"),
+                    ],
+                ),
+                Question(
+                    id="crypto_mining_income",
+                    text="Total mining/staking rewards received (fair market value)",
+                    question_type=QuestionType.CURRENCY,
+                    show_if={
+                        "or": [
+                            {"question_id": "crypto_activities", "contains": "mining"},
+                            {"question_id": "crypto_activities", "contains": "staking"},
+                        ]
+                    },
+                    prefix="$",
+                    placeholder="0.00",
+                    help_text="Taxed as ordinary income when received",
+                    data_path="income.crypto_mining_income",
+                ),
+                Question(
+                    id="crypto_foreign_exchange",
+                    text="Did you hold cryptocurrency on any foreign exchanges?",
+                    question_type=QuestionType.BOOLEAN,
+                    help_text="May trigger FBAR and Form 8938 reporting requirements",
+                ),
+                Question(
+                    id="crypto_foreign_value",
+                    text="What was the maximum value in foreign crypto accounts during 2025?",
+                    question_type=QuestionType.CURRENCY,
+                    show_if={"question_id": "crypto_foreign_exchange", "equals": True},
+                    prefix="$",
+                    placeholder="0.00",
+                    help_text="FBAR required if over $10,000 at any time",
+                ),
+                Question(
+                    id="crypto_cost_basis_method",
+                    text="What cost basis method do you use for crypto?",
+                    question_type=QuestionType.SINGLE_CHOICE,
+                    choices=[
+                        Choice(value="fifo", label="FIFO (First In, First Out)", description="IRS default method"),
+                        Choice(value="specific_id", label="Specific Identification", description="Select which lots to sell"),
+                        Choice(value="hifo", label="HIFO (Highest In, First Out)", description="Minimizes gains"),
+                        Choice(value="unsure", label="I'm not sure"),
+                    ],
+                    help_text="Choose consistently - specific ID can reduce taxes",
+                ),
+            ],
+        )
+        self._engine.add_group(group)
+
+    def _setup_foreign_assets(self) -> None:
+        """Set up foreign assets questions (Rules FA001-FA064)."""
+        group = QuestionGroup(
+            id="foreign_assets",
+            title="Foreign Financial Assets",
+            description="Important: Foreign accounts have strict reporting requirements.",
+            icon="globe",
+            order=12,
+            estimated_time="3 minutes",
+            questions=[
+                Question(
+                    id="has_foreign_accounts",
+                    text="Did you have any foreign financial accounts in 2025?",
+                    question_type=QuestionType.BOOLEAN,
+                    help_text="Includes foreign bank accounts, brokerage accounts, and crypto exchanges",
+                ),
+                Question(
+                    id="foreign_account_types",
+                    text="What types of foreign accounts did you have?",
+                    question_type=QuestionType.MULTI_CHOICE,
+                    show_if={"question_id": "has_foreign_accounts", "equals": True},
+                    choices=[
+                        Choice(value="bank", label="Foreign bank account"),
+                        Choice(value="brokerage", label="Foreign brokerage/investment account"),
+                        Choice(value="pension", label="Foreign pension or retirement account"),
+                        Choice(value="crypto", label="Foreign cryptocurrency exchange"),
+                        Choice(value="business", label="Interest in foreign business"),
+                        Choice(value="trust", label="Interest in foreign trust"),
+                    ],
+                ),
+                Question(
+                    id="foreign_max_value",
+                    text="What was the maximum aggregate value of all foreign accounts during 2025?",
+                    question_type=QuestionType.CURRENCY,
+                    show_if={"question_id": "has_foreign_accounts", "equals": True},
+                    prefix="$",
+                    placeholder="0.00",
+                    data_path="taxpayer.foreign_account_max_value",
+                    help_text="FBAR required if over $10,000; Form 8938 may be required too",
+                ),
+                Question(
+                    id="fbar_required_notice",
+                    text="Based on your answer, you may need to file FBAR (FinCEN 114)",
+                    question_type=QuestionType.BOOLEAN,
+                    show_if={"question_id": "foreign_max_value", "greater_than": 10000},
+                    help_text="FBAR is filed separately from your tax return, due April 15 (auto-extended to Oct 15)",
+                    data_path="compliance.fbar_required",
+                ),
+                Question(
+                    id="foreign_earned_income",
+                    text="Did you earn income while living/working in a foreign country?",
+                    question_type=QuestionType.BOOLEAN,
+                ),
+                Question(
+                    id="foreign_days_abroad",
+                    text="How many days were you physically present in foreign countries in 2025?",
+                    question_type=QuestionType.NUMBER,
+                    show_if={"question_id": "foreign_earned_income", "equals": True},
+                    min_value=0,
+                    max_value=366,
+                    help_text="330+ days may qualify you for Foreign Earned Income Exclusion",
+                ),
+                Question(
+                    id="foreign_income_amount",
+                    text="Total foreign earned income",
+                    question_type=QuestionType.CURRENCY,
+                    show_if={"question_id": "foreign_earned_income", "equals": True},
+                    prefix="$",
+                    placeholder="0.00",
+                    data_path="income.foreign_earned_income",
+                ),
+                Question(
+                    id="foreign_taxes_paid",
+                    text="Total foreign income taxes paid",
+                    question_type=QuestionType.CURRENCY,
+                    show_if={"question_id": "has_foreign_accounts", "equals": True},
+                    prefix="$",
+                    placeholder="0.00",
+                    data_path="credits.foreign_taxes_paid",
+                    help_text="You may be able to claim a credit or deduction",
+                ),
+            ],
+        )
+        self._engine.add_group(group)
+
+    def _setup_k1_passthrough(self) -> None:
+        """Set up K-1 and passthrough entity questions (Rules K1001-K1060)."""
+        group = QuestionGroup(
+            id="k1_passthrough",
+            title="Partnerships, S-Corps & Trusts (K-1)",
+            description="Tell us about any K-1 income from business interests.",
+            icon="briefcase",
+            order=13,
+            estimated_time="4 minutes",
+            questions=[
+                Question(
+                    id="has_k1_income",
+                    text="Did you receive any Schedule K-1 forms in 2025?",
+                    question_type=QuestionType.BOOLEAN,
+                    help_text="K-1s come from partnerships, S-corporations, trusts, or estates",
+                ),
+                Question(
+                    id="k1_types",
+                    text="What types of K-1 forms did you receive?",
+                    question_type=QuestionType.MULTI_CHOICE,
+                    show_if={"question_id": "has_k1_income", "equals": True},
+                    choices=[
+                        Choice(value="partnership", label="Partnership (Form 1065 K-1)", description="Includes LLCs taxed as partnerships"),
+                        Choice(value="scorp", label="S Corporation (Form 1120-S K-1)"),
+                        Choice(value="trust", label="Trust or Estate (Form 1041 K-1)"),
+                    ],
+                ),
+                Question(
+                    id="k1_ordinary_income",
+                    text="Total ordinary business income (K-1 Box 1)",
+                    question_type=QuestionType.CURRENCY,
+                    show_if={"question_id": "has_k1_income", "equals": True},
+                    prefix="$",
+                    placeholder="0.00",
+                    data_path="income.partnership_income",
+                    help_text="May qualify for 20% QBI deduction",
+                ),
+                Question(
+                    id="k1_rental_income",
+                    text="Rental real estate income/loss (K-1 Box 2)",
+                    question_type=QuestionType.CURRENCY,
+                    show_if={"question_id": "has_k1_income", "equals": True},
+                    prefix="$",
+                    placeholder="0.00",
+                    help_text="Enter negative for losses - may be subject to passive loss rules",
+                ),
+                Question(
+                    id="k1_self_employment",
+                    text="Is any K-1 income subject to self-employment tax?",
+                    question_type=QuestionType.BOOLEAN,
+                    show_if={"question_id": "k1_types", "contains": "partnership"},
+                    help_text="General partners and LLC members usually pay SE tax",
+                ),
+                Question(
+                    id="k1_material_participation",
+                    text="Did you materially participate in any K-1 business activities?",
+                    question_type=QuestionType.BOOLEAN,
+                    show_if={"question_id": "has_k1_income", "equals": True},
+                    help_text="500+ hours = material participation; affects loss deductibility",
+                ),
+                Question(
+                    id="k1_at_risk_amount",
+                    text="Do you have any K-1 activities where your at-risk amount may limit losses?",
+                    question_type=QuestionType.BOOLEAN,
+                    show_if={"question_id": "has_k1_income", "equals": True},
+                    help_text="Losses limited to your at-risk investment (Form 6198)",
+                ),
+                Question(
+                    id="k1_qbi_eligible",
+                    text="Is this income from a qualified trade or business (for QBI deduction)?",
+                    question_type=QuestionType.SINGLE_CHOICE,
+                    show_if={"question_id": "has_k1_income", "equals": True},
+                    choices=[
+                        Choice(value="yes", label="Yes - qualified business", description="May get 20% deduction"),
+                        Choice(value="sstb", label="It's a specified service business", description="Limited deduction at higher incomes"),
+                        Choice(value="rental", label="It's rental real estate", description="May qualify under safe harbor"),
+                        Choice(value="unsure", label="I'm not sure"),
+                    ],
+                ),
+            ],
+        )
+        self._engine.add_group(group)
+
+    def _setup_household_employment(self) -> None:
+        """Set up household employment questions (Rules HH001-HH055)."""
+        group = QuestionGroup(
+            id="household_employment",
+            title="Household Employees",
+            description="Did you pay anyone to work in your home?",
+            icon="home",
+            order=14,
+            estimated_time="2 minutes",
+            questions=[
+                Question(
+                    id="has_household_employees",
+                    text="Did you pay anyone $2,700 or more to work in your household in 2025?",
+                    question_type=QuestionType.BOOLEAN,
+                    help_text="Includes nannies, housekeepers, senior caregivers, private nurses",
+                    data_path="taxpayer.has_household_employees",
+                ),
+                Question(
+                    id="household_employee_type",
+                    text="What type of household worker did you employ?",
+                    question_type=QuestionType.MULTI_CHOICE,
+                    show_if={"question_id": "has_household_employees", "equals": True},
+                    choices=[
+                        Choice(value="nanny", label="Nanny or babysitter"),
+                        Choice(value="housekeeper", label="Housekeeper or maid"),
+                        Choice(value="caregiver", label="Senior caregiver or home health aide"),
+                        Choice(value="gardener", label="Gardener or yard worker"),
+                        Choice(value="driver", label="Private driver"),
+                        Choice(value="other", label="Other household worker"),
+                    ],
+                ),
+                Question(
+                    id="household_wages_paid",
+                    text="Total wages paid to household employees in 2025",
+                    question_type=QuestionType.CURRENCY,
+                    show_if={"question_id": "has_household_employees", "equals": True},
+                    prefix="$",
+                    placeholder="0.00",
+                    data_path="taxpayer.household_wages_paid",
+                    help_text="Schedule H required if $2,700 or more",
+                ),
+                Question(
+                    id="household_withheld_taxes",
+                    text="Did you withhold Social Security and Medicare taxes from their wages?",
+                    question_type=QuestionType.BOOLEAN,
+                    show_if={"question_id": "has_household_employees", "equals": True},
+                    help_text="Required for wages over $2,700 threshold",
+                ),
+                Question(
+                    id="household_has_ein",
+                    text="Do you have an EIN (Employer Identification Number)?",
+                    question_type=QuestionType.BOOLEAN,
+                    show_if={"question_id": "has_household_employees", "equals": True},
+                    help_text="Required to file Schedule H and issue W-2",
+                ),
+                Question(
+                    id="household_issued_w2",
+                    text="Did you or will you issue Form W-2 to your household employee?",
+                    question_type=QuestionType.BOOLEAN,
+                    show_if={"question_id": "has_household_employees", "equals": True},
+                    help_text="W-2 must be issued by January 31",
+                ),
+            ],
+        )
+        self._engine.add_group(group)
+
+    def _setup_casualty_loss(self) -> None:
+        """Set up casualty and disaster loss questions (Rules CL001-CL059)."""
+        group = QuestionGroup(
+            id="casualty_loss",
+            title="Casualty & Disaster Losses",
+            description="Did you suffer property losses from disasters?",
+            icon="alert-triangle",
+            order=15,
+            estimated_time="2 minutes",
+            questions=[
+                Question(
+                    id="has_casualty_loss",
+                    text="Did you have property damaged or destroyed by a casualty or disaster in 2025?",
+                    question_type=QuestionType.BOOLEAN,
+                    help_text="Includes fire, storm, flood, earthquake, theft, or vandalism",
+                    data_path="taxpayer.has_casualty_loss",
+                ),
+                Question(
+                    id="casualty_type",
+                    text="What type of casualty or disaster occurred?",
+                    question_type=QuestionType.SINGLE_CHOICE,
+                    show_if={"question_id": "has_casualty_loss", "equals": True},
+                    choices=[
+                        Choice(value="hurricane", label="Hurricane or tropical storm"),
+                        Choice(value="flood", label="Flood or water damage"),
+                        Choice(value="fire", label="Fire or wildfire"),
+                        Choice(value="tornado", label="Tornado or severe storm"),
+                        Choice(value="earthquake", label="Earthquake"),
+                        Choice(value="theft", label="Theft or vandalism"),
+                        Choice(value="other", label="Other casualty"),
+                    ],
+                ),
+                Question(
+                    id="is_federally_declared",
+                    text="Was your area declared a federal disaster area by FEMA?",
+                    question_type=QuestionType.BOOLEAN,
+                    show_if={"question_id": "has_casualty_loss", "equals": True},
+                    help_text="IMPORTANT: Personal casualty losses are only deductible if in a federally declared disaster area",
+                    data_path="taxpayer.is_federally_declared_disaster",
+                ),
+                Question(
+                    id="casualty_loss_amount",
+                    text="Total unreimbursed loss amount (after insurance)",
+                    question_type=QuestionType.CURRENCY,
+                    show_if={"question_id": "has_casualty_loss", "equals": True},
+                    prefix="$",
+                    placeholder="0.00",
+                    data_path="taxpayer.casualty_loss_amount",
+                    help_text="Fair market value decrease minus insurance payments",
+                ),
+                Question(
+                    id="insurance_claim_filed",
+                    text="Did you file an insurance claim?",
+                    question_type=QuestionType.BOOLEAN,
+                    show_if={"question_id": "has_casualty_loss", "equals": True},
+                    help_text="Must file claim to deduct loss if insurance is available",
+                ),
+                Question(
+                    id="insurance_reimbursement",
+                    text="Insurance reimbursement received or expected",
+                    question_type=QuestionType.CURRENCY,
+                    show_if={"question_id": "insurance_claim_filed", "equals": True},
+                    prefix="$",
+                    placeholder="0.00",
+                ),
+                Question(
+                    id="casualty_prior_year_election",
+                    text="Would you like to deduct this loss on your 2024 return instead?",
+                    question_type=QuestionType.BOOLEAN,
+                    show_if={"question_id": "is_federally_declared", "equals": True},
+                    help_text="Federally declared disasters can be claimed on prior year for faster refund",
+                ),
+            ],
+        )
+        self._engine.add_group(group)
+
+    def _setup_alimony_details(self) -> None:
+        """Set up alimony questions (Rules AL001-AL068)."""
+        group = QuestionGroup(
+            id="alimony_details",
+            title="Alimony & Divorce",
+            description="Important: Tax treatment depends on when your agreement was signed.",
+            icon="users",
+            order=16,
+            estimated_time="2 minutes",
+            questions=[
+                Question(
+                    id="alimony_situation",
+                    text="Do any of these apply to you?",
+                    question_type=QuestionType.MULTI_CHOICE,
+                    choices=[
+                        Choice(value="pays", label="I pay alimony to a former spouse"),
+                        Choice(value="receives", label="I receive alimony from a former spouse"),
+                        Choice(value="none", label="Neither applies to me", exclusive=True),
+                    ],
+                ),
+                Question(
+                    id="divorce_agreement_date",
+                    text="When was your divorce or separation agreement executed?",
+                    question_type=QuestionType.SINGLE_CHOICE,
+                    show_if={
+                        "or": [
+                            {"question_id": "alimony_situation", "contains": "pays"},
+                            {"question_id": "alimony_situation", "contains": "receives"},
+                        ]
+                    },
+                    help_text="CRITICAL: Tax treatment changed for agreements after 12/31/2018",
+                    choices=[
+                        Choice(
+                            value="pre_2019",
+                            label="Before January 1, 2019",
+                            description="Old rules: Deductible to payer, taxable to recipient",
+                        ),
+                        Choice(
+                            value="post_2018",
+                            label="On or after January 1, 2019",
+                            description="New rules: Not deductible or taxable",
+                        ),
+                        Choice(
+                            value="modified_post_2018",
+                            label="Pre-2019 agreement modified after 2018 to use new rules",
+                            description="New rules apply",
+                        ),
+                    ],
+                    data_path="taxpayer.alimony_agreement_date",
+                ),
+                Question(
+                    id="alimony_paid_amount",
+                    text="Total alimony paid in 2025",
+                    question_type=QuestionType.CURRENCY,
+                    show_if={"question_id": "alimony_situation", "contains": "pays"},
+                    prefix="$",
+                    placeholder="0.00",
+                    data_path="deductions.alimony_paid",
+                ),
+                Question(
+                    id="alimony_recipient_ssn",
+                    text="Former spouse's Social Security Number",
+                    question_type=QuestionType.SSN,
+                    show_if={
+                        "and": [
+                            {"question_id": "alimony_situation", "contains": "pays"},
+                            {"question_id": "divorce_agreement_date", "equals": "pre_2019"},
+                        ]
+                    },
+                    help_text="Required to claim alimony deduction under pre-2019 rules",
+                    placeholder="XXX-XX-XXXX",
+                ),
+                Question(
+                    id="alimony_received_amount",
+                    text="Total alimony received in 2025",
+                    question_type=QuestionType.CURRENCY,
+                    show_if={"question_id": "alimony_situation", "contains": "receives"},
+                    prefix="$",
+                    placeholder="0.00",
+                    data_path="income.alimony_received",
+                ),
+                Question(
+                    id="alimony_payer_ssn",
+                    text="Former spouse's Social Security Number",
+                    question_type=QuestionType.SSN,
+                    show_if={
+                        "and": [
+                            {"question_id": "alimony_situation", "contains": "receives"},
+                            {"question_id": "divorce_agreement_date", "equals": "pre_2019"},
+                        ]
+                    },
+                    help_text="Required to report taxable alimony under pre-2019 rules",
+                    placeholder="XXX-XX-XXXX",
                 ),
             ],
         )
@@ -1739,3 +2281,140 @@ class InterviewFlow:
                 logger.info(f"Restored interview state for session {self._session_id}")
         except Exception as e:
             logger.error(f"Failed to load persisted interview state: {e}")
+
+    # =========================================================================
+    # Web API Support Methods
+    # =========================================================================
+
+    def get_visible_sections(self, context: Any = None) -> List["InterviewSection"]:
+        """
+        Get list of visible interview sections based on context.
+
+        Args:
+            context: Tax context containing user data for conditional visibility.
+
+        Returns:
+            List of InterviewSection objects representing visible sections.
+        """
+        # Define all sections with visibility logic
+        sections = [
+            InterviewSection("welcome", "Welcome", visible=True, completed=self._is_section_complete("welcome")),
+            InterviewSection("filing_status", "Filing Status", visible=True, completed=self._is_section_complete("filing_status")),
+            InterviewSection("personal_info", "Personal Info", visible=True, completed=self._is_section_complete("personal_info")),
+            InterviewSection("income", "Income", visible=True, completed=self._is_section_complete("income")),
+            InterviewSection("deductions", "Deductions", visible=True, completed=self._is_section_complete("deductions")),
+            InterviewSection("credits", "Credits", visible=True, completed=self._is_section_complete("credits")),
+            InterviewSection("review", "Review", visible=True, completed=self._is_section_complete("review")),
+        ]
+        return sections
+
+    def get_skippable_sections(self, context: Any = None) -> List[str]:
+        """
+        Get list of section IDs that can be skipped based on context.
+
+        Args:
+            context: Tax context containing user data for skip eligibility.
+
+        Returns:
+            List of section IDs that can be skipped.
+        """
+        # Deductions and credits can be skipped if user has simple situation
+        skippable = ["deductions", "credits"]
+        return skippable
+
+    def calculate_progress(self, context: Any = None, current_step: int = 1) -> "InterviewProgress":
+        """
+        Calculate interview progress.
+
+        Args:
+            context: Tax context for progress calculation.
+            current_step: Current step number (1-indexed).
+
+        Returns:
+            InterviewProgress object with percentage and counts.
+        """
+        sections = self.get_visible_sections(context)
+        total = len(sections)
+        completed = sum(1 for s in sections if s.completed)
+        percentage = round((completed / total) * 100) if total > 0 else 0
+
+        return InterviewProgress(
+            percentage=percentage,
+            completed=completed,
+            total=total,
+        )
+
+    def get_next_action(self, context: Any = None, current_step: int = 1) -> Optional["NextAction"]:
+        """
+        Get the recommended next action based on current state.
+
+        Args:
+            context: Tax context for determining next action.
+            current_step: Current step number (1-indexed).
+
+        Returns:
+            NextAction object with type, section, and message, or None.
+        """
+        sections = self.get_visible_sections(context)
+
+        # Find next incomplete section
+        for i, section in enumerate(sections):
+            if not section.completed:
+                return NextAction(
+                    type="continue",
+                    section=section.id,
+                    message=f"Continue to {section.name}",
+                )
+
+        # All sections complete
+        return NextAction(
+            type="complete",
+            section="review",
+            message="Ready to review and submit",
+        )
+
+    def _is_section_complete(self, section_id: str) -> bool:
+        """Check if a section is complete based on collected data."""
+        collected = self._state.collected_data
+
+        # Map section IDs to required data keys
+        required_data = {
+            "welcome": ["acknowledged"],
+            "filing_status": ["filing_status"],
+            "personal_info": ["first_name", "last_name"],
+            "income": ["wages"],
+            "deductions": [],  # Optional
+            "credits": [],  # Optional
+            "review": [],  # Complete when reached
+        }
+
+        required = required_data.get(section_id, [])
+        if not required:
+            return False
+
+        return all(key in collected for key in required)
+
+
+@dataclass
+class InterviewSection:
+    """Represents a section in the interview flow."""
+    id: str
+    name: str
+    visible: bool = True
+    completed: bool = False
+
+
+@dataclass
+class InterviewProgress:
+    """Progress information for the interview."""
+    percentage: float
+    completed: int
+    total: int
+
+
+@dataclass
+class NextAction:
+    """Recommended next action in the interview."""
+    type: str  # 'continue', 'skip', 'complete'
+    section: str
+    message: str
