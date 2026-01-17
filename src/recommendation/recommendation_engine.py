@@ -31,6 +31,11 @@ from recommendation.tax_strategy_advisor import (
     TaxStrategyAdvisor,
     TaxStrategyReport,
 )
+from recommendation.validation import (
+    validate_before_surface,
+    get_irs_reference,
+    RecommendationValidator,
+)
 
 
 @dataclass
@@ -43,6 +48,7 @@ class TaxSavingOpportunity:
     description: str
     action_required: str
     confidence: float  # 0-100
+    irs_reference: str = ""  # Required: IRS form/publication/IRC reference
 
 
 @dataclass
@@ -127,6 +133,8 @@ class ComprehensiveRecommendation:
                     "priority": o.priority,
                     "description": o.description,
                     "action": o.action_required,
+                    "confidence": o.confidence,
+                    "irs_reference": o.irs_reference,
                 }
                 for o in self.top_opportunities
             ],
@@ -422,7 +430,17 @@ class TaxRecommendationEngine:
         credit_rec: CreditRecommendation,
         strategy_report: TaxStrategyReport,
     ) -> List[TaxSavingOpportunity]:
-        """Collect all tax saving opportunities from all analyzers."""
+        """
+        Collect all tax saving opportunities from all analyzers.
+
+        Each opportunity must have all required fields:
+        - description (reason)
+        - estimated_savings (impact)
+        - confidence
+        - irs_reference
+
+        Opportunities missing required fields are filtered out.
+        """
         opportunities = []
 
         # Filing status opportunity
@@ -435,6 +453,7 @@ class TaxRecommendationEngine:
                 description=filing_rec.recommendation_reason,
                 action_required=f"File as {filing_rec.recommended_status}",
                 confidence=filing_rec.confidence_score,
+                irs_reference="IRC Section 2; Publication 501",
             ))
 
         # Deduction opportunity
@@ -447,6 +466,7 @@ class TaxRecommendationEngine:
                 description=deduction_rec.explanation,
                 action_required=f"Use {deduction_rec.recommended_strategy} deduction",
                 confidence=deduction_rec.confidence_score,
+                irs_reference="IRC Section 63; Schedule A; Publication 17",
             ))
 
         # Bunching strategy
@@ -459,11 +479,14 @@ class TaxRecommendationEngine:
                 description=deduction_rec.bunching_strategy["explanation"],
                 action_required="Bunch charitable donations and property taxes",
                 confidence=75.0,
+                irs_reference="IRC Section 170; Schedule A; Publication 526",
             ))
 
         # Credit opportunities
         for credit in credit_rec.analysis.eligible_credits.values():
             if credit.actual_amount > 0:
+                # Get appropriate IRS reference for this credit type
+                irs_ref = self._get_credit_irs_reference(credit.credit_code)
                 opportunities.append(TaxSavingOpportunity(
                     category="credits",
                     title=f"Claim {credit.credit_name}",
@@ -472,22 +495,26 @@ class TaxRecommendationEngine:
                     description=credit.eligibility_reason,
                     action_required="Claim credit on tax return",
                     confidence=90.0,
+                    irs_reference=irs_ref,
                 ))
 
-        # Unclaimed credit opportunities
+        # Unclaimed credit opportunities - only add if we have enough info
         for action in credit_rec.immediate_actions:
-            opportunities.append(TaxSavingOpportunity(
-                category="credits",
-                title="Potential Credit Available",
-                estimated_savings=500,  # Estimate
-                priority="immediate",
-                description=action,
-                action_required=action,
-                confidence=60.0,
-            ))
+            if action and len(action) > 10:  # Require meaningful description
+                opportunities.append(TaxSavingOpportunity(
+                    category="credits",
+                    title="Potential Credit Available",
+                    estimated_savings=500,  # Estimate
+                    priority="immediate",
+                    description=action,
+                    action_required=action,
+                    confidence=60.0,
+                    irs_reference="Publication 17; Form 1040 Instructions",
+                ))
 
         # Strategy opportunities
         for strategy in strategy_report.immediate_strategies:
+            irs_ref = self._get_strategy_irs_reference(strategy.category)
             opportunities.append(TaxSavingOpportunity(
                 category=strategy.category,
                 title=strategy.title,
@@ -496,9 +523,11 @@ class TaxRecommendationEngine:
                 description=strategy.description,
                 action_required=strategy.action_steps[0] if strategy.action_steps else strategy.title,
                 confidence=80.0,
+                irs_reference=irs_ref,
             ))
 
         for strategy in strategy_report.current_year_strategies:
+            irs_ref = self._get_strategy_irs_reference(strategy.category)
             opportunities.append(TaxSavingOpportunity(
                 category=strategy.category,
                 title=strategy.title,
@@ -507,9 +536,11 @@ class TaxRecommendationEngine:
                 description=strategy.description,
                 action_required=strategy.action_steps[0] if strategy.action_steps else strategy.title,
                 confidence=75.0,
+                irs_reference=irs_ref,
             ))
 
         for strategy in strategy_report.next_year_strategies:
+            irs_ref = self._get_strategy_irs_reference(strategy.category)
             opportunities.append(TaxSavingOpportunity(
                 category=strategy.category,
                 title=strategy.title,
@@ -518,9 +549,11 @@ class TaxRecommendationEngine:
                 description=strategy.description,
                 action_required=strategy.action_steps[0] if strategy.action_steps else strategy.title,
                 confidence=70.0,
+                irs_reference=irs_ref,
             ))
 
         for strategy in strategy_report.long_term_strategies:
+            irs_ref = self._get_strategy_irs_reference(strategy.category)
             opportunities.append(TaxSavingOpportunity(
                 category=strategy.category,
                 title=strategy.title,
@@ -529,9 +562,84 @@ class TaxRecommendationEngine:
                 description=strategy.description,
                 action_required=strategy.action_steps[0] if strategy.action_steps else strategy.title,
                 confidence=65.0,
+                irs_reference=irs_ref,
             ))
 
-        return opportunities
+        # Validate and filter - only return opportunities with all required fields
+        valid_opportunities = self._validate_opportunities(opportunities)
+
+        return valid_opportunities
+
+    def _get_credit_irs_reference(self, credit_code: str) -> str:
+        """Get IRS reference for a specific credit."""
+        credit_refs = {
+            "child_tax_credit": "IRC Section 24; Schedule 8812",
+            "eitc": "IRC Section 32; Schedule EIC; Publication 596",
+            "education_credit": "IRC Section 25A; Form 8863; Publication 970",
+            "aotc": "IRC Section 25A(b); Form 8863",
+            "llc": "IRC Section 25A(c); Form 8863",
+            "child_care": "IRC Section 21; Form 2441; Publication 503",
+            "saver": "IRC Section 25B; Form 8880",
+            "adoption": "IRC Section 23; Form 8839",
+            "foreign_tax": "IRC Section 901; Form 1116",
+            "residential_energy": "IRC Section 25C; Form 5695",
+            "ev_credit": "IRC Section 30D; Form 8936",
+            "premium_tax_credit": "IRC Section 36B; Form 8962",
+        }
+        return credit_refs.get(credit_code, "Publication 17; Form 1040")
+
+    def _get_strategy_irs_reference(self, category: str) -> str:
+        """Get IRS reference for a strategy category."""
+        category_refs = {
+            "retirement": "IRC Section 401(k); IRC Section 408; Publication 590-A",
+            "healthcare": "IRC Section 223; Form 8889; Publication 969",
+            "investment": "IRC Section 1; Schedule D; Publication 550",
+            "education": "IRC Section 25A; Publication 970",
+            "charitable": "IRC Section 170; Schedule A; Publication 526",
+            "real_estate": "IRC Section 163(h); Schedule A; Publication 936",
+            "business": "IRC Section 199A; Form 8995; Publication 535",
+            "timing": "IRC Section 451; Publication 538",
+            "state_specific": "State tax code varies by jurisdiction",
+            "family": "IRC Section 152; Publication 501",
+        }
+        return category_refs.get(category, "Publication 17; Form 1040")
+
+    def _validate_opportunities(
+        self,
+        opportunities: List[TaxSavingOpportunity]
+    ) -> List[TaxSavingOpportunity]:
+        """
+        Validate opportunities and filter out those missing required fields.
+
+        Rule: If any required field is missing, recommendation must not surface.
+        """
+        validator = RecommendationValidator(strict_mode=True)
+        valid_opportunities = []
+
+        for opp in opportunities:
+            opp_dict = {
+                "category": opp.category,
+                "title": opp.title,
+                "estimated_savings": opp.estimated_savings,
+                "priority": opp.priority,
+                "description": opp.description,
+                "action_required": opp.action_required,
+                "confidence": opp.confidence,
+                "irs_reference": opp.irs_reference,
+            }
+
+            result = validator.validate(opp_dict, "TaxSavingOpportunity")
+
+            if result.is_valid:
+                valid_opportunities.append(opp)
+            else:
+                # Log but don't surface
+                import logging
+                logging.getLogger(__name__).warning(
+                    f"Filtering recommendation '{opp.title}': missing {result.missing_fields}"
+                )
+
+        return valid_opportunities
 
     def _generate_executive_summary(
         self,
