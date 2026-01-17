@@ -3357,37 +3357,58 @@ async def get_smart_insights(request: Request):
     session_id = request.cookies.get("tax_session_id", "")
 
     try:
+        # Load tax return from session
+        tax_return = None
+        if session_id:
+            persistence = get_persistence()
+            return_data = persistence.load_return(session_id)
+            if return_data and isinstance(return_data, dict):
+                try:
+                    tax_return = TaxReturn(**return_data)
+                except Exception:
+                    pass
+
+        # If no valid tax return, return empty insights
+        if not tax_return:
+            return JSONResponse({
+                "success": True,
+                "insights": [],
+                "total_potential_savings": 0,
+                "insight_count": 0,
+                "message": "Enter tax data to see personalized insights"
+            })
+
         # Get base recommendations
-        recommendations_result = get_recommendations(session_id)
+        recommendations_result = get_recommendations(tax_return)
 
         insights = []
         total_savings = 0
 
         for rec in recommendations_result.recommendations[:5]:  # Top 5 insights
+            # TaxRecommendation is a dataclass, access attributes directly
+            category = rec.category.value if hasattr(rec.category, 'value') else str(rec.category)
+            priority = rec.priority.value if hasattr(rec.priority, 'value') else str(rec.priority)
+
             insight = {
                 "id": f"insight_{uuid.uuid4().hex[:8]}",
-                "type": rec.get("category", "general"),
-                "title": rec.get("title", "Tax Optimization"),
-                "description": rec.get("description", ""),
-                "savings": rec.get("estimated_savings", 0),
-                "priority": rec.get("priority", "current_year"),
-                "action_type": rec.get("action_type", "manual"),
-                "can_auto_apply": rec.get("can_auto_apply", False),
+                "type": category,
+                "title": rec.title,
+                "description": rec.description,
+                "savings": rec.potential_savings or 0,
+                "priority": priority,
+                "action_type": "manual",
+                "can_auto_apply": False,
+                "action_items": rec.action_items or [],
             }
 
-            # Add action endpoint based on type
-            if insight["type"] == "retirement_401k":
-                insight["action_endpoint"] = "/api/scenarios/retirement"
-                insight["action_payload"] = {"contribution_type": "401k", "amount": rec.get("amount", 0)}
-            elif insight["type"] == "retirement_ira":
-                insight["action_endpoint"] = "/api/scenarios/retirement"
-                insight["action_payload"] = {"contribution_type": "ira", "amount": rec.get("amount", 0)}
-            elif insight["type"] == "filing_status":
-                insight["action_endpoint"] = "/api/scenarios/filing-status"
-                insight["action_payload"] = {"recommended_status": rec.get("recommended_status")}
-            elif insight["type"] == "entity_structure":
-                insight["action_endpoint"] = "/api/entity-comparison"
-                insight["details_url"] = "/optimizer?tab=entity"
+            # Add action endpoint based on category
+            if category == "retirement_planning":
+                insight["action_endpoint"] = "/api/retirement-analysis"
+                insight["details_url"] = "/optimizer?tab=retirement"
+            elif category == "deduction_opportunity":
+                insight["details_url"] = "/optimizer?tab=scenarios"
+            elif category == "credit_opportunity":
+                insight["details_url"] = "/optimizer?tab=scenarios"
 
             insights.append(insight)
             total_savings += insight["savings"]
@@ -3395,7 +3416,7 @@ async def get_smart_insights(request: Request):
         return JSONResponse({
             "success": True,
             "insights": insights,
-            "total_potential_savings": total_savings,
+            "total_potential_savings": round(total_savings, 2),
             "insight_count": len(insights)
         })
 
