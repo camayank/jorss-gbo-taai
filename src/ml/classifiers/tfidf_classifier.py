@@ -54,7 +54,21 @@ class TFIDFClassifier(BaseClassifier):
                        If not provided, uses path from settings.
         """
         self.settings = get_ml_settings()
-        self.model_path = Path(model_path or self.settings.tfidf_model_path)
+
+        if model_path:
+            self.model_path = Path(model_path)
+        else:
+            # Resolve path relative to this module's location
+            settings_path = Path(self.settings.tfidf_model_path)
+            if settings_path.is_absolute():
+                self.model_path = settings_path
+            else:
+                # Try relative to src/ml/ directory
+                ml_dir = Path(__file__).parent.parent
+                self.model_path = ml_dir / "models"
+                if not self.model_path.exists():
+                    # Fallback to settings path (relative to cwd)
+                    self.model_path = settings_path
 
         self._vectorizer = None
         self._classifier = None

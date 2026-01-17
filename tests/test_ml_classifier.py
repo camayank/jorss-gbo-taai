@@ -371,6 +371,118 @@ class TestTFIDFClassifier:
         assert result.metadata.get("reason") == "models_not_loaded"
 
 
+class TestTFIDFClassifierWithTrainedModels:
+    """Tests for TFIDFClassifier with trained models."""
+
+    @pytest.fixture
+    def tfidf_classifier(self):
+        """Create TF-IDF classifier with default model path."""
+        from ml.classifiers.tfidf_classifier import TFIDFClassifier
+        return TFIDFClassifier()
+
+    def test_classifier_is_available(self, tfidf_classifier):
+        """Test that classifier is available with trained models."""
+        # Skip if models not available
+        if not tfidf_classifier.is_available():
+            pytest.skip("TF-IDF models not available")
+        assert tfidf_classifier.is_available() is True
+
+    def test_classify_w2(self, tfidf_classifier):
+        """Test classifying W-2 document."""
+        if not tfidf_classifier.is_available():
+            pytest.skip("TF-IDF models not available")
+
+        w2_text = """
+        Form W-2 Wage and Tax Statement 2025
+        Employee's social security number 123-45-6789
+        Employer identification number (EIN) 12-3456789
+        Wages, tips, other compensation: 75,000.00
+        Federal income tax withheld: 12,000.00
+        """
+        result = tfidf_classifier.classify(w2_text)
+
+        assert result.document_type == "w2"
+        assert result.confidence > 0.5
+        assert result.classifier_used == "tfidf"
+        assert result.processing_time_ms >= 0
+
+    def test_classify_1099_int(self, tfidf_classifier):
+        """Test classifying 1099-INT document."""
+        if not tfidf_classifier.is_available():
+            pytest.skip("TF-IDF models not available")
+
+        text = """
+        Form 1099-INT Interest Income
+        Payer's name: Big Bank Corp
+        Interest income: $1,234.56
+        Federal income tax withheld: $0.00
+        """
+        result = tfidf_classifier.classify(text)
+
+        assert result.document_type == "1099-int"
+        assert result.confidence > 0.4
+        assert result.classifier_used == "tfidf"
+
+    def test_classify_1099_div(self, tfidf_classifier):
+        """Test classifying 1099-DIV document."""
+        if not tfidf_classifier.is_available():
+            pytest.skip("TF-IDF models not available")
+
+        text = """
+        Form 1099-DIV Dividends and Distributions
+        Payer's name: Investment Corp
+        Total ordinary dividends: $500.00
+        Qualified dividends: $400.00
+        """
+        result = tfidf_classifier.classify(text)
+
+        assert result.document_type == "1099-div"
+        assert result.confidence > 0.4
+
+    def test_classify_batch(self, tfidf_classifier):
+        """Test batch classification."""
+        if not tfidf_classifier.is_available():
+            pytest.skip("TF-IDF models not available")
+
+        texts = [
+            "Form W-2 Wage and Tax Statement wages salary",
+            "Form 1099-INT Interest Income bank interest",
+            "Form 1099-DIV Dividends distributions qualified",
+        ]
+        results = tfidf_classifier.classify_batch(texts)
+
+        assert len(results) == 3
+        assert results[0].document_type == "w2"
+        assert results[1].document_type == "1099-int"
+        assert results[2].document_type == "1099-div"
+
+    def test_probabilities_sum_to_one(self, tfidf_classifier):
+        """Test that probabilities sum to approximately 1."""
+        if not tfidf_classifier.is_available():
+            pytest.skip("TF-IDF models not available")
+
+        result = tfidf_classifier.classify("Form W-2 Wage and Tax Statement")
+
+        if result.probabilities:
+            total = sum(result.probabilities.values())
+            assert 0.99 <= total <= 1.01  # Allow small floating point error
+
+    def test_top_3_predictions_in_metadata(self, tfidf_classifier):
+        """Test that top 3 predictions are in metadata."""
+        if not tfidf_classifier.is_available():
+            pytest.skip("TF-IDF models not available")
+
+        result = tfidf_classifier.classify("Form W-2 Wage and Tax Statement")
+
+        assert "top_3" in result.metadata
+        assert len(result.metadata["top_3"]) == 3
+        # Top 3 should be tuples of (doc_type, probability)
+        for item in result.metadata["top_3"]:
+            assert len(item) == 2
+            assert isinstance(item[0], str)
+            assert isinstance(item[1], float)
+
+
 class TestEnsembleClassifier:
     """Tests for EnsembleClassifier."""
 
