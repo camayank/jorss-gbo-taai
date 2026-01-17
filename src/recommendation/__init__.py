@@ -21,6 +21,12 @@ from .entity_optimizer import (
     EntityComparisonResult,
     ReasonableSalaryAnalysis,
 )
+from .ai_enhancer import (
+    AIRecommendationEnhancer,
+    AIEnhancedRecommendation,
+    AIRecommendationSummary,
+    get_ai_enhancer,
+)
 
 __all__ = [
     "TaxRecommendationEngine",
@@ -38,4 +44,9 @@ __all__ = [
     "EntityAnalysis",
     "EntityComparisonResult",
     "ReasonableSalaryAnalysis",
+    # AI enhancement
+    "AIRecommendationEnhancer",
+    "AIEnhancedRecommendation",
+    "AIRecommendationSummary",
+    "get_ai_enhancer",
 ]
