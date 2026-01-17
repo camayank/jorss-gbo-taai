@@ -66,6 +66,18 @@ except ImportError as e:
 
 
 # =============================================================================
+# CONFIGURATION & RULES API
+# =============================================================================
+try:
+    from web.config_api import router as config_router, rules_router
+    app.include_router(config_router)
+    app.include_router(rules_router)
+    logger.info("Configuration API enabled")
+except ImportError as e:
+    logger.warning(f"Configuration API not available: {e}")
+
+
+# =============================================================================
 # ERROR HANDLING SYSTEM
 # =============================================================================
 

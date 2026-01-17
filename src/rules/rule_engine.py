@@ -516,8 +516,17 @@ class RuleEngine:
             RuleCategory.INVESTMENT: context.investment_income,
             RuleCategory.SELF_EMPLOYMENT: context.self_employment_income,
             RuleCategory.HEALTHCARE: context.hsa_contributions,
+            RuleCategory.NIIT: context.investment_income,
+            RuleCategory.BUSINESS: context.self_employment_income,
+            RuleCategory.CHARITABLE: context.itemized_deductions,
+            RuleCategory.CREDIT: context.adjusted_gross_income,
+            RuleCategory.EDUCATION: context.adjusted_gross_income,
+            RuleCategory.ESTIMATED_TAX: context.adjusted_gross_income,
+            RuleCategory.PENALTY: context.adjusted_gross_income,
         }
-        return category_value_map.get(category, context.adjusted_gross_income)
+        value = category_value_map.get(category, context.adjusted_gross_income)
+        # Ensure we never return None - default to 0.0
+        return value if value is not None else 0.0
 
     def evaluate_all(
         self,
