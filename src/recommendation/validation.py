@@ -18,12 +18,40 @@ This validation applies to ALL recommendation types:
 - Recommendation (domain model)
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Any, Optional, Union
+from dataclasses import dataclass, field
+from typing import Dict, List, Any, Optional, Union, Callable
 from enum import Enum
 import logging
+import re
+import html
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# INPUT VALIDATION CONSTRAINTS
+# =============================================================================
+
+# Value range constraints
+CONFIDENCE_MIN = 0.0
+CONFIDENCE_MAX = 100.0
+SAVINGS_MIN = -1000000.0  # Allow negative for "costs" scenarios
+SAVINGS_MAX = 10000000.0  # Reasonable upper bound
+
+# String length constraints
+DESCRIPTION_MIN_LENGTH = 10
+DESCRIPTION_MAX_LENGTH = 5000
+TITLE_MIN_LENGTH = 3
+TITLE_MAX_LENGTH = 200
+IRS_REFERENCE_MAX_LENGTH = 500
+
+# Patterns for validation
+IRS_REFERENCE_PATTERNS = [
+    r"IRC\s+Section\s+\d+",
+    r"Publication\s+\d+",
+    r"Form\s+\d+",
+    r"Schedule\s+[A-Z]",
+]
 
 
 # =============================================================================
@@ -146,6 +174,23 @@ IRS_REFERENCES = {
 
 
 @dataclass
+class ValidationError:
+    """A single validation error."""
+    field: str
+    error_type: str  # missing, invalid_type, out_of_range, too_short, too_long, invalid_format
+    message: str
+    value: Any = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "field": self.field,
+            "error_type": self.error_type,
+            "message": self.message,
+            "value": str(self.value) if self.value is not None else None
+        }
+
+
+@dataclass
 class ValidationResult:
     """Result of recommendation validation."""
     is_valid: bool
@@ -153,11 +198,155 @@ class ValidationResult:
     missing_fields: List[str]
     warnings: List[str]
     original_data: Dict[str, Any]
+    errors: List[ValidationError] = field(default_factory=list)
+    sanitized_data: Optional[Dict[str, Any]] = None
 
     def __str__(self) -> str:
         if self.is_valid:
             return f"Valid {self.recommendation_type}"
         return f"Invalid {self.recommendation_type}: missing {', '.join(self.missing_fields)}"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "is_valid": self.is_valid,
+            "recommendation_type": self.recommendation_type,
+            "missing_fields": self.missing_fields,
+            "warnings": self.warnings,
+            "errors": [e.to_dict() for e in self.errors]
+        }
+
+
+# =============================================================================
+# INPUT SANITIZATION
+# =============================================================================
+
+def sanitize_string(value: Any) -> Optional[str]:
+    """
+    Sanitize a string value for safe storage and display.
+
+    - Converts to string if needed
+    - Strips whitespace
+    - Escapes HTML entities
+    - Removes control characters
+    """
+    if value is None:
+        return None
+
+    if not isinstance(value, str):
+        value = str(value)
+
+    # Strip whitespace
+    value = value.strip()
+
+    # Escape HTML entities to prevent XSS
+    value = html.escape(value)
+
+    # Remove control characters (except newlines and tabs)
+    value = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', value)
+
+    return value if value else None
+
+
+def sanitize_number(value: Any, default: float = 0.0) -> float:
+    """
+    Sanitize a numeric value.
+
+    - Converts to float if needed
+    - Handles None and invalid values
+    """
+    if value is None:
+        return default
+
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def validate_confidence(value: Any) -> tuple:
+    """
+    Validate confidence value is in valid range.
+
+    Returns: (is_valid, sanitized_value, error_message)
+    """
+    sanitized = sanitize_number(value, None)
+
+    if sanitized is None:
+        return False, None, "Confidence must be a number"
+
+    # Handle 0-1 range (convert to 0-100)
+    if 0 <= sanitized <= 1:
+        sanitized = sanitized * 100
+
+    if not (CONFIDENCE_MIN <= sanitized <= CONFIDENCE_MAX):
+        return False, sanitized, f"Confidence must be between {CONFIDENCE_MIN} and {CONFIDENCE_MAX}"
+
+    return True, sanitized, None
+
+
+def validate_savings(value: Any) -> tuple:
+    """
+    Validate savings/impact value is in valid range.
+
+    Returns: (is_valid, sanitized_value, error_message)
+    """
+    sanitized = sanitize_number(value, None)
+
+    if sanitized is None:
+        return False, None, "Savings must be a number"
+
+    if not (SAVINGS_MIN <= sanitized <= SAVINGS_MAX):
+        return False, sanitized, f"Savings must be between {SAVINGS_MIN} and {SAVINGS_MAX}"
+
+    return True, round(sanitized, 2), None
+
+
+def validate_description(value: Any) -> tuple:
+    """
+    Validate description string meets requirements.
+
+    Returns: (is_valid, sanitized_value, error_message)
+    """
+    sanitized = sanitize_string(value)
+
+    if not sanitized:
+        return False, None, "Description is required and cannot be empty"
+
+    if len(sanitized) < DESCRIPTION_MIN_LENGTH:
+        return False, sanitized, f"Description must be at least {DESCRIPTION_MIN_LENGTH} characters"
+
+    if len(sanitized) > DESCRIPTION_MAX_LENGTH:
+        sanitized = sanitized[:DESCRIPTION_MAX_LENGTH]
+        return True, sanitized, None  # Truncate but consider valid
+
+    return True, sanitized, None
+
+
+def validate_irs_reference(value: Any) -> tuple:
+    """
+    Validate IRS reference format.
+
+    Returns: (is_valid, sanitized_value, warning_message)
+    """
+    sanitized = sanitize_string(value)
+
+    if not sanitized:
+        return False, None, "IRS reference is required"
+
+    if len(sanitized) > IRS_REFERENCE_MAX_LENGTH:
+        return False, sanitized, f"IRS reference too long (max {IRS_REFERENCE_MAX_LENGTH} characters)"
+
+    # Check if it matches any known pattern
+    matches_pattern = any(
+        re.search(pattern, sanitized, re.IGNORECASE)
+        for pattern in IRS_REFERENCE_PATTERNS
+    )
+
+    if not matches_pattern:
+        # Warning but not invalid - might be a valid reference we don't recognize
+        return True, sanitized, f"IRS reference '{sanitized}' does not match known patterns"
+
+    return True, sanitized, None
 
 
 class RecommendationValidator:
