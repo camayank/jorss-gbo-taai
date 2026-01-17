@@ -1240,6 +1240,188 @@ class DocumentProcessingLog(Base):
 
 
 # =============================================================================
+# PREPARER / CPA WORKSPACE MODELS (Phase 1-2 Multi-Client Management)
+# =============================================================================
+
+class ClientStatusDB(str, PyEnum):
+    """Status of a client in the CPA's workspace."""
+    NEW = "new"
+    IN_PROGRESS = "in_progress"
+    READY_FOR_REVIEW = "ready_for_review"
+    REVIEWED = "reviewed"
+    DELIVERED = "delivered"
+    ARCHIVED = "archived"
+
+
+class PreparerRecord(Base):
+    """
+    Preparer (CPA) Record - Tax preparer managing multiple clients.
+
+    Phase 1-2: Single preparer, many clients, no teams.
+    This is a "firm-lite" model for initial multi-client support.
+    """
+    __tablename__ = "preparers"
+
+    # Primary Key
+    preparer_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    # Professional Info
+    first_name = Column(String(100), nullable=False)
+    last_name = Column(String(100), nullable=False)
+    email = Column(String(255), nullable=False, unique=True, index=True)
+    phone = Column(String(20), nullable=True)
+
+    # Credentials (display only, not verified)
+    credentials = Column(JSONB, nullable=True, default=list, comment="['CPA', 'EA']")
+    license_state = Column(String(2), nullable=True, comment="Primary state of licensure")
+
+    # Branding (for white-label Phase 4)
+    firm_name = Column(String(255), nullable=True)
+    logo_url = Column(String(500), nullable=True)
+    primary_color = Column(String(7), default="#2E7D32")
+    secondary_color = Column(String(7), default="#4CAF50")
+
+    # Settings
+    default_tax_year = Column(Integer, default=2025)
+    timezone = Column(String(50), default="America/New_York")
+
+    # Metadata
+    is_active = Column(Boolean, default=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_login_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    client_sessions = relationship("ClientSessionRecord", back_populates="preparer")
+    clients = relationship("ClientRecord", back_populates="preparer")
+
+    __table_args__ = (
+        Index('ix_preparer_email', 'email'),
+        Index('ix_preparer_active', 'is_active'),
+    )
+
+    @property
+    def full_name(self) -> str:
+        return f"{self.first_name} {self.last_name}"
+
+
+class ClientRecord(Base):
+    """
+    Client Record - Taxpayer assigned to a preparer.
+
+    Links clients to preparers for multi-client management.
+    """
+    __tablename__ = "clients"
+
+    # Primary Key
+    client_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    # Foreign Key to Preparer
+    preparer_id = Column(UUID(as_uuid=True), ForeignKey("preparers.preparer_id"), nullable=False, index=True)
+
+    # External ID (CPA's own numbering)
+    external_id = Column(String(100), nullable=True, index=True)
+
+    # Identity (hashed for privacy)
+    ssn_hash = Column(String(64), nullable=True, unique=True, comment="SHA256 hash for lookup")
+
+    # Client Info
+    first_name = Column(String(100), nullable=False)
+    last_name = Column(String(100), nullable=False)
+    email = Column(String(255), nullable=True)
+    phone = Column(String(20), nullable=True)
+
+    # Address
+    street_address = Column(String(255), nullable=True)
+    city = Column(String(100), nullable=True)
+    state = Column(String(2), nullable=True)
+    zip_code = Column(String(10), nullable=True)
+
+    # Status
+    is_active = Column(Boolean, default=True, index=True)
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    preparer = relationship("PreparerRecord", back_populates="clients")
+    sessions = relationship("ClientSessionRecord", back_populates="client")
+
+    __table_args__ = (
+        Index('ix_client_preparer', 'preparer_id', 'is_active'),
+        Index('ix_client_name', 'last_name', 'first_name'),
+        UniqueConstraint('preparer_id', 'external_id', name='uq_client_external_id'),
+    )
+
+    @property
+    def full_name(self) -> str:
+        return f"{self.first_name} {self.last_name}"
+
+
+class ClientSessionRecord(Base):
+    """
+    Client Session Record - Persistent work session for a client/tax year.
+
+    Enables "Resume client analysis", "View past scenarios", "Duplicate prior year".
+    This is the core table for Phase 1 persistence.
+    """
+    __tablename__ = "client_sessions"
+
+    # Primary Key
+    session_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    # Foreign Keys
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.client_id"), nullable=False, index=True)
+    preparer_id = Column(UUID(as_uuid=True), ForeignKey("preparers.preparer_id"), nullable=False, index=True)
+
+    # Tax Year
+    tax_year = Column(Integer, nullable=False, default=2025, index=True)
+
+    # Status
+    status = Column(Enum(ClientStatusDB), nullable=False, default=ClientStatusDB.NEW, index=True)
+
+    # Work State References
+    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=True)
+    scenario_ids = Column(JSONB, nullable=True, default=list, comment="List of scenario UUIDs")
+    recommendation_plan_id = Column(UUID(as_uuid=True), nullable=True)
+
+    # Documents
+    document_ids = Column(JSONB, nullable=True, default=list, comment="List of document UUIDs")
+
+    # Progress Tracking
+    documents_processed = Column(Integer, default=0)
+    calculations_run = Column(Integer, default=0)
+    scenarios_analyzed = Column(Integer, default=0)
+
+    # Key Metrics (for dashboard display)
+    estimated_refund = Column(Numeric(12, 2), nullable=True)
+    estimated_tax_owed = Column(Numeric(12, 2), nullable=True)
+    total_income = Column(Numeric(14, 2), nullable=True)
+    potential_savings = Column(Numeric(12, 2), nullable=True)
+
+    # Notes
+    preparer_notes = Column(Text, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_accessed_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    client = relationship("ClientRecord", back_populates="sessions")
+    preparer = relationship("PreparerRecord", back_populates="client_sessions")
+    tax_return = relationship("TaxReturnRecord", foreign_keys=[return_id])
+
+    __table_args__ = (
+        UniqueConstraint('client_id', 'tax_year', name='uq_client_session_year'),
+        Index('ix_session_preparer_year', 'preparer_id', 'tax_year'),
+        Index('ix_session_status', 'status', 'preparer_id'),
+        Index('ix_session_last_accessed', 'last_accessed_at'),
+    )
+
+
+# =============================================================================
 # DATABASE UTILITY FUNCTIONS
 # =============================================================================
 

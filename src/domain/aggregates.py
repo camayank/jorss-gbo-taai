@@ -587,3 +587,252 @@ class ClientProfile(BaseModel):
             "is_active": self.is_active,
             "has_carryovers": self.prior_year_carryovers.has_carryovers() if self.prior_year_carryovers else False,
         }
+
+
+# =============================================================================
+# PREPARER/CPA AGGREGATE (Phase 1-2 Multi-Client Management)
+# =============================================================================
+
+class ClientStatus(str, Enum):
+    """Status of a client in the CPA's workspace."""
+    NEW = "new"  # Just added, not started
+    IN_PROGRESS = "in_progress"  # Work in progress
+    READY_FOR_REVIEW = "ready_for_review"  # Analysis complete
+    REVIEWED = "reviewed"  # CPA reviewed
+    DELIVERED = "delivered"  # Advisory delivered to client
+    ARCHIVED = "archived"  # Past year, archived
+
+
+class ClientSession(BaseModel):
+    """
+    Persistent client session for resume capability.
+
+    Tracks the state of work on a specific client for a specific tax year.
+    Enables "Resume client analysis" functionality.
+    """
+
+    # Identity
+    session_id: UUID = Field(default_factory=uuid4)
+    client_id: UUID = Field(description="Reference to ClientProfile")
+    preparer_id: UUID = Field(description="Reference to Preparer")
+    tax_year: int = Field(default=2025)
+
+    # Status
+    status: ClientStatus = Field(default=ClientStatus.NEW)
+
+    # Work state
+    return_id: Optional[UUID] = Field(
+        default=None,
+        description="Active tax return for this session"
+    )
+    scenario_ids: List[UUID] = Field(
+        default_factory=list,
+        description="Scenarios created in this session"
+    )
+    recommendation_plan_id: Optional[UUID] = Field(
+        default=None,
+        description="Advisory plan for this session"
+    )
+
+    # Documents uploaded
+    document_ids: List[UUID] = Field(
+        default_factory=list,
+        description="Documents uploaded for this client"
+    )
+
+    # Progress tracking
+    documents_processed: int = Field(default=0)
+    calculations_run: int = Field(default=0)
+    scenarios_analyzed: int = Field(default=0)
+
+    # Key metrics (for dashboard display)
+    estimated_refund: Optional[float] = Field(default=None)
+    estimated_tax_owed: Optional[float] = Field(default=None)
+    total_income: Optional[float] = Field(default=None)
+    potential_savings: Optional[float] = Field(default=None)
+
+    # Notes
+    preparer_notes: Optional[str] = Field(default=None)
+
+    # Timestamps
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    last_accessed_at: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        json_encoders = {UUID: str, datetime: lambda v: v.isoformat()}
+
+    def touch(self) -> None:
+        """Update last accessed timestamp."""
+        self.last_accessed_at = datetime.utcnow()
+        self.updated_at = datetime.utcnow()
+
+    def add_scenario(self, scenario_id: UUID) -> None:
+        """Add a scenario to this session."""
+        if scenario_id not in self.scenario_ids:
+            self.scenario_ids.append(scenario_id)
+            self.scenarios_analyzed += 1
+        self.updated_at = datetime.utcnow()
+
+    def add_document(self, document_id: UUID) -> None:
+        """Add a document to this session."""
+        if document_id not in self.document_ids:
+            self.document_ids.append(document_id)
+            self.documents_processed += 1
+        self.updated_at = datetime.utcnow()
+
+    def update_metrics(
+        self,
+        refund: Optional[float] = None,
+        tax_owed: Optional[float] = None,
+        income: Optional[float] = None,
+        savings: Optional[float] = None
+    ) -> None:
+        """Update key metrics for dashboard."""
+        if refund is not None:
+            self.estimated_refund = refund
+        if tax_owed is not None:
+            self.estimated_tax_owed = tax_owed
+        if income is not None:
+            self.total_income = income
+        if savings is not None:
+            self.potential_savings = savings
+        self.updated_at = datetime.utcnow()
+
+    def to_list_item(self) -> Dict[str, Any]:
+        """Convert to list item for dashboard display."""
+        return {
+            "session_id": str(self.session_id),
+            "client_id": str(self.client_id),
+            "tax_year": self.tax_year,
+            "status": self.status.value,
+            "documents_processed": self.documents_processed,
+            "scenarios_analyzed": self.scenarios_analyzed,
+            "estimated_refund": self.estimated_refund,
+            "estimated_tax_owed": self.estimated_tax_owed,
+            "potential_savings": self.potential_savings,
+            "last_accessed_at": self.last_accessed_at.isoformat(),
+        }
+
+
+class Preparer(BaseModel):
+    """
+    Preparer (CPA) Aggregate Root.
+
+    Represents a tax preparer who manages multiple clients.
+    This is a "firm-lite" model - one preparer, many clients, no teams.
+
+    Phase 1-2: Single preparer managing their own client list.
+    Future: Could extend to firm with multiple preparers.
+    """
+
+    # Identity
+    preparer_id: UUID = Field(default_factory=uuid4)
+
+    # Professional info
+    first_name: str = Field(description="Preparer's first name")
+    last_name: str = Field(description="Preparer's last name")
+    email: str = Field(description="Preparer's email (also login)")
+    phone: Optional[str] = Field(default=None)
+
+    # Credentials (display only, not verified)
+    credentials: List[str] = Field(
+        default_factory=list,
+        description="Professional credentials (CPA, EA, etc.)"
+    )
+    license_state: Optional[str] = Field(
+        default=None,
+        description="Primary state of licensure"
+    )
+
+    # Branding (for white-label Phase 4)
+    firm_name: Optional[str] = Field(
+        default=None,
+        description="Firm name for branding"
+    )
+    logo_url: Optional[str] = Field(default=None)
+    primary_color: str = Field(default="#2E7D32")  # Default green
+    secondary_color: str = Field(default="#4CAF50")
+
+    # Client management
+    client_ids: List[UUID] = Field(
+        default_factory=list,
+        description="Assigned client IDs"
+    )
+    active_session_ids: List[UUID] = Field(
+        default_factory=list,
+        description="Active client session IDs"
+    )
+
+    # Settings
+    default_tax_year: int = Field(default=2025)
+    timezone: str = Field(default="America/New_York")
+
+    # Metadata
+    is_active: bool = Field(default=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    last_login_at: Optional[datetime] = Field(default=None)
+
+    class Config:
+        json_encoders = {UUID: str, datetime: lambda v: v.isoformat()}
+
+    @property
+    def full_name(self) -> str:
+        """Get full name."""
+        return f"{self.first_name} {self.last_name}"
+
+    @property
+    def display_name(self) -> str:
+        """Get display name with credentials."""
+        if self.credentials:
+            return f"{self.full_name}, {', '.join(self.credentials)}"
+        return self.full_name
+
+    @property
+    def client_count(self) -> int:
+        """Get number of assigned clients."""
+        return len(self.client_ids)
+
+    def add_client(self, client_id: UUID) -> None:
+        """Add a client to this preparer."""
+        if client_id not in self.client_ids:
+            self.client_ids.append(client_id)
+        self.updated_at = datetime.utcnow()
+
+    def remove_client(self, client_id: UUID) -> bool:
+        """Remove a client from this preparer."""
+        if client_id in self.client_ids:
+            self.client_ids.remove(client_id)
+            self.updated_at = datetime.utcnow()
+            return True
+        return False
+
+    def add_session(self, session_id: UUID) -> None:
+        """Track an active session."""
+        if session_id not in self.active_session_ids:
+            self.active_session_ids.append(session_id)
+        self.updated_at = datetime.utcnow()
+
+    def record_login(self) -> None:
+        """Record login timestamp."""
+        self.last_login_at = datetime.utcnow()
+        self.updated_at = datetime.utcnow()
+
+    def to_profile_dict(self) -> Dict[str, Any]:
+        """Convert to profile dictionary."""
+        return {
+            "preparer_id": str(self.preparer_id),
+            "name": self.full_name,
+            "display_name": self.display_name,
+            "email": self.email,
+            "firm_name": self.firm_name,
+            "credentials": self.credentials,
+            "license_state": self.license_state,
+            "client_count": self.client_count,
+            "branding": {
+                "logo_url": self.logo_url,
+                "primary_color": self.primary_color,
+                "secondary_color": self.secondary_color,
+            },
+        }

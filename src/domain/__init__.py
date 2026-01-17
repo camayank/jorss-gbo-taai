@@ -24,6 +24,10 @@ from .aggregates import (
     ClientProfile,
     ClientPreferences,
     RiskTolerance,
+    # Multi-client management (Phase 1-2)
+    Preparer,
+    ClientSession,
+    ClientStatus,
 )
 from .events import (
     DomainEvent,
@@ -73,6 +77,10 @@ __all__ = [
     "ClientProfile",
     "ClientPreferences",
     "RiskTolerance",
+    # Multi-client management
+    "Preparer",
+    "ClientSession",
+    "ClientStatus",
     # Events
     "DomainEvent",
     "TaxReturnCreated",

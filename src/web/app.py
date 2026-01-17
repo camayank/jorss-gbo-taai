@@ -55,6 +55,17 @@ except ImportError:
 
 
 # =============================================================================
+# WORKSPACE API (Phase 1-2: Multi-Client Management)
+# =============================================================================
+try:
+    from web.workspace_api import router as workspace_router
+    app.include_router(workspace_router)
+    logger.info("Workspace API enabled")
+except ImportError as e:
+    logger.warning(f"Workspace API not available: {e}")
+
+
+# =============================================================================
 # ERROR HANDLING SYSTEM
 # =============================================================================
 
@@ -308,6 +319,12 @@ def _get_or_create_session_agent(session_id: Optional[str]) -> tuple[str, TaxAge
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard(request: Request):
+    """CPA Workspace Dashboard - Multi-client management."""
+    return templates.TemplateResponse("dashboard.html", {"request": request})
 
 
 @app.post("/api/chat")
