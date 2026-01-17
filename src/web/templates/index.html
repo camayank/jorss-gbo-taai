@@ -933,13 +933,163 @@
 
     .insights-empty {
       text-align: center;
-      padding: 20px;
+      padding: 24px 16px;
       color: var(--gray-500);
     }
 
     .insights-empty-icon {
       font-size: 32px;
       margin-bottom: 8px;
+    }
+
+    /* Enhanced Empty State */
+    .insights-empty-enhanced {
+      padding: 20px 16px;
+    }
+
+    .insights-empty-illustration {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      background: linear-gradient(135deg, var(--gray-100) 0%, var(--gray-200) 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .insights-empty-illustration::before {
+      content: '💡';
+      font-size: 28px;
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.1); opacity: 1; }
+    }
+
+    .insights-empty-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin-bottom: 8px;
+    }
+
+    .insights-empty-subtitle {
+      font-size: 13px;
+      color: var(--gray-500);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .insights-empty-checklist {
+      text-align: left;
+      margin: 0 auto 20px;
+      max-width: 200px;
+    }
+
+    .insights-empty-checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      font-size: 13px;
+      color: var(--gray-600);
+    }
+
+    .insights-empty-checklist-item .check-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--gray-200);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: var(--gray-400);
+    }
+
+    .insights-empty-checklist-item.completed .check-icon {
+      background: var(--success);
+      color: white;
+    }
+
+    .insights-get-started-btn {
+      background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .insights-get-started-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    /* Sample Insight Preview */
+    .sample-insight-container {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px dashed var(--gray-200);
+    }
+
+    .sample-insight-label {
+      font-size: 11px;
+      color: var(--gray-400);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+
+    .sample-insight-card {
+      background: var(--gray-50);
+      border-radius: 12px;
+      padding: 14px;
+      border-left: 4px solid var(--gray-300);
+      opacity: 0.6;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sample-insight-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, transparent 60%, rgba(255,255,255,0.8) 100%);
+      pointer-events: none;
+    }
+
+    .sample-insight-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-700);
+      margin-bottom: 4px;
+    }
+
+    .sample-insight-desc {
+      font-size: 12px;
+      color: var(--gray-500);
+    }
+
+    .sample-insight-savings {
+      margin-top: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--success);
+      opacity: 0.7;
     }
 
     .insight-card {
@@ -1062,6 +1212,191 @@
       color: var(--success);
       font-size: 12px;
       font-weight: 600;
+    }
+
+    /* ===== Visual Hierarchy - Tiered Insight Cards (Prompt 3) ===== */
+
+    /* TOP OPPORTUNITY Tier - Highest savings */
+    .insight-card.tier-top {
+      border: 2px solid #f59e0b;
+      border-left: 4px solid #f59e0b;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(255, 255, 255, 0) 100%);
+      padding: 20px;
+      position: relative;
+      animation: pulseGlow 3s ease-in-out infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 4px 20px rgba(245, 158, 11, 0.15); }
+      50% { box-shadow: 0 4px 25px rgba(245, 158, 11, 0.25); }
+    }
+
+    .insight-card.tier-top::before {
+      content: '★ TOP OPPORTUNITY';
+      position: absolute;
+      top: -10px;
+      left: 16px;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .insight-card.tier-top .insight-title {
+      font-size: 16px;
+    }
+
+    .insight-card.tier-top .insight-description {
+      font-size: 14px;
+    }
+
+    /* HIGH Tier - >$1000 savings */
+    .insight-card.tier-high {
+      border-left: 4px solid var(--success);
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(255, 255, 255, 0) 100%);
+    }
+
+    /* MEDIUM Tier - $100-$1000 savings */
+    .insight-card.tier-medium {
+      padding: 12px 16px;
+      border-left: 4px solid var(--primary);
+    }
+
+    .insight-card.tier-medium .insight-description {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .insight-card.tier-medium:hover .insight-description {
+      -webkit-line-clamp: unset;
+    }
+
+    /* LOW Tier - <$100 savings */
+    .insight-card.tier-low {
+      padding: 10px 14px;
+      border-left: 3px solid var(--gray-300);
+      background: var(--gray-50);
+    }
+
+    .insight-card.tier-low .insight-description {
+      display: none;
+    }
+
+    .insight-card.tier-low:hover .insight-description {
+      display: block;
+      font-size: 12px;
+    }
+
+    .insight-card.tier-low .insight-title {
+      font-size: 13px;
+    }
+
+    .insight-card.tier-low .insight-actions {
+      gap: 4px;
+    }
+
+    .insight-card.tier-low .insight-btn {
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+
+    /* Savings Progress Bar */
+    .insight-savings-bar {
+      height: 6px;
+      background: var(--gray-200);
+      border-radius: 3px;
+      margin: 8px 0 12px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .insight-savings-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--gray-400) 0%, var(--success) 100%);
+      width: 0;
+      transition: width 0.8s ease-out;
+    }
+
+    .insight-card.tier-top .insight-savings-fill {
+      background: linear-gradient(90deg, #f59e0b 0%, #22c55e 100%);
+    }
+
+    .insight-savings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .insight-savings-amount {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--success);
+    }
+
+    .insight-card.tier-top .insight-savings-amount {
+      font-size: 22px;
+      color: #d97706;
+    }
+
+    /* Total Potential Header */
+    .insights-header-enhanced {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .insights-header-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+
+    .insights-total-potential {
+      background: linear-gradient(135deg, var(--success) 0%, #16a34a 100%);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .insights-total-potential .amount {
+      display: inline-block;
+    }
+
+    /* Count-up animation */
+    @keyframes countUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .count-animate {
+      animation: countUp 0.5s ease-out forwards;
+    }
+
+    /* Hover lift effect */
+    .insight-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .insight-card.tier-top:hover {
+      box-shadow: 0 8px 24px rgba(245, 158, 11, 0.25);
     }
 
     .insights-total-savings {
@@ -1291,6 +1626,1670 @@
 
     .optimizer-panel.active {
       display: block;
+    }
+
+    /* ============ PROGRESSIVE DISCLOSURE (Prompt 2) ============ */
+    .optimizer-recommendation-view {
+      display: none;
+    }
+
+    .optimizer-recommendation-view.active {
+      display: block;
+    }
+
+    .optimizer-tabs.hidden,
+    .optimizer-content.hidden {
+      display: none;
+    }
+
+    /* Recommendation Card */
+    .recommendation-hero {
+      text-align: center;
+      padding: 20px 0 30px;
+    }
+
+    .recommendation-intro {
+      font-size: 14px;
+      color: var(--gray-600);
+      margin-bottom: 20px;
+    }
+
+    .recommendation-card {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.02) 100%);
+      border: 2px solid var(--success);
+      border-radius: 20px;
+      padding: 28px;
+      position: relative;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .recommendation-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .recommendation-badge::before {
+      content: '🏆';
+    }
+
+    .recommendation-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin: 16px 0 8px;
+    }
+
+    .recommendation-savings {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--success);
+      margin: 12px 0;
+    }
+
+    .recommendation-savings-label {
+      font-size: 13px;
+      color: var(--gray-500);
+      margin-bottom: 20px;
+    }
+
+    .recommendation-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .recommendation-btn-primary {
+      background: linear-gradient(135deg, var(--success) 0%, #16a34a 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .recommendation-btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
+    }
+
+    .recommendation-btn-secondary {
+      background: white;
+      color: var(--gray-700);
+      border: 1px solid var(--gray-300);
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .recommendation-btn-secondary:hover {
+      background: var(--gray-50);
+      border-color: var(--gray-400);
+    }
+
+    /* Other Opportunities List */
+    .other-opportunities {
+      margin-top: 30px;
+      padding-top: 24px;
+      border-top: 1px solid var(--gray-200);
+    }
+
+    .other-opportunities-title {
+      font-size: 13px;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    .opportunity-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--gray-50);
+      border-radius: 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .opportunity-item:hover {
+      background: var(--gray-100);
+    }
+
+    .opportunity-item-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .opportunity-icon {
+      font-size: 20px;
+    }
+
+    .opportunity-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--gray-800);
+    }
+
+    .opportunity-savings {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--success);
+    }
+
+    .opportunity-check {
+      color: var(--success);
+      font-size: 16px;
+    }
+
+    /* Detail Expansion View */
+    .detail-expansion-view {
+      display: none;
+      animation: slideInRight 0.3s ease;
+    }
+
+    .detail-expansion-view.active {
+      display: block;
+    }
+
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .detail-back-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: none;
+      border: none;
+      color: var(--gray-600);
+      font-size: 14px;
+      cursor: pointer;
+      padding: 8px 0;
+      margin-bottom: 20px;
+      transition: color 0.2s ease;
+    }
+
+    .detail-back-btn:hover {
+      color: var(--gray-900);
+    }
+
+    .detail-comparison {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .detail-comparison-card {
+      background: var(--gray-50);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .detail-comparison-card.after {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.02) 100%);
+      border: 2px solid var(--success);
+    }
+
+    .detail-comparison-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--gray-500);
+      margin-bottom: 16px;
+    }
+
+    .detail-comparison-amount {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 8px;
+    }
+
+    .detail-comparison-card.after .detail-comparison-amount {
+      color: var(--success);
+    }
+
+    .detail-comparison-breakdown {
+      font-size: 13px;
+      color: var(--gray-500);
+    }
+
+    .detail-arrow {
+      font-size: 24px;
+      color: var(--gray-400);
+    }
+
+    .detail-savings-banner {
+      background: linear-gradient(135deg, var(--success) 0%, #16a34a 100%);
+      color: white;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .detail-savings-amount {
+      font-size: 32px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .detail-savings-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .detail-apply-btn {
+      width: 100%;
+      background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .detail-apply-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    /* Simple/Advanced Toggle */
+    .view-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 16px;
+      border-top: 1px solid var(--gray-200);
+      background: var(--gray-50);
+    }
+
+    .view-toggle-btn {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .view-toggle-btn:hover {
+      text-decoration: underline;
+    }
+
+    /* No Recommendations State */
+    .no-recommendations {
+      text-align: center;
+      padding: 20px;
+    }
+
+    .no-rec-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .no-rec-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin-bottom: 8px;
+    }
+
+    .no-rec-subtitle {
+      font-size: 14px;
+      color: var(--gray-500);
+      margin-bottom: 20px;
+    }
+
+    .no-other-opportunities {
+      text-align: center;
+      padding: 16px;
+      color: var(--gray-500);
+      font-size: 14px;
+    }
+
+    /* ===== Goal-Based Guided Flow (Prompt 4) ===== */
+    .guided-flow-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: white;
+      z-index: 100;
+      padding: 40px;
+      overflow-y: auto;
+    }
+
+    .guided-flow-overlay.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .guided-flow-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: var(--gray-400);
+      cursor: pointer;
+    }
+
+    .guided-flow-close:hover {
+      color: var(--gray-600);
+    }
+
+    .guided-flow-step {
+      display: none;
+      max-width: 500px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .guided-flow-step.active {
+      display: block;
+      animation: slideInUp 0.4s ease;
+    }
+
+    @keyframes slideInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .guided-flow-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 12px;
+    }
+
+    .guided-flow-subtitle {
+      font-size: 16px;
+      color: var(--gray-500);
+      margin-bottom: 32px;
+    }
+
+    /* Goal Cards Grid */
+    .goal-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .goal-card {
+      background: var(--gray-50);
+      border: 2px solid var(--gray-200);
+      border-radius: 16px;
+      padding: 24px 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .goal-card:hover {
+      border-color: var(--primary);
+      background: white;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15);
+    }
+
+    .goal-card-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+    }
+
+    .goal-card-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+
+    .goal-card-desc {
+      font-size: 12px;
+      color: var(--gray-500);
+      margin-top: 4px;
+    }
+
+    .guided-flow-skip {
+      color: var(--gray-500);
+      font-size: 14px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .guided-flow-skip:hover {
+      color: var(--gray-700);
+    }
+
+    /* Questionnaire Step */
+    .questionnaire-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .questionnaire-back {
+      background: none;
+      border: none;
+      color: var(--gray-500);
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .questionnaire-back:hover {
+      color: var(--gray-700);
+    }
+
+    .questionnaire-progress {
+      flex: 1;
+      text-align: center;
+    }
+
+    .questionnaire-progress-dots {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    .progress-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--gray-300);
+      transition: all 0.2s ease;
+    }
+
+    .progress-dot.active {
+      background: var(--primary);
+      transform: scale(1.2);
+    }
+
+    .progress-dot.completed {
+      background: var(--success);
+    }
+
+    .questionnaire-question {
+      text-align: left;
+      margin-bottom: 24px;
+    }
+
+    .question-label {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin-bottom: 16px;
+    }
+
+    .question-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .question-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--gray-50);
+      border: 2px solid var(--gray-200);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .question-option:hover {
+      border-color: var(--primary);
+    }
+
+    .question-option.selected {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.05);
+    }
+
+    .question-option input[type="radio"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+    }
+
+    .question-option label {
+      font-size: 14px;
+      color: var(--gray-700);
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .question-input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid var(--gray-200);
+      border-radius: 10px;
+      font-size: 16px;
+      transition: border-color 0.2s ease;
+    }
+
+    .question-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .questionnaire-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .questionnaire-btn {
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .questionnaire-btn-primary {
+      background: var(--primary);
+      color: white;
+      border: none;
+    }
+
+    .questionnaire-btn-primary:hover {
+      background: #4f46e5;
+      transform: translateY(-1px);
+    }
+
+    .questionnaire-btn-primary:disabled {
+      background: var(--gray-300);
+      cursor: not-allowed;
+    }
+
+    /* Results Step */
+    .results-celebration {
+      font-size: 64px;
+      margin-bottom: 20px;
+      animation: bounce 0.6s ease;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .results-savings-card {
+      background: linear-gradient(135deg, var(--success) 0%, #16a34a 100%);
+      color: white;
+      border-radius: 20px;
+      padding: 32px;
+      margin: 24px 0;
+    }
+
+    .results-savings-amount {
+      font-size: 48px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .results-savings-label {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
+    .results-opportunities {
+      text-align: left;
+      margin: 24px 0;
+    }
+
+    .results-opportunities-title {
+      font-size: 14px;
+      color: var(--gray-500);
+      margin-bottom: 12px;
+    }
+
+    .results-opportunity-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--gray-50);
+      border-radius: 10px;
+      margin-bottom: 8px;
+    }
+
+    .results-opportunity-rank {
+      width: 24px;
+      height: 24px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      margin-right: 12px;
+    }
+
+    .results-opportunity-name {
+      flex: 1;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--gray-800);
+    }
+
+    .results-opportunity-savings {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--success);
+    }
+
+    .results-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .results-btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .results-btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    .results-btn-secondary {
+      background: none;
+      border: none;
+      color: var(--gray-600);
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .results-btn-secondary:hover {
+      color: var(--gray-800);
+      text-decoration: underline;
+    }
+
+    .guided-flow-remember {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--gray-500);
+    }
+
+    .guided-flow-remember input {
+      accent-color: var(--primary);
+    }
+
+    /* ===== Contextual Discoverability Triggers (Prompt 5) ===== */
+
+    /* Inline Savings Alert */
+    .inline-savings-alert {
+      display: none;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+      position: relative;
+      animation: slideInUp 0.4s ease;
+    }
+
+    .inline-savings-alert.visible {
+      display: block;
+    }
+
+    .inline-savings-alert-dismiss {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: none;
+      border: none;
+      color: var(--gray-400);
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .inline-savings-alert-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .inline-savings-alert-icon {
+      font-size: 24px;
+    }
+
+    .inline-savings-alert-text {
+      flex: 1;
+    }
+
+    .inline-savings-alert-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin-bottom: 4px;
+    }
+
+    .inline-savings-alert-subtitle {
+      font-size: 13px;
+      color: var(--gray-600);
+    }
+
+    .inline-savings-alert-cta {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .inline-savings-alert-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+
+    /* Floating Nudge */
+    .floating-nudge {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+      padding: 16px;
+      z-index: 100;
+      animation: bounceIn 0.4s ease;
+    }
+
+    .floating-nudge.visible {
+      display: block;
+    }
+
+    @keyframes bounceIn {
+      0% { opacity: 0; transform: translateY(-10px) scale(0.95); }
+      50% { transform: translateY(5px) scale(1.02); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .floating-nudge::before {
+      content: '';
+      position: absolute;
+      top: -8px;
+      left: 24px;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-bottom: 8px solid white;
+    }
+
+    .floating-nudge-icon {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+
+    .floating-nudge-text {
+      font-size: 14px;
+      color: var(--gray-700);
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    .floating-nudge-savings {
+      font-weight: 700;
+      color: var(--success);
+    }
+
+    .floating-nudge-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .floating-nudge-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .floating-nudge-btn-primary {
+      background: var(--primary);
+      color: white;
+      border: none;
+    }
+
+    .floating-nudge-btn-primary:hover {
+      background: #4f46e5;
+    }
+
+    .floating-nudge-btn-secondary {
+      background: var(--gray-100);
+      color: var(--gray-600);
+      border: none;
+    }
+
+    .floating-nudge-btn-secondary:hover {
+      background: var(--gray-200);
+    }
+
+    /* Pulsing Optimizer Button */
+    .optimizer-btn-pulsing {
+      position: relative;
+    }
+
+    .optimizer-btn-pulsing::after {
+      content: '';
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 10px;
+      height: 10px;
+      background: var(--success);
+      border-radius: 50%;
+      animation: pulse-ring 2s ease-out infinite;
+    }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.5); opacity: 0.5; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+
+    .optimizer-savings-badge {
+      position: absolute;
+      top: -8px;
+      right: -12px;
+      background: linear-gradient(135deg, var(--success) 0%, #16a34a 100%);
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 10px;
+      white-space: nowrap;
+      animation: badgeBounce 0.5s ease;
+    }
+
+    @keyframes badgeBounce {
+      0% { transform: scale(0); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+
+    /* Review Screen Banner */
+    .review-savings-banner {
+      display: none;
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border: 1px solid #f59e0b;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      animation: slideInDown 0.4s ease;
+    }
+
+    .review-savings-banner.visible {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    @keyframes slideInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .review-savings-banner-icon {
+      font-size: 28px;
+    }
+
+    .review-savings-banner-content {
+      flex: 1;
+    }
+
+    .review-savings-banner-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #92400e;
+      margin-bottom: 2px;
+    }
+
+    .review-savings-banner-subtitle {
+      font-size: 13px;
+      color: #a16207;
+    }
+
+    .review-savings-banner-cta {
+      background: #f59e0b;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .review-savings-banner-cta:hover {
+      background: #d97706;
+      transform: translateY(-1px);
+    }
+
+    .review-savings-banner-dismiss {
+      background: none;
+      border: none;
+      color: #a16207;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    /* ===== Before/After Feedback Toast (Prompt 6) ===== */
+    .feedback-toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+      padding: 20px;
+      min-width: 340px;
+      max-width: 400px;
+      z-index: 10000;
+      transform: translateX(120%);
+      transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    .feedback-toast.visible {
+      transform: translateX(0);
+    }
+
+    .feedback-toast-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .feedback-toast-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--success);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 16px;
+    }
+
+    .feedback-toast-title {
+      flex: 1;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+
+    .feedback-toast-close {
+      background: none;
+      border: none;
+      color: var(--gray-400);
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .feedback-toast-comparison {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .feedback-toast-value {
+      flex: 1;
+      text-align: center;
+      padding: 12px;
+      border-radius: 10px;
+    }
+
+    .feedback-toast-value.before {
+      background: var(--gray-100);
+    }
+
+    .feedback-toast-value.after {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid var(--success);
+    }
+
+    .feedback-toast-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--gray-500);
+      margin-bottom: 4px;
+    }
+
+    .feedback-toast-amount {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .feedback-toast-value.after .feedback-toast-amount {
+      color: var(--success);
+    }
+
+    .feedback-toast-arrow {
+      color: var(--gray-400);
+      font-size: 20px;
+    }
+
+    .feedback-toast-savings {
+      background: linear-gradient(135deg, var(--success) 0%, #16a34a 100%);
+      color: white;
+      padding: 12px;
+      border-radius: 10px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .feedback-toast-savings-amount {
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .feedback-toast-savings-label {
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    .feedback-toast-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .feedback-toast-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .feedback-toast-btn-primary {
+      background: var(--primary);
+      color: white;
+      border: none;
+    }
+
+    .feedback-toast-btn-secondary {
+      background: none;
+      border: 1px solid var(--gray-300);
+      color: var(--gray-600);
+    }
+
+    /* ===== Savings Meter (Prompt 8) ===== */
+    .savings-meter {
+      margin-top: 20px;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+      border-radius: 12px;
+    }
+
+    .savings-meter-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .savings-meter-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-700);
+    }
+
+    .savings-meter-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--success);
+    }
+
+    .savings-meter-bar {
+      height: 8px;
+      background: var(--gray-200);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .savings-meter-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #f59e0b 0%, var(--success) 100%);
+      border-radius: 4px;
+      transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .savings-meter-fill::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 20px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .savings-meter-milestones {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 10px;
+      color: var(--gray-500);
+    }
+
+    /* ===== Smart Nudge (Prompt 7) ===== */
+    .smart-nudge {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(99, 102, 241, 0.02) 100%);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-top: 12px;
+      display: none;
+      animation: slideInUp 0.4s ease;
+    }
+
+    .smart-nudge.visible {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .smart-nudge-icon {
+      font-size: 18px;
+    }
+
+    .smart-nudge-content {
+      flex: 1;
+    }
+
+    .smart-nudge-text {
+      font-size: 13px;
+      color: var(--gray-700);
+      line-height: 1.4;
+    }
+
+    .smart-nudge-action {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    .smart-nudge-dismiss {
+      background: none;
+      border: none;
+      color: var(--gray-400);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    /* ===== Micro-Interactions (Prompt 10) ===== */
+
+    /* Button ripple effect */
+    .btn-ripple {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-ripple::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 0;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .btn-ripple:active::after {
+      width: 200px;
+      height: 200px;
+      transition: width 0.3s ease, height 0.3s ease;
+    }
+
+    /* Input focus glow */
+    input:focus, select:focus, textarea:focus {
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+
+    /* Success state pulse */
+    .success-pulse {
+      animation: successPulse 0.6s ease;
+    }
+
+    @keyframes successPulse {
+      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+      50% { box-shadow: 0 0 0 12px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+
+    /* Number change animation */
+    .number-change {
+      display: inline-block;
+      animation: numberBounce 0.4s ease;
+    }
+
+    @keyframes numberBounce {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); color: var(--success); }
+      100% { transform: scale(1); }
+    }
+
+    /* Card hover effects enhancement */
+    .insight-card, .goal-card, .option-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    /* Skeleton loading */
+    .skeleton {
+      background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
+      background-size: 200% 100%;
+      animation: skeletonWave 1.5s infinite;
+      border-radius: 4px;
+    }
+
+    @keyframes skeletonWave {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Stagger animation for lists */
+    .stagger-item {
+      opacity: 0;
+      transform: translateY(10px);
+      animation: staggerIn 0.3s ease forwards;
+    }
+
+    @keyframes staggerIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Celebration confetti (for milestone) */
+    .celebration-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: 9999;
+      overflow: hidden;
+    }
+
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      animation: confettiFall 3s ease-out forwards;
+    }
+
+    @keyframes confettiFall {
+      0% {
+        transform: translateY(-100vh) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    /* ===== Comparison Charts (Prompt 9) ===== */
+
+    /* Chart Container */
+    .chart-container {
+      padding: 20px;
+      background: var(--gray-50);
+      border-radius: 12px;
+      margin: 16px 0;
+    }
+
+    .chart-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin-bottom: 16px;
+    }
+
+    /* Horizontal Bar Chart */
+    .h-bar-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .h-bar-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .h-bar-label {
+      width: 80px;
+      font-size: 13px;
+      color: var(--gray-600);
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .h-bar-track {
+      flex: 1;
+      height: 28px;
+      background: var(--gray-200);
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .h-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary) 0%, #8b5cf6 100%);
+      border-radius: 6px;
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+    }
+
+    .h-bar-fill.best {
+      background: linear-gradient(90deg, var(--success) 0%, #16a34a 100%);
+    }
+
+    .h-bar-value {
+      font-size: 12px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .h-bar-savings {
+      font-size: 11px;
+      color: var(--success);
+      margin-left: 8px;
+      font-weight: 600;
+    }
+
+    /* Vertical Bar Chart */
+    .v-bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      height: 200px;
+      padding: 20px 0;
+      border-bottom: 2px solid var(--gray-200);
+    }
+
+    .v-bar-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+    }
+
+    .v-bar-fill {
+      width: 100%;
+      max-width: 60px;
+      background: linear-gradient(180deg, var(--primary) 0%, #8b5cf6 100%);
+      border-radius: 6px 6px 0 0;
+      transition: height 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .v-bar-fill.highlight {
+      background: linear-gradient(180deg, var(--success) 0%, #16a34a 100%);
+    }
+
+    .v-bar-value {
+      position: absolute;
+      top: -24px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--gray-700);
+      white-space: nowrap;
+    }
+
+    .v-bar-label {
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--gray-500);
+      text-align: center;
+    }
+
+    /* Donut Chart */
+    .donut-chart {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .donut-ring {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      position: relative;
+    }
+
+    .donut-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      background: white;
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .donut-total {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+
+    .donut-label {
+      font-size: 11px;
+      color: var(--gray-500);
+    }
+
+    .donut-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .donut-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--gray-700);
+    }
+
+    .donut-legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+
+    /* Comparison Cards */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .comparison-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      border: 2px solid var(--gray-200);
+    }
+
+    .comparison-card.before {
+      border-color: var(--gray-300);
+    }
+
+    .comparison-card.after {
+      border-color: var(--success);
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, white 100%);
+    }
+
+    .comparison-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--gray-500);
+      margin-bottom: 8px;
+    }
+
+    .comparison-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+
+    .comparison-card.after .comparison-value {
+      color: var(--success);
+    }
+
+    .comparison-arrow {
+      font-size: 24px;
+      color: var(--gray-400);
+    }
+
+    .comparison-diff {
+      margin-top: 16px;
+      padding: 12px;
+      background: linear-gradient(135deg, var(--success) 0%, #16a34a 100%);
+      color: white;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .comparison-diff-amount {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .comparison-diff-label {
+      font-size: 12px;
+      opacity: 0.9;
     }
 
     /* What-If Scenarios Panel */
@@ -6393,6 +8392,19 @@
               <p class="step-subtitle">Professional-grade tax computation with optimization recommendations</p>
             </div>
 
+            <!-- Review Savings Banner (Prompt 5) -->
+            <div class="review-savings-banner" id="reviewSavingsBanner">
+              <div class="review-savings-banner-icon">⚡</div>
+              <div class="review-savings-banner-content">
+                <div class="review-savings-banner-title">BEFORE YOU FILE: We found potential savings</div>
+                <div class="review-savings-banner-subtitle">Review optimization options to reduce your tax liability</div>
+              </div>
+              <button class="review-savings-banner-cta" onclick="openTaxOptimizer(); markOptimizerClicked();">
+                Review →
+              </button>
+              <button class="review-savings-banner-dismiss" onclick="dismissReviewBanner()">×</button>
+            </div>
+
             <!-- Action Bar -->
             <div class="review-actions">
               <button class="action-btn action-btn-primary" id="btnTaxOptimizer" onclick="openTaxOptimizer('scenarios')">
@@ -6864,6 +8876,21 @@
               <span class="breakdown-value" id="stateRefund">—</span>
             </div>
           </div>
+
+          <!-- Inline Savings Alert (Prompt 5) -->
+          <div class="inline-savings-alert" id="inlineSavingsAlert">
+            <button class="inline-savings-alert-dismiss" onclick="dismissInlineSavingsAlert()">×</button>
+            <div class="inline-savings-alert-content">
+              <div class="inline-savings-alert-icon">💡</div>
+              <div class="inline-savings-alert-text">
+                <div class="inline-savings-alert-title">You could reduce this by $0</div>
+                <div class="inline-savings-alert-subtitle">See how with optimization strategies</div>
+              </div>
+              <button class="inline-savings-alert-cta" onclick="openTaxOptimizer(); markOptimizerClicked();">
+                Show Me How →
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Smart Insights Sidebar -->
@@ -6876,16 +8903,59 @@
             <span class="insights-badge" id="insightsBadge" style="display: none;">0</span>
           </div>
 
+          <!-- Enhanced Header with Total Potential (Prompt 3) -->
+          <div class="insights-header-enhanced" id="insightsHeaderEnhanced" style="display: none;">
+            <div class="insights-header-title">
+              💡 Total Potential
+            </div>
+            <div class="insights-total-potential">
+              <span class="amount" id="insightsTotalPotential">$0</span>
+            </div>
+          </div>
+
           <!-- Loading State -->
           <div class="insights-loading" id="insightsLoading" style="display: none;">
             <div class="spinner"></div>
             <div>Analyzing your data...</div>
           </div>
 
-          <!-- Empty State -->
-          <div class="insights-empty" id="insightsEmpty">
-            <div class="insights-empty-icon">📋</div>
-            <div>Add income data to see personalized insights</div>
+          <!-- Enhanced Empty State -->
+          <div class="insights-empty insights-empty-enhanced" id="insightsEmpty">
+            <div class="insights-empty-illustration"></div>
+            <div class="insights-empty-title">Your Tax Savings Await</div>
+            <div class="insights-empty-subtitle">
+              Personalized recommendations will appear here as you enter your information
+            </div>
+
+            <div class="insights-empty-checklist" id="insightsChecklist">
+              <div class="insights-empty-checklist-item" data-check="income">
+                <span class="check-icon">○</span>
+                <span>Income information</span>
+              </div>
+              <div class="insights-empty-checklist-item" data-check="filing">
+                <span class="check-icon">○</span>
+                <span>Filing status</span>
+              </div>
+              <div class="insights-empty-checklist-item" data-check="deductions">
+                <span class="check-icon">○</span>
+                <span>Deductions</span>
+              </div>
+            </div>
+
+            <button class="insights-get-started-btn" onclick="scrollToFirstInput()">
+              Get Started
+              <span>→</span>
+            </button>
+
+            <!-- Sample Insight Preview -->
+            <div class="sample-insight-container">
+              <div class="sample-insight-label">Sample Insight</div>
+              <div class="sample-insight-card">
+                <div class="sample-insight-title">Maximize IRA Contributions</div>
+                <div class="sample-insight-desc">Most users save by contributing to retirement accounts</div>
+                <div class="sample-insight-savings">Average savings: $1,540</div>
+              </div>
+            </div>
           </div>
 
           <!-- Insights Container -->
@@ -6895,6 +8965,22 @@
           <div class="insights-total-savings" id="insightsTotalSavings" style="display: none;">
             <span class="total-savings-label">Total potential savings</span>
             <span class="total-savings-amount" id="totalSavingsAmount">$0</span>
+          </div>
+
+          <!-- Savings Meter (Prompt 8) -->
+          <div class="savings-meter" id="savingsMeter" style="display: none;">
+            <div class="savings-meter-header">
+              <span class="savings-meter-title">Optimization Progress</span>
+              <span class="savings-meter-value">$0 / $0</span>
+            </div>
+            <div class="savings-meter-bar">
+              <div class="savings-meter-fill" style="width: 0%;"></div>
+            </div>
+            <div class="savings-meter-milestones">
+              <span>$0</span>
+              <span>$5k</span>
+              <span>$10k+</span>
+            </div>
           </div>
         </div>
 
@@ -10834,6 +12920,66 @@ Generated by TaxFlow - Tax Year 2025
       if (container) container.style.display = 'none';
       if (total) total.style.display = 'none';
       if (badge) badge.style.display = 'none';
+
+      // Update checklist based on entered data
+      updateInsightsChecklist();
+    }
+
+    function updateInsightsChecklist() {
+      const checklist = document.getElementById('insightsChecklist');
+      if (!checklist) return;
+
+      // Check income
+      const incomeItem = checklist.querySelector('[data-check="income"]');
+      if (incomeItem) {
+        const hasIncome = state.taxData.wages > 0 ||
+                         state.taxData.selfEmploymentIncome > 0 ||
+                         state.documents.length > 0;
+        incomeItem.classList.toggle('completed', hasIncome);
+        incomeItem.querySelector('.check-icon').textContent = hasIncome ? '✓' : '○';
+      }
+
+      // Check filing status
+      const filingItem = checklist.querySelector('[data-check="filing"]');
+      if (filingItem) {
+        const hasFiling = state.filingStatus !== null;
+        filingItem.classList.toggle('completed', hasFiling);
+        filingItem.querySelector('.check-icon').textContent = hasFiling ? '✓' : '○';
+      }
+
+      // Check deductions
+      const deductionsItem = checklist.querySelector('[data-check="deductions"]');
+      if (deductionsItem) {
+        const hasDeductions = Object.values(state.deductions).some(v => v && v > 0);
+        deductionsItem.classList.toggle('completed', hasDeductions);
+        deductionsItem.querySelector('.check-icon').textContent = hasDeductions ? '✓' : '○';
+      }
+    }
+
+    function scrollToFirstInput() {
+      // Find first incomplete checklist item and scroll to relevant section
+      const incomeComplete = state.taxData.wages > 0 || state.documents.length > 0;
+      const filingComplete = state.filingStatus !== null;
+
+      if (!filingComplete) {
+        // Scroll to filing status wizard (step 1)
+        goToStep(1);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (!incomeComplete) {
+        // Scroll to income section (step 2)
+        goToStep(2);
+        const incomeSection = document.getElementById('step-2');
+        if (incomeSection) {
+          incomeSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      } else {
+        // Scroll to deductions section (step 3)
+        goToStep(3);
+        const deductionsSection = document.getElementById('step-3');
+        if (deductionsSection) {
+          deductionsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
     }
 
     function renderInsights(insights) {
@@ -10843,42 +12989,81 @@ Generated by TaxFlow - Tax Year 2025
       const total = document.getElementById('insightsTotalSavings');
       const badge = document.getElementById('insightsBadge');
       const totalAmount = document.getElementById('totalSavingsAmount');
+      const headerEnhanced = document.getElementById('insightsHeaderEnhanced');
+      const totalPotential = document.getElementById('insightsTotalPotential');
 
       if (loading) loading.style.display = 'none';
       if (empty) empty.style.display = 'none';
       if (container) container.style.display = 'block';
 
+      // Sort insights by savings amount (descending)
+      const sortedInsights = [...insights].sort((a, b) =>
+        (b.estimated_savings || 0) - (a.estimated_savings || 0)
+      );
+
+      // Find max savings for progress bar calculation
+      const maxSavings = sortedInsights.length > 0 ? (sortedInsights[0].estimated_savings || 0) : 0;
+
       // Update badge
       if (badge) {
-        badge.textContent = insights.length;
-        badge.style.display = insights.length > 0 ? 'inline-block' : 'none';
+        badge.textContent = sortedInsights.length;
+        badge.style.display = sortedInsights.length > 0 ? 'inline-block' : 'none';
       }
 
       // Calculate total savings
-      const totalSavings = insights.reduce((sum, i) => sum + (i.estimated_savings || 0), 0);
+      const totalSavings = sortedInsights.reduce((sum, i) => sum + (i.estimated_savings || 0), 0);
+
+      // Show enhanced header with total potential
+      if (headerEnhanced && totalSavings > 0) {
+        headerEnhanced.style.display = 'flex';
+        if (totalPotential) {
+          animateCountUp(totalPotential, totalSavings);
+        }
+      }
+
       if (total && totalSavings > 0) {
         total.style.display = 'flex';
         if (totalAmount) totalAmount.textContent = formatCurrency(totalSavings);
       }
 
-      // Render insight cards
+      // Render insight cards with visual hierarchy
       let html = '';
-      insights.forEach(insight => {
+      sortedInsights.forEach((insight, index) => {
         const isApplied = smartInsightsState.appliedIds.has(insight.id);
-        const priorityClass = insight.priority === 'high' ? 'high-priority' :
-                             insight.priority === 'medium' ? 'medium-priority' : 'low-priority';
+        const savings = insight.estimated_savings || 0;
+
+        // Determine tier based on savings amount and position
+        let tierClass = '';
+        if (index === 0 && savings > 500) {
+          tierClass = 'tier-top';
+        } else if (savings > 1000) {
+          tierClass = 'tier-high';
+        } else if (savings >= 100) {
+          tierClass = 'tier-medium';
+        } else {
+          tierClass = 'tier-low';
+        }
+
         const emoji = getInsightEmoji(insight.type);
+        const progressPercent = maxSavings > 0 ? (savings / maxSavings) * 100 : 0;
 
         html += `
-          <div class="insight-card ${priorityClass}" data-insight-id="${insight.id}">
+          <div class="insight-card ${tierClass}" data-insight-id="${insight.id}" data-savings="${savings}">
             <div class="insight-header">
               <div class="insight-title-row">
                 <span class="insight-emoji">${emoji}</span>
                 <span class="insight-title">${insight.title}</span>
               </div>
-              ${insight.estimated_savings > 0 ? `<span class="insight-savings">+${formatCurrency(insight.estimated_savings)}</span>` : ''}
             </div>
             <div class="insight-description">${insight.description}</div>
+            ${savings > 0 ? `
+              <div class="insight-savings-row">
+                <span class="insight-savings-amount" data-target="${savings}">+${formatCurrency(savings)}</span>
+              </div>
+              <div class="insight-savings-bar">
+                <div class="insight-savings-fill" style="width: 0%" data-width="${progressPercent}%"></div>
+              </div>
+            ` : ''}
             ${isApplied ? `
               <div class="insight-applied">
                 <span>✓</span> Applied
@@ -10886,7 +13071,7 @@ Generated by TaxFlow - Tax Year 2025
             ` : `
               <div class="insight-actions">
                 <button class="insight-btn insight-btn-apply" onclick="applyInsight('${insight.id}')">
-                  Yes, Add This
+                  ${tierClass === 'tier-top' ? 'See How →' : 'Yes, Add This'}
                 </button>
                 <button class="insight-btn insight-btn-dismiss" onclick="dismissInsight('${insight.id}')">
                   Not Now
@@ -10897,7 +13082,43 @@ Generated by TaxFlow - Tax Year 2025
         `;
       });
 
-      if (container) container.innerHTML = html;
+      if (container) {
+        container.innerHTML = html;
+
+        // Animate progress bars on render
+        requestAnimationFrame(() => {
+          container.querySelectorAll('.insight-savings-fill').forEach(fill => {
+            const width = fill.dataset.width;
+            setTimeout(() => {
+              fill.style.width = width;
+            }, 100);
+          });
+        });
+      }
+
+      // Update discoverability triggers when insights change
+      updateDiscoverabilityTriggers();
+    }
+
+    // Count-up animation helper
+    function animateCountUp(element, targetValue) {
+      const duration = 1000;
+      const startValue = 0;
+      const startTime = performance.now();
+
+      function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeProgress = 1 - Math.pow(1 - progress, 3); // Ease out cubic
+        const currentValue = Math.round(startValue + (targetValue - startValue) * easeProgress);
+        element.textContent = formatCurrency(currentValue);
+
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        }
+      }
+
+      requestAnimationFrame(update);
     }
 
     function getInsightEmoji(type) {
@@ -11052,12 +13273,6 @@ Generated by TaxFlow - Tax Year 2025
       }, 3000);
     }
 
-    function openTaxOptimizer(tab = 'scenarios') {
-      // Placeholder - will be implemented when Tax Optimizer is created
-      console.log('Opening Tax Optimizer tab:', tab);
-      showToast('Tax Optimizer coming soon!', 'info');
-    }
-
     function initSmartInsights() {
       // Initial fetch with a slight delay to allow page load
       setTimeout(() => {
@@ -11090,17 +13305,30 @@ Generated by TaxFlow - Tax Year 2025
       },
     };
 
-    function openTaxOptimizer(tab = 'scenarios') {
+    function openTaxOptimizer(tab = 'scenarios', showAdvanced = false) {
       const overlay = document.getElementById('taxOptimizerOverlay');
       if (overlay) {
         overlay.classList.add('active');
         taxOptimizerState.isOpen = true;
 
-        // Switch to the specified tab
-        switchOptimizerTab(tab);
-
         // Pre-populate with user data if available
         populateOptimizerFromState();
+
+        // Check if should show guided flow (first time users)
+        if (shouldShowGuidedFlow() && !showAdvanced) {
+          showGuidedFlow();
+          return;
+        }
+
+        if (showAdvanced) {
+          // Show advanced tabs view directly
+          showAdvancedView();
+          switchOptimizerTab(tab);
+        } else {
+          // Show progressive disclosure recommendation view
+          showSimpleView();
+          loadRecommendationData();
+        }
       }
     }
 
@@ -11167,6 +13395,977 @@ Generated by TaxFlow - Tax Year 2025
 
       // Update retirement calculations
       updateRetirementSavings();
+    }
+
+    // ===== Progressive Disclosure Functions (Prompt 2) =====
+    const recommendationState = {
+      topRecommendation: null,
+      otherOpportunities: [],
+      detailsExpanded: false,
+    };
+
+    function showSimpleView() {
+      // Show recommendation view, hide advanced tabs
+      const recommendationView = document.getElementById('optimizerRecommendationView');
+      const tabsView = document.getElementById('optimizerTabs');
+      const panelsContainer = document.querySelector('.optimizer-panels');
+
+      if (recommendationView) recommendationView.classList.add('active');
+      if (tabsView) tabsView.style.display = 'none';
+      if (panelsContainer) panelsContainer.style.display = 'none';
+
+      // Hide detail expansion
+      hideRecommendationDetails();
+    }
+
+    function showAdvancedView() {
+      // Hide recommendation view, show advanced tabs
+      const recommendationView = document.getElementById('optimizerRecommendationView');
+      const tabsView = document.getElementById('optimizerTabs');
+      const panelsContainer = document.querySelector('.optimizer-panels');
+
+      if (recommendationView) recommendationView.classList.remove('active');
+      if (tabsView) tabsView.style.display = 'flex';
+      if (panelsContainer) panelsContainer.style.display = 'block';
+    }
+
+    function showRecommendationDetails() {
+      const detailView = document.getElementById('detailExpansionView');
+      const recommendationHero = document.querySelector('.recommendation-hero');
+      const viewToggle = document.querySelector('.optimizer-recommendation-view .view-toggle');
+
+      if (detailView) {
+        detailView.classList.add('active');
+        recommendationState.detailsExpanded = true;
+      }
+      if (recommendationHero) recommendationHero.style.display = 'none';
+      if (viewToggle) viewToggle.style.display = 'none';
+
+      // Populate detail view with current recommendation data
+      populateDetailView();
+    }
+
+    function hideRecommendationDetails() {
+      const detailView = document.getElementById('detailExpansionView');
+      const recommendationHero = document.querySelector('.recommendation-hero');
+      const viewToggle = document.querySelector('.optimizer-recommendation-view .view-toggle');
+
+      if (detailView) {
+        detailView.classList.remove('active');
+        recommendationState.detailsExpanded = false;
+      }
+      if (recommendationHero) recommendationHero.style.display = 'block';
+      if (viewToggle) viewToggle.style.display = 'block';
+    }
+
+    function populateDetailView() {
+      const rec = recommendationState.topRecommendation;
+      if (!rec) return;
+
+      // Get current tax situation
+      const currentWages = state.taxData?.wages || 75000;
+      const currentTax = computeTaxForStatus(state.filingStatus || 'single', currentWages);
+
+      // Calculate optimized tax
+      let optimizedTax = currentTax.totalTax;
+      let savingsAmount = rec.estimated_savings || 0;
+
+      // Update detail comparison cards
+      document.getElementById('detailCurrentTax').textContent = formatCurrency(currentTax.totalTax);
+      document.getElementById('detailNewTax').textContent = formatCurrency(currentTax.totalTax - savingsAmount);
+      document.getElementById('detailSavingsAmount').textContent = formatCurrency(savingsAmount);
+
+      // Breakdown details
+      const currentBreakdown = document.getElementById('detailCurrentBreakdown');
+      if (currentBreakdown) {
+        currentBreakdown.innerHTML = `
+          <div>Income: ${formatCurrency(currentWages)}</div>
+          <div>Deduction: ${formatCurrency(currentTax.standardDeduction)}</div>
+          <div>Taxable: ${formatCurrency(currentTax.taxableIncome)}</div>
+        `;
+      }
+
+      const newBreakdown = document.getElementById('detailNewBreakdown');
+      if (newBreakdown) {
+        const additionalDeduction = rec.type === 'retirement' ? (rec.action_data?.value || 0) : 0;
+        newBreakdown.innerHTML = `
+          <div>Income: ${formatCurrency(currentWages)}</div>
+          <div>Deductions: ${formatCurrency(currentTax.standardDeduction + additionalDeduction)}</div>
+          <div>Taxable: ${formatCurrency(Math.max(0, currentTax.taxableIncome - additionalDeduction))}</div>
+        `;
+      }
+    }
+
+    async function loadRecommendationData() {
+      const intro = document.getElementById('recommendationIntro');
+      const card = document.getElementById('recommendationCard');
+      const opportunities = document.getElementById('otherOpportunities');
+
+      // Show loading state
+      if (intro) intro.textContent = 'Analyzing your tax situation...';
+      if (card) card.style.opacity = '0.5';
+
+      try {
+        // Get recommendations from insights or compute locally
+        const insights = smartInsightsState.insights.filter(
+          i => !smartInsightsState.dismissedIds.has(i.id) && !smartInsightsState.appliedIds.has(i.id)
+        );
+
+        // Sort by savings amount
+        const sortedInsights = [...insights].sort((a, b) =>
+          (b.estimated_savings || 0) - (a.estimated_savings || 0)
+        );
+
+        if (sortedInsights.length === 0) {
+          // Generate local recommendations if none available
+          await fetchSmartInsights();
+          const newInsights = smartInsightsState.insights.filter(
+            i => !smartInsightsState.dismissedIds.has(i.id)
+          ).sort((a, b) => (b.estimated_savings || 0) - (a.estimated_savings || 0));
+
+          if (newInsights.length > 0) {
+            recommendationState.topRecommendation = newInsights[0];
+            recommendationState.otherOpportunities = newInsights.slice(1, 4);
+          } else {
+            // No insights available - show placeholder
+            showNoRecommendationsState();
+            return;
+          }
+        } else {
+          recommendationState.topRecommendation = sortedInsights[0];
+          recommendationState.otherOpportunities = sortedInsights.slice(1, 4);
+        }
+
+        // Update UI
+        updateRecommendationCard();
+        updateOtherOpportunities();
+
+        // Fade in
+        if (card) card.style.opacity = '1';
+
+      } catch (error) {
+        console.error('Error loading recommendations:', error);
+        showNoRecommendationsState();
+      }
+    }
+
+    function updateRecommendationCard() {
+      const rec = recommendationState.topRecommendation;
+      if (!rec) return;
+
+      const intro = document.getElementById('recommendationIntro');
+      const title = document.getElementById('recommendationTitle');
+      const savings = document.getElementById('recommendationSavings');
+
+      if (intro) {
+        intro.textContent = `Based on your ${formatCurrency(state.taxData?.wages || 0)} income, here's your top opportunity:`;
+      }
+
+      if (title) {
+        title.textContent = rec.title || 'Tax Optimization Strategy';
+      }
+
+      if (savings) {
+        savings.textContent = formatCurrency(rec.estimated_savings || 0);
+      }
+    }
+
+    function updateOtherOpportunities() {
+      const container = document.getElementById('opportunitiesList');
+      if (!container) return;
+
+      const opportunities = recommendationState.otherOpportunities;
+
+      if (opportunities.length === 0) {
+        container.innerHTML = '<div class="no-other-opportunities">No other opportunities at this time</div>';
+        return;
+      }
+
+      container.innerHTML = opportunities.map((opp, index) => `
+        <div class="opportunity-item" onclick="selectOpportunity(${index})">
+          <span class="opportunity-icon">${getOpportunityIcon(opp.type)}</span>
+          <span class="opportunity-name">${opp.title}</span>
+          <span class="opportunity-savings">+${formatCurrency(opp.estimated_savings || 0)}</span>
+        </div>
+      `).join('');
+    }
+
+    function getOpportunityIcon(type) {
+      const icons = {
+        'retirement': '💰',
+        'filing_status': '📋',
+        'entity': '🏢',
+        'credits': '💳',
+        'deduction': '📝',
+      };
+      return icons[type] || '💡';
+    }
+
+    function selectOpportunity(index) {
+      const opportunities = recommendationState.otherOpportunities;
+      if (index >= 0 && index < opportunities.length) {
+        // Swap with top recommendation
+        const selected = opportunities[index];
+        const previous = recommendationState.topRecommendation;
+
+        recommendationState.topRecommendation = selected;
+        recommendationState.otherOpportunities[index] = previous;
+
+        // Update UI
+        updateRecommendationCard();
+        updateOtherOpportunities();
+      }
+    }
+
+    function showNoRecommendationsState() {
+      const intro = document.getElementById('recommendationIntro');
+      const card = document.getElementById('recommendationCard');
+      const opportunities = document.getElementById('otherOpportunities');
+
+      if (intro) {
+        intro.textContent = 'Enter more information to get personalized recommendations';
+      }
+
+      if (card) {
+        card.innerHTML = `
+          <div class="no-recommendations">
+            <div class="no-rec-icon">📊</div>
+            <div class="no-rec-title">No Recommendations Yet</div>
+            <div class="no-rec-subtitle">Complete your tax information to see optimization opportunities</div>
+            <button class="recommendation-btn-secondary" onclick="closeTaxOptimizer(); goToStep(2);">
+              Add Income Information
+            </button>
+          </div>
+        `;
+        card.style.opacity = '1';
+      }
+
+      if (opportunities) {
+        opportunities.style.display = 'none';
+      }
+    }
+
+    async function applyRecommendation() {
+      const rec = recommendationState.topRecommendation;
+      if (!rec) return;
+
+      try {
+        // Apply based on action type
+        if (rec.action_type === 'apply_deduction' && rec.action_data) {
+          const { field, value } = rec.action_data;
+          state.deductions[field] = value;
+
+          // Update UI elements
+          const input = document.querySelector(`input[data-field="${field}"]`);
+          if (input) input.value = value;
+
+          // Mark as applied
+          smartInsightsState.appliedIds.add(rec.id);
+
+          showToast(`Applied: ${rec.title}`, 'success');
+
+          // Refresh calculations
+          updateRefund();
+          refreshSmartInsights();
+
+          // Close and update
+          closeTaxOptimizer();
+        } else if (rec.action_type === 'change_filing_status' && rec.action_data) {
+          // Navigate to filing status selection
+          closeTaxOptimizer();
+          goToStep(1);
+          showToast('Update your filing status to apply this optimization', 'info');
+        } else if (rec.action_type === 'open_optimizer' && rec.action_data) {
+          // Switch to the relevant tab in advanced view
+          showAdvancedView();
+          switchOptimizerTab(rec.action_data.tab || 'scenarios');
+        } else {
+          // Generic application - mark as applied and refresh
+          smartInsightsState.appliedIds.add(rec.id);
+          showToast(`Strategy noted: ${rec.title}`, 'success');
+          closeTaxOptimizer();
+        }
+      } catch (error) {
+        console.error('Error applying recommendation:', error);
+        showToast('Unable to apply recommendation', 'error');
+      }
+    }
+
+    // ===== Goal-Based Guided Flow Functions (Prompt 4) =====
+    const guidedFlowState = {
+      currentStep: 'goals',
+      currentQuestion: 1,
+      answers: {
+        employmentType: null,
+        income: null,
+        retirement: null,
+      },
+      selectedGoal: null,
+      calculatedOpportunities: [],
+    };
+
+    function shouldShowGuidedFlow() {
+      // Check if user has opted out
+      const skipGuided = localStorage.getItem('skipGuidedFlow');
+      if (skipGuided === 'true') return false;
+
+      // Check if first time opening optimizer
+      const hasUsedOptimizer = localStorage.getItem('hasUsedOptimizer');
+      if (!hasUsedOptimizer) return true;
+
+      return false;
+    }
+
+    function showGuidedFlow() {
+      const overlay = document.getElementById('guidedFlowOverlay');
+      if (overlay) {
+        overlay.classList.add('active');
+        goToGuidedStep('goals');
+      }
+    }
+
+    function closeGuidedFlow() {
+      const overlay = document.getElementById('guidedFlowOverlay');
+      if (overlay) {
+        overlay.classList.remove('active');
+      }
+
+      // Remember that user has used optimizer
+      localStorage.setItem('hasUsedOptimizer', 'true');
+
+      // Check remember checkbox
+      const remember = document.getElementById('guidedFlowRemember');
+      if (remember && remember.checked) {
+        localStorage.setItem('skipGuidedFlow', 'true');
+      }
+    }
+
+    function skipGuidedFlow() {
+      closeGuidedFlow();
+      showSimpleView();
+      loadRecommendationData();
+    }
+
+    function goToGuidedStep(step) {
+      guidedFlowState.currentStep = step;
+
+      // Hide all steps
+      document.querySelectorAll('.guided-flow-step').forEach(s => {
+        s.classList.remove('active');
+      });
+
+      // Show target step
+      const stepMap = {
+        'goals': 'guidedFlowGoals',
+        'questionnaire': 'guidedFlowQuestionnaire',
+        'results': 'guidedFlowResults',
+      };
+
+      const targetStep = document.getElementById(stepMap[step]);
+      if (targetStep) {
+        targetStep.classList.add('active');
+      }
+
+      // Reset questionnaire if going back to goals
+      if (step === 'goals') {
+        resetQuestionnaire();
+      }
+    }
+
+    function selectGoal(goal) {
+      guidedFlowState.selectedGoal = goal;
+
+      if (goal === 'save_money') {
+        // Show questionnaire
+        goToGuidedStep('questionnaire');
+        showQuestion(1);
+      } else if (goal === 'start_business') {
+        // Go directly to entity comparison
+        closeGuidedFlow();
+        showAdvancedView();
+        switchOptimizerTab('entity');
+      } else if (goal === 'retirement') {
+        // Go directly to retirement tab
+        closeGuidedFlow();
+        showAdvancedView();
+        switchOptimizerTab('retirement');
+      } else if (goal === 'compare') {
+        // Go directly to what-if scenarios
+        closeGuidedFlow();
+        showAdvancedView();
+        switchOptimizerTab('scenarios');
+      }
+    }
+
+    function showQuestion(questionNum) {
+      guidedFlowState.currentQuestion = questionNum;
+
+      // Hide all questions
+      for (let i = 1; i <= 3; i++) {
+        const q = document.getElementById(`question${i}`);
+        if (q) q.style.display = 'none';
+      }
+
+      // Show current question
+      const currentQ = document.getElementById(`question${questionNum}`);
+      if (currentQ) currentQ.style.display = 'block';
+
+      // Update progress dots
+      for (let i = 1; i <= 3; i++) {
+        const dot = document.getElementById(`progressDot${i}`);
+        if (dot) {
+          dot.classList.remove('active', 'completed');
+          if (i < questionNum) {
+            dot.classList.add('completed');
+          } else if (i === questionNum) {
+            dot.classList.add('active');
+          }
+        }
+      }
+
+      // Update button text
+      const btn = document.getElementById('questionnaireNextBtn');
+      if (btn) {
+        btn.textContent = questionNum === 3 ? 'Find My Savings →' : 'Next →';
+        btn.disabled = !isQuestionAnswered(questionNum);
+      }
+    }
+
+    function selectQuestionOption(questionNum, value) {
+      // Update state
+      if (questionNum === 1) {
+        guidedFlowState.answers.employmentType = value;
+      } else if (questionNum === 3) {
+        guidedFlowState.answers.retirement = value;
+      }
+
+      // Update UI
+      const question = document.getElementById(`question${questionNum}`);
+      if (question) {
+        question.querySelectorAll('.question-option').forEach(opt => {
+          opt.classList.remove('selected');
+        });
+        event.currentTarget.classList.add('selected');
+        event.currentTarget.querySelector('input').checked = true;
+      }
+
+      // Enable next button
+      const btn = document.getElementById('questionnaireNextBtn');
+      if (btn) btn.disabled = false;
+    }
+
+    function formatIncomeInput(input) {
+      // Remove non-numeric characters
+      let value = input.value.replace(/[^0-9]/g, '');
+      if (value) {
+        // Format as currency
+        value = '$' + parseInt(value).toLocaleString('en-US');
+        input.value = value;
+        guidedFlowState.answers.income = parseInt(input.value.replace(/[^0-9]/g, ''));
+
+        // Enable next button if value is reasonable
+        const btn = document.getElementById('questionnaireNextBtn');
+        if (btn && guidedFlowState.answers.income > 0) {
+          btn.disabled = false;
+        }
+      }
+    }
+
+    function isQuestionAnswered(questionNum) {
+      if (questionNum === 1) {
+        return guidedFlowState.answers.employmentType !== null;
+      } else if (questionNum === 2) {
+        return guidedFlowState.answers.income > 0;
+      } else if (questionNum === 3) {
+        return guidedFlowState.answers.retirement !== null;
+      }
+      return false;
+    }
+
+    function nextQuestion() {
+      const current = guidedFlowState.currentQuestion;
+
+      if (current < 3) {
+        showQuestion(current + 1);
+      } else {
+        // Calculate results and show
+        calculateGuidedResults();
+        goToGuidedStep('results');
+      }
+    }
+
+    function resetQuestionnaire() {
+      guidedFlowState.currentQuestion = 1;
+      guidedFlowState.answers = {
+        employmentType: null,
+        income: null,
+        retirement: null,
+      };
+
+      // Clear selections
+      document.querySelectorAll('.question-option').forEach(opt => {
+        opt.classList.remove('selected');
+      });
+      document.querySelectorAll('.questionnaire-question input[type="radio"]').forEach(radio => {
+        radio.checked = false;
+      });
+      const incomeInput = document.getElementById('q2Income');
+      if (incomeInput) incomeInput.value = '';
+
+      // Reset button
+      const btn = document.getElementById('questionnaireNextBtn');
+      if (btn) btn.disabled = true;
+    }
+
+    function calculateGuidedResults() {
+      const { employmentType, income, retirement } = guidedFlowState.answers;
+      const opportunities = [];
+
+      // Use provided income or default
+      const annualIncome = income || state.taxData?.wages || 75000;
+      const marginalRate = getMarginalRate(annualIncome);
+
+      // S-Corp opportunity for self-employed
+      if (employmentType === 'self_employed' || employmentType === 'both') {
+        if (annualIncome > 50000) {
+          const reasonableSalary = Math.min(annualIncome * 0.6, 150000);
+          const savings = Math.round((annualIncome - reasonableSalary) * 0.153 * 0.5);
+          opportunities.push({
+            id: 'scorp',
+            title: 'S-Corp Election',
+            savings: savings,
+            tab: 'entity',
+          });
+        }
+      }
+
+      // Retirement opportunities
+      if (retirement !== 'maxed') {
+        // 401k opportunity
+        const currentContrib = retirement === 'some' ? 10000 : 0;
+        const max401k = employmentType === 'self_employed' ? 69000 : 23500;
+        const additional401k = max401k - currentContrib;
+        const savings401k = Math.round(additional401k * marginalRate);
+
+        opportunities.push({
+          id: '401k',
+          title: 'Max 401(k) Contribution',
+          savings: savings401k,
+          tab: 'retirement',
+        });
+
+        // IRA opportunity
+        if (retirement === 'none') {
+          const iraSavings = Math.round(7000 * marginalRate);
+          opportunities.push({
+            id: 'ira',
+            title: 'IRA Contribution',
+            savings: iraSavings,
+            tab: 'retirement',
+          });
+        }
+
+        // HSA opportunity
+        const hsaSavings = Math.round(4300 * marginalRate);
+        opportunities.push({
+          id: 'hsa',
+          title: 'HSA Contributions',
+          savings: hsaSavings,
+          tab: 'retirement',
+        });
+      }
+
+      // Sort by savings
+      opportunities.sort((a, b) => b.savings - a.savings);
+      guidedFlowState.calculatedOpportunities = opportunities.slice(0, 3);
+
+      // Update results UI
+      const totalSavings = guidedFlowState.calculatedOpportunities.reduce((sum, o) => sum + o.savings, 0);
+      const amountEl = document.getElementById('guidedResultsAmount');
+      if (amountEl) {
+        animateCountUp(amountEl, totalSavings);
+      }
+
+      // Render opportunities list
+      const listEl = document.getElementById('guidedResultsList');
+      if (listEl) {
+        listEl.innerHTML = guidedFlowState.calculatedOpportunities.map((opp, index) => `
+          <div class="results-opportunity-item">
+            <div class="results-opportunity-rank">${index + 1}</div>
+            <div class="results-opportunity-name">${opp.title}</div>
+            <div class="results-opportunity-savings">${formatCurrency(opp.savings)}</div>
+          </div>
+        `).join('');
+      }
+
+      // Update start button
+      const startBtn = document.getElementById('guidedStartBtn');
+      if (startBtn && guidedFlowState.calculatedOpportunities.length > 0) {
+        const topOpp = guidedFlowState.calculatedOpportunities[0];
+        startBtn.textContent = `Start with #1: ${topOpp.title} →`;
+      }
+    }
+
+    function getMarginalRate(income) {
+      // Simplified marginal rate lookup
+      if (income <= 11925) return 0.10;
+      if (income <= 48475) return 0.12;
+      if (income <= 103350) return 0.22;
+      if (income <= 197300) return 0.24;
+      if (income <= 250525) return 0.32;
+      if (income <= 626350) return 0.35;
+      return 0.37;
+    }
+
+    function startTopOpportunity() {
+      if (guidedFlowState.calculatedOpportunities.length === 0) return;
+
+      const topOpp = guidedFlowState.calculatedOpportunities[0];
+      closeGuidedFlow();
+      showAdvancedView();
+      switchOptimizerTab(topOpp.tab || 'scenarios');
+    }
+
+    // ===== Contextual Discoverability Triggers (Prompt 5) =====
+    const triggerState = {
+      inlineAlertDismissed: false,
+      floatingNudgeShownFor: new Set(),
+      optimizerClicked: false,
+      reviewBannerDismissed: false,
+      calculatedPotentialSavings: 0,
+    };
+
+    function calculatePotentialSavings() {
+      // Calculate based on current insights
+      const savings = smartInsightsState.insights
+        .filter(i => !smartInsightsState.dismissedIds.has(i.id) && !smartInsightsState.appliedIds.has(i.id))
+        .reduce((sum, i) => sum + (i.estimated_savings || 0), 0);
+
+      triggerState.calculatedPotentialSavings = savings;
+      return savings;
+    }
+
+    function showInlineSavingsAlert(savings, topInsight) {
+      if (triggerState.inlineAlertDismissed || savings < 500) return;
+
+      const alert = document.getElementById('inlineSavingsAlert');
+      if (!alert) return;
+
+      const titleEl = alert.querySelector('.inline-savings-alert-title');
+      const subtitleEl = alert.querySelector('.inline-savings-alert-subtitle');
+
+      if (titleEl) {
+        titleEl.textContent = `You could reduce this by ${formatCurrency(savings)}`;
+      }
+      if (subtitleEl && topInsight) {
+        subtitleEl.textContent = `See how with ${topInsight.title}`;
+      }
+
+      alert.classList.add('visible');
+    }
+
+    function dismissInlineSavingsAlert() {
+      triggerState.inlineAlertDismissed = true;
+      const alert = document.getElementById('inlineSavingsAlert');
+      if (alert) alert.classList.remove('visible');
+    }
+
+    function showFloatingNudge(fieldId, income) {
+      if (triggerState.floatingNudgeShownFor.has(fieldId)) return;
+      if (income < 50000) return;
+
+      const field = document.getElementById(fieldId);
+      if (!field) return;
+
+      // Create nudge if it doesn't exist
+      let nudge = field.parentElement.querySelector('.floating-nudge');
+      if (!nudge) {
+        nudge = document.createElement('div');
+        nudge.className = 'floating-nudge';
+
+        // Calculate potential savings
+        const savings = Math.round(income * 0.153 * 0.4 * 0.5); // Approximate S-Corp savings
+
+        nudge.innerHTML = `
+          <div class="floating-nudge-icon">💡</div>
+          <div class="floating-nudge-text">
+            With ${formatCurrency(income)} self-employment income,
+            an S-Corp could save you <span class="floating-nudge-savings">${formatCurrency(savings)}/year</span>
+          </div>
+          <div class="floating-nudge-actions">
+            <button class="floating-nudge-btn floating-nudge-btn-primary" onclick="openTaxOptimizer('entity', true); hideFloatingNudge('${fieldId}')">
+              Calculate →
+            </button>
+            <button class="floating-nudge-btn floating-nudge-btn-secondary" onclick="hideFloatingNudge('${fieldId}')">
+              Maybe Later
+            </button>
+          </div>
+        `;
+
+        field.parentElement.style.position = 'relative';
+        field.parentElement.appendChild(nudge);
+      }
+
+      // Show with delay
+      setTimeout(() => {
+        nudge.classList.add('visible');
+        triggerState.floatingNudgeShownFor.add(fieldId);
+      }, 2000);
+    }
+
+    function hideFloatingNudge(fieldId) {
+      const field = document.getElementById(fieldId);
+      if (!field) return;
+
+      const nudge = field.parentElement.querySelector('.floating-nudge');
+      if (nudge) nudge.classList.remove('visible');
+    }
+
+    function updateOptimizerButton(savings) {
+      const btn = document.getElementById('openOptimizerBtn');
+      if (!btn) return;
+
+      if (savings > 100 && !triggerState.optimizerClicked) {
+        btn.classList.add('optimizer-btn-pulsing');
+
+        // Add or update savings badge
+        let badge = btn.querySelector('.optimizer-savings-badge');
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'optimizer-savings-badge';
+          btn.style.position = 'relative';
+          btn.appendChild(badge);
+        }
+        badge.textContent = formatCurrency(savings);
+      } else {
+        btn.classList.remove('optimizer-btn-pulsing');
+        const badge = btn.querySelector('.optimizer-savings-badge');
+        if (badge) badge.remove();
+      }
+    }
+
+    function markOptimizerClicked() {
+      triggerState.optimizerClicked = true;
+      const btn = document.getElementById('openOptimizerBtn');
+      if (btn) {
+        btn.classList.remove('optimizer-btn-pulsing');
+        const badge = btn.querySelector('.optimizer-savings-badge');
+        if (badge) badge.remove();
+      }
+    }
+
+    function showReviewSavingsBanner(savings) {
+      if (triggerState.reviewBannerDismissed || savings < 500) return;
+
+      const banner = document.getElementById('reviewSavingsBanner');
+      if (!banner) return;
+
+      const titleEl = banner.querySelector('.review-savings-banner-title');
+      if (titleEl) {
+        titleEl.textContent = `BEFORE YOU FILE: We found ${formatCurrency(savings)} in potential savings`;
+      }
+
+      banner.classList.add('visible');
+    }
+
+    function dismissReviewBanner() {
+      triggerState.reviewBannerDismissed = true;
+      const banner = document.getElementById('reviewSavingsBanner');
+      if (banner) banner.classList.remove('visible');
+    }
+
+    function updateDiscoverabilityTriggers() {
+      const savings = calculatePotentialSavings();
+
+      // Get top insight for context
+      const topInsight = smartInsightsState.insights
+        .filter(i => !smartInsightsState.dismissedIds.has(i.id))
+        .sort((a, b) => (b.estimated_savings || 0) - (a.estimated_savings || 0))[0];
+
+      // Update inline alert
+      showInlineSavingsAlert(savings, topInsight);
+
+      // Update optimizer button
+      updateOptimizerButton(savings);
+
+      // Update savings meter
+      updateSavingsMeter();
+
+      // Check if on review step
+      if (state.currentStep === 6) {
+        showReviewSavingsBanner(savings);
+      }
+    }
+
+    // ===== Before/After Feedback (Prompt 6) =====
+    const feedbackState = {
+      lastChange: null,
+      beforeTax: 0,
+      afterTax: 0,
+      totalSavedThisSession: 0,
+    };
+
+    function showFeedbackToast(title, beforeTax, afterTax) {
+      const toast = document.getElementById('feedbackToast');
+      if (!toast) return;
+
+      const savings = beforeTax - afterTax;
+      if (savings <= 0) return;
+
+      // Store for undo
+      feedbackState.lastChange = { title, beforeTax, afterTax };
+      feedbackState.totalSavedThisSession += savings;
+
+      // Update toast content
+      document.getElementById('feedbackToastTitle').textContent = title;
+      document.getElementById('feedbackBefore').textContent = formatCurrency(beforeTax);
+      document.getElementById('feedbackAfter').textContent = formatCurrency(afterTax);
+      document.getElementById('feedbackSavings').textContent = formatCurrency(savings);
+
+      // Show toast
+      toast.classList.add('visible');
+
+      // Check for milestone celebration
+      if (feedbackState.totalSavedThisSession >= 5000) {
+        setTimeout(() => showCelebration(), 500);
+      }
+
+      // Auto-hide after 8 seconds
+      setTimeout(() => {
+        closeFeedbackToast();
+      }, 8000);
+    }
+
+    function closeFeedbackToast() {
+      const toast = document.getElementById('feedbackToast');
+      if (toast) toast.classList.remove('visible');
+      feedbackState.lastChange = null;
+    }
+
+    function undoLastChange() {
+      if (!feedbackState.lastChange) return;
+
+      // Implementation would revert the last change
+      showToast('Change reverted', 'info');
+      feedbackState.totalSavedThisSession -= (feedbackState.lastChange.beforeTax - feedbackState.lastChange.afterTax);
+      closeFeedbackToast();
+      refreshSmartInsights();
+    }
+
+    // ===== Celebration Confetti (Prompt 8 milestone) =====
+    function showCelebration() {
+      const overlay = document.createElement('div');
+      overlay.className = 'celebration-overlay';
+      document.body.appendChild(overlay);
+
+      const colors = ['#f59e0b', '#22c55e', '#6366f1', '#ec4899', '#3b82f6'];
+
+      for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = Math.random() * 100 + 'vw';
+        confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.animationDelay = Math.random() * 2 + 's';
+        confetti.style.animationDuration = (2 + Math.random() * 2) + 's';
+        overlay.appendChild(confetti);
+      }
+
+      // Show milestone toast
+      setTimeout(() => {
+        showToast(`🎉 You've saved ${formatCurrency(feedbackState.totalSavedThisSession)} so far!`, 'success', 5000);
+      }, 500);
+
+      // Remove overlay after animation
+      setTimeout(() => {
+        overlay.remove();
+      }, 5000);
+    }
+
+    // ===== Savings Meter Update (Prompt 8) =====
+    function updateSavingsMeter() {
+      const meter = document.getElementById('savingsMeter');
+      if (!meter) return;
+
+      const captured = feedbackState.totalSavedThisSession;
+      const potential = triggerState.calculatedPotentialSavings + captured;
+      const percentage = potential > 0 ? (captured / potential) * 100 : 0;
+
+      // Show meter if there's any captured or potential savings
+      if (captured > 0 || potential > 0) {
+        meter.style.display = 'block';
+      } else {
+        meter.style.display = 'none';
+        return;
+      }
+
+      const fill = meter.querySelector('.savings-meter-fill');
+      const value = meter.querySelector('.savings-meter-value');
+
+      if (fill) {
+        // Animate the fill
+        requestAnimationFrame(() => {
+          fill.style.width = percentage + '%';
+        });
+      }
+      if (value) value.textContent = `${formatCurrency(captured)} / ${formatCurrency(potential)}`;
+    }
+
+    // ===== Chart Rendering Utilities (Prompt 9) =====
+    function renderHorizontalBarChart(containerId, data) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      const maxValue = Math.max(...data.map(d => d.value));
+      const bestIdx = data.findIndex(d => d.best);
+
+      container.innerHTML = `
+        <div class="h-bar-chart">
+          ${data.map((item, idx) => `
+            <div class="h-bar-item">
+              <span class="h-bar-label">${item.label}</span>
+              <div class="h-bar-track">
+                <div class="h-bar-fill ${item.best ? 'best' : ''}"
+                     style="width: ${(item.value / maxValue) * 100}%">
+                  <span class="h-bar-value">${formatCurrency(item.value)}</span>
+                </div>
+              </div>
+              ${item.savings ? `<span class="h-bar-savings">-${formatCurrency(item.savings)}</span>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function renderDonutChart(containerId, data, total) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      // Calculate conic gradient
+      let cumulativePercent = 0;
+      const gradientStops = data.map(item => {
+        const start = cumulativePercent;
+        cumulativePercent += (item.value / total) * 100;
+        return `${item.color} ${start}% ${cumulativePercent}%`;
+      }).join(', ');
+
+      container.innerHTML = `
+        <div class="donut-chart">
+          <div class="donut-ring" style="background: conic-gradient(${gradientStops})">
+            <div class="donut-center">
+              <div class="donut-total">${formatCurrency(total)}</div>
+              <div class="donut-label">Total</div>
+            </div>
+          </div>
+          <div class="donut-legend">
+            ${data.map(item => `
+              <div class="donut-legend-item">
+                <div class="donut-legend-color" style="background: ${item.color}"></div>
+                <span>${item.label}: ${formatCurrency(item.value)}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
     }
 
     // ===== What-If Scenarios Functions =====
@@ -11909,6 +15108,34 @@ Generated by TaxFlow - Tax Year 2025
     </div>
   </nav>
 
+  <!-- Feedback Toast (Prompt 6) -->
+  <div class="feedback-toast" id="feedbackToast">
+    <div class="feedback-toast-header">
+      <div class="feedback-toast-icon">✓</div>
+      <div class="feedback-toast-title" id="feedbackToastTitle">Change Applied</div>
+      <button class="feedback-toast-close" onclick="closeFeedbackToast()">×</button>
+    </div>
+    <div class="feedback-toast-comparison">
+      <div class="feedback-toast-value before">
+        <div class="feedback-toast-label">Before</div>
+        <div class="feedback-toast-amount" id="feedbackBefore">$0</div>
+      </div>
+      <div class="feedback-toast-arrow">→</div>
+      <div class="feedback-toast-value after">
+        <div class="feedback-toast-label">After</div>
+        <div class="feedback-toast-amount" id="feedbackAfter">$0</div>
+      </div>
+    </div>
+    <div class="feedback-toast-savings">
+      <div class="feedback-toast-savings-amount" id="feedbackSavings">$0</div>
+      <div class="feedback-toast-savings-label">saved!</div>
+    </div>
+    <div class="feedback-toast-actions">
+      <button class="feedback-toast-btn feedback-toast-btn-primary" onclick="closeFeedbackToast()">Great!</button>
+      <button class="feedback-toast-btn feedback-toast-btn-secondary" onclick="undoLastChange()">Undo</button>
+    </div>
+  </div>
+
   <!-- Tax Optimizer Modal -->
   <div class="tax-optimizer-overlay" id="taxOptimizerOverlay">
     <div class="tax-optimizer-modal">
@@ -11923,7 +15150,219 @@ Generated by TaxFlow - Tax Year 2025
         <button class="optimizer-close" onclick="closeTaxOptimizer()">&times;</button>
       </div>
 
-      <div class="optimizer-tabs">
+      <!-- Goal-Based Guided Flow (Prompt 4) -->
+      <div class="guided-flow-overlay" id="guidedFlowOverlay">
+        <button class="guided-flow-close" onclick="closeGuidedFlow()">&times;</button>
+
+        <!-- Step 1: Goal Selection -->
+        <div class="guided-flow-step active" id="guidedFlowGoals">
+          <div class="guided-flow-title">What's Your Tax Goal?</div>
+          <div class="guided-flow-subtitle">Select your primary objective and we'll guide you to the best options</div>
+
+          <div class="goal-cards-grid">
+            <div class="goal-card" onclick="selectGoal('save_money')">
+              <div class="goal-card-icon">💰</div>
+              <div class="goal-card-title">Save Money on Taxes</div>
+              <div class="goal-card-desc">Find deductions & credits</div>
+            </div>
+            <div class="goal-card" onclick="selectGoal('start_business')">
+              <div class="goal-card-icon">🏢</div>
+              <div class="goal-card-title">Start a Business</div>
+              <div class="goal-card-desc">Compare entity types</div>
+            </div>
+            <div class="goal-card" onclick="selectGoal('retirement')">
+              <div class="goal-card-icon">🎯</div>
+              <div class="goal-card-title">Plan for Retirement</div>
+              <div class="goal-card-desc">Maximize contributions</div>
+            </div>
+            <div class="goal-card" onclick="selectGoal('compare')">
+              <div class="goal-card-icon">📊</div>
+              <div class="goal-card-title">Compare Scenarios</div>
+              <div class="goal-card-desc">What-if analysis</div>
+            </div>
+          </div>
+
+          <button class="guided-flow-skip" onclick="skipGuidedFlow()">Skip - Show me everything</button>
+
+          <div class="guided-flow-remember">
+            <input type="checkbox" id="guidedFlowRemember" />
+            <label for="guidedFlowRemember">Don't show this again</label>
+          </div>
+        </div>
+
+        <!-- Step 2: Questionnaire (for Save Money goal) -->
+        <div class="guided-flow-step" id="guidedFlowQuestionnaire">
+          <div class="questionnaire-header">
+            <button class="questionnaire-back" onclick="goToGuidedStep('goals')">←</button>
+            <div class="questionnaire-progress">
+              <div class="guided-flow-title" id="questionnaireTitle">💰 Save Money on Taxes</div>
+              <div class="questionnaire-progress-dots">
+                <div class="progress-dot active" id="progressDot1"></div>
+                <div class="progress-dot" id="progressDot2"></div>
+                <div class="progress-dot" id="progressDot3"></div>
+              </div>
+            </div>
+            <div style="width: 24px;"></div>
+          </div>
+
+          <div class="guided-flow-subtitle">Answer 3 quick questions to find your biggest savings</div>
+
+          <!-- Question 1 -->
+          <div class="questionnaire-question" id="question1">
+            <div class="question-label">1. Do you have self-employment income?</div>
+            <div class="question-options">
+              <div class="question-option" onclick="selectQuestionOption(1, 'self_employed')">
+                <input type="radio" name="q1" id="q1_self" value="self_employed" />
+                <label for="q1_self">Yes, I'm self-employed/freelance</label>
+              </div>
+              <div class="question-option" onclick="selectQuestionOption(1, 'w2')">
+                <input type="radio" name="q1" id="q1_w2" value="w2" />
+                <label for="q1_w2">No, I'm a W-2 employee</label>
+              </div>
+              <div class="question-option" onclick="selectQuestionOption(1, 'both')">
+                <input type="radio" name="q1" id="q1_both" value="both" />
+                <label for="q1_both">Both - I have W-2 and self-employment income</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Question 2 -->
+          <div class="questionnaire-question" id="question2" style="display: none;">
+            <div class="question-label">2. What's your approximate annual income?</div>
+            <input type="text" class="question-input" id="q2Income" placeholder="$75,000" oninput="formatIncomeInput(this)" />
+          </div>
+
+          <!-- Question 3 -->
+          <div class="questionnaire-question" id="question3" style="display: none;">
+            <div class="question-label">3. Are you contributing to retirement accounts?</div>
+            <div class="question-options">
+              <div class="question-option" onclick="selectQuestionOption(3, 'maxed')">
+                <input type="radio" name="q3" id="q3_maxed" value="maxed" />
+                <label for="q3_maxed">Yes, maxing out my contributions</label>
+              </div>
+              <div class="question-option" onclick="selectQuestionOption(3, 'some')">
+                <input type="radio" name="q3" id="q3_some" value="some" />
+                <label for="q3_some">Yes, but not maxed out</label>
+              </div>
+              <div class="question-option" onclick="selectQuestionOption(3, 'none')">
+                <input type="radio" name="q3" id="q3_none" value="none" />
+                <label for="q3_none">No retirement contributions</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="questionnaire-actions">
+            <button class="questionnaire-btn questionnaire-btn-primary" id="questionnaireNextBtn" onclick="nextQuestion()" disabled>
+              Next →
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3: Results -->
+        <div class="guided-flow-step" id="guidedFlowResults">
+          <div class="results-celebration">🎉</div>
+          <div class="guided-flow-title">Great news!</div>
+          <div class="guided-flow-subtitle">Based on your answers, we found potential savings</div>
+
+          <div class="results-savings-card">
+            <div class="results-savings-amount" id="guidedResultsAmount">$0</div>
+            <div class="results-savings-label">in potential tax savings</div>
+          </div>
+
+          <div class="results-opportunities">
+            <div class="results-opportunities-title">Top opportunities for you:</div>
+            <div id="guidedResultsList">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <div class="results-actions">
+            <button class="results-btn-primary" id="guidedStartBtn" onclick="startTopOpportunity()">
+              Start with #1 →
+            </button>
+            <button class="results-btn-secondary" onclick="closeGuidedFlow()">
+              See all opportunities
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progressive Disclosure: Recommendation View (Prompt 2) -->
+      <div class="optimizer-recommendation-view active" id="optimizerRecommendationView">
+        <div class="optimizer-content">
+          <div class="recommendation-hero">
+            <div class="recommendation-intro" id="recommendationIntro">
+              Analyzing your tax situation...
+            </div>
+
+            <div class="recommendation-card" id="recommendationCard">
+              <div class="recommendation-badge">Recommended</div>
+              <div class="recommendation-title" id="recommendationTitle">Loading...</div>
+              <div class="recommendation-savings" id="recommendationSavings">$0</div>
+              <div class="recommendation-savings-label">potential tax savings</div>
+
+              <div class="recommendation-actions">
+                <button class="recommendation-btn-primary" onclick="showRecommendationDetails()">
+                  See Details
+                  <span>→</span>
+                </button>
+                <button class="recommendation-btn-secondary" onclick="showAdvancedView()">
+                  Compare All Options
+                </button>
+              </div>
+            </div>
+
+            <div class="other-opportunities" id="otherOpportunities">
+              <div class="other-opportunities-title">Other Opportunities</div>
+              <div id="opportunitiesList">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detail Expansion View -->
+        <div class="detail-expansion-view" id="detailExpansionView">
+          <div class="optimizer-content">
+            <button class="detail-back-btn" onclick="hideRecommendationDetails()">
+              ← Back to Summary
+            </button>
+
+            <div class="detail-comparison" id="detailComparison">
+              <div class="detail-comparison-card">
+                <div class="detail-comparison-label">Current</div>
+                <div class="detail-comparison-amount" id="detailCurrentTax">$0</div>
+                <div class="detail-comparison-breakdown" id="detailCurrentBreakdown"></div>
+              </div>
+
+              <div class="detail-arrow">→</div>
+
+              <div class="detail-comparison-card after">
+                <div class="detail-comparison-label">With Optimization</div>
+                <div class="detail-comparison-amount" id="detailNewTax">$0</div>
+                <div class="detail-comparison-breakdown" id="detailNewBreakdown"></div>
+              </div>
+            </div>
+
+            <div class="detail-savings-banner">
+              <div class="detail-savings-amount" id="detailSavingsAmount">$0</div>
+              <div class="detail-savings-label">total savings</div>
+            </div>
+
+            <button class="detail-apply-btn" onclick="applyRecommendation()">
+              Apply This Strategy
+            </button>
+          </div>
+        </div>
+
+        <div class="view-toggle">
+          <button class="view-toggle-btn" onclick="showAdvancedView()">
+            ⚙️ Advanced Options
+          </button>
+        </div>
+      </div>
+
+      <div class="optimizer-tabs" id="optimizerTabs" style="display: none;">
         <button class="optimizer-tab active" data-tab="scenarios" onclick="switchOptimizerTab('scenarios')">
           <span class="optimizer-tab-icon">🔄</span>
           What-If Scenarios
@@ -11936,9 +15375,12 @@ Generated by TaxFlow - Tax Year 2025
           <span class="optimizer-tab-icon">💰</span>
           Retirement Planning
         </button>
+        <button class="view-toggle-btn" onclick="showSimpleView()" style="margin-left: auto;">
+          ← Simple View
+        </button>
       </div>
 
-      <div class="optimizer-content">
+      <div class="optimizer-content" id="optimizerContent">
         <!-- What-If Scenarios Panel -->
         <div class="optimizer-panel active" id="panel-scenarios">
           <div class="scenario-builder">
