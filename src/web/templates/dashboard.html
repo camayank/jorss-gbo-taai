@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#2E7D32">
+  <meta name="description" content="CPA Workspace for managing tax clients and decisions">
   <title>CPA Workspace - Tax Decision Intelligence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -460,54 +461,59 @@
   </style>
 </head>
 <body>
+  <!-- Skip Link for Keyboard Navigation -->
+  <a href="#main-content" class="skip-link" style="position:absolute;top:-40px;left:0;background:#2E7D32;color:white;padding:8px 16px;z-index:1000;transition:top 0.3s;" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">Skip to main content</a>
+
   <!-- Header -->
-  <header class="header">
+  <header class="header" role="banner">
     <div class="logo">
-      <div class="logo-icon" id="logo-icon">TDI</div>
+      <div class="logo-icon" id="logo-icon" aria-hidden="true">TDI</div>
       <div>
         <div class="logo-text" id="firm-name">Tax Decision Intelligence</div>
         <div class="logo-subtitle">CPA Workspace</div>
       </div>
     </div>
-    <div class="header-actions">
-      <span class="preparer-name" id="preparer-name">Loading...</span>
-      <button class="btn btn-secondary" onclick="showSettings()">Settings</button>
-    </div>
+    <nav class="header-actions" role="navigation" aria-label="User actions">
+      <span class="preparer-name" id="preparer-name" aria-live="polite">Loading...</span>
+      <button class="btn btn-secondary" onclick="showSettings()" aria-label="Open settings">Settings</button>
+    </nav>
   </header>
 
   <!-- Main Content -->
-  <main class="main-container">
+  <main class="main-container" id="main-content" role="main">
     <!-- Stats Grid -->
-    <div class="stats-grid" id="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">Total Clients</div>
-        <div class="stat-value" id="stat-total-clients">-</div>
+    <section class="stats-grid" id="stats-grid" aria-label="Dashboard statistics">
+      <div class="stat-card" role="group" aria-labelledby="label-total-clients">
+        <div class="stat-label" id="label-total-clients">Total Clients</div>
+        <div class="stat-value" id="stat-total-clients" aria-live="polite">-</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">In Progress</div>
-        <div class="stat-value warning" id="stat-in-progress">-</div>
+      <div class="stat-card" role="group" aria-labelledby="label-in-progress">
+        <div class="stat-label" id="label-in-progress">In Progress</div>
+        <div class="stat-value warning" id="stat-in-progress" aria-live="polite">-</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">Ready for Review</div>
-        <div class="stat-value" id="stat-ready-review">-</div>
+      <div class="stat-card" role="group" aria-labelledby="label-ready-review">
+        <div class="stat-label" id="label-ready-review">Ready for Review</div>
+        <div class="stat-value" id="stat-ready-review" aria-live="polite">-</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">Potential Savings</div>
-        <div class="stat-value success" id="stat-savings">-</div>
+      <div class="stat-card" role="group" aria-labelledby="label-savings">
+        <div class="stat-label" id="label-savings">Potential Savings</div>
+        <div class="stat-value success" id="stat-savings" aria-live="polite">-</div>
       </div>
-    </div>
+    </section>
 
     <!-- Controls -->
-    <div class="controls-bar">
-      <div class="search-box">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color: var(--text-hint); margin-right: 8px;">
+    <div class="controls-bar" role="toolbar" aria-label="Client list controls">
+      <div class="search-box" role="search">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color: var(--text-hint); margin-right: 8px;" aria-hidden="true">
           <circle cx="11" cy="11" r="8"></circle>
           <path d="M21 21l-4.35-4.35"></path>
         </svg>
-        <input type="text" id="search-input" placeholder="Search clients..." onkeyup="debounceSearch()">
+        <label for="search-input" class="sr-only">Search clients</label>
+        <input type="search" id="search-input" placeholder="Search clients..." onkeyup="debounceSearch()" aria-label="Search clients by name or ID">
       </div>
       <div style="display: flex; gap: 12px;">
-        <select class="btn btn-secondary" id="status-filter" onchange="loadClients()">
+        <label for="status-filter" class="sr-only">Filter by status</label>
+        <select class="btn btn-secondary" id="status-filter" onchange="loadClients()" aria-label="Filter clients by status">
           <option value="">All Statuses</option>
           <option value="new">New</option>
           <option value="in_progress">In Progress</option>
@@ -516,8 +522,8 @@
           <option value="delivered">Delivered</option>
           <option value="archived">Archived</option>
         </select>
-        <button class="btn btn-primary" onclick="showAddClientModal()">
-          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <button class="btn btn-primary" onclick="showAddClientModal()" aria-haspopup="dialog">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 5v14M5 12h14"></path>
           </svg>
           Add Client
@@ -526,85 +532,89 @@
     </div>
 
     <!-- Client Table -->
-    <div class="client-table-container">
-      <table class="client-table">
+    <section class="client-table-container" aria-label="Client list">
+      <table class="client-table" role="grid" aria-describedby="pagination-info">
+        <caption class="sr-only">Tax client list with status, documents, and financial information</caption>
         <thead>
           <tr>
-            <th>Client</th>
-            <th>ID</th>
-            <th>Status</th>
-            <th>Documents</th>
-            <th>Est. Refund/Owed</th>
-            <th>Savings</th>
-            <th>Last Accessed</th>
-            <th></th>
+            <th scope="col">Client</th>
+            <th scope="col">ID</th>
+            <th scope="col">Status</th>
+            <th scope="col">Documents</th>
+            <th scope="col">Est. Refund/Owed</th>
+            <th scope="col">Savings</th>
+            <th scope="col">Last Accessed</th>
+            <th scope="col"><span class="sr-only">Actions</span></th>
           </tr>
         </thead>
-        <tbody id="client-table-body">
+        <tbody id="client-table-body" aria-live="polite">
           <tr>
             <td colspan="8">
-              <div class="empty-state">
-                <div class="empty-state-icon">&#128203;</div>
+              <div class="empty-state" role="status" aria-live="polite">
+                <div class="empty-state-icon" aria-hidden="true">&#128203;</div>
                 <div class="empty-state-title">Loading clients...</div>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
-      <div class="pagination" id="pagination">
-        <div class="pagination-info" id="pagination-info">Showing 0 of 0 clients</div>
-        <div class="pagination-buttons">
-          <button class="page-btn" id="prev-btn" onclick="prevPage()" disabled>Previous</button>
-          <button class="page-btn" id="next-btn" onclick="nextPage()" disabled>Next</button>
+      <nav class="pagination" id="pagination" role="navigation" aria-label="Table pagination">
+        <div class="pagination-info" id="pagination-info" aria-live="polite">Showing 0 of 0 clients</div>
+        <div class="pagination-buttons" role="group" aria-label="Pagination controls">
+          <button class="page-btn" id="prev-btn" onclick="prevPage()" disabled aria-label="Previous page">Previous</button>
+          <button class="page-btn" id="next-btn" onclick="nextPage()" disabled aria-label="Next page">Next</button>
         </div>
-      </div>
-    </div>
+      </nav>
+    </section>
   </main>
 
   <!-- Add Client Modal -->
-  <div class="modal-overlay" id="add-client-modal">
+  <div class="modal-overlay" id="add-client-modal" role="dialog" aria-modal="true" aria-labelledby="add-client-modal-title" aria-describedby="add-client-modal-desc">
     <div class="modal">
       <div class="modal-header">
-        <h2 class="modal-title">Add New Client</h2>
+        <h2 class="modal-title" id="add-client-modal-title">Add New Client</h2>
+        <p id="add-client-modal-desc" class="sr-only">Form to add a new tax client to your workspace</p>
       </div>
-      <form id="add-client-form" onsubmit="submitAddClient(event)">
+      <form id="add-client-form" onsubmit="submitAddClient(event)" novalidate>
         <div class="modal-body">
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">First Name *</label>
-              <input type="text" class="form-input" name="first_name" required>
+              <label class="form-label" for="client-first-name">First Name <span aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
+              <input type="text" class="form-input" id="client-first-name" name="first_name" required aria-required="true" autocomplete="given-name">
             </div>
             <div class="form-group">
-              <label class="form-label">Last Name *</label>
-              <input type="text" class="form-input" name="last_name" required>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Email</label>
-            <input type="email" class="form-input" name="email">
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Client ID (your reference)</label>
-              <input type="text" class="form-input" name="external_id" placeholder="e.g., 2025-001">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Phone</label>
-              <input type="tel" class="form-input" name="phone">
+              <label class="form-label" for="client-last-name">Last Name <span aria-hidden="true">*</span><span class="sr-only">(required)</span></label>
+              <input type="text" class="form-input" id="client-last-name" name="last_name" required aria-required="true" autocomplete="family-name">
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Street Address</label>
-            <input type="text" class="form-input" name="street_address">
+            <label class="form-label" for="client-email">Email</label>
+            <input type="email" class="form-input" id="client-email" name="email" autocomplete="email" aria-describedby="email-hint">
+            <span id="email-hint" class="sr-only">Optional email address for client communication</span>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">City</label>
-              <input type="text" class="form-input" name="city">
+              <label class="form-label" for="client-external-id">Client ID (your reference)</label>
+              <input type="text" class="form-input" id="client-external-id" name="external_id" placeholder="e.g., 2025-001" aria-describedby="external-id-hint">
+              <span id="external-id-hint" class="sr-only">Your internal reference number for this client</span>
             </div>
             <div class="form-group">
-              <label class="form-label">State</label>
-              <input type="text" class="form-input" name="state" maxlength="2" placeholder="CA">
+              <label class="form-label" for="client-phone">Phone</label>
+              <input type="tel" class="form-input" id="client-phone" name="phone" autocomplete="tel">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="client-street">Street Address</label>
+            <input type="text" class="form-input" id="client-street" name="street_address" autocomplete="street-address">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="client-city">City</label>
+              <input type="text" class="form-input" id="client-city" name="city" autocomplete="address-level2">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="client-state">State</label>
+              <input type="text" class="form-input" id="client-state" name="state" maxlength="2" placeholder="CA" autocomplete="address-level1">
             </div>
           </div>
         </div>
@@ -616,8 +626,23 @@
     </div>
   </div>
 
-  <!-- Toast Container -->
-  <div class="toast-container" id="toast-container"></div>
+  <!-- Toast Container - Live Region for Announcements -->
+  <div class="toast-container" id="toast-container" role="region" aria-live="polite" aria-label="Notifications"></div>
+
+  <!-- Screen Reader Only Styles (must be in body for some screen readers) -->
+  <style>
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
 
   <script>
     // State
@@ -731,19 +756,19 @@
         }
 
         return `
-          <tr>
-            <td>
+          <tr role="row">
+            <td role="gridcell">
               <div class="client-name">${client.full_name}</div>
               ${client.email ? `<div class="client-email">${client.email}</div>` : ''}
             </td>
-            <td><span class="client-id">${client.external_id || client.client_id.slice(0, 8)}</span></td>
-            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-            <td>${documents}</td>
-            <td class="metric-cell ${refundClass}">${refundOwed}</td>
-            <td class="metric-cell ${savings ? 'metric-positive' : ''}">${savings ? formatCurrency(savings) : '-'}</td>
-            <td style="color: var(--text-tertiary); font-size: 13px;">${lastAccessed}</td>
-            <td>
-              <button class="action-btn" onclick="openClient('${client.client_id}')">Open</button>
+            <td role="gridcell"><span class="client-id">${client.external_id || client.client_id.slice(0, 8)}</span></td>
+            <td role="gridcell"><span class="status-badge ${statusClass}" role="status">${statusText}</span></td>
+            <td role="gridcell">${documents}</td>
+            <td role="gridcell" class="metric-cell ${refundClass}" aria-label="Estimated ${refund > 0 ? 'refund' : 'owed'}: ${refundOwed}">${refundOwed}</td>
+            <td role="gridcell" class="metric-cell ${savings ? 'metric-positive' : ''}" aria-label="Potential savings: ${savings ? formatCurrency(savings) : 'none'}">${savings ? formatCurrency(savings) : '-'}</td>
+            <td role="gridcell" style="color: var(--text-tertiary); font-size: 13px;">${lastAccessed}</td>
+            <td role="gridcell">
+              <button class="action-btn" onclick="openClient('${client.client_id}')" aria-label="Open ${client.full_name}'s tax return">Open</button>
             </td>
           </tr>
         `;
@@ -754,10 +779,10 @@
       document.getElementById('client-table-body').innerHTML = `
         <tr>
           <td colspan="8">
-            <div class="empty-state">
-              <div class="empty-state-icon">&#128203;</div>
+            <div class="empty-state" role="status" aria-live="polite">
+              <div class="empty-state-icon" aria-hidden="true">&#128203;</div>
               <div class="empty-state-title">${message}</div>
-              <button class="btn btn-primary" onclick="showAddClientModal()">Add Client</button>
+              <button class="btn btn-primary" onclick="showAddClientModal()" aria-haspopup="dialog">Add Client</button>
             </div>
           </td>
         </tr>
@@ -792,13 +817,53 @@
       }, 300);
     }
 
-    // Add client
+    // Add client - with focus management for accessibility
+    let previousActiveElement = null;
+
     function showAddClientModal() {
-      document.getElementById('add-client-modal').classList.add('active');
+      previousActiveElement = document.activeElement;
+      const modal = document.getElementById('add-client-modal');
+      modal.classList.add('active');
+      // Focus first input when modal opens
+      setTimeout(() => {
+        const firstInput = modal.querySelector('input, button, select, textarea');
+        if (firstInput) firstInput.focus();
+      }, 100);
+      // Add keyboard listener for Escape
+      document.addEventListener('keydown', handleModalKeydown);
     }
 
     function closeModal(id) {
-      document.getElementById(id).classList.remove('active');
+      const modal = document.getElementById(id);
+      modal.classList.remove('active');
+      // Remove keyboard listener
+      document.removeEventListener('keydown', handleModalKeydown);
+      // Return focus to previous element
+      if (previousActiveElement) {
+        previousActiveElement.focus();
+        previousActiveElement = null;
+      }
+    }
+
+    function handleModalKeydown(e) {
+      if (e.key === 'Escape') {
+        closeModal('add-client-modal');
+      }
+      // Trap focus within modal
+      if (e.key === 'Tab') {
+        const modal = document.querySelector('.modal-overlay.active .modal');
+        if (!modal) return;
+        const focusableElements = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+        if (e.shiftKey && document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        } else if (!e.shiftKey && document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
     }
 
     async function submitAddClient(event) {
@@ -909,10 +974,16 @@
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
       toast.className = `toast ${type}`;
+      toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+      toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
       toast.textContent = message;
       container.appendChild(toast);
 
-      setTimeout(() => toast.remove(), 4000);
+      // Auto-dismiss after 4 seconds
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
     }
 
     function showSettings() {
