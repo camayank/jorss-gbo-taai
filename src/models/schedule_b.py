@@ -306,9 +306,9 @@ class ScheduleB(BaseModel):
 
         requires_fbar = total_foreign_value > self.FBAR_THRESHOLD
 
-        countries = list(set(
+        countries = sorted(set(
             account.country for account in self.foreign_accounts
-        ))
+        ))  # Deterministic order
 
         return {
             'has_foreign_accounts': self.has_foreign_accounts or len(self.foreign_accounts) > 0,

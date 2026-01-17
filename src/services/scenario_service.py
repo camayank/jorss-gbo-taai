@@ -38,6 +38,7 @@ from models.tax_return import TaxReturn
 from models.taxpayer import FilingStatus
 from calculator.engine import FederalTaxEngine, CalculationBreakdown
 from database.persistence import get_persistence
+from database.scenario_persistence import get_scenario_persistence
 
 
 logger = get_logger(__name__)
@@ -70,9 +71,8 @@ class ScenarioService:
         self._tax_return_service = tax_return_service or TaxReturnService()
         self._federal_engine = federal_engine or FederalTaxEngine()
         self._persistence = get_persistence()
+        self._scenario_persistence = get_scenario_persistence()
         self._logger = get_logger(__name__)
-        # In-memory scenario storage (would be DB in production)
-        self._scenarios: Dict[str, Scenario] = {}
 
     def create_scenario(
         self,
@@ -118,8 +118,8 @@ class ScenarioService:
             ]
         )
 
-        # Store scenario
-        self._scenarios[str(scenario.scenario_id)] = scenario
+        # Store scenario in database
+        self._save_scenario_to_db(scenario)
 
         # Publish event
         publish_event(ScenarioCreated(
@@ -153,7 +153,7 @@ class ScenarioService:
         Returns:
             Updated Scenario with results
         """
-        scenario = self._scenarios.get(scenario_id)
+        scenario = self._load_scenario_from_db(scenario_id)
         if not scenario:
             raise ValueError(f"Scenario not found: {scenario_id}")
 
@@ -201,6 +201,9 @@ class ScenarioService:
 
             scenario.set_result(result)
 
+            # Save updated scenario to database
+            self._save_scenario_to_db(scenario)
+
             computation_time_ms = int((time.time() - start_time) * 1000)
 
             # Publish event
@@ -232,21 +235,16 @@ class ScenarioService:
 
     def get_scenario(self, scenario_id: str) -> Optional[Scenario]:
         """Get a scenario by ID."""
-        return self._scenarios.get(scenario_id)
+        return self._load_scenario_from_db(scenario_id)
 
     def get_scenarios_for_return(self, return_id: str) -> List[Scenario]:
         """Get all scenarios for a return."""
-        return [
-            s for s in self._scenarios.values()
-            if str(s.return_id) == return_id
-        ]
+        scenario_dicts = self._scenario_persistence.load_scenarios_for_return(return_id)
+        return [self._dict_to_scenario(d) for d in scenario_dicts]
 
     def delete_scenario(self, scenario_id: str) -> bool:
         """Delete a scenario."""
-        if scenario_id in self._scenarios:
-            del self._scenarios[scenario_id]
-            return True
-        return False
+        return self._scenario_persistence.delete_scenario(scenario_id)
 
     def compare_scenarios(
         self,
@@ -265,11 +263,13 @@ class ScenarioService:
         """
         scenarios = []
         for sid in scenario_ids:
-            scenario = self._scenarios.get(sid)
+            scenario = self._load_scenario_from_db(sid)
             if scenario:
                 # Calculate if not already done
                 if scenario.result is None:
                     self.calculate_scenario(sid)
+                    # Reload after calculation
+                    scenario = self._load_scenario_from_db(sid)
                 scenarios.append(scenario)
 
         if not scenarios:
@@ -279,8 +279,9 @@ class ScenarioService:
         winner = min(scenarios, key=lambda s: s.result.total_tax if s.result else float('inf'))
         max_savings = max(s.result.savings if s.result else 0 for s in scenarios)
 
-        # Mark winner as recommended
+        # Mark winner as recommended and save
         winner.mark_as_recommended(f"Lowest tax liability: ${winner.result.total_tax:,.2f}")
+        self._save_scenario_to_db(winner)
 
         comparison_id = uuid4()
 
@@ -449,7 +450,7 @@ class ScenarioService:
         Returns:
             Updated return data
         """
-        scenario = self._scenarios.get(scenario_id)
+        scenario = self._load_scenario_from_db(scenario_id)
         if not scenario:
             raise ValueError(f"Scenario not found: {scenario_id}")
 
@@ -469,8 +470,9 @@ class ScenarioService:
             recalculate=True
         )
 
-        # Mark scenario as applied
+        # Mark scenario as applied and save
         scenario.status = ScenarioStatus.APPLIED
+        self._save_scenario_to_db(scenario)
 
         self._logger.info(
             f"Applied scenario to return",
@@ -602,4 +604,102 @@ class ScenarioService:
             name=name,
             scenario_type=ScenarioType.WHAT_IF,
             modifications=mod_list
+        )
+
+    # =========================================================================
+    # DATABASE PERSISTENCE HELPERS
+    # =========================================================================
+
+    def _save_scenario_to_db(self, scenario: Scenario) -> str:
+        """Save a Scenario domain object to the database."""
+        scenario_dict = {
+            "scenario_id": str(scenario.scenario_id),
+            "return_id": str(scenario.return_id),
+            "name": scenario.name,
+            "description": scenario.description,
+            "scenario_type": scenario.scenario_type.value,
+            "status": scenario.status.value,
+            "base_snapshot": scenario.base_snapshot,
+            "modifications": [m.to_dict() for m in scenario.modifications],
+            "result": scenario.result.to_dict() if scenario.result else None,
+            "is_recommended": scenario.is_recommended,
+            "recommendation_reason": scenario.recommendation_reason,
+            "created_at": scenario.created_at.isoformat() if scenario.created_at else None,
+            "created_by": scenario.created_by,
+            "calculated_at": scenario.calculated_at.isoformat() if scenario.calculated_at else None,
+            "version": scenario.version,
+        }
+        return self._scenario_persistence.save_scenario(scenario_dict)
+
+    def _load_scenario_from_db(self, scenario_id: str) -> Optional[Scenario]:
+        """Load a Scenario domain object from the database."""
+        data = self._scenario_persistence.load_scenario(scenario_id)
+        if not data:
+            return None
+        return self._dict_to_scenario(data)
+
+    def _dict_to_scenario(self, data: Dict[str, Any]) -> Scenario:
+        """Convert a database dictionary to a Scenario domain object."""
+        from datetime import datetime as dt
+
+        # Parse modifications
+        modifications = []
+        for m in data.get("modifications", []):
+            modifications.append(ScenarioModification(
+                field_path=m.get("field_path", ""),
+                original_value=m.get("original_value"),
+                new_value=m.get("new_value"),
+                description=m.get("description"),
+            ))
+
+        # Parse result
+        result = None
+        result_data = data.get("result")
+        if result_data:
+            result = ScenarioResult(
+                total_tax=result_data.get("total_tax", 0),
+                federal_tax=result_data.get("federal_tax", 0),
+                state_tax=result_data.get("state_tax", 0),
+                effective_rate=result_data.get("effective_rate", 0),
+                marginal_rate=result_data.get("marginal_rate", 0),
+                base_tax=result_data.get("base_tax", 0),
+                savings=result_data.get("savings", 0),
+                savings_percent=result_data.get("savings_percent", 0),
+                taxable_income=result_data.get("taxable_income", 0),
+                total_deductions=result_data.get("total_deductions", 0),
+                total_credits=result_data.get("total_credits", 0),
+                breakdown=result_data.get("breakdown", {}),
+            )
+
+        # Parse timestamps
+        created_at = data.get("created_at")
+        if created_at and isinstance(created_at, str):
+            try:
+                created_at = dt.fromisoformat(created_at.replace("Z", "+00:00"))
+            except ValueError:
+                created_at = dt.utcnow()
+
+        calculated_at = data.get("calculated_at")
+        if calculated_at and isinstance(calculated_at, str):
+            try:
+                calculated_at = dt.fromisoformat(calculated_at.replace("Z", "+00:00"))
+            except ValueError:
+                calculated_at = None
+
+        return Scenario(
+            scenario_id=UUID(data["scenario_id"]),
+            return_id=UUID(data["return_id"]),
+            name=data.get("name", ""),
+            description=data.get("description"),
+            scenario_type=ScenarioType(data.get("scenario_type", "what_if")),
+            status=ScenarioStatus(data.get("status", "draft")),
+            base_snapshot=data.get("base_snapshot", {}),
+            modifications=modifications,
+            result=result,
+            is_recommended=data.get("is_recommended", False),
+            recommendation_reason=data.get("recommendation_reason"),
+            created_at=created_at or dt.utcnow(),
+            created_by=data.get("created_by"),
+            calculated_at=calculated_at,
+            version=data.get("version", 1),
         )

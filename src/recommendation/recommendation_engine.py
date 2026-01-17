@@ -645,7 +645,7 @@ class TaxRecommendationEngine:
         warnings.extend(credit_rec.warnings)
         warnings.extend(strategy_report.warnings)
 
-        return list(set(warnings))  # Remove duplicates
+        return sorted(set(warnings))  # Remove duplicates, deterministic order
 
     def _calculate_overall_confidence(
         self,

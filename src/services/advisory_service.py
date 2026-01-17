@@ -35,6 +35,7 @@ from domain import (
 )
 
 from database.persistence import get_persistence
+from database.advisory_persistence import get_advisory_persistence
 
 
 logger = get_logger(__name__)
@@ -67,9 +68,8 @@ class AdvisoryService:
         self._tax_return_service = tax_return_service or TaxReturnService()
         self._scenario_service = scenario_service or ScenarioService()
         self._persistence = get_persistence()
+        self._advisory_persistence = get_advisory_persistence()
         self._logger = get_logger(__name__)
-        # In-memory plan storage (would be DB in production)
-        self._plans: Dict[str, AdvisoryPlan] = {}
 
     def generate_recommendations(
         self,
@@ -112,8 +112,8 @@ class AdvisoryService:
             for rec in recs:
                 plan.add_recommendation(rec)
 
-        # Store plan
-        self._plans[str(plan.plan_id)] = plan
+        # Store plan in database
+        self._save_plan_to_db(plan)
 
         # Publish event
         publish_event(RecommendationGenerated(
@@ -529,14 +529,12 @@ class AdvisoryService:
 
     def get_plan(self, plan_id: str) -> Optional[AdvisoryPlan]:
         """Get an advisory plan by ID."""
-        return self._plans.get(plan_id)
+        return self._load_plan_from_db(plan_id)
 
     def get_plans_for_client(self, client_id: str) -> List[AdvisoryPlan]:
         """Get all plans for a client."""
-        return [
-            p for p in self._plans.values()
-            if str(p.client_id) == client_id
-        ]
+        plan_dicts = self._advisory_persistence.load_plans_for_client(client_id)
+        return [self._dict_to_plan(d) for d in plan_dicts]
 
     def update_recommendation_status(
         self,
@@ -559,7 +557,7 @@ class AdvisoryService:
         Returns:
             True if updated successfully
         """
-        plan = self._plans.get(plan_id)
+        plan = self._load_plan_from_db(plan_id)
         if not plan:
             return False
 
@@ -569,6 +567,9 @@ class AdvisoryService:
 
         old_status = rec.status
         rec.update_status(status, changed_by, reason)
+
+        # Save updated plan
+        self._save_plan_to_db(plan)
 
         # Publish event
         publish_event(RecommendationStatusChanged(
@@ -612,7 +613,7 @@ class AdvisoryService:
         Returns:
             True if updated successfully
         """
-        plan = self._plans.get(plan_id)
+        plan = self._load_plan_from_db(plan_id)
         if not plan:
             return False
 
@@ -624,6 +625,9 @@ class AdvisoryService:
 
         # Recalculate plan totals
         plan._recalculate_totals()
+
+        # Save updated plan
+        self._save_plan_to_db(plan)
 
         self._logger.info(
             f"Recorded recommendation outcome",
@@ -647,11 +651,14 @@ class AdvisoryService:
         Returns:
             True if finalized successfully
         """
-        plan = self._plans.get(plan_id)
+        plan = self._load_plan_from_db(plan_id)
         if not plan:
             return False
 
         plan.finalize(finalized_by)
+
+        # Save finalized plan
+        self._save_plan_to_db(plan)
 
         # Publish event
         publish_event(AdvisoryPlanFinalized(
@@ -677,7 +684,7 @@ class AdvisoryService:
 
     def get_plan_summary(self, plan_id: str) -> Optional[Dict[str, Any]]:
         """Get a summary of an advisory plan."""
-        plan = self._plans.get(plan_id)
+        plan = self._load_plan_from_db(plan_id)
         if not plan:
             return None
 
@@ -698,7 +705,7 @@ class AdvisoryService:
         Returns:
             Formatted report string
         """
-        plan = self._plans.get(plan_id)
+        plan = self._load_plan_from_db(plan_id)
         if not plan:
             return None
 
@@ -757,3 +764,138 @@ class AdvisoryService:
                     lines.append("")
 
         return "\n".join(lines)
+
+    # =========================================================================
+    # DATABASE PERSISTENCE HELPERS
+    # =========================================================================
+
+    def _save_plan_to_db(self, plan: AdvisoryPlan) -> str:
+        """Save an AdvisoryPlan domain object to the database."""
+        recommendations = []
+        for rec in plan.recommendations:
+            recommendations.append({
+                "recommendation_id": str(rec.recommendation_id),
+                "category": rec.category.value,
+                "priority": rec.priority.value,
+                "title": rec.title,
+                "summary": rec.summary,
+                "detailed_explanation": rec.detailed_explanation,
+                "estimated_savings": rec.estimated_savings,
+                "confidence_level": rec.confidence_level,
+                "complexity": rec.complexity,
+                "action_steps": [
+                    {"step_number": s.step_number, "action": s.action, "estimated_time": s.estimated_time, "deadline": s.deadline, "details": s.details}
+                    for s in rec.action_steps
+                ],
+                "status": rec.status.value,
+                "status_changed_at": rec.status_changed_at.isoformat() if rec.status_changed_at else None,
+                "status_changed_by": rec.status_changed_by,
+                "decline_reason": rec.decline_reason,
+                "actual_savings": rec.actual_savings,
+                "outcome_notes": rec.outcome_notes,
+                "related_scenario_id": str(rec.related_scenario_id) if rec.related_scenario_id else None,
+                "irs_references": rec.irs_references,
+            })
+
+        plan_dict = {
+            "plan_id": str(plan.plan_id),
+            "client_id": str(plan.client_id),
+            "return_id": str(plan.return_id),
+            "tax_year": plan.tax_year,
+            "computation_statement": plan.computation_statement,
+            "total_potential_savings": plan.total_potential_savings,
+            "total_realized_savings": plan.total_realized_savings,
+            "is_finalized": plan.is_finalized,
+            "finalized_at": plan.finalized_at.isoformat() if plan.finalized_at else None,
+            "finalized_by": plan.finalized_by,
+            "recommendations": recommendations,
+        }
+        return self._advisory_persistence.save_plan(plan_dict)
+
+    def _load_plan_from_db(self, plan_id: str) -> Optional[AdvisoryPlan]:
+        """Load an AdvisoryPlan domain object from the database."""
+        data = self._advisory_persistence.load_plan(plan_id)
+        if not data:
+            return None
+        return self._dict_to_plan(data)
+
+    def _dict_to_plan(self, data: Dict[str, Any]) -> AdvisoryPlan:
+        """Convert a database dictionary to an AdvisoryPlan domain object."""
+        from datetime import datetime as dt
+
+        # Parse recommendations
+        recommendations = []
+        for rec_data in data.get("recommendations", []):
+            # Parse action steps
+            action_steps = []
+            for step in rec_data.get("action_steps", []):
+                action_steps.append(RecommendationAction(
+                    step_number=step.get("step_number", 1),
+                    action=step.get("action", ""),
+                    estimated_time=step.get("estimated_time"),
+                    deadline=step.get("deadline"),
+                    details=step.get("details"),
+                ))
+
+            # Parse timestamps
+            status_changed_at = rec_data.get("status_changed_at")
+            if status_changed_at and isinstance(status_changed_at, str):
+                try:
+                    status_changed_at = dt.fromisoformat(status_changed_at.replace("Z", "+00:00"))
+                except ValueError:
+                    status_changed_at = None
+
+            recommendations.append(Recommendation(
+                recommendation_id=UUID(rec_data["recommendation_id"]),
+                category=RecommendationCategory(rec_data.get("category", "deduction")),
+                priority=RecommendationPriority(rec_data.get("priority", "current_year")),
+                title=rec_data.get("title", ""),
+                summary=rec_data.get("summary", ""),
+                detailed_explanation=rec_data.get("detailed_explanation"),
+                estimated_savings=rec_data.get("estimated_savings", 0),
+                confidence_level=rec_data.get("confidence_level", 0.8),
+                complexity=rec_data.get("complexity", "medium"),
+                action_steps=action_steps,
+                status=RecommendationStatus(rec_data.get("status", "proposed")),
+                status_changed_at=status_changed_at,
+                status_changed_by=rec_data.get("status_changed_by"),
+                decline_reason=rec_data.get("decline_reason"),
+                actual_savings=rec_data.get("actual_savings"),
+                outcome_notes=rec_data.get("outcome_notes"),
+                related_scenario_id=UUID(rec_data["related_scenario_id"]) if rec_data.get("related_scenario_id") else None,
+                irs_references=rec_data.get("irs_references", []),
+            ))
+
+        # Parse plan timestamps
+        finalized_at = data.get("finalized_at")
+        if finalized_at and isinstance(finalized_at, str):
+            try:
+                finalized_at = dt.fromisoformat(finalized_at.replace("Z", "+00:00"))
+            except ValueError:
+                finalized_at = None
+
+        created_at = data.get("created_at")
+        if created_at and isinstance(created_at, str):
+            try:
+                created_at = dt.fromisoformat(created_at.replace("Z", "+00:00"))
+            except ValueError:
+                created_at = dt.utcnow()
+
+        plan = AdvisoryPlan(
+            plan_id=UUID(data["plan_id"]),
+            client_id=UUID(data["client_id"]),
+            return_id=UUID(data["return_id"]),
+            tax_year=data.get("tax_year", 2025),
+            computation_statement=data.get("computation_statement"),
+            is_finalized=data.get("is_finalized", False),
+            finalized_at=finalized_at,
+            finalized_by=data.get("finalized_by"),
+            created_at=created_at or dt.utcnow(),
+        )
+
+        # Add recommendations (this also recalculates totals)
+        for rec in recommendations:
+            plan.recommendations.append(rec)
+        plan._recalculate_totals()
+
+        return plan
