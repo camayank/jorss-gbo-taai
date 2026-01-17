@@ -1,0 +1,438 @@
+# Tax Year 2025 Configuration
+# Source: IRS Revenue Procedure 2024-40
+# Last Updated: 2025-01-17
+# This file is the single source of truth for all 2025 tax parameters
+
+_metadata:
+  version: "2025.1.0"
+  tax_year: 2025
+  effective_date: "2025-01-01"
+  source: "IRS"
+  irs_references:
+    - "Rev. Proc. 2024-40"
+    - "Publication 17"
+    - "Publication 501"
+    - "Publication 590-A"
+    - "Publication 590-B"
+  last_updated: "2025-01-17"
+  updated_by: "system"
+  notes: "Annual inflation adjustments for tax year 2025"
+
+# =============================================================================
+# STANDARD DEDUCTION (IRS Rev. Proc. 2024-40)
+# =============================================================================
+standard_deduction:
+  single: 15750
+  married_joint: 31500
+  married_separate: 15750
+  head_of_household: 23850
+  qualifying_widow: 31500
+
+additional_standard_deduction_65_or_blind:
+  single: 2000
+  married: 1600
+  head_of_household: 2000
+
+# =============================================================================
+# TAX BRACKETS (Ordinary Income)
+# =============================================================================
+# Format: list of [threshold, rate] tuples
+# Threshold is the upper bound of the bracket
+ordinary_income_brackets:
+  single:
+    - [11925, 0.10]
+    - [48475, 0.12]
+    - [103350, 0.22]
+    - [197300, 0.24]
+    - [250525, 0.32]
+    - [626350, 0.35]
+    - [999999999, 0.37]
+  married_joint:
+    - [23850, 0.10]
+    - [96950, 0.12]
+    - [206700, 0.22]
+    - [394600, 0.24]
+    - [501050, 0.32]
+    - [751600, 0.35]
+    - [999999999, 0.37]
+  married_separate:
+    - [11925, 0.10]
+    - [48475, 0.12]
+    - [103350, 0.22]
+    - [197300, 0.24]
+    - [250525, 0.32]
+    - [375800, 0.35]
+    - [999999999, 0.37]
+  head_of_household:
+    - [17000, 0.10]
+    - [64850, 0.12]
+    - [103350, 0.22]
+    - [197300, 0.24]
+    - [250500, 0.32]
+    - [626350, 0.35]
+    - [999999999, 0.37]
+
+# =============================================================================
+# CAPITAL GAINS BRACKETS (Qualified Dividends & Long-Term Capital Gains)
+# =============================================================================
+capital_gains_brackets:
+  zero_rate_threshold:
+    single: 48350
+    married_joint: 96700
+    married_separate: 48350
+    head_of_household: 64750
+  fifteen_rate_threshold:
+    single: 533400
+    married_joint: 600050
+    married_separate: 300025
+    head_of_household: 566700
+
+capital_loss_limit: 3000
+capital_loss_limit_mfs: 1500
+
+# =============================================================================
+# SELF-EMPLOYMENT TAX
+# =============================================================================
+se_net_earnings_factor: 0.9235  # 92.35%
+se_tax_rate: 0.153  # 15.3% (12.4% SS + 2.9% Medicare)
+ss_rate: 0.124  # 12.4%
+medicare_rate: 0.029  # 2.9%
+ss_wage_base: 176100  # Social Security wage base
+
+additional_medicare_tax_rate: 0.009  # 0.9%
+additional_medicare_threshold:
+  single: 200000
+  married_joint: 250000
+  married_separate: 125000
+  head_of_household: 200000
+
+# =============================================================================
+# NET INVESTMENT INCOME TAX (NIIT)
+# =============================================================================
+niit_rate: 0.038  # 3.8%
+niit_threshold:
+  single: 200000
+  married_joint: 250000
+  married_separate: 125000
+  head_of_household: 200000
+
+# =============================================================================
+# ALTERNATIVE MINIMUM TAX (AMT)
+# =============================================================================
+amt_rate_26: 0.26
+amt_rate_28: 0.28
+amt_28_threshold:
+  single: 239100
+  married_joint: 239100
+  married_separate: 119550
+
+amt_exemption:
+  single: 88100
+  married_joint: 137000
+  married_separate: 68500
+
+amt_exemption_phaseout_start:
+  single: 626350
+  married_joint: 1252700
+  married_separate: 626350
+
+amt_exemption_phaseout_rate: 0.25
+
+# =============================================================================
+# CHILD TAX CREDIT
+# =============================================================================
+child_tax_credit_amount: 2000
+child_tax_credit_refundable: 1700  # Additional Child Tax Credit
+child_tax_credit_other_dependent: 500
+child_tax_credit_max_age: 16
+
+child_tax_credit_phaseout_start:
+  single: 200000
+  married_joint: 400000
+  married_separate: 200000
+  head_of_household: 200000
+
+child_tax_credit_phaseout_rate: 0.05  # $50 per $1,000 over threshold
+
+# =============================================================================
+# EARNED INCOME TAX CREDIT (EITC)
+# =============================================================================
+eitc_max_credit:
+  0: 649      # No children
+  1: 4328     # 1 child
+  2: 7152     # 2 children
+  3: 8046     # 3+ children
+
+eitc_income_limits:
+  single:
+    0: 18591
+    1: 49084
+    2: 55768
+    3: 59899
+  married_joint:
+    0: 25511
+    1: 56004
+    2: 62688
+    3: 66819
+
+eitc_investment_income_limit: 11600
+
+# =============================================================================
+# RETIREMENT CONTRIBUTION LIMITS
+# =============================================================================
+# Traditional IRA
+ira_contribution_limit: 7000
+ira_catchup_50_plus: 1000
+
+# IRA Deduction Phaseouts (when covered by employer plan)
+ira_phaseout_covered:
+  single:
+    start: 79000
+    end: 89000
+  married_joint:
+    start: 126000
+    end: 146000
+  married_separate:
+    start: 0
+    end: 10000
+
+# IRA Deduction Phaseouts (when spouse is covered but taxpayer is not)
+ira_phaseout_spouse_covered:
+  married_joint:
+    start: 236000
+    end: 246000
+  married_separate:
+    start: 0
+    end: 10000
+
+# Roth IRA Phaseouts
+roth_ira_phaseout:
+  single:
+    start: 150000
+    end: 165000
+  married_joint:
+    start: 236000
+    end: 246000
+  married_separate:
+    start: 0
+    end: 10000
+
+# 401(k) / 403(b) / 457
+k401_contribution_limit: 23500
+k401_catchup_50_plus: 7500
+k401_catchup_60_64: 11250  # New super catch-up for ages 60-64
+
+# HSA
+hsa_individual_limit: 4300
+hsa_family_limit: 8550
+hsa_catchup_55_plus: 1000
+
+# SEP IRA
+sep_ira_limit: 69000
+
+# FSA
+fsa_limit: 3300
+dcfsa_limit: 5000  # Dependent Care FSA
+
+# =============================================================================
+# EDUCATION CREDITS
+# =============================================================================
+# American Opportunity Tax Credit (AOTC)
+aotc_max_credit: 2500
+aotc_refundable_portion: 0.40  # 40% refundable, up to $1,000
+aotc_phaseout:
+  single:
+    start: 80000
+    end: 90000
+  married_joint:
+    start: 160000
+    end: 180000
+
+# Lifetime Learning Credit
+llc_max_credit: 2000
+llc_rate: 0.20  # 20% of first $10,000
+llc_phaseout:
+  single:
+    start: 80000
+    end: 90000
+  married_joint:
+    start: 160000
+    end: 180000
+
+# =============================================================================
+# SAVER'S CREDIT (Form 8880)
+# =============================================================================
+savers_credit_max_contribution: 2000
+savers_credit_thresholds:
+  # 50% credit rate if AGI is at or below:
+  fifty_percent:
+    single: 24750
+    married_joint: 49500
+    head_of_household: 37125
+  # 20% credit rate if AGI is at or below:
+  twenty_percent:
+    single: 26950
+    married_joint: 53900
+    head_of_household: 40425
+  # 10% credit rate if AGI is at or below:
+  ten_percent:
+    single: 41500
+    married_joint: 83000
+    head_of_household: 62250
+
+# =============================================================================
+# DEDUCTION LIMITS AND THRESHOLDS
+# =============================================================================
+salt_cap: 10000  # State and Local Tax deduction cap
+medical_expense_floor_pct: 0.075  # 7.5% of AGI
+student_loan_interest_max: 2500
+educator_expense_max: 300
+
+# Student Loan Interest Phaseout
+student_loan_phaseout:
+  single:
+    start: 85000
+    end: 100000
+  married_joint:
+    start: 170000
+    end: 200000
+
+# Charitable Contribution Limits (as % of AGI)
+charitable_cash_limit_pct: 0.60  # 60% for cash to public charities
+charitable_appreciated_limit_pct: 0.30  # 30% for appreciated property
+
+# =============================================================================
+# QBI DEDUCTION (Section 199A)
+# =============================================================================
+qbi_deduction_rate: 0.20  # 20%
+qbi_threshold:
+  single:
+    start: 197300
+    end: 247300
+  married_joint:
+    start: 394600
+    end: 494600
+
+# =============================================================================
+# CLEAN VEHICLE CREDITS (Form 8936)
+# =============================================================================
+clean_vehicle_credit_new_max: 7500  # New vehicles (Section 30D)
+clean_vehicle_credit_used_max: 4000  # Used vehicles (Section 25E)
+
+clean_vehicle_income_limits:
+  new:
+    single: 150000
+    married_joint: 300000
+    head_of_household: 225000
+  used:
+    single: 75000
+    married_joint: 150000
+    head_of_household: 112500
+
+clean_vehicle_msrp_limits:
+  sedan: 55000
+  suv_van_truck: 80000
+
+# =============================================================================
+# ENERGY CREDITS (Form 5695)
+# =============================================================================
+residential_clean_energy_rate: 0.30  # 30% for solar, wind, geothermal
+energy_efficient_home_rate: 0.30  # 30% for home improvements
+energy_efficient_annual_limit: 1200
+energy_efficient_window_limit: 600
+energy_efficient_door_limit: 500
+energy_efficient_panel_limit: 600
+energy_efficient_audit_limit: 150
+heat_pump_annual_limit: 2000
+
+# =============================================================================
+# CHILD AND DEPENDENT CARE CREDIT
+# =============================================================================
+child_care_max_expenses:
+  one_qualifying_person: 3000
+  two_or_more: 6000
+
+child_care_credit_rate_schedule:
+  # Format: [AGI threshold, credit rate percentage]
+  - [15000, 35]
+  - [17000, 34]
+  - [19000, 33]
+  - [21000, 32]
+  - [23000, 31]
+  - [25000, 30]
+  - [27000, 29]
+  - [29000, 28]
+  - [31000, 27]
+  - [33000, 26]
+  - [35000, 25]
+  - [37000, 24]
+  - [39000, 23]
+  - [41000, 22]
+  - [43000, 21]
+  - [999999999, 20]
+
+# =============================================================================
+# SOCIAL SECURITY TAXATION THRESHOLDS
+# =============================================================================
+social_security_taxation:
+  base1:
+    single: 25000
+    married_joint: 32000
+  base2:
+    single: 34000
+    married_joint: 44000
+  lesser_cap:
+    single: 4500
+    married_joint: 6000
+
+# =============================================================================
+# ESTIMATED TAX PENALTY (Form 2210)
+# =============================================================================
+estimated_tax_underpayment_threshold: 1000
+estimated_tax_penalty_rate: 0.08  # 8% for 2025
+safe_harbor_current_year_pct: 0.90  # 90%
+safe_harbor_prior_year_pct: 1.00  # 100%
+safe_harbor_high_income_pct: 1.10  # 110% if prior AGI > $150k
+safe_harbor_high_income_threshold: 150000
+
+# =============================================================================
+# GIFT AND ESTATE
+# =============================================================================
+annual_gift_exclusion: 19000
+estate_exemption: 13990000
+
+# =============================================================================
+# SECTION 179 DEDUCTION
+# =============================================================================
+section_179_limit: 1250000
+section_179_phaseout_threshold: 3130000
+section_179_suv_limit: 30500
+
+# =============================================================================
+# MILEAGE RATES
+# =============================================================================
+mileage_rates:
+  business: 0.70  # 70 cents per mile
+  medical_moving: 0.22  # 22 cents per mile
+  charity: 0.14  # 14 cents per mile (set by statute)
+
+# =============================================================================
+# ADOPTION CREDIT (Form 8839)
+# =============================================================================
+adoption_credit_max: 17280
+adoption_credit_phaseout:
+  start: 259190
+  end: 299190
+
+# =============================================================================
+# FOREIGN EARNED INCOME EXCLUSION
+# =============================================================================
+foreign_earned_income_exclusion: 130000
+foreign_housing_exclusion_base: 19825
+foreign_housing_exclusion_max: 37856
+
+# =============================================================================
+# PENALTY RATES
+# =============================================================================
+early_withdrawal_penalty_rate: 0.10  # 10% early distribution penalty
+early_withdrawal_penalty_simple_rate: 0.25  # 25% for SIMPLE IRA first 2 years
