@@ -29,6 +29,13 @@ class RuleCategory(str, Enum):
     CHARITABLE = "charitable"
     VALIDATION = "validation"
     ELIGIBILITY = "eligibility"
+    # New categories for comprehensive tax coverage
+    VIRTUAL_CURRENCY = "virtual_currency"
+    INTERNATIONAL = "international"
+    HOUSEHOLD_EMPLOYMENT = "household_employment"
+    K1_TRUST = "k1_trust"
+    CASUALTY_LOSS = "casualty_loss"
+    ALIMONY = "alimony"
 
 
 class RuleSeverity(str, Enum):

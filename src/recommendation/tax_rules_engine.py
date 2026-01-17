@@ -1,6 +1,6 @@
 """Comprehensive Tax Rules Engine.
 
-Contains 350+ tax rules covering all aspects of federal and state taxation
+Contains 880+ tax rules covering all aspects of federal and state taxation
 for Tax Year 2025. Rules are categorized for easy maintenance and application.
 """
 
@@ -8,69 +8,8 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any, Callable
 from enum import Enum
 
-
-class RuleCategory(Enum):
-    """Categories of tax rules."""
-    INCOME = "income"
-    DEDUCTION = "deduction"
-    CREDIT = "credit"
-    FILING_STATUS = "filing_status"
-    SELF_EMPLOYMENT = "self_employment"
-    INVESTMENT = "investment"
-    RETIREMENT = "retirement"
-    HEALTHCARE = "healthcare"
-    EDUCATION = "education"
-    REAL_ESTATE = "real_estate"
-    BUSINESS = "business"
-    CHARITABLE = "charitable"
-    FAMILY = "family"
-    STATE_TAX = "state_tax"
-    INTERNATIONAL = "international"
-    AMT = "amt"
-    PENALTY = "penalty"
-    TIMING = "timing"
-    DOCUMENTATION = "documentation"
-
-
-class RuleSeverity(Enum):
-    """Severity/importance of rule violations."""
-    CRITICAL = "critical"  # Must fix - will cause rejection
-    HIGH = "high"  # Significant tax impact
-    MEDIUM = "medium"  # Moderate tax impact
-    LOW = "low"  # Minor optimization
-    INFO = "info"  # Informational
-
-
-@dataclass
-class TaxRule:
-    """Individual tax rule definition."""
-    rule_id: str
-    name: str
-    description: str
-    category: RuleCategory
-    severity: RuleSeverity
-    irs_reference: str  # Publication, form, or IRC section
-    tax_year: int = 2025
-
-    # Rule parameters
-    threshold: Optional[float] = None
-    limit: Optional[float] = None
-    rate: Optional[float] = None
-    phase_out_start: Optional[float] = None
-    phase_out_end: Optional[float] = None
-
-    # Filing status specific values
-    thresholds_by_status: Optional[Dict[str, float]] = None
-    limits_by_status: Optional[Dict[str, float]] = None
-
-    # Conditions
-    applies_to: Optional[List[str]] = None  # Filing statuses
-    requires: Optional[List[str]] = None  # Required conditions
-    excludes: Optional[List[str]] = None  # Exclusion conditions
-
-    # Action
-    recommendation: Optional[str] = None
-    potential_savings: Optional[str] = None
+# Import shared type definitions to avoid circular imports
+from rules.tax_rule_definitions import RuleCategory, RuleSeverity, TaxRule
 
 
 # =============================================================================
@@ -3524,15 +3463,38 @@ TIMING_RULES = [
 
 
 # =============================================================================
+# IMPORT NEW RULE MODULES (381 additional rules)
+# =============================================================================
+
+from rules.virtual_currency_rules import VIRTUAL_CURRENCY_RULES
+from rules.foreign_assets_rules import FOREIGN_ASSETS_RULES
+from rules.household_employment_rules import HOUSEHOLD_EMPLOYMENT_RULES
+from rules.k1_trust_rules import K1_TRUST_RULES
+from rules.casualty_loss_rules import CASUALTY_LOSS_RULES
+from rules.alimony_rules import ALIMONY_RULES
+
+
+# =============================================================================
 # RULE ENGINE CLASS
 # =============================================================================
 
 class TaxRulesEngine:
     """
-    Comprehensive tax rules engine with 350+ rules.
+    Comprehensive tax rules engine with 880+ rules.
 
     Provides rule lookup, validation, and recommendation generation
     based on taxpayer circumstances.
+
+    Rule Categories:
+    - Income, Deduction, Credit, Self-Employment, AMT, NIIT, Penalty
+    - Filing Status, State Tax, Documentation, Retirement, Healthcare
+    - Education, Real Estate, Business, Charitable, Family, International, Timing
+    - Virtual Currency (75 rules) - Crypto taxation
+    - Foreign Assets (64 rules) - FBAR, FATCA, FTC
+    - Household Employment (55 rules) - Schedule H, nanny taxes
+    - K-1/Trust (60 rules) - Pass-through entities, passive activity
+    - Casualty Loss (59 rules) - Disaster losses
+    - Alimony (68 rules) - Pre-2019 and post-2018 rules
     """
 
     def __init__(self, tax_year: int = 2025):
@@ -3561,7 +3523,14 @@ class TaxRulesEngine:
             CHARITABLE_RULES +
             FAMILY_RULES +
             INTERNATIONAL_RULES +
-            TIMING_RULES
+            TIMING_RULES +
+            # New comprehensive rule modules (381 rules)
+            VIRTUAL_CURRENCY_RULES +      # 75 rules
+            FOREIGN_ASSETS_RULES +        # 64 rules
+            HOUSEHOLD_EMPLOYMENT_RULES +  # 55 rules
+            K1_TRUST_RULES +              # 60 rules
+            CASUALTY_LOSS_RULES +         # 59 rules
+            ALIMONY_RULES                 # 68 rules
         )
 
         for rule in all_rules:

@@ -149,14 +149,14 @@ class TaxContext:
             try:
                 dob = self._parse_date(self.date_of_birth)
                 self.age = self._calculate_age(dob, tax_year_end)
-            except:
+            except (ValueError, TypeError):
                 self.age = 0
 
         if self.spouse_dob:
             try:
                 spouse_dob = self._parse_date(self.spouse_dob)
                 self.spouse_age = self._calculate_age(spouse_dob, tax_year_end)
-            except:
+            except (ValueError, TypeError):
                 self.spouse_age = 0
 
         # Calculate income totals
@@ -183,7 +183,7 @@ class TaxContext:
         for fmt in ['%Y-%m-%d', '%m/%d/%Y', '%m-%d-%Y', '%d/%m/%Y']:
             try:
                 return datetime.strptime(date_str, fmt).date()
-            except:
+            except ValueError:
                 continue
         raise ValueError(f"Cannot parse date: {date_str}")
 
@@ -331,7 +331,7 @@ class TaxRulesEngine:
                 if age < 16:
                     return ValidationResult(False, "Taxpayer must be at least 16 to file independently",
                                             ValidationSeverity.WARNING, "date_of_birth")
-            except:
+            except (ValueError, TypeError, AttributeError):
                 return ValidationResult(False, "Invalid date format. Use MM/DD/YYYY",
                                         ValidationSeverity.ERROR, "date_of_birth")
             return ValidationResult(True)
