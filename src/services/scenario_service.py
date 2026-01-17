@@ -39,6 +39,7 @@ from models.taxpayer import FilingStatus
 from calculator.engine import FederalTaxEngine, CalculationBreakdown
 from database.persistence import get_persistence
 from database.scenario_persistence import get_scenario_persistence
+from database.snapshot_persistence import get_snapshot_persistence, compute_input_hash
 
 
 logger = get_logger(__name__)
@@ -72,6 +73,7 @@ class ScenarioService:
         self._federal_engine = federal_engine or FederalTaxEngine()
         self._persistence = get_persistence()
         self._scenario_persistence = get_scenario_persistence()
+        self._snapshot_persistence = get_snapshot_persistence()
         self._logger = get_logger(__name__)
 
     def create_scenario(
@@ -145,7 +147,14 @@ class ScenarioService:
 
     def calculate_scenario(self, scenario_id: str) -> Scenario:
         """
-        Calculate tax results for a scenario.
+        Calculate tax results for a scenario using snapshot-based model.
+
+        Snapshots are reused when inputs haven't changed:
+        1. Apply modifications to get modified input data
+        2. Compute input hash to detect changes
+        3. Check if snapshot with same hash exists - reuse if so
+        4. Otherwise calculate and create new snapshot
+        5. Link scenario to the snapshot
 
         Args:
             scenario_id: Scenario identifier
@@ -165,44 +174,132 @@ class ScenarioService:
             scenario.modifications
         )
 
-        # Calculate with modified data
+        # Compute input hash to detect if recalculation is needed
+        input_hash = compute_input_hash(modified_data)
+
+        # Check if we already have a snapshot for this input
+        existing_snapshot = self._snapshot_persistence.get_snapshot_by_hash(input_hash)
+
         try:
-            tax_return = TaxReturn(**modified_data)
-            breakdown = self._federal_engine.calculate(tax_return)
+            if existing_snapshot:
+                # Reuse existing snapshot - no recalculation needed
+                snapshot = existing_snapshot
+                self._logger.info(
+                    f"Reusing existing snapshot for scenario: {scenario.name}",
+                    extra={'extra_data': {
+                        'scenario_id': scenario_id,
+                        'snapshot_id': snapshot['snapshot_id'],
+                        'input_hash': input_hash,
+                    }}
+                )
+            else:
+                # Calculate new result
+                tax_return = TaxReturn(**modified_data)
+                breakdown = self._federal_engine.calculate(tax_return)
 
-            # Calculate base for comparison
-            base_return = TaxReturn(**scenario.base_snapshot)
-            base_breakdown = self._federal_engine.calculate(base_return)
-
-            # Calculate savings
-            savings = base_breakdown.total_tax - breakdown.total_tax
-            savings_percent = (savings / base_breakdown.total_tax * 100) if base_breakdown.total_tax > 0 else 0
-
-            # Create result
-            result = ScenarioResult(
-                total_tax=breakdown.total_tax,
-                federal_tax=breakdown.total_tax,
-                effective_rate=breakdown.effective_tax_rate,
-                marginal_rate=breakdown.marginal_tax_rate,
-                base_tax=base_breakdown.total_tax,
-                savings=savings,
-                savings_percent=savings_percent,
-                taxable_income=breakdown.taxable_income,
-                total_deductions=breakdown.deduction_amount,
-                total_credits=breakdown.total_credits,
-                breakdown={
+                # Create snapshot with calculation result
+                result_data = {
+                    "total_tax": breakdown.total_tax,
+                    "effective_rate": breakdown.effective_tax_rate,
+                    "marginal_rate": breakdown.marginal_tax_rate,
+                    "taxable_income": breakdown.taxable_income,
+                    "total_deductions": breakdown.deduction_amount,
+                    "total_credits": breakdown.total_credits,
                     "agi": breakdown.agi,
                     "ordinary_tax": breakdown.ordinary_income_tax,
                     "preferential_tax": breakdown.preferential_income_tax,
                     "se_tax": breakdown.self_employment_tax,
                     "amt": breakdown.alternative_minimum_tax,
                 }
+
+                snapshot = self._snapshot_persistence.save_snapshot(
+                    return_id=str(scenario.return_id),
+                    input_data=modified_data,
+                    result_data=result_data,
+                    tax_year=breakdown.tax_year,
+                    filing_status=breakdown.filing_status,
+                    total_tax=breakdown.total_tax,
+                    effective_rate=breakdown.effective_tax_rate,
+                    taxable_income=breakdown.taxable_income,
+                    total_credits=breakdown.total_credits,
+                )
+
+                self._logger.info(
+                    f"Created new snapshot for scenario: {scenario.name}",
+                    extra={'extra_data': {
+                        'scenario_id': scenario_id,
+                        'snapshot_id': snapshot['snapshot_id'],
+                        'input_hash': input_hash,
+                    }}
+                )
+
+            # Get base snapshot for comparison (also use snapshot model)
+            base_hash = compute_input_hash(scenario.base_snapshot)
+            base_snapshot = self._snapshot_persistence.get_snapshot_by_hash(base_hash)
+
+            if not base_snapshot:
+                # Calculate base snapshot if not exists
+                base_return = TaxReturn(**scenario.base_snapshot)
+                base_breakdown = self._federal_engine.calculate(base_return)
+
+                base_result_data = {
+                    "total_tax": base_breakdown.total_tax,
+                    "effective_rate": base_breakdown.effective_tax_rate,
+                    "marginal_rate": base_breakdown.marginal_tax_rate,
+                    "taxable_income": base_breakdown.taxable_income,
+                    "total_deductions": base_breakdown.deduction_amount,
+                    "total_credits": base_breakdown.total_credits,
+                }
+
+                base_snapshot = self._snapshot_persistence.save_snapshot(
+                    return_id=str(scenario.return_id),
+                    input_data=scenario.base_snapshot,
+                    result_data=base_result_data,
+                    tax_year=base_breakdown.tax_year,
+                    filing_status=base_breakdown.filing_status,
+                    total_tax=base_breakdown.total_tax,
+                    effective_rate=base_breakdown.effective_tax_rate,
+                    taxable_income=base_breakdown.taxable_income,
+                    total_credits=base_breakdown.total_credits,
+                )
+
+            # Calculate savings from snapshots
+            base_tax = base_snapshot['total_tax']
+            modified_tax = snapshot['total_tax']
+            savings = base_tax - modified_tax
+            savings_percent = (savings / base_tax * 100) if base_tax > 0 else 0
+
+            # Create result from snapshot data
+            result_data = snapshot['result_data']
+            result = ScenarioResult(
+                total_tax=snapshot['total_tax'],
+                federal_tax=snapshot['total_tax'],
+                effective_rate=snapshot['effective_rate'],
+                marginal_rate=result_data.get('marginal_rate', 0),
+                base_tax=base_tax,
+                savings=savings,
+                savings_percent=savings_percent,
+                taxable_income=snapshot['taxable_income'],
+                total_deductions=result_data.get('total_deductions', 0),
+                total_credits=snapshot['total_credits'],
+                breakdown={
+                    "agi": result_data.get('agi', 0),
+                    "ordinary_tax": result_data.get('ordinary_tax', 0),
+                    "preferential_tax": result_data.get('preferential_tax', 0),
+                    "se_tax": result_data.get('se_tax', 0),
+                    "amt": result_data.get('amt', 0),
+                }
             )
 
             scenario.set_result(result)
 
-            # Save updated scenario to database
-            self._save_scenario_to_db(scenario)
+            # Save updated scenario with snapshot references
+            self._save_scenario_to_db(
+                scenario,
+                snapshot_id=snapshot['snapshot_id'],
+                base_snapshot_id=base_snapshot['snapshot_id'],
+                input_hash=input_hash
+            )
 
             computation_time_ms = int((time.time() - start_time) * 1000)
 
@@ -210,8 +307,8 @@ class ScenarioService:
             publish_event(ScenarioCalculated(
                 scenario_id=scenario.scenario_id,
                 return_id=scenario.return_id,
-                total_tax=breakdown.total_tax,
-                effective_rate=breakdown.effective_tax_rate,
+                total_tax=snapshot['total_tax'],
+                effective_rate=snapshot['effective_rate'],
                 savings_vs_base=savings,
                 computation_time_ms=computation_time_ms,
                 aggregate_id=scenario.scenario_id,
@@ -222,8 +319,9 @@ class ScenarioService:
                 f"Calculated scenario: {scenario.name}",
                 extra={'extra_data': {
                     'scenario_id': scenario_id,
-                    'total_tax': breakdown.total_tax,
+                    'total_tax': snapshot['total_tax'],
                     'savings': savings,
+                    'reused_snapshot': existing_snapshot is not None,
                 }}
             )
 
@@ -610,7 +708,13 @@ class ScenarioService:
     # DATABASE PERSISTENCE HELPERS
     # =========================================================================
 
-    def _save_scenario_to_db(self, scenario: Scenario) -> str:
+    def _save_scenario_to_db(
+        self,
+        scenario: Scenario,
+        snapshot_id: Optional[str] = None,
+        base_snapshot_id: Optional[str] = None,
+        input_hash: Optional[str] = None
+    ) -> str:
         """Save a Scenario domain object to the database."""
         scenario_dict = {
             "scenario_id": str(scenario.scenario_id),
@@ -628,6 +732,9 @@ class ScenarioService:
             "created_by": scenario.created_by,
             "calculated_at": scenario.calculated_at.isoformat() if scenario.calculated_at else None,
             "version": scenario.version,
+            "snapshot_id": snapshot_id,
+            "base_snapshot_id": base_snapshot_id,
+            "input_hash": input_hash,
         }
         return self._scenario_persistence.save_scenario(scenario_dict)
 

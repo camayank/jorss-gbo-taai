@@ -24,6 +24,9 @@ class ScenarioPersistence:
 
     Uses SQLite with JSON serialization for flexibility.
     Schema defined in migrations.py (scenarios table).
+
+    Scenarios reference calculation snapshots via snapshot_id and
+    base_snapshot_id for efficient recalculation avoidance.
     """
 
     def __init__(self, db_path: Optional[Path] = None):
@@ -41,6 +44,30 @@ class ScenarioPersistence:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         # Run migrations to ensure scenarios table exists
         run_migrations(self.db_path)
+        # Add snapshot columns if not present
+        self._add_snapshot_columns()
+
+    def _add_snapshot_columns(self):
+        """Add snapshot_id and base_snapshot_id columns if not present."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            # Check if columns exist
+            cursor.execute("PRAGMA table_info(scenarios)")
+            columns = {row[1] for row in cursor.fetchall()}
+
+            if "snapshot_id" not in columns:
+                cursor.execute(
+                    "ALTER TABLE scenarios ADD COLUMN snapshot_id TEXT"
+                )
+            if "base_snapshot_id" not in columns:
+                cursor.execute(
+                    "ALTER TABLE scenarios ADD COLUMN base_snapshot_id TEXT"
+                )
+            if "input_hash" not in columns:
+                cursor.execute(
+                    "ALTER TABLE scenarios ADD COLUMN input_hash TEXT"
+                )
+            conn.commit()
 
     def save_scenario(self, scenario_data: Dict[str, Any]) -> str:
         """
@@ -80,6 +107,9 @@ class ScenarioPersistence:
                         is_recommended = ?,
                         recommendation_reason = ?,
                         calculated_at = ?,
+                        snapshot_id = ?,
+                        base_snapshot_id = ?,
+                        input_hash = ?,
                         version = version + 1
                     WHERE scenario_id = ?
                 """, (
@@ -94,6 +124,9 @@ class ScenarioPersistence:
                     1 if scenario_data.get("is_recommended") else 0,
                     scenario_data.get("recommendation_reason"),
                     scenario_data.get("calculated_at"),
+                    scenario_data.get("snapshot_id"),
+                    scenario_data.get("base_snapshot_id"),
+                    scenario_data.get("input_hash"),
                     scenario_id
                 ))
             else:
@@ -103,8 +136,9 @@ class ScenarioPersistence:
                         scenario_id, return_id, name, description, scenario_type,
                         status, base_snapshot, modifications, result,
                         is_recommended, recommendation_reason,
-                        created_at, created_by, calculated_at, version
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        created_at, created_by, calculated_at, version,
+                        snapshot_id, base_snapshot_id, input_hash
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     scenario_id,
                     str(scenario_data.get("return_id", "")),
@@ -120,7 +154,10 @@ class ScenarioPersistence:
                     now,
                     scenario_data.get("created_by"),
                     scenario_data.get("calculated_at"),
-                    1
+                    1,
+                    scenario_data.get("snapshot_id"),
+                    scenario_data.get("base_snapshot_id"),
+                    scenario_data.get("input_hash"),
                 ))
 
             conn.commit()
@@ -192,7 +229,7 @@ class ScenarioPersistence:
 
     def _row_to_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
         """Convert database row to scenario dictionary."""
-        return {
+        result = {
             "scenario_id": row["scenario_id"],
             "return_id": row["return_id"],
             "name": row["name"],
@@ -209,6 +246,16 @@ class ScenarioPersistence:
             "calculated_at": row["calculated_at"],
             "version": row["version"],
         }
+        # Add snapshot columns (may not exist in older rows)
+        try:
+            result["snapshot_id"] = row["snapshot_id"]
+            result["base_snapshot_id"] = row["base_snapshot_id"]
+            result["input_hash"] = row["input_hash"]
+        except (IndexError, KeyError):
+            result["snapshot_id"] = None
+            result["base_snapshot_id"] = None
+            result["input_hash"] = None
+        return result
 
 
 # Global instance
