@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 import hashlib
+import logging
 import re
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any, Tuple
@@ -28,6 +29,8 @@ from .field_extractor import (
     get_templates_for_document,
     FieldType,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -188,6 +191,7 @@ class DocumentProcessor:
         ocr_engine: Optional[OCREngine] = None,
         storage_path: Optional[str] = None,
         default_tax_year: int = 2025,
+        use_ml_classifier: bool = True,
     ):
         """
         Initialize document processor.
@@ -196,11 +200,24 @@ class DocumentProcessor:
             ocr_engine: OCR engine to use (defaults to Tesseract)
             storage_path: Path to store uploaded documents
             default_tax_year: Default tax year if not detected
+            use_ml_classifier: Whether to use ML-based document classification
         """
         self.ocr_engine = ocr_engine or OCREngine(engine_type=OCREngineType.TESSERACT)
         self.field_extractor = FieldExtractor()
         self.storage_path = storage_path or "/tmp/tax_documents"
         self.default_tax_year = default_tax_year
+        self.use_ml_classifier = use_ml_classifier
+
+        # Initialize ML classifier if enabled
+        self._ml_classifier = None
+        if use_ml_classifier:
+            try:
+                from ml.document_classifier import DocumentClassifier
+                self._ml_classifier = DocumentClassifier()
+                logger.info("ML document classifier initialized")
+            except Exception as e:
+                logger.warning(f"Failed to initialize ML classifier, falling back to regex: {e}")
+                self._ml_classifier = None
 
         # Ensure storage directory exists
         Path(self.storage_path).mkdir(parents=True, exist_ok=True)
@@ -420,7 +437,41 @@ class DocumentProcessor:
         )
 
     def _classify_document(self, text: str) -> DocumentClassification:
-        """Classify document type based on text content."""
+        """
+        Classify document type based on text content.
+
+        Uses ML classifier if available, falls back to regex.
+        """
+        # Try ML classifier first if available
+        if self._ml_classifier:
+            try:
+                result = self._ml_classifier.classify(text)
+                # Use ML result if confidence is acceptable (>= 0.5)
+                if result.confidence >= 0.5:
+                    logger.debug(
+                        f"ML classifier: {result.document_type} "
+                        f"(confidence: {result.confidence:.2f}, "
+                        f"classifier: {result.classifier_used})"
+                    )
+                    return DocumentClassification(
+                        document_type=result.document_type,
+                        confidence=result.confidence * 100,  # Convert to percentage
+                        tax_year=self._detect_tax_year(text),
+                        indicators=result.metadata.get("key_indicators", []),
+                    )
+                else:
+                    logger.debug(
+                        f"ML classifier low confidence ({result.confidence:.2f}), "
+                        "falling back to regex"
+                    )
+            except Exception as e:
+                logger.warning(f"ML classification failed, falling back to regex: {e}")
+
+        # Fall back to regex classification
+        return self._regex_classify_document(text)
+
+    def _regex_classify_document(self, text: str) -> DocumentClassification:
+        """Classify document type using regex pattern matching."""
         text_lower = text.lower()
         scores = {}
 
