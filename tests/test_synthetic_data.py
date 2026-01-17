@@ -132,9 +132,11 @@ class TestSyntheticDataGenerator:
     def test_all_document_types_supported(self, generator):
         """Test that all expected document types can be generated."""
         expected_types = [
-            "w2", "1099-int", "1099-div", "1099-nec", "1099-misc",
-            "1099-b", "1099-r", "1099-g", "1098", "1098-e", "1098-t",
-            "k1", "1095-a", "1095-b", "1095-c"
+            "w2", "w2g", "1099-int", "1099-div", "1099-nec", "1099-misc",
+            "1099-b", "1099-r", "1099-g", "1099-k", "1099-sa", "1099-q",
+            "1099-c", "1099-s", "1099-oid", "1099-ltc", "1099-patr",
+            "1098", "1098-e", "1098-t", "k1", "1095-a", "1095-b", "1095-c",
+            "ssa-1099", "rrb-1099", "5498", "5498-sa"
         ]
 
         for doc_type in expected_types:
