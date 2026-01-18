@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaxFlow Platform - System Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #dbeafe;
+            --success: #059669;
+            --success-light: #d1fae5;
+            --warning: #d97706;
+            --warning-light: #fef3c7;
+            --danger: #dc2626;
+            --purple: #7c3aed;
+            --purple-light: #ede9fe;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-tertiary: #64748b;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
+            --border-light: #e2e8f0;
+            --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08);
+            --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1e40af 0%, #0ea5e9 50%, #059669 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            text-decoration: none;
+        }
+
+        .logo span { color: #86efac; }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .nav-links a {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 3rem 0;
+            color: white;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-title svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+        .grid-3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+        .grid-4 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+
+        .card {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-lg);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-icon.blue { background: var(--primary-light); color: var(--primary); }
+        .card-icon.green { background: var(--success-light); color: var(--success); }
+        .card-icon.orange { background: var(--warning-light); color: var(--warning); }
+        .card-icon.purple { background: var(--purple-light); color: var(--purple); }
+        .card-icon.red { background: #fee2e2; color: var(--danger); }
+
+        .card-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .card h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .card-link:hover {
+            color: var(--primary-hover);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-blue { background: var(--primary-light); color: var(--primary); }
+        .badge-green { background: var(--success-light); color: var(--success); }
+        .badge-orange { background: var(--warning-light); color: var(--warning); }
+        .badge-purple { background: var(--purple-light); color: var(--purple); }
+
+        .access-card {
+            display: block;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .flow-list {
+            list-style: none;
+            margin-top: 0.5rem;
+        }
+
+        .flow-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .flow-list li:last-child {
+            border-bottom: none;
+        }
+
+        .flow-list li::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+
+        .architecture-diagram {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .arch-level {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .arch-level-num {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .arch-level-content h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .arch-level-content p {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+        }
+
+        .api-section {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .api-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .api-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .api-group h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .api-endpoints {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .api-endpoint {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+
+        .api-endpoint .method {
+            font-weight: 600;
+        }
+
+        .api-endpoint .method.get { color: var(--success); }
+        .api-endpoint .method.post { color: var(--primary); }
+        .api-endpoint .method.put { color: var(--warning); }
+        .api-endpoint .method.delete { color: var(--danger); }
+
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .module-item {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            border-left: 3px solid var(--primary);
+        }
+
+        .module-item h5 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .module-item p {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            margin-top: 0.25rem;
+        }
+
+        .footer {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 2rem;
+            margin-top: 2rem;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .hero h1 {
+                font-size: 1.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="logo">Tax<span>Flow</span> Platform</a>
+            <nav class="nav-links">
+                <a href="#portals">Portals</a>
+                <a href="#architecture">Architecture</a>
+                <a href="#modules">Modules</a>
+                <a href="#flows">Flows</a>
+                <a href="#api">API</a>
+                <a href="/api/health">Health Check</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <h1>TaxFlow System Hub</h1>
+            <p>Tax Decision Intelligence Platform - Central navigation for all system components, user portals, and documentation</p>
+        </section>
+
+        <!-- User Access Portals -->
+        <section id="portals" class="section">
+            <h2 class="section-title">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                User Access Portals
+            </h2>
+            <div class="grid grid-4">
+                <a href="/" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon blue">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        </div>
+                        <div>
+                            <h3>Consumer Portal</h3>
+                            <span class="badge badge-blue">Public</span>
+                        </div>
+                    </div>
+                    <p>Smart tax filing interface for individual taxpayers with AI-powered chat and document upload</p>
+                    <span class="card-link">Open Portal &rarr;</span>
+                </a>
+
+                <a href="/cpa" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon green">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                        </div>
+                        <div>
+                            <h3>CPA Workspace</h3>
+                            <span class="badge badge-green">Authenticated</span>
+                        </div>
+                    </div>
+                    <p>Professional tax preparer dashboard with client management, scenario analysis, and workflow tools</p>
+                    <span class="card-link">Open Dashboard &rarr;</span>
+                </a>
+
+                <a href="/client" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon purple">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        </div>
+                        <div>
+                            <h3>Client Portal</h3>
+                            <span class="badge badge-purple">Client Access</span>
+                        </div>
+                    </div>
+                    <p>Client-facing advisory portal for viewing tax insights, uploading documents, and tracking status</p>
+                    <span class="card-link">Open Portal &rarr;</span>
+                </a>
+
+                <a href="/admin" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon orange">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        </div>
+                        <div>
+                            <h3>Admin Panel</h3>
+                            <span class="badge badge-orange">Admin Only</span>
+                        </div>
+                    </div>
+                    <p>Platform administration with firm management, RBAC configuration, billing, and system health</p>
+                    <span class="card-link">Open Admin &rarr;</span>
+                </a>
+            </div>
+        </section>
+
+        <!-- System Architecture -->
+        <section id="architecture" class="section">
+            <h2 class="section-title">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                System Architecture
+            </h2>
+            <div class="grid grid-2">
+                <div class="architecture-diagram">
+                    <h3 style="margin-bottom: 1rem; font-size: 1rem;">RBAC Hierarchy (5 Levels)</h3>
+                    <div class="arch-level">
+                        <div class="arch-level-num">0</div>
+                        <div class="arch-level-content">
+                            <h4>Platform Level</h4>
+                            <p>Super Admin, Support, Billing, Compliance, Engineering</p>
+                        </div>
+                    </div>
+                    <div class="arch-level">
+                        <div class="arch-level-num">1</div>
+                        <div class="arch-level-content">
+                            <h4>Partner Level (White-Label)</h4>
+                            <p>Partner Admin, Partner Manager, Partner Support</p>
+                        </div>
+                    </div>
+                    <div class="arch-level">
+                        <div class="arch-level-num">2</div>
+                        <div class="arch-level-content">
+                            <h4>Firm Level (CPA Practice)</h4>
+                            <p>Firm Admin, Senior Preparer, Preparer, Reviewer</p>
+                        </div>
+                    </div>
+                    <div class="arch-level">
+                        <div class="arch-level-num">3</div>
+                        <div class="arch-level-content">
+                            <h4>User Level</h4>
+                            <p>Per-user permission overrides (grants/revokes)</p>
+                        </div>
+                    </div>
+                    <div class="arch-level">
+                        <div class="arch-level-num">4</div>
+                        <div class="arch-level-content">
+                            <h4>Resource Level</h4>
+                            <p>Client-specific, Return-specific access controls</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="architecture-diagram">
+                    <h3 style="margin-bottom: 1rem; font-size: 1rem;">Application Layers</h3>
+                    <div class="arch-level" style="border-left: 3px solid var(--primary);">
+                        <div class="arch-level-content">
+                            <h4>Presentation Layer</h4>
+                            <p>FastAPI routes, HTML templates, REST API endpoints</p>
+                        </div>
+                    </div>
+                    <div class="arch-level" style="border-left: 3px solid var(--success);">
+                        <div class="arch-level-content">
+                            <h4>Application Layer</h4>
+                            <p>Services, Use Cases, RBAC Middleware, Auth Context</p>
+                        </div>
+                    </div>
+                    <div class="arch-level" style="border-left: 3px solid var(--warning);">
+                        <div class="arch-level-content">
+                            <h4>Domain Layer</h4>
+                            <p>Tax Rules Engine, Calculation Engine, Scenario Analysis</p>
+                        </div>
+                    </div>
+                    <div class="arch-level" style="border-left: 3px solid var(--purple);">
+                        <div class="arch-level-content">
+                            <h4>Infrastructure Layer</h4>
+                            <p>PostgreSQL, Redis Cache, Document Storage, OCR Services</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Core Modules -->
+        <section id="modules" class="section">
+            <h2 class="section-title">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                Core Modules
+            </h2>
+            <div class="grid grid-3">
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem;">Tax Engine</h3>
+                    <div class="module-grid">
+                        <div class="module-item">
+                            <h5>Federal Engine</h5>
+                            <p>IRS Form 1040 calculations</p>
+                        </div>
+                        <div class="module-item">
+                            <h5>State Engine</h5>
+                            <p>All 50 states + DC</p>
+                        </div>
+                        <div class="module-item">
+                            <h5>Rules Engine</h5>
+                            <p>Business rules processing</p>
+                        </div>
+                        <div class="module-item">
+                            <h5>Credits Engine</h5>
+                            <p>Tax credits calculations</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem;">CPA Panel</h3>
+                    <div class="module-grid">
+                        <div class="module-item">
+                            <h5>Workflow</h5>
+                            <p>Review & approval flows</p>
+                        </div>
+                        <div class="module-item">
+                            <h5>Practice Intelligence</h5>
+                            <p>Firm analytics & metrics</p>
+                        </div>
+                        <div class="module-item">
+                            <h5>Engagement</h5>
+                            <p>Letters & e-signatures</p>
+                        </div>
+                        <div class="module-item">
+                            <h5>Staff Management</h5>
+                            <p>Assignments & workload</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem;">Admin Panel</h3>
+                    <div class="module-grid">
+                        <div class="module-item">
+                            <h5>RBAC System</h5>
+                            <p>Roles & permissions</p>
+                        </div>
+                        <div class="module-item">
+                            <h5>Team Management</h5>
+                            <p>Users & invitations</p>
+                        </div>
+                        <div class="module-item">
+                            <h5>Billing</h5>
+                            <p>Subscriptions & invoices</p>
+                        </div>
+                        <div class="module-item">
+                            <h5>Compliance</h5>
+                            <p>Audit logs & reports</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem;">Document Processing</h3>
+                    <div class="module-grid">
+                        <div class="module-item">
+                            <h5>OCR Engine</h5>
+                            <p>Document text extraction</p>
+                        </div>
+                        <div class="module-item">
+                            <h5>Field Extraction</h5>
+                            <p>W-2, 1099, K-1 parsing</p>
+                        </div>
+                        <div class="module-item">
+                            <h5>Validation</h5>
+                            <p>Data verification</p>
+                        </div>
+                        <div class="module-item">
+                            <h5>Storage</h5>
+                            <p>Secure document vault</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem;">Advisory Engine</h3>
+                    <div class="module-grid">
+                        <div class="module-item">
+                            <h5>Scenarios</h5>
+                            <p>What-if analysis</p>
+                        </div>
+                        <div class="module-item">
+                            <h5>Optimization</h5>
+                            <p>Tax savings finder</p>
+                        </div>
+                        <div class="module-item">
+                            <h5>Smart Insights</h5>
+                            <p>AI recommendations</p>
+                        </div>
+                        <div class="module-item">
+                            <h5>Entity Comparison</h5>
+                            <p>Business structure analysis</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem;">Core Infrastructure</h3>
+                    <div class="module-grid">
+                        <div class="module-item">
+                            <h5>RBAC</h5>
+                            <p>48 permissions, 12 roles</p>
+                        </div>
+                        <div class="module-item">
+                            <h5>Partners</h5>
+                            <p>White-label support</p>
+                        </div>
+                        <div class="module-item">
+                            <h5>Cache</h5>
+                            <p>Multi-layer caching</p>
+                        </div>
+                        <div class="module-item">
+                            <h5>Audit Trail</h5>
+                            <p>Compliance logging</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Key Flows -->
+        <section id="flows" class="section">
+            <h2 class="section-title">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                Key Business Flows
+            </h2>
+            <div class="grid grid-3">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon blue">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </div>
+                        <h3>Tax Return Processing</h3>
+                    </div>
+                    <ul class="flow-list">
+                        <li>Upload tax documents (W-2, 1099, etc.)</li>
+                        <li>OCR extraction & field mapping</li>
+                        <li>Federal tax calculation</li>
+                        <li>State tax calculation (50 states)</li>
+                        <li>Credits & deductions optimization</li>
+                        <li>Generate recommendations</li>
+                        <li>Export PDF/JSON reports</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon green">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        </div>
+                        <h3>CPA Workflow</h3>
+                    </div>
+                    <ul class="flow-list">
+                        <li>Client onboarding & intake</li>
+                        <li>Document collection via portal</li>
+                        <li>Preparer assignment</li>
+                        <li>Draft &rarr; In Review &rarr; Ready</li>
+                        <li>Reviewer approval process</li>
+                        <li>Client delivery & signature</li>
+                        <li>Engagement letter generation</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon purple">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                        </div>
+                        <h3>Advisory & Optimization</h3>
+                    </div>
+                    <ul class="flow-list">
+                        <li>Scenario creation (what-if)</li>
+                        <li>Filing status comparison</li>
+                        <li>Retirement contribution analysis</li>
+                        <li>Entity structure comparison</li>
+                        <li>Smart insights generation</li>
+                        <li>Tax savings identification</li>
+                        <li>Year-over-year comparison</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon orange">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                        </div>
+                        <h3>Admin & RBAC</h3>
+                    </div>
+                    <ul class="flow-list">
+                        <li>User invitation & onboarding</li>
+                        <li>Role assignment (12 system roles)</li>
+                        <li>Custom role creation</li>
+                        <li>Permission overrides (grant/revoke)</li>
+                        <li>Subscription management</li>
+                        <li>Audit log review</li>
+                        <li>Multi-firm administration</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon red">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        </div>
+                        <h3>Client Portal Flow</h3>
+                    </div>
+                    <ul class="flow-list">
+                        <li>Secure portal access (token-based)</li>
+                        <li>View tax advisory report</li>
+                        <li>Upload requested documents</li>
+                        <li>Track return status</li>
+                        <li>Review & sign engagement letter</li>
+                        <li>Download final reports</li>
+                        <li>Message CPA preparer</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon blue">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        </div>
+                        <h3>Practice Intelligence</h3>
+                    </div>
+                    <ul class="flow-list">
+                        <li>Firm-wide metrics dashboard</li>
+                        <li>Advisory mix analysis</li>
+                        <li>Complexity distribution</li>
+                        <li>Year-over-year comparison</li>
+                        <li>Staff workload balancing</li>
+                        <li>Revenue forecasting</li>
+                        <li>Client engagement scoring</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- API Reference -->
+        <section id="api" class="section">
+            <h2 class="section-title">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                API Reference
+            </h2>
+            <div class="api-section">
+                <div class="api-group">
+                    <h4><span style="color: var(--primary);">Tax Processing</span></h4>
+                    <div class="api-endpoints">
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/calculate/complete</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/optimize</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/optimize/filing-status</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/optimize/credits</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/optimize/deductions</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/estimate</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/recommendations</span>
+                    </div>
+                </div>
+
+                <div class="api-group">
+                    <h4><span style="color: var(--success);">Documents</span></h4>
+                    <div class="api-endpoints">
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/upload</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/upload/async</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/upload/status/{task_id}</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/documents</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/documents/{id}</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/documents/{id}/status</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/documents/{id}/apply</span>
+                    </div>
+                </div>
+
+                <div class="api-group">
+                    <h4><span style="color: var(--purple);">Returns & Workflow</span></h4>
+                    <div class="api-endpoints">
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/returns/save</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/returns</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/returns/{id}</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/returns/{id}/status</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/returns/{id}/submit-for-review</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/returns/{id}/approve</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/returns/{id}/revert-to-draft</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/returns/queue/{status}</span>
+                    </div>
+                </div>
+
+                <div class="api-group">
+                    <h4><span style="color: var(--warning);">Scenarios & Analysis</span></h4>
+                    <div class="api-endpoints">
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/scenarios</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/scenarios</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/scenarios/{id}</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/scenarios/{id}/calculate</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/scenarios/compare</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/scenarios/filing-status</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/scenarios/retirement</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/scenarios/what-if</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/entity-comparison</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/retirement-analysis</span>
+                    </div>
+                </div>
+
+                <div class="api-group">
+                    <h4><span style="color: var(--danger);">Admin & RBAC</span></h4>
+                    <div class="api-endpoints">
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/v1/admin/rbac/permissions</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/v1/admin/rbac/roles</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/v1/admin/rbac/roles</span>
+                        <span class="api-endpoint"><span class="method put">PUT</span>/api/v1/admin/rbac/roles/{id}/permissions</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/v1/admin/rbac/users/{id}/roles</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/v1/admin/rbac/users/{id}/roles</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/v1/admin/rbac/users/{id}/permissions</span>
+                    </div>
+                </div>
+
+                <div class="api-group">
+                    <h4><span style="color: var(--text-tertiary);">System & Health</span></h4>
+                    <div class="api-endpoints">
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/health</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/health/resilience</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/health/cache</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/health/database</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/health/migrations</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/health/cache/flush</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/audit</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/audit/{session_id}</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Links -->
+        <section class="section">
+            <h2 class="section-title">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                Quick Links
+            </h2>
+            <div class="grid grid-4">
+                <a href="/api/health" class="card access-card">
+                    <h3>System Health</h3>
+                    <p>Check system status and service health</p>
+                </a>
+                <a href="/test-auth" class="card access-card">
+                    <h3>Auth Test</h3>
+                    <p>Test authentication and token generation</p>
+                </a>
+                <a href="/api/supported-documents" class="card access-card">
+                    <h3>Supported Documents</h3>
+                    <p>View all supported tax document types</p>
+                </a>
+                <a href="/dashboard" class="card access-card">
+                    <h3>Basic Dashboard</h3>
+                    <p>Simple dashboard view</p>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>TaxFlow Platform &copy; 2026 | Tax Decision Intelligence System</p>
+        <p style="margin-top: 0.5rem; font-size: 0.875rem; opacity: 0.8;">
+            Built with FastAPI, PostgreSQL, Redis | 3,743 Tests Passing
+        </p>
+    </footer>
+</body>
+</html>

@@ -112,3 +112,43 @@ def get_visibility(state: LeadState) -> CPAVisibility:
 def can_transition(from_state: LeadState, to_state: LeadState) -> bool:
     """Check if a state transition is valid (forward-only)."""
     return to_state in VALID_TRANSITIONS.get(from_state, set())
+
+
+# =============================================================================
+# P2: LEAD ASSIGNMENT/OWNERSHIP
+# =============================================================================
+
+class AssignmentStatus(str, Enum):
+    """Lead assignment status for CPA ownership tracking."""
+    UNASSIGNED = "unassigned"          # No CPA assigned
+    ASSIGNED = "assigned"               # Assigned to a CPA
+    ACCEPTED = "accepted"               # CPA accepted the lead
+    IN_PROGRESS = "in_progress"         # CPA actively working
+    CONVERTED = "converted"             # Lead became a client
+    DECLINED = "declined"               # CPA declined the lead
+    REASSIGNED = "reassigned"           # Reassigned to different CPA
+
+
+class AssignmentPriority(IntEnum):
+    """Lead priority for assignment queue ordering."""
+    LOW = 1
+    NORMAL = 2
+    HIGH = 3
+    URGENT = 4
+
+
+# Priority mapping based on state and financial indicators
+def get_assignment_priority(state: LeadState, has_financial_indicators: bool = False) -> AssignmentPriority:
+    """
+    Get assignment priority based on lead state and indicators.
+
+    High-leverage leads and those with financial indicators get higher priority.
+    """
+    if state == LeadState.HIGH_LEVERAGE:
+        return AssignmentPriority.URGENT if has_financial_indicators else AssignmentPriority.HIGH
+    elif state == LeadState.ADVISORY_READY:
+        return AssignmentPriority.HIGH if has_financial_indicators else AssignmentPriority.NORMAL
+    elif state == LeadState.EVALUATING:
+        return AssignmentPriority.NORMAL if has_financial_indicators else AssignmentPriority.LOW
+    else:
+        return AssignmentPriority.LOW

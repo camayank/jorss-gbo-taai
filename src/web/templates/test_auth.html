@@ -95,7 +95,7 @@
 
     .portal-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, 1fr);
       gap: 16px;
       margin-bottom: 32px;
     }
@@ -139,6 +139,11 @@
 
     .client-portal .portal-card:hover {
       border-color: var(--accent);
+    }
+
+    .admin-portal:hover {
+      border-color: #7c3aed;
+      box-shadow: 0 8px 24px rgba(124, 58, 237, 0.15);
     }
 
     .quick-links {
@@ -221,6 +226,12 @@
           <div class="portal-icon">&#128100;</div>
           <div class="portal-title">Client Portal</div>
           <div class="portal-desc">Lead magnet & tax assessment flow</div>
+        </a>
+
+        <a href="/admin" class="portal-card admin-portal">
+          <div class="portal-icon">&#9881;</div>
+          <div class="portal-title">Admin Panel</div>
+          <div class="portal-desc">Firm management, team & billing</div>
         </a>
       </div>
 

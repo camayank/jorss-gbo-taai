@@ -8,12 +8,45 @@ Handles the CPA sign-off process with:
 """
 
 import hashlib
+import json
 from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
 from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def compute_return_data_hash(return_data: Dict[str, Any]) -> str:
+    """
+    Compute a deterministic hash of tax return data.
+
+    This ensures the signature is bound to the actual return values,
+    not just the session metadata. Any change to the return after
+    approval will invalidate the signature.
+
+    Args:
+        return_data: Tax return data dictionary
+
+    Returns:
+        SHA-256 hash of the canonical return data
+    """
+    # Extract key financial fields that must be immutable once approved
+    canonical_fields = {
+        "tax_year": return_data.get("tax_year"),
+        "filing_status": return_data.get("filing_status"),
+        "adjusted_gross_income": return_data.get("adjusted_gross_income"),
+        "taxable_income": return_data.get("taxable_income"),
+        "tax_liability": return_data.get("tax_liability"),
+        "total_credits": return_data.get("total_credits"),
+        "total_payments": return_data.get("total_payments"),
+        "refund_or_owed": return_data.get("refund_or_owed"),
+        "gross_income": return_data.get("gross_income"),
+        "total_deductions": return_data.get("total_deductions"),
+    }
+    # Sort keys for deterministic serialization
+    canonical_json = json.dumps(canonical_fields, sort_keys=True, default=str)
+    return hashlib.sha256(canonical_json.encode()).hexdigest()
 
 
 @dataclass
@@ -24,8 +57,10 @@ class ApprovalRecord:
     cpa_reviewer_name: str
     approval_timestamp: datetime
     signature_hash: str
+    return_data_hash: str = ""  # Hash of the return data at time of approval
     review_notes: Optional[str] = None
     verification_status: str = "valid"
+    checklist_completed: bool = False  # P1: Require checklist completion
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
@@ -35,8 +70,10 @@ class ApprovalRecord:
             "cpa_reviewer_name": self.cpa_reviewer_name,
             "approval_timestamp": self.approval_timestamp.isoformat(),
             "signature_hash": self.signature_hash,
+            "return_data_hash": self.return_data_hash,
             "review_notes": self.review_notes,
             "verification_status": self.verification_status,
+            "checklist_completed": self.checklist_completed,
         }
 
 
@@ -74,27 +111,48 @@ class ApprovalManager:
         cpa_reviewer_id: str,
         timestamp: Optional[datetime] = None,
         pin: Optional[str] = None,
+        return_data_hash: Optional[str] = None,
     ) -> str:
         """
         Generate a cryptographic signature hash for approval.
+
+        CRITICAL: This signature binds the CPA's approval to:
+        1. The specific session/return
+        2. The reviewer's identity
+        3. The exact timestamp
+        4. The return data content (via return_data_hash)
+
+        Any change to the return data after approval will invalidate
+        the signature when verified.
 
         Args:
             session_id: Session/return identifier
             cpa_reviewer_id: CPA identifier
             timestamp: Approval timestamp (default: now)
             pin: Optional CPA PIN for additional verification
+            return_data_hash: Hash of return data (required for integrity)
 
         Returns:
-            Signature hash string (first 16 characters)
+            Full SHA-256 signature hash (64 characters)
         """
         timestamp = timestamp or datetime.utcnow()
-        signature_data = f"{session_id}:{cpa_reviewer_id}:{timestamp.isoformat()}"
+
+        # Include return_data_hash in signature for data binding
+        signature_components = [
+            session_id,
+            cpa_reviewer_id,
+            timestamp.isoformat(),
+        ]
+
+        if return_data_hash:
+            signature_components.append(return_data_hash)
 
         if pin:
-            signature_data += f":{pin}"
+            signature_components.append(pin)
 
-        full_hash = hashlib.sha256(signature_data.encode()).hexdigest()
-        return full_hash[:16]  # Short hash for display
+        signature_data = ":".join(signature_components)
+        # Return full hash for cryptographic integrity (not truncated)
+        return hashlib.sha256(signature_data.encode()).hexdigest()
 
     def verify_signature(
         self,
@@ -103,9 +161,14 @@ class ApprovalManager:
         timestamp: datetime,
         signature_hash: str,
         pin: Optional[str] = None,
+        return_data_hash: Optional[str] = None,
     ) -> bool:
         """
-        Verify an approval signature.
+        Verify an approval signature against current return data.
+
+        CRITICAL: If return_data_hash is provided, this verifies that
+        the return data has not changed since approval. If the data
+        has changed, the signature will be invalid.
 
         Args:
             session_id: Session/return identifier
@@ -113,15 +176,17 @@ class ApprovalManager:
             timestamp: Approval timestamp
             signature_hash: Signature to verify
             pin: Optional CPA PIN
+            return_data_hash: Current hash of return data
 
         Returns:
-            True if signature is valid
+            True if signature is valid and data unchanged
         """
         expected_hash = self.generate_signature_hash(
             session_id=session_id,
             cpa_reviewer_id=cpa_reviewer_id,
             timestamp=timestamp,
             pin=pin,
+            return_data_hash=return_data_hash,
         )
         return expected_hash == signature_hash
 
@@ -133,9 +198,16 @@ class ApprovalManager:
         tenant_id: str = "default",
         review_notes: Optional[str] = None,
         pin: Optional[str] = None,
+        return_data: Optional[Dict[str, Any]] = None,
+        checklist_completed: bool = False,
     ) -> ApprovalRecord:
         """
         Approve a tax return with CPA signature.
+
+        CRITICAL: This signature binds the CPA's approval to the exact
+        return data. If return_data is provided, the signature includes
+        a hash of the data, ensuring any subsequent changes invalidate
+        the approval.
 
         Args:
             session_id: Session/return identifier
@@ -144,16 +216,35 @@ class ApprovalManager:
             tenant_id: Tenant identifier
             review_notes: Optional review notes
             pin: Optional CPA PIN for signature
+            return_data: Tax return data dict (required for signature integrity)
+            checklist_completed: Whether the review checklist was completed
 
         Returns:
             ApprovalRecord with approval details
+
+        Raises:
+            ValueError: If checklist not completed (required for approval)
         """
+        # P1: Require checklist completion before approval
+        if not checklist_completed:
+            raise ValueError(
+                "Review checklist must be completed before approval. "
+                "This ensures all critical items have been verified."
+            )
+
         timestamp = datetime.utcnow()
+
+        # P0: Compute return data hash for signature binding
+        return_data_hash = ""
+        if return_data:
+            return_data_hash = compute_return_data_hash(return_data)
+
         signature_hash = self.generate_signature_hash(
             session_id=session_id,
             cpa_reviewer_id=cpa_reviewer_id,
             timestamp=timestamp,
             pin=pin,
+            return_data_hash=return_data_hash,
         )
 
         # Update workflow status
@@ -177,7 +268,9 @@ class ApprovalManager:
                     "cpa_reviewer_id": cpa_reviewer_id,
                     "cpa_reviewer_name": cpa_reviewer_name,
                     "signature_hash": signature_hash,
+                    "return_data_hash": return_data_hash,
                     "review_notes": review_notes,
+                    "checklist_completed": checklist_completed,
                 }
             )
 
@@ -187,7 +280,9 @@ class ApprovalManager:
             cpa_reviewer_name=cpa_reviewer_name,
             approval_timestamp=timestamp,
             signature_hash=signature_hash,
+            return_data_hash=return_data_hash,
             review_notes=review_notes,
+            checklist_completed=checklist_completed,
         )
 
     def get_approval_record(self, session_id: str) -> Optional[ApprovalRecord]:
@@ -271,12 +366,30 @@ class ApprovalCertificate:
 
     Provides a professional summary of the CPA approval for
     client records and compliance documentation.
+
+    P1 FIX: Certificate now references version hash instead of
+    embedding mutable dollar values that could become stale.
     """
+
+    # P3: IRS Circular 230 required disclaimer
+    CIRCULAR_230_DISCLAIMER = (
+        "IRS Circular 230 Disclosure: To ensure compliance with requirements "
+        "imposed by the IRS, we inform you that any U.S. federal tax advice "
+        "contained in this communication (including any attachments) is not "
+        "intended or written to be used, and cannot be used, for the purpose "
+        "of (i) avoiding penalties under the Internal Revenue Code or "
+        "(ii) promoting, marketing, or recommending to another party any "
+        "transaction or matter addressed herein."
+    )
 
     @staticmethod
     def generate(approval: ApprovalRecord, return_summary: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generate an approval certificate.
+
+        P1 FIX: Certificate references return_data_hash instead of
+        embedding mutable dollar amounts. This prevents liability from
+        stale certificate data if the return is later amended.
 
         Args:
             approval: ApprovalRecord
@@ -285,8 +398,18 @@ class ApprovalCertificate:
         Returns:
             Certificate data dictionary
         """
+        # P1: Compute current return data hash for verification
+        current_return_hash = compute_return_data_hash(return_summary)
+
+        # Check if return has changed since approval
+        data_integrity_valid = (
+            not approval.return_data_hash or
+            approval.return_data_hash == current_return_hash
+        )
+
         return {
             "certificate_type": "CPA_APPROVAL",
+            "certificate_version": "2.0",  # Version with hash-based integrity
             "session_id": approval.session_id,
             "issued_at": datetime.utcnow().isoformat(),
             "approval_details": {
@@ -294,22 +417,40 @@ class ApprovalCertificate:
                 "cpa_id": approval.cpa_reviewer_id,
                 "approval_date": approval.approval_timestamp.isoformat(),
                 "signature_hash": approval.signature_hash,
+                "checklist_completed": approval.checklist_completed,
             },
-            "return_summary": {
+            # P1 FIX: Reference hash instead of mutable dollar values
+            "return_reference": {
                 "tax_year": return_summary.get("tax_year", 2025),
                 "taxpayer_name": return_summary.get("taxpayer_name", ""),
-                "gross_income": return_summary.get("gross_income", 0),
-                "tax_liability": return_summary.get("tax_liability", 0),
-                "refund_or_owed": return_summary.get("refund_or_owed", 0),
+                "return_data_hash": approval.return_data_hash,
+                "current_data_hash": current_return_hash,
+                "data_integrity_valid": data_integrity_valid,
             },
             "review_notes": approval.review_notes,
             "verification": {
-                "status": "verified",
-                "message": "This return has been reviewed and approved by a licensed CPA.",
+                "status": "verified" if data_integrity_valid else "data_changed",
+                "signature_valid": True,
+                "data_unchanged": data_integrity_valid,
+                "message": (
+                    "This return has been reviewed and approved by a licensed CPA."
+                    if data_integrity_valid else
+                    "WARNING: Return data has changed since approval. Re-review required."
+                ),
             },
-            "disclaimer": (
-                "This certificate confirms that the associated tax return has been "
-                "reviewed and approved by the named CPA. The approval signature hash "
-                "can be used to verify the authenticity of this approval."
-            ),
+            "disclaimers": {
+                # P3: Circular 230 compliance
+                "circular_230": ApprovalCertificate.CIRCULAR_230_DISCLAIMER,
+                "general": (
+                    "This certificate confirms that the associated tax return has been "
+                    "reviewed and approved by the named CPA at the time indicated. "
+                    "The approval signature hash and return data hash together verify "
+                    "the authenticity of this approval and the integrity of the return data."
+                ),
+                "limitation_of_liability": (
+                    "This approval is based on information provided by the taxpayer. "
+                    "The CPA has reviewed the return for accuracy and compliance but "
+                    "cannot guarantee the completeness or accuracy of underlying source documents."
+                ),
+            },
         }

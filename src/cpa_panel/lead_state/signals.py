@@ -240,6 +240,127 @@ class CommitmentSignal:
 
 
 # =============================================================================
+# P1: FINANCIAL INDICATOR SIGNALS (High-Value Lead Qualification)
+# =============================================================================
+
+class FinancialIndicatorSignal:
+    """
+    Financial indicator signals identify high-value prospects.
+
+    These signals detect financial complexity that warrants CPA advisory services
+    and higher engagement pricing tiers.
+    """
+
+    INVESTMENT_PORTFOLIO = LeadSignal(
+        signal_id="financial.investment_portfolio",
+        name="Investment Portfolio",
+        signal_type=SignalType.COMMITMENT,
+        strength=SignalStrength.STRONG,
+        description="Prospect has significant investment income (dividends, capital gains)",
+        minimum_state_for=LeadState.HIGH_LEVERAGE,
+    )
+
+    REAL_ESTATE_HOLDINGS = LeadSignal(
+        signal_id="financial.real_estate_holdings",
+        name="Real Estate Holdings",
+        signal_type=SignalType.COMMITMENT,
+        strength=SignalStrength.GOLD,
+        description="Prospect has rental properties or real estate investments",
+        minimum_state_for=LeadState.HIGH_LEVERAGE,
+    )
+
+    RETIREMENT_DISTRIBUTIONS = LeadSignal(
+        signal_id="financial.retirement_distributions",
+        name="Retirement Distributions",
+        signal_type=SignalType.COMMITMENT,
+        strength=SignalStrength.STRONG,
+        description="Prospect is taking or planning retirement distributions",
+        minimum_state_for=LeadState.ADVISORY_READY,
+    )
+
+    ESTATE_TRUST_INVOLVEMENT = LeadSignal(
+        signal_id="financial.estate_trust",
+        name="Estate/Trust Involvement",
+        signal_type=SignalType.COMMITMENT,
+        strength=SignalStrength.GOLD,
+        description="Prospect has estate planning or trust-related tax needs",
+        minimum_state_for=LeadState.HIGH_LEVERAGE,
+    )
+
+    HIGH_LIABILITY_INDICATED = LeadSignal(
+        signal_id="financial.high_liability",
+        name="High Tax Liability",
+        signal_type=SignalType.COMMITMENT,
+        strength=SignalStrength.GOLD,
+        description="Prospect has estimated tax liability >$50,000",
+        minimum_state_for=LeadState.HIGH_LEVERAGE,
+    )
+
+    MULTI_STATE_INCOME = LeadSignal(
+        signal_id="financial.multi_state",
+        name="Multi-State Income",
+        signal_type=SignalType.COMMITMENT,
+        strength=SignalStrength.STRONG,
+        description="Prospect has income from multiple states",
+        minimum_state_for=LeadState.HIGH_LEVERAGE,
+    )
+
+    FOREIGN_INCOME_ASSETS = LeadSignal(
+        signal_id="financial.foreign_income",
+        name="Foreign Income/Assets",
+        signal_type=SignalType.COMMITMENT,
+        strength=SignalStrength.GOLD,
+        description="Prospect has foreign income, assets, or reporting requirements",
+        minimum_state_for=LeadState.HIGH_LEVERAGE,
+    )
+
+    CRYPTO_ACTIVITY = LeadSignal(
+        signal_id="financial.crypto_activity",
+        name="Cryptocurrency Activity",
+        signal_type=SignalType.COMMITMENT,
+        strength=SignalStrength.STRONG,
+        description="Prospect has cryptocurrency transactions requiring reporting",
+        minimum_state_for=LeadState.HIGH_LEVERAGE,
+    )
+
+    SELF_EMPLOYMENT_SIGNIFICANT = LeadSignal(
+        signal_id="financial.self_employment",
+        name="Significant Self-Employment",
+        signal_type=SignalType.COMMITMENT,
+        strength=SignalStrength.GOLD,
+        description="Prospect has self-employment income >$100,000",
+        minimum_state_for=LeadState.HIGH_LEVERAGE,
+    )
+
+    EQUITY_COMPENSATION = LeadSignal(
+        signal_id="financial.equity_compensation",
+        name="Equity Compensation",
+        signal_type=SignalType.COMMITMENT,
+        strength=SignalStrength.GOLD,
+        description="Prospect has stock options, RSUs, or other equity compensation",
+        minimum_state_for=LeadState.HIGH_LEVERAGE,
+    )
+
+    AMT_EXPOSURE = LeadSignal(
+        signal_id="financial.amt_exposure",
+        name="AMT Exposure",
+        signal_type=SignalType.COMMITMENT,
+        strength=SignalStrength.STRONG,
+        description="Prospect may be subject to Alternative Minimum Tax",
+        minimum_state_for=LeadState.HIGH_LEVERAGE,
+    )
+
+    ESTIMATED_TAX_PENALTIES = LeadSignal(
+        signal_id="financial.estimated_tax_penalties",
+        name="Estimated Tax Penalty Risk",
+        signal_type=SignalType.COMMITMENT,
+        strength=SignalStrength.STRONG,
+        description="Prospect at risk for underpayment penalties",
+        minimum_state_for=LeadState.ADVISORY_READY,
+    )
+
+
+# =============================================================================
 # SIGNAL CATALOG
 # =============================================================================
 
@@ -267,6 +388,19 @@ SIGNAL_CATALOG: Dict[str, LeadSignal] = {
     CommitmentSignal.BUSINESS_OWNER.signal_id: CommitmentSignal.BUSINESS_OWNER,
     CommitmentSignal.MULTIPLE_OPPORTUNITIES.signal_id: CommitmentSignal.MULTIPLE_OPPORTUNITIES,
     CommitmentSignal.URGENCY_INDICATED.signal_id: CommitmentSignal.URGENCY_INDICATED,
+    # P1: Financial indicator signals
+    FinancialIndicatorSignal.INVESTMENT_PORTFOLIO.signal_id: FinancialIndicatorSignal.INVESTMENT_PORTFOLIO,
+    FinancialIndicatorSignal.REAL_ESTATE_HOLDINGS.signal_id: FinancialIndicatorSignal.REAL_ESTATE_HOLDINGS,
+    FinancialIndicatorSignal.RETIREMENT_DISTRIBUTIONS.signal_id: FinancialIndicatorSignal.RETIREMENT_DISTRIBUTIONS,
+    FinancialIndicatorSignal.ESTATE_TRUST_INVOLVEMENT.signal_id: FinancialIndicatorSignal.ESTATE_TRUST_INVOLVEMENT,
+    FinancialIndicatorSignal.HIGH_LIABILITY_INDICATED.signal_id: FinancialIndicatorSignal.HIGH_LIABILITY_INDICATED,
+    FinancialIndicatorSignal.MULTI_STATE_INCOME.signal_id: FinancialIndicatorSignal.MULTI_STATE_INCOME,
+    FinancialIndicatorSignal.FOREIGN_INCOME_ASSETS.signal_id: FinancialIndicatorSignal.FOREIGN_INCOME_ASSETS,
+    FinancialIndicatorSignal.CRYPTO_ACTIVITY.signal_id: FinancialIndicatorSignal.CRYPTO_ACTIVITY,
+    FinancialIndicatorSignal.SELF_EMPLOYMENT_SIGNIFICANT.signal_id: FinancialIndicatorSignal.SELF_EMPLOYMENT_SIGNIFICANT,
+    FinancialIndicatorSignal.EQUITY_COMPENSATION.signal_id: FinancialIndicatorSignal.EQUITY_COMPENSATION,
+    FinancialIndicatorSignal.AMT_EXPOSURE.signal_id: FinancialIndicatorSignal.AMT_EXPOSURE,
+    FinancialIndicatorSignal.ESTIMATED_TAX_PENALTIES.signal_id: FinancialIndicatorSignal.ESTIMATED_TAX_PENALTIES,
 }
 
 

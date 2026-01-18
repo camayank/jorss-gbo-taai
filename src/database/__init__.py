@@ -46,16 +46,26 @@ from .validation import (
     IRSComplianceValidator,
 )
 
-# Async database components
-from .async_engine import (
-    get_async_engine,
-    get_async_session,
-    get_async_session_factory,
-    check_database_connection,
-    init_database,
-    close_database,
-    DatabaseHealth,
-)
+# Async database components (optional - requires config module)
+try:
+    from .async_engine import (
+        get_async_engine,
+        get_async_session,
+        get_async_session_factory,
+        check_database_connection,
+        init_database,
+        close_database,
+        DatabaseHealth,
+    )
+except ImportError:
+    # Config module not available, async engine not usable
+    get_async_engine = None
+    get_async_session = None
+    get_async_session_factory = None
+    check_database_connection = None
+    init_database = None
+    close_database = None
+    DatabaseHealth = None
 
 from .transaction import (
     TransactionManager,

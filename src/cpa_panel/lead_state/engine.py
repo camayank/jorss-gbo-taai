@@ -23,7 +23,7 @@ from .states import (
 from .signals import LeadSignal, SignalType, SIGNAL_CATALOG, get_signal
 
 if TYPE_CHECKING:
-    from database.lead_state_persistence import LeadStatePersistence
+    from src.database.lead_state_persistence import LeadStatePersistence
 
 logger = logging.getLogger(__name__)
 

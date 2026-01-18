@@ -27,6 +27,7 @@ class ChangeType(str, Enum):
     DEPENDENTS = "dependents"
     STATE = "state"
     OTHER = "other"
+    YEAR_OVER_YEAR = "year_over_year"  # P0: Prior year comparison
 
 
 @dataclass
@@ -374,3 +375,276 @@ class DeltaAnalyzer:
             "marginal_rate_used": marginal_rate,
             "is_beneficial": tax_change < 0,
         }
+
+    # =========================================================================
+    # P0: PRIOR YEAR COMPARISON
+    # =========================================================================
+
+    def compare_years(
+        self,
+        session_id: str,
+        current_year_return: Any,
+        prior_year_return: Any,
+    ) -> Dict[str, Any]:
+        """
+        Compare current year return to prior year for CPA review.
+
+        P0 CRITICAL: CPAs need year-over-year comparison to:
+        1. Identify significant changes that need explanation
+        2. Spot anomalies that may indicate errors or audit risk
+        3. Prepare clients for conversations about variances
+
+        Args:
+            session_id: Session identifier
+            current_year_return: Current TaxReturn object
+            prior_year_return: Prior year TaxReturn object
+
+        Returns:
+            Comprehensive YoY comparison with insights
+        """
+        # Extract metrics from current year
+        current = TaxMetrics(
+            adjusted_gross_income=float(current_year_return.adjusted_gross_income or 0),
+            taxable_income=float(current_year_return.taxable_income or 0),
+            tax_liability=float(current_year_return.tax_liability or 0),
+            total_credits=float(current_year_return.total_credits or 0),
+            total_payments=float(current_year_return.total_payments or 0),
+            refund_or_owed=float(current_year_return.refund_or_owed or 0),
+            effective_rate=self._calculate_effective_rate(
+                float(current_year_return.tax_liability or 0),
+                float(current_year_return.adjusted_gross_income or 0)
+            ),
+            marginal_rate=self._get_marginal_rate(
+                float(current_year_return.taxable_income or 0)
+            ),
+        )
+
+        # Extract metrics from prior year
+        prior = TaxMetrics(
+            adjusted_gross_income=float(prior_year_return.adjusted_gross_income or 0),
+            taxable_income=float(prior_year_return.taxable_income or 0),
+            tax_liability=float(prior_year_return.tax_liability or 0),
+            total_credits=float(prior_year_return.total_credits or 0),
+            total_payments=float(prior_year_return.total_payments or 0),
+            refund_or_owed=float(prior_year_return.refund_or_owed or 0),
+            effective_rate=self._calculate_effective_rate(
+                float(prior_year_return.tax_liability or 0),
+                float(prior_year_return.adjusted_gross_income or 0)
+            ),
+            marginal_rate=self._get_marginal_rate(
+                float(prior_year_return.taxable_income or 0)
+            ),
+        )
+
+        # Calculate deltas
+        delta = DeltaMetrics(
+            agi_change=current.adjusted_gross_income - prior.adjusted_gross_income,
+            taxable_change=current.taxable_income - prior.taxable_income,
+            liability_change=current.tax_liability - prior.tax_liability,
+            credits_change=current.total_credits - prior.total_credits,
+            refund_change=current.refund_or_owed - prior.refund_or_owed,
+            effective_rate_change=current.effective_rate - prior.effective_rate,
+        )
+
+        # Calculate percentage changes
+        pct_changes = PercentageChanges(
+            liability_pct=(delta.liability_change / prior.tax_liability * 100)
+                if prior.tax_liability else 0,
+            refund_pct=(delta.refund_change / abs(prior.refund_or_owed) * 100)
+                if prior.refund_or_owed else 0,
+            agi_pct=(delta.agi_change / prior.adjusted_gross_income * 100)
+                if prior.adjusted_gross_income else 0,
+        )
+
+        # Generate YoY-specific insights
+        insights = self._generate_yoy_insights(current, prior, delta, pct_changes)
+
+        # Identify significant variances (>10% change flagged)
+        significant_variances = self._identify_significant_variances(
+            current, prior, delta, pct_changes
+        )
+
+        # Generate audit risk indicators
+        audit_flags = self._assess_yoy_audit_risk(current, prior, delta, pct_changes)
+
+        current_year = getattr(current_year_return, 'tax_year', 2025)
+        prior_year = getattr(prior_year_return, 'tax_year', current_year - 1)
+
+        return {
+            "session_id": session_id,
+            "comparison_type": "year_over_year",
+            "current_year": current_year,
+            "prior_year": prior_year,
+            "current_year_metrics": current.to_dict(),
+            "prior_year_metrics": prior.to_dict(),
+            "delta_metrics": delta.to_dict(),
+            "percentage_changes": pct_changes.to_dict(),
+            "is_beneficial": delta.is_beneficial,
+            "insights": insights,
+            "significant_variances": significant_variances,
+            "audit_risk_indicators": audit_flags,
+            "cpa_review_required": len(significant_variances) > 0 or len(audit_flags) > 0,
+            "analysis_timestamp": datetime.utcnow().isoformat(),
+            "visualization": {
+                "type": "yoy_bar_comparison",
+                "metrics": ["tax_liability", "adjusted_gross_income", "refund_or_owed"],
+                "highlight_variances": True,
+            },
+        }
+
+    def _generate_yoy_insights(
+        self,
+        current: TaxMetrics,
+        prior: TaxMetrics,
+        delta: DeltaMetrics,
+        pct: PercentageChanges,
+    ) -> List[str]:
+        """Generate year-over-year insights for CPA review."""
+        insights = []
+
+        # Income changes
+        if abs(pct.agi_pct) > 10:
+            direction = "increased" if delta.agi_change > 0 else "decreased"
+            insights.append(
+                f"AGI {direction} by ${abs(delta.agi_change):,.0f} ({abs(pct.agi_pct):.1f}%) year-over-year"
+            )
+
+        # Tax liability changes
+        if abs(pct.liability_pct) > 10:
+            direction = "increased" if delta.liability_change > 0 else "decreased"
+            insights.append(
+                f"Tax liability {direction} by ${abs(delta.liability_change):,.0f} ({abs(pct.liability_pct):.1f}%)"
+            )
+
+        # Effective rate changes
+        if abs(delta.effective_rate_change) > 0.02:  # 2 percentage points
+            direction = "higher" if delta.effective_rate_change > 0 else "lower"
+            insights.append(
+                f"Effective tax rate is {direction} ({current.effective_rate*100:.1f}% vs {prior.effective_rate*100:.1f}% last year)"
+            )
+
+        # Marginal rate bracket changes
+        if current.marginal_rate != prior.marginal_rate:
+            direction = "higher" if current.marginal_rate > prior.marginal_rate else "lower"
+            insights.append(
+                f"Taxpayer moved to a {direction} marginal bracket ({int(current.marginal_rate*100)}% vs {int(prior.marginal_rate*100)}%)"
+            )
+
+        # Credit changes
+        if abs(delta.credits_change) > 500:
+            direction = "increased" if delta.credits_change > 0 else "decreased"
+            insights.append(
+                f"Total credits {direction} by ${abs(delta.credits_change):,.0f}"
+            )
+
+        # Refund/owed changes
+        if current.refund_or_owed > 0 and prior.refund_or_owed < 0:
+            insights.append(
+                f"Position changed from owing ${abs(prior.refund_or_owed):,.0f} to refund of ${current.refund_or_owed:,.0f}"
+            )
+        elif current.refund_or_owed < 0 and prior.refund_or_owed > 0:
+            insights.append(
+                f"Position changed from refund of ${prior.refund_or_owed:,.0f} to owing ${abs(current.refund_or_owed):,.0f}"
+            )
+
+        return insights
+
+    def _identify_significant_variances(
+        self,
+        current: TaxMetrics,
+        prior: TaxMetrics,
+        delta: DeltaMetrics,
+        pct: PercentageChanges,
+    ) -> List[Dict[str, Any]]:
+        """Identify significant variances requiring CPA explanation."""
+        variances = []
+
+        # >25% AGI change is very significant
+        if abs(pct.agi_pct) > 25:
+            variances.append({
+                "metric": "adjusted_gross_income",
+                "severity": "high",
+                "change_pct": round(pct.agi_pct, 1),
+                "change_amount": round(delta.agi_change, 2),
+                "recommendation": "Document reason for significant income change",
+            })
+        elif abs(pct.agi_pct) > 10:
+            variances.append({
+                "metric": "adjusted_gross_income",
+                "severity": "medium",
+                "change_pct": round(pct.agi_pct, 1),
+                "change_amount": round(delta.agi_change, 2),
+                "recommendation": "Note income change for client discussion",
+            })
+
+        # >50% liability change
+        if abs(pct.liability_pct) > 50:
+            variances.append({
+                "metric": "tax_liability",
+                "severity": "high",
+                "change_pct": round(pct.liability_pct, 1),
+                "change_amount": round(delta.liability_change, 2),
+                "recommendation": "Review all changes that drove liability variance",
+            })
+        elif abs(pct.liability_pct) > 20:
+            variances.append({
+                "metric": "tax_liability",
+                "severity": "medium",
+                "change_pct": round(pct.liability_pct, 1),
+                "change_amount": round(delta.liability_change, 2),
+                "recommendation": "Verify liability change aligns with income changes",
+            })
+
+        # Large credit changes
+        if abs(delta.credits_change) > 2000:
+            variances.append({
+                "metric": "total_credits",
+                "severity": "medium",
+                "change_amount": round(delta.credits_change, 2),
+                "recommendation": "Verify credit eligibility requirements are met",
+            })
+
+        return variances
+
+    def _assess_yoy_audit_risk(
+        self,
+        current: TaxMetrics,
+        prior: TaxMetrics,
+        delta: DeltaMetrics,
+        pct: PercentageChanges,
+    ) -> List[Dict[str, Any]]:
+        """Assess audit risk indicators based on YoY changes."""
+        flags = []
+
+        # Large AGI drop with same filing status could trigger scrutiny
+        if delta.agi_change < -50000 and pct.agi_pct < -30:
+            flags.append({
+                "indicator": "significant_income_drop",
+                "risk_level": "elevated",
+                "description": "Large income decrease may trigger IRS inquiry",
+                "recommendation": "Document job loss, retirement, or other reason for income drop",
+            })
+
+        # Large deduction increase relative to income
+        deduction_increase = delta.agi_change - delta.taxable_change
+        if deduction_increase > 20000 and current.adjusted_gross_income > 0:
+            deduction_pct_of_income = deduction_increase / current.adjusted_gross_income * 100
+            if deduction_pct_of_income > 15:
+                flags.append({
+                    "indicator": "deduction_spike",
+                    "risk_level": "moderate",
+                    "description": f"Deductions increased significantly ({deduction_pct_of_income:.0f}% of AGI)",
+                    "recommendation": "Ensure all deductions are well-documented",
+                })
+
+        # Effective rate significantly below expected
+        expected_min_rate = 0.10 if current.adjusted_gross_income > 50000 else 0.05
+        if current.effective_rate < expected_min_rate and current.adjusted_gross_income > 30000:
+            flags.append({
+                "indicator": "low_effective_rate",
+                "risk_level": "moderate",
+                "description": f"Effective rate ({current.effective_rate*100:.1f}%) is below typical range",
+                "recommendation": "Review credits and deductions for accuracy",
+            })
+
+        return flags

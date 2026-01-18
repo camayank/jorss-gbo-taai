@@ -249,8 +249,8 @@ class TestApprovalManager:
             timestamp=datetime(2025, 1, 15, 10, 0, 0)
         )
 
-        # Hash should be 16 characters
-        assert len(hash1) == 16
+        # Hash should be full SHA-256 (64 hex characters) for cryptographic integrity
+        assert len(hash1) == 64
         assert isinstance(hash1, str)
 
     def test_signature_hash_deterministic(self):

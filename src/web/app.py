@@ -801,6 +801,22 @@ def admin_dashboard(request: Request, path: str = ""):
     return templates.TemplateResponse("admin_dashboard.html", {"request": request})
 
 
+@app.get("/hub", response_class=HTMLResponse)
+@app.get("/system-hub", response_class=HTMLResponse)
+def system_hub(request: Request):
+    """
+    System Hub - Central Navigation Portal.
+
+    Provides comprehensive overview of:
+    - All user access portals (Consumer, CPA, Client, Admin)
+    - System architecture and RBAC hierarchy
+    - Core modules and their capabilities
+    - Key business flows and workflows
+    - Complete API reference
+    """
+    return templates.TemplateResponse("system_hub.html", {"request": request})
+
+
 @app.post("/api/chat")
 async def chat(request: Request, response: Response):
     body = await request.json()

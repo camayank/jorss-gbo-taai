@@ -93,7 +93,7 @@ class NotesManager:
     def _get_persistence(self):
         """Get or create persistence layer."""
         if self._persistence is None:
-            from database.session_persistence import get_session_persistence
+            from src.database.session_persistence import get_session_persistence
             self._persistence = get_session_persistence()
         return self._persistence
 
