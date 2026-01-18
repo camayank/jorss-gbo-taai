@@ -9028,6 +9028,34 @@
   <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg,.tiff" style="display:none" multiple />
 
   <script>
+    // ============ SECURITY UTILITIES ============
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = String(text);
+      return div.innerHTML;
+    }
+
+    function isValidUrl(url) {
+      if (!url) return false;
+      try {
+        const parsed = new URL(url, window.location.origin);
+        return ['http:', 'https:'].includes(parsed.protocol);
+      } catch {
+        return false;
+      }
+    }
+
+    function sanitizeClassName(className) {
+      if (!className) return '';
+      return String(className).replace(/[^a-zA-Z0-9_-]/g, '');
+    }
+
+    function sanitizeId(id) {
+      if (!id) return '';
+      return String(id).replace(/[^a-zA-Z0-9_-]/g, '');
+    }
+
     // ============ STATE MANAGEMENT ============
     const state = {
       currentStep: 1,
@@ -9183,7 +9211,7 @@
       toast.innerHTML = `
         <div class="toast-content">
           <span class="toast-icon">${type === 'success' ? '✓' : type === 'error' ? '✕' : type === 'warning' ? '⚠' : 'ℹ'}</span>
-          <span class="toast-message">${message}</span>
+          <span class="toast-message">${escapeHtml(message)}</span>
         </div>
         <button class="toast-close" onclick="this.parentElement.remove()">×</button>
       `;

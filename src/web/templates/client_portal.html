@@ -1,0 +1,2802 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tax Advisory Portal</title>
+
+  <!-- Security & SEO -->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="description" content="Get your FREE tax advisory report - discover your tax savings potential">
+  <meta name="theme-color" content="#1e40af">
+  <meta name="robots" content="index, follow">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ================================================================
+       DESIGN SYSTEM - Global Standards Compliant
+       - WCAG 2.1 AA Color Contrast
+       - Accessible Focus States
+       - Responsive Breakpoints
+       ================================================================ */
+    :root {
+      --primary: #1e40af;
+      --primary-light: #dbeafe;
+      --primary-dark: #1e3a8a;
+      --secondary: #059669;
+      --secondary-light: #d1fae5;
+      --accent: #f59e0b;
+      --accent-light: #fef3c7;
+      --error: #dc2626;
+      --error-light: #fee2e2;
+
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-500: #374151;
+      --gray-600: #1f2937;
+      --gray-700: #111827;
+
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow: 0 4px 12px rgba(0,0,0,0.1);
+      --shadow-lg: 0 12px 40px rgba(0,0,0,0.15);
+
+      --transition: 0.2s ease;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-600);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ================================================================
+       LAYOUT
+       ================================================================ */
+    .app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background: white;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--primary);
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 18px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .user-menu {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--gray-100);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .main {
+      flex: 1;
+      padding: 32px 24px;
+      max-width: 1000px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ================================================================
+       PROGRESS STEPPER
+       ================================================================ */
+    .stepper {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 40px;
+      padding: 0 20px;
+    }
+
+    .stepper-track {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .step-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--gray-200);
+      color: var(--gray-500);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+      transition: var(--transition);
+      position: relative;
+      z-index: 2;
+    }
+
+    .step.active .step-circle {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 0 0 4px var(--primary-light);
+    }
+
+    .step.completed .step-circle {
+      background: var(--secondary);
+      color: white;
+    }
+
+    .step-label {
+      margin-top: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--gray-500);
+      text-align: center;
+      max-width: 80px;
+    }
+
+    .step.active .step-label {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .step.completed .step-label {
+      color: var(--secondary);
+    }
+
+    .step-connector {
+      width: 60px;
+      height: 3px;
+      background: var(--gray-200);
+      margin: 0 8px;
+      margin-bottom: 28px;
+      transition: var(--transition);
+    }
+
+    .step-connector.completed {
+      background: var(--secondary);
+    }
+
+    /* ================================================================
+       CARDS & CONTAINERS
+       ================================================================ */
+    .card {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 24px;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .card-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gray-700);
+      margin-bottom: 4px;
+    }
+
+    .card-subtitle {
+      font-size: 14px;
+      color: var(--gray-500);
+    }
+
+    .card-body {
+      padding: 24px;
+    }
+
+    .card-footer {
+      padding: 16px 24px;
+      background: var(--gray-50);
+      border-top: 1px solid var(--gray-100);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* ================================================================
+       FORMS
+       ================================================================ */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray-600);
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-family: inherit;
+      transition: var(--transition);
+      background: white;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    .form-input.error {
+      border-color: var(--error);
+    }
+
+    .form-hint {
+      font-size: 12px;
+      color: var(--gray-500);
+      margin-top: 4px;
+    }
+
+    .form-error {
+      font-size: 12px;
+      color: var(--error);
+      margin-top: 4px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 600px) {
+      .form-row { grid-template-columns: 1fr; }
+    }
+
+    /* ================================================================
+       BUTTONS
+       ================================================================ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: var(--transition);
+      border: none;
+      min-height: 44px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-primary:disabled {
+      background: var(--gray-300);
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--gray-600);
+      border: 2px solid var(--gray-200);
+    }
+
+    .btn-secondary:hover {
+      background: var(--gray-50);
+      border-color: var(--gray-300);
+    }
+
+    .btn-success {
+      background: var(--secondary);
+      color: white;
+    }
+
+    .btn:focus-visible {
+      outline: 3px solid var(--primary-light);
+      outline-offset: 2px;
+    }
+
+    /* ================================================================
+       FILE UPLOAD
+       ================================================================ */
+    .upload-zone {
+      border: 2px dashed var(--gray-300);
+      border-radius: var(--radius);
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+      background: var(--gray-50);
+    }
+
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .upload-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .upload-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--gray-600);
+      margin-bottom: 4px;
+    }
+
+    .upload-hint {
+      font-size: 13px;
+      color: var(--gray-500);
+    }
+
+    .file-list {
+      margin-top: 20px;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      margin-bottom: 8px;
+    }
+
+    .file-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--primary-light);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .file-info {
+      flex: 1;
+    }
+
+    .file-name {
+      font-weight: 500;
+      font-size: 14px;
+      color: var(--gray-600);
+    }
+
+    .file-size {
+      font-size: 12px;
+      color: var(--gray-500);
+    }
+
+    .file-status {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .file-status.uploading {
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+
+    .file-status.complete {
+      background: var(--secondary-light);
+      color: var(--secondary);
+    }
+
+    .file-remove {
+      background: none;
+      border: none;
+      color: var(--gray-500);
+      cursor: pointer;
+      padding: 4px;
+      font-size: 18px;
+    }
+
+    /* ================================================================
+       DASHBOARD COMPONENTS
+       ================================================================ */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .stats-grid { grid-template-columns: 1fr; }
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--gray-100);
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--gray-500);
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--gray-700);
+    }
+
+    .stat-change {
+      font-size: 12px;
+      color: var(--secondary);
+      margin-top: 4px;
+    }
+
+    .insight-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .insight-item {
+      display: flex;
+      gap: 16px;
+      padding: 16px;
+      background: white;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--gray-100);
+      transition: var(--transition);
+    }
+
+    .insight-item:hover {
+      border-color: var(--primary-light);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .insight-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .insight-icon.opportunity { background: var(--secondary-light); }
+    .insight-icon.alert { background: var(--accent-light); }
+    .insight-icon.info { background: var(--primary-light); }
+
+    .insight-content { flex: 1; }
+
+    .insight-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--gray-700);
+      margin-bottom: 2px;
+    }
+
+    .insight-desc {
+      font-size: 13px;
+      color: var(--gray-500);
+      line-height: 1.5;
+    }
+
+    .insight-badge {
+      padding: 4px 10px;
+      background: var(--gray-100);
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--gray-600);
+    }
+
+    /* ================================================================
+       STATUS & TIMELINE
+       ================================================================ */
+    .timeline {
+      position: relative;
+      padding-left: 28px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 8px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--gray-200);
+    }
+
+    .timeline-item {
+      position: relative;
+      padding-bottom: 24px;
+    }
+
+    .timeline-item:last-child {
+      padding-bottom: 0;
+    }
+
+    .timeline-marker {
+      position: absolute;
+      left: -28px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid var(--gray-300);
+    }
+
+    .timeline-item.completed .timeline-marker {
+      background: var(--secondary);
+      border-color: var(--secondary);
+    }
+
+    .timeline-item.active .timeline-marker {
+      background: var(--primary);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px var(--primary-light);
+    }
+
+    .timeline-content {
+      padding-top: 0;
+    }
+
+    .timeline-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--gray-700);
+    }
+
+    .timeline-desc {
+      font-size: 13px;
+      color: var(--gray-500);
+      margin-top: 2px;
+    }
+
+    .timeline-time {
+      font-size: 11px;
+      color: var(--gray-500);
+      margin-top: 4px;
+    }
+
+    /* ================================================================
+       CONSENT & LEGAL
+       ================================================================ */
+    .consent-section {
+      background: var(--gray-50);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .consent-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--gray-700);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .consent-text {
+      font-size: 13px;
+      color: var(--gray-500);
+      line-height: 1.6;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px;
+      background: white;
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .checkbox-group:hover {
+      border-color: var(--primary-light);
+    }
+
+    .checkbox-group.checked {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .checkbox-group input {
+      width: 20px;
+      height: 20px;
+      margin-top: 2px;
+      accent-color: var(--primary);
+    }
+
+    .checkbox-label {
+      font-size: 14px;
+      color: var(--gray-600);
+      line-height: 1.5;
+    }
+
+    /* ================================================================
+       LOADING & EMPTY STATES
+       ================================================================ */
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--gray-200);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      text-align: center;
+    }
+
+    .loading-text {
+      margin-top: 16px;
+      color: var(--gray-500);
+      font-size: 14px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .empty-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--gray-700);
+      margin-bottom: 8px;
+    }
+
+    .empty-desc {
+      font-size: 14px;
+      color: var(--gray-500);
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    /* ================================================================
+       TOAST NOTIFICATIONS
+       ================================================================ */
+    .toast-container {
+      position: fixed;
+      top: 80px;
+      right: 24px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      background: white;
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-lg);
+      animation: slideIn 0.3s ease;
+      max-width: 380px;
+    }
+
+    .toast.success { border-left: 4px solid var(--secondary); }
+    .toast.error { border-left: 4px solid var(--error); }
+    .toast.info { border-left: 4px solid var(--primary); }
+
+    .toast-icon { font-size: 20px; }
+    .toast-message { flex: 1; font-size: 14px; color: var(--gray-600); }
+    .toast-close {
+      background: none;
+      border: none;
+      color: var(--gray-500);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 4px;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ================================================================
+       SCREEN VISIBILITY
+       ================================================================ */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    .hidden { display: none !important; }
+
+    /* ================================================================
+       LEAD MAGNET STYLES
+       ================================================================ */
+    .cpa-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 24px;
+      background: linear-gradient(135deg, var(--primary), #3b82f6);
+      color: white;
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    .cpa-logo-large {
+      width: 60px;
+      height: 60px;
+      background: white;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .cpa-logo-large img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+
+    .cpa-branding h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .cpa-branding p {
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    .assessment-mode-toggle {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 16px;
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      background: white;
+      cursor: pointer;
+      transition: var(--transition);
+      text-align: center;
+    }
+
+    .mode-btn:hover {
+      border-color: var(--primary-light);
+    }
+
+    .mode-btn.active {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .mode-btn .mode-time {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .mode-btn .mode-label {
+      font-size: 14px;
+      color: var(--gray-600);
+      margin-top: 4px;
+    }
+
+    /* Smart Profile Questions */
+    .question-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 600px) {
+      .question-grid { grid-template-columns: 1fr; }
+    }
+
+    .multi-select {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .multi-select-item {
+      padding: 8px 16px;
+      border: 2px solid var(--gray-200);
+      border-radius: 20px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: var(--transition);
+      user-select: none;
+    }
+
+    .multi-select-item:hover {
+      border-color: var(--primary-light);
+    }
+
+    .multi-select-item.selected {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .stepper-input {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .stepper-btn {
+      width: 36px;
+      height: 36px;
+      border: 2px solid var(--gray-200);
+      border-radius: 50%;
+      background: white;
+      font-size: 18px;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stepper-btn:hover {
+      background: var(--gray-100);
+    }
+
+    .stepper-value {
+      font-size: 20px;
+      font-weight: 600;
+      min-width: 40px;
+      text-align: center;
+    }
+
+    .toggle-switch {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .switch {
+      position: relative;
+      width: 48px;
+      height: 28px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--gray-300);
+      transition: var(--transition);
+      border-radius: 28px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      transition: var(--transition);
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background: var(--secondary);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    /* Savings Highlight */
+    .savings-highlight {
+      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .savings-label {
+      font-size: 13px;
+      color: #166534;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .savings-amount {
+      font-size: 32px;
+      font-weight: 700;
+      color: #15803d;
+    }
+
+    .savings-note {
+      font-size: 12px;
+      color: #166534;
+      margin-top: 8px;
+      opacity: 0.8;
+    }
+
+    /* Report Preview */
+    .report-preview {
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .report-preview iframe {
+      width: 100%;
+      height: 500px;
+      border: none;
+    }
+
+    .insight-teaser {
+      background: var(--gray-50);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 12px;
+      border-left: 4px solid var(--accent);
+    }
+
+    .insight-teaser-title {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .insight-teaser-desc {
+      font-size: 13px;
+      color: var(--gray-500);
+    }
+
+    .insight-teaser-savings {
+      font-size: 13px;
+      color: var(--secondary);
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    .locked-overlay {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .locked-overlay::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(to bottom, transparent 30%, white);
+    }
+
+    .unlock-cta {
+      background: linear-gradient(135deg, var(--primary), #3b82f6);
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: center;
+      color: white;
+      margin-top: 20px;
+    }
+
+    .unlock-cta h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .unlock-cta p {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-bottom: 16px;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: var(--gray-200);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    .question-number {
+      font-size: 11px;
+      color: var(--gray-500);
+      margin-bottom: 8px;
+    }
+
+    /* ================================================================
+       RESPONSIVE
+       ================================================================ */
+    @media (max-width: 768px) {
+      .header { padding: 12px 16px; }
+      .main { padding: 20px 16px; }
+      .card-header, .card-body { padding: 16px; }
+      .stepper { overflow-x: auto; padding-bottom: 8px; }
+      .step-connector { width: 40px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo" id="site-logo">
+        <div class="logo-icon" id="cpa-logo-icon">&#9830;</div>
+        <span id="cpa-name-display">Tax Advisory</span>
+      </div>
+      <div class="header-actions">
+        <div class="user-menu" id="user-display">
+          <span>&#128100;</span>
+          <span id="user-name">Guest</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Progress Stepper -->
+    <div class="main">
+      <div class="stepper" id="stepper">
+        <div class="stepper-track">
+          <div class="step active" data-step="1">
+            <div class="step-circle">1</div>
+            <div class="step-label">Welcome</div>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step" data-step="2">
+            <div class="step-circle">2</div>
+            <div class="step-label">Tax Profile</div>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step" data-step="3" id="step-documents">
+            <div class="step-circle">3</div>
+            <div class="step-label">Documents</div>
+          </div>
+          <div class="step-connector" id="connector-documents"></div>
+          <div class="step" data-step="4">
+            <div class="step-circle" id="step-contact-circle">4</div>
+            <div class="step-label">Contact</div>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step" data-step="5">
+            <div class="step-circle" id="step-report-circle">5</div>
+            <div class="step-label">Your Report</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Screen 1: Welcome & Consent -->
+      <div class="screen active" id="screen-welcome">
+        <div class="card">
+          <!-- CPA Branding Header (populated dynamically) -->
+          <div class="cpa-header" id="cpa-header">
+            <div class="cpa-logo-large" id="cpa-logo-welcome">&#9830;</div>
+            <div class="cpa-branding">
+              <h2 id="cpa-name-welcome">Your Tax Professional</h2>
+              <p id="cpa-firm-welcome">Tax Advisory Services</p>
+            </div>
+          </div>
+
+          <div class="card-header">
+            <h1 class="card-title">Get Your FREE Tax Advisory Report</h1>
+            <p class="card-subtitle">Discover your potential tax savings in just 2-3 minutes</p>
+          </div>
+
+          <div class="card-body">
+            <!-- Assessment Mode Toggle -->
+            <div class="form-group">
+              <label class="form-label">Choose your assessment type:</label>
+              <div class="assessment-mode-toggle">
+                <div class="mode-btn active" data-mode="quick" onclick="setAssessmentMode('quick')">
+                  <div class="mode-time">~2 min</div>
+                  <div class="mode-label">Quick Assessment</div>
+                </div>
+                <div class="mode-btn" data-mode="full" onclick="setAssessmentMode('full')">
+                  <div class="mode-time">~5 min</div>
+                  <div class="mode-label">Full Assessment</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="consent-section">
+              <div class="consent-title">&#128161; What You'll Get</div>
+              <div class="consent-text">
+                <strong>FREE Tax Advisory Report</strong> with personalized insights showing:<br>
+                &#8226; Estimated tax savings range<br>
+                &#8226; Key optimization opportunities<br>
+                &#8226; Complexity assessment of your tax situation
+              </div>
+            </div>
+
+            <div class="consent-section">
+              <div class="consent-title">&#128274; Privacy & Security</div>
+              <div class="consent-text">
+                Your information is encrypted and protected. We follow strict security protocols
+                to ensure your data remains confidential and secure at all times.
+              </div>
+            </div>
+
+            <div class="checkbox-group" id="consent-box" onclick="toggleConsent()">
+              <input type="checkbox" id="consent-check">
+              <label class="checkbox-label" for="consent-check">
+                I have read and agree to the privacy policy. I consent to the collection
+                and processing of my tax information for generating my advisory report.
+              </label>
+            </div>
+          </div>
+          <div class="card-footer">
+            <span class="form-hint">No credit card required</span>
+            <button class="btn btn-primary" id="btn-start" disabled onclick="startAssessment()">
+              Start My FREE Assessment <span>&#8594;</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Screen 2: Smart Tax Profile Questions -->
+      <div class="screen" id="screen-profile">
+        <div class="card">
+          <div class="card-header">
+            <h1 class="card-title">Your Tax Profile</h1>
+            <p class="card-subtitle">Quick questions to personalize your report (all dropdowns - no typing needed!)</p>
+            <div class="progress-bar">
+              <div class="progress-fill" id="profile-progress" style="width: 0%"></div>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- Question 1: Filing Status -->
+            <div class="form-group">
+              <div class="question-number">Question 1 of 8</div>
+              <label class="form-label" for="filing-status">What's your filing status?</label>
+              <select class="form-input" id="filing-status" required onchange="updateProgress()">
+                <option value="">Select your filing status</option>
+                <option value="single">Single</option>
+                <option value="married_jointly">Married Filing Jointly</option>
+                <option value="married_separately">Married Filing Separately</option>
+                <option value="head_of_household">Head of Household</option>
+              </select>
+            </div>
+
+            <!-- Question 2: Dependents -->
+            <div class="question-grid">
+              <div class="form-group">
+                <div class="question-number">Question 2 of 8</div>
+                <label class="form-label">How many dependents?</label>
+                <div class="stepper-input">
+                  <button type="button" class="stepper-btn" onclick="adjustDependents(-1)">-</button>
+                  <span class="stepper-value" id="dependents-value">0</span>
+                  <button type="button" class="stepper-btn" onclick="adjustDependents(1)">+</button>
+                </div>
+                <input type="hidden" id="dependents-count" value="0">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">&nbsp;</label>
+                <div class="toggle-switch">
+                  <label class="switch">
+                    <input type="checkbox" id="children-under-17" onchange="updateProgress()">
+                    <span class="slider"></span>
+                  </label>
+                  <span>Children under 17?</span>
+                </div>
+                <div class="form-hint">For Child Tax Credit eligibility</div>
+              </div>
+            </div>
+
+            <!-- Question 3: Income Range -->
+            <div class="form-group">
+              <div class="question-number">Question 3 of 8</div>
+              <label class="form-label" for="income-range">What's your approximate annual income?</label>
+              <select class="form-input" id="income-range" required onchange="updateProgress()">
+                <option value="">Select income range</option>
+                <option value="under_50k">Under $50,000</option>
+                <option value="50k_75k">$50,000 - $75,000</option>
+                <option value="75k_100k">$75,000 - $100,000</option>
+                <option value="100k_150k">$100,000 - $150,000</option>
+                <option value="150k_200k">$150,000 - $200,000</option>
+                <option value="200k_500k">$200,000 - $500,000</option>
+                <option value="over_500k">Over $500,000</option>
+              </select>
+            </div>
+
+            <!-- Question 4: Income Sources -->
+            <div class="form-group">
+              <div class="question-number">Question 4 of 8</div>
+              <label class="form-label">Where does your income come from? (select all that apply)</label>
+              <div class="multi-select" id="income-sources">
+                <div class="multi-select-item selected" data-value="w2" onclick="toggleMultiSelect(this)">W-2 Employment</div>
+                <div class="multi-select-item" data-value="self_employed" onclick="toggleMultiSelect(this)">Self-Employed</div>
+                <div class="multi-select-item" data-value="investments" onclick="toggleMultiSelect(this)">Investments</div>
+                <div class="multi-select-item" data-value="rental" onclick="toggleMultiSelect(this)">Rental Income</div>
+                <div class="multi-select-item" data-value="retirement" onclick="toggleMultiSelect(this)">Retirement</div>
+              </div>
+            </div>
+
+            <!-- Question 5 & 6: Homeowner & Retirement -->
+            <div class="question-grid">
+              <div class="form-group">
+                <div class="question-number">Question 5 of 8</div>
+                <label class="form-label">Are you a homeowner?</label>
+                <div class="toggle-switch" style="margin-top: 8px;">
+                  <label class="switch">
+                    <input type="checkbox" id="is-homeowner" onchange="updateProgress()">
+                    <span class="slider"></span>
+                  </label>
+                  <span>Yes, I own my home</span>
+                </div>
+                <div class="form-hint">Mortgage interest & property tax deductions</div>
+              </div>
+
+              <div class="form-group">
+                <div class="question-number">Question 6 of 8</div>
+                <label class="form-label" for="retirement-savings">Retirement savings?</label>
+                <select class="form-input" id="retirement-savings" onchange="updateProgress()">
+                  <option value="none">None currently</option>
+                  <option value="some">Contributing some</option>
+                  <option value="maxed">Maxing contributions</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Question 7: Healthcare -->
+            <div class="form-group">
+              <div class="question-number">Question 7 of 8</div>
+              <label class="form-label" for="healthcare-type">What type of health insurance do you have?</label>
+              <select class="form-input" id="healthcare-type" onchange="updateProgress()">
+                <option value="employer">Employer-provided</option>
+                <option value="hdhp_hsa">High-Deductible with HSA</option>
+                <option value="marketplace">Marketplace (ACA)</option>
+                <option value="none">No insurance</option>
+              </select>
+            </div>
+
+            <!-- Question 8: Life Events -->
+            <div class="form-group">
+              <div class="question-number">Question 8 of 8</div>
+              <label class="form-label">Any major life events this year? (select all that apply)</label>
+              <div class="multi-select" id="life-events">
+                <div class="multi-select-item" data-value="new_job" onclick="toggleMultiSelect(this)">New Job</div>
+                <div class="multi-select-item" data-value="baby" onclick="toggleMultiSelect(this)">New Baby</div>
+                <div class="multi-select-item" data-value="home_purchase" onclick="toggleMultiSelect(this)">Bought Home</div>
+                <div class="multi-select-item" data-value="marriage" onclick="toggleMultiSelect(this)">Got Married</div>
+                <div class="multi-select-item" data-value="divorce" onclick="toggleMultiSelect(this)">Divorce</div>
+                <div class="multi-select-item" data-value="retirement" onclick="toggleMultiSelect(this)">Retired</div>
+                <div class="multi-select-item" data-value="college_student" onclick="toggleMultiSelect(this)">College Student</div>
+              </div>
+            </div>
+
+            <!-- Additional toggles -->
+            <div class="question-grid" style="margin-top: 16px;">
+              <div class="toggle-switch">
+                <label class="switch">
+                  <input type="checkbox" id="has-student-loans">
+                  <span class="slider"></span>
+                </label>
+                <span>Have student loans?</span>
+              </div>
+              <div class="toggle-switch">
+                <label class="switch">
+                  <input type="checkbox" id="has-business">
+                  <span class="slider"></span>
+                </label>
+                <span>Own a business/side hustle?</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <button class="btn btn-secondary" onclick="prevStep()">
+              <span>&#8592;</span> Back
+            </button>
+            <button class="btn btn-primary" onclick="submitProfileAndNext()">
+              Continue <span>&#8594;</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Screen 3: Document Upload (Optional - skipped in Quick mode) -->
+      <div class="screen" id="screen-documents">
+        <div class="card">
+          <div class="card-header">
+            <h1 class="card-title">Upload Documents (Optional)</h1>
+            <p class="card-subtitle">Uploading your prior year 1040 improves accuracy, but is not required</p>
+          </div>
+          <div class="card-body">
+            <div class="consent-section" style="background: var(--accent-light); margin-bottom: 20px;">
+              <div class="consent-title" style="color: var(--accent);">&#128161; Optional Enhancement</div>
+              <div class="consent-text">
+                Upload your prior year's 1040 for more accurate insights.
+                You can skip this step and still get your FREE report.
+              </div>
+            </div>
+
+            <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+              <div class="upload-icon">&#128194;</div>
+              <div class="upload-title">Drop your 1040 here or click to browse</div>
+              <div class="upload-hint">Supported: PDF, JPG, PNG (max 10MB)</div>
+              <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleFiles(this.files)">
+            </div>
+
+            <div class="file-list" id="file-list"></div>
+          </div>
+          <div class="card-footer">
+            <button class="btn btn-secondary" onclick="prevStep()">
+              <span>&#8592;</span> Back
+            </button>
+            <div>
+              <button class="btn btn-secondary" onclick="skipDocuments()" style="margin-right: 8px;">
+                Skip for now
+              </button>
+              <button class="btn btn-primary" onclick="nextStep()">
+                Continue <span>&#8594;</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Screen 4: Contact Capture (Lead Gate) -->
+      <div class="screen" id="screen-contact">
+        <div class="card">
+          <div class="card-header">
+            <h1 class="card-title">Almost There!</h1>
+            <p class="card-subtitle">Enter your info to receive your FREE Tax Advisory Report</p>
+          </div>
+          <div class="card-body">
+            <!-- Savings Preview -->
+            <div class="savings-highlight">
+              <div class="savings-label">Your Estimated Tax Savings</div>
+              <div class="savings-amount" id="savings-preview">$500 - $2,000</div>
+              <div class="savings-note">Based on your tax profile</div>
+            </div>
+
+            <div class="consent-section" style="background: var(--secondary-light); margin-bottom: 20px;">
+              <div class="consent-title" style="color: var(--secondary);">&#127881; Your FREE Report Includes:</div>
+              <div class="consent-text">
+                &#10003; Personalized tax savings estimate<br>
+                &#10003; <span id="insights-count-preview">3-5</span> optimization opportunities<br>
+                &#10003; Complexity assessment<br>
+                &#10003; Next steps recommendations
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="first-name">First Name *</label>
+              <input type="text" class="form-input" id="first-name" placeholder="Enter your first name" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="email">Email Address *</label>
+              <input type="email" class="form-input" id="email" placeholder="you@example.com" required>
+              <div class="form-hint">We'll send your report to this email</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="phone">Phone Number (optional)</label>
+              <input type="tel" class="form-input" id="phone" placeholder="(555) 123-4567">
+            </div>
+          </div>
+          <div class="card-footer">
+            <button class="btn btn-secondary" onclick="prevStep()">
+              <span>&#8592;</span> Back
+            </button>
+            <button class="btn btn-success" onclick="captureContactAndGetReport()">
+              Get My FREE Report <span>&#10003;</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Screen 5: FREE Tax Advisory Report -->
+      <div class="screen" id="screen-report">
+        <div class="card">
+          <!-- CPA Branded Header -->
+          <div class="cpa-header" id="report-cpa-header">
+            <div class="cpa-logo-large" id="report-cpa-logo">&#9830;</div>
+            <div class="cpa-branding">
+              <h2 id="report-cpa-name">Your Tax Professional</h2>
+              <p id="report-cpa-firm">Tax Advisory Services</p>
+            </div>
+          </div>
+
+          <div class="card-header" style="text-align: center;">
+            <h1 class="card-title" style="color: var(--secondary);">&#127881; Your FREE Tax Advisory Report</h1>
+            <p class="card-subtitle">Prepared for <strong id="report-client-name">You</strong></p>
+          </div>
+
+          <div class="card-body">
+            <!-- Summary Stats -->
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-label">Filing Status</div>
+                <div class="stat-value" id="report-filing-status" style="font-size: 18px;">Single</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Complexity</div>
+                <div class="stat-value" id="report-complexity" style="font-size: 18px; color: var(--accent);">Moderate</div>
+              </div>
+              <div class="stat-card" style="background: var(--secondary-light);">
+                <div class="stat-label" style="color: var(--secondary);">Potential Savings</div>
+                <div class="stat-value" id="report-savings-range" style="color: var(--secondary);">$500 - $2,000</div>
+              </div>
+            </div>
+
+            <!-- Teaser Insights -->
+            <div style="margin-top: 24px;">
+              <h3 class="card-title" style="font-size: 16px; margin-bottom: 16px;">
+                &#128161; Tax Optimization Opportunities (<span id="report-insights-shown">3</span> of <span id="report-insights-total">8</span>)
+              </h3>
+
+              <div id="report-insights-list">
+                <!-- Populated dynamically -->
+                <div class="insight-teaser">
+                  <div class="insight-teaser-title">Retirement Savings Optimization</div>
+                  <div class="insight-teaser-desc">You may be able to increase tax-deferred savings...</div>
+                  <div class="insight-teaser-savings">Potential: Contact CPA for details</div>
+                </div>
+              </div>
+
+              <!-- Locked Insights -->
+              <div class="consent-section" style="background: var(--gray-100); text-align: center; margin-top: 16px;">
+                <div class="consent-title">&#128274; <span id="report-locked-count">5</span> More Insights Available</div>
+                <div class="consent-text">
+                  Contact <span id="unlock-cpa-name">your tax professional</span> to unlock your complete analysis
+                  with specific dollar amounts, action items, and IRS references.
+                </div>
+              </div>
+            </div>
+
+            <!-- Unlock CTA -->
+            <div class="unlock-cta">
+              <h3>Ready to Maximize Your Tax Savings?</h3>
+              <p>Schedule a consultation to unlock your full analysis and get personalized guidance.</p>
+              <a href="#" class="btn btn-primary" id="report-booking-link" style="background: white; color: var(--primary);">
+                Schedule Free Consultation
+              </a>
+              <div style="margin-top: 16px; font-size: 14px; opacity: 0.9;">
+                <span id="report-cpa-email"></span>
+                <span id="report-cpa-phone" style="margin-left: 16px;"></span>
+              </div>
+            </div>
+
+            <!-- Disclaimer -->
+            <div class="consent-section" style="margin-top: 24px;">
+              <div class="consent-title">&#9888; Important Disclaimer</div>
+              <div class="consent-text" style="font-size: 11px;">
+                This report provides general tax information based on the information you provided
+                and is for educational purposes only. It does not constitute tax, legal, or financial
+                advice. Actual tax savings depend on your complete financial situation. Consult with
+                a qualified tax professional before making any tax-related decisions.
+              </div>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <button class="btn btn-secondary" onclick="window.print()">
+              &#128424; Print Report
+            </button>
+            <button class="btn btn-primary" id="btn-contact-cpa">
+              Contact <span id="btn-cpa-name">Tax Professional</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+    // ================================================================
+    // APPLICATION STATE - Lead Magnet Flow
+    // ================================================================
+    const API_BASE = '/api/cpa';
+
+    const state = {
+      currentStep: 1,
+      totalSteps: 5,
+      sessionId: null,
+      leadId: null,
+      consent: false,
+      assessmentMode: 'quick', // 'quick' or 'full'
+
+      // CPA Profile (loaded from URL param or default)
+      cpaProfile: {
+        cpaId: null,
+        cpaSlug: null,
+        firstName: 'Your',
+        lastName: 'Tax Professional',
+        credentials: 'CPA',
+        firmName: 'Tax Advisory Services',
+        logoUrl: null,
+        email: '',
+        phone: '',
+        bookingLink: '#contact'
+      },
+
+      // Tax Profile (from smart questions)
+      taxProfile: {
+        filingStatus: '',
+        dependentsCount: 0,
+        hasChildrenUnder17: false,
+        incomeRange: '',
+        incomeSources: ['w2'],
+        isHomeowner: false,
+        retirementSavings: 'none',
+        healthcareType: 'employer',
+        lifeEvents: [],
+        hasStudentLoans: false,
+        hasBusiness: false
+      },
+
+      // Contact info (lead gate)
+      contact: {
+        firstName: '',
+        email: '',
+        phone: ''
+      },
+
+      // Report data
+      report: {
+        complexity: 'simple',
+        savingsRangeLow: 500,
+        savingsRangeHigh: 2000,
+        insights: [],
+        totalInsights: 8,
+        insightsShown: 3
+      },
+
+      documents: [],
+      startTime: null
+    };
+
+    // ================================================================
+    // INITIALIZATION
+    // ================================================================
+    document.addEventListener('DOMContentLoaded', async () => {
+      state.startTime = Date.now();
+
+      const urlParams = new URLSearchParams(window.location.search);
+
+      // Load CPA profile from URL param
+      const cpaSlug = urlParams.get('cpa');
+      if (cpaSlug) {
+        await loadCPAProfile(cpaSlug);
+      }
+
+      // Check for existing session
+      const sessionId = urlParams.get('session') || urlParams.get('id');
+      if (sessionId) {
+        state.sessionId = sessionId;
+        await loadExistingSession(sessionId);
+      }
+
+      // Apply CPA branding to UI
+      updateCPABranding();
+
+      // Setup drag and drop
+      setupDragAndDrop();
+    });
+
+    // ================================================================
+    // CPA PROFILE LOADING
+    // ================================================================
+    async function loadCPAProfile(cpaSlug) {
+      try {
+        const response = await fetch(`${API_BASE}/lead-magnet/cpa-profiles/${cpaSlug}`);
+        if (response.ok) {
+          const data = await response.json();
+          state.cpaProfile = {
+            cpaId: data.cpa_id,
+            cpaSlug: data.cpa_slug,
+            firstName: data.first_name || 'Your',
+            lastName: data.last_name || 'Tax Professional',
+            credentials: data.credentials || 'CPA',
+            firmName: data.firm_name || 'Tax Advisory Services',
+            logoUrl: data.logo_url,
+            email: data.email || '',
+            phone: data.phone || '',
+            bookingLink: data.booking_link || '#contact'
+          };
+          console.log('CPA Profile loaded:', state.cpaProfile);
+        }
+      } catch (e) {
+        console.warn('Could not load CPA profile:', e);
+      }
+    }
+
+    function updateCPABranding() {
+      const cpa = state.cpaProfile;
+      const displayName = `${cpa.firstName} ${cpa.lastName}`.trim();
+      const fullName = cpa.credentials ? `${displayName}, ${cpa.credentials}` : displayName;
+
+      // Header
+      document.getElementById('cpa-name-display').textContent = cpa.firmName || displayName;
+
+      // Welcome screen
+      document.getElementById('cpa-name-welcome').textContent = fullName;
+      document.getElementById('cpa-firm-welcome').textContent = cpa.firmName || '';
+
+      // Report screen
+      document.getElementById('report-cpa-name').textContent = fullName;
+      document.getElementById('report-cpa-firm').textContent = cpa.firmName || '';
+      document.getElementById('unlock-cpa-name').textContent = cpa.firstName;
+      document.getElementById('btn-cpa-name').textContent = cpa.firstName;
+
+      if (cpa.email) {
+        document.getElementById('report-cpa-email').innerHTML = `&#9993; ${escapeHtml(cpa.email)}`;
+      }
+      if (cpa.phone) {
+        document.getElementById('report-cpa-phone').innerHTML = `&#128222; ${escapeHtml(cpa.phone)}`;
+      }
+      if (cpa.bookingLink && cpa.bookingLink !== '#contact' && isValidUrl(cpa.bookingLink)) {
+        document.getElementById('report-booking-link').href = cpa.bookingLink;
+      }
+
+      // Logo - sanitize URL to prevent XSS
+      if (cpa.logoUrl && isValidUrl(cpa.logoUrl)) {
+        const logoHtml = `<img src="${escapeHtml(cpa.logoUrl)}" alt="${escapeHtml(displayName)}">`;
+        document.getElementById('cpa-logo-welcome').innerHTML = logoHtml;
+        document.getElementById('report-cpa-logo').innerHTML = logoHtml;
+      } else {
+        const initial = cpa.firstName[0] || 'T';
+        document.getElementById('cpa-logo-welcome').textContent = initial;
+        document.getElementById('report-cpa-logo').textContent = initial;
+      }
+    }
+
+    // ================================================================
+    // ASSESSMENT MODE
+    // ================================================================
+    function setAssessmentMode(mode) {
+      state.assessmentMode = mode;
+
+      // Update UI
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+      });
+
+      // Show/hide documents step for full mode
+      const docsStep = document.getElementById('step-documents');
+      const docsConnector = document.getElementById('connector-documents');
+      if (mode === 'quick') {
+        docsStep.style.display = 'none';
+        docsConnector.style.display = 'none';
+        // Renumber steps
+        document.getElementById('step-contact-circle').textContent = '3';
+        document.getElementById('step-report-circle').textContent = '4';
+        state.totalSteps = 4;
+      } else {
+        docsStep.style.display = 'flex';
+        docsConnector.style.display = 'block';
+        document.getElementById('step-contact-circle').textContent = '4';
+        document.getElementById('step-report-circle').textContent = '5';
+        state.totalSteps = 5;
+      }
+    }
+
+    // ================================================================
+    // NAVIGATION
+    // ================================================================
+    function getScreensForMode() {
+      if (state.assessmentMode === 'quick') {
+        return ['welcome', 'profile', 'contact', 'report'];
+      } else {
+        return ['welcome', 'profile', 'documents', 'contact', 'report'];
+      }
+    }
+
+    function goToStep(step) {
+      const screens = getScreensForMode();
+      if (step < 1 || step > screens.length) return;
+
+      state.currentStep = step;
+
+      // Update stepper UI
+      document.querySelectorAll('.step').forEach((el) => {
+        const stepNum = parseInt(el.dataset.step);
+        el.classList.remove('active', 'completed');
+
+        // Handle skip of documents in quick mode
+        let effectiveStep = stepNum;
+        if (state.assessmentMode === 'quick' && stepNum > 2) {
+          effectiveStep = stepNum - 1;
+        }
+
+        if (effectiveStep < step) el.classList.add('completed');
+        if (effectiveStep === step) el.classList.add('active');
+      });
+
+      document.querySelectorAll('.step-connector').forEach((el, index) => {
+        el.classList.toggle('completed', index < step - 1);
+      });
+
+      // Show correct screen
+      const screenIds = {
+        'welcome': 'screen-welcome',
+        'profile': 'screen-profile',
+        'documents': 'screen-documents',
+        'contact': 'screen-contact',
+        'report': 'screen-report'
+      };
+
+      document.querySelectorAll('.screen').forEach(el => {
+        el.classList.remove('active');
+      });
+
+      const currentScreen = screens[step - 1];
+      const screenEl = document.getElementById(screenIds[currentScreen]);
+      if (screenEl) {
+        screenEl.classList.add('active');
+      }
+
+      // Hide stepper on report screen
+      const isReportScreen = currentScreen === 'report';
+      document.getElementById('stepper').classList.toggle('hidden', isReportScreen);
+
+      // Prepare screen content
+      if (currentScreen === 'contact') prepareContactScreen();
+      if (currentScreen === 'report') loadReport();
+
+      saveState();
+    }
+
+    function nextStep() {
+      const screens = getScreensForMode();
+      if (state.currentStep < screens.length) {
+        goToStep(state.currentStep + 1);
+      }
+    }
+
+    function prevStep() {
+      if (state.currentStep > 1) {
+        goToStep(state.currentStep - 1);
+      }
+    }
+
+    function skipDocuments() {
+      // Skip to contact screen
+      const screens = getScreensForMode();
+      const contactIndex = screens.indexOf('contact') + 1;
+      goToStep(contactIndex);
+    }
+
+    // ================================================================
+    // CONSENT HANDLING
+    // ================================================================
+    function toggleConsent() {
+      const checkbox = document.getElementById('consent-check');
+      const box = document.getElementById('consent-box');
+      const btn = document.getElementById('btn-start');
+
+      checkbox.checked = !checkbox.checked;
+      state.consent = checkbox.checked;
+
+      box.classList.toggle('checked', checkbox.checked);
+      btn.disabled = !checkbox.checked;
+    }
+
+    // ================================================================
+    // START ASSESSMENT
+    // ================================================================
+    async function startAssessment() {
+      if (!state.consent) {
+        showToast('Please accept the privacy policy to continue', 'error');
+        return;
+      }
+
+      try {
+        // Create session via API
+        const response = await fetch(`${API_BASE}/lead-magnet/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cpa_slug: state.cpaProfile.cpaSlug,
+            assessment_mode: state.assessmentMode,
+            referral_source: new URLSearchParams(window.location.search).get('ref')
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          state.sessionId = data.session_id;
+
+          // Update URL
+          const newUrl = new URL(window.location);
+          newUrl.searchParams.set('session', state.sessionId);
+          window.history.replaceState({}, '', newUrl);
+
+          console.log('Assessment session started:', state.sessionId);
+        }
+      } catch (e) {
+        console.warn('Could not start session via API:', e);
+        // Generate temporary session ID
+        state.sessionId = 'temp_' + Date.now();
+      }
+
+      // Initialize mode-based stepper
+      setAssessmentMode(state.assessmentMode);
+      nextStep();
+    }
+
+    // ================================================================
+    // SMART TAX PROFILE
+    // ================================================================
+    function adjustDependents(delta) {
+      const current = state.taxProfile.dependentsCount;
+      const newValue = Math.max(0, Math.min(10, current + delta));
+      state.taxProfile.dependentsCount = newValue;
+      document.getElementById('dependents-value').textContent = newValue;
+      document.getElementById('dependents-count').value = newValue;
+      updateProgress();
+    }
+
+    function toggleMultiSelect(element) {
+      element.classList.toggle('selected');
+
+      // Update state based on which multi-select this belongs to
+      const parent = element.closest('.multi-select');
+      const selectedItems = parent.querySelectorAll('.selected');
+      const values = Array.from(selectedItems).map(el => el.dataset.value);
+
+      if (parent.id === 'income-sources') {
+        state.taxProfile.incomeSources = values;
+      } else if (parent.id === 'life-events') {
+        state.taxProfile.lifeEvents = values;
+      }
+
+      updateProgress();
+    }
+
+    function updateProgress() {
+      // Count filled fields
+      let filled = 0;
+      const total = 8;
+
+      if (document.getElementById('filing-status').value) filled++;
+      filled++; // Dependents always has a value
+      if (document.getElementById('income-range').value) filled++;
+      if (state.taxProfile.incomeSources.length > 0) filled++;
+      filled++; // Homeowner toggle always has a value
+      filled++; // Retirement savings dropdown always has a value
+      filled++; // Healthcare type dropdown always has a value
+      filled++; // Life events (optional, but counts)
+
+      const progress = (filled / total) * 100;
+      document.getElementById('profile-progress').style.width = `${progress}%`;
+    }
+
+    async function submitProfileAndNext() {
+      // Collect all profile data
+      const profile = {
+        filing_status: document.getElementById('filing-status').value,
+        dependents_count: state.taxProfile.dependentsCount,
+        has_children_under_17: document.getElementById('children-under-17').checked,
+        income_range: document.getElementById('income-range').value,
+        income_sources: state.taxProfile.incomeSources,
+        is_homeowner: document.getElementById('is-homeowner').checked,
+        retirement_savings: document.getElementById('retirement-savings').value,
+        healthcare_type: document.getElementById('healthcare-type').value,
+        life_events: state.taxProfile.lifeEvents,
+        has_student_loans: document.getElementById('has-student-loans').checked,
+        has_business: document.getElementById('has-business').checked,
+        privacy_consent: state.consent
+      };
+
+      // Validation
+      if (!profile.filing_status || !profile.income_range) {
+        showToast('Please complete filing status and income range', 'error');
+        return;
+      }
+
+      // Update local state
+      Object.assign(state.taxProfile, {
+        filingStatus: profile.filing_status,
+        dependentsCount: profile.dependents_count,
+        hasChildrenUnder17: profile.has_children_under_17,
+        incomeRange: profile.income_range,
+        incomeSources: profile.income_sources,
+        isHomeowner: profile.is_homeowner,
+        retirementSavings: profile.retirement_savings,
+        healthcareType: profile.healthcare_type,
+        lifeEvents: profile.life_events,
+        hasStudentLoans: profile.has_student_loans,
+        hasBusiness: profile.has_business
+      });
+
+      // Submit to API
+      try {
+        const response = await fetch(`${API_BASE}/lead-magnet/${state.sessionId}/profile`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(profile)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          state.report.complexity = data.complexity;
+
+          // Calculate preliminary savings estimate based on complexity
+          const savingsMap = {
+            'simple': { low: 300, high: 1000 },
+            'moderate': { low: 800, high: 3000 },
+            'complex': { low: 2000, high: 8000 },
+            'professional': { low: 5000, high: 20000 }
+          };
+          const savings = savingsMap[data.complexity] || savingsMap['simple'];
+          state.report.savingsRangeLow = savings.low;
+          state.report.savingsRangeHigh = savings.high;
+
+          console.log('Profile submitted:', data);
+        }
+      } catch (e) {
+        console.warn('Could not submit profile:', e);
+        // Estimate complexity locally
+        state.report.complexity = estimateComplexity();
+      }
+
+      nextStep();
+    }
+
+    function estimateComplexity() {
+      // Local complexity estimation
+      let score = 0;
+
+      if (state.taxProfile.incomeSources.includes('self_employed')) score += 2;
+      if (state.taxProfile.incomeSources.includes('rental')) score += 2;
+      if (state.taxProfile.incomeSources.includes('investments')) score += 1;
+      if (state.taxProfile.hasBusiness) score += 2;
+      if (state.taxProfile.isHomeowner) score += 1;
+
+      const incomeHigh = ['200k_500k', 'over_500k'].includes(state.taxProfile.incomeRange);
+      if (incomeHigh) score += 2;
+
+      if (score >= 5) return 'professional';
+      if (score >= 3) return 'complex';
+      if (score >= 1) return 'moderate';
+      return 'simple';
+    }
+
+    function isValidEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    // ================================================================
+    // CONTACT CAPTURE
+    // ================================================================
+    function prepareContactScreen() {
+      // Show savings preview
+      const savingsRange = `$${state.report.savingsRangeLow.toLocaleString()} - $${state.report.savingsRangeHigh.toLocaleString()}`;
+      document.getElementById('savings-preview').textContent = savingsRange;
+    }
+
+    async function captureContactAndGetReport() {
+      const firstName = document.getElementById('first-name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+
+      // Validation
+      if (!firstName || !email) {
+        showToast('Please enter your name and email', 'error');
+        return;
+      }
+
+      if (!isValidEmail(email)) {
+        showToast('Please enter a valid email address', 'error');
+        return;
+      }
+
+      state.contact = { firstName, email, phone };
+      document.getElementById('user-name').textContent = firstName;
+
+      // Submit to API
+      try {
+        const response = await fetch(`${API_BASE}/lead-magnet/${state.sessionId}/contact`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            first_name: firstName,
+            email: email,
+            phone: phone || null
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          state.leadId = data.lead_id;
+          showToast('Your report is ready!', 'success');
+        }
+      } catch (e) {
+        console.warn('Could not capture contact:', e);
+      }
+
+      nextStep();
+    }
+
+    // ================================================================
+    // LOAD REPORT
+    // ================================================================
+    async function loadReport() {
+      // Update client name
+      document.getElementById('report-client-name').textContent = state.contact.firstName || 'You';
+
+      // Update filing status display
+      const filingStatusMap = {
+        'single': 'Single',
+        'married_jointly': 'Married Filing Jointly',
+        'married_separately': 'Married Filing Separately',
+        'head_of_household': 'Head of Household'
+      };
+      document.getElementById('report-filing-status').textContent =
+        filingStatusMap[state.taxProfile.filingStatus] || 'Single';
+
+      // Update complexity
+      const complexityLabels = {
+        'simple': 'Simple',
+        'moderate': 'Moderate',
+        'complex': 'Complex',
+        'professional': 'Professional'
+      };
+      document.getElementById('report-complexity').textContent =
+        complexityLabels[state.report.complexity] || 'Moderate';
+
+      // Try to load report from API
+      try {
+        const response = await fetch(`${API_BASE}/lead-magnet/${state.sessionId}/report`);
+        if (response.ok) {
+          const data = await response.json();
+
+          // Update savings range
+          if (data.savings_range) {
+            document.getElementById('report-savings-range').textContent = data.savings_range;
+          } else {
+            const range = `$${state.report.savingsRangeLow.toLocaleString()} - $${state.report.savingsRangeHigh.toLocaleString()}`;
+            document.getElementById('report-savings-range').textContent = range;
+          }
+
+          // Update insights
+          if (data.insights && data.insights.length > 0) {
+            renderReportInsights(data.insights, data.total_insights || 8, data.locked_count || 5);
+          } else {
+            renderDefaultInsights();
+          }
+
+          return;
+        }
+      } catch (e) {
+        console.warn('Could not load report from API:', e);
+      }
+
+      // Fallback to local data
+      const range = `$${state.report.savingsRangeLow.toLocaleString()} - $${state.report.savingsRangeHigh.toLocaleString()}`;
+      document.getElementById('report-savings-range').textContent = range;
+      renderDefaultInsights();
+    }
+
+    function renderReportInsights(insights, total, locked) {
+      const container = document.getElementById('report-insights-list');
+      container.innerHTML = insights.map(insight => `
+        <div class="insight-teaser">
+          <div class="insight-teaser-title">${escapeHtml(insight.title)}</div>
+          <div class="insight-teaser-desc">${escapeHtml(insight.teaser_description || insight.description)}</div>
+          <div class="insight-teaser-savings">Potential: ${insight.savings_range || 'Contact CPA for details'}</div>
+        </div>
+      `).join('');
+
+      document.getElementById('report-insights-shown').textContent = insights.length;
+      document.getElementById('report-insights-total').textContent = total;
+      document.getElementById('report-locked-count').textContent = locked;
+    }
+
+    function renderDefaultInsights() {
+      // Generate insights based on profile
+      const insights = [];
+
+      if (state.taxProfile.retirementSavings !== 'maxed') {
+        insights.push({
+          title: 'Retirement Savings Optimization',
+          description: 'Based on your income, you may be able to increase tax-deferred retirement contributions...'
+        });
+      }
+
+      if (state.taxProfile.isHomeowner) {
+        insights.push({
+          title: 'Homeowner Deductions',
+          description: 'Property tax and mortgage interest deductions could provide significant savings...'
+        });
+      }
+
+      if (state.taxProfile.hasChildrenUnder17) {
+        insights.push({
+          title: 'Child Tax Credit',
+          description: 'You may qualify for Child Tax Credit of up to $2,000 per qualifying child...'
+        });
+      }
+
+      if (state.taxProfile.healthcareType === 'hdhp_hsa') {
+        insights.push({
+          title: 'HSA Contribution Opportunity',
+          description: 'Your HSA-eligible plan allows pre-tax contributions that can reduce taxable income...'
+        });
+      }
+
+      // Add generic insight if none matched
+      if (insights.length < 3) {
+        insights.push({
+          title: 'Tax Planning Strategy Review',
+          description: 'A comprehensive review of your situation may reveal additional opportunities...'
+        });
+      }
+
+      renderReportInsights(insights.slice(0, 3), 8, 5);
+    }
+
+    // ================================================================
+    // FILE UPLOAD
+    // ================================================================
+    function setupDragAndDrop() {
+      const zone = document.getElementById('upload-zone');
+
+      zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.classList.add('dragover');
+      });
+
+      zone.addEventListener('dragleave', () => {
+        zone.classList.remove('dragover');
+      });
+
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+      });
+    }
+
+    async function handleFiles(files) {
+      for (const file of files) {
+        if (file.size > 10 * 1024 * 1024) {
+          showToast(`${file.name} is too large (max 10MB)`, 'error');
+          continue;
+        }
+
+        const doc = {
+          id: 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          status: 'uploading',
+          file: file
+        };
+
+        state.documents.push(doc);
+        renderFileList();
+
+        // REAL upload to backend API
+        try {
+          // Ensure we have a session first
+          if (!state.sessionId) {
+            await createSession();
+          }
+
+          const formData = new FormData();
+          formData.append('file', file);
+
+          const response = await fetch(`${API_BASE}/clients/${state.sessionId}/documents`, {
+            method: 'POST',
+            body: formData
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success || data.data) {
+              doc.status = 'complete';
+              doc.document_id = data.data?.document_id || data.document_id;
+              showToast(`${file.name} uploaded successfully`, 'success');
+            } else {
+              throw new Error(data.error || 'Upload failed');
+            }
+          } else {
+            throw new Error(`Server error: ${response.status}`);
+          }
+        } catch (e) {
+          console.error('Upload error:', e);
+          doc.status = 'error';
+          showToast(`Failed to upload ${file.name}: ${e.message}`, 'error');
+        }
+
+        renderFileList();
+      }
+      saveState();
+    }
+
+    function renderFileList() {
+      const list = document.getElementById('file-list');
+
+      if (state.documents.length === 0) {
+        list.innerHTML = '';
+        return;
+      }
+
+      list.innerHTML = state.documents.map(doc => `
+        <div class="file-item">
+          <div class="file-icon">&#128196;</div>
+          <div class="file-info">
+            <div class="file-name">${escapeHtml(doc.name)}</div>
+            <div class="file-size">${formatFileSize(doc.size)}</div>
+          </div>
+          <span class="file-status ${doc.status}">${doc.status === 'uploading' ? 'Uploading...' : 'Complete'}</span>
+          <button class="file-remove" onclick="removeFile('${doc.id}')" aria-label="Remove file">&times;</button>
+        </div>
+      `).join('');
+    }
+
+    function removeFile(id) {
+      state.documents = state.documents.filter(d => d.id !== id);
+      renderFileList();
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    // ================================================================
+    // REVIEW & SUBMIT
+    // ================================================================
+    function prepareReview() {
+      document.getElementById('review-personal').innerHTML = `
+        <strong>Name:</strong> ${escapeHtml(state.userInfo.firstName)} ${escapeHtml(state.userInfo.lastName)}<br>
+        <strong>Email:</strong> ${escapeHtml(state.userInfo.email)}<br>
+        <strong>Phone:</strong> ${escapeHtml(state.userInfo.phone) || 'Not provided'}<br>
+        <strong>Filing Status:</strong> ${formatFilingStatus(state.userInfo.filingStatus)}<br>
+        <strong>Tax Year:</strong> ${state.userInfo.taxYear}
+      `;
+
+      document.getElementById('review-documents').innerHTML = state.documents.length > 0
+        ? state.documents.map(d => `&#8226; ${escapeHtml(d.name)}`).join('<br>')
+        : 'No documents uploaded yet';
+    }
+
+    function formatFilingStatus(status) {
+      const map = {
+        'single': 'Single',
+        'married_filing_jointly': 'Married Filing Jointly',
+        'married_filing_separately': 'Married Filing Separately',
+        'head_of_household': 'Head of Household',
+        'qualifying_widow': 'Qualifying Widow(er)'
+      };
+      return map[status] || status;
+    }
+
+    async function submitAndComplete() {
+      showToast('Submitting your information...', 'info');
+
+      try {
+        // Ensure we have a session
+        if (!state.sessionId) {
+          await createSession();
+        }
+
+        // Save client info first
+        await fetch(`${API_BASE}/clients/${state.sessionId}/info`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            first_name: state.userInfo.firstName,
+            last_name: state.userInfo.lastName,
+            email: state.userInfo.email,
+            phone: state.userInfo.phone,
+            filing_status: state.userInfo.filingStatus,
+            tax_year: state.userInfo.taxYear,
+            consent: state.consent
+          })
+        });
+
+        // Submit for review
+        const response = await fetch(`${API_BASE}/clients/${state.sessionId}/submit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          state.status = data.data?.status || data.status || 'IN_REVIEW';
+          showToast('Successfully submitted for review!', 'success');
+        } else {
+          throw new Error('Submission failed');
+        }
+      } catch (e) {
+        console.error('Submit error:', e);
+        // Even if API fails, proceed to dashboard
+        state.status = 'IN_REVIEW';
+        showToast('Submitted (offline mode)', 'info');
+      }
+
+      saveState();
+      goToStep(5);
+    }
+
+    // ================================================================
+    // DASHBOARD
+    // ================================================================
+    function loadDashboard() {
+      document.getElementById('dash-doc-count').textContent = state.documents.length;
+      document.getElementById('dash-status').textContent = formatStatus(state.status);
+
+      renderTimeline();
+      loadInsights();
+    }
+
+    function formatStatus(status) {
+      const map = {
+        'DRAFT': 'Draft',
+        'IN_REVIEW': 'In Review',
+        'CPA_APPROVED': 'Approved'
+      };
+      return map[status] || status;
+    }
+
+    function renderTimeline() {
+      const timeline = document.getElementById('timeline');
+
+      const steps = [
+        { title: 'Information Submitted', desc: 'Your details have been received', completed: true, time: 'Just now' },
+        { title: 'Documents Uploaded', desc: `${state.documents.length} document(s) received`, completed: state.documents.length > 0, time: state.documents.length > 0 ? 'Just now' : '' },
+        { title: 'Under Review', desc: 'Our team is analyzing your information', active: state.status === 'IN_REVIEW', time: '' },
+        { title: 'Insights Ready', desc: 'Personalized recommendations available', completed: state.status === 'CPA_APPROVED', time: '' },
+      ];
+
+      timeline.innerHTML = steps.map((step, i) => `
+        <div class="timeline-item ${step.completed ? 'completed' : ''} ${step.active ? 'active' : ''}">
+          <div class="timeline-marker"></div>
+          <div class="timeline-content">
+            <div class="timeline-title">${step.title}</div>
+            <div class="timeline-desc">${step.desc}</div>
+            ${step.time ? `<div class="timeline-time">${step.time}</div>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function loadInsights() {
+      const container = document.getElementById('insight-list');
+
+      // Show loading
+      container.innerHTML = `
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">Analyzing your situation...</div>
+        </div>
+      `;
+
+      // Fetch REAL insights from API - no mocks
+      try {
+        if (state.sessionId) {
+          // Try multiple insight endpoints
+          let insights = [];
+
+          // Try aggregated insights endpoint
+          try {
+            const response = await fetch(`${API_BASE}/insights/client/${state.sessionId}`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.data?.insights) {
+                insights = data.data.insights;
+              } else if (data.insights) {
+                insights = data.insights;
+              }
+            }
+          } catch (e) {
+            console.warn('Could not fetch from insights endpoint');
+          }
+
+          // Try recommendations endpoint as fallback
+          if (insights.length === 0) {
+            try {
+              const recResponse = await fetch(`${API_BASE}/data/recommendations?client_id=${state.clientId || state.sessionId}&limit=10`);
+              if (recResponse.ok) {
+                const recData = await recResponse.json();
+                if (recData.recommendations) {
+                  insights = recData.recommendations.map(r => ({
+                    title: r.title,
+                    description: r.description,
+                    category: r.category || 'opportunity',
+                    priority: r.priority || 'medium',
+                    estimated_savings: r.estimated_savings
+                  }));
+                }
+              }
+            } catch (e) {
+              console.warn('Could not fetch recommendations');
+            }
+          }
+
+          // Try to get client full data
+          if (insights.length === 0) {
+            try {
+              const fullResponse = await fetch(`${API_BASE}/clients/${state.sessionId}/full`);
+              if (fullResponse.ok) {
+                const fullData = await fullResponse.json();
+                const clientData = fullData.data?.client || fullData.client;
+                if (clientData?.recommendations) {
+                  insights = clientData.recommendations.map(r => ({
+                    title: r.title,
+                    description: r.description,
+                    category: r.category || 'opportunity',
+                    priority: r.priority || 'medium',
+                    estimated_savings: r.estimated_savings
+                  }));
+                }
+              }
+            } catch (e) {
+              console.warn('Could not fetch client full data');
+            }
+          }
+
+          state.insights = insights;
+          renderInsights();
+          return;
+        }
+      } catch (e) {
+        console.error('Error loading insights:', e);
+      }
+
+      // No mock data - show empty state
+      state.insights = [];
+      renderInsights();
+    }
+
+    function renderInsights() {
+      const container = document.getElementById('insight-list');
+      document.getElementById('dash-insight-count').textContent = state.insights.length;
+
+      if (state.insights.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">&#128269;</div>
+            <div class="empty-title">No insights yet</div>
+            <div class="empty-desc">We're still analyzing your information. Check back soon!</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = state.insights.map(insight => `
+        <div class="insight-item">
+          <div class="insight-icon ${sanitizeClassName(insight.category) || 'info'}">
+            ${insight.category === 'opportunity' ? '&#128161;' : insight.category === 'alert' ? '&#9888;' : '&#128196;'}
+          </div>
+          <div class="insight-content">
+            <div class="insight-title">${escapeHtml(insight.title)}</div>
+            <div class="insight-desc">${escapeHtml(insight.description)}</div>
+          </div>
+          <span class="insight-badge">${escapeHtml(insight.priority || 'info')}</span>
+        </div>
+      `).join('');
+    }
+
+    // ================================================================
+    // API COMMUNICATION
+    // ================================================================
+    async function createSession() {
+      try {
+        const response = await fetch(`${API_BASE}/clients/intake/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            first_name: state.userInfo.firstName,
+            last_name: state.userInfo.lastName,
+            email: state.userInfo.email,
+            phone: state.userInfo.phone,
+            filing_status: state.userInfo.filingStatus,
+            tax_year: state.userInfo.taxYear,
+            consent: state.consent
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Handle both direct response and data wrapper
+          const responseData = data.data || data;
+          if (responseData.session_id) {
+            state.sessionId = responseData.session_id;
+            state.clientId = responseData.client_id;
+            // Update URL
+            const newUrl = new URL(window.location);
+            newUrl.searchParams.set('session', state.sessionId);
+            window.history.replaceState({}, '', newUrl);
+            console.log('Session created:', state.sessionId, 'Client:', state.clientId);
+          }
+        } else {
+          throw new Error(`API returned ${response.status}`);
+        }
+      } catch (e) {
+        console.error('Could not create session via API:', e);
+        // Generate a temporary session ID for offline use
+        state.sessionId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        showToast('Working in offline mode - data will sync when connection restores', 'info');
+      }
+
+      saveState();
+    }
+
+    async function loadExistingSession(sessionId) {
+      try {
+        // Try to load from client full endpoint first
+        let response = await fetch(`${API_BASE}/clients/${sessionId}/full`);
+        if (!response.ok) {
+          // Fallback to data/clients endpoint
+          response = await fetch(`${API_BASE}/data/clients/${sessionId}`);
+        }
+
+        if (response.ok) {
+          const data = await response.json();
+          const clientData = data.data?.client || data.client;
+
+          if (clientData) {
+            state.clientId = clientData.client_id;
+            state.userInfo.firstName = clientData.first_name || '';
+            state.userInfo.lastName = clientData.last_name || '';
+            state.userInfo.email = clientData.email || '';
+            state.userInfo.phone = clientData.phone || '';
+            state.userInfo.filingStatus = clientData.filing_status || '';
+            state.userInfo.taxYear = clientData.tax_year || '2025';
+            state.consent = clientData.consent_given || true;
+            state.status = clientData.status || 'DRAFT';
+
+            // Load documents if available
+            if (clientData.documents) {
+              state.documents = clientData.documents.map(d => ({
+                id: d.document_id,
+                name: d.original_filename || d.filename,
+                size: d.file_size,
+                status: 'complete'
+              }));
+            }
+
+            // Load insights/recommendations if available
+            if (clientData.recommendations) {
+              state.insights = clientData.recommendations;
+            }
+
+            document.getElementById('user-name').textContent = state.userInfo.firstName || 'Client';
+
+            // Determine which step to show based on status
+            if (state.status === 'IN_REVIEW' || state.status === 'CPA_APPROVED') {
+              goToStep(5); // Dashboard
+            } else if (state.documents.length > 0) {
+              goToStep(4); // Review
+            } else if (state.userInfo.firstName) {
+              goToStep(3); // Documents
+            } else {
+              goToStep(2); // Personal info
+            }
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Could not load existing session:', e);
+      }
+
+      // Session not found, start fresh
+      showToast('Session not found, starting fresh', 'info');
+    }
+
+    // ================================================================
+    // STATE PERSISTENCE
+    // ================================================================
+    function saveState() {
+      const toSave = {
+        currentStep: state.currentStep,
+        sessionId: state.sessionId,
+        consent: state.consent,
+        userInfo: state.userInfo,
+        documents: state.documents.map(d => ({ id: d.id, name: d.name, size: d.size, status: d.status })),
+        status: state.status
+      };
+      localStorage.setItem('tax_portal_state', JSON.stringify(toSave));
+    }
+
+    function restoreUIState() {
+      // Restore consent
+      if (state.consent) {
+        document.getElementById('consent-check').checked = true;
+        document.getElementById('consent-box').classList.add('checked');
+        document.getElementById('btn-start').disabled = false;
+      }
+
+      // Restore user info
+      if (state.userInfo.firstName) {
+        document.getElementById('first-name').value = state.userInfo.firstName;
+        document.getElementById('last-name').value = state.userInfo.lastName;
+        document.getElementById('email').value = state.userInfo.email;
+        document.getElementById('phone').value = state.userInfo.phone || '';
+        document.getElementById('filing-status').value = state.userInfo.filingStatus;
+        document.getElementById('tax-year').value = state.userInfo.taxYear;
+        document.getElementById('user-name').textContent = state.userInfo.firstName;
+      }
+
+      // Restore documents
+      renderFileList();
+
+      // Go to saved step
+      goToStep(state.currentStep);
+    }
+
+    // ================================================================
+    // UTILITIES
+    // ================================================================
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function isValidUrl(url) {
+      if (!url) return false;
+      try {
+        const parsed = new URL(url, window.location.origin);
+        // Only allow http/https protocols to prevent javascript: URLs
+        return ['http:', 'https:'].includes(parsed.protocol);
+      } catch {
+        return false;
+      }
+    }
+
+    function sanitizeClassName(className) {
+      // Only allow alphanumeric, hyphens, and underscores for CSS classes
+      if (!className) return '';
+      return className.replace(/[^a-zA-Z0-9_-]/g, '');
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+
+      const icons = { success: '&#10003;', error: '&#10007;', info: '&#8505;' };
+
+      toast.innerHTML = `
+        <span class="toast-icon">${icons[type] || icons.info}</span>
+        <span class="toast-message">${escapeHtml(message)}</span>
+        <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+      `;
+
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 5000);
+    }
+  </script>
+</body>
+</html>

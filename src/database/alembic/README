@@ -32,8 +32,11 @@ DATABASE_DRIVER=postgresql+asyncpg
 DATABASE_HOST=localhost
 DATABASE_PORT=5432
 DATABASE_USER=tax_user
-DATABASE_PASSWORD=secret
+DATABASE_PASSWORD=<your-secure-password>  # Set a secure password - never commit real credentials
 DATABASE_NAME=tax_platform
+
+IMPORTANT: Never commit real credentials to version control.
+Use environment variables or a secrets manager in production.
 
 Notes:
 ------

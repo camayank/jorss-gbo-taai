@@ -663,8 +663,56 @@ def index(request: Request):
 
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request):
-    """CPA Workspace Dashboard - Multi-client management."""
+    """CPA Workspace Dashboard - Multi-client management (legacy)."""
     return templates.TemplateResponse("dashboard.html", {"request": request})
+
+
+@app.get("/cpa", response_class=HTMLResponse)
+def cpa_dashboard(request: Request):
+    """
+    CPA Intelligence & Advisory Dashboard.
+
+    Comprehensive dashboard with:
+    - Practice Intelligence (3 metrics only - boundary locked)
+    - Client Management
+    - Review Queue with Workflow Approval
+    - Lead Pipeline
+    - Staff Assignment
+    - Engagement Letters
+    """
+    return templates.TemplateResponse("cpa_dashboard.html", {"request": request})
+
+
+@app.get("/client", response_class=HTMLResponse)
+def client_portal(request: Request):
+    """
+    Client Portal - Lead Magnet Flow.
+
+    Smart Tax Advisory Lead Magnet with:
+    - CPA branding (via ?cpa=slug URL param)
+    - Quick 2-min or Full 5-min assessment
+    - Smart dropdown questions (no free text)
+    - FREE Tier 1 report with teaser insights
+    - Contact capture for lead generation
+    """
+    return templates.TemplateResponse("client_portal.html", {"request": request})
+
+
+@app.get("/test-auth", response_class=HTMLResponse)
+def test_auth_portal(request: Request):
+    """
+    Development/Testing Portal - Auth Bypass Page.
+
+    WARNING: This page bypasses authentication for development purposes only.
+    In production, this route should be disabled or properly secured.
+
+    Provides quick access to:
+    - CPA Dashboard
+    - Client Portal
+    - API Documentation
+    - Health checks
+    """
+    return templates.TemplateResponse("test_auth.html", {"request": request})
 
 
 @app.post("/api/chat")
