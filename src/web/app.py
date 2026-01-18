@@ -125,6 +125,69 @@ except ImportError:
 
 
 # =============================================================================
+# GLOBAL RBAC MIDDLEWARE (Feature-flagged)
+# =============================================================================
+# RBAC_V2_ENABLED controls whether the new global RBAC system is active
+# Set to True to enable database-driven permission resolution
+RBAC_V2_ENABLED = True
+
+if RBAC_V2_ENABLED:
+    try:
+        from core.rbac.middleware import RBACMiddleware, RBACMiddlewareConfig
+
+        # Configure RBAC middleware
+        rbac_config = RBACMiddlewareConfig(
+            public_paths={
+                "/",
+                "/health",
+                "/metrics",
+                "/api/v1/auth/login",
+                "/api/v1/auth/register",
+                "/api/v1/auth/forgot-password",
+                "/api/v1/auth/reset-password",
+                "/api/v1/auth/verify-email",
+                "/docs",
+                "/redoc",
+                "/openapi.json",
+            },
+            public_path_prefixes={
+                "/static/",
+                "/assets/",
+            },
+            rbac_v2_enabled=True,
+            fallback_to_legacy=True,
+        )
+
+        # Get database session factory for permission resolution
+        def get_db_session_factory():
+            try:
+                from database import get_async_session_factory
+                return get_async_session_factory()
+            except ImportError:
+                return None
+
+        # Get permission cache factory
+        def get_cache_factory():
+            try:
+                from core.rbac.cache import get_permission_cache
+                return get_permission_cache
+            except ImportError:
+                return None
+
+        app.add_middleware(
+            RBACMiddleware,
+            config=rbac_config,
+            get_db_session=get_db_session_factory(),
+            get_cache=get_cache_factory(),
+        )
+        logger.info("Global RBAC v2 middleware enabled")
+    except ImportError as e:
+        logger.warning(f"Global RBAC middleware not available: {e}")
+else:
+    logger.info("Global RBAC v2 middleware disabled (feature flag off)")
+
+
+# =============================================================================
 # WORKSPACE API (Phase 1-2: Multi-Client Management)
 # =============================================================================
 try:
@@ -156,6 +219,17 @@ try:
     logger.info("CPA Panel API enabled")
 except ImportError as e:
     logger.warning(f"CPA Panel API not available: {e}")
+
+
+# =============================================================================
+# ADMIN PANEL API - Firm & Platform Administration
+# =============================================================================
+try:
+    from admin_panel.api import admin_router
+    app.include_router(admin_router, prefix="/api/v1")
+    logger.info("Admin Panel API enabled")
+except ImportError as e:
+    logger.warning(f"Admin Panel API not available: {e}")
 
 
 # =============================================================================
@@ -713,6 +787,18 @@ def test_auth_portal(request: Request):
     - Health checks
     """
     return templates.TemplateResponse("test_auth.html", {"request": request})
+
+
+@app.get("/admin", response_class=HTMLResponse)
+@app.get("/admin/{path:path}", response_class=HTMLResponse)
+def admin_dashboard(request: Request, path: str = ""):
+    """
+    Admin Dashboard - Firm Administration Portal.
+
+    Serves the admin panel SPA for firm management, team, billing, and settings.
+    In production, this should require authentication.
+    """
+    return templates.TemplateResponse("admin_dashboard.html", {"request": request})
 
 
 @app.post("/api/chat")

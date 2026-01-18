@@ -113,16 +113,53 @@ def upgrade() -> None:
         create_type=False
     )
 
-    # Create enum types
-    op.execute("CREATE TYPE filingstatus AS ENUM ('single', 'married_joint', 'married_separate', 'head_of_household', 'qualifying_widow')")
-    op.execute("CREATE TYPE returnstatus AS ENUM ('draft', 'in_progress', 'pending_review', 'reviewed', 'ready_to_file', 'filed', 'accepted', 'rejected', 'amended', 'archived')")
-    op.execute("CREATE TYPE incomesourcetype AS ENUM ('w2_wages', 'self_employment', 'interest', 'dividends', 'capital_gains_short', 'capital_gains_long', 'rental', 'royalty', 'retirement', 'social_security', 'unemployment', 'partnership_k1', 's_corp_k1', 'trust_k1', 'other')")
-    op.execute("CREATE TYPE form1099type AS ENUM ('1099-INT', '1099-DIV', '1099-B', '1099-MISC', '1099-NEC', '1099-R', '1099-G', '1099-SSA', '1099-K', '1099-S', '1099-C', '1099-Q')")
-    op.execute("CREATE TYPE deductiontype AS ENUM ('medical_dental', 'state_local_income_tax', 'state_local_sales_tax', 'real_estate_tax', 'personal_property_tax', 'mortgage_interest', 'mortgage_points', 'investment_interest', 'charitable_cash', 'charitable_noncash', 'casualty_loss', 'other_itemized', 'educator_expense', 'hsa_contribution', 'self_employed_health', 'self_employed_retirement', 'student_loan_interest', 'ira_contribution', 'alimony_paid')")
-    op.execute("CREATE TYPE credittype AS ENUM ('child_tax_credit', 'additional_child_tax_credit', 'earned_income_credit', 'child_dependent_care', 'education_aotc', 'education_llc', 'retirement_saver', 'foreign_tax', 'residential_energy', 'ev_credit', 'adoption', 'premium_tax_credit', 'other')")
-    op.execute("CREATE TYPE dependentrelationship AS ENUM ('son', 'daughter', 'stepson', 'stepdaughter', 'foster_child', 'brother', 'sister', 'half_brother', 'half_sister', 'stepbrother', 'stepsister', 'parent', 'grandparent', 'grandchild', 'niece', 'nephew', 'uncle', 'aunt', 'other_relative', 'none')")
-    op.execute("CREATE TYPE documenttype AS ENUM ('w2', '1099-int', '1099-div', '1099-misc', '1099-nec', '1099-b', '1099-r', '1099-g', '1098', '1098-e', '1098-t', 'k1', '1095-a', '1095-b', '1095-c', 'unknown')")
-    op.execute("CREATE TYPE documentstatus AS ENUM ('uploaded', 'processing', 'ocr_complete', 'extraction_complete', 'verified', 'applied', 'failed', 'rejected')")
+    # Create enum types with safe "DO NOTHING" on conflict for idempotency
+    # These are created via raw SQL first, then used in tables with create_type=False
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE filingstatus AS ENUM ('single', 'married_joint', 'married_separate', 'head_of_household', 'qualifying_widow');
+        EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE returnstatus AS ENUM ('draft', 'in_progress', 'pending_review', 'reviewed', 'ready_to_file', 'filed', 'accepted', 'rejected', 'amended', 'archived');
+        EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE incomesourcetype AS ENUM ('w2_wages', 'self_employment', 'interest', 'dividends', 'capital_gains_short', 'capital_gains_long', 'rental', 'royalty', 'retirement', 'social_security', 'unemployment', 'partnership_k1', 's_corp_k1', 'trust_k1', 'other');
+        EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE form1099type AS ENUM ('1099-INT', '1099-DIV', '1099-B', '1099-MISC', '1099-NEC', '1099-R', '1099-G', '1099-SSA', '1099-K', '1099-S', '1099-C', '1099-Q');
+        EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE deductiontype AS ENUM ('medical_dental', 'state_local_income_tax', 'state_local_sales_tax', 'real_estate_tax', 'personal_property_tax', 'mortgage_interest', 'mortgage_points', 'investment_interest', 'charitable_cash', 'charitable_noncash', 'casualty_loss', 'other_itemized', 'educator_expense', 'hsa_contribution', 'self_employed_health', 'self_employed_retirement', 'student_loan_interest', 'ira_contribution', 'alimony_paid');
+        EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE credittype AS ENUM ('child_tax_credit', 'additional_child_tax_credit', 'earned_income_credit', 'child_dependent_care', 'education_aotc', 'education_llc', 'retirement_saver', 'foreign_tax', 'residential_energy', 'ev_credit', 'adoption', 'premium_tax_credit', 'other');
+        EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE dependentrelationship AS ENUM ('son', 'daughter', 'stepson', 'stepdaughter', 'foster_child', 'brother', 'sister', 'half_brother', 'half_sister', 'stepbrother', 'stepsister', 'parent', 'grandparent', 'grandchild', 'niece', 'nephew', 'uncle', 'aunt', 'other_relative', 'none');
+        EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE documenttype AS ENUM ('w2', '1099-int', '1099-div', '1099-misc', '1099-nec', '1099-b', '1099-r', '1099-g', '1098', '1098-e', '1098-t', 'k1', '1095-a', '1095-b', '1095-c', 'unknown');
+        EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            CREATE TYPE documentstatus AS ENUM ('uploaded', 'processing', 'ocr_complete', 'extraction_complete', 'verified', 'applied', 'failed', 'rejected');
+        EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+    """)
 
     # tax_returns table
     op.create_table(
@@ -130,8 +167,8 @@ def upgrade() -> None:
         sa.Column('return_id', postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column('tax_year', sa.Integer(), nullable=False),
         sa.Column('taxpayer_ssn_hash', sa.String(64), nullable=False),
-        sa.Column('filing_status', sa.Enum('single', 'married_joint', 'married_separate', 'head_of_household', 'qualifying_widow', name='filingstatus'), nullable=False),
-        sa.Column('status', sa.Enum('draft', 'in_progress', 'pending_review', 'reviewed', 'ready_to_file', 'filed', 'accepted', 'rejected', 'amended', 'archived', name='returnstatus'), nullable=False, server_default='draft'),
+        sa.Column('filing_status', filing_status_enum, nullable=False),
+        sa.Column('status', return_status_enum, nullable=False, server_default='draft'),
         sa.Column('is_amended', sa.Boolean(), default=False),
         sa.Column('original_return_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('tax_returns.return_id'), nullable=True),
         sa.Column('amendment_number', sa.Integer(), default=0),
@@ -299,7 +336,7 @@ def upgrade() -> None:
         'income_records',
         sa.Column('income_id', postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column('return_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('tax_returns.return_id'), nullable=False),
-        sa.Column('source_type', sa.Enum('w2_wages', 'self_employment', 'interest', 'dividends', 'capital_gains_short', 'capital_gains_long', 'rental', 'royalty', 'retirement', 'social_security', 'unemployment', 'partnership_k1', 's_corp_k1', 'trust_k1', 'other', name='incomesourcetype'), nullable=False),
+        sa.Column('source_type', income_source_enum, nullable=False),
         sa.Column('gross_amount', sa.Numeric(12, 2), nullable=False, default=0),
         sa.Column('adjustments', sa.Numeric(12, 2), default=0),
         sa.Column('taxable_amount', sa.Numeric(12, 2), default=0),
@@ -375,7 +412,7 @@ def upgrade() -> None:
         'form1099_records',
         sa.Column('form1099_id', postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column('return_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('tax_returns.return_id'), nullable=False),
-        sa.Column('form_type', sa.Enum('1099-INT', '1099-DIV', '1099-B', '1099-MISC', '1099-NEC', '1099-R', '1099-G', '1099-SSA', '1099-K', '1099-S', '1099-C', '1099-Q', name='form1099type'), nullable=False),
+        sa.Column('form_type', form1099_type_enum, nullable=False),
         sa.Column('payer_name', sa.String(200), nullable=False),
         sa.Column('payer_tin', sa.String(10), nullable=True),
         sa.Column('payer_address', sa.Text(), nullable=True),
@@ -423,7 +460,7 @@ def upgrade() -> None:
         'deduction_records',
         sa.Column('deduction_id', postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column('return_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('tax_returns.return_id'), nullable=False),
-        sa.Column('deduction_type', sa.Enum('medical_dental', 'state_local_income_tax', 'state_local_sales_tax', 'real_estate_tax', 'personal_property_tax', 'mortgage_interest', 'mortgage_points', 'investment_interest', 'charitable_cash', 'charitable_noncash', 'casualty_loss', 'other_itemized', 'educator_expense', 'hsa_contribution', 'self_employed_health', 'self_employed_retirement', 'student_loan_interest', 'ira_contribution', 'alimony_paid', name='deductiontype'), nullable=False),
+        sa.Column('deduction_type', deduction_type_enum, nullable=False),
         sa.Column('is_itemized', sa.Boolean(), default=True),
         sa.Column('gross_amount', sa.Numeric(12, 2), nullable=False, default=0),
         sa.Column('limitation_amount', sa.Numeric(12, 2), default=0),
@@ -461,7 +498,7 @@ def upgrade() -> None:
         'credit_records',
         sa.Column('credit_id', postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column('return_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('tax_returns.return_id'), nullable=False),
-        sa.Column('credit_type', sa.Enum('child_tax_credit', 'additional_child_tax_credit', 'earned_income_credit', 'child_dependent_care', 'education_aotc', 'education_llc', 'retirement_saver', 'foreign_tax', 'residential_energy', 'ev_credit', 'adoption', 'premium_tax_credit', 'other', name='credittype'), nullable=False),
+        sa.Column('credit_type', credit_type_enum, nullable=False),
         sa.Column('is_refundable', sa.Boolean(), default=False),
         sa.Column('tentative_credit', sa.Numeric(12, 2), default=0),
         sa.Column('phaseout_reduction', sa.Numeric(12, 2), default=0),
@@ -499,7 +536,7 @@ def upgrade() -> None:
         sa.Column('middle_name', sa.String(100), nullable=True),
         sa.Column('last_name', sa.String(100), nullable=False),
         sa.Column('date_of_birth', sa.Date(), nullable=True),
-        sa.Column('relation_type', sa.Enum('son', 'daughter', 'stepson', 'stepdaughter', 'foster_child', 'brother', 'sister', 'half_brother', 'half_sister', 'stepbrother', 'stepsister', 'parent', 'grandparent', 'grandchild', 'niece', 'nephew', 'uncle', 'aunt', 'other_relative', 'none', name='dependentrelationship'), nullable=False),
+        sa.Column('relation_type', dependent_relationship_enum, nullable=False),
         sa.Column('is_qualifying_child', sa.Boolean(), default=False),
         sa.Column('is_qualifying_relative', sa.Boolean(), default=False),
         sa.Column('months_lived_with_taxpayer', sa.Integer(), default=12),
@@ -536,7 +573,7 @@ def upgrade() -> None:
         sa.Column('residency_status', sa.String(20), default='full_year'),
         sa.Column('residency_start_date', sa.Date(), nullable=True),
         sa.Column('residency_end_date', sa.Date(), nullable=True),
-        sa.Column('state_filing_status', sa.Enum('single', 'married_joint', 'married_separate', 'head_of_household', 'qualifying_widow', name='filingstatus'), nullable=False),
+        sa.Column('state_filing_status', filing_status_enum, nullable=False),
         sa.Column('federal_agi', sa.Numeric(12, 2), default=0),
         sa.Column('state_additions', sa.Numeric(12, 2), default=0),
         sa.Column('state_subtractions', sa.Numeric(12, 2), default=0),
@@ -625,9 +662,9 @@ def upgrade() -> None:
         sa.Column('document_id', postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column('return_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('tax_returns.return_id'), nullable=True),
         sa.Column('taxpayer_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('taxpayers.taxpayer_id'), nullable=True),
-        sa.Column('document_type', sa.Enum('w2', '1099-int', '1099-div', '1099-misc', '1099-nec', '1099-b', '1099-r', '1099-g', '1098', '1098-e', '1098-t', 'k1', '1095-a', '1095-b', '1095-c', 'unknown', name='documenttype'), nullable=False, server_default='unknown'),
+        sa.Column('document_type', document_type_enum, nullable=False, server_default='unknown'),
         sa.Column('tax_year', sa.Integer(), nullable=False),
-        sa.Column('status', sa.Enum('uploaded', 'processing', 'ocr_complete', 'extraction_complete', 'verified', 'applied', 'failed', 'rejected', name='documentstatus'), nullable=False, server_default='uploaded'),
+        sa.Column('status', document_status_enum, nullable=False, server_default='uploaded'),
         sa.Column('original_filename', sa.String(255), nullable=False),
         sa.Column('file_size_bytes', sa.Integer(), nullable=True),
         sa.Column('mime_type', sa.String(100), nullable=True),

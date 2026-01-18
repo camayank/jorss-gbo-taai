@@ -1487,3 +1487,27 @@ def calculate_audit_hash(mapper, connection, target):
     """Calculate integrity hash for audit record."""
     hash_content = f"{target.log_id}{target.timestamp}{target.event_type}{target.description}"
     target.hash_value = hashlib.sha256(hash_content.encode()).hexdigest()
+
+
+# =============================================================================
+# RBAC MODELS IMPORT
+# =============================================================================
+# Import RBAC models so they are registered with Base.metadata
+# This enables Alembic migrations to detect all tables
+try:
+    from core.rbac.models import (
+        Permission,
+        RoleTemplate,
+        RolePermission,
+        UserRoleAssignment,
+        UserPermissionOverride,
+        RBACAuditLog,
+        PermissionCacheVersion,
+        Partner,
+        PartnerFirm,
+        PartnerAdmin,
+        ClientAccessGrant,
+    )
+except ImportError:
+    # core.rbac may not be available in all environments
+    pass

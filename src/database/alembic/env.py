@@ -87,17 +87,11 @@ async def run_async_migrations() -> None:
     settings = get_database_settings()
 
     # Configure engine from settings
+    # Note: NullPool doesn't support pool_size/max_overflow settings
     configuration = {
         "sqlalchemy.url": settings.async_url,
         "sqlalchemy.echo": False,
     }
-
-    # Add pool configuration for PostgreSQL
-    if settings.is_postgres:
-        configuration.update({
-            "sqlalchemy.pool_size": "5",
-            "sqlalchemy.max_overflow": "10",
-        })
 
     connectable = async_engine_from_config(
         configuration,
