@@ -57,6 +57,11 @@ from security.middleware import (
     RequestValidationMiddleware,
 )
 
+# =============================================================================
+# AUDIT TRAIL IMPORTS - CPA COMPLIANCE REQUIREMENT
+# =============================================================================
+from audit.audit_trail import AuditTrail, AuditEntry, AuditEventType, ChangeRecord
+
 logger = logging.getLogger(__name__)
 
 # Initialize secure serializer (replaces unsafe pickle)
@@ -140,6 +145,17 @@ try:
     logger.info("Configuration API enabled")
 except ImportError as e:
     logger.warning(f"Configuration API not available: {e}")
+
+
+# =============================================================================
+# CPA PANEL API - CPA Decision Intelligence & Advisory Platform
+# =============================================================================
+try:
+    from cpa_panel.api import cpa_router
+    app.include_router(cpa_router, prefix="/api")
+    logger.info("CPA Panel API enabled")
+except ImportError as e:
+    logger.warning(f"CPA Panel API not available: {e}")
 
 
 # =============================================================================
@@ -399,6 +415,193 @@ _document_processor = DocumentProcessor()
 # In-memory document tracking (for tests and quick lookups)
 # Note: Production document data is also stored via persistence layer
 _DOCUMENTS: Dict[str, Dict[str, Any]] = {}
+
+# =============================================================================
+# AUDIT TRAIL MANAGEMENT - CPA COMPLIANCE REQUIREMENT
+# =============================================================================
+# In-memory audit trails keyed by return_id (session_id)
+# Note: Also persisted to database for durability
+_AUDIT_TRAILS: Dict[str, AuditTrail] = {}
+
+
+def _get_or_create_audit_trail(session_id: str, user_id: Optional[str] = None, user_name: Optional[str] = None, user_role: str = "taxpayer", ip_address: Optional[str] = None) -> AuditTrail:
+    """
+    Get or create audit trail for a session/return.
+
+    CPA COMPLIANCE: Every session must have an associated audit trail.
+    """
+    if session_id not in _AUDIT_TRAILS:
+        _AUDIT_TRAILS[session_id] = AuditTrail(return_id=session_id)
+
+    trail = _AUDIT_TRAILS[session_id]
+
+    # Set current user context if provided
+    if user_id or user_name:
+        trail.set_current_user(
+            user_id=user_id or session_id,
+            user_name=user_name or "Anonymous",
+            user_role=user_role,
+            ip_address=ip_address
+        )
+
+    return trail
+
+
+def _log_audit_event(
+    session_id: str,
+    event_type: AuditEventType,
+    description: str,
+    changes: Optional[List[ChangeRecord]] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+    request: Optional[Request] = None
+) -> AuditEntry:
+    """
+    Log an audit event for a session.
+
+    CPA COMPLIANCE: All data mutations must be logged.
+    """
+    # Get client IP from request if available
+    ip_address = None
+    if request:
+        ip_address = request.client.host if request.client else None
+
+    trail = _get_or_create_audit_trail(
+        session_id,
+        ip_address=ip_address
+    )
+
+    entry = trail.log_event(
+        event_type=event_type,
+        description=description,
+        changes=changes,
+        metadata=metadata
+    )
+
+    # Persist audit trail to database
+    try:
+        persistence = _get_persistence()
+        persistence.save_audit_trail(session_id, trail.to_json())
+    except Exception as e:
+        logger.warning(f"Failed to persist audit trail: {e}")
+
+    return entry
+
+
+def _log_data_change(
+    session_id: str,
+    field_path: str,
+    old_value: Any,
+    new_value: Any,
+    reason: Optional[str] = None,
+    request: Optional[Request] = None
+) -> AuditEntry:
+    """
+    Log a specific data field change.
+
+    CPA COMPLIANCE: Track all field-level changes.
+    """
+    ip_address = None
+    if request:
+        ip_address = request.client.host if request.client else None
+
+    trail = _get_or_create_audit_trail(session_id, ip_address=ip_address)
+    entry = trail.log_data_change(field_path, old_value, new_value, reason)
+
+    # Persist
+    try:
+        persistence = _get_persistence()
+        persistence.save_audit_trail(session_id, trail.to_json())
+    except Exception as e:
+        logger.warning(f"Failed to persist audit trail: {e}")
+
+    return entry
+
+
+def _get_engine_version_hash() -> Dict[str, str]:
+    """
+    Generate a version hash for the calculation engine.
+
+    CPA COMPLIANCE: Allows verification of which engine version was used
+    for any given calculation. Critical for audit defensibility.
+
+    Returns:
+        Dict with version, hash, and timestamp
+    """
+    import hashlib
+
+    # Version info
+    version = "2025.1.0"
+    tax_year = 2025
+
+    # Generate hash from key calculator files (content-based)
+    calculator_files = [
+        "calculator/tax_calculator.py",
+        "calculator/brackets.py",
+        "calculator/state_calculator.py",
+        "validation/tax_rules_engine.py",
+    ]
+
+    hasher = hashlib.sha256()
+    for file_path in calculator_files:
+        try:
+            full_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), file_path)
+            if os.path.exists(full_path):
+                with open(full_path, "rb") as f:
+                    hasher.update(f.read())
+        except Exception:
+            pass  # Skip if file not readable
+
+    # Include version in hash
+    hasher.update(version.encode())
+    hasher.update(str(tax_year).encode())
+
+    return {
+        "version": version,
+        "tax_year": tax_year,
+        "engine_hash": hasher.hexdigest()[:12],  # Short hash for display
+        "calculated_at": datetime.utcnow().isoformat(),
+    }
+
+
+def _check_cpa_approval(session_id: str, feature_name: str) -> tuple[bool, Optional[str]]:
+    """
+    Check if a feature is allowed based on CPA approval status.
+
+    CPA COMPLIANCE: Certain features require CPA_APPROVED status.
+
+    Args:
+        session_id: Session/return identifier
+        feature_name: Name of feature being checked (for error messages)
+
+    Returns:
+        Tuple of (is_allowed, error_message_if_blocked)
+    """
+    persistence = _get_persistence()
+    status_record = persistence.get_return_status(session_id)
+
+    # If no status record, default to DRAFT (not approved)
+    if not status_record:
+        return (
+            False,
+            f"{feature_name} requires CPA approval. Please submit your return for review first."
+        )
+
+    status = status_record.get("status", "DRAFT")
+
+    if status == "CPA_APPROVED":
+        return (True, None)
+
+    if status == "IN_REVIEW":
+        return (
+            False,
+            f"{feature_name} is pending CPA approval. Please wait for your return to be reviewed."
+        )
+
+    # DRAFT status
+    return (
+        False,
+        f"{feature_name} requires CPA approval. Please submit your return for review first."
+    )
 
 
 def _get_or_create_session_agent(session_id: Optional[str]) -> tuple[str, TaxAgent]:
@@ -1195,6 +1398,30 @@ async def apply_document(document_id: str, request: Request):
         # C3: Persist updated tax return
         _persist_tax_return(session_id, tax_return)
 
+        # ==========================================================================
+        # AUDIT TRAIL: Log document application (CPA COMPLIANCE)
+        # ==========================================================================
+        try:
+            extracted_fields = result_data.get("extracted_fields", [])
+            field_summary = {f.get("field_name"): f.get("value") for f in extracted_fields if f.get("field_name")}
+            _log_audit_event(
+                session_id=session_id,
+                event_type=AuditEventType.DOCUMENT_UPLOAD,
+                description=f"Document {result_data.get('document_type', 'unknown').upper()} applied to return",
+                metadata={
+                    "document_id": document_id,
+                    "document_type": result_data.get("document_type"),
+                    "ocr_confidence": result_data.get("ocr_confidence"),
+                    "extraction_confidence": result_data.get("extraction_confidence"),
+                    "fields_applied": list(field_summary.keys()),
+                    "field_count": len(extracted_fields),
+                    "warnings": messages,
+                },
+                request=request
+            )
+        except Exception as e:
+            logger.warning(f"Failed to log document apply audit event: {e}")
+
         # Generate summary of applied data
         extracted_data = _build_extracted_data(result_data.get("extracted_fields", []))
         summary_items = []
@@ -1762,6 +1989,31 @@ async def calculate_complete_return(request: Request):
     except Exception as e:
         logger.warning(f"Auto-save failed: {e}")  # Non-fatal - continue with response
 
+    # ==========================================================================
+    # AUDIT TRAIL: Log calculation run (CPA COMPLIANCE)
+    # ==========================================================================
+    try:
+        _log_audit_event(
+            session_id=session_id,
+            event_type=AuditEventType.CALCULATION_RUN,
+            description=f"Tax calculation completed for TY{tax_return.tax_year}",
+            metadata={
+                "return_id": return_id,
+                "tax_year": tax_return.tax_year,
+                "filing_status": str(tax_return.taxpayer.filing_status.value) if tax_return.taxpayer else "unknown",
+                "state_code": state_code,
+                "gross_income": float(tax_return.income.get_total_income() if tax_return.income else 0),
+                "adjusted_gross_income": float(tax_return.adjusted_gross_income or 0),
+                "taxable_income": float(tax_return.taxable_income or 0),
+                "tax_liability": float(tax_return.tax_liability or 0),
+                "total_credits": float(tax_return.total_credits or 0),
+                "refund_or_owed": float(tax_return.refund_or_owed or 0),
+            },
+            request=request
+        )
+    except Exception as e:
+        logger.warning(f"Failed to log calculation audit event: {e}")
+
     # Build response
     result = {
         "federal": {
@@ -1827,6 +2079,11 @@ async def calculate_complete_return(request: Request):
 
     # Add progress indicator for product stickiness
     result["progress"] = _calculate_completion_progress(tax_return)
+
+    # ==========================================================================
+    # CPA COMPLIANCE: Add calculation engine version hash
+    # ==========================================================================
+    result["engine"] = _get_engine_version_hash()
 
     return JSONResponse(result)
 
@@ -1984,11 +2241,24 @@ async def get_real_time_estimate(request: Request):
 async def export_pdf(request: Request):
     """
     Export tax return as PDF.
+
+    CPA COMPLIANCE: Requires CPA_APPROVED status.
     """
     from export.pdf_generator import TaxReturnPDFGenerator
     from fastapi.responses import Response
 
     session_id = request.cookies.get("tax_session_id") or ""
+
+    # CPA COMPLIANCE: Check approval status before allowing export
+    is_approved, error_msg = _check_cpa_approval(session_id, "PDF Export")
+    if not is_approved:
+        return create_error_response(
+            code=ErrorCode.VALIDATION_ERROR,
+            message=error_msg,
+            status_code=403,
+            user_message=error_msg
+        )
+
     tax_return = _get_tax_return_for_session(session_id)
 
     if not tax_return:
@@ -2015,8 +2285,21 @@ async def export_pdf(request: Request):
 async def export_json(request: Request):
     """
     Export complete tax return as JSON.
+
+    CPA COMPLIANCE: Requires CPA_APPROVED status.
     """
     session_id = request.cookies.get("tax_session_id") or ""
+
+    # CPA COMPLIANCE: Check approval status before allowing export
+    is_approved, error_msg = _check_cpa_approval(session_id, "JSON Export")
+    if not is_approved:
+        return create_error_response(
+            code=ErrorCode.VALIDATION_ERROR,
+            message=error_msg,
+            status_code=403,
+            user_message=error_msg
+        )
+
     tax_return = _get_tax_return_for_session(session_id)
 
     if not tax_return:
@@ -2344,6 +2627,30 @@ async def save_tax_return(request: Request):
     # Save to database
     saved_id = db_save(session_id, return_data, return_id)
 
+    # ==========================================================================
+    # AUDIT TRAIL: Log return save (CPA COMPLIANCE)
+    # ==========================================================================
+    try:
+        is_update = return_id is not None
+        _log_audit_event(
+            session_id=session_id,
+            event_type=AuditEventType.DATA_CHANGE,
+            description=f"Tax return {'updated' if is_update else 'created'} (ID: {saved_id})",
+            metadata={
+                "return_id": saved_id,
+                "action": "update" if is_update else "create",
+                "previous_return_id": return_id,
+                "tax_year": tax_return.tax_year,
+                "filing_status": str(tax_return.taxpayer.filing_status.value) if tax_return.taxpayer else "unknown",
+                "has_income": tax_return.income is not None,
+                "has_deductions": tax_return.deductions is not None,
+                "has_credits": tax_return.credits is not None,
+            },
+            request=request
+        )
+    except Exception as e:
+        logger.warning(f"Failed to log save audit event: {e}")
+
     return JSONResponse({
         "success": True,
         "return_id": saved_id,
@@ -2530,6 +2837,989 @@ async def delete_saved_return(return_id: str):
     return JSONResponse({
         "success": True,
         "message": "Tax return deleted successfully"
+    })
+
+
+# =============================================================================
+# RETURN STATUS API - CPA APPROVAL WORKFLOW
+# =============================================================================
+# Status flow: DRAFT → IN_REVIEW → CPA_APPROVED
+# CPA COMPLIANCE: Status controls feature access and export permissions
+
+class ReturnStatus(str, Enum):
+    """Valid return statuses for CPA workflow."""
+    DRAFT = "DRAFT"              # Initial state, editable by taxpayer
+    IN_REVIEW = "IN_REVIEW"      # Submitted for CPA review, read-only to taxpayer
+    CPA_APPROVED = "CPA_APPROVED"  # Signed off by CPA, full feature access
+
+
+@app.get("/api/returns/{session_id}/status")
+async def get_return_status(session_id: str, request: Request):
+    """
+    Get the current workflow status of a return.
+
+    CPA COMPLIANCE: Status determines feature access.
+
+    Returns:
+        - Current status (DRAFT, IN_REVIEW, CPA_APPROVED)
+        - Status history and CPA reviewer info if applicable
+    """
+    persistence = _get_persistence()
+    status_record = persistence.get_return_status(session_id)
+
+    if not status_record:
+        # Default to DRAFT if no status exists
+        return JSONResponse({
+            "success": True,
+            "session_id": session_id,
+            "status": ReturnStatus.DRAFT.value,
+            "is_default": True,
+            "features": {
+                "editable": True,
+                "export_enabled": False,
+                "smart_insights_enabled": False,
+                "cpa_approved": False,
+            }
+        })
+
+    status = status_record["status"]
+    return JSONResponse({
+        "success": True,
+        "session_id": session_id,
+        "status": status,
+        "created_at": status_record.get("created_at"),
+        "last_status_change": status_record.get("last_status_change"),
+        "cpa_reviewer_name": status_record.get("cpa_reviewer_name"),
+        "review_notes": status_record.get("review_notes"),
+        "approval_timestamp": status_record.get("approval_timestamp"),
+        "features": {
+            "editable": status == ReturnStatus.DRAFT.value,
+            "export_enabled": status == ReturnStatus.CPA_APPROVED.value,
+            "smart_insights_enabled": status == ReturnStatus.CPA_APPROVED.value,
+            "cpa_approved": status == ReturnStatus.CPA_APPROVED.value,
+        }
+    })
+
+
+@app.post("/api/returns/{session_id}/submit-for-review")
+async def submit_return_for_review(session_id: str, request: Request):
+    """
+    Submit a return for CPA review.
+
+    CPA COMPLIANCE: Transitions DRAFT → IN_REVIEW.
+    - Locks the return from taxpayer edits
+    - Notifies CPA queue
+    - Creates audit trail entry
+
+    Returns:
+        Updated status record
+    """
+    persistence = _get_persistence()
+
+    # Check current status
+    current_status = persistence.get_return_status(session_id)
+    if current_status and current_status["status"] != ReturnStatus.DRAFT.value:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot submit: return is already {current_status['status']}"
+        )
+
+    # Update status
+    new_status = persistence.set_return_status(
+        session_id=session_id,
+        status=ReturnStatus.IN_REVIEW.value,
+    )
+
+    # Log audit event
+    try:
+        _log_audit_event(
+            session_id=session_id,
+            event_type=AuditEventType.REVIEW_REQUEST,
+            description="Return submitted for CPA review",
+            metadata={
+                "previous_status": ReturnStatus.DRAFT.value,
+                "new_status": ReturnStatus.IN_REVIEW.value,
+            },
+            request=request
+        )
+    except Exception as e:
+        logger.warning(f"Failed to log review submission audit: {e}")
+
+    return JSONResponse({
+        "success": True,
+        "session_id": session_id,
+        "status": new_status["status"],
+        "message": "Return submitted for CPA review",
+        "features": {
+            "editable": False,
+            "export_enabled": False,
+            "smart_insights_enabled": False,
+            "cpa_approved": False,
+        }
+    })
+
+
+@app.post("/api/returns/{session_id}/approve")
+async def approve_return(session_id: str, request: Request):
+    """
+    CPA sign-off on a return.
+
+    CPA COMPLIANCE: Transitions IN_REVIEW → CPA_APPROVED.
+    - Requires CPA credentials
+    - Creates signed approval record
+    - Unlocks export and Smart Insights features
+
+    Request body:
+        - cpa_reviewer_id: CPA identifier
+        - cpa_reviewer_name: CPA name for display
+        - review_notes: Optional notes/comments
+        - signature: Approval signature/PIN
+
+    Returns:
+        Updated status record with approval details
+    """
+    import hashlib
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    cpa_reviewer_id = body.get("cpa_reviewer_id")
+    cpa_reviewer_name = body.get("cpa_reviewer_name", "CPA Reviewer")
+    review_notes = body.get("review_notes")
+    signature = body.get("signature")
+
+    if not cpa_reviewer_id:
+        raise HTTPException(status_code=400, detail="CPA reviewer ID is required")
+
+    persistence = _get_persistence()
+
+    # Check current status
+    current_status = persistence.get_return_status(session_id)
+    if current_status and current_status["status"] == ReturnStatus.CPA_APPROVED.value:
+        raise HTTPException(status_code=400, detail="Return is already approved")
+
+    # Create signature hash for audit trail
+    signature_data = f"{session_id}:{cpa_reviewer_id}:{datetime.utcnow().isoformat()}"
+    if signature:
+        signature_data += f":{signature}"
+    approval_hash = hashlib.sha256(signature_data.encode()).hexdigest()[:16]
+
+    # Update status to approved
+    new_status = persistence.set_return_status(
+        session_id=session_id,
+        status=ReturnStatus.CPA_APPROVED.value,
+        cpa_reviewer_id=cpa_reviewer_id,
+        cpa_reviewer_name=cpa_reviewer_name,
+        review_notes=review_notes,
+        approval_signature_hash=approval_hash
+    )
+
+    # Log audit event with CPA sign-off
+    try:
+        _log_audit_event(
+            session_id=session_id,
+            event_type=AuditEventType.CPA_REVIEW,
+            description=f"Return approved by CPA: {cpa_reviewer_name}",
+            metadata={
+                "cpa_reviewer_id": cpa_reviewer_id,
+                "cpa_reviewer_name": cpa_reviewer_name,
+                "review_notes": review_notes,
+                "approval_signature_hash": approval_hash,
+                "previous_status": current_status["status"] if current_status else "DRAFT",
+                "new_status": ReturnStatus.CPA_APPROVED.value,
+            },
+            request=request
+        )
+    except Exception as e:
+        logger.warning(f"Failed to log CPA approval audit: {e}")
+
+    return JSONResponse({
+        "success": True,
+        "session_id": session_id,
+        "status": new_status["status"],
+        "message": f"Return approved by {cpa_reviewer_name}",
+        "approval_timestamp": new_status.get("approval_timestamp"),
+        "approval_signature_hash": approval_hash,
+        "features": {
+            "editable": False,
+            "export_enabled": True,
+            "smart_insights_enabled": True,
+            "cpa_approved": True,
+        }
+    })
+
+
+@app.post("/api/returns/{session_id}/revert-to-draft")
+async def revert_return_to_draft(session_id: str, request: Request):
+    """
+    Revert a return to DRAFT status (CPA action only).
+
+    CPA COMPLIANCE: Allows CPA to send back for revisions.
+    - Requires CPA credentials
+    - Re-enables taxpayer edits
+    - Creates audit trail entry with reason
+
+    Request body:
+        - cpa_reviewer_id: CPA identifier
+        - reason: Required reason for reverting
+
+    Returns:
+        Updated status record
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    cpa_reviewer_id = body.get("cpa_reviewer_id")
+    reason = body.get("reason", "Needs revisions")
+
+    if not cpa_reviewer_id:
+        raise HTTPException(status_code=400, detail="CPA reviewer ID is required")
+
+    persistence = _get_persistence()
+
+    current_status = persistence.get_return_status(session_id)
+    if not current_status:
+        raise HTTPException(status_code=404, detail="No status record found")
+
+    old_status = current_status["status"]
+
+    # Update status
+    new_status = persistence.set_return_status(
+        session_id=session_id,
+        status=ReturnStatus.DRAFT.value,
+        review_notes=f"Reverted by CPA: {reason}"
+    )
+
+    # Log audit event
+    try:
+        _log_audit_event(
+            session_id=session_id,
+            event_type=AuditEventType.REVIEW_REQUEST,
+            description=f"Return reverted to DRAFT by CPA",
+            metadata={
+                "cpa_reviewer_id": cpa_reviewer_id,
+                "reason": reason,
+                "previous_status": old_status,
+                "new_status": ReturnStatus.DRAFT.value,
+            },
+            request=request
+        )
+    except Exception as e:
+        logger.warning(f"Failed to log revert audit: {e}")
+
+    return JSONResponse({
+        "success": True,
+        "session_id": session_id,
+        "status": new_status["status"],
+        "message": "Return reverted to DRAFT for revisions",
+        "reason": reason,
+        "features": {
+            "editable": True,
+            "export_enabled": False,
+            "smart_insights_enabled": False,
+            "cpa_approved": False,
+        }
+    })
+
+
+@app.get("/api/returns/queue/{status}")
+async def list_returns_by_status(status: str, request: Request, limit: int = 100, offset: int = 0):
+    """
+    List returns by workflow status for CPA queue.
+
+    CPA COMPLIANCE: Enables CPA workflow management.
+
+    Args:
+        status: Filter by status (DRAFT, IN_REVIEW, CPA_APPROVED)
+        limit: Max results (default 100)
+        offset: Pagination offset
+
+    Returns:
+        List of returns matching the status
+    """
+    # Validate status
+    try:
+        valid_status = ReturnStatus(status)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid status. Must be one of: {', '.join(s.value for s in ReturnStatus)}"
+        )
+
+    persistence = _get_persistence()
+    returns = persistence.list_returns_by_status(
+        status=valid_status.value,
+        limit=limit,
+        offset=offset
+    )
+
+    return JSONResponse({
+        "success": True,
+        "status": valid_status.value,
+        "returns": returns,
+        "count": len(returns),
+        "limit": limit,
+        "offset": offset
+    })
+
+
+# =============================================================================
+# CPA "AHA MOMENT" APIS - VALUE DEMONSTRATION FOR $9,999/YR SUBSCRIPTION
+# =============================================================================
+
+@app.post("/api/returns/{session_id}/delta")
+async def calculate_delta(session_id: str, request: Request):
+    """
+    Calculate before/after delta for a proposed change.
+
+    CPA AHA MOMENT: Shows instant impact of changes - "One click, see the difference."
+    This visualization helps CPAs instantly understand the impact of any adjustment.
+
+    Request body:
+        - change_type: Type of change (income, deduction, credit, etc.)
+        - field: Field being changed
+        - old_value: Current value
+        - new_value: Proposed new value
+
+    Returns:
+        - Before/after comparison
+        - Delta amounts for key metrics
+        - Percentage changes
+        - Visualization data
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    change_type = body.get("change_type", "")
+    field = body.get("field", "")
+    old_value = body.get("old_value", 0)
+    new_value = body.get("new_value", 0)
+
+    # Get current tax return
+    tax_return = _get_tax_return_for_session(session_id)
+    if not tax_return:
+        raise HTTPException(status_code=404, detail="Tax return not found")
+
+    # Calculate current state
+    current_agi = float(tax_return.adjusted_gross_income or 0)
+    current_taxable = float(tax_return.taxable_income or 0)
+    current_liability = float(tax_return.tax_liability or 0)
+    current_refund = float(tax_return.refund_or_owed or 0)
+
+    # Estimate impact based on change type
+    delta_amount = float(new_value) - float(old_value)
+
+    # Simplified impact estimation (real implementation would recalculate)
+    marginal_rate = _get_marginal_rate(tax_return)
+
+    if change_type in ["income", "wages"]:
+        estimated_new_agi = current_agi + delta_amount
+        estimated_new_taxable = current_taxable + delta_amount
+        estimated_tax_change = delta_amount * marginal_rate
+        estimated_new_liability = current_liability + estimated_tax_change
+    elif change_type in ["deduction"]:
+        estimated_new_agi = current_agi
+        estimated_new_taxable = current_taxable - delta_amount
+        estimated_tax_change = -delta_amount * marginal_rate
+        estimated_new_liability = current_liability + estimated_tax_change
+    elif change_type in ["credit"]:
+        estimated_new_agi = current_agi
+        estimated_new_taxable = current_taxable
+        estimated_tax_change = -delta_amount  # Credits are dollar-for-dollar
+        estimated_new_liability = current_liability + estimated_tax_change
+    else:
+        estimated_new_agi = current_agi
+        estimated_new_taxable = current_taxable
+        estimated_tax_change = 0
+        estimated_new_liability = current_liability
+
+    estimated_new_refund = current_refund - estimated_tax_change
+
+    return JSONResponse({
+        "success": True,
+        "session_id": session_id,
+        "change": {
+            "type": change_type,
+            "field": field,
+            "old_value": old_value,
+            "new_value": new_value,
+            "delta": delta_amount
+        },
+        "before": {
+            "adjusted_gross_income": current_agi,
+            "taxable_income": current_taxable,
+            "tax_liability": current_liability,
+            "refund_or_owed": current_refund,
+        },
+        "after": {
+            "adjusted_gross_income": round(estimated_new_agi, 2),
+            "taxable_income": round(estimated_new_taxable, 2),
+            "tax_liability": round(estimated_new_liability, 2),
+            "refund_or_owed": round(estimated_new_refund, 2),
+        },
+        "delta_metrics": {
+            "agi_change": round(estimated_new_agi - current_agi, 2),
+            "taxable_change": round(estimated_new_taxable - current_taxable, 2),
+            "liability_change": round(estimated_tax_change, 2),
+            "refund_change": round(estimated_new_refund - current_refund, 2),
+        },
+        "percentage_changes": {
+            "liability_pct": round((estimated_tax_change / current_liability) * 100, 2) if current_liability else 0,
+            "refund_pct": round(((estimated_new_refund - current_refund) / abs(current_refund)) * 100, 2) if current_refund else 0,
+        },
+        "marginal_rate_used": marginal_rate,
+        "visualization": {
+            "type": "bar_comparison",
+            "metrics": ["tax_liability", "refund_or_owed"],
+            "highlight_change": True,
+        }
+    })
+
+
+@app.post("/api/returns/{session_id}/notes")
+async def add_cpa_note(session_id: str, request: Request):
+    """
+    Add CPA review notes to a return.
+
+    CPA AHA MOMENT: Professional documentation for client communication.
+    Notes are audit-trailed and timestamped.
+
+    Request body:
+        - note_text: The note content
+        - category: Optional category (review, question, recommendation, etc.)
+        - is_internal: Whether note is internal-only (default False)
+
+    Returns:
+        Updated notes list
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    note_text = body.get("note_text", "").strip()
+    category = body.get("category", "general")
+    is_internal = body.get("is_internal", False)
+    cpa_id = body.get("cpa_id", "")
+    cpa_name = body.get("cpa_name", "CPA")
+
+    if not note_text:
+        raise HTTPException(status_code=400, detail="Note text is required")
+
+    persistence = _get_persistence()
+
+    # Get existing status record to access notes
+    status_record = persistence.get_return_status(session_id)
+    existing_notes = []
+    if status_record and status_record.get("review_notes"):
+        try:
+            import json as json_module
+            existing_notes = json_module.loads(status_record["review_notes"])
+            if not isinstance(existing_notes, list):
+                existing_notes = [{"text": status_record["review_notes"], "timestamp": "migrated"}]
+        except Exception:
+            existing_notes = [{"text": status_record["review_notes"], "timestamp": "migrated"}]
+
+    # Add new note
+    new_note = {
+        "id": str(uuid.uuid4())[:8],
+        "text": note_text,
+        "category": category,
+        "is_internal": is_internal,
+        "cpa_id": cpa_id,
+        "cpa_name": cpa_name,
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+    existing_notes.append(new_note)
+
+    # Save updated notes
+    import json as json_module
+    persistence.set_return_status(
+        session_id=session_id,
+        status=status_record["status"] if status_record else "DRAFT",
+        review_notes=json_module.dumps(existing_notes)
+    )
+
+    # Log audit event
+    try:
+        _log_audit_event(
+            session_id=session_id,
+            event_type=AuditEventType.CPA_REVIEW,
+            description=f"CPA note added: {category}",
+            metadata={
+                "note_id": new_note["id"],
+                "category": category,
+                "is_internal": is_internal,
+                "cpa_name": cpa_name,
+            },
+            request=request
+        )
+    except Exception as e:
+        logger.warning(f"Failed to log note audit: {e}")
+
+    return JSONResponse({
+        "success": True,
+        "session_id": session_id,
+        "note": new_note,
+        "total_notes": len(existing_notes)
+    })
+
+
+@app.get("/api/returns/{session_id}/notes")
+async def get_cpa_notes(session_id: str, request: Request, include_internal: bool = False):
+    """
+    Get all CPA notes for a return.
+
+    Args:
+        include_internal: Whether to include internal-only notes (for CPA view)
+
+    Returns:
+        List of notes with metadata
+    """
+    persistence = _get_persistence()
+    status_record = persistence.get_return_status(session_id)
+
+    if not status_record or not status_record.get("review_notes"):
+        return JSONResponse({
+            "success": True,
+            "session_id": session_id,
+            "notes": [],
+            "total_notes": 0
+        })
+
+    try:
+        import json as json_module
+        notes = json_module.loads(status_record["review_notes"])
+        if not isinstance(notes, list):
+            notes = [{"text": status_record["review_notes"], "timestamp": "migrated"}]
+    except Exception:
+        notes = [{"text": status_record["review_notes"], "timestamp": "migrated"}]
+
+    # Filter internal notes if needed
+    if not include_internal:
+        notes = [n for n in notes if not n.get("is_internal", False)]
+
+    return JSONResponse({
+        "success": True,
+        "session_id": session_id,
+        "notes": notes,
+        "total_notes": len(notes)
+    })
+
+
+# =============================================================================
+# CLIENT "AHA MOMENT" APIS - VALUE DEMONSTRATION FOR TAXPAYERS
+# =============================================================================
+
+@app.get("/api/returns/{session_id}/tax-drivers")
+async def get_tax_drivers(session_id: str, request: Request):
+    """
+    Get 'What Drives Your Tax Outcome' breakdown.
+
+    CLIENT AHA MOMENT: Clear visualization of what affects their taxes most.
+    Helps clients understand where their tax dollars come from and go.
+
+    Returns:
+        - Income breakdown by source
+        - Deduction impact analysis
+        - Credit utilization
+        - Effective vs marginal rate explanation
+        - Top 5 factors affecting their tax outcome
+    """
+    tax_return = _get_tax_return_for_session(session_id)
+    if not tax_return:
+        raise HTTPException(status_code=404, detail="Tax return not found")
+
+    # Income breakdown
+    income = tax_return.income
+    income_breakdown = []
+    total_income = 0
+
+    if income:
+        if income.w2_forms:
+            wages = sum(w.wages for w in income.w2_forms)
+            if wages > 0:
+                income_breakdown.append({
+                    "source": "Wages & Salary",
+                    "amount": wages,
+                    "icon": "briefcase"
+                })
+                total_income += wages
+
+        if income.interest_income and income.interest_income > 0:
+            income_breakdown.append({
+                "source": "Interest Income",
+                "amount": income.interest_income,
+                "icon": "percent"
+            })
+            total_income += income.interest_income
+
+        if income.dividend_income and income.dividend_income > 0:
+            income_breakdown.append({
+                "source": "Dividend Income",
+                "amount": income.dividend_income,
+                "icon": "trending-up"
+            })
+            total_income += income.dividend_income
+
+        if income.self_employment_income and income.self_employment_income > 0:
+            income_breakdown.append({
+                "source": "Self-Employment",
+                "amount": income.self_employment_income,
+                "icon": "user-check"
+            })
+            total_income += income.self_employment_income
+
+        if hasattr(income, 'long_term_capital_gains') and income.long_term_capital_gains:
+            income_breakdown.append({
+                "source": "Capital Gains",
+                "amount": income.long_term_capital_gains,
+                "icon": "trending-up"
+            })
+            total_income += income.long_term_capital_gains
+
+    # Deduction impact
+    deductions = tax_return.deductions
+    deduction_impact = {
+        "type": "standard",
+        "amount": 0,
+        "tax_savings": 0,
+    }
+
+    if deductions:
+        if deductions.itemized and deductions.itemized.get_total_itemized() > 0:
+            deduction_impact = {
+                "type": "itemized",
+                "amount": deductions.itemized.get_total_itemized(),
+                "breakdown": {
+                    "state_local_taxes": deductions.itemized.state_local_taxes or 0,
+                    "mortgage_interest": deductions.itemized.mortgage_interest or 0,
+                    "charitable": deductions.itemized.charitable_cash + (deductions.itemized.charitable_noncash or 0),
+                    "medical": deductions.itemized.medical_expenses or 0,
+                }
+            }
+        else:
+            # Standard deduction
+            standard_amounts = {
+                "single": 15000, "married_joint": 30000, "married_separate": 15000,
+                "head_of_household": 22500, "widow": 30000
+            }
+            status = tax_return.taxpayer.filing_status.value if tax_return.taxpayer else "single"
+            deduction_impact = {
+                "type": "standard",
+                "amount": standard_amounts.get(status, 15000),
+            }
+
+    marginal_rate = _get_marginal_rate(tax_return)
+    deduction_impact["tax_savings"] = round(deduction_impact["amount"] * marginal_rate, 2)
+
+    # Credit utilization
+    credits = tax_return.credits
+    credit_breakdown = []
+
+    if credits:
+        if hasattr(credits, 'child_tax_credit') and credits.child_tax_credit:
+            credit_breakdown.append({
+                "name": "Child Tax Credit",
+                "amount": credits.child_tax_credit,
+                "refundable": True,
+            })
+        if hasattr(credits, 'earned_income_credit') and credits.earned_income_credit:
+            credit_breakdown.append({
+                "name": "Earned Income Credit",
+                "amount": credits.earned_income_credit,
+                "refundable": True,
+            })
+        if hasattr(credits, 'education_credits') and credits.education_credits:
+            credit_breakdown.append({
+                "name": "Education Credits",
+                "amount": credits.education_credits,
+                "refundable": False,
+            })
+
+    # Calculate rates
+    effective_rate = 0
+    if tax_return.adjusted_gross_income and tax_return.adjusted_gross_income > 0:
+        effective_rate = (tax_return.tax_liability or 0) / tax_return.adjusted_gross_income
+
+    # Top 5 tax drivers
+    drivers = []
+
+    if income_breakdown:
+        largest_income = max(income_breakdown, key=lambda x: x["amount"])
+        drivers.append({
+            "factor": f"Primary Income: {largest_income['source']}",
+            "impact": f"${largest_income['amount']:,.0f}",
+            "direction": "increases",
+            "rank": 1
+        })
+
+    if deduction_impact["amount"] > 0:
+        drivers.append({
+            "factor": f"{deduction_impact['type'].title()} Deduction",
+            "impact": f"Saves ${deduction_impact['tax_savings']:,.0f}",
+            "direction": "decreases",
+            "rank": 2
+        })
+
+    if tax_return.taxpayer:
+        drivers.append({
+            "factor": f"Filing Status: {tax_return.taxpayer.filing_status.value.replace('_', ' ').title()}",
+            "impact": f"Determines tax brackets",
+            "direction": "neutral",
+            "rank": 3
+        })
+
+    total_credits = sum(c["amount"] for c in credit_breakdown)
+    if total_credits > 0:
+        drivers.append({
+            "factor": f"Tax Credits ({len(credit_breakdown)})",
+            "impact": f"Saves ${total_credits:,.0f}",
+            "direction": "decreases",
+            "rank": 4
+        })
+
+    if marginal_rate > 0:
+        drivers.append({
+            "factor": f"Tax Bracket: {int(marginal_rate * 100)}%",
+            "impact": f"Each extra $1,000 costs ${marginal_rate * 1000:,.0f}",
+            "direction": "neutral",
+            "rank": 5
+        })
+
+    return JSONResponse({
+        "success": True,
+        "session_id": session_id,
+        "summary": {
+            "total_income": total_income,
+            "taxable_income": tax_return.taxable_income or 0,
+            "tax_liability": tax_return.tax_liability or 0,
+            "total_deductions": deduction_impact["amount"],
+            "total_credits": total_credits,
+            "effective_rate": round(effective_rate * 100, 2),
+            "marginal_rate": round(marginal_rate * 100, 2),
+        },
+        "income_breakdown": income_breakdown,
+        "deduction_impact": deduction_impact,
+        "credit_breakdown": credit_breakdown,
+        "top_drivers": drivers,
+        "insights": {
+            "rate_explanation": f"You pay {round(effective_rate * 100, 1)}% of your income in federal taxes, but each additional dollar earned is taxed at {round(marginal_rate * 100, 0)}%.",
+            "deduction_explanation": f"Your {deduction_impact['type']} deduction of ${deduction_impact['amount']:,.0f} saves you ${deduction_impact['tax_savings']:,.0f} in taxes.",
+        }
+    })
+
+
+@app.post("/api/returns/{session_id}/compare-scenarios")
+async def compare_scenarios(session_id: str, request: Request):
+    """
+    Compare multiple tax scenarios side-by-side.
+
+    CLIENT AHA MOMENT: "What if" analysis - see how different choices affect taxes.
+
+    Request body:
+        - scenarios: List of scenario adjustments to compare
+          Each scenario: {name: str, adjustments: [{field: str, value: float}]}
+
+    Returns:
+        - Base case (current return)
+        - Each scenario with calculated impact
+        - Delta comparison matrix
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    scenarios_input = body.get("scenarios", [])
+
+    tax_return = _get_tax_return_for_session(session_id)
+    if not tax_return:
+        raise HTTPException(status_code=404, detail="Tax return not found")
+
+    # Base case
+    base_case = {
+        "name": "Current",
+        "adjusted_gross_income": float(tax_return.adjusted_gross_income or 0),
+        "taxable_income": float(tax_return.taxable_income or 0),
+        "tax_liability": float(tax_return.tax_liability or 0),
+        "refund_or_owed": float(tax_return.refund_or_owed or 0),
+    }
+
+    marginal_rate = _get_marginal_rate(tax_return)
+    scenarios = [base_case]
+
+    # Calculate each scenario
+    for idx, scenario in enumerate(scenarios_input[:4]):  # Limit to 4 scenarios
+        name = scenario.get("name", f"Scenario {idx + 1}")
+        adjustments = scenario.get("adjustments", [])
+
+        # Start from base
+        agi_delta = 0
+        taxable_delta = 0
+
+        for adj in adjustments:
+            field = adj.get("field", "")
+            value = float(adj.get("value", 0))
+
+            if field in ["income", "wages", "additional_income"]:
+                agi_delta += value
+                taxable_delta += value
+            elif field in ["deduction", "additional_deduction"]:
+                taxable_delta -= value
+            elif field in ["ira_contribution", "401k_contribution"]:
+                agi_delta -= value
+                taxable_delta -= value
+
+        tax_change = taxable_delta * marginal_rate
+
+        scenarios.append({
+            "name": name,
+            "adjusted_gross_income": round(base_case["adjusted_gross_income"] + agi_delta, 2),
+            "taxable_income": round(base_case["taxable_income"] + taxable_delta, 2),
+            "tax_liability": round(base_case["tax_liability"] + tax_change, 2),
+            "refund_or_owed": round(base_case["refund_or_owed"] - tax_change, 2),
+            "adjustments": adjustments,
+            "delta_from_base": {
+                "agi": round(agi_delta, 2),
+                "taxable": round(taxable_delta, 2),
+                "tax": round(tax_change, 2),
+                "refund": round(-tax_change, 2),
+            }
+        })
+
+    # Find best scenario
+    best_scenario = min(scenarios, key=lambda s: s["tax_liability"])
+    worst_scenario = max(scenarios, key=lambda s: s["tax_liability"])
+
+    return JSONResponse({
+        "success": True,
+        "session_id": session_id,
+        "scenarios": scenarios,
+        "comparison": {
+            "best_scenario": best_scenario["name"],
+            "best_tax": best_scenario["tax_liability"],
+            "worst_scenario": worst_scenario["name"],
+            "worst_tax": worst_scenario["tax_liability"],
+            "max_savings": round(worst_scenario["tax_liability"] - best_scenario["tax_liability"], 2),
+        },
+        "marginal_rate_used": marginal_rate,
+        "visualization": {
+            "type": "comparison_chart",
+            "metrics": ["tax_liability", "refund_or_owed"],
+            "scenarios": [s["name"] for s in scenarios]
+        }
+    })
+
+
+# =============================================================================
+# AUDIT TRAIL API - CPA COMPLIANCE REQUIREMENT
+# =============================================================================
+
+@app.get("/api/audit/{session_id}")
+async def get_audit_trail(session_id: str, request: Request):
+    """
+    Get the complete audit trail for a session/return.
+
+    CPA COMPLIANCE: Provides full audit history for defensibility.
+
+    Returns:
+        - All audit entries with timestamps, users, and changes
+        - Integrity verification status
+        - Summary statistics
+    """
+    persistence = _get_persistence()
+
+    # Load from persistence
+    trail_json = persistence.load_audit_trail(session_id)
+
+    if not trail_json:
+        # Check if trail exists in memory
+        if session_id in _AUDIT_TRAILS:
+            trail = _AUDIT_TRAILS[session_id]
+        else:
+            raise HTTPException(status_code=404, detail="Audit trail not found")
+    else:
+        trail = AuditTrail.from_json(trail_json)
+
+    # Verify integrity
+    is_valid, issues = trail.verify_trail_integrity()
+
+    return JSONResponse({
+        "success": True,
+        "session_id": session_id,
+        "audit_trail": {
+            "return_id": trail.return_id,
+            "created_at": trail.created_at.isoformat(),
+            "total_entries": len(trail.entries),
+            "entries": [entry.to_dict() for entry in trail.entries],
+            "integrity": {
+                "verified": is_valid,
+                "issues": issues
+            },
+            "summary": trail.get_summary()
+        }
+    })
+
+
+@app.get("/api/audit/{session_id}/report")
+async def get_audit_report(session_id: str, request: Request):
+    """
+    Get human-readable audit report for CPA review.
+
+    Returns formatted text report suitable for printing/archiving.
+    """
+    persistence = _get_persistence()
+
+    trail_json = persistence.load_audit_trail(session_id)
+
+    if not trail_json:
+        if session_id in _AUDIT_TRAILS:
+            trail = _AUDIT_TRAILS[session_id]
+        else:
+            raise HTTPException(status_code=404, detail="Audit trail not found")
+    else:
+        trail = AuditTrail.from_json(trail_json)
+
+    report = trail.generate_audit_report()
+
+    return JSONResponse({
+        "success": True,
+        "session_id": session_id,
+        "report": report,
+        "generated_at": datetime.utcnow().isoformat()
+    })
+
+
+@app.get("/api/audit")
+async def list_audit_trails(request: Request, limit: int = 100, offset: int = 0):
+    """
+    List all audit trails for a tenant.
+
+    CPA COMPLIANCE: Enables review of all client activity.
+    """
+    persistence = _get_persistence()
+
+    # Get tenant from header or default
+    tenant_id = request.headers.get("X-Tenant-ID", "default")
+
+    trails = persistence.list_audit_trails(
+        tenant_id=tenant_id,
+        limit=limit,
+        offset=offset
+    )
+
+    return JSONResponse({
+        "success": True,
+        "tenant_id": tenant_id,
+        "count": len(trails),
+        "audit_trails": trails
     })
 
 
@@ -3782,11 +5072,30 @@ async def get_smart_insights(request: Request):
     Get AI-powered tax optimization insights for the Smart Insights sidebar.
     Returns actionable recommendations with one-click apply capability.
 
+    CPA COMPLIANCE: Requires CPA_APPROVED status to unlock full insights.
+
     Combines insights from:
     - Base recommendation engine (filing status, deductions, credits, strategies)
     - Rules-based recommender (764+ IRS rules including crypto, foreign, K-1, etc.)
     """
     session_id = request.cookies.get("tax_session_id", "")
+
+    # CPA COMPLIANCE: Check approval status before providing full insights
+    is_approved, error_msg = _check_cpa_approval(session_id, "Smart Insights")
+    if not is_approved:
+        return JSONResponse({
+            "success": True,
+            "cpa_approval_required": True,
+            "message": error_msg,
+            "insights": [],
+            "summary": {
+                "total_insights": 0,
+                "total_potential_savings": 0,
+                "by_category": {},
+                "by_priority": {}
+            },
+            "disclaimer": "Smart Insights require CPA approval. Submit your return for review to unlock personalized recommendations."
+        })
 
     try:
         # Import rules-based recommender

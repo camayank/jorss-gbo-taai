@@ -480,25 +480,37 @@ class TestSmartInsightsEndpoint:
     """Tests for /api/smart-insights endpoint."""
 
     def test_smart_insights_success(self, client):
-        """Test successful smart insights retrieval."""
+        """Test smart insights retrieval - requires CPA approval."""
         response = client.get("/api/smart-insights")
 
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
         assert "insights" in data
-        assert "total_potential_savings" in data
-        assert "insight_count" in data
+
+        # CPA COMPLIANCE: Smart Insights require CPA_APPROVED status
+        # When not approved, response includes cpa_approval_required flag
+        if data.get("cpa_approval_required"):
+            assert "message" in data
+            assert "disclaimer" in data
+            assert data["insights"] == []
+        else:
+            # If CPA approved, full response available
+            assert "summary" in data
 
     def test_smart_insights_structure(self, client):
-        """Test that insights have the correct structure."""
+        """Test that insights have the correct structure when CPA approved."""
         response = client.get("/api/smart-insights")
 
         assert response.status_code == 200
         data = response.json()
 
-        # If there are insights, verify structure
-        if data["insights"]:
+        # CPA COMPLIANCE: Check for approval status
+        if data.get("cpa_approval_required"):
+            # Not approved - empty insights expected
+            assert data["insights"] == []
+        elif data["insights"]:
+            # Approved and has insights - verify structure
             insight = data["insights"][0]
             assert "id" in insight
             assert "type" in insight
@@ -508,21 +520,20 @@ class TestSmartInsightsEndpoint:
 
     def test_smart_insights_with_session_data(self, client):
         """Test smart insights with session containing tax data."""
-        # First, set up some session data by making another request
-        # This is a basic test - in real scenarios, session would have tax data
         response = client.get("/api/smart-insights")
 
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data["insights"], list)
 
-    def test_smart_insights_count_matches(self, client):
-        """Test that insight_count matches actual insights length."""
+    def test_smart_insights_cpa_approval_required(self, client):
+        """Test that smart insights require CPA approval by default."""
         response = client.get("/api/smart-insights")
 
         assert response.status_code == 200
         data = response.json()
-        assert data["insight_count"] == len(data["insights"])
+        # New sessions default to DRAFT status, which requires CPA approval
+        assert data.get("cpa_approval_required", False) is True
 
 
 class TestApplyInsightEndpoint:

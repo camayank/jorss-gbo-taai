@@ -150,6 +150,58 @@ class SessionPersistence:
                 ON document_processing(tenant_id)
             """)
 
+            # =================================================================
+            # AUDIT TRAILS TABLE - CPA COMPLIANCE REQUIREMENT
+            # =================================================================
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS audit_trails (
+                    session_id TEXT PRIMARY KEY,
+                    tenant_id TEXT NOT NULL DEFAULT 'default',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    trail_json TEXT NOT NULL,
+                    entry_count INTEGER NOT NULL DEFAULT 0,
+                    FOREIGN KEY (session_id) REFERENCES session_states(session_id)
+                )
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_audit_tenant
+                ON audit_trails(tenant_id)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_audit_updated
+                ON audit_trails(updated_at)
+            """)
+
+            # =================================================================
+            # RETURN STATUS TABLE - CPA APPROVAL WORKFLOW
+            # =================================================================
+            # Tracks: DRAFT → IN_REVIEW → CPA_APPROVED status per return
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS return_status (
+                    session_id TEXT PRIMARY KEY,
+                    tenant_id TEXT NOT NULL DEFAULT 'default',
+                    status TEXT NOT NULL DEFAULT 'DRAFT',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    last_status_change TEXT NOT NULL,
+                    cpa_reviewer_id TEXT,
+                    cpa_reviewer_name TEXT,
+                    review_notes TEXT,
+                    approval_timestamp TEXT,
+                    approval_signature_hash TEXT,
+                    FOREIGN KEY (session_id) REFERENCES session_states(session_id)
+                )
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_return_status_tenant
+                ON return_status(tenant_id)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_return_status_status
+                ON return_status(status)
+            """)
+
             conn.commit()
 
     # =========================================================================
@@ -707,6 +759,343 @@ class SessionPersistence:
             )
             conn.commit()
             return cursor.rowcount > 0
+
+    # =========================================================================
+    # AUDIT TRAIL METHODS - CPA COMPLIANCE REQUIREMENT
+    # =========================================================================
+
+    def save_audit_trail(
+        self,
+        session_id: str,
+        trail_json: str,
+        tenant_id: str = "default"
+    ) -> None:
+        """
+        Save or update an audit trail for a session.
+
+        CPA COMPLIANCE: All audit trails must be persisted for defensibility.
+
+        Args:
+            session_id: Session/return identifier
+            trail_json: JSON-serialized audit trail
+            tenant_id: Tenant identifier for isolation
+        """
+        now = datetime.utcnow().isoformat()
+
+        # Count entries from JSON
+        try:
+            trail_data = json.loads(trail_json)
+            entry_count = len(trail_data.get('entries', []))
+        except (json.JSONDecodeError, KeyError):
+            entry_count = 0
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                "SELECT session_id FROM audit_trails WHERE session_id = ?",
+                (session_id,)
+            )
+            existing = cursor.fetchone()
+
+            if existing:
+                cursor.execute("""
+                    UPDATE audit_trails SET
+                        updated_at = ?,
+                        trail_json = ?,
+                        entry_count = ?
+                    WHERE session_id = ?
+                """, (now, trail_json, entry_count, session_id))
+            else:
+                cursor.execute("""
+                    INSERT INTO audit_trails
+                    (session_id, tenant_id, created_at, updated_at, trail_json, entry_count)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (session_id, tenant_id, now, now, trail_json, entry_count))
+
+            conn.commit()
+
+    def load_audit_trail(
+        self,
+        session_id: str,
+        tenant_id: Optional[str] = None
+    ) -> Optional[str]:
+        """
+        Load audit trail JSON for a session.
+
+        Args:
+            session_id: Session/return identifier
+            tenant_id: Optional tenant filter for isolation
+
+        Returns:
+            JSON string of audit trail, or None if not found
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            if tenant_id:
+                cursor.execute("""
+                    SELECT trail_json FROM audit_trails
+                    WHERE session_id = ? AND tenant_id = ?
+                """, (session_id, tenant_id))
+            else:
+                cursor.execute("""
+                    SELECT trail_json FROM audit_trails
+                    WHERE session_id = ?
+                """, (session_id,))
+
+            row = cursor.fetchone()
+            return row[0] if row else None
+
+    def get_audit_trail_summary(
+        self,
+        session_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Get summary info about an audit trail without loading full JSON.
+
+        Returns:
+            Dict with created_at, updated_at, entry_count, or None
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT created_at, updated_at, entry_count, tenant_id
+                FROM audit_trails
+                WHERE session_id = ?
+            """, (session_id,))
+
+            row = cursor.fetchone()
+            if not row:
+                return None
+
+            return {
+                "session_id": session_id,
+                "created_at": row[0],
+                "updated_at": row[1],
+                "entry_count": row[2],
+                "tenant_id": row[3]
+            }
+
+    def list_audit_trails(
+        self,
+        tenant_id: str = "default",
+        limit: int = 100,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """
+        List audit trail summaries for a tenant.
+
+        Returns:
+            List of audit trail summary dicts
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT session_id, created_at, updated_at, entry_count
+                FROM audit_trails
+                WHERE tenant_id = ?
+                ORDER BY updated_at DESC
+                LIMIT ? OFFSET ?
+            """, (tenant_id, limit, offset))
+
+            return [
+                {
+                    "session_id": row[0],
+                    "created_at": row[1],
+                    "updated_at": row[2],
+                    "entry_count": row[3]
+                }
+                for row in cursor.fetchall()
+            ]
+
+    # =========================================================================
+    # RETURN STATUS METHODS - CPA APPROVAL WORKFLOW
+    # =========================================================================
+
+    def get_return_status(
+        self,
+        session_id: str,
+        tenant_id: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Get the current status of a return.
+
+        CPA COMPLIANCE: Returns status controls feature access.
+
+        Args:
+            session_id: Session/return identifier
+            tenant_id: Optional tenant filter
+
+        Returns:
+            Dict with status info, or None if no status exists
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            if tenant_id:
+                cursor.execute("""
+                    SELECT status, created_at, updated_at, last_status_change,
+                           cpa_reviewer_id, cpa_reviewer_name, review_notes,
+                           approval_timestamp, approval_signature_hash
+                    FROM return_status
+                    WHERE session_id = ? AND tenant_id = ?
+                """, (session_id, tenant_id))
+            else:
+                cursor.execute("""
+                    SELECT status, created_at, updated_at, last_status_change,
+                           cpa_reviewer_id, cpa_reviewer_name, review_notes,
+                           approval_timestamp, approval_signature_hash
+                    FROM return_status
+                    WHERE session_id = ?
+                """, (session_id,))
+
+            row = cursor.fetchone()
+            if not row:
+                return None
+
+            return {
+                "session_id": session_id,
+                "status": row[0],
+                "created_at": row[1],
+                "updated_at": row[2],
+                "last_status_change": row[3],
+                "cpa_reviewer_id": row[4],
+                "cpa_reviewer_name": row[5],
+                "review_notes": row[6],
+                "approval_timestamp": row[7],
+                "approval_signature_hash": row[8],
+            }
+
+    def set_return_status(
+        self,
+        session_id: str,
+        status: str,
+        tenant_id: str = "default",
+        cpa_reviewer_id: Optional[str] = None,
+        cpa_reviewer_name: Optional[str] = None,
+        review_notes: Optional[str] = None,
+        approval_signature_hash: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Set or update the status of a return.
+
+        CPA COMPLIANCE: Status transitions are audited.
+
+        Valid statuses:
+        - DRAFT: Initial state, editable
+        - IN_REVIEW: Submitted for CPA review, read-only to taxpayer
+        - CPA_APPROVED: Signed off by CPA, full feature access
+
+        Args:
+            session_id: Session/return identifier
+            status: New status (DRAFT, IN_REVIEW, CPA_APPROVED)
+            tenant_id: Tenant identifier
+            cpa_reviewer_id: ID of reviewing CPA (for IN_REVIEW/CPA_APPROVED)
+            cpa_reviewer_name: Name of reviewing CPA
+            review_notes: CPA notes/comments
+            approval_signature_hash: Hash for CPA_APPROVED signature
+
+        Returns:
+            Updated status record
+        """
+        now = datetime.utcnow().isoformat()
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                "SELECT session_id, status FROM return_status WHERE session_id = ?",
+                (session_id,)
+            )
+            existing = cursor.fetchone()
+
+            if existing:
+                old_status = existing[1]
+                # Build dynamic update
+                updates = ["status = ?", "updated_at = ?", "last_status_change = ?"]
+                params = [status, now, now]
+
+                if cpa_reviewer_id is not None:
+                    updates.append("cpa_reviewer_id = ?")
+                    params.append(cpa_reviewer_id)
+                if cpa_reviewer_name is not None:
+                    updates.append("cpa_reviewer_name = ?")
+                    params.append(cpa_reviewer_name)
+                if review_notes is not None:
+                    updates.append("review_notes = ?")
+                    params.append(review_notes)
+                if status == "CPA_APPROVED":
+                    updates.append("approval_timestamp = ?")
+                    params.append(now)
+                    if approval_signature_hash:
+                        updates.append("approval_signature_hash = ?")
+                        params.append(approval_signature_hash)
+
+                params.append(session_id)
+                cursor.execute(
+                    f"UPDATE return_status SET {', '.join(updates)} WHERE session_id = ?",
+                    params
+                )
+            else:
+                approval_ts = now if status == "CPA_APPROVED" else None
+                cursor.execute("""
+                    INSERT INTO return_status
+                    (session_id, tenant_id, status, created_at, updated_at,
+                     last_status_change, cpa_reviewer_id, cpa_reviewer_name,
+                     review_notes, approval_timestamp, approval_signature_hash)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    session_id, tenant_id, status, now, now, now,
+                    cpa_reviewer_id, cpa_reviewer_name, review_notes,
+                    approval_ts, approval_signature_hash
+                ))
+
+            conn.commit()
+
+        return self.get_return_status(session_id, tenant_id)
+
+    def list_returns_by_status(
+        self,
+        status: str,
+        tenant_id: str = "default",
+        limit: int = 100,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """
+        List returns by status for CPA workflow.
+
+        Args:
+            status: Filter by status (DRAFT, IN_REVIEW, CPA_APPROVED)
+            tenant_id: Tenant identifier
+            limit: Max results
+            offset: Pagination offset
+
+        Returns:
+            List of return status records
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT session_id, status, created_at, updated_at,
+                       last_status_change, cpa_reviewer_name
+                FROM return_status
+                WHERE status = ? AND tenant_id = ?
+                ORDER BY last_status_change DESC
+                LIMIT ? OFFSET ?
+            """, (status, tenant_id, limit, offset))
+
+            return [
+                {
+                    "session_id": row[0],
+                    "status": row[1],
+                    "created_at": row[2],
+                    "updated_at": row[3],
+                    "last_status_change": row[4],
+                    "cpa_reviewer_name": row[5]
+                }
+                for row in cursor.fetchall()
+            ]
 
 
 # Global instance
