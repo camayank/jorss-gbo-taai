@@ -1045,27 +1045,30 @@ SUBSCRIPTION TIERS:
 │                                                                         │
 │  STARTER ($99/month)                                                    │
 │  ─────────────────────                                                  │
-│  • Up to 50 clients                                                     │
-│  • 2 team members                                                       │
+│  • Up to 100 clients                                                    │
+│  • 3 team members                                                       │
 │  • Basic scenarios (filing status only)                                 │
 │  • Standard reports                                                     │
+│  • 1 custom role                                                        │
 │                                                                         │
 │  PROFESSIONAL ($299/month)                                              │
 │  ─────────────────────────                                              │
-│  • Up to 250 clients                                                    │
+│  • Up to 500 clients                                                    │
 │  • 10 team members                                                      │
 │  • All scenario types                                                   │
 │  • Advisory plan generation                                             │
 │  • Practice intelligence                                                │
+│  • 5 custom roles                                                       │
 │                                                                         │
 │  ENTERPRISE ($599+/month)                                               │
 │  ────────────────────────                                               │
-│  • Unlimited clients                                                    │
-│  • Unlimited team members                                               │
+│  • Up to 2,500 clients                                                  │
+│  • 50 team members                                                      │
 │  • White-label branding                                                 │
 │  • API access                                                           │
 │  • Custom integrations                                                  │
 │  • Dedicated support                                                    │
+│  • Unlimited custom roles                                               │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```

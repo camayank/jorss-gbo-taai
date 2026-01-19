@@ -1157,6 +1157,89 @@
       border-radius: 4px;
       font-family: inherit;
     }
+
+    /* ============ PRINT STYLES FOR ADVISORY REPORTS ============ */
+    @media print {
+      /* Hide navigation and non-essential UI */
+      .sidebar, .top-bar, .command-palette, .toast-container,
+      .btn:not(.print-visible), nav, header {
+        display: none !important;
+      }
+
+      /* Full width for content */
+      .main-content, .app-layout {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: none !important;
+      }
+
+      /* Clean card styling for print */
+      .card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+        page-break-inside: avoid;
+        margin-bottom: 20px !important;
+      }
+
+      /* Report header styling */
+      .report-header {
+        text-align: center;
+        border-bottom: 2px solid #333;
+        padding-bottom: 20px;
+        margin-bottom: 30px;
+      }
+
+      /* Section headings */
+      h1, h2, h3 {
+        page-break-after: avoid;
+        color: #000 !important;
+      }
+
+      /* Tables print friendly */
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      table th, table td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: left;
+      }
+
+      /* Ensure text is black for print */
+      body, p, span, div {
+        color: #000 !important;
+      }
+
+      /* Hide action buttons in printed report */
+      .action-buttons, .report-actions {
+        display: none !important;
+      }
+
+      /* Page breaks for sections */
+      .report-section {
+        page-break-inside: avoid;
+      }
+
+      /* Footer with page numbers */
+      @page {
+        margin: 0.75in;
+        @bottom-center {
+          content: "Page " counter(page) " of " counter(pages);
+        }
+      }
+    }
+
+    /* Print button styling (visible on screen, hidden in print) */
+    .btn-print {
+      background: var(--gray-100);
+      color: var(--gray-700);
+      border: 1px solid var(--gray-300);
+    }
+    .btn-print:hover {
+      background: var(--gray-200);
+    }
   </style>
 </head>
 <body>
@@ -1831,6 +1914,7 @@
         <div style="display:flex;gap:12px;justify-content:flex-end" id="report-actions" style="display:none">
           <button class="btn btn-ghost" onclick="downloadReport('markdown')">Download Markdown</button>
           <button class="btn btn-ghost" onclick="downloadReport('html')">Download HTML</button>
+          <button class="btn btn-print" onclick="printReport()" title="Print or save as PDF">🖨️ Print / PDF</button>
           <button class="btn btn-primary" onclick="generateReport()">Generate Full Report</button>
         </div>
 
@@ -3954,6 +4038,18 @@
       } catch (e) {
         showToast('Failed to download report', 'error');
       }
+    }
+
+    function printReport() {
+      // Ensure report is generated first
+      const previewCard = document.getElementById('report-preview-card');
+      if (!previewCard || previewCard.style.display === 'none') {
+        showToast('Please generate a report first', 'warning');
+        return;
+      }
+
+      // Trigger browser print dialog (user can choose "Save as PDF")
+      window.print();
     }
 
     // =============================================================================
