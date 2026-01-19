@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#6366f1">
-  <meta name="description" content="CPA Tax Advisory Intelligence - Maximize Client Tax Savings">
-  <title>Tax Advisory Intelligence | CPA Dashboard</title>
+  <meta name="theme-color" content="#1e40af">
+  <meta name="description" content="CA4CPA GLOBAL LLC - Tax Advisory Intelligence">
+  <title>CA4CPA GLOBAL | Tax Advisory Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,16 +15,16 @@
          UNIFIED DESIGN SYSTEM
          ========================= */
 
-      /* Primary Colors - Indigo */
-      --primary: #6366f1;
-      --primary-dark: #4f46e5;
-      --primary-hover: #4f46e5; /* Alias for backwards compatibility */
-      --primary-light: #818cf8;
-      --primary-50: #eef2ff;
+      /* Primary Colors - Navy Blue (CA4CPA GLOBAL LLC Branding) */
+      --primary: #1e40af;
+      --primary-dark: #1e3a8a;
+      --primary-hover: #1e3a8a; /* Alias for backwards compatibility */
+      --primary-light: #3b82f6;
+      --primary-50: #dbeafe;
 
-      /* Accent Colors - Purple (CPA-specific for advisory branding) */
-      --accent: #8b5cf6;
-      --accent-light: #ede9fe;
+      /* Accent Colors - Blue (CA4CPA brand secondary) */
+      --accent: #3b82f6;
+      --accent-light: #dbeafe;
 
       /* Grayscale */
       --gray-50: #f9fafb;
@@ -1248,10 +1248,10 @@
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <div class="logo-mark">$</div>
+          <div class="logo-mark" style="background: linear-gradient(135deg, #1e40af, #3b82f6);">CA</div>
           <div>
-            <div class="logo-text">Tax Advisory</div>
-            <div class="logo-subtitle">Intelligence Platform</div>
+            <div class="logo-text">CA4CPA GLOBAL</div>
+            <div class="logo-subtitle">Tax Advisory Intelligence</div>
           </div>
         </div>
       </div>
@@ -1938,8 +1938,8 @@
     <div class="modal" style="max-width:600px;width:95%">
       <div class="modal-header" style="background:var(--savings-bg);color:white;border:none">
         <div>
-          <h3 style="font-size:18px;font-weight:700;margin-bottom:4px">Welcome to Tax Advisory Intelligence</h3>
-          <div style="font-size:13px;opacity:0.9">Let's set up your practice in 30 seconds</div>
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:4px">Welcome to CA4CPA GLOBAL</h3>
+          <div style="font-size:13px;opacity:0.9">Tax Advisory Intelligence Platform</div>
         </div>
       </div>
       <div class="modal-body" style="padding:32px">
@@ -2712,10 +2712,10 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: 'cpa@taxplatform.local',
-            first_name: 'Tax',
-            last_name: 'Professional',
-            firm_name: 'CPA Advisory Practice',
+            email: 'admin@ca4cpa.com',
+            first_name: 'CA4CPA',
+            last_name: 'Admin',
+            firm_name: 'CA4CPA GLOBAL LLC',
             credentials: ['CPA'],
           }),
         }).then(r => r.json());
