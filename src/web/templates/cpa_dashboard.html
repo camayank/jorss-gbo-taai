@@ -1064,6 +1064,99 @@
       border-color: var(--primary);
       background: var(--primary-50);
     }
+
+    /* Command Palette */
+    .command-palette-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 9999;
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 15vh;
+    }
+    .command-palette-backdrop.active { display: flex; }
+    .command-palette {
+      background: white;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 560px;
+      overflow: hidden;
+    }
+    .command-palette-input {
+      width: 100%;
+      padding: 16px 20px;
+      border: none;
+      border-bottom: 1px solid var(--gray-200);
+      font-size: 16px;
+      outline: none;
+    }
+    .command-palette-input::placeholder { color: var(--gray-400); }
+    .command-palette-results {
+      max-height: 360px;
+      overflow-y: auto;
+    }
+    .command-palette-section {
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: var(--gray-50);
+    }
+    .command-palette-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .command-palette-item:hover, .command-palette-item.selected {
+      background: var(--primary-50);
+    }
+    .command-palette-item-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      background: var(--gray-100);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .command-palette-item-content { flex: 1; }
+    .command-palette-item-title { font-weight: 500; color: var(--gray-900); }
+    .command-palette-item-desc { font-size: 12px; color: var(--gray-500); }
+    .command-palette-shortcut {
+      font-size: 11px;
+      padding: 2px 6px;
+      background: var(--gray-100);
+      border-radius: 4px;
+      color: var(--gray-600);
+    }
+    .command-palette-empty {
+      padding: 32px;
+      text-align: center;
+      color: var(--gray-500);
+    }
+    .command-palette-hint {
+      padding: 12px 20px;
+      font-size: 12px;
+      color: var(--gray-500);
+      border-top: 1px solid var(--gray-100);
+      display: flex;
+      gap: 16px;
+    }
+    .command-palette-hint kbd {
+      padding: 2px 6px;
+      background: var(--gray-100);
+      border-radius: 4px;
+      font-family: inherit;
+    }
   </style>
 </head>
 <body>
@@ -2513,6 +2606,9 @@
       await initializePreparer();
       await loadAllData();
 
+      // Restore view from URL hash (e.g., #clients, #pipeline)
+      initFromUrlHash();
+
       // Animate hero numbers on load
       if (state.totals.savings > 0) {
         animateCurrency('total-savings', state.totals.savings, 1500);
@@ -3161,7 +3257,7 @@
     }
 
     // Navigation
-    function switchView(viewName) {
+    function switchView(viewName, updateUrl = true) {
       document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.toggle('active', item.dataset.view === viewName);
       });
@@ -3170,7 +3266,29 @@
       });
       state.currentView = viewName;
 
+      // Update URL hash for browser navigation
+      if (updateUrl) {
+        history.pushState({ view: viewName }, '', `#${viewName}`);
+      }
+
       if (viewName === 'review') loadReviewQueue();
+    }
+
+    // Handle browser back/forward navigation
+    window.addEventListener('popstate', (e) => {
+      const view = e.state?.view || window.location.hash.slice(1) || 'dashboard';
+      if (view && view !== state.currentView) {
+        switchView(view, false);
+      }
+    });
+
+    // Restore view from URL hash on page load
+    function initFromUrlHash() {
+      const hash = window.location.hash.slice(1);
+      const validViews = ['dashboard', 'clients', 'pipeline', 'advisory', 'review', 'reports', 'onboarding'];
+      if (hash && validViews.includes(hash)) {
+        switchView(hash, false);
+      }
     }
 
     async function loadReviewQueue() {
@@ -3275,9 +3393,6 @@
       container.appendChild(toast);
       setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 4000);
     }
-
-    // Close panel on escape
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
 
     // =============================================================================
     // LEAD PIPELINE FUNCTIONS
@@ -4687,6 +4802,134 @@
     window.openClient = function(clientId) {
       openClientDetail(clientId);
     };
+
+    // =============================================================================
+    // COMMAND PALETTE (Ctrl+K)
+    // =============================================================================
+
+    const commandPaletteCommands = [
+      { id: 'dashboard', icon: '📊', title: 'Dashboard', desc: 'View overview and insights', action: () => switchView('dashboard') },
+      { id: 'clients', icon: '👥', title: 'Clients', desc: 'Manage all clients', action: () => switchView('clients') },
+      { id: 'pipeline', icon: '📈', title: 'Pipeline', desc: 'View lead pipeline', action: () => switchView('pipeline') },
+      { id: 'advisory', icon: '💡', title: 'Advisory Tools', desc: 'Tax optimization tools', action: () => switchView('advisory') },
+      { id: 'review', icon: '✅', title: 'Review Queue', desc: 'Returns pending review', action: () => switchView('review') },
+      { id: 'reports', icon: '📄', title: 'Reports', desc: 'Generate client reports', action: () => switchView('reports') },
+      { id: 'add-client', icon: '➕', title: 'Add New Client', desc: 'Quick onboarding (60s)', action: () => { closeCommandPalette(); openSmartOnboarding(); } },
+      { id: 'refresh', icon: '🔄', title: 'Refresh Data', desc: 'Reload all data', action: () => { closeCommandPalette(); refreshDashboard(); } },
+    ];
+
+    function openCommandPalette() {
+      const backdrop = document.getElementById('command-palette-backdrop');
+      const input = document.getElementById('command-palette-input');
+      backdrop.classList.add('active');
+      input.value = '';
+      input.focus();
+      renderCommandPaletteResults('');
+    }
+
+    function closeCommandPalette() {
+      document.getElementById('command-palette-backdrop').classList.remove('active');
+    }
+
+    function renderCommandPaletteResults(query) {
+      const container = document.getElementById('command-palette-results');
+      const q = query.toLowerCase().trim();
+
+      // Filter commands
+      const filteredCommands = commandPaletteCommands.filter(cmd =>
+        cmd.title.toLowerCase().includes(q) || cmd.desc.toLowerCase().includes(q)
+      );
+
+      // Filter clients
+      const filteredClients = (state.clients || [])
+        .filter(c => c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q))
+        .slice(0, 5);
+
+      let html = '';
+
+      if (filteredCommands.length > 0) {
+        html += '<div class="command-palette-section">Commands</div>';
+        filteredCommands.forEach(cmd => {
+          html += `
+            <div class="command-palette-item" onclick="executeCommand('${cmd.id}')">
+              <div class="command-palette-item-icon">${cmd.icon}</div>
+              <div class="command-palette-item-content">
+                <div class="command-palette-item-title">${escapeHtml(cmd.title)}</div>
+                <div class="command-palette-item-desc">${escapeHtml(cmd.desc)}</div>
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      if (q && filteredClients.length > 0) {
+        html += '<div class="command-palette-section">Clients</div>';
+        filteredClients.forEach(client => {
+          html += `
+            <div class="command-palette-item" onclick="openClientFromPalette('${escapeHtml(client.session_id || client.id)}')">
+              <div class="command-palette-item-icon">👤</div>
+              <div class="command-palette-item-content">
+                <div class="command-palette-item-title">${escapeHtml(client.name || 'Unknown')}</div>
+                <div class="command-palette-item-desc">${escapeHtml(client.email || 'No email')}</div>
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      if (!html) {
+        html = '<div class="command-palette-empty">No results found</div>';
+      }
+
+      container.innerHTML = html;
+    }
+
+    function executeCommand(cmdId) {
+      const cmd = commandPaletteCommands.find(c => c.id === cmdId);
+      if (cmd) {
+        closeCommandPalette();
+        cmd.action();
+      }
+    }
+
+    function openClientFromPalette(clientId) {
+      closeCommandPalette();
+      openClientDetail(clientId);
+    }
+
+    // Update keyboard handler
+    document.addEventListener('keydown', e => {
+      // Escape - close panels/modals
+      if (e.key === 'Escape') {
+        const palette = document.getElementById('command-palette-backdrop');
+        if (palette.classList.contains('active')) {
+          closeCommandPalette();
+        } else {
+          closePanel();
+        }
+      }
+
+      // Ctrl/Cmd + K - open command palette
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        openCommandPalette();
+      }
+    });
   </script>
+
+  <!-- Command Palette -->
+  <div class="command-palette-backdrop" id="command-palette-backdrop" onclick="if(event.target === this) closeCommandPalette()">
+    <div class="command-palette">
+      <input type="text" class="command-palette-input" id="command-palette-input"
+             placeholder="Search commands, clients..."
+             oninput="renderCommandPaletteResults(this.value)">
+      <div class="command-palette-results" id="command-palette-results"></div>
+      <div class="command-palette-hint">
+        <span><kbd>↑↓</kbd> Navigate</span>
+        <span><kbd>↵</kbd> Select</span>
+        <span><kbd>Esc</kbd> Close</span>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

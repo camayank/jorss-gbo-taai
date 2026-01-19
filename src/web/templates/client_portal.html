@@ -1913,6 +1913,67 @@
       .data-table { font-size: 12px; }
       .data-table th, .data-table td { padding: 10px 8px; }
     }
+
+    /* Help Overlay */
+    .help-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .help-overlay.active { display: flex; }
+    .help-modal {
+      background: white;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-xl);
+      width: 100%;
+      max-width: 480px;
+      margin: 20px;
+      overflow: hidden;
+    }
+    .help-modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--gray-200);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .help-modal-title { font-size: 18px; font-weight: 600; color: var(--gray-900); }
+    .help-modal-close {
+      width: 32px; height: 32px;
+      border: none; background: var(--gray-100);
+      border-radius: 50%; cursor: pointer;
+      font-size: 18px; color: var(--gray-600);
+    }
+    .help-modal-close:hover { background: var(--gray-200); }
+    .help-modal-body { padding: 24px; }
+    .help-section { margin-bottom: 20px; }
+    .help-section:last-child { margin-bottom: 0; }
+    .help-section-title { font-size: 12px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; margin-bottom: 12px; }
+    .help-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--gray-100);
+    }
+    .help-item:last-child { border-bottom: none; }
+    .help-item-label { color: var(--gray-700); }
+    .help-item-key {
+      display: flex;
+      gap: 4px;
+    }
+    .help-item-key kbd {
+      padding: 4px 8px;
+      background: var(--gray-100);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 12px;
+      color: var(--gray-600);
+    }
   </style>
 </head>
 <body>
@@ -2866,11 +2927,18 @@
         await loadCPAProfile(cpaSlug);
       }
 
-      // Check for existing session
+      // Check for existing session from URL
       const sessionId = urlParams.get('session') || urlParams.get('id');
       if (sessionId) {
         state.sessionId = sessionId;
         await loadExistingSession(sessionId);
+      } else {
+        // No URL session - try to restore from localStorage
+        const restored = loadSavedState();
+        if (restored && state.currentStep > 1) {
+          restoreUIState();
+          showToast('Welcome back! Your progress has been restored.', 'success');
+        }
       }
 
       // Apply CPA branding to UI
@@ -2892,6 +2960,12 @@
     document.addEventListener('keydown', function(e) {
       // Escape - close modals and overlays
       if (e.key === 'Escape') {
+        // Close help overlay if open
+        const helpOverlay = document.getElementById('help-overlay');
+        if (helpOverlay && helpOverlay.classList.contains('active')) {
+          closeHelpOverlay();
+          return;
+        }
         // Close upload modal if open
         const uploadModal = document.getElementById('upload-modal');
         if (uploadModal && uploadModal.style.display !== 'none') {
@@ -2902,7 +2976,21 @@
         const overlays = document.querySelectorAll('[style*="position:fixed"][style*="inset:0"]');
         overlays.forEach(o => o.remove());
       }
+
+      // Ctrl/Cmd + K - open help overlay
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        openHelpOverlay();
+      }
     });
+
+    function openHelpOverlay() {
+      document.getElementById('help-overlay').classList.add('active');
+    }
+
+    function closeHelpOverlay() {
+      document.getElementById('help-overlay').classList.remove('active');
+    }
 
     // ================================================================
     // CPA PROFILE LOADING
@@ -3913,6 +4001,44 @@
     // ================================================================
     // STATE PERSISTENCE
     // ================================================================
+
+    /**
+     * Load saved state from localStorage
+     * Returns true if state was restored, false otherwise
+     */
+    function loadSavedState() {
+      try {
+        const saved = localStorage.getItem('tax_portal_state');
+        if (!saved) return false;
+
+        const parsed = JSON.parse(saved);
+
+        // Only restore if we have valid data and no URL session override
+        if (parsed && parsed.currentStep !== undefined) {
+          // Restore state properties
+          if (parsed.currentStep) state.currentStep = parsed.currentStep;
+          if (parsed.sessionId) state.sessionId = parsed.sessionId;
+          if (parsed.consent) state.consent = parsed.consent;
+          if (parsed.userInfo) state.userInfo = { ...state.userInfo, ...parsed.userInfo };
+          if (parsed.documents) state.documents = parsed.documents;
+          if (parsed.status) state.status = parsed.status;
+
+          return true;
+        }
+      } catch (e) {
+        console.warn('Failed to restore saved state:', e);
+        localStorage.removeItem('tax_portal_state');
+      }
+      return false;
+    }
+
+    /**
+     * Clear saved state (e.g., when starting fresh or completing)
+     */
+    function clearSavedState() {
+      localStorage.removeItem('tax_portal_state');
+    }
+
     function saveState() {
       const toSave = {
         currentStep: state.currentStep,
@@ -3920,7 +4046,8 @@
         consent: state.consent,
         userInfo: state.userInfo,
         documents: state.documents.map(d => ({ id: d.id, name: d.name, size: d.size, status: d.status })),
-        status: state.status
+        status: state.status,
+        savedAt: Date.now()
       };
       localStorage.setItem('tax_portal_state', JSON.stringify(toSave));
     }
@@ -4868,5 +4995,39 @@
       setTimeout(() => toast.remove(), 5000);
     }
   </script>
+
+  <!-- Help Overlay -->
+  <div class="help-overlay" id="help-overlay" onclick="if(event.target === this) closeHelpOverlay()">
+    <div class="help-modal">
+      <div class="help-modal-header">
+        <div class="help-modal-title">Keyboard Shortcuts</div>
+        <button class="help-modal-close" onclick="closeHelpOverlay()">&times;</button>
+      </div>
+      <div class="help-modal-body">
+        <div class="help-section">
+          <div class="help-section-title">Navigation</div>
+          <div class="help-item">
+            <span class="help-item-label">Open this help</span>
+            <span class="help-item-key"><kbd>Ctrl</kbd><kbd>K</kbd></span>
+          </div>
+          <div class="help-item">
+            <span class="help-item-label">Close modal/overlay</span>
+            <span class="help-item-key"><kbd>Esc</kbd></span>
+          </div>
+        </div>
+        <div class="help-section">
+          <div class="help-section-title">Quick Tips</div>
+          <div class="help-item">
+            <span class="help-item-label">Drag & drop files to upload</span>
+            <span class="help-item-key"></span>
+          </div>
+          <div class="help-item">
+            <span class="help-item-label">Your progress is auto-saved</span>
+            <span class="help-item-key"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
