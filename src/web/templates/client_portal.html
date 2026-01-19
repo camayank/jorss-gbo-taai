@@ -2828,6 +2828,24 @@
     });
 
     // ================================================================
+    // KEYBOARD SHORTCUTS
+    // ================================================================
+    document.addEventListener('keydown', function(e) {
+      // Escape - close modals and overlays
+      if (e.key === 'Escape') {
+        // Close upload modal if open
+        const uploadModal = document.getElementById('upload-modal');
+        if (uploadModal && uploadModal.style.display !== 'none') {
+          closeUploadModal();
+          return;
+        }
+        // Close any overlay
+        const overlays = document.querySelectorAll('[style*="position:fixed"][style*="inset:0"]');
+        overlays.forEach(o => o.remove());
+      }
+    });
+
+    // ================================================================
     // CPA PROFILE LOADING
     // ================================================================
     async function loadCPAProfile(cpaSlug) {
