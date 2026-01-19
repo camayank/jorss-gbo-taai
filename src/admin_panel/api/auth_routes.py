@@ -15,6 +15,7 @@ import logging
 from typing import Optional
 from datetime import datetime, timedelta
 
+import pyotp
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from pydantic import BaseModel, Field, EmailStr
 from sqlalchemy import text
@@ -594,21 +595,23 @@ async def verify_mfa(
             detail="MFA is not enabled for this account",
         )
 
-    # Verify TOTP code
-    # In production, use pyotp library
-    # import pyotp
-    # totp = pyotp.TOTP(mfa_secret)
-    # if not totp.verify(mfa_request.code):
-
-    # For now, simple validation (replace with pyotp in production)
+    # Verify TOTP code using pyotp
     if len(mfa_request.code) != 6 or not mfa_request.code.isdigit():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid MFA code format",
+            detail="Invalid MFA code format - must be 6 digits",
         )
 
-    # TODO: Actually verify against TOTP - for demo, accept any 6-digit code
-    logger.info(f"MFA verified for user: {user.email}")
+    totp = pyotp.TOTP(mfa_secret)
+    # valid_window=1 allows for 30 seconds of clock drift
+    if not totp.verify(mfa_request.code, valid_window=1):
+        logger.warning(f"MFA verification failed for user: {user.email}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid MFA code. Please try again.",
+        )
+
+    logger.info(f"MFA verified successfully for user: {user.email}")
 
     return {"status": "success", "message": "MFA verified"}
 
@@ -682,12 +685,19 @@ async def confirm_mfa_setup(
             detail="MFA setup has expired. Please start again.",
         )
 
-    # TODO: Verify the code against the secret using pyotp
-    # For demo, accept any 6-digit code
+    # Verify the code against the secret using pyotp
     if len(mfa_request.code) != 6 or not mfa_request.code.isdigit():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid MFA code format",
+            detail="Invalid MFA code format - must be 6 digits",
+        )
+
+    totp = pyotp.TOTP(setup_data["secret"])
+    if not totp.verify(mfa_request.code, valid_window=1):
+        logger.warning(f"MFA setup verification failed for user: {user.email}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid MFA code. Please check your authenticator app and try again.",
         )
 
     # Activate MFA in database
