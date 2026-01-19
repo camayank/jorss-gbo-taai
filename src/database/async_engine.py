@@ -5,7 +5,9 @@ and SQLite (development). Includes connection pooling, health checks,
 and proper session management.
 """
 
-from __future__ import annotations
+# Note: Do NOT use `from __future__ import annotations` here.
+# It causes Pydantic/FastAPI forward reference resolution issues when
+# this module is used as a FastAPI dependency in other modules.
 
 import logging
 from contextlib import asynccontextmanager
