@@ -10,17 +10,24 @@ Provides:
 Access restricted to platform admins only.
 """
 
+import json
+import logging
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth.rbac import (
     get_current_user,
     TenantContext,
     require_platform_admin,
 )
+from database.async_engine import get_async_session
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Platform Admin"])
 
@@ -111,6 +118,7 @@ class SystemHealth(BaseModel):
 @require_platform_admin
 async def list_all_firms(
     user: TenantContext = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
     tier: Optional[str] = Query(None, description="Filter by subscription tier"),
     status_filter: Optional[str] = Query(None, alias="status", description="Filter by status"),
     search: Optional[str] = Query(None, description="Search by name or email"),
@@ -124,56 +132,123 @@ async def list_all_firms(
 
     Platform admins only. Supports filtering, search, and pagination.
     """
-    from datetime import timedelta
-    import random
+    # Build dynamic query with filters
+    conditions = ["1=1"]
+    params = {"limit": limit, "offset": offset}
 
-    # Generate realistic mock data matching dashboard metrics
-    firm_names = [
-        ("Demo Tax Practice", "professional", 5, 156, 47, 94),
-        ("Smith & Associates", "enterprise", 12, 450, 89, 98),
-        ("Premier Tax Group", "enterprise", 15, 620, 112, 97),
-        ("Accurate Tax Services", "professional", 8, 234, 56, 91),
-        ("TaxPro Solutions", "professional", 6, 189, 42, 88),
-        ("Elite Financial Services", "enterprise", 18, 780, 145, 99),
-        ("Community Tax Center", "starter", 3, 78, 18, 82),
-        ("QuickBooks Tax", "starter", 2, 45, 12, 79),
-        ("Metro Tax Advisors", "professional", 7, 267, 61, 90),
-        ("Capital Tax Partners", "enterprise", 14, 520, 98, 96),
-        ("Sunrise Accounting", "professional", 5, 145, 38, 87),
-        ("Pacific Tax Group", "professional", 9, 312, 72, 92),
-        ("Midwest Tax Services", "starter", 3, 67, 15, 78),
-        ("Southern Tax Pros", "professional", 6, 198, 45, 89),
-        ("Northeast Financial", "enterprise", 11, 410, 85, 95),
-    ]
+    if tier:
+        conditions.append("COALESCE(sp.name, 'starter') = :tier")
+        params["tier"] = tier
+
+    if status_filter:
+        if status_filter == "active":
+            conditions.append("f.is_active = true")
+        elif status_filter == "at_risk":
+            conditions.append("f.is_active = true")  # Will filter by health score later
+        elif status_filter == "inactive":
+            conditions.append("f.is_active = false")
+
+    if search:
+        conditions.append("(LOWER(f.name) LIKE :search OR LOWER(f.email) LIKE :search)")
+        params["search"] = f"%{search.lower()}%"
+
+    # Validate sort field
+    valid_sort_fields = {"created_at": "f.created_at", "name": "f.name", "team_members": "team_count"}
+    sort_field = valid_sort_fields.get(sort_by, "f.created_at")
+    sort_dir = "DESC" if sort_order.lower() == "desc" else "ASC"
+
+    where_clause = " AND ".join(conditions)
+
+    query = text(f"""
+        SELECT
+            f.firm_id,
+            f.name,
+            COALESCE(sp.name, 'starter') as subscription_tier,
+            COALESCE(s.status, 'none') as subscription_status,
+            COUNT(DISTINCT u.user_id) as team_count,
+            COUNT(DISTINCT c.client_id) as client_count,
+            COUNT(DISTINCT CASE
+                WHEN tr.created_at >= DATE_TRUNC('month', CURRENT_DATE)
+                THEN tr.return_id
+            END) as returns_this_month,
+            f.created_at,
+            MAX(u.last_login_at) as last_activity_at,
+            f.is_active
+        FROM firms f
+        LEFT JOIN subscriptions s ON f.firm_id = s.firm_id AND s.status IN ('active', 'trial')
+        LEFT JOIN subscription_plans sp ON s.plan_id = sp.plan_id
+        LEFT JOIN users u ON f.firm_id = u.firm_id
+        LEFT JOIN clients c ON u.user_id = c.preparer_id
+        LEFT JOIN tax_returns tr ON c.email = (
+            SELECT tp.email FROM taxpayers tp WHERE tp.return_id = tr.return_id LIMIT 1
+        )
+        WHERE {where_clause}
+        GROUP BY f.firm_id, f.name, sp.name, s.status, f.created_at, f.is_active
+        ORDER BY {sort_field} {sort_dir}
+        LIMIT :limit OFFSET :offset
+    """)
+
+    result = await session.execute(query, params)
+    rows = result.fetchall()
+
+    def parse_dt(val):
+        if val is None:
+            return None
+        if isinstance(val, datetime):
+            return val
+        return datetime.fromisoformat(str(val).replace('Z', '+00:00'))
 
     all_firms = []
-    for i, (name, tier_val, members, clients, returns, health) in enumerate(firm_names):
-        days_ago = random.randint(30, 365)
+    for row in rows:
+        team_count = row[4] or 0
+        client_count = row[5] or 0
+        returns_count = row[6] or 0
+        is_active = row[9] if row[9] is not None else True
+
+        # Calculate health score based on activity
+        last_activity = parse_dt(row[8])
+        if last_activity:
+            days_since = (datetime.utcnow() - last_activity).days
+            health_score = max(50, 100 - (days_since * 2))
+        else:
+            health_score = 70
+
+        # Determine churn risk
+        if health_score > 90:
+            churn_risk = "low"
+        elif health_score > 75:
+            churn_risk = "medium"
+        else:
+            churn_risk = "high"
+
+        # Determine subscription status
+        sub_status = row[3] or "none"
+        if not is_active:
+            sub_status = "inactive"
+        elif health_score < 75:
+            sub_status = "at_risk"
+        elif sub_status == "none":
+            sub_status = "active"
+
+        # Skip if filtering by at_risk and this firm isn't at risk
+        if status_filter == "at_risk" and sub_status != "at_risk":
+            continue
+
         all_firms.append(FirmSummary(
-            firm_id=f"firm-{i+1:03d}",
-            name=name,
-            subscription_tier=tier_val,
-            subscription_status="active" if health > 75 else "at_risk",
-            team_members=members,
-            clients=clients,
-            returns_this_month=returns,
-            health_score=health,
-            churn_risk="low" if health > 90 else ("medium" if health > 80 else "high"),
-            created_at=datetime.utcnow() - timedelta(days=days_ago),
-            last_activity_at=datetime.utcnow() - timedelta(hours=random.randint(1, 48)),
+            firm_id=str(row[0]),
+            name=row[1] or "Unknown Firm",
+            subscription_tier=row[2] or "starter",
+            subscription_status=sub_status,
+            team_members=team_count,
+            clients=client_count,
+            returns_this_month=returns_count,
+            health_score=health_score,
+            churn_risk=churn_risk,
+            created_at=parse_dt(row[7]) or datetime.utcnow(),
+            last_activity_at=parse_dt(row[8]),
         ))
 
-    # Apply filters
-    if tier:
-        all_firms = [f for f in all_firms if f.subscription_tier == tier]
-    if status_filter:
-        all_firms = [f for f in all_firms if f.subscription_status == status_filter]
-    if search:
-        search_lower = search.lower()
-        all_firms = [f for f in all_firms if search_lower in f.name.lower()]
-
-    # Apply pagination
-    return all_firms[offset:offset + limit]
+    return all_firms
 
 
 @router.get("/firms/{firm_id}", response_model=FirmDetails)
@@ -247,30 +322,123 @@ async def impersonate_firm(
 @require_platform_admin
 async def get_platform_dashboard(
     user: TenantContext = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """
     Get platform-wide dashboard metrics.
 
     Includes MRR, churn, tier distribution, and feature adoption.
     """
+    # Get firm counts by status
+    firms_query = text("""
+        SELECT
+            COUNT(*) as total,
+            SUM(CASE WHEN f.is_active = true THEN 1 ELSE 0 END) as active,
+            SUM(CASE WHEN s.status = 'trial' THEN 1 ELSE 0 END) as trial
+        FROM firms f
+        LEFT JOIN subscriptions s ON f.firm_id = s.firm_id AND s.status IN ('active', 'trial')
+    """)
+    firms_result = await session.execute(firms_query)
+    firms_row = firms_result.fetchone()
+    total_firms = firms_row[0] or 0
+    active_firms = firms_row[1] or 0
+    trial_firms = firms_row[2] or 0
+
+    # Get tier distribution
+    tier_query = text("""
+        SELECT
+            COALESCE(sp.name, 'starter') as tier,
+            COUNT(*) as count
+        FROM firms f
+        LEFT JOIN subscriptions s ON f.firm_id = s.firm_id AND s.status = 'active'
+        LEFT JOIN subscription_plans sp ON s.plan_id = sp.plan_id
+        WHERE f.is_active = true
+        GROUP BY COALESCE(sp.name, 'starter')
+    """)
+    tier_result = await session.execute(tier_query)
+    tier_rows = tier_result.fetchall()
+    tier_distribution = {row[0]: row[1] for row in tier_rows}
+    if not tier_distribution:
+        tier_distribution = {"starter": total_firms or 0}
+
+    # Get MRR from active subscriptions
+    mrr_query = text("""
+        SELECT COALESCE(SUM(
+            CASE
+                WHEN s.billing_cycle = 'monthly' THEN sp.price
+                WHEN s.billing_cycle = 'yearly' THEN sp.price / 12
+                ELSE sp.price
+            END
+        ), 0) as mrr
+        FROM subscriptions s
+        JOIN subscription_plans sp ON s.plan_id = sp.plan_id
+        WHERE s.status = 'active'
+    """)
+    mrr_result = await session.execute(mrr_query)
+    total_mrr = float(mrr_result.fetchone()[0] or 0)
+
+    # Calculate churn rate (firms that became inactive in last 30 days / active 30 days ago)
+    churn_query = text("""
+        SELECT
+            COUNT(*) FILTER (WHERE f.is_active = false AND f.updated_at >= :thirty_days_ago) as churned,
+            COUNT(*) FILTER (WHERE f.created_at < :thirty_days_ago) as base
+        FROM firms f
+    """)
+    churn_result = await session.execute(churn_query, {
+        "thirty_days_ago": (datetime.utcnow() - timedelta(days=30)).isoformat()
+    })
+    churn_row = churn_result.fetchone()
+    churned = churn_row[0] or 0
+    base = churn_row[1] or 1
+    churn_rate = round((churned / base) * 100, 1) if base > 0 else 0.0
+
+    # Calculate average health score based on activity
+    health_query = text("""
+        SELECT AVG(
+            CASE
+                WHEN u.last_login_at >= :seven_days_ago THEN 100
+                WHEN u.last_login_at >= :thirty_days_ago THEN 75
+                ELSE 50
+            END
+        ) as avg_health
+        FROM users u
+        WHERE u.is_active = true
+    """)
+    health_result = await session.execute(health_query, {
+        "seven_days_ago": (datetime.utcnow() - timedelta(days=7)).isoformat(),
+        "thirty_days_ago": (datetime.utcnow() - timedelta(days=30)).isoformat(),
+    })
+    avg_health_score = int(health_result.fetchone()[0] or 85)
+
+    # Get feature adoption (from feature_flags table if exists, else defaults)
+    feature_adoption = {
+        "scenario_analysis": 87,
+        "multi_state": 45,
+        "api_access": 19,
+        "lead_magnet": 62,
+    }
+    try:
+        feature_query = text("""
+            SELECT feature_key, rollout_percentage
+            FROM feature_flags
+            WHERE is_enabled = true
+        """)
+        feature_result = await session.execute(feature_query)
+        feature_rows = feature_result.fetchall()
+        if feature_rows:
+            feature_adoption = {row[0]: row[1] for row in feature_rows}
+    except Exception:
+        pass  # Table may not exist
+
     return PlatformMetrics(
-        total_firms=234,
-        active_firms=218,
-        trial_firms=16,
-        total_mrr=98500.00,
-        tier_distribution={
-            "starter": 120,
-            "professional": 95,
-            "enterprise": 19,
-        },
-        churn_rate=2.3,
-        avg_health_score=89,
-        feature_adoption={
-            "scenario_analysis": 87,
-            "multi_state": 45,
-            "api_access": 19,
-            "lead_magnet": 62,
-        },
+        total_firms=total_firms,
+        active_firms=active_firms,
+        trial_firms=trial_firms,
+        total_mrr=total_mrr,
+        tier_distribution=tier_distribution,
+        churn_rate=churn_rate,
+        avg_health_score=avg_health_score,
+        feature_adoption=feature_adoption,
     )
 
 
@@ -514,6 +682,7 @@ class PlatformUserSummary(BaseModel):
 @require_platform_admin
 async def list_all_users(
     user: TenantContext = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
     firm_id: Optional[str] = Query(None, description="Filter by firm"),
     role: Optional[str] = Query(None, description="Filter by role"),
     status: Optional[str] = Query(None, description="Filter by status: active, inactive, invited"),
@@ -526,72 +695,95 @@ async def list_all_users(
 
     Platform admins only. Supports filtering by firm, role, and status.
     """
-    from datetime import timedelta
-    import random
+    # Build dynamic query with filters
+    conditions = ["1=1"]
+    params = {"limit": limit, "offset": offset}
 
-    # Generate realistic mock users
-    user_data = [
-        ("John", "Doe", "Demo Tax Practice", "firm-001", "firm_admin", 145, True),
-        ("Sarah", "Chen", "Demo Tax Practice", "firm-001", "senior_preparer", 234, True),
-        ("Mike", "Johnson", "Demo Tax Practice", "firm-001", "preparer", 89, True),
-        ("Emily", "Davis", "Smith & Associates", "firm-002", "firm_admin", 178, True),
-        ("Robert", "Wilson", "Smith & Associates", "firm-002", "senior_preparer", 267, True),
-        ("Lisa", "Martinez", "Smith & Associates", "firm-002", "preparer", 156, True),
-        ("David", "Brown", "Smith & Associates", "firm-002", "preparer", 134, True),
-        ("Jennifer", "Taylor", "Premier Tax Group", "firm-003", "firm_admin", 189, True),
-        ("James", "Anderson", "Premier Tax Group", "firm-003", "senior_preparer", 298, True),
-        ("Maria", "Garcia", "Premier Tax Group", "firm-003", "reviewer", 0, True),
-        ("William", "Thomas", "Accurate Tax Services", "firm-004", "firm_admin", 112, True),
-        ("Patricia", "Jackson", "Accurate Tax Services", "firm-004", "preparer", 87, True),
-        ("Richard", "White", "TaxPro Solutions", "firm-005", "firm_admin", 98, True),
-        ("Linda", "Harris", "TaxPro Solutions", "firm-005", "preparer", 76, False),
-        ("Charles", "Clark", "Elite Financial", "firm-006", "firm_admin", 245, True),
-        ("Barbara", "Lewis", "Elite Financial", "firm-006", "senior_preparer", 312, True),
-        ("Joseph", "Robinson", "Elite Financial", "firm-006", "preparer", 178, True),
-        ("Susan", "Walker", "Community Tax", "firm-007", "firm_admin", 45, True),
-        ("Thomas", "Hall", "Metro Tax Advisors", "firm-009", "firm_admin", 134, True),
-        ("Nancy", "Allen", "Metro Tax Advisors", "firm-009", "senior_preparer", 198, True),
-    ]
-
-    all_users = []
-    for i, (first, last, firm_name, firm_id_val, role_val, returns, active) in enumerate(user_data):
-        email_domain = firm_name.lower().replace(" ", "").replace("&", "")[:12] + ".com"
-        days_ago = random.randint(30, 400)
-        hours_since_login = random.randint(1, 72) if active else random.randint(168, 720)
-
-        all_users.append(PlatformUserSummary(
-            user_id=f"user-{i+1:03d}",
-            email=f"{first.lower()}.{last.lower()}@{email_domain}",
-            first_name=first,
-            last_name=last,
-            full_name=f"{first} {last}",
-            firm_id=firm_id_val,
-            firm_name=firm_name,
-            role=role_val,
-            is_active=active,
-            is_email_verified=True,
-            mfa_enabled=role_val in ["firm_admin", "senior_preparer"],
-            returns_this_month=returns,
-            last_login_at=datetime.utcnow() - timedelta(hours=hours_since_login) if active else None,
-            created_at=datetime.utcnow() - timedelta(days=days_ago),
-        ))
-
-    # Apply filters
     if firm_id:
-        all_users = [u for u in all_users if u.firm_id == firm_id]
+        conditions.append("u.firm_id = :firm_id")
+        params["firm_id"] = firm_id
+
     if role:
-        all_users = [u for u in all_users if u.role == role]
+        conditions.append("u.role = :role")
+        params["role"] = role
+
     if status:
         if status == "active":
-            all_users = [u for u in all_users if u.is_active]
+            conditions.append("u.is_active = true")
         elif status == "inactive":
-            all_users = [u for u in all_users if not u.is_active]
-    if search:
-        search_lower = search.lower()
-        all_users = [u for u in all_users if search_lower in u.full_name.lower() or search_lower in u.email.lower()]
+            conditions.append("u.is_active = false")
 
-    # Apply pagination
-    return all_users[offset:offset + limit]
+    if search:
+        conditions.append("""(
+            LOWER(u.first_name || ' ' || u.last_name) LIKE :search
+            OR LOWER(u.email) LIKE :search
+        )""")
+        params["search"] = f"%{search.lower()}%"
+
+    where_clause = " AND ".join(conditions)
+
+    query = text(f"""
+        SELECT
+            u.user_id,
+            u.email,
+            u.first_name,
+            u.last_name,
+            u.firm_id,
+            f.name as firm_name,
+            u.role,
+            u.is_active,
+            u.mfa_enabled,
+            u.last_login_at,
+            u.created_at,
+            COUNT(DISTINCT CASE
+                WHEN tr.created_at >= DATE_TRUNC('month', CURRENT_DATE)
+                THEN tr.return_id
+            END) as returns_this_month
+        FROM users u
+        LEFT JOIN firms f ON u.firm_id = f.firm_id
+        LEFT JOIN clients c ON u.user_id = c.preparer_id
+        LEFT JOIN taxpayers tp ON c.email = tp.email
+        LEFT JOIN tax_returns tr ON tp.return_id = tr.return_id
+        WHERE {where_clause}
+        GROUP BY u.user_id, u.email, u.first_name, u.last_name, u.firm_id,
+                 f.name, u.role, u.is_active, u.mfa_enabled, u.last_login_at, u.created_at
+        ORDER BY u.created_at DESC
+        LIMIT :limit OFFSET :offset
+    """)
+
+    result = await session.execute(query, params)
+    rows = result.fetchall()
+
+    def parse_dt(val):
+        if val is None:
+            return None
+        if isinstance(val, datetime):
+            return val
+        return datetime.fromisoformat(str(val).replace('Z', '+00:00'))
+
+    all_users = []
+    for row in rows:
+        first_name = row[2] or ""
+        last_name = row[3] or ""
+
+        all_users.append(PlatformUserSummary(
+            user_id=str(row[0]),
+            email=row[1] or "",
+            first_name=first_name,
+            last_name=last_name,
+            full_name=f"{first_name} {last_name}".strip() or "Unknown User",
+            firm_id=str(row[4]) if row[4] else "",
+            firm_name=row[5] or "Unknown Firm",
+            role=row[6] or "preparer",
+            is_active=row[7] if row[7] is not None else True,
+            is_email_verified=True,  # Assume verified if in DB
+            mfa_enabled=row[8] if row[8] is not None else False,
+            returns_this_month=row[11] or 0,
+            last_login_at=parse_dt(row[9]),
+            created_at=parse_dt(row[10]) or datetime.utcnow(),
+        ))
+
+    return all_users
 
 
 @router.get("/users/{user_id}")
@@ -684,6 +876,7 @@ class PartnerSummary(BaseModel):
 @require_platform_admin
 async def list_partners(
     user: TenantContext = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
     status: Optional[str] = Query(None, description="Filter by status: active, inactive"),
     search: Optional[str] = Query(None, description="Search by name or domain"),
     limit: int = Query(50, ge=1, le=200),
@@ -694,68 +887,83 @@ async def list_partners(
 
     Partners can resell TaxFlow under their own branding.
     """
-    from datetime import timedelta
+    # Build dynamic query with filters
+    conditions = ["1=1"]
+    params = {"limit": limit, "offset": offset}
 
-    # Mock partner data
-    all_partners = [
-        PartnerSummary(
-            partner_id="partner-1",
-            name="TaxPartner Pro",
-            domain="taxpartner.pro",
-            contact_email="admin@taxpartner.pro",
-            firms_count=42,
-            users_count=384,
-            mrr=126000.00,
-            revenue_share_percent=15,
-            status="active",
-            created_at=datetime.utcnow() - timedelta(days=180),
-        ),
-        PartnerSummary(
-            partner_id="partner-2",
-            name="AccountingHub",
-            domain="accountinghub.io",
-            contact_email="partner@accountinghub.io",
-            firms_count=28,
-            users_count=156,
-            mrr=84000.00,
-            revenue_share_percent=12,
-            status="active",
-            created_at=datetime.utcnow() - timedelta(days=120),
-        ),
-        PartnerSummary(
-            partner_id="partner-3",
-            name="ProTax Network",
-            domain="protaxnetwork.com",
-            contact_email="sales@protaxnetwork.com",
-            firms_count=15,
-            users_count=89,
-            mrr=45000.00,
-            revenue_share_percent=10,
-            status="inactive",
-            created_at=datetime.utcnow() - timedelta(days=365),
-        ),
-        PartnerSummary(
-            partner_id="partner-4",
-            name="TaxCloud Solutions",
-            domain="taxcloud.io",
-            contact_email="info@taxcloud.io",
-            firms_count=0,
-            users_count=0,
-            mrr=0.00,
-            revenue_share_percent=15,
-            status="pending",
-            created_at=datetime.utcnow() - timedelta(days=7),
-        ),
-    ]
-
-    # Apply filters
     if status:
-        all_partners = [p for p in all_partners if p.status == status]
-    if search:
-        search_lower = search.lower()
-        all_partners = [p for p in all_partners if search_lower in p.name.lower() or search_lower in (p.domain or '').lower()]
+        conditions.append("p.status = :status")
+        params["status"] = status
 
-    return all_partners[offset:offset + limit]
+    if search:
+        conditions.append("(LOWER(p.name) LIKE :search OR LOWER(p.domain) LIKE :search)")
+        params["search"] = f"%{search.lower()}%"
+
+    where_clause = " AND ".join(conditions)
+
+    # Try to query partners table
+    try:
+        query = text(f"""
+            SELECT
+                p.partner_id,
+                p.name,
+                p.domain,
+                p.contact_email,
+                COUNT(DISTINCT f.firm_id) as firms_count,
+                COUNT(DISTINCT u.user_id) as users_count,
+                COALESCE(SUM(
+                    CASE
+                        WHEN s.billing_cycle = 'monthly' THEN sp.price
+                        WHEN s.billing_cycle = 'yearly' THEN sp.price / 12
+                        ELSE sp.price
+                    END
+                ), 0) as mrr,
+                p.revenue_share_percent,
+                p.status,
+                p.created_at
+            FROM partners p
+            LEFT JOIN firms f ON p.partner_id = f.partner_id
+            LEFT JOIN users u ON f.firm_id = u.firm_id
+            LEFT JOIN subscriptions s ON f.firm_id = s.firm_id AND s.status = 'active'
+            LEFT JOIN subscription_plans sp ON s.plan_id = sp.plan_id
+            WHERE {where_clause}
+            GROUP BY p.partner_id, p.name, p.domain, p.contact_email,
+                     p.revenue_share_percent, p.status, p.created_at
+            ORDER BY p.created_at DESC
+            LIMIT :limit OFFSET :offset
+        """)
+
+        result = await session.execute(query, params)
+        rows = result.fetchall()
+
+        def parse_dt(val):
+            if val is None:
+                return datetime.utcnow()
+            if isinstance(val, datetime):
+                return val
+            return datetime.fromisoformat(str(val).replace('Z', '+00:00'))
+
+        all_partners = []
+        for row in rows:
+            all_partners.append(PartnerSummary(
+                partner_id=str(row[0]),
+                name=row[1] or "Unknown Partner",
+                domain=row[2],
+                contact_email=row[3],
+                firms_count=row[4] or 0,
+                users_count=row[5] or 0,
+                mrr=float(row[6] or 0),
+                revenue_share_percent=float(row[7] or 10),
+                status=row[8] or "active",
+                created_at=parse_dt(row[9]),
+            ))
+
+        return all_partners
+
+    except Exception as e:
+        logger.debug(f"Partners table may not exist: {e}")
+        # Return empty list if table doesn't exist
+        return []
 
 
 @router.get("/partners/{partner_id}")
@@ -1022,6 +1230,7 @@ async def get_platform_activity(
 @require_platform_admin
 async def get_platform_audit_logs(
     user: TenantContext = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
     firm_id: Optional[str] = Query(None, description="Filter by firm"),
     user_id: Optional[str] = Query(None, description="Filter by user"),
     action: Optional[str] = Query(None, description="Filter by action type"),
@@ -1035,52 +1244,110 @@ async def get_platform_audit_logs(
 
     Superadmin can view audit logs across all firms.
     """
-    return {
-        "logs": [
-            {
-                "log_id": "log-1",
-                "timestamp": datetime.utcnow().isoformat(),
-                "user_id": "user-1",
-                "user_email": "john@acme.com",
-                "firm_id": "firm-1",
-                "firm_name": "Acme Tax Services",
-                "action": "LOGIN_SUCCESS",
-                "resource_type": "session",
-                "resource_id": "sess-123",
-                "details": {"ip": "192.168.1.1", "user_agent": "Chrome"},
-                "ip_address": "192.168.1.1",
-            },
-            {
-                "log_id": "log-2",
-                "timestamp": datetime.utcnow().isoformat(),
-                "user_id": "user-2",
-                "user_email": "sarah@acme.com",
-                "firm_id": "firm-1",
-                "firm_name": "Acme Tax Services",
-                "action": "RETURN_SUBMITTED",
-                "resource_type": "tax_return",
-                "resource_id": "return-456",
-                "details": {"return_type": "1040", "client_id": "client-789"},
-                "ip_address": "192.168.1.2",
-            },
-            {
-                "log_id": "log-3",
-                "timestamp": datetime.utcnow().isoformat(),
-                "user_id": "admin-1",
-                "user_email": "admin@platform.com",
-                "firm_id": None,
-                "firm_name": "Platform",
-                "action": "FEATURE_FLAG_UPDATED",
-                "resource_type": "feature_flag",
-                "resource_id": "flag-ai-insights",
-                "details": {"enabled": True, "rollout": 100},
-                "ip_address": "10.0.0.1",
-            },
-        ],
-        "total": 3,
-        "limit": limit,
-        "offset": offset,
-    }
+    # Build dynamic query with filters
+    conditions = ["1=1"]
+    params = {"limit": limit, "offset": offset}
+
+    if firm_id:
+        conditions.append("a.firm_id = :firm_id")
+        params["firm_id"] = firm_id
+
+    if user_id:
+        conditions.append("a.user_id = :user_id")
+        params["user_id"] = user_id
+
+    if action:
+        conditions.append("a.action = :action")
+        params["action"] = action
+
+    if start_date:
+        conditions.append("a.created_at >= :start_date")
+        params["start_date"] = start_date
+
+    if end_date:
+        conditions.append("a.created_at <= :end_date")
+        params["end_date"] = end_date
+
+    where_clause = " AND ".join(conditions)
+
+    # Get total count
+    count_query = text(f"""
+        SELECT COUNT(*) FROM audit_logs a WHERE {where_clause}
+    """)
+    try:
+        count_result = await session.execute(count_query, params)
+        total = count_result.fetchone()[0] or 0
+    except Exception:
+        total = 0
+
+    # Get logs
+    query = text(f"""
+        SELECT
+            a.log_id,
+            a.created_at,
+            a.user_id,
+            u.email as user_email,
+            a.firm_id,
+            f.name as firm_name,
+            a.action,
+            a.resource_type,
+            a.resource_id,
+            a.details,
+            a.ip_address
+        FROM audit_logs a
+        LEFT JOIN users u ON a.user_id = u.user_id
+        LEFT JOIN firms f ON a.firm_id = f.firm_id
+        WHERE {where_clause}
+        ORDER BY a.created_at DESC
+        LIMIT :limit OFFSET :offset
+    """)
+
+    try:
+        result = await session.execute(query, params)
+        rows = result.fetchall()
+
+        def parse_dt(val):
+            if val is None:
+                return datetime.utcnow()
+            if isinstance(val, datetime):
+                return val
+            return datetime.fromisoformat(str(val).replace('Z', '+00:00'))
+
+        logs = []
+        for row in rows:
+            details = row[9] if row[9] else {}
+            if isinstance(details, str):
+                details = json.loads(details)
+
+            logs.append({
+                "log_id": str(row[0]),
+                "timestamp": parse_dt(row[1]).isoformat(),
+                "user_id": str(row[2]) if row[2] else None,
+                "user_email": row[3],
+                "firm_id": str(row[4]) if row[4] else None,
+                "firm_name": row[5] or "Platform",
+                "action": row[6] or "UNKNOWN",
+                "resource_type": row[7],
+                "resource_id": str(row[8]) if row[8] else None,
+                "details": details,
+                "ip_address": row[10],
+            })
+
+        return {
+            "logs": logs,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+        }
+
+    except Exception as e:
+        logger.debug(f"Could not fetch audit logs: {e}")
+        return {
+            "logs": [],
+            "total": 0,
+            "limit": limit,
+            "offset": offset,
+        }
 
 
 # =============================================================================
@@ -1091,58 +1358,118 @@ async def get_platform_audit_logs(
 @require_platform_admin
 async def get_rbac_overview(
     user: TenantContext = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """
     Get RBAC overview for the platform.
 
     Shows role distribution, permission usage, and custom roles.
     """
-    return {
-        "system_roles": [
-            {
+    # Get role distribution from users table
+    role_query = text("""
+        SELECT
+            u.role,
+            COUNT(*) as user_count
+        FROM users u
+        WHERE u.is_active = true
+        GROUP BY u.role
+        ORDER BY user_count DESC
+    """)
+
+    try:
+        role_result = await session.execute(role_query)
+        role_rows = role_result.fetchall()
+    except Exception:
+        role_rows = []
+
+    # Map roles to display info
+    role_info = {
+        "platform_admin": {"name": "Platform Admin", "description": "Full platform access", "permissions_count": 50},
+        "firm_admin": {"name": "Firm Admin", "description": "Full firm access", "permissions_count": 35},
+        "owner": {"name": "Firm Owner", "description": "Firm ownership access", "permissions_count": 40},
+        "manager": {"name": "Manager", "description": "Can manage team and returns", "permissions_count": 30},
+        "senior_preparer": {"name": "Senior Preparer", "description": "Can review and approve returns", "permissions_count": 25},
+        "preparer": {"name": "Preparer", "description": "Can prepare returns", "permissions_count": 15},
+        "reviewer": {"name": "Reviewer", "description": "Can review returns", "permissions_count": 10},
+        "viewer": {"name": "Viewer", "description": "Read-only access", "permissions_count": 5},
+    }
+
+    system_roles = []
+    total_users = 0
+    for row in role_rows:
+        role_key = row[0] or "preparer"
+        user_count = row[1] or 0
+        total_users += user_count
+
+        info = role_info.get(role_key, {
+            "name": role_key.replace("_", " ").title(),
+            "description": f"Role: {role_key}",
+            "permissions_count": 10
+        })
+
+        system_roles.append({
+            "role_id": f"role-{role_key}",
+            "name": info["name"],
+            "description": info["description"],
+            "user_count": user_count,
+            "permissions_count": info["permissions_count"],
+            "is_system": role_key in role_info,
+        })
+
+    # Get custom roles count from roles table if exists
+    custom_roles_count = 0
+    try:
+        custom_query = text("""
+            SELECT COUNT(*) FROM roles WHERE is_system = false
+        """)
+        custom_result = await session.execute(custom_query)
+        custom_roles_count = custom_result.fetchone()[0] or 0
+    except Exception:
+        pass
+
+    # Get platform admins count
+    try:
+        admin_query = text("""
+            SELECT COUNT(*) FROM platform_admins WHERE is_active = true
+        """)
+        admin_result = await session.execute(admin_query)
+        admin_count = admin_result.fetchone()[0] or 0
+        if admin_count > 0:
+            system_roles.insert(0, {
                 "role_id": "role-platform-admin",
                 "name": "Platform Admin",
                 "description": "Full platform access",
-                "user_count": 3,
+                "user_count": admin_count,
                 "permissions_count": 50,
                 "is_system": True,
-            },
-            {
-                "role_id": "role-firm-admin",
-                "name": "Firm Admin",
-                "description": "Full firm access",
-                "user_count": 247,
-                "permissions_count": 35,
-                "is_system": True,
-            },
-            {
-                "role_id": "role-senior-preparer",
-                "name": "Senior Preparer",
-                "description": "Can review and approve returns",
-                "user_count": 512,
-                "permissions_count": 25,
-                "is_system": True,
-            },
-            {
-                "role_id": "role-preparer",
-                "name": "Preparer",
-                "description": "Can prepare returns",
-                "user_count": 1083,
-                "permissions_count": 15,
-                "is_system": True,
-            },
-        ],
-        "custom_roles_count": 24,
-        "permission_categories": [
-            {"category": "returns", "permissions": 12},
-            {"category": "clients", "permissions": 8},
-            {"category": "team", "permissions": 6},
-            {"category": "billing", "permissions": 4},
-            {"category": "settings", "permissions": 5},
-            {"category": "audit", "permissions": 3},
-        ],
-        "total_users": 1845,
-        "total_permissions": 38,
+            })
+            total_users += admin_count
+    except Exception:
+        pass
+
+    # If no roles found, provide defaults
+    if not system_roles:
+        system_roles = [
+            {"role_id": "role-firm-admin", "name": "Firm Admin", "description": "Full firm access", "user_count": 0, "permissions_count": 35, "is_system": True},
+            {"role_id": "role-preparer", "name": "Preparer", "description": "Can prepare returns", "user_count": 0, "permissions_count": 15, "is_system": True},
+        ]
+
+    # Permission categories (static as these are defined in code)
+    permission_categories = [
+        {"category": "returns", "permissions": 12},
+        {"category": "clients", "permissions": 8},
+        {"category": "team", "permissions": 6},
+        {"category": "billing", "permissions": 4},
+        {"category": "settings", "permissions": 5},
+        {"category": "audit", "permissions": 3},
+    ]
+
+    return {
+        "system_roles": system_roles,
+        "custom_roles_count": custom_roles_count,
+        "permission_categories": permission_categories,
+        "total_users": total_users,
+        "total_permissions": sum(c["permissions"] for c in permission_categories),
     }
 
 
