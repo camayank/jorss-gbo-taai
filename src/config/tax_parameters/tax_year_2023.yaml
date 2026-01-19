@@ -1,0 +1,371 @@
+# Tax Year 2023 Configuration
+# Source: IRS Revenue Procedure 2022-38
+# Purpose: Historical tax year data for amended returns, prior year comparisons,
+#          and year-over-year analysis. DO NOT USE FOR CURRENT ADVISORY SERVICES.
+# Current Advisory Year: 2025 (see tax_year_2025.yaml)
+
+_metadata:
+  version: "2023.1.0"
+  tax_year: 2023
+  effective_date: "2023-01-01"
+  source: "IRS"
+  irs_references:
+    - "Rev. Proc. 2022-38"
+    - "Publication 17 (2023)"
+  last_updated: "2025-01-20"
+  updated_by: "system"
+  notes: "Historical tax year - for amended returns and YoY comparisons only"
+  is_current_advisory_year: false
+
+# =============================================================================
+# STANDARD DEDUCTION (2023)
+# =============================================================================
+standard_deduction:
+  single: 13850
+  married_joint: 27700
+  married_separate: 13850
+  head_of_household: 20800
+  qualifying_widow: 27700
+
+additional_standard_deduction_65_or_blind:
+  single: 1850
+  married: 1500
+  head_of_household: 1850
+
+# =============================================================================
+# TAX BRACKETS (2023 - Ordinary Income)
+# =============================================================================
+ordinary_income_brackets:
+  single:
+    - [11000, 0.10]
+    - [44725, 0.12]
+    - [95375, 0.22]
+    - [182100, 0.24]
+    - [231250, 0.32]
+    - [578125, 0.35]
+    - [999999999, 0.37]
+  married_joint:
+    - [22000, 0.10]
+    - [89450, 0.12]
+    - [190750, 0.22]
+    - [364200, 0.24]
+    - [462500, 0.32]
+    - [693750, 0.35]
+    - [999999999, 0.37]
+  married_separate:
+    - [11000, 0.10]
+    - [44725, 0.12]
+    - [95375, 0.22]
+    - [182100, 0.24]
+    - [231250, 0.32]
+    - [346875, 0.35]
+    - [999999999, 0.37]
+  head_of_household:
+    - [15700, 0.10]
+    - [59850, 0.12]
+    - [95350, 0.22]
+    - [182100, 0.24]
+    - [231250, 0.32]
+    - [578100, 0.35]
+    - [999999999, 0.37]
+
+# =============================================================================
+# CAPITAL GAINS BRACKETS (2023)
+# =============================================================================
+capital_gains_brackets:
+  zero_rate_threshold:
+    single: 44625
+    married_joint: 89250
+    married_separate: 44625
+    head_of_household: 59750
+  fifteen_rate_threshold:
+    single: 492300
+    married_joint: 553850
+    married_separate: 276900
+    head_of_household: 523050
+
+capital_loss_limit: 3000
+capital_loss_limit_mfs: 1500
+
+# =============================================================================
+# SELF-EMPLOYMENT TAX (2023)
+# =============================================================================
+se_net_earnings_factor: 0.9235
+se_tax_rate: 0.153
+ss_rate: 0.124
+medicare_rate: 0.029
+ss_wage_base: 160200
+
+additional_medicare_tax_rate: 0.009
+additional_medicare_threshold:
+  single: 200000
+  married_joint: 250000
+  married_separate: 125000
+  head_of_household: 200000
+
+# =============================================================================
+# NET INVESTMENT INCOME TAX (NIIT) - 2023
+# =============================================================================
+niit_rate: 0.038
+niit_threshold:
+  single: 200000
+  married_joint: 250000
+  married_separate: 125000
+  head_of_household: 200000
+
+# =============================================================================
+# ALTERNATIVE MINIMUM TAX (AMT) - 2023
+# =============================================================================
+amt_rate_26: 0.26
+amt_rate_28: 0.28
+amt_28_threshold:
+  single: 220700
+  married_joint: 220700
+  married_separate: 110350
+
+amt_exemption:
+  single: 81300
+  married_joint: 126500
+  married_separate: 63250
+
+amt_exemption_phaseout_start:
+  single: 578150
+  married_joint: 1156300
+  married_separate: 578150
+
+amt_exemption_phaseout_rate: 0.25
+
+# =============================================================================
+# CHILD TAX CREDIT (2023)
+# =============================================================================
+child_tax_credit_amount: 2000
+child_tax_credit_refundable: 1600
+child_tax_credit_other_dependent: 500
+child_tax_credit_max_age: 16
+
+child_tax_credit_phaseout_start:
+  single: 200000
+  married_joint: 400000
+  married_separate: 200000
+  head_of_household: 200000
+
+child_tax_credit_phaseout_rate: 0.05
+
+# =============================================================================
+# EARNED INCOME TAX CREDIT (EITC) - 2023
+# =============================================================================
+eitc_max_credit:
+  0: 600
+  1: 3995
+  2: 6604
+  3: 7430
+
+eitc_income_limits:
+  single:
+    0: 17640
+    1: 46560
+    2: 52918
+    3: 56838
+  married_joint:
+    0: 24210
+    1: 53120
+    2: 59478
+    3: 63398
+
+eitc_investment_income_limit: 11000
+
+# =============================================================================
+# RETIREMENT CONTRIBUTION LIMITS (2023)
+# =============================================================================
+ira_contribution_limit: 6500
+ira_catchup_50_plus: 1000
+
+ira_phaseout_covered:
+  single:
+    start: 73000
+    end: 83000
+  married_joint:
+    start: 116000
+    end: 136000
+  married_separate:
+    start: 0
+    end: 10000
+
+ira_phaseout_spouse_covered:
+  married_joint:
+    start: 218000
+    end: 228000
+  married_separate:
+    start: 0
+    end: 10000
+
+roth_ira_phaseout:
+  single:
+    start: 138000
+    end: 153000
+  married_joint:
+    start: 218000
+    end: 228000
+  married_separate:
+    start: 0
+    end: 10000
+
+k401_contribution_limit: 22500
+k401_catchup_50_plus: 7500
+
+hsa_individual_limit: 3850
+hsa_family_limit: 7750
+hsa_catchup_55_plus: 1000
+
+sep_ira_limit: 66000
+
+fsa_limit: 3050
+dcfsa_limit: 5000
+
+# =============================================================================
+# EDUCATION CREDITS (2023)
+# =============================================================================
+aotc_max_credit: 2500
+aotc_refundable_portion: 0.40
+aotc_phaseout:
+  single:
+    start: 80000
+    end: 90000
+  married_joint:
+    start: 160000
+    end: 180000
+
+llc_max_credit: 2000
+llc_rate: 0.20
+llc_phaseout:
+  single:
+    start: 80000
+    end: 90000
+  married_joint:
+    start: 160000
+    end: 180000
+
+# =============================================================================
+# SAVER'S CREDIT (2023)
+# =============================================================================
+savers_credit_max_contribution: 2000
+savers_credit_thresholds:
+  fifty_percent:
+    single: 21750
+    married_joint: 43500
+    head_of_household: 32625
+  twenty_percent:
+    single: 23750
+    married_joint: 47500
+    head_of_household: 35625
+  ten_percent:
+    single: 36500
+    married_joint: 73000
+    head_of_household: 54750
+
+# =============================================================================
+# DEDUCTION LIMITS (2023)
+# =============================================================================
+salt_cap: 10000
+medical_expense_floor_pct: 0.075
+student_loan_interest_max: 2500
+educator_expense_max: 300
+
+student_loan_phaseout:
+  single:
+    start: 75000
+    end: 90000
+  married_joint:
+    start: 155000
+    end: 185000
+
+charitable_cash_limit_pct: 0.60
+charitable_appreciated_limit_pct: 0.30
+
+# =============================================================================
+# QBI DEDUCTION (2023)
+# =============================================================================
+qbi_deduction_rate: 0.20
+qbi_threshold:
+  single:
+    start: 182100
+    end: 232100
+  married_joint:
+    start: 364200
+    end: 464200
+
+# =============================================================================
+# CLEAN VEHICLE CREDITS (2023)
+# =============================================================================
+clean_vehicle_credit_new_max: 7500
+clean_vehicle_credit_used_max: 4000
+
+clean_vehicle_income_limits:
+  new:
+    single: 150000
+    married_joint: 300000
+    head_of_household: 225000
+  used:
+    single: 75000
+    married_joint: 150000
+    head_of_household: 112500
+
+clean_vehicle_msrp_limits:
+  sedan: 55000
+  suv_van_truck: 80000
+
+# =============================================================================
+# ENERGY CREDITS (2023)
+# =============================================================================
+residential_clean_energy_rate: 0.30
+energy_efficient_home_rate: 0.30
+energy_efficient_annual_limit: 1200
+energy_efficient_window_limit: 600
+energy_efficient_door_limit: 500
+energy_efficient_panel_limit: 600
+energy_efficient_audit_limit: 150
+heat_pump_annual_limit: 2000
+
+# =============================================================================
+# GIFT AND ESTATE (2023)
+# =============================================================================
+annual_gift_exclusion: 17000
+estate_exemption: 12920000
+
+# =============================================================================
+# SECTION 179 (2023)
+# =============================================================================
+section_179_limit: 1160000
+section_179_phaseout_threshold: 2890000
+section_179_suv_limit: 28900
+
+# =============================================================================
+# MILEAGE RATES (2023)
+# =============================================================================
+mileage_rates:
+  business: 0.655
+  medical_moving: 0.22
+  charity: 0.14
+
+# =============================================================================
+# ADOPTION CREDIT (2023)
+# =============================================================================
+adoption_credit_max: 15950
+adoption_credit_phaseout:
+  start: 239230
+  end: 279230
+
+# =============================================================================
+# FOREIGN EARNED INCOME (2023)
+# =============================================================================
+foreign_earned_income_exclusion: 120000
+foreign_housing_exclusion_base: 18288
+foreign_housing_exclusion_max: 34920
+
+# =============================================================================
+# PENALTY RATES (2023)
+# =============================================================================
+early_withdrawal_penalty_rate: 0.10
+early_withdrawal_penalty_simple_rate: 0.25
+estimated_tax_underpayment_threshold: 1000
+estimated_tax_penalty_rate: 0.07

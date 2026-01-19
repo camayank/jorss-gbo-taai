@@ -22,6 +22,7 @@ from .recommendations_routes import router as recommendations_router
 from .users_routes import router as users_router
 from .billing_routes import router as billing_router
 from .messaging_routes import router as messaging_router
+from .premium_reports_routes import router as premium_reports_router
 
 # =============================================================================
 # CORE API ROUTER
@@ -38,6 +39,7 @@ core_router.include_router(recommendations_router)
 core_router.include_router(users_router)
 core_router.include_router(billing_router)
 core_router.include_router(messaging_router)
+core_router.include_router(premium_reports_router)
 
 
 # =============================================================================
@@ -63,7 +65,8 @@ async def health_check():
             "scenarios": "operational",
             "recommendations": "operational",
             "billing": "operational",
-            "messaging": "operational"
+            "messaging": "operational",
+            "premium_reports": "operational"
         }
     }
 
@@ -178,6 +181,10 @@ async def api_info():
             "/api/core/messages": {
                 "description": "Messaging and notifications",
                 "methods": ["GET /conversations", "POST /conversations", "GET /conversations/{id}/messages", "POST /conversations/{id}/messages", "GET /notifications"]
+            },
+            "/api/core/reports": {
+                "description": "Premium tax advisory reports",
+                "methods": ["POST /generate", "GET /download/{session_id}", "GET /tiers", "GET /sections/{tier}", "GET /preview/{session_id}"]
             }
         },
         "user_types": {
@@ -234,6 +241,10 @@ API_TAGS = [
     {
         "name": "Core Messaging",
         "description": "Conversations, messages, and notifications"
+    },
+    {
+        "name": "Core Premium Reports",
+        "description": "Tiered tax advisory reports (Basic/Standard/Premium)"
     }
 ]
 

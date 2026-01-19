@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#2E7D32">
+  <meta name="theme-color" content="#6366f1">
   <meta name="description" content="CPA Workspace for managing tax clients and decisions">
   <title>CPA Workspace - Tax Decision Intelligence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,27 +11,59 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #2E7D32;
-      --primary-hover: #1B5E20;
-      --primary-light: #E8F5E9;
-      --text-primary: #0f172a;
-      --text-secondary: #1e293b;
-      --text-tertiary: #475569;
-      --text-hint: #64748b;
+      /* =========================
+         UNIFIED DESIGN SYSTEM
+         ========================= */
+      /* Primary Colors - Indigo (Unified across platform) */
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --primary-hover: #4f46e5;
+      --primary-light: #eef2ff;
+      --primary-50: #eef2ff;
+
+      /* Grayscale */
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+
+      /* Text Colors */
+      --text-primary: #111827;
+      --text-secondary: #1f2937;
+      --text-tertiary: #4b5563;
+      --text-hint: #6b7280;
+
+      /* Background Colors */
       --bg-primary: #ffffff;
-      --bg-secondary: #f8fafc;
-      --bg-tertiary: #f1f5f9;
-      --border-light: #e2e8f0;
-      --border-default: #cbd5e1;
-      --success: #059669;
+      --bg-secondary: #f9fafb;
+      --bg-tertiary: #f3f4f6;
+      --border-light: #e5e7eb;
+      --border-default: #d1d5db;
+
+      /* Semantic Colors */
+      --success: #10b981;
       --success-light: #d1fae5;
-      --warning: #d97706;
+      --warning: #f59e0b;
       --warning-light: #fef3c7;
-      --info: #0284c7;
-      --info-light: #e0f2fe;
-      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
-      --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08);
-      --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08);
+      --error: #ef4444;
+      --info: #3b82f6;
+      --info-light: #dbeafe;
+
+      /* Shadows */
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+
+      /* Border Radius */
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -458,6 +490,123 @@
       from { transform: translateX(100%); opacity: 0; }
       to { transform: translateX(0); opacity: 1; }
     }
+
+    /* =========================
+       MOBILE RESPONSIVE
+       ========================= */
+    @media (max-width: 768px) {
+      .header {
+        padding: 12px 16px;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .logo {
+        gap: 10px;
+      }
+
+      .logo-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+      }
+
+      .logo-text {
+        font-size: 16px;
+      }
+
+      .header-actions {
+        gap: 10px;
+        width: 100%;
+        justify-content: flex-end;
+      }
+
+      .main-container {
+        padding: 16px;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+
+      .stat-card {
+        padding: 16px;
+      }
+
+      .stat-value {
+        font-size: 24px;
+      }
+
+      .client-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .btn {
+        padding: 10px 16px;
+        font-size: 14px;
+        min-height: 44px;
+      }
+
+      /* Tables scroll horizontally */
+      table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header {
+        padding: 10px 12px;
+      }
+
+      .logo-text {
+        font-size: 14px;
+      }
+
+      .logo-subtitle {
+        font-size: 10px;
+      }
+
+      .main-container {
+        padding: 12px;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stat-card {
+        padding: 12px;
+      }
+
+      .stat-value {
+        font-size: 20px;
+      }
+
+      .stat-label {
+        font-size: 11px;
+      }
+
+      .card {
+        padding: 12px;
+        border-radius: 10px;
+      }
+
+      .card-header {
+        padding: 12px;
+      }
+
+      h2 {
+        font-size: 18px;
+      }
+
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
   </style>
 </head>
 <body>
@@ -765,20 +914,26 @@
           refundClass = 'metric-negative';
         }
 
+        // Sanitize client data to prevent XSS
+        const safeName = escapeHtml(client.full_name);
+        const safeEmail = escapeHtml(client.email || '');
+        const safeExternalId = escapeHtml(client.external_id || client.client_id.slice(0, 8));
+        const safeClientId = escapeHtml(client.client_id);
+
         return `
           <tr role="row">
             <td role="gridcell">
-              <div class="client-name">${client.full_name}</div>
-              ${client.email ? `<div class="client-email">${client.email}</div>` : ''}
+              <div class="client-name">${safeName}</div>
+              ${client.email ? `<div class="client-email">${safeEmail}</div>` : ''}
             </td>
-            <td role="gridcell"><span class="client-id">${client.external_id || client.client_id.slice(0, 8)}</span></td>
+            <td role="gridcell"><span class="client-id">${safeExternalId}</span></td>
             <td role="gridcell"><span class="status-badge ${statusClass}" role="status">${statusText}</span></td>
             <td role="gridcell">${documents}</td>
             <td role="gridcell" class="metric-cell ${refundClass}" aria-label="Estimated ${refund > 0 ? 'refund' : 'owed'}: ${refundOwed}">${refundOwed}</td>
             <td role="gridcell" class="metric-cell ${savings ? 'metric-positive' : ''}" aria-label="Potential savings: ${savings ? formatCurrency(savings) : 'none'}">${savings ? formatCurrency(savings) : '-'}</td>
             <td role="gridcell" style="color: var(--text-tertiary); font-size: 13px;">${lastAccessed}</td>
             <td role="gridcell">
-              <button class="action-btn" onclick="openClient('${client.client_id}')" aria-label="Open ${client.full_name}'s tax return">Open</button>
+              <button class="action-btn" onclick="openClient('${safeClientId}')" aria-label="Open ${safeName}'s tax return">Open</button>
             </td>
           </tr>
         `;

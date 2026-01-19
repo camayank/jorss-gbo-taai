@@ -1033,6 +1033,165 @@
       }
     }
 
+    /* Tablet breakpoint */
+    @media (max-width: 1024px) {
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .main-content {
+        margin-left: 0;
+      }
+      .mobile-header {
+        display: flex !important;
+      }
+      .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 99;
+      }
+      .sidebar-overlay.active {
+        display: block;
+      }
+    }
+
+    /* Mobile breakpoint */
+    @media (max-width: 768px) {
+      .platform-stats {
+        grid-template-columns: 1fr;
+      }
+      .content-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+      }
+      .header-actions {
+        width: 100%;
+        flex-wrap: wrap;
+      }
+      .data-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .data-table thead {
+        display: none;
+      }
+      .data-table tbody tr {
+        display: block;
+        margin-bottom: 16px;
+        background: var(--gray-800);
+        border-radius: var(--radius-md);
+        padding: 12px;
+      }
+      .data-table tbody td {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--gray-700);
+      }
+      .data-table tbody td:last-child {
+        border-bottom: none;
+      }
+      .data-table tbody td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--gray-400);
+      }
+      .modal-content {
+        max-width: 95vw;
+        margin: 20px;
+        max-height: 90vh;
+      }
+    }
+
+    /* Small mobile breakpoint */
+    @media (max-width: 480px) {
+      .header-search {
+        display: none;
+      }
+      .btn {
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+      .card {
+        padding: 16px;
+      }
+    }
+
+    /* Mobile header (hidden by default) */
+    .mobile-header {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background: var(--gray-900);
+      border-bottom: 1px solid var(--gray-700);
+      align-items: center;
+      padding: 0 16px;
+      z-index: 101;
+    }
+
+    .hamburger-btn {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 40px;
+      height: 40px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: var(--radius-md);
+    }
+
+    .hamburger-btn:hover {
+      background: var(--gray-800);
+    }
+
+    .hamburger-btn span {
+      display: block;
+      width: 20px;
+      height: 2px;
+      background: var(--gray-300);
+      margin: 2px 0;
+      transition: all 0.3s ease;
+    }
+
+    .hamburger-btn.active span:nth-child(1) {
+      transform: rotate(45deg) translate(4px, 4px);
+    }
+
+    .hamburger-btn.active span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .hamburger-btn.active span:nth-child(3) {
+      transform: rotate(-45deg) translate(4px, -4px);
+    }
+
+    .mobile-header-title {
+      flex: 1;
+      text-align: center;
+      font-weight: 600;
+      color: white;
+    }
+
+    .mobile-header-spacer {
+      width: 40px;
+    }
+
     /* Loading Spinners */
     .loading-spinner {
       width: 40px;
@@ -1106,9 +1265,26 @@
   </style>
 </head>
 <body>
+  <!-- Mobile Header -->
+  <header class="mobile-header" style="display: none;">
+    <button class="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle navigation menu">
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+    </button>
+    <div class="mobile-logo">
+      <div class="sidebar-logo-icon" style="width: 32px; height: 32px; font-size: 12px;">TF</div>
+      <span style="font-weight: 600; color: white;">TaxFlow Admin</span>
+    </div>
+    <div style="width: 40px;"></div>
+  </header>
+
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
   <div class="app-layout">
     <!-- Sidebar -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <a href="/admin" class="sidebar-logo">
           <div class="sidebar-logo-icon">TF</div>
@@ -1119,9 +1295,9 @@
         </a>
       </div>
 
-      <nav class="sidebar-nav">
-        <div class="nav-section">
-          <div class="nav-section-title">Platform</div>
+      <nav class="sidebar-nav" aria-label="Main navigation">
+        <div class="nav-section" role="group" aria-labelledby="nav-platform-title">
+          <div class="nav-section-title" id="nav-platform-title">Platform</div>
           <a href="/admin" class="nav-item" data-page="">
             <span class="nav-item-icon">&#128202;</span>
             Overview
@@ -1141,37 +1317,37 @@
           </a>
         </div>
 
-        <div class="nav-section">
-          <div class="nav-section-title">Business</div>
+        <div class="nav-section" role="group" aria-labelledby="nav-business-title">
+          <div class="nav-section-title" id="nav-business-title">Business</div>
           <a href="/admin/subscriptions" class="nav-item" data-page="subscriptions">
-            <span class="nav-item-icon">&#128179;</span>
+            <span class="nav-item-icon" aria-hidden="true">&#128179;</span>
             Subscriptions
           </a>
           <a href="/admin/revenue" class="nav-item" data-page="revenue">
-            <span class="nav-item-icon">&#128176;</span>
+            <span class="nav-item-icon" aria-hidden="true">&#128176;</span>
             Revenue
           </a>
         </div>
 
-        <div class="nav-section">
-          <div class="nav-section-title">Operations</div>
+        <div class="nav-section" role="group" aria-labelledby="nav-operations-title">
+          <div class="nav-section-title" id="nav-operations-title">Operations</div>
           <a href="/admin/compliance" class="nav-item" data-page="compliance">
-            <span class="nav-item-icon">&#128737;</span>
+            <span class="nav-item-icon" aria-hidden="true">&#128737;</span>
             Compliance
           </a>
           <a href="/admin/audit" class="nav-item" data-page="audit">
-            <span class="nav-item-icon">&#128220;</span>
+            <span class="nav-item-icon" aria-hidden="true">&#128220;</span>
             Audit Logs
           </a>
           <a href="/admin/support" class="nav-item" data-page="support">
-            <span class="nav-item-icon">&#127384;</span>
+            <span class="nav-item-icon" aria-hidden="true">&#127384;</span>
             Support Tickets
-            <span class="nav-item-badge">12</span>
+            <span class="nav-item-badge" aria-label="12 tickets">12</span>
           </a>
         </div>
 
-        <div class="nav-section">
-          <div class="nav-section-title">System</div>
+        <div class="nav-section" role="group" aria-labelledby="nav-system-title">
+          <div class="nav-section-title" id="nav-system-title">System</div>
           <a href="/admin/features" class="nav-item" data-page="features">
             <span class="nav-item-icon">&#9881;</span>
             Feature Flags
@@ -1344,32 +1520,32 @@
           <div class="section-header">
             <h2 class="section-title" id="firms-section-title">All Firms</h2>
             <div class="card-actions">
-              <button class="btn btn-secondary" onclick="exportFirms()">&#128190; Export</button>
-              <button class="btn btn-primary" onclick="openAddFirmModal()">&#43; Add Firm</button>
+              <button class="btn btn-secondary" onclick="exportFirms()" aria-label="Export firms data to file">&#128190; Export</button>
+              <button class="btn btn-primary" onclick="openAddFirmModal()" aria-label="Add new firm">&#43; Add Firm</button>
             </div>
           </div>
 
-          <div class="filter-bar">
-            <select class="filter-select" id="firm-tier-filter">
+          <div class="filter-bar" role="search" aria-label="Filter firms">
+            <select class="filter-select" id="firm-tier-filter" aria-label="Filter by subscription tier">
               <option value="">All Tiers</option>
               <option value="enterprise">Enterprise</option>
               <option value="professional">Professional</option>
               <option value="starter">Starter</option>
             </select>
-            <select class="filter-select" id="firm-status-filter">
+            <select class="filter-select" id="firm-status-filter" aria-label="Filter by firm status">
               <option value="">All Status</option>
               <option value="active">Active</option>
               <option value="trial">Trial</option>
               <option value="suspended">Suspended</option>
               <option value="churned">Churned</option>
             </select>
-            <select class="filter-select" id="firm-partner-filter">
+            <select class="filter-select" id="firm-partner-filter" aria-label="Filter by partner">
               <option value="">All Partners</option>
               <option value="direct">Direct (No Partner)</option>
               <option value="partner-001">TaxPartner Pro</option>
               <option value="partner-002">AccountingHub</option>
             </select>
-            <input type="text" class="search-input" placeholder="Search firms...">
+            <input type="text" class="search-input" placeholder="Search firms..." aria-label="Search firms by name">
           </div>
 
           <div class="card">
@@ -1401,13 +1577,13 @@
           <div class="section-header">
             <h2 class="section-title" id="users-section-title">All Users</h2>
             <div class="card-actions">
-              <button class="btn btn-secondary" onclick="exportUsers()">&#128190; Export</button>
-              <button class="btn btn-primary" onclick="openInviteUserModal()">&#43; Invite User</button>
+              <button class="btn btn-secondary" onclick="exportUsers()" aria-label="Export users data to file">&#128190; Export</button>
+              <button class="btn btn-primary" onclick="openInviteUserModal()" aria-label="Invite new user">&#43; Invite User</button>
             </div>
           </div>
 
-          <div class="filter-bar">
-            <select class="filter-select" id="user-role-filter">
+          <div class="filter-bar" role="search" aria-label="Filter users">
+            <select class="filter-select" id="user-role-filter" aria-label="Filter by user role">
               <option value="">All Roles</option>
               <option value="firm_admin">Firm Admin</option>
               <option value="senior_preparer">Senior Preparer</option>
@@ -1931,17 +2107,113 @@
   </div>
 
   <!-- Detail Panel (Slide-out) -->
-  <div class="detail-panel" id="detail-panel">
+  <aside class="detail-panel" id="detail-panel" role="dialog" aria-labelledby="detail-panel-title" aria-modal="true">
     <div class="detail-panel-header">
       <h2 class="detail-panel-title" id="detail-panel-title">Firm Details</h2>
-      <button class="detail-panel-close" onclick="closeDetailPanel()">&times;</button>
+      <button class="detail-panel-close" onclick="closeDetailPanel()" aria-label="Close detail panel">&times;</button>
     </div>
-    <div class="detail-panel-body" id="detail-panel-body">
+    <div class="detail-panel-body" id="detail-panel-body" aria-live="polite">
       <!-- Dynamic content -->
     </div>
-  </div>
+  </aside>
 
   <script>
+    // =============================================================================
+    // SECURITY UTILITIES
+    // =============================================================================
+    /**
+     * Escapes HTML special characters to prevent XSS attacks.
+     * Always use this when inserting user-provided data into the DOM.
+     * @param {string} text - The text to escape
+     * @returns {string} The escaped text safe for HTML insertion
+     */
+    function escapeHtml(text) {
+      if (text === null || text === undefined) return '';
+      const div = document.createElement('div');
+      div.textContent = String(text);
+      return div.innerHTML;
+    }
+
+    /**
+     * Escapes text for use in HTML attributes
+     * @param {string} text - The text to escape
+     * @returns {string} The escaped text safe for attribute insertion
+     */
+    function escapeAttr(text) {
+      if (text === null || text === undefined) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    /**
+     * Shows a toast notification to the user
+     * @param {string} message - The message to display
+     * @param {string} type - 'success', 'error', 'warning', 'info'
+     */
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      toast.style.cssText = `
+        position: fixed; bottom: 20px; right: 20px; padding: 12px 24px;
+        border-radius: 8px; color: white; font-weight: 500; z-index: 10000;
+        animation: slideIn 0.3s ease; max-width: 400px;
+        background: ${type === 'error' ? 'var(--error)' : type === 'success' ? 'var(--success)' : type === 'warning' ? 'var(--warning)' : 'var(--info)'};
+      `;
+      document.body.appendChild(toast);
+      setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 4000);
+    }
+
+    // =============================================================================
+    // MOBILE NAVIGATION
+    // =============================================================================
+
+    /**
+     * Toggles the mobile sidebar visibility
+     */
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.querySelector('.sidebar-overlay');
+      const isOpen = sidebar.classList.contains('open');
+
+      if (isOpen) {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+      } else {
+        sidebar.classList.add('open');
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    // Close sidebar when clicking a nav item on mobile
+    document.addEventListener('DOMContentLoaded', () => {
+      const navItems = document.querySelectorAll('.nav-item');
+      navItems.forEach(item => {
+        item.addEventListener('click', () => {
+          if (window.innerWidth <= 1024) {
+            toggleSidebar();
+          }
+        });
+      });
+
+      // Close sidebar on window resize if open
+      window.addEventListener('resize', () => {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        if (window.innerWidth > 1024 && sidebar.classList.contains('open')) {
+          sidebar.classList.remove('open');
+          overlay.classList.remove('active');
+          document.body.style.overflow = '';
+        }
+      });
+    });
+
     // =============================================================================
     // API HELPER & UTILITIES
     // =============================================================================
@@ -3311,16 +3583,20 @@
       // Remove existing modal if any
       closeModal();
 
+      const modalId = 'modal-' + Date.now();
+      const titleId = modalId + '-title';
+
       const overlay = document.createElement('div');
       overlay.id = 'modal-overlay';
+      overlay.setAttribute('role', 'presentation');
       overlay.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;';
       overlay.onclick = (e) => { if (e.target === overlay) closeModal(); };
 
       overlay.innerHTML = `
-        <div style="background: white; border-radius: 12px; width: 480px; max-width: 90vw; max-height: 90vh; overflow: auto;">
+        <div role="dialog" aria-modal="true" aria-labelledby="${titleId}" style="background: white; border-radius: 12px; width: 480px; max-width: 90vw; max-height: 90vh; overflow: auto;">
           <div style="padding: 20px; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="font-size: 18px; font-weight: 600;">${escapeHtml(title)}</h2>
-            <button onclick="closeModal()" style="background: none; border: none; cursor: pointer; font-size: 20px;">&times;</button>
+            <h2 id="${titleId}" style="font-size: 18px; font-weight: 600;">${escapeHtml(title)}</h2>
+            <button onclick="closeModal()" aria-label="Close dialog" style="background: none; border: none; cursor: pointer; font-size: 20px;">&times;</button>
           </div>
           <div style="padding: 20px;">
             ${content}
@@ -3329,6 +3605,15 @@
       `;
 
       document.body.appendChild(overlay);
+
+      // Focus trap: focus the first focusable element
+      const firstFocusable = overlay.querySelector('input, select, button');
+      if (firstFocusable) firstFocusable.focus();
+
+      // Handle Escape key to close modal
+      overlay.handleKeyDown = (e) => { if (e.key === 'Escape') closeModal(); };
+      document.addEventListener('keydown', overlay.handleKeyDown);
+
       return overlay;
     }
 
@@ -3337,7 +3622,12 @@
      */
     function closeModal() {
       const overlay = document.getElementById('modal-overlay');
-      if (overlay) overlay.remove();
+      if (overlay) {
+        if (overlay.handleKeyDown) {
+          document.removeEventListener('keydown', overlay.handleKeyDown);
+        }
+        overlay.remove();
+      }
     }
 
     /**

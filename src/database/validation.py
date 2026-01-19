@@ -573,7 +573,7 @@ class BusinessRulesValidator:
             Decimal(str(data.get("rental_income", 0)))
         )
 
-        limit = Decimal("11600")
+        limit = Decimal("11950")  # 2025 EITC investment income limit
 
         if claiming_eitc and investment_income > limit:
             return BusinessRuleResult(

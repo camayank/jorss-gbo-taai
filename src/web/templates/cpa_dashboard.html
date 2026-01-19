@@ -870,10 +870,202 @@
       .optimization-grid { grid-template-columns: repeat(3, 1fr); }
       .pipeline-board { grid-template-columns: repeat(3, 1fr) !important; }
     }
+
+    /* Mobile Header - Hidden by default */
+    .mobile-header {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background: var(--primary);
+      z-index: 1001;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .mobile-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mobile-logo-icon {
+      width: 32px;
+      height: 32px;
+      background: white;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 12px;
+      color: var(--primary);
+    }
+
+    .mobile-logo-text {
+      font-weight: 600;
+      color: white;
+      font-size: 14px;
+    }
+
+    .hamburger-btn {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 40px;
+      height: 40px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      gap: 5px;
+    }
+
+    .hamburger-line {
+      width: 22px;
+      height: 2px;
+      background: white;
+      border-radius: 2px;
+      transition: all 0.3s ease;
+    }
+
+    .hamburger-btn.active .hamburger-line:nth-child(1) {
+      transform: rotate(45deg) translate(5px, 5px);
+    }
+    .hamburger-btn.active .hamburger-line:nth-child(2) {
+      opacity: 0;
+    }
+    .hamburger-btn.active .hamburger-line:nth-child(3) {
+      transform: rotate(-45deg) translate(5px, -5px);
+    }
+
+    /* Sidebar overlay for mobile */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .sidebar-overlay.active {
+      display: block;
+      opacity: 1;
+    }
+
+    /* Tablet breakpoint */
+    @media (max-width: 1024px) {
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 1000;
+        width: 260px !important;
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .main-content {
+        margin-left: 0 !important;
+        padding-top: 72px;
+      }
+
+      .mobile-header {
+        display: flex !important;
+      }
+    }
+
+    /* Mobile breakpoint */
     @media (max-width: 768px) {
-      .sidebar { width: 60px; }
-      .sidebar .logo-text, .sidebar .logo-subtitle, .sidebar .nav-section-label, .sidebar .nav-item span { display: none; }
       .optimization-grid { grid-template-columns: repeat(2, 1fr); }
+      .pipeline-board { grid-template-columns: 1fr !important; }
+
+      .main-content {
+        padding: 72px 12px 16px 12px;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      .view-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .view-header h1 {
+        font-size: 20px;
+      }
+
+      .btn {
+        padding: 10px 16px;
+        font-size: 14px;
+      }
+
+      /* Make tables scrollable */
+      .data-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* Stack filter controls */
+      .filter-bar {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .filter-bar select,
+      .filter-bar input {
+        width: 100%;
+      }
+
+      /* Pipeline cards stack vertically */
+      .pipeline-stage {
+        min-width: auto;
+      }
+
+      /* Sidebar open state shows all text */
+      .sidebar.open .logo-text,
+      .sidebar.open .logo-subtitle,
+      .sidebar.open .nav-section-label,
+      .sidebar.open .nav-item span {
+        display: block;
+      }
+    }
+
+    /* Small mobile */
+    @media (max-width: 480px) {
+      .optimization-grid { grid-template-columns: 1fr; }
+
+      .stat-card {
+        padding: 12px;
+      }
+
+      .stat-value {
+        font-size: 24px;
+      }
+
+      .mobile-header {
+        padding: 0 12px;
+      }
+
+      .view-header h1 {
+        font-size: 18px;
+      }
     }
 
     /* =========================================================================== */
@@ -1243,9 +1435,26 @@
   </style>
 </head>
 <body>
+  <!-- Mobile Header -->
+  <header class="mobile-header">
+    <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Toggle navigation menu">
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+    </button>
+    <div class="mobile-logo">
+      <div class="mobile-logo-icon">CA</div>
+      <span class="mobile-logo-text">CA4CPA GLOBAL</span>
+    </div>
+    <div style="width: 40px;"></div>
+  </header>
+
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
   <div class="app-layout">
     <!-- Sidebar -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
           <div class="logo-mark" style="background: linear-gradient(135deg, #1e40af, #3b82f6);">CA</div>
@@ -1255,42 +1464,42 @@
           </div>
         </div>
       </div>
-      <nav class="sidebar-nav">
-        <div class="nav-section">
-          <div class="nav-section-label">Advisory Intelligence</div>
-          <a class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')">
+      <nav class="sidebar-nav" aria-label="Main navigation">
+        <div class="nav-section" role="group" aria-labelledby="nav-advisory-label">
+          <div class="nav-section-label" id="nav-advisory-label">Advisory Intelligence</div>
+          <a class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')" role="button" tabindex="0">
             <span>Dashboard</span>
           </a>
-          <a class="nav-item" data-view="insights" onclick="switchView('insights')">
+          <a class="nav-item" data-view="insights" onclick="switchView('insights')" role="button" tabindex="0">
             <span>CPA Review Signals</span>
-            <span class="nav-badge" id="insights-badge">0</span>
+            <span class="nav-badge" id="insights-badge" aria-label="0 signals">0</span>
           </a>
-          <a class="nav-item" data-view="scenarios" onclick="switchView('scenarios')">
+          <a class="nav-item" data-view="scenarios" onclick="switchView('scenarios')" role="button" tabindex="0">
             <span>Scenario Workspace</span>
           </a>
-          <a class="nav-item" data-view="advisory-tools" onclick="switchView('advisory-tools')">
+          <a class="nav-item" data-view="advisory-tools" onclick="switchView('advisory-tools')" role="button" tabindex="0">
             <span>Analysis Workspace</span>
           </a>
         </div>
-        <div class="nav-section">
-          <div class="nav-section-label">Lead Management</div>
-          <a class="nav-item" data-view="pipeline" onclick="switchView('pipeline')">
+        <div class="nav-section" role="group" aria-labelledby="nav-leads-label">
+          <div class="nav-section-label" id="nav-leads-label">Lead Management</div>
+          <a class="nav-item" data-view="pipeline" onclick="switchView('pipeline')" role="button" tabindex="0">
             <span>Lead Pipeline</span>
-            <span class="nav-badge" id="pipeline-badge">0</span>
+            <span class="nav-badge" id="pipeline-badge" aria-label="0 leads">0</span>
           </a>
-          <a class="nav-item" data-view="intake" onclick="switchView('intake')">
+          <a class="nav-item" data-view="intake" onclick="switchView('intake')" role="button" tabindex="0">
             <span>Intake</span>
           </a>
         </div>
-        <div class="nav-section">
-          <div class="nav-section-label">Engagements</div>
-          <a class="nav-item" data-view="clients" onclick="switchView('clients')">
+        <div class="nav-section" role="group" aria-labelledby="nav-engagements-label">
+          <div class="nav-section-label" id="nav-engagements-label">Engagements</div>
+          <a class="nav-item" data-view="clients" onclick="switchView('clients')" role="button" tabindex="0">
             <span>Engaged Clients</span>
           </a>
-          <a class="nav-item" data-view="documents" onclick="switchView('documents')">
+          <a class="nav-item" data-view="documents" onclick="switchView('documents')" role="button" tabindex="0">
             <span>Document Center</span>
           </a>
-          <a class="nav-item" data-view="review" onclick="switchView('review')">
+          <a class="nav-item" data-view="review" onclick="switchView('review')" role="button" tabindex="0">
             <span>Review Queue</span>
             <span class="nav-badge alert" id="review-badge">0</span>
           </a>
@@ -2366,6 +2575,48 @@
       div.textContent = String(text);
       return div.innerHTML;
     }
+
+    // ================================================================
+    // MOBILE NAVIGATION
+    // ================================================================
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      const hamburger = document.getElementById('hamburger-btn');
+      const isOpen = sidebar.classList.contains('open');
+
+      if (isOpen) {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+        hamburger.classList.remove('active');
+        document.body.style.overflow = '';
+      } else {
+        sidebar.classList.add('open');
+        overlay.classList.add('active');
+        hamburger.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    // Close sidebar when clicking a nav item on mobile
+    document.addEventListener('DOMContentLoaded', () => {
+      const navItems = document.querySelectorAll('.nav-item');
+      navItems.forEach(item => {
+        item.addEventListener('click', () => {
+          if (window.innerWidth <= 1024) {
+            toggleSidebar();
+          }
+        });
+      });
+
+      // Close sidebar on window resize if open
+      window.addEventListener('resize', () => {
+        const sidebar = document.getElementById('sidebar');
+        if (window.innerWidth > 1024 && sidebar && sidebar.classList.contains('open')) {
+          toggleSidebar();
+        }
+      });
+    });
 
     // State
     const state = {
@@ -3623,74 +3874,112 @@
       }
     }
 
+    // Loading state helper for analysis functions
+    function showAnalysisLoading(title) {
+      const resultsCard = document.getElementById('advisory-results-card');
+      resultsCard.style.display = 'block';
+      document.getElementById('advisory-results-title').textContent = title;
+      document.getElementById('advisory-results').innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;padding:40px">
+          <div class="loading-spinner" style="width:32px;height:32px;border-width:3px;margin-bottom:16px"></div>
+          <div style="color:var(--gray-600);font-size:14px">Analyzing tax data...</div>
+        </div>
+      `;
+    }
+
     async function runCreditAnalysis() {
       const sessionId = document.getElementById('advisory-client-select').value;
       if (!sessionId) { showToast('Please select a client', 'error'); return; }
 
+      showAnalysisLoading('Credit Analysis');
       try {
         const data = await api(`/api/cpa/session/${sessionId}/credits/analyze`, { method: 'POST' });
         if (data.success) {
           showAdvisoryResults('Credit Analysis', data);
         } else {
-          showToast(data.error || 'Analysis failed', 'error');
+          showToast(data.error || 'Credit analysis failed', 'error');
+          document.getElementById('advisory-results-card').style.display = 'none';
         }
-      } catch (e) { showToast('Analysis failed', 'error'); }
+      } catch (e) {
+        showToast('Credit analysis failed. Please try again.', 'error');
+        document.getElementById('advisory-results-card').style.display = 'none';
+      }
     }
 
     async function runDeductionAnalysis() {
       const sessionId = document.getElementById('advisory-client-select').value;
       if (!sessionId) { showToast('Please select a client', 'error'); return; }
 
+      showAnalysisLoading('Deduction Analysis');
       try {
         const data = await api(`/api/cpa/session/${sessionId}/deductions/analyze`, { method: 'POST' });
         if (data.success) {
           showAdvisoryResults('Deduction Analysis', data);
         } else {
-          showToast(data.error || 'Analysis failed', 'error');
+          showToast(data.error || 'Deduction analysis failed', 'error');
+          document.getElementById('advisory-results-card').style.display = 'none';
         }
-      } catch (e) { showToast('Analysis failed', 'error'); }
+      } catch (e) {
+        showToast('Deduction analysis failed. Please try again.', 'error');
+        document.getElementById('advisory-results-card').style.display = 'none';
+      }
     }
 
     async function runFilingStatusAnalysis() {
       const sessionId = document.getElementById('advisory-client-select').value;
       if (!sessionId) { showToast('Please select a client', 'error'); return; }
 
+      showAnalysisLoading('Filing Status Comparison');
       try {
         const data = await api(`/api/cpa/session/${sessionId}/filing-status/compare`, { method: 'POST' });
         if (data.success) {
           showAdvisoryResults('Filing Status Comparison', data);
         } else {
-          showToast(data.error || 'Analysis failed', 'error');
+          showToast(data.error || 'Filing status analysis failed', 'error');
+          document.getElementById('advisory-results-card').style.display = 'none';
         }
-      } catch (e) { showToast('Analysis failed', 'error'); }
+      } catch (e) {
+        showToast('Filing status analysis failed. Please try again.', 'error');
+        document.getElementById('advisory-results-card').style.display = 'none';
+      }
     }
 
     async function runEntityAnalysis() {
       const sessionId = document.getElementById('advisory-client-select').value;
       if (!sessionId) { showToast('Please select a client', 'error'); return; }
 
+      showAnalysisLoading('Entity Structure Comparison');
       try {
         const data = await api(`/api/cpa/session/${sessionId}/entity/compare`, { method: 'POST' });
         if (data.success) {
           showAdvisoryResults('Entity Structure Comparison', data);
         } else {
-          showToast(data.error || 'Analysis failed', 'error');
+          showToast(data.error || 'Entity analysis failed', 'error');
+          document.getElementById('advisory-results-card').style.display = 'none';
         }
-      } catch (e) { showToast('Analysis failed', 'error'); }
+      } catch (e) {
+        showToast('Entity analysis failed. Please try again.', 'error');
+        document.getElementById('advisory-results-card').style.display = 'none';
+      }
     }
 
     async function runFullStrategy() {
       const sessionId = document.getElementById('advisory-client-select').value;
       if (!sessionId) { showToast('Please select a client', 'error'); return; }
 
+      showAnalysisLoading('Full Tax Strategy');
       try {
         const data = await api(`/api/cpa/session/${sessionId}/strategy/analyze`, { method: 'POST' });
         if (data.success) {
           showAdvisoryResults('Full Tax Strategy', data);
         } else {
-          showToast(data.error || 'Analysis failed', 'error');
+          showToast(data.error || 'Strategy analysis failed', 'error');
+          document.getElementById('advisory-results-card').style.display = 'none';
         }
-      } catch (e) { showToast('Analysis failed', 'error'); }
+      } catch (e) {
+        showToast('Strategy analysis failed. Please try again.', 'error');
+        document.getElementById('advisory-results-card').style.display = 'none';
+      }
     }
 
     function showAdvisoryResults(title, data) {

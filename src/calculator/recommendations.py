@@ -453,12 +453,12 @@ class TaxRecommendationEngine:
         agi = tax_return.adjusted_gross_income or 0
         filing_status = tax_return.taxpayer.filing_status.value
 
-        # Check if near bracket boundary
+        # Check if near bracket boundary (2025 values - IRS Rev. Proc. 2024-40)
         bracket_boundaries = {
-            "single": [11600, 47150, 100525, 191950, 243725, 609350],
-            "married_joint": [23200, 94300, 201050, 383900, 487450, 731200],
-            "married_separate": [11600, 47150, 100525, 191950, 243725, 365600],
-            "head_of_household": [16550, 63100, 100500, 191950, 243700, 609350],
+            "single": [11925, 48475, 103350, 197300, 250525, 626350],
+            "married_joint": [23850, 96950, 206700, 394600, 501050, 751600],
+            "married_separate": [11925, 48475, 103350, 197300, 250525, 375800],
+            "head_of_household": [17000, 64850, 103350, 197300, 250500, 626350],
         }
 
         boundaries = bracket_boundaries.get(filing_status, bracket_boundaries["single"])
@@ -547,35 +547,35 @@ class TaxRecommendationEngine:
         return recommendations
 
     def _estimate_marginal_rate(self, agi: float, filing_status: str) -> float:
-        """Estimate marginal tax rate for savings calculations."""
-        # Simplified bracket estimation for 2025
+        """Estimate marginal tax rate for savings calculations (2025 brackets)."""
+        # 2025 bracket estimation (IRS Rev. Proc. 2024-40)
         if filing_status == "married_joint":
-            if agi <= 23200:
+            if agi <= 23850:
                 return 0.10
-            elif agi <= 94300:
+            elif agi <= 96950:
                 return 0.12
-            elif agi <= 201050:
+            elif agi <= 206700:
                 return 0.22
-            elif agi <= 383900:
+            elif agi <= 394600:
                 return 0.24
-            elif agi <= 487450:
+            elif agi <= 501050:
                 return 0.32
-            elif agi <= 731200:
+            elif agi <= 751600:
                 return 0.35
             else:
                 return 0.37
         else:  # Single and other
-            if agi <= 11600:
+            if agi <= 11925:
                 return 0.10
-            elif agi <= 47150:
+            elif agi <= 48475:
                 return 0.12
-            elif agi <= 100525:
+            elif agi <= 103350:
                 return 0.22
-            elif agi <= 191950:
+            elif agi <= 197300:
                 return 0.24
-            elif agi <= 243725:
+            elif agi <= 250525:
                 return 0.32
-            elif agi <= 609350:
+            elif agi <= 626350:
                 return 0.35
             else:
                 return 0.37

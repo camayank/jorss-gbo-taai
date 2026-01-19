@@ -41,6 +41,18 @@ from export.draft_return import (
     ScheduleRequirement,
     generate_complete_draft_package,
 )
+from export.premium_report_generator import (
+    PremiumReportGenerator,
+    ReportTier,
+    ReportFormat,
+    ReportSection,
+    GeneratedReport,
+    ActionItem,
+    generate_report,
+    get_tier_sections,
+    get_tier_pricing,
+    TIER_SECTIONS,
+)
 
 __all__ = [
     # Professional formats
@@ -70,4 +82,15 @@ __all__ = [
     "MissingItem",
     "ScheduleRequirement",
     "generate_complete_draft_package",
+    # Premium report generator
+    "PremiumReportGenerator",
+    "ReportTier",
+    "ReportFormat",
+    "ReportSection",
+    "GeneratedReport",
+    "ActionItem",
+    "generate_report",
+    "get_tier_sections",
+    "get_tier_pricing",
+    "TIER_SECTIONS",
 ]

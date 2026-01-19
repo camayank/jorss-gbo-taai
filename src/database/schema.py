@@ -615,7 +615,7 @@ class TaxReturnSchema:
         },
         # Income Thresholds
         "income_thresholds": {
-            "eitc_investment_income_limit": Decimal("11600"),
+            "eitc_investment_income_limit": Decimal("11950"),
             "niit_threshold_single": Decimal("200000"),
             "niit_threshold_mfj": Decimal("250000"),
             "additional_medicare_single": Decimal("200000"),

@@ -1,0 +1,371 @@
+# Tax Year 2022 Configuration
+# Source: IRS Revenue Procedure 2021-45
+# Purpose: Historical tax year data for amended returns, prior year comparisons,
+#          and year-over-year analysis. DO NOT USE FOR CURRENT ADVISORY SERVICES.
+# Current Advisory Year: 2025 (see tax_year_2025.yaml)
+
+_metadata:
+  version: "2022.1.0"
+  tax_year: 2022
+  effective_date: "2022-01-01"
+  source: "IRS"
+  irs_references:
+    - "Rev. Proc. 2021-45"
+    - "Publication 17 (2022)"
+  last_updated: "2025-01-20"
+  updated_by: "system"
+  notes: "Historical tax year - for amended returns and YoY comparisons only"
+  is_current_advisory_year: false
+
+# =============================================================================
+# STANDARD DEDUCTION (2022)
+# =============================================================================
+standard_deduction:
+  single: 12950
+  married_joint: 25900
+  married_separate: 12950
+  head_of_household: 19400
+  qualifying_widow: 25900
+
+additional_standard_deduction_65_or_blind:
+  single: 1750
+  married: 1400
+  head_of_household: 1750
+
+# =============================================================================
+# TAX BRACKETS (2022 - Ordinary Income)
+# =============================================================================
+ordinary_income_brackets:
+  single:
+    - [10275, 0.10]
+    - [41775, 0.12]
+    - [89075, 0.22]
+    - [170050, 0.24]
+    - [215950, 0.32]
+    - [539900, 0.35]
+    - [999999999, 0.37]
+  married_joint:
+    - [20550, 0.10]
+    - [83550, 0.12]
+    - [178150, 0.22]
+    - [340100, 0.24]
+    - [431900, 0.32]
+    - [647850, 0.35]
+    - [999999999, 0.37]
+  married_separate:
+    - [10275, 0.10]
+    - [41775, 0.12]
+    - [89075, 0.22]
+    - [170050, 0.24]
+    - [215950, 0.32]
+    - [323925, 0.35]
+    - [999999999, 0.37]
+  head_of_household:
+    - [14650, 0.10]
+    - [55900, 0.12]
+    - [89050, 0.22]
+    - [170050, 0.24]
+    - [215950, 0.32]
+    - [539900, 0.35]
+    - [999999999, 0.37]
+
+# =============================================================================
+# CAPITAL GAINS BRACKETS (2022)
+# =============================================================================
+capital_gains_brackets:
+  zero_rate_threshold:
+    single: 41675
+    married_joint: 83350
+    married_separate: 41675
+    head_of_household: 55800
+  fifteen_rate_threshold:
+    single: 459750
+    married_joint: 517200
+    married_separate: 258600
+    head_of_household: 488500
+
+capital_loss_limit: 3000
+capital_loss_limit_mfs: 1500
+
+# =============================================================================
+# SELF-EMPLOYMENT TAX (2022)
+# =============================================================================
+se_net_earnings_factor: 0.9235
+se_tax_rate: 0.153
+ss_rate: 0.124
+medicare_rate: 0.029
+ss_wage_base: 147000
+
+additional_medicare_tax_rate: 0.009
+additional_medicare_threshold:
+  single: 200000
+  married_joint: 250000
+  married_separate: 125000
+  head_of_household: 200000
+
+# =============================================================================
+# NET INVESTMENT INCOME TAX (NIIT) - 2022
+# =============================================================================
+niit_rate: 0.038
+niit_threshold:
+  single: 200000
+  married_joint: 250000
+  married_separate: 125000
+  head_of_household: 200000
+
+# =============================================================================
+# ALTERNATIVE MINIMUM TAX (AMT) - 2022
+# =============================================================================
+amt_rate_26: 0.26
+amt_rate_28: 0.28
+amt_28_threshold:
+  single: 206100
+  married_joint: 206100
+  married_separate: 103050
+
+amt_exemption:
+  single: 75900
+  married_joint: 118100
+  married_separate: 59050
+
+amt_exemption_phaseout_start:
+  single: 539900
+  married_joint: 1079800
+  married_separate: 539900
+
+amt_exemption_phaseout_rate: 0.25
+
+# =============================================================================
+# CHILD TAX CREDIT (2022)
+# =============================================================================
+child_tax_credit_amount: 2000
+child_tax_credit_refundable: 1500
+child_tax_credit_other_dependent: 500
+child_tax_credit_max_age: 16
+
+child_tax_credit_phaseout_start:
+  single: 200000
+  married_joint: 400000
+  married_separate: 200000
+  head_of_household: 200000
+
+child_tax_credit_phaseout_rate: 0.05
+
+# =============================================================================
+# EARNED INCOME TAX CREDIT (EITC) - 2022
+# =============================================================================
+eitc_max_credit:
+  0: 560
+  1: 3733
+  2: 6164
+  3: 6935
+
+eitc_income_limits:
+  single:
+    0: 16480
+    1: 43492
+    2: 49399
+    3: 53057
+  married_joint:
+    0: 22610
+    1: 49622
+    2: 55529
+    3: 59187
+
+eitc_investment_income_limit: 10300
+
+# =============================================================================
+# RETIREMENT CONTRIBUTION LIMITS (2022)
+# =============================================================================
+ira_contribution_limit: 6000
+ira_catchup_50_plus: 1000
+
+ira_phaseout_covered:
+  single:
+    start: 68000
+    end: 78000
+  married_joint:
+    start: 109000
+    end: 129000
+  married_separate:
+    start: 0
+    end: 10000
+
+ira_phaseout_spouse_covered:
+  married_joint:
+    start: 204000
+    end: 214000
+  married_separate:
+    start: 0
+    end: 10000
+
+roth_ira_phaseout:
+  single:
+    start: 129000
+    end: 144000
+  married_joint:
+    start: 204000
+    end: 214000
+  married_separate:
+    start: 0
+    end: 10000
+
+k401_contribution_limit: 20500
+k401_catchup_50_plus: 6500
+
+hsa_individual_limit: 3650
+hsa_family_limit: 7300
+hsa_catchup_55_plus: 1000
+
+sep_ira_limit: 61000
+
+fsa_limit: 2850
+dcfsa_limit: 5000
+
+# =============================================================================
+# EDUCATION CREDITS (2022)
+# =============================================================================
+aotc_max_credit: 2500
+aotc_refundable_portion: 0.40
+aotc_phaseout:
+  single:
+    start: 80000
+    end: 90000
+  married_joint:
+    start: 160000
+    end: 180000
+
+llc_max_credit: 2000
+llc_rate: 0.20
+llc_phaseout:
+  single:
+    start: 80000
+    end: 90000
+  married_joint:
+    start: 160000
+    end: 180000
+
+# =============================================================================
+# SAVER'S CREDIT (2022)
+# =============================================================================
+savers_credit_max_contribution: 2000
+savers_credit_thresholds:
+  fifty_percent:
+    single: 20500
+    married_joint: 41000
+    head_of_household: 30750
+  twenty_percent:
+    single: 22000
+    married_joint: 44000
+    head_of_household: 33000
+  ten_percent:
+    single: 34000
+    married_joint: 68000
+    head_of_household: 51000
+
+# =============================================================================
+# DEDUCTION LIMITS (2022)
+# =============================================================================
+salt_cap: 10000
+medical_expense_floor_pct: 0.075
+student_loan_interest_max: 2500
+educator_expense_max: 300
+
+student_loan_phaseout:
+  single:
+    start: 70000
+    end: 85000
+  married_joint:
+    start: 145000
+    end: 175000
+
+charitable_cash_limit_pct: 0.60
+charitable_appreciated_limit_pct: 0.30
+
+# =============================================================================
+# QBI DEDUCTION (2022)
+# =============================================================================
+qbi_deduction_rate: 0.20
+qbi_threshold:
+  single:
+    start: 170050
+    end: 220050
+  married_joint:
+    start: 340100
+    end: 440100
+
+# =============================================================================
+# CLEAN VEHICLE CREDITS (2022)
+# =============================================================================
+# Note: New rules started mid-2022 with IRA passage
+clean_vehicle_credit_new_max: 7500
+clean_vehicle_credit_used_max: 4000
+
+clean_vehicle_income_limits:
+  new:
+    single: 150000
+    married_joint: 300000
+    head_of_household: 225000
+  used:
+    single: 75000
+    married_joint: 150000
+    head_of_household: 112500
+
+clean_vehicle_msrp_limits:
+  sedan: 55000
+  suv_van_truck: 80000
+
+# =============================================================================
+# ENERGY CREDITS (2022)
+# =============================================================================
+# Pre-IRA rates (IRA passed Aug 2022)
+residential_clean_energy_rate: 0.26
+nonbusiness_energy_property_rate: 0.10
+nonbusiness_energy_property_limit: 500
+
+# =============================================================================
+# GIFT AND ESTATE (2022)
+# =============================================================================
+annual_gift_exclusion: 16000
+estate_exemption: 12060000
+
+# =============================================================================
+# SECTION 179 (2022)
+# =============================================================================
+section_179_limit: 1080000
+section_179_phaseout_threshold: 2700000
+section_179_suv_limit: 27000
+
+# =============================================================================
+# MILEAGE RATES (2022)
+# =============================================================================
+# Note: Rate changed mid-year (Jan-Jun: 58.5, Jul-Dec: 62.5)
+mileage_rates:
+  business: 0.585  # First half of year
+  business_h2: 0.625  # Second half of year
+  medical_moving: 0.18
+  medical_moving_h2: 0.22
+  charity: 0.14
+
+# =============================================================================
+# ADOPTION CREDIT (2022)
+# =============================================================================
+adoption_credit_max: 14890
+adoption_credit_phaseout:
+  start: 223410
+  end: 263410
+
+# =============================================================================
+# FOREIGN EARNED INCOME (2022)
+# =============================================================================
+foreign_earned_income_exclusion: 112000
+foreign_housing_exclusion_base: 17088
+foreign_housing_exclusion_max: 32606
+
+# =============================================================================
+# PENALTY RATES (2022)
+# =============================================================================
+early_withdrawal_penalty_rate: 0.10
+early_withdrawal_penalty_simple_rate: 0.25
+estimated_tax_underpayment_threshold: 1000
+estimated_tax_penalty_rate: 0.06

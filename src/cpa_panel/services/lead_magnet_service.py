@@ -789,7 +789,7 @@ class LeadMagnetService:
 
         # Retirement savings opportunity
         if profile.retirement_savings != "maxed" and income > 30000:
-            max_401k = 23000 if income < 150000 else 23000  # 2024 limits
+            max_401k = 23500  # 2025 limit (IRS Rev. Proc. 2024-40)
             marginal_rate = self._estimate_marginal_rate(income, profile.filing_status)
             savings = max_401k * marginal_rate
 
@@ -800,8 +800,8 @@ class LeadMagnetService:
                 description_teaser="Maximize tax-advantaged retirement savings.",
                 description_full=(
                     f"Based on your income, increasing your 401(k) or IRA contributions could "
-                    f"significantly reduce your taxable income. The 2024 401(k) limit is $23,000 "
-                    f"($30,500 if over 50). Each dollar contributed saves approximately "
+                    f"significantly reduce your taxable income. The 2025 401(k) limit is $23,500 "
+                    f"($31,000 if over 50). Each dollar contributed saves approximately "
                     f"{marginal_rate * 100:.0f}% in taxes."
                 ),
                 savings_low=savings * 0.3,
@@ -818,7 +818,7 @@ class LeadMagnetService:
 
         # HSA opportunity
         if profile.healthcare_type == "hdhp_hsa":
-            hsa_limit = 8300 if profile.filing_status == FilingStatus.MARRIED_JOINTLY else 4150
+            hsa_limit = 8550 if profile.filing_status == FilingStatus.MARRIED_JOINTLY else 4300  # 2025 limits
             marginal_rate = self._estimate_marginal_rate(income, profile.filing_status)
             savings = hsa_limit * marginal_rate
 
@@ -964,26 +964,27 @@ class LeadMagnetService:
         income: int,
         filing_status: FilingStatus,
     ) -> float:
-        """Estimate marginal tax rate."""
+        """Estimate marginal tax rate (2025 brackets)."""
+        # 2025 brackets (IRS Rev. Proc. 2024-40)
         if filing_status == FilingStatus.MARRIED_JOINTLY:
-            if income < 23200:
+            if income < 23850:
                 return 0.10
-            elif income < 94300:
+            elif income < 96950:
                 return 0.12
-            elif income < 201050:
+            elif income < 206700:
                 return 0.22
-            elif income < 383900:
+            elif income < 394600:
                 return 0.24
             else:
                 return 0.32
         else:
-            if income < 11600:
+            if income < 11925:
                 return 0.10
-            elif income < 47150:
+            elif income < 48475:
                 return 0.12
-            elif income < 100525:
+            elif income < 103350:
                 return 0.22
-            elif income < 191950:
+            elif income < 197300:
                 return 0.24
             else:
                 return 0.32

@@ -553,7 +553,7 @@ class LeadGenerationService:
         # Check HSA
         if wages > Decimal("40000"):
             opportunities.append("Healthcare Tax Benefits")
-            hsa_max = Decimal("8300") if fs == FilingStatus.MARRIED_FILING_JOINTLY else Decimal("4150")
+            hsa_max = Decimal("8550") if fs == FilingStatus.MARRIED_FILING_JOINTLY else Decimal("4300")  # 2025 HSA limits
             hsa_savings = hsa_max * marginal_rate
             min_savings += hsa_savings * Decimal("0.2")
             max_savings += hsa_savings
@@ -657,25 +657,26 @@ class LeadGenerationService:
 
         agi_float = float(agi)
 
+        # 2025 brackets (IRS Rev. Proc. 2024-40)
         if filing_status == FilingStatus.MARRIED_FILING_JOINTLY:
-            if agi_float < 23200:
+            if agi_float < 23850:
                 return Decimal("0.10")
-            elif agi_float < 94300:
+            elif agi_float < 96950:
                 return Decimal("0.12")
-            elif agi_float < 201050:
+            elif agi_float < 206700:
                 return Decimal("0.22")
-            elif agi_float < 383900:
+            elif agi_float < 394600:
                 return Decimal("0.24")
             else:
                 return Decimal("0.32")
         else:
-            if agi_float < 11600:
+            if agi_float < 11925:
                 return Decimal("0.10")
-            elif agi_float < 47150:
+            elif agi_float < 48475:
                 return Decimal("0.12")
-            elif agi_float < 100525:
+            elif agi_float < 103350:
                 return Decimal("0.22")
-            elif agi_float < 191950:
+            elif agi_float < 197300:
                 return Decimal("0.24")
             else:
                 return Decimal("0.32")

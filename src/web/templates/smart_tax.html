@@ -1,0 +1,1913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Tax - Quick & Easy Tax Filing</title>
+  <style>
+    :root {
+      /* Primary Colors - Indigo (Unified Design System) */
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --primary-light: #818cf8;
+      --primary-50: #eef2ff;
+
+      /* Accent - Success Green for positive outcomes */
+      --accent: #10b981;
+      --accent-light: #d1fae5;
+
+      /* Grayscale */
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+
+      /* Semantic Colors */
+      --success: #10b981;
+      --success-light: #d1fae5;
+      --warning: #f59e0b;
+      --warning-light: #fef3c7;
+      --error: #ef4444;
+      --error-light: #fee2e2;
+      --info: #3b82f6;
+      --info-light: #dbeafe;
+
+      /* Layout */
+      --max-width: 800px;
+      --header-height: 64px;
+
+      /* Shadows */
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+      --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1);
+
+      /* Border Radius */
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+
+      /* Transitions */
+      --transition: 200ms ease;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, var(--primary-50) 0%, white 50%, var(--gray-50) 100%);
+      color: var(--gray-900);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* Header */
+    .header {
+      background: white;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 0 24px;
+      height: var(--header-height);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--gray-900);
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .logo-text {
+      font-weight: 700;
+      font-size: 20px;
+    }
+
+    .logo-badge {
+      background: var(--accent);
+      color: white;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    /* Progress Bar */
+    .progress-container {
+      background: white;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 16px 24px;
+    }
+
+    .progress-steps {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      max-width: var(--max-width);
+      margin: 0 auto;
+    }
+
+    .progress-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: var(--radius-lg);
+      background: var(--gray-100);
+      color: var(--gray-500);
+      font-size: 14px;
+      font-weight: 500;
+      transition: var(--transition);
+    }
+
+    .progress-step.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .progress-step.completed {
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+
+    .progress-step-number {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .progress-step.completed .progress-step-number::before {
+      content: "\2713";
+    }
+
+    /* Main Content */
+    .main {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    /* Screen Container */
+    .screen {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Cards */
+    .card {
+      background: white;
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-md);
+      padding: 32px;
+      margin-bottom: 24px;
+    }
+
+    .card-header {
+      margin-bottom: 24px;
+    }
+
+    .card-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 8px;
+    }
+
+    .card-subtitle {
+      color: var(--gray-500);
+      font-size: 16px;
+    }
+
+    /* Upload Zone */
+    .upload-zone {
+      border: 2px dashed var(--gray-300);
+      border-radius: var(--radius-lg);
+      padding: 48px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+      background: var(--gray-50);
+    }
+
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--primary);
+      background: var(--primary-50);
+    }
+
+    .upload-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      background: var(--primary-50);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+
+    .upload-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--gray-900);
+      margin-bottom: 8px;
+    }
+
+    .upload-subtitle {
+      color: var(--gray-500);
+      font-size: 14px;
+    }
+
+    .upload-input {
+      display: none;
+    }
+
+    /* Document List */
+    .document-list {
+      margin-top: 24px;
+    }
+
+    .document-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: var(--gray-50);
+      border-radius: var(--radius-md);
+      margin-bottom: 12px;
+    }
+
+    .document-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--primary-50);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .document-info {
+      flex: 1;
+    }
+
+    .document-name {
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+
+    .document-meta {
+      font-size: 14px;
+      color: var(--gray-500);
+    }
+
+    .document-confidence {
+      text-align: right;
+    }
+
+    .confidence-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .confidence-high {
+      background: var(--success-light);
+      color: var(--success);
+    }
+
+    .confidence-medium {
+      background: var(--warning-light);
+      color: var(--warning);
+    }
+
+    .confidence-low {
+      background: var(--error-light);
+      color: var(--error);
+    }
+
+    /* Estimate Card */
+    .estimate-card {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .estimate-label {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-bottom: 8px;
+    }
+
+    .estimate-amount {
+      font-size: 48px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .estimate-range {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    .estimate-refund {
+      background: linear-gradient(135deg, var(--accent) 0%, #059669 100%);
+    }
+
+    .estimate-owed {
+      background: linear-gradient(135deg, var(--error) 0%, #dc2626 100%);
+    }
+
+    /* Confidence Meter */
+    .confidence-meter {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .confidence-bar {
+      height: 8px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      background: white;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-weight: 500;
+      color: var(--gray-700);
+      margin-bottom: 8px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--gray-300);
+      border-radius: var(--radius-md);
+      font-size: 16px;
+      transition: var(--transition);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-50);
+    }
+
+    .form-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 40px;
+    }
+
+    /* Data Review Table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .data-table th, .data-table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .data-table th {
+      background: var(--gray-50);
+      font-weight: 600;
+      color: var(--gray-700);
+      font-size: 14px;
+    }
+
+    .data-table td {
+      color: var(--gray-900);
+    }
+
+    .data-value {
+      font-weight: 600;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+
+    .data-editable {
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      transition: var(--transition);
+    }
+
+    .data-editable:hover {
+      background: var(--primary-50);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: var(--radius-md);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      border: none;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-secondary {
+      background: var(--gray-100);
+      color: var(--gray-700);
+    }
+
+    .btn-secondary:hover {
+      background: var(--gray-200);
+    }
+
+    .btn-success {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .btn-lg {
+      padding: 16px 32px;
+      font-size: 18px;
+    }
+
+    .btn-block {
+      width: 100%;
+    }
+
+    /* Actions */
+    .actions {
+      display: flex;
+      gap: 16px;
+      justify-content: space-between;
+      margin-top: 32px;
+    }
+
+    /* Alerts */
+    .alert {
+      padding: 16px;
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .alert-warning {
+      background: var(--warning-light);
+      color: #92400e;
+    }
+
+    .alert-info {
+      background: var(--info-light);
+      color: #1e40af;
+    }
+
+    .alert-success {
+      background: var(--success-light);
+      color: #065f46;
+    }
+
+    .alert-icon {
+      flex-shrink: 0;
+      font-size: 20px;
+    }
+
+    /* Loading */
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 64px;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--gray-200);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      margin-top: 16px;
+      color: var(--gray-600);
+      font-size: 16px;
+    }
+
+    /* Complexity Badge */
+    .complexity-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .complexity-simple {
+      background: var(--success-light);
+      color: var(--success);
+    }
+
+    .complexity-moderate {
+      background: var(--info-light);
+      color: var(--info);
+    }
+
+    .complexity-complex {
+      background: var(--warning-light);
+      color: var(--warning);
+    }
+
+    .complexity-professional {
+      background: var(--error-light);
+      color: var(--error);
+    }
+
+    /* Summary Grid */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .summary-item {
+      background: var(--gray-50);
+      padding: 16px;
+      border-radius: var(--radius-md);
+    }
+
+    .summary-label {
+      font-size: 14px;
+      color: var(--gray-500);
+      margin-bottom: 4px;
+    }
+
+    .summary-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+
+    /* CPA Option */
+    .cpa-option {
+      border: 2px solid var(--primary);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      text-align: center;
+      margin-top: 24px;
+    }
+
+    .cpa-option h3 {
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .cpa-option p {
+      color: var(--gray-600);
+      margin-bottom: 16px;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .header {
+        padding: 12px 16px;
+      }
+
+      .main {
+        padding: 16px;
+      }
+
+      .progress-container {
+        padding: 0 12px;
+      }
+
+      .card {
+        padding: 20px;
+        border-radius: 12px;
+      }
+
+      .btn {
+        min-height: 48px;
+        padding: 14px 20px;
+      }
+
+      /* Tables scroll horizontally */
+      .data-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .progress-steps {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 8px;
+        gap: 4px;
+      }
+
+      .progress-step {
+        padding: 6px 10px;
+        font-size: 11px;
+        flex-shrink: 0;
+      }
+
+      .progress-step-number {
+        width: 24px;
+        height: 24px;
+        font-size: 11px;
+      }
+
+      .progress-step-label {
+        display: none;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      .card-title {
+        font-size: 20px;
+      }
+
+      .estimate-amount {
+        font-size: 32px;
+      }
+
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .actions {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .actions .btn {
+        width: 100%;
+      }
+
+      /* Upload area */
+      .upload-zone {
+        padding: 24px 16px;
+      }
+
+      .upload-zone-icon {
+        font-size: 36px;
+      }
+
+      .upload-zone-text {
+        font-size: 14px;
+      }
+
+      /* Document list */
+      .document-list {
+        gap: 8px;
+      }
+
+      .document-item {
+        padding: 12px;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .header {
+        padding: 10px 12px;
+      }
+
+      .logo-text {
+        font-size: 16px;
+      }
+
+      .logo-badge {
+        font-size: 9px;
+        padding: 2px 6px;
+      }
+
+      .progress-step {
+        padding: 4px 8px;
+      }
+
+      .card {
+        padding: 12px;
+      }
+
+      .estimate-amount {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <a href="/" class="logo">
+      <div class="logo-icon">TF</div>
+      <span class="logo-text">TaxFlow</span>
+      <span class="logo-badge">Smart Tax</span>
+    </a>
+    <div id="session-info" style="font-size: 14px; color: var(--gray-500);"></div>
+  </header>
+
+  <!-- Progress Bar -->
+  <div class="progress-container" role="navigation" aria-label="Tax filing progress">
+    <div class="progress-steps" id="progress-steps" role="list">
+      <div class="progress-step active" data-step="upload" role="listitem" aria-current="step">
+        <span class="progress-step-number" aria-hidden="true">1</span>
+        <span class="progress-step-label">Upload</span>
+      </div>
+      <div class="progress-step" data-step="detect" role="listitem">
+        <span class="progress-step-number" aria-hidden="true">2</span>
+        <span class="progress-step-label">Detect</span>
+      </div>
+      <div class="progress-step" data-step="confirm" role="listitem">
+        <span class="progress-step-number" aria-hidden="true">3</span>
+        <span class="progress-step-label">Confirm</span>
+      </div>
+      <div class="progress-step" data-step="report" role="listitem">
+        <span class="progress-step-number" aria-hidden="true">4</span>
+        <span class="progress-step-label">Report</span>
+      </div>
+      <div class="progress-step" data-step="act" role="listitem">
+        <span class="progress-step-number" aria-hidden="true">5</span>
+        <span class="progress-step-label">Act</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="main">
+    <!-- Screen 1: Upload -->
+    <section class="screen active" id="screen-upload">
+      <div class="card">
+        <div class="card-header">
+          <h1 class="card-title">Upload Your Tax Documents</h1>
+          <p class="card-subtitle">Drop your W-2s, 1099s, and other tax forms. We'll extract the data automatically.</p>
+        </div>
+
+        <div class="upload-zone" id="upload-zone">
+          <div class="upload-icon">📄</div>
+          <div class="upload-title">Drop files here or click to browse</div>
+          <div class="upload-subtitle">Supports PDF, JPG, PNG (max 10MB each)</div>
+          <input type="file" class="upload-input" id="file-input" multiple accept=".pdf,.jpg,.jpeg,.png">
+        </div>
+
+        <div class="document-list" id="document-list"></div>
+
+        <div id="quick-estimate" style="display: none;">
+          <div class="estimate-card estimate-refund" id="estimate-card">
+            <div class="estimate-label">Estimated Refund</div>
+            <div class="estimate-amount" id="estimate-amount">$0</div>
+            <div class="estimate-range" id="estimate-range">Based on documents uploaded</div>
+            <div class="confidence-meter">
+              <span>Confidence: <span id="confidence-percent">0%</span></span>
+              <div class="confidence-bar">
+                <div class="confidence-fill" id="confidence-fill" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions" role="navigation" aria-label="Wizard navigation">
+          <div></div>
+          <button class="btn btn-primary btn-lg" id="btn-continue" disabled aria-label="Continue to document analysis">
+            Continue
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Start Option -->
+      <div class="card" style="text-align: center;" role="region" aria-label="Manual entry option">
+        <h3 style="margin-bottom: 8px;">No documents yet?</h3>
+        <p style="color: var(--gray-500); margin-bottom: 16px;">Get a quick estimate by entering your W-2 info manually</p>
+        <button class="btn btn-secondary" onclick="showManualEntry()" aria-label="Enter tax information manually">Enter Manually</button>
+      </div>
+    </section>
+
+    <!-- Screen 2: Detect (Processing) -->
+    <section class="screen" id="screen-detect">
+      <div class="card">
+        <div class="loading">
+          <div class="spinner"></div>
+          <div class="loading-text" id="detect-status">Analyzing your documents...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 3: Confirm -->
+    <section class="screen" id="screen-confirm">
+      <div class="card">
+        <div class="card-header">
+          <h1 class="card-title">Review Your Information</h1>
+          <p class="card-subtitle">Please verify the extracted data is correct</p>
+        </div>
+
+        <div id="confirm-alerts"></div>
+
+        <div id="confirm-data">
+          <h3 style="margin-bottom: 16px;">Income</h3>
+          <table class="data-table" id="income-table">
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>Amount</th>
+                <th>Confidence</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+
+          <h3 style="margin: 24px 0 16px;">Withholding</h3>
+          <table class="data-table" id="withholding-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Confidence</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="actions" role="navigation" aria-label="Wizard navigation">
+          <button class="btn btn-secondary" onclick="goToScreen('upload')" aria-label="Go back to document upload">
+            <span aria-hidden="true">←</span>
+            Back
+          </button>
+          <button class="btn btn-primary btn-lg" onclick="confirmData()" aria-label="Confirm data and continue">
+            Confirm & Continue
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 4: Report -->
+    <section class="screen" id="screen-report">
+      <div class="estimate-card estimate-refund" id="final-estimate-card">
+        <div class="estimate-label">Your Estimated Federal Refund</div>
+        <div class="estimate-amount" id="final-estimate-amount">$0</div>
+        <div class="estimate-range" id="final-estimate-range">Range: $0 - $0</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h1 class="card-title">Tax Summary</h1>
+          <div id="complexity-display"></div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="summary-label">Total Income</div>
+            <div class="summary-value" id="total-income">$0</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Total Withholding</div>
+            <div class="summary-value" id="total-withholding">$0</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Estimated Tax</div>
+            <div class="summary-value" id="estimated-tax">$0</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Credits Applied</div>
+            <div class="summary-value" id="credits-applied">$0</div>
+          </div>
+        </div>
+
+        <div id="recommendations"></div>
+
+        <div class="actions">
+          <button class="btn btn-secondary" onclick="goToScreen('confirm')">
+            <span>←</span>
+            Back
+          </button>
+          <button class="btn btn-success btn-lg" onclick="goToScreen('act')">
+            Ready to File
+            <span>→</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 5: Act -->
+    <section class="screen" id="screen-act">
+      <div class="card" style="text-align: center;">
+        <div class="card-header">
+          <h1 class="card-title">Choose Your Path</h1>
+          <p class="card-subtitle">How would you like to proceed with your tax return?</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 24px;">
+          <div style="border: 2px solid var(--gray-200); border-radius: var(--radius-lg); padding: 32px; cursor: pointer; transition: var(--transition);" onclick="selectOption('self-file')" id="option-self">
+            <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
+            <h3>Self-File</h3>
+            <p style="color: var(--gray-500); margin: 16px 0;">File your return yourself</p>
+            <div style="font-size: 24px; font-weight: 700; color: var(--accent);">Free</div>
+          </div>
+
+          <div style="border: 2px solid var(--primary); border-radius: var(--radius-lg); padding: 32px; cursor: pointer; transition: var(--transition); background: var(--primary-50);" onclick="selectOption('cpa-review')" id="option-cpa">
+            <div style="font-size: 48px; margin-bottom: 16px;">👨‍💼</div>
+            <h3>CPA Review</h3>
+            <p style="color: var(--gray-500); margin: 16px 0;">Expert review and filing</p>
+            <div style="font-size: 24px; font-weight: 700; color: var(--primary);">$99</div>
+            <div style="font-size: 12px; color: var(--gray-500);">Recommended</div>
+          </div>
+        </div>
+
+        <div id="cpa-recommendation" style="display: none; margin-top: 24px;">
+          <div class="alert alert-info">
+            <span class="alert-icon">💡</span>
+            <div>
+              <strong>CPA Review Recommended</strong>
+              <p id="cpa-reason">Your tax situation may benefit from professional review.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions" style="justify-content: center;">
+          <button class="btn btn-primary btn-lg" id="btn-proceed" onclick="proceedWithOption()">
+            Continue with Selected Option
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // ==========================================================================
+    // SECURITY UTILITIES
+    // ==========================================================================
+    /**
+     * Escapes HTML special characters to prevent XSS attacks.
+     * Always use this when inserting user-provided data into the DOM.
+     * @param {string} text - The text to escape
+     * @returns {string} The escaped text safe for HTML insertion
+     */
+    function escapeHtml(text) {
+      if (text === null || text === undefined) return '';
+      const div = document.createElement('div');
+      div.textContent = String(text);
+      return div.innerHTML;
+    }
+
+    /**
+     * Escapes text for use in HTML attributes
+     * @param {string} text - The text to escape
+     * @returns {string} The escaped text safe for attribute insertion
+     */
+    function escapeAttr(text) {
+      if (text === null || text === undefined) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    /**
+     * Shows a toast notification to the user
+     * @param {string} message - The message to display
+     * @param {string} type - 'success', 'error', 'warning', 'info'
+     */
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      toast.style.cssText = `
+        position: fixed; bottom: 20px; right: 20px; padding: 12px 24px;
+        border-radius: 8px; color: white; font-weight: 500; z-index: 10000;
+        animation: slideIn 0.3s ease; max-width: 400px;
+        background: ${type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : type === 'warning' ? '#f59e0b' : '#3b82f6'};
+      `;
+      document.body.appendChild(toast);
+      setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 4000);
+    }
+
+    // ==========================================================================
+    // STATE
+    // ==========================================================================
+    let state = {
+      sessionId: null,
+      currentScreen: 'upload',
+      documents: [],
+      extractedData: {},
+      estimate: null,
+      complexity: null,
+      selectedOption: 'cpa-review'
+    };
+
+    // ==========================================================================
+    // API HELPERS
+    // ==========================================================================
+    const API_BASE = '/api/smart-tax';
+
+    async function api(endpoint, options = {}) {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
+        headers: { 'Content-Type': 'application/json', ...options.headers },
+        ...options
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || 'Request failed');
+      }
+      return response.json();
+    }
+
+    // ==========================================================================
+    // SESSION MANAGEMENT
+    // ==========================================================================
+    async function createSession() {
+      try {
+        const result = await api('/sessions', {
+          method: 'POST',
+          body: JSON.stringify({
+            filing_status: 'single',
+            num_dependents: 0,
+            tax_year: 2024
+          })
+        });
+        state.sessionId = result.session_id;
+        document.getElementById('session-info').textContent = `Session: ${result.session_id.slice(0, 8)}...`;
+        return result;
+      } catch (error) {
+        console.error('Failed to create session:', error);
+        showAlert('Failed to start session. Please refresh and try again.', 'error');
+      }
+    }
+
+    // ==========================================================================
+    // DOCUMENT UPLOAD
+    // ==========================================================================
+    const uploadZone = document.getElementById('upload-zone');
+    const fileInput = document.getElementById('file-input');
+
+    uploadZone.addEventListener('click', () => fileInput.click());
+    uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadZone.classList.add('drag-over');
+    });
+    uploadZone.addEventListener('dragleave', () => {
+      uploadZone.classList.remove('drag-over');
+    });
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('drag-over');
+      handleFiles(e.dataTransfer.files);
+    });
+    fileInput.addEventListener('change', (e) => {
+      handleFiles(e.target.files);
+    });
+
+    async function handleFiles(files) {
+      if (!state.sessionId) {
+        await createSession();
+      }
+
+      for (const file of files) {
+        await processFile(file);
+      }
+    }
+
+    async function processFile(file) {
+      // For demo, simulate document processing
+      // In production, this would upload to OCR service
+      const docType = detectDocumentType(file.name);
+
+      // Add to document list UI
+      addDocumentToList({
+        name: file.name,
+        type: docType,
+        status: 'processing'
+      });
+
+      // Simulate extraction (in production, call OCR API)
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Simulated extracted data
+      const extractedFields = simulateExtraction(docType);
+
+      try {
+        const result = await api(`/sessions/${state.sessionId}/documents`, {
+          method: 'POST',
+          body: JSON.stringify({
+            session_id: state.sessionId,
+            document_type: docType,
+            extracted_fields: extractedFields,
+            ocr_confidence: 92
+          })
+        });
+
+        state.documents.push({
+          name: file.name,
+          type: docType,
+          fields: extractedFields,
+          confidence: result.confidence
+        });
+
+        updateDocumentInList(file.name, {
+          status: 'complete',
+          confidence: result.confidence
+        });
+
+        if (result.estimate) {
+          state.estimate = result.estimate;
+          updateEstimateDisplay();
+        }
+
+        document.getElementById('btn-continue').disabled = false;
+      } catch (error) {
+        console.error('Failed to process document:', error);
+        updateDocumentInList(file.name, { status: 'error' });
+      }
+    }
+
+    function detectDocumentType(filename) {
+      const lower = filename.toLowerCase();
+      if (lower.includes('w2') || lower.includes('w-2')) return 'w2';
+      if (lower.includes('1099-nec') || lower.includes('1099nec')) return '1099_nec';
+      if (lower.includes('1099-int') || lower.includes('1099int')) return '1099_int';
+      if (lower.includes('1099-div') || lower.includes('1099div')) return '1099_div';
+      return 'w2'; // Default
+    }
+
+    function simulateExtraction(docType) {
+      // Simulate realistic extracted data
+      if (docType === 'w2') {
+        return {
+          wages: 65000 + Math.floor(Math.random() * 20000),
+          federal_tax_withheld: 8000 + Math.floor(Math.random() * 4000),
+          social_security_wages: 65000,
+          social_security_tax: 4030,
+          medicare_wages: 65000,
+          medicare_tax: 942.50,
+          employer_name: 'Sample Employer Inc.',
+          employer_ein: '12-3456789'
+        };
+      }
+      if (docType === '1099_int') {
+        return {
+          interest_income: 500 + Math.floor(Math.random() * 1000),
+          payer_name: 'First National Bank'
+        };
+      }
+      if (docType === '1099_div') {
+        return {
+          ordinary_dividends: 1000 + Math.floor(Math.random() * 2000),
+          qualified_dividends: 800,
+          payer_name: 'Vanguard'
+        };
+      }
+      return {};
+    }
+
+    function addDocumentToList(doc) {
+      const list = document.getElementById('document-list');
+      const item = document.createElement('div');
+      item.className = 'document-item';
+      item.id = `doc-${doc.name.replace(/[^a-z0-9]/gi, '')}`;
+      // Escape user-provided document data to prevent XSS
+      const safeName = escapeHtml(doc.name);
+      const safeType = escapeHtml(doc.type?.toUpperCase() || 'DOCUMENT');
+      item.innerHTML = `
+        <div class="document-icon">📄</div>
+        <div class="document-info">
+          <div class="document-name">${safeName}</div>
+          <div class="document-meta">${safeType} - Processing...</div>
+        </div>
+        <div class="document-confidence">
+          <span class="confidence-badge confidence-medium">Processing</span>
+        </div>
+      `;
+      list.appendChild(item);
+    }
+
+    function updateDocumentInList(name, updates) {
+      const item = document.getElementById(`doc-${name.replace(/[^a-z0-9]/gi, '')}`);
+      if (!item) return;
+
+      if (updates.status === 'complete') {
+        const meta = item.querySelector('.document-meta');
+        meta.textContent = `${state.documents.find(d => d.name === name)?.type.toUpperCase()} - Extracted`;
+
+        const badge = item.querySelector('.confidence-badge');
+        const conf = updates.confidence || 85;
+        badge.className = `confidence-badge ${conf >= 85 ? 'confidence-high' : conf >= 70 ? 'confidence-medium' : 'confidence-low'}`;
+        badge.textContent = `${Math.round(conf)}% Confident`;
+      } else if (updates.status === 'error') {
+        const badge = item.querySelector('.confidence-badge');
+        badge.className = 'confidence-badge confidence-low';
+        badge.textContent = 'Error';
+      }
+    }
+
+    function updateEstimateDisplay() {
+      const quickEstimate = document.getElementById('quick-estimate');
+      quickEstimate.style.display = 'block';
+
+      const estimate = state.estimate;
+      const amount = estimate?.refund_or_owed || 0;
+      const card = document.getElementById('estimate-card');
+      const amountEl = document.getElementById('estimate-amount');
+      const rangeEl = document.getElementById('estimate-range');
+      const confPercent = document.getElementById('confidence-percent');
+      const confFill = document.getElementById('confidence-fill');
+
+      if (amount >= 0) {
+        card.className = 'estimate-card estimate-refund';
+        card.querySelector('.estimate-label').textContent = 'Estimated Refund';
+        amountEl.textContent = `$${Math.abs(amount).toLocaleString()}`;
+      } else {
+        card.className = 'estimate-card estimate-owed';
+        card.querySelector('.estimate-label').textContent = 'Estimated Amount Owed';
+        amountEl.textContent = `$${Math.abs(amount).toLocaleString()}`;
+      }
+
+      const low = estimate?.confidence_band?.low || amount - 500;
+      const high = estimate?.confidence_band?.high || amount + 500;
+      rangeEl.textContent = `Range: $${Math.abs(low).toLocaleString()} - $${Math.abs(high).toLocaleString()}`;
+
+      const confidence = estimate?.confidence_score || 70;
+      confPercent.textContent = `${Math.round(confidence)}%`;
+      confFill.style.width = `${confidence}%`;
+    }
+
+    // ==========================================================================
+    // SCREEN NAVIGATION
+    // ==========================================================================
+    function goToScreen(screenId) {
+      // Update state
+      state.currentScreen = screenId;
+
+      // Update progress bar
+      const steps = document.querySelectorAll('.progress-step');
+      const screenOrder = ['upload', 'detect', 'confirm', 'report', 'act'];
+      const currentIndex = screenOrder.indexOf(screenId);
+
+      steps.forEach((step, index) => {
+        step.classList.remove('active', 'completed');
+        if (index < currentIndex) {
+          step.classList.add('completed');
+        } else if (index === currentIndex) {
+          step.classList.add('active');
+        }
+      });
+
+      // Show/hide screens
+      document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.remove('active');
+      });
+      document.getElementById(`screen-${screenId}`).classList.add('active');
+
+      // Screen-specific logic
+      if (screenId === 'detect') {
+        runDetection();
+      } else if (screenId === 'confirm') {
+        populateConfirmScreen();
+      } else if (screenId === 'report') {
+        populateReportScreen();
+      } else if (screenId === 'act') {
+        populateActScreen();
+      }
+    }
+
+    // Continue button
+    document.getElementById('btn-continue').addEventListener('click', () => {
+      goToScreen('detect');
+    });
+
+    // ==========================================================================
+    // DETECT SCREEN
+    // ==========================================================================
+    async function runDetection() {
+      const statusEl = document.getElementById('detect-status');
+
+      const steps = [
+        'Analyzing your documents...',
+        'Extracting financial data...',
+        'Validating information...',
+        'Running AI analysis...',
+        'Finding deductions & credits...',
+        'Generating recommendations...'
+      ];
+
+      for (let i = 0; i < steps.length; i++) {
+        statusEl.textContent = steps[i];
+        await new Promise(resolve => setTimeout(resolve, 600));
+      }
+
+      // Get complexity assessment
+      try {
+        const complexity = await api(`/sessions/${state.sessionId}/complexity`);
+        state.complexity = complexity;
+      } catch (e) {
+        // Non-critical - continue with default complexity
+        state.complexity = { level: 'moderate', score: 50 };
+        showToast('Using estimated complexity. Some features may be limited.', 'warning');
+      }
+
+      // Get Phase 4 AI intelligence (questions, deductions, planning)
+      try {
+        const intelligence = await api(`/sessions/${state.sessionId}/intelligence?age=35`);
+        state.intelligence = intelligence;
+      } catch (e) {
+        // Non-critical - continue without AI intelligence
+        state.intelligence = null;
+        showToast('AI recommendations unavailable. Basic analysis will continue.', 'warning');
+      }
+
+      // Move to confirm screen
+      goToScreen('confirm');
+    }
+
+    // ==========================================================================
+    // CONFIRM SCREEN
+    // ==========================================================================
+    function populateConfirmScreen() {
+      const incomeTable = document.querySelector('#income-table tbody');
+      const withholdingTable = document.querySelector('#withholding-table tbody');
+
+      incomeTable.innerHTML = '';
+      withholdingTable.innerHTML = '';
+
+      // Aggregate data from documents
+      let totalWages = 0;
+      let totalInterest = 0;
+      let totalDividends = 0;
+      let totalWithheld = 0;
+
+      state.documents.forEach(doc => {
+        if (doc.fields.wages) {
+          totalWages += doc.fields.wages;
+        }
+        if (doc.fields.interest_income) {
+          totalInterest += doc.fields.interest_income;
+        }
+        if (doc.fields.ordinary_dividends) {
+          totalDividends += doc.fields.ordinary_dividends;
+        }
+        if (doc.fields.federal_tax_withheld) {
+          totalWithheld += doc.fields.federal_tax_withheld;
+        }
+      });
+
+      state.extractedData = {
+        wages: totalWages,
+        interest_income: totalInterest,
+        ordinary_dividends: totalDividends,
+        federal_tax_withheld: totalWithheld
+      };
+
+      // Populate income table
+      if (totalWages > 0) {
+        incomeTable.innerHTML += `
+          <tr>
+            <td>Wages (W-2)</td>
+            <td class="data-value">$${totalWages.toLocaleString()}</td>
+            <td><span class="confidence-badge confidence-high">High</span></td>
+          </tr>
+        `;
+      }
+      if (totalInterest > 0) {
+        incomeTable.innerHTML += `
+          <tr>
+            <td>Interest Income</td>
+            <td class="data-value">$${totalInterest.toLocaleString()}</td>
+            <td><span class="confidence-badge confidence-high">High</span></td>
+          </tr>
+        `;
+      }
+      if (totalDividends > 0) {
+        incomeTable.innerHTML += `
+          <tr>
+            <td>Dividend Income</td>
+            <td class="data-value">$${totalDividends.toLocaleString()}</td>
+            <td><span class="confidence-badge confidence-high">High</span></td>
+          </tr>
+        `;
+      }
+
+      // Populate withholding table
+      if (totalWithheld > 0) {
+        withholdingTable.innerHTML += `
+          <tr>
+            <td>Federal Tax Withheld</td>
+            <td class="data-value">$${totalWithheld.toLocaleString()}</td>
+            <td><span class="confidence-badge confidence-high">High</span></td>
+          </tr>
+        `;
+      }
+    }
+
+    async function confirmData() {
+      try {
+        await api(`/sessions/${state.sessionId}/confirm`, {
+          method: 'POST',
+          body: JSON.stringify(state.extractedData)
+        });
+        goToScreen('report');
+      } catch (e) {
+        console.error('Failed to confirm data:', e);
+        goToScreen('report'); // Continue anyway for demo
+      }
+    }
+
+    // ==========================================================================
+    // REPORT SCREEN
+    // ==========================================================================
+    function populateReportScreen() {
+      const estimate = state.estimate || {};
+      const data = state.extractedData;
+      const complexity = state.complexity;
+
+      // Update estimate card
+      const amount = estimate.refund_or_owed || 0;
+      const card = document.getElementById('final-estimate-card');
+      const amountEl = document.getElementById('final-estimate-amount');
+      const rangeEl = document.getElementById('final-estimate-range');
+
+      if (amount >= 0) {
+        card.className = 'estimate-card estimate-refund';
+        card.querySelector('.estimate-label').textContent = 'Your Estimated Federal Refund';
+        amountEl.textContent = `$${Math.abs(amount).toLocaleString()}`;
+      } else {
+        card.className = 'estimate-card estimate-owed';
+        card.querySelector('.estimate-label').textContent = 'Estimated Amount Owed';
+        amountEl.textContent = `$${Math.abs(amount).toLocaleString()}`;
+      }
+
+      const low = estimate.confidence_band?.low || amount - 500;
+      const high = estimate.confidence_band?.high || amount + 500;
+      rangeEl.textContent = `Range: $${Math.abs(low).toLocaleString()} - $${Math.abs(high).toLocaleString()}`;
+
+      // Update summary
+      const totalIncome = (data.wages || 0) + (data.interest_income || 0) + (data.ordinary_dividends || 0);
+      document.getElementById('total-income').textContent = `$${totalIncome.toLocaleString()}`;
+      document.getElementById('total-withholding').textContent = `$${(data.federal_tax_withheld || 0).toLocaleString()}`;
+      document.getElementById('estimated-tax').textContent = `$${(estimate.estimated_tax || 0).toLocaleString()}`;
+      document.getElementById('credits-applied').textContent = `$${(estimate.estimated_credits || 0).toLocaleString()}`;
+
+      // Complexity badge
+      if (complexity) {
+        const complexityDisplay = document.getElementById('complexity-display');
+        const level = complexity.complexity || 'simple';
+        complexityDisplay.innerHTML = `
+          <span class="complexity-badge complexity-${level}">
+            ${level.charAt(0).toUpperCase() + level.slice(1)} Return
+          </span>
+          <span style="color: var(--gray-500); margin-left: 12px;">${complexity.estimated_time?.[0] || 3}-${complexity.estimated_time?.[1] || 5} min estimated</span>
+        `;
+      }
+
+      // AI Intelligence: Deductions, Credits, and Planning
+      const recsContainer = document.getElementById('recommendations');
+      const intel = state.intelligence;
+
+      let recommendationsHtml = '';
+
+      // Deduction Recommendation
+      if (intel?.deductions) {
+        const deductions = intel.deductions;
+        recommendationsHtml += `
+          <div class="intelligence-section">
+            <h3 style="margin: 24px 0 16px; display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.5em;">📊</span> Deduction Analysis
+            </h3>
+            <div class="card" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 4px solid #22c55e; padding: 16px;">
+              <p style="font-size: 1.1em; margin-bottom: 8px;">
+                <strong>Recommendation:</strong> Take the <strong>${deductions.recommendation === 'standard' ? 'Standard Deduction' : 'Itemized Deductions'}</strong>
+              </p>
+              <div style="display: flex; gap: 24px; margin-top: 12px;">
+                <div>
+                  <span style="color: var(--gray-500);">Standard Deduction</span>
+                  <p style="font-size: 1.25em; font-weight: 600;">$${deductions.standard_deduction?.toLocaleString() || '0'}</p>
+                </div>
+                <div>
+                  <span style="color: var(--gray-500);">Itemized Total</span>
+                  <p style="font-size: 1.25em; font-weight: 600;">$${deductions.total_itemized?.toLocaleString() || '0'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Detected Credits
+        if (deductions.detected_credits?.length > 0) {
+          recommendationsHtml += `
+            <h4 style="margin: 20px 0 12px;">Tax Credits Available</h4>
+            <div style="display: grid; gap: 12px;">
+              ${deductions.detected_credits.map(credit => `
+                <div class="alert alert-success" style="display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <strong>${credit.name}</strong>
+                    <p style="margin: 4px 0 0; color: var(--gray-600);">${credit.description}</p>
+                  </div>
+                  <span style="font-size: 1.25em; font-weight: 600; color: #22c55e;">+$${credit.estimated_amount?.toLocaleString() || '0'}</span>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+
+        // Missed Opportunities
+        if (deductions.missed_opportunities?.length > 0) {
+          recommendationsHtml += `
+            <h4 style="margin: 20px 0 12px;">Potential Savings You May Be Missing</h4>
+            <div style="display: grid; gap: 12px;">
+              ${deductions.missed_opportunities.map(opp => `
+                <div class="alert alert-warning">
+                  <span class="alert-icon">💡</span>
+                  <div>
+                    <strong>${opp.title || opp.name}</strong>
+                    <p>${opp.description || opp.action}</p>
+                    ${opp.potential_savings ? `<p style="color: #b45309; font-weight: 600;">Potential savings: $${opp.potential_savings.toLocaleString()}</p>` : ''}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+      }
+
+      // Planning Insights
+      if (intel?.planning) {
+        const planning = intel.planning;
+        const urgentInsights = planning.insights?.filter(i => i.urgency === 'immediate' || i.urgency === 'soon') || [];
+
+        if (urgentInsights.length > 0 || planning.optimization_potential > 0) {
+          recommendationsHtml += `
+            <div class="intelligence-section">
+              <h3 style="margin: 24px 0 16px; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 1.5em;">🎯</span> Tax Planning Insights
+              </h3>
+              ${planning.optimization_potential > 0 ? `
+                <div class="card" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-left: 4px solid #3b82f6; padding: 16px; margin-bottom: 16px;">
+                  <p style="margin: 0;">
+                    <strong>Optimization Potential:</strong> You could save up to
+                    <span style="font-size: 1.25em; font-weight: 700; color: #2563eb;">$${planning.optimization_potential?.toLocaleString() || '0'}</span>
+                    with the right strategies.
+                  </p>
+                </div>
+              ` : ''}
+
+              ${urgentInsights.length > 0 ? `
+                <h4 style="margin: 16px 0 12px;">Action Items</h4>
+                <div style="display: grid; gap: 12px;">
+                  ${urgentInsights.map(insight => `
+                    <div class="alert ${insight.urgency === 'immediate' ? 'alert-error' : 'alert-warning'}">
+                      <span class="alert-icon">${insight.urgency === 'immediate' ? '🚨' : '⏰'}</span>
+                      <div>
+                        <strong>${insight.title}</strong>
+                        <p style="margin: 4px 0 0;">${insight.description}</p>
+                        ${insight.estimated_savings ? `<p style="font-weight: 600; margin-top: 8px;">Est. savings: $${insight.estimated_savings.toLocaleString()}</p>` : ''}
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }
+      }
+
+      // AI Summary
+      if (intel?.summary) {
+        recommendationsHtml += `
+          <div class="card" style="background: var(--gray-50); margin-top: 24px; padding: 16px;">
+            <p style="margin: 0; font-style: italic; color: var(--gray-600);">
+              <strong>AI Summary:</strong> ${intel.summary}
+            </p>
+          </div>
+        `;
+      }
+
+      // Fallback to basic opportunities if no intelligence
+      if (!recommendationsHtml) {
+        const opportunities = estimate.quick_opportunities || [];
+        if (opportunities.length > 0) {
+          recommendationsHtml = `
+            <h3 style="margin: 24px 0 16px;">Tax-Saving Opportunities</h3>
+            ${opportunities.map(opp => `
+              <div class="alert alert-info">
+                <span class="alert-icon">💡</span>
+                <div>
+                  <strong>${opp.title || 'Opportunity'}</strong>
+                  <p>${opp.description || ''}</p>
+                  ${opp.potential_savings ? `<p><strong>Potential savings: $${opp.potential_savings.toLocaleString()}</strong></p>` : ''}
+                </div>
+              </div>
+            `).join('')}
+          `;
+        }
+      }
+
+      recsContainer.innerHTML = recommendationsHtml;
+    }
+
+    // ==========================================================================
+    // ACT SCREEN
+    // ==========================================================================
+    function populateActScreen() {
+      const complexity = state.complexity;
+      const intel = state.intelligence;
+
+      if (complexity?.cpa_recommended) {
+        document.getElementById('cpa-recommendation').style.display = 'block';
+        document.getElementById('cpa-reason').textContent = complexity.cpa_reason || 'Your tax situation may benefit from professional review.';
+      }
+
+      // Add year-end checklist and planning insights
+      const actContent = document.querySelector('#screen-act .card:last-child') || document.getElementById('screen-act');
+
+      if (intel?.planning) {
+        const planning = intel.planning;
+        let planningHtml = '';
+
+        // Year-end checklist
+        if (planning.year_end_checklist?.length > 0) {
+          planningHtml += `
+            <div class="card" style="margin-top: 24px;">
+              <h3 style="margin: 0 0 16px; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 1.25em;">✅</span> Year-End Tax Checklist
+              </h3>
+              <div style="display: grid; gap: 12px;">
+                ${planning.year_end_checklist.slice(0, 5).map((item, i) => `
+                  <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
+                    <input type="checkbox" id="checklist-${i}" style="margin-top: 4px; width: 18px; height: 18px; accent-color: var(--primary);">
+                    <div>
+                      <strong>${item.item}</strong>
+                      <p style="margin: 4px 0 0; color: var(--gray-500); font-size: 0.9em;">${item.description}</p>
+                    </div>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }
+
+        // Quarterly estimates
+        if (planning.quarterly_estimates?.length > 0) {
+          const currentQuarter = Math.floor((new Date().getMonth() + 3) / 3);
+          const relevantEstimates = planning.quarterly_estimates.filter(q => q.quarter >= currentQuarter);
+
+          if (relevantEstimates.length > 0) {
+            planningHtml += `
+              <div class="card" style="margin-top: 24px;">
+                <h3 style="margin: 0 0 16px; display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 1.25em;">📅</span> Estimated Tax Payments
+                </h3>
+                <div style="display: grid; gap: 12px;">
+                  ${relevantEstimates.map(q => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--gray-50); border-radius: 8px;">
+                      <div>
+                        <strong>Q${q.quarter} ${new Date().getFullYear()}</strong>
+                        <p style="margin: 4px 0 0; color: var(--gray-500); font-size: 0.9em;">Due: ${new Date(q.due_date).toLocaleDateString()}</p>
+                      </div>
+                      <div style="text-align: right;">
+                        <span style="font-size: 1.25em; font-weight: 600;">$${q.recommended_payment?.toLocaleString() || '0'}</span>
+                        ${q.penalty_risk !== 'none' ? `<p style="color: #dc2626; font-size: 0.85em;">⚠️ ${q.penalty_risk} penalty risk</p>` : ''}
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+          }
+        }
+
+        // All planning insights
+        const allInsights = planning.insights || [];
+        if (allInsights.length > 0) {
+          planningHtml += `
+            <div class="card" style="margin-top: 24px;">
+              <h3 style="margin: 0 0 16px; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 1.25em;">💡</span> All Tax Planning Recommendations
+              </h3>
+              <div style="display: grid; gap: 12px;">
+                ${allInsights.map(insight => {
+                  const urgencyColors = {
+                    immediate: { bg: '#fef2f2', border: '#dc2626', icon: '🚨' },
+                    soon: { bg: '#fffbeb', border: '#f59e0b', icon: '⏰' },
+                    quarterly: { bg: '#eff6ff', border: '#3b82f6', icon: '📊' },
+                    year_end: { bg: '#f0fdf4', border: '#22c55e', icon: '🎯' },
+                    future: { bg: '#f9fafb', border: '#6b7280', icon: '📌' }
+                  };
+                  const style = urgencyColors[insight.urgency] || urgencyColors.future;
+                  return `
+                    <div style="padding: 12px; background: ${style.bg}; border-left: 3px solid ${style.border}; border-radius: 4px;">
+                      <div style="display: flex; gap: 8px; align-items: flex-start;">
+                        <span>${style.icon}</span>
+                        <div style="flex: 1;">
+                          <strong>${insight.title}</strong>
+                          <p style="margin: 4px 0 0; color: var(--gray-600); font-size: 0.9em;">${insight.description}</p>
+                          ${insight.estimated_savings ? `<p style="margin: 8px 0 0; font-weight: 600; color: ${style.border};">Potential savings: $${insight.estimated_savings.toLocaleString()}</p>` : ''}
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          `;
+        }
+
+        // Append to act screen
+        if (planningHtml) {
+          const planningContainer = document.createElement('div');
+          planningContainer.id = 'planning-section';
+          planningContainer.innerHTML = planningHtml;
+
+          const existingPlanning = document.getElementById('planning-section');
+          if (existingPlanning) {
+            existingPlanning.remove();
+          }
+          actContent.appendChild(planningContainer);
+        }
+      }
+    }
+
+    function selectOption(option) {
+      state.selectedOption = option;
+
+      // Update visual selection
+      document.getElementById('option-self').style.borderColor = option === 'self-file' ? 'var(--primary)' : 'var(--gray-200)';
+      document.getElementById('option-self').style.background = option === 'self-file' ? 'var(--primary-50)' : 'white';
+
+      document.getElementById('option-cpa').style.borderColor = option === 'cpa-review' ? 'var(--primary)' : 'var(--gray-200)';
+      document.getElementById('option-cpa').style.background = option === 'cpa-review' ? 'var(--primary-50)' : 'white';
+    }
+
+    function proceedWithOption() {
+      if (state.selectedOption === 'self-file') {
+        alert('Self-file flow would start here. In production, this would begin the e-file process.');
+      } else {
+        alert('CPA review flow would start here. In production, this would connect you with a tax professional.');
+      }
+    }
+
+    // ==========================================================================
+    // MANUAL ENTRY
+    // ==========================================================================
+    function showManualEntry() {
+      // For simplicity, show a prompt
+      const wages = prompt('Enter your total wages from W-2 Box 1:', '60000');
+      const withheld = prompt('Enter federal tax withheld from W-2 Box 2:', '7500');
+
+      if (wages && withheld) {
+        quickEstimateManual(parseFloat(wages), parseFloat(withheld));
+      }
+    }
+
+    async function quickEstimateManual(wages, withheld) {
+      try {
+        const result = await api('/estimate/quick', {
+          method: 'POST',
+          body: JSON.stringify({
+            wages: wages,
+            federal_withheld: withheld,
+            filing_status: 'single',
+            num_dependents: 0
+          })
+        });
+
+        state.estimate = {
+          refund_or_owed: result.refund_or_owed,
+          confidence_band: result.confidence_band,
+          confidence_score: 60 // Lower for manual entry
+        };
+
+        state.extractedData = {
+          wages: wages,
+          federal_tax_withheld: withheld
+        };
+
+        // Create a virtual document
+        state.documents = [{
+          name: 'Manual Entry',
+          type: 'w2',
+          fields: { wages, federal_tax_withheld: withheld },
+          confidence: 60
+        }];
+
+        updateEstimateDisplay();
+        document.getElementById('btn-continue').disabled = false;
+      } catch (e) {
+        console.error('Quick estimate failed:', e);
+        alert('Failed to calculate estimate. Please try again.');
+      }
+    }
+
+    // ==========================================================================
+    // ALERTS
+    // ==========================================================================
+    function showAlert(message, type = 'info') {
+      const alertsContainer = document.getElementById('confirm-alerts') || document.querySelector('.card');
+      const alert = document.createElement('div');
+      alert.className = `alert alert-${type}`;
+      alert.innerHTML = `<span class="alert-icon">${type === 'error' ? '⚠️' : 'ℹ️'}</span><div>${message}</div>`;
+      alertsContainer.prepend(alert);
+    }
+
+    // ==========================================================================
+    // INITIALIZATION
+    // ==========================================================================
+    async function init() {
+      await createSession();
+    }
+
+    init();
+  </script>
+</body>
+</html>

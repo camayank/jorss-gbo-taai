@@ -564,7 +564,7 @@ class RulesBasedRecommender:
             tax_savings = qbi_deduction * 0.22  # Assume 22% bracket
 
             filing_status = str(context.get("filing_status", "single")).lower()
-            threshold = 383900 if "joint" in filing_status else 191950
+            threshold = 394600 if "joint" in filing_status else 197300  # 2025 QBI thresholds
 
             if agi < threshold:
                 insights.append(RuleInsight(

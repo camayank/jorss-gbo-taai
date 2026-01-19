@@ -1912,6 +1912,53 @@
       .message { max-width: 90%; }
       .data-table { font-size: 12px; }
       .data-table th, .data-table td { padding: 10px 8px; }
+
+      /* Better touch targets */
+      .btn { min-height: 48px; padding: 14px 20px; }
+
+      /* Header adjustments */
+      .header-actions { gap: 8px; }
+
+      /* Card adjustments */
+      .card { border-radius: 12px; }
+    }
+
+    /* Small mobile */
+    @media (max-width: 480px) {
+      .header {
+        padding: 10px 12px;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .logo { gap: 8px; }
+      .logo-icon { width: 36px; height: 36px; font-size: 14px; }
+      .logo-text { font-size: 16px; }
+
+      .main { padding: 16px 12px; }
+
+      .card-header, .card-body { padding: 12px; }
+
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .header-actions {
+        width: 100%;
+        justify-content: flex-end;
+      }
+
+      /* Step indicators */
+      .step-number { width: 28px; height: 28px; font-size: 12px; }
+      .step-label { font-size: 10px; }
+
+      /* File upload */
+      .upload-zone { padding: 24px 16px; }
+
+      /* Form fields */
+      .form-label { font-size: 13px; }
+      .form-input { padding: 10px 12px; font-size: 14px; }
     }
 
     /* Help Overlay */

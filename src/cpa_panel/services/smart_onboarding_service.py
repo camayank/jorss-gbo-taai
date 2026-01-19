@@ -398,7 +398,7 @@ class SmartOnboardingService:
             if contribution not in ["max", "unknown"]:
                 # Estimate savings from increasing 401k
                 current_rate = {"0": 0, "1-5": 3, "6-10": 8, "11-15": 13}.get(contribution, 0)
-                max_contribution = Decimal("23000")
+                max_contribution = Decimal("23500")  # 2025 limit
                 current_contribution = wages * Decimal(str(current_rate / 100))
                 potential_increase = max_contribution - current_contribution
 
@@ -424,8 +424,8 @@ class SmartOnboardingService:
         if answers.get("healthcare_hdhp") == "yes":
             hsa_status = answers.get("healthcare_hsa", "unknown")
             if hsa_status in ["0", "partial"]:
-                # HSA family max is $8,300 for 2024
-                hsa_max = Decimal("8300") if filing_status == FilingStatus.MARRIED_FILING_JOINTLY else Decimal("4150")
+                # HSA max for 2025 (IRS Rev. Proc. 2024-40)
+                hsa_max = Decimal("8550") if filing_status == FilingStatus.MARRIED_FILING_JOINTLY else Decimal("4300")
                 marginal_rate = self._get_marginal_rate(agi, filing_status)
                 savings = hsa_max * marginal_rate
 
@@ -593,25 +593,25 @@ class SmartOnboardingService:
         filing_status: Optional[FilingStatus]
     ) -> Decimal:
         """Get estimated marginal tax rate based on AGI and filing status."""
-        # 2024 tax brackets
+        # 2025 tax brackets (IRS Rev. Proc. 2024-40)
         if filing_status == FilingStatus.MARRIED_FILING_JOINTLY:
             brackets = [
-                (23200, Decimal("0.10")),
-                (94300, Decimal("0.12")),
-                (201050, Decimal("0.22")),
-                (383900, Decimal("0.24")),
-                (487450, Decimal("0.32")),
-                (731200, Decimal("0.35")),
+                (23850, Decimal("0.10")),
+                (96950, Decimal("0.12")),
+                (206700, Decimal("0.22")),
+                (394600, Decimal("0.24")),
+                (501050, Decimal("0.32")),
+                (751600, Decimal("0.35")),
                 (float("inf"), Decimal("0.37")),
             ]
         else:  # Single and others
             brackets = [
-                (11600, Decimal("0.10")),
-                (47150, Decimal("0.12")),
-                (100525, Decimal("0.22")),
-                (191950, Decimal("0.24")),
-                (243725, Decimal("0.32")),
-                (609350, Decimal("0.35")),
+                (11925, Decimal("0.10")),
+                (48475, Decimal("0.12")),
+                (103350, Decimal("0.22")),
+                (197300, Decimal("0.24")),
+                (250525, Decimal("0.32")),
+                (626350, Decimal("0.35")),
                 (float("inf"), Decimal("0.37")),
             ]
 

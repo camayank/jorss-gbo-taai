@@ -76,7 +76,7 @@ class OnboardingBenefitEstimator:
         "single": 15750,
         "married_joint": 31500,
         "married_separate": 15750,
-        "head_of_household": 23625,
+        "head_of_household": 23850,
         "qualifying_widow": 31500,
     }
 

@@ -90,33 +90,34 @@ class TestUnitOfWork:
         with pytest.raises(RuntimeError, match="UnitOfWork not initialized"):
             _ = uow.tax_returns
 
-    def test_scenarios_not_implemented(self):
-        """scenarios property should raise NotImplementedError."""
+    def test_scenarios_property_lazy_init(self):
+        """scenarios property should lazy initialize the repository."""
         mock_session = MagicMock(spec=AsyncSession)
         uow = UnitOfWork(session=mock_session)
-        with pytest.raises(NotImplementedError):
-            _ = uow.scenarios
+        # Should return a repository when session is set
+        result = uow.scenarios
+        assert result is not None
 
-    def test_advisory_not_implemented(self):
-        """advisory property should raise NotImplementedError."""
+    def test_advisory_property_lazy_init(self):
+        """advisory property should lazy initialize the repository."""
         mock_session = MagicMock(spec=AsyncSession)
         uow = UnitOfWork(session=mock_session)
-        with pytest.raises(NotImplementedError):
-            _ = uow.advisory
+        result = uow.advisory
+        assert result is not None
 
-    def test_clients_not_implemented(self):
-        """clients property should raise NotImplementedError."""
+    def test_clients_property_lazy_init(self):
+        """clients property should lazy initialize the repository."""
         mock_session = MagicMock(spec=AsyncSession)
         uow = UnitOfWork(session=mock_session)
-        with pytest.raises(NotImplementedError):
-            _ = uow.clients
+        result = uow.clients
+        assert result is not None
 
-    def test_events_not_implemented(self):
-        """events property should raise NotImplementedError."""
+    def test_events_property_lazy_init(self):
+        """events property should lazy initialize the event store."""
         mock_session = MagicMock(spec=AsyncSession)
         uow = UnitOfWork(session=mock_session)
-        with pytest.raises(NotImplementedError):
-            _ = uow.events
+        result = uow.events
+        assert result is not None
 
     def test_session_property(self):
         """session property should return the session."""

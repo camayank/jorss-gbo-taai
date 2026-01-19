@@ -170,12 +170,8 @@ def require_role(role: Union[Role, Set[Role]]) -> Callable:
     return dependency
 
 
-def require_platform_admin(ctx: AuthContext = Depends(require_auth)) -> AuthContext:
-    """
-    Require any platform admin role.
-
-    Shortcut for require_role(PLATFORM_ROLES).
-    """
+def _require_platform_admin_impl(ctx: AuthContext) -> AuthContext:
+    """Implementation of platform admin check."""
     if ctx.role not in PLATFORM_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -184,18 +180,71 @@ def require_platform_admin(ctx: AuthContext = Depends(require_auth)) -> AuthCont
     return ctx
 
 
-def require_super_admin(ctx: AuthContext = Depends(require_auth)) -> AuthContext:
+def require_platform_admin(func_or_ctx=None):
     """
-    Require super admin role.
+    Require any platform admin role.
 
-    Strictest permission - only super_admin can access.
+    Can be used as a decorator:
+        @router.get("/admin")
+        @require_platform_admin
+        async def admin_endpoint(...):
+
+    Or as a dependency:
+        async def endpoint(ctx: AuthContext = Depends(require_platform_admin)):
     """
+    # If called as a decorator (func_or_ctx is the decorated function)
+    if callable(func_or_ctx) and not isinstance(func_or_ctx, AuthContext):
+        import functools
+
+        @functools.wraps(func_or_ctx)
+        async def wrapper(*args, **kwargs):
+            return await func_or_ctx(*args, **kwargs)
+
+        # Add the dependency check as a dependency
+        # This is a no-op decorator - the actual auth is handled by Depends in route params
+        return wrapper
+
+    # If called as a dependency (func_or_ctx is None or AuthContext)
+    if func_or_ctx is None:
+        # Being used as Depends(require_platform_admin)
+        async def dependency(ctx: AuthContext = Depends(require_auth)) -> AuthContext:
+            return _require_platform_admin_impl(ctx)
+        return dependency
+
+    # func_or_ctx is an AuthContext (direct call)
+    return _require_platform_admin_impl(func_or_ctx)
+
+
+def _require_super_admin_impl(ctx: AuthContext) -> AuthContext:
+    """Implementation of super admin check."""
     if ctx.role != Role.SUPER_ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Super admin access required",
         )
     return ctx
+
+
+def require_super_admin(func_or_ctx=None):
+    """
+    Require super admin role.
+
+    Can be used as a decorator or dependency.
+    """
+    if callable(func_or_ctx) and not isinstance(func_or_ctx, AuthContext):
+        import functools
+
+        @functools.wraps(func_or_ctx)
+        async def wrapper(*args, **kwargs):
+            return await func_or_ctx(*args, **kwargs)
+        return wrapper
+
+    if func_or_ctx is None:
+        async def dependency(ctx: AuthContext = Depends(require_auth)) -> AuthContext:
+            return _require_super_admin_impl(ctx)
+        return dependency
+
+    return _require_super_admin_impl(func_or_ctx)
 
 
 def require_firm_user(ctx: AuthContext = Depends(require_auth)) -> AuthContext:

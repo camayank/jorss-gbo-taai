@@ -17,6 +17,8 @@ _metadata:
   last_updated: "2025-01-17"
   updated_by: "system"
   notes: "Annual inflation adjustments for tax year 2025"
+  is_current_advisory_year: true
+  is_projection: false
 
 # =============================================================================
 # STANDARD DEDUCTION (IRS Rev. Proc. 2024-40)
@@ -175,7 +177,7 @@ eitc_income_limits:
     2: 62688
     3: 66819
 
-eitc_investment_income_limit: 11600
+eitc_investment_income_limit: 11950
 
 # =============================================================================
 # RETIREMENT CONTRIBUTION LIMITS

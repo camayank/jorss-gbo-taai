@@ -59,7 +59,7 @@ class TaxYearConfig:
     eitc_max_credit: Optional[Dict[int, float]] = None  # 0, 1, 2, 3+ children
     eitc_phaseout_start: Optional[Dict[str, Dict[int, float]]] = None
     eitc_phaseout_end: Optional[Dict[str, Dict[int, float]]] = None
-    eitc_investment_income_limit: float = 11600.0  # 2025 limit
+    eitc_investment_income_limit: float = 11950.0  # 2025 limit
 
     # Contribution limits
     traditional_ira_limit: float = 7000.0
@@ -501,7 +501,7 @@ class TaxYearConfig:
             eitc_max_credit=eitc_max,
             eitc_phaseout_start=eitc_phase_start,
             eitc_phaseout_end=eitc_phase_end,
-            eitc_investment_income_limit=11600.0,
+            eitc_investment_income_limit=11950.0,
             # Contribution limits (2025)
             traditional_ira_limit=7000.0,
             ira_catchup_50_plus=1000.0,
@@ -538,4 +538,296 @@ class TaxYearConfig:
             savers_credit_10_pct_limit=savers_10,
             savers_credit_max_contribution=2000.0,
         )
+
+    @staticmethod
+    def for_year(tax_year: int) -> "TaxYearConfig":
+        """
+        Load tax configuration for any supported year from YAML files.
+
+        Supported years:
+        - 2022, 2023, 2024: Historical data for amended returns and YoY comparisons
+        - 2025: Current advisory year (recommended - use for_2025() for inline config)
+        - 2026: Projected values for planning purposes
+
+        Args:
+            tax_year: The tax year to load (2022-2026)
+
+        Returns:
+            TaxYearConfig for the specified year
+
+        Raises:
+            ValueError: If the tax year is not supported
+        """
+        import os
+        import yaml
+        from pathlib import Path
+
+        if tax_year == 2025:
+            # Use the inline configuration for 2025 (current advisory year)
+            return TaxYearConfig.for_2025()
+
+        supported_years = [2022, 2023, 2024, 2026]
+        if tax_year not in supported_years:
+            raise ValueError(
+                f"Tax year {tax_year} is not supported. "
+                f"Supported years: 2022, 2023, 2024, 2025, 2026"
+            )
+
+        # Load from YAML file
+        config_dir = Path(__file__).parent.parent / "config" / "tax_parameters"
+        yaml_file = config_dir / f"tax_year_{tax_year}.yaml"
+
+        if not yaml_file.exists():
+            raise FileNotFoundError(
+                f"Tax configuration file not found: {yaml_file}. "
+                f"Please ensure tax_year_{tax_year}.yaml exists."
+            )
+
+        with open(yaml_file, "r") as f:
+            data = yaml.safe_load(f)
+
+        # Convert YAML bracket format [threshold, rate] to tuple format (threshold, rate)
+        def convert_brackets(yaml_brackets: dict) -> dict:
+            converted = {}
+            for status, brackets in yaml_brackets.items():
+                converted[status] = [(float(b[0]), float(b[1])) for b in brackets]
+            return converted
+
+        # Build ordinary income brackets
+        brackets = convert_brackets(data.get("ordinary_income_brackets", {}))
+
+        # Add (0, 0.10) as the first bracket if not present
+        for status in brackets:
+            if brackets[status] and brackets[status][0][0] != 0:
+                brackets[status].insert(0, (0, 0.10))
+
+        # Standard deductions
+        std = data.get("standard_deduction", {})
+        std = {k: float(v) for k, v in std.items()}
+
+        # Additional standard deduction
+        additional_raw = data.get("additional_standard_deduction_65_or_blind", {})
+        additional = {
+            "single": float(additional_raw.get("single", 1950)),
+            "head_of_household": float(additional_raw.get("head_of_household", additional_raw.get("single", 1950))),
+            "married_joint": float(additional_raw.get("married", 1550)),
+            "married_separate": float(additional_raw.get("married", 1550)),
+            "qualifying_widow": float(additional_raw.get("married", 1550)),
+        }
+
+        # Capital gains thresholds
+        cap_gains = data.get("capital_gains_brackets", {})
+        zero_rate = cap_gains.get("zero_rate_threshold", {})
+        fifteen_rate = cap_gains.get("fifteen_rate_threshold", {})
+
+        qd_ltcg_0 = {k: float(v) for k, v in zero_rate.items()} if zero_rate else None
+        qd_ltcg_15 = {k: float(v) for k, v in fifteen_rate.items()} if fifteen_rate else None
+
+        # Additional Medicare thresholds
+        add_medicare_raw = data.get("additional_medicare_threshold", {})
+        additional_medicare = {k: float(v) for k, v in add_medicare_raw.items()} if add_medicare_raw else None
+
+        # NIIT thresholds
+        niit_raw = data.get("niit_threshold", {})
+        niit = {k: float(v) for k, v in niit_raw.items()} if niit_raw else None
+
+        # AMT
+        amt_exemption_raw = data.get("amt_exemption", {})
+        amt_exemption = {k: float(v) for k, v in amt_exemption_raw.items()} if amt_exemption_raw else None
+
+        amt_phaseout_raw = data.get("amt_exemption_phaseout_start", {})
+        amt_phaseout_start = {k: float(v) for k, v in amt_phaseout_raw.items()} if amt_phaseout_raw else None
+
+        amt_28_raw = data.get("amt_28_threshold", {})
+        amt_28_threshold = {k: float(v) for k, v in amt_28_raw.items()} if amt_28_raw else None
+
+        # Child Tax Credit phaseout
+        ctc_raw = data.get("child_tax_credit_phaseout_start", {})
+        ctc_phaseout = {k: float(v) for k, v in ctc_raw.items()} if ctc_raw else None
+
+        # EITC
+        eitc_max_raw = data.get("eitc_max_credit", {})
+        eitc_max = {int(k): float(v) for k, v in eitc_max_raw.items()} if eitc_max_raw else None
+
+        eitc_limits_raw = data.get("eitc_income_limits", {})
+        eitc_phase_end = {}
+        for status, limits in eitc_limits_raw.items():
+            eitc_phase_end[status] = {int(k): float(v) for k, v in limits.items()}
+
+        # Student loan interest phaseout
+        student_loan_raw = data.get("student_loan_phaseout", {})
+        student_loan_start = {}
+        student_loan_end = {}
+        for status, vals in student_loan_raw.items():
+            student_loan_start[status] = float(vals.get("start", 0))
+            student_loan_end[status] = float(vals.get("end", 0))
+
+        # IRA phaseouts - covered by employer plan
+        ira_covered_raw = data.get("ira_phaseout_covered", {})
+        trad_ira_start_covered = {}
+        trad_ira_end_covered = {}
+        for status, vals in ira_covered_raw.items():
+            trad_ira_start_covered[status] = float(vals.get("start", 0))
+            trad_ira_end_covered[status] = float(vals.get("end", 0))
+
+        # IRA phaseouts - spouse covered
+        ira_spouse_raw = data.get("ira_phaseout_spouse_covered", {})
+        trad_ira_start_spouse = {}
+        trad_ira_end_spouse = {}
+        for status, vals in ira_spouse_raw.items():
+            trad_ira_start_spouse[status] = float(vals.get("start", 0))
+            trad_ira_end_spouse[status] = float(vals.get("end", 0))
+
+        # Roth IRA phaseouts
+        roth_raw = data.get("roth_ira_phaseout", {})
+        roth_start = {}
+        roth_end = {}
+        for status, vals in roth_raw.items():
+            roth_start[status] = float(vals.get("start", 0))
+            roth_end[status] = float(vals.get("end", 0))
+
+        # QBI thresholds
+        qbi_raw = data.get("qbi_threshold", {})
+        qbi_start = {}
+        qbi_end = {}
+        for status, vals in qbi_raw.items():
+            qbi_start[status] = float(vals.get("start", 0))
+            qbi_end[status] = float(vals.get("end", 0))
+
+        # Saver's Credit thresholds
+        savers_raw = data.get("savers_credit_thresholds", {})
+        savers_50 = {}
+        savers_20 = {}
+        savers_10 = {}
+        for tier, limits in savers_raw.items():
+            for status, amount in limits.items():
+                if tier == "fifty_percent":
+                    savers_50[status] = float(amount)
+                elif tier == "twenty_percent":
+                    savers_20[status] = float(amount)
+                elif tier == "ten_percent":
+                    savers_10[status] = float(amount)
+
+        return TaxYearConfig(
+            tax_year=tax_year,
+            ordinary_income_brackets=brackets,
+            standard_deduction=std,
+            additional_standard_deduction_over_65_or_blind=additional,
+            qd_ltcg_0_rate_threshold=qd_ltcg_0 or None,
+            qd_ltcg_15_rate_threshold=qd_ltcg_15 or None,
+            ss_wage_base=float(data.get("ss_wage_base", 176100)),
+            medicare_rate=float(data.get("medicare_rate", 0.029)),
+            ss_rate=float(data.get("ss_rate", 0.124)),
+            additional_medicare_tax_rate=float(data.get("additional_medicare_tax_rate", 0.009)),
+            additional_medicare_threshold=additional_medicare or None,
+            niit_rate=float(data.get("niit_rate", 0.038)),
+            niit_threshold=niit or None,
+            amt_rate_26=float(data.get("amt_rate_26", 0.26)),
+            amt_rate_28=float(data.get("amt_rate_28", 0.28)),
+            amt_28_threshold=amt_28_threshold or None,
+            amt_exemption=amt_exemption or None,
+            amt_exemption_phaseout_start=amt_phaseout_start or None,
+            amt_exemption_phaseout_rate=float(data.get("amt_exemption_phaseout_rate", 0.25)),
+            child_tax_credit_amount=float(data.get("child_tax_credit_amount", 2000)),
+            child_tax_credit_refundable=float(data.get("child_tax_credit_refundable", 1700)),
+            child_tax_credit_phaseout_start=ctc_phaseout or None,
+            child_tax_credit_phaseout_rate=float(data.get("child_tax_credit_phaseout_rate", 0.05)),
+            eitc_max_credit=eitc_max or None,
+            eitc_phaseout_end=eitc_phase_end or None,
+            eitc_investment_income_limit=float(data.get("eitc_investment_income_limit", 11950)),
+            traditional_ira_limit=float(data.get("ira_contribution_limit", 7000)),
+            ira_catchup_50_plus=float(data.get("ira_catchup_50_plus", 1000)),
+            hsa_individual_limit=float(data.get("hsa_individual_limit", 4300)),
+            hsa_family_limit=float(data.get("hsa_family_limit", 8550)),
+            hsa_catchup_55_plus=float(data.get("hsa_catchup_55_plus", 1000)),
+            k401_limit=float(data.get("k401_contribution_limit", 23500)),
+            k401_catchup_50_plus=float(data.get("k401_catchup_50_plus", 7500)),
+            sep_ira_limit=float(data.get("sep_ira_limit", 69000)),
+            student_loan_interest_max=float(data.get("student_loan_interest_max", 2500)),
+            student_loan_phaseout_start=student_loan_start or None,
+            student_loan_phaseout_end=student_loan_end or None,
+            trad_ira_phaseout_start_covered=trad_ira_start_covered or None,
+            trad_ira_phaseout_end_covered=trad_ira_end_covered or None,
+            trad_ira_phaseout_start_spouse_covered=trad_ira_start_spouse or None,
+            trad_ira_phaseout_end_spouse_covered=trad_ira_end_spouse or None,
+            roth_ira_phaseout_start=roth_start or None,
+            roth_ira_phaseout_end=roth_end or None,
+            annual_gift_exclusion=float(data.get("annual_gift_exclusion", 19000)),
+            estate_exemption=float(data.get("estate_exemption", 13990000)),
+            salt_cap=float(data.get("salt_cap", 10000)),
+            medical_expense_floor_pct=float(data.get("medical_expense_floor_pct", 0.075)),
+            qbi_deduction_rate=float(data.get("qbi_deduction_rate", 0.20)),
+            qbi_threshold_start=qbi_start or None,
+            qbi_threshold_end=qbi_end or None,
+            savers_credit_50_pct_limit=savers_50 or None,
+            savers_credit_20_pct_limit=savers_20 or None,
+            savers_credit_10_pct_limit=savers_10 or None,
+            savers_credit_max_contribution=float(data.get("savers_credit_max_contribution", 2000)),
+            # Section 179 / Depreciation
+            section_179_limit=float(data.get("section_179_limit", 1250000)),
+            section_179_phaseout_threshold=float(data.get("section_179_phaseout_threshold", 3130000)),
+            bonus_depreciation_rate=float(data.get("bonus_depreciation_rate", 0.40)),
+            # Adoption credit
+            adoption_credit_max=float(data.get("adoption_credit_max", 16810)),
+            adoption_credit_phaseout_start=float(data.get("adoption_credit_phaseout", {}).get("start", 252150)),
+            adoption_credit_phaseout_end=float(data.get("adoption_credit_phaseout", {}).get("end", 292150)),
+            # Capital loss limits
+            capital_loss_limit=float(data.get("capital_loss_limit", 3000)),
+            capital_loss_limit_mfs=float(data.get("capital_loss_limit_mfs", 1500)),
+            # Energy credits
+            residential_clean_energy_rate=float(data.get("residential_clean_energy_rate", 0.30)),
+            energy_efficient_home_rate=float(data.get("energy_efficient_home_rate", 0.30)),
+            energy_efficient_annual_limit=float(data.get("energy_efficient_annual_limit", 1200)),
+        )
+
+    @staticmethod
+    def for_2024() -> "TaxYearConfig":
+        """
+        Load 2024 tax year configuration.
+
+        HISTORICAL YEAR - Use for amended returns and year-over-year comparisons only.
+        DO NOT use for current advisory services (use for_2025() instead).
+        """
+        return TaxYearConfig.for_year(2024)
+
+    @staticmethod
+    def for_2023() -> "TaxYearConfig":
+        """
+        Load 2023 tax year configuration.
+
+        HISTORICAL YEAR - Use for amended returns and year-over-year comparisons only.
+        DO NOT use for current advisory services (use for_2025() instead).
+        """
+        return TaxYearConfig.for_year(2023)
+
+    @staticmethod
+    def for_2022() -> "TaxYearConfig":
+        """
+        Load 2022 tax year configuration.
+
+        HISTORICAL YEAR - Use for amended returns and year-over-year comparisons only.
+        DO NOT use for current advisory services (use for_2025() instead).
+        """
+        return TaxYearConfig.for_year(2022)
+
+    @staticmethod
+    def for_2026() -> "TaxYearConfig":
+        """
+        Load 2026 tax year configuration.
+
+        PROJECTED YEAR - Use for tax planning projections only.
+        Values are estimated based on inflation projections until IRS releases official figures.
+        DO NOT use for current advisory services (use for_2025() instead).
+        """
+        return TaxYearConfig.for_year(2026)
+
+    @staticmethod
+    def get_current_advisory_year() -> "TaxYearConfig":
+        """
+        Get the current advisory year configuration.
+
+        This is the RECOMMENDED method for all advisory services and calculations.
+        Currently returns 2025 configuration per IRS Rev. Proc. 2024-40.
+        """
+        return TaxYearConfig.for_2025()
 

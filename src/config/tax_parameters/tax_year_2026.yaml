@@ -1,0 +1,380 @@
+# Tax Year 2026 Configuration (PROJECTED)
+# Source: Estimated based on inflation projections (~2.5% adjustment)
+# Purpose: Tax planning projections ONLY. Values are estimates until IRS releases official figures.
+# WARNING: These are PROJECTIONS - use 2025 for current advisory services.
+# Current Advisory Year: 2025 (see tax_year_2025.yaml)
+# Official IRS values expected: October/November 2025
+
+_metadata:
+  version: "2026.0.1-PROJECTED"
+  tax_year: 2026
+  effective_date: "2026-01-01"
+  source: "PROJECTED"
+  irs_references:
+    - "To be announced: Rev. Proc. 2025-XX"
+  last_updated: "2025-01-20"
+  updated_by: "system"
+  notes: "PROJECTED VALUES - Update when IRS releases official 2026 figures"
+  is_current_advisory_year: false
+  is_projection: true
+  projection_basis: "2.5% inflation adjustment from 2025"
+
+# =============================================================================
+# STANDARD DEDUCTION (2026 - PROJECTED)
+# =============================================================================
+standard_deduction:
+  single: 16150  # Projected ~2.5% increase
+  married_joint: 32300
+  married_separate: 16150
+  head_of_household: 24450
+  qualifying_widow: 32300
+
+additional_standard_deduction_65_or_blind:
+  single: 2050
+  married: 1650
+  head_of_household: 2050
+
+# =============================================================================
+# TAX BRACKETS (2026 - PROJECTED)
+# =============================================================================
+ordinary_income_brackets:
+  single:
+    - [12225, 0.10]  # Projected
+    - [49700, 0.12]
+    - [105950, 0.22]
+    - [202225, 0.24]
+    - [256800, 0.32]
+    - [642000, 0.35]
+    - [999999999, 0.37]
+  married_joint:
+    - [24450, 0.10]
+    - [99400, 0.12]
+    - [211900, 0.22]
+    - [404500, 0.24]
+    - [513600, 0.32]
+    - [770400, 0.35]
+    - [999999999, 0.37]
+  married_separate:
+    - [12225, 0.10]
+    - [49700, 0.12]
+    - [105950, 0.22]
+    - [202225, 0.24]
+    - [256800, 0.32]
+    - [385200, 0.35]
+    - [999999999, 0.37]
+  head_of_household:
+    - [17425, 0.10]
+    - [66475, 0.12]
+    - [105950, 0.22]
+    - [202225, 0.24]
+    - [256775, 0.32]
+    - [642000, 0.35]
+    - [999999999, 0.37]
+
+# =============================================================================
+# CAPITAL GAINS BRACKETS (2026 - PROJECTED)
+# =============================================================================
+capital_gains_brackets:
+  zero_rate_threshold:
+    single: 49550
+    married_joint: 99100
+    married_separate: 49550
+    head_of_household: 66375
+  fifteen_rate_threshold:
+    single: 546750
+    married_joint: 615050
+    married_separate: 307525
+    head_of_household: 581000
+
+capital_loss_limit: 3000
+capital_loss_limit_mfs: 1500
+
+# =============================================================================
+# SELF-EMPLOYMENT TAX (2026 - PROJECTED)
+# =============================================================================
+se_net_earnings_factor: 0.9235
+se_tax_rate: 0.153
+ss_rate: 0.124
+medicare_rate: 0.029
+ss_wage_base: 180500  # Projected
+
+additional_medicare_tax_rate: 0.009
+additional_medicare_threshold:
+  single: 200000
+  married_joint: 250000
+  married_separate: 125000
+  head_of_household: 200000
+
+# =============================================================================
+# NET INVESTMENT INCOME TAX (NIIT) - 2026
+# =============================================================================
+niit_rate: 0.038
+niit_threshold:
+  single: 200000
+  married_joint: 250000
+  married_separate: 125000
+  head_of_household: 200000
+
+# =============================================================================
+# ALTERNATIVE MINIMUM TAX (AMT) - 2026 PROJECTED
+# =============================================================================
+amt_rate_26: 0.26
+amt_rate_28: 0.28
+amt_28_threshold:
+  single: 245075
+  married_joint: 245075
+  married_separate: 122538
+
+amt_exemption:
+  single: 90300
+  married_joint: 140425
+  married_separate: 70213
+
+amt_exemption_phaseout_start:
+  single: 642000
+  married_joint: 1284000
+  married_separate: 642000
+
+amt_exemption_phaseout_rate: 0.25
+
+# =============================================================================
+# CHILD TAX CREDIT (2026)
+# =============================================================================
+child_tax_credit_amount: 2000
+child_tax_credit_refundable: 1700  # May increase
+child_tax_credit_other_dependent: 500
+child_tax_credit_max_age: 16
+
+child_tax_credit_phaseout_start:
+  single: 200000
+  married_joint: 400000
+  married_separate: 200000
+  head_of_household: 200000
+
+child_tax_credit_phaseout_rate: 0.05
+
+# =============================================================================
+# EARNED INCOME TAX CREDIT (EITC) - 2026 PROJECTED
+# =============================================================================
+eitc_max_credit:
+  0: 665
+  1: 4436
+  2: 7331
+  3: 8247
+
+eitc_income_limits:
+  single:
+    0: 19055
+    1: 50311
+    2: 57162
+    3: 61397
+  married_joint:
+    0: 26149
+    1: 57405
+    2: 64256
+    3: 68490
+
+eitc_investment_income_limit: 12250
+
+# =============================================================================
+# RETIREMENT CONTRIBUTION LIMITS (2026 - PROJECTED)
+# =============================================================================
+ira_contribution_limit: 7000  # May stay same
+ira_catchup_50_plus: 1000
+
+ira_phaseout_covered:
+  single:
+    start: 81000
+    end: 91000
+  married_joint:
+    start: 129150
+    end: 149750
+  married_separate:
+    start: 0
+    end: 10000
+
+ira_phaseout_spouse_covered:
+  married_joint:
+    start: 242000
+    end: 252000
+  married_separate:
+    start: 0
+    end: 10000
+
+roth_ira_phaseout:
+  single:
+    start: 154000
+    end: 169000
+  married_joint:
+    start: 242000
+    end: 252000
+  married_separate:
+    start: 0
+    end: 10000
+
+k401_contribution_limit: 24000  # Projected
+k401_catchup_50_plus: 7500
+k401_catchup_60_64: 11250
+
+hsa_individual_limit: 4400  # Projected
+hsa_family_limit: 8750  # Projected
+hsa_catchup_55_plus: 1000
+
+sep_ira_limit: 70750  # Projected
+
+fsa_limit: 3400  # Projected
+dcfsa_limit: 5000
+
+# =============================================================================
+# EDUCATION CREDITS (2026)
+# =============================================================================
+aotc_max_credit: 2500
+aotc_refundable_portion: 0.40
+aotc_phaseout:
+  single:
+    start: 80000
+    end: 90000
+  married_joint:
+    start: 160000
+    end: 180000
+
+llc_max_credit: 2000
+llc_rate: 0.20
+llc_phaseout:
+  single:
+    start: 80000
+    end: 90000
+  married_joint:
+    start: 160000
+    end: 180000
+
+# =============================================================================
+# SAVER'S CREDIT (2026 - PROJECTED)
+# =============================================================================
+savers_credit_max_contribution: 2000
+savers_credit_thresholds:
+  fifty_percent:
+    single: 25375
+    married_joint: 50750
+    head_of_household: 38063
+  twenty_percent:
+    single: 27625
+    married_joint: 55250
+    head_of_household: 41438
+  ten_percent:
+    single: 42538
+    married_joint: 85075
+    head_of_household: 63806
+
+# =============================================================================
+# DEDUCTION LIMITS (2026)
+# =============================================================================
+salt_cap: 10000  # May change with legislation
+medical_expense_floor_pct: 0.075
+student_loan_interest_max: 2500
+educator_expense_max: 300
+
+student_loan_phaseout:
+  single:
+    start: 87000
+    end: 102500
+  married_joint:
+    start: 174000
+    end: 205000
+
+charitable_cash_limit_pct: 0.60
+charitable_appreciated_limit_pct: 0.30
+
+# =============================================================================
+# QBI DEDUCTION (2026 - PROJECTED)
+# =============================================================================
+qbi_deduction_rate: 0.20
+qbi_threshold:
+  single:
+    start: 202225
+    end: 252225
+  married_joint:
+    start: 404450
+    end: 506950
+
+# =============================================================================
+# CLEAN VEHICLE CREDITS (2026)
+# =============================================================================
+clean_vehicle_credit_new_max: 7500
+clean_vehicle_credit_used_max: 4000
+
+clean_vehicle_income_limits:
+  new:
+    single: 150000
+    married_joint: 300000
+    head_of_household: 225000
+  used:
+    single: 75000
+    married_joint: 150000
+    head_of_household: 112500
+
+clean_vehicle_msrp_limits:
+  sedan: 55000
+  suv_van_truck: 80000
+
+# =============================================================================
+# ENERGY CREDITS (2026)
+# =============================================================================
+residential_clean_energy_rate: 0.30
+energy_efficient_home_rate: 0.30
+energy_efficient_annual_limit: 1200
+energy_efficient_window_limit: 600
+energy_efficient_door_limit: 500
+energy_efficient_panel_limit: 600
+energy_efficient_audit_limit: 150
+heat_pump_annual_limit: 2000
+
+# =============================================================================
+# BONUS DEPRECIATION (2026)
+# =============================================================================
+# Phasing down per TCJA
+bonus_depreciation_rate: 0.20  # 20% in 2026 (was 40% in 2025, 60% in 2024)
+
+# =============================================================================
+# GIFT AND ESTATE (2026 - PROJECTED)
+# =============================================================================
+annual_gift_exclusion: 19500  # Projected
+estate_exemption: 14340000  # Projected
+
+# =============================================================================
+# SECTION 179 (2026 - PROJECTED)
+# =============================================================================
+section_179_limit: 1280000
+section_179_phaseout_threshold: 3210000
+section_179_suv_limit: 31275
+
+# =============================================================================
+# MILEAGE RATES (2026 - PROJECTED)
+# =============================================================================
+mileage_rates:
+  business: 0.72  # Projected
+  medical_moving: 0.23
+  charity: 0.14
+
+# =============================================================================
+# ADOPTION CREDIT (2026 - PROJECTED)
+# =============================================================================
+adoption_credit_max: 17712
+adoption_credit_phaseout:
+  start: 265670
+  end: 306670
+
+# =============================================================================
+# FOREIGN EARNED INCOME (2026 - PROJECTED)
+# =============================================================================
+foreign_earned_income_exclusion: 133250
+foreign_housing_exclusion_base: 20326
+foreign_housing_exclusion_max: 38812
+
+# =============================================================================
+# PENALTY RATES (2026)
+# =============================================================================
+early_withdrawal_penalty_rate: 0.10
+early_withdrawal_penalty_simple_rate: 0.25
+estimated_tax_underpayment_threshold: 1000
+estimated_tax_penalty_rate: 0.08  # May vary based on interest rates

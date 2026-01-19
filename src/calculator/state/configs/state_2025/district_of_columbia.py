@@ -70,11 +70,11 @@ def get_dc_config() -> StateTaxConfig:
         starts_from="federal_agi",
         standard_deduction={
             # DC standard deduction for 2025
-            "single": 14600,
-            "married_joint": 29200,
-            "married_separate": 14600,
-            "head_of_household": 21900,
-            "qualifying_widow": 29200,
+            "single": 15750,
+            "married_joint": 31500,
+            "married_separate": 15750,
+            "head_of_household": 23850,
+            "qualifying_widow": 31500,
         },
         personal_exemption_amount={
             # DC personal exemptions

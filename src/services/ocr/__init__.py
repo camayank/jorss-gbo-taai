@@ -7,10 +7,12 @@ This module provides:
 - Field extraction for tax forms (W-2, 1099, 1098, etc.)
 - Data validation and normalization
 - Resilient processing with retry and circuit breaker patterns
+- Multi-factor confidence scoring
+- Intelligent field inference
 """
 
 from .document_processor import DocumentProcessor, ProcessingResult, DocumentIntegration
-from .ocr_engine import OCREngine, OCRResult
+from .ocr_engine import OCREngine, OCRResult, OCREngineError, OCREngineType
 from .field_extractor import FieldExtractor, ExtractedField
 from .resilient_processor import (
     ResilientOCREngine,
@@ -18,6 +20,25 @@ from .resilient_processor import (
     ResilientOCRConfig,
     get_circuit_breaker_stats,
     reset_all_circuit_breakers,
+)
+from .confidence_scorer import (
+    ConfidenceScorer,
+    ConfidenceResult,
+    ConfidenceLevel,
+    ConfidenceFactors,
+    DocumentConfidenceAggregator,
+    calculate_field_confidence,
+    get_confidence_band,
+)
+from .inference_engine import (
+    FieldInferenceEngine,
+    InferenceResult,
+    InferredField,
+    InferenceType,
+    ValidationIssue,
+    MultiDocumentInference,
+    infer_document_fields,
+    aggregate_multi_document_income,
 )
 
 __all__ = [
@@ -27,6 +48,8 @@ __all__ = [
     "DocumentIntegration",
     "OCREngine",
     "OCRResult",
+    "OCREngineError",
+    "OCREngineType",
     "FieldExtractor",
     "ExtractedField",
     # Resilient processors
@@ -35,4 +58,21 @@ __all__ = [
     "ResilientOCRConfig",
     "get_circuit_breaker_stats",
     "reset_all_circuit_breakers",
+    # Confidence scoring
+    "ConfidenceScorer",
+    "ConfidenceResult",
+    "ConfidenceLevel",
+    "ConfidenceFactors",
+    "DocumentConfidenceAggregator",
+    "calculate_field_confidence",
+    "get_confidence_band",
+    # Inference engine
+    "FieldInferenceEngine",
+    "InferenceResult",
+    "InferredField",
+    "InferenceType",
+    "ValidationIssue",
+    "MultiDocumentInference",
+    "infer_document_fields",
+    "aggregate_multi_document_income",
 ]

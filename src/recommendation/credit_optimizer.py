@@ -116,7 +116,7 @@ class CreditOptimizer:
                 "single": {0: 18591, 1: 49084, 2: 55768, 3: 59899},
                 "married_joint": {0: 25511, 1: 56004, 2: 62688, 3: 66819},
             },
-            "investment_income_limit": 11600,
+            "investment_income_limit": 11950,  # 2025 limit
         },
         "child_dependent_care": {
             "name": "Child and Dependent Care Credit",
@@ -149,10 +149,10 @@ class CreditOptimizer:
             "name": "Retirement Savings Contributions Credit",
             "type": CreditType.NONREFUNDABLE,
             "max_contribution": 2000,  # Per person
-            "rate_schedule": {
-                "single": [(23000, 50), (25000, 20), (38250, 10)],
-                "married_joint": [(46000, 50), (50000, 20), (76500, 10)],
-                "head_of_household": [(34500, 50), (37500, 20), (57375, 10)],
+            "rate_schedule": {  # 2025 AGI limits (IRS Rev. Proc. 2024-40)
+                "single": [(24750, 50), (26100, 20), (38250, 10)],
+                "married_joint": [(49500, 50), (52200, 20), (76500, 10)],
+                "head_of_household": [(37125, 50), (39150, 20), (57375, 10)],
             },
         },
         "adoption_credit": {

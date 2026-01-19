@@ -495,34 +495,34 @@ class AdvisoryService:
 
     def _estimate_marginal_rate(self, agi: float, filing_status: str) -> float:
         """Estimate marginal tax rate based on AGI and filing status."""
-        # Simplified 2025 brackets
+        # 2025 brackets (IRS Rev. Proc. 2024-40)
         if filing_status == "married_joint":
-            if agi > 731200:
+            if agi > 751600:
                 return 0.37
-            elif agi > 487450:
+            elif agi > 501050:
                 return 0.35
-            elif agi > 383900:
+            elif agi > 394600:
                 return 0.32
-            elif agi > 201050:
+            elif agi > 206700:
                 return 0.24
-            elif agi > 94300:
+            elif agi > 96950:
                 return 0.22
-            elif agi > 23200:
+            elif agi > 23850:
                 return 0.12
             else:
                 return 0.10
         else:  # Single and others
-            if agi > 609350:
+            if agi > 626350:
                 return 0.37
-            elif agi > 243725:
+            elif agi > 250525:
                 return 0.35
-            elif agi > 191950:
+            elif agi > 197300:
                 return 0.32
-            elif agi > 100525:
+            elif agi > 103350:
                 return 0.24
-            elif agi > 47150:
+            elif agi > 48475:
                 return 0.22
-            elif agi > 11600:
+            elif agi > 11925:
                 return 0.12
             else:
                 return 0.10

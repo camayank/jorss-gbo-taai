@@ -335,20 +335,20 @@ def _calculate_projection(variables: List[ScenarioVariable], baseline: TaxProjec
     total_adjustment = sum(v.scenario_value - v.current_value for v in variables)
 
     new_agi = baseline.adjusted_gross_income - total_adjustment
-    new_taxable = max(0, new_agi - 14600)  # Standard deduction
+    new_taxable = max(0, new_agi - 15750)  # 2025 Standard deduction
 
-    # Simplified tax brackets (2024 single)
-    if new_taxable <= 11600:
+    # Simplified tax brackets (2025 single - IRS Rev. Proc. 2024-40)
+    if new_taxable <= 11925:
         federal = new_taxable * 0.10
         marginal = 10
-    elif new_taxable <= 47150:
-        federal = 1160 + (new_taxable - 11600) * 0.12
+    elif new_taxable <= 48475:
+        federal = 1192.50 + (new_taxable - 11925) * 0.12
         marginal = 12
-    elif new_taxable <= 100525:
-        federal = 5426 + (new_taxable - 47150) * 0.22
+    elif new_taxable <= 103350:
+        federal = 5578.50 + (new_taxable - 48475) * 0.22
         marginal = 22
     else:
-        federal = 17168.50 + (new_taxable - 100525) * 0.24
+        federal = 17651 + (new_taxable - 103350) * 0.24
         marginal = 24
 
     state = new_taxable * 0.05  # Simplified state tax

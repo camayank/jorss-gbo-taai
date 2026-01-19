@@ -509,12 +509,22 @@ $0.00
         )
 
 
+class OCREngineError(Exception):
+    """Raised when OCR engine fails in strict mode."""
+    pass
+
+
 class OCREngine:
     """
     Main OCR Engine facade - provides unified interface to multiple OCR backends.
 
     Usage:
+        # Development mode (allows mock fallback)
         engine = OCREngine(engine_type=OCREngineType.TESSERACT)
+
+        # Production mode (raises error if real OCR unavailable)
+        engine = OCREngine(engine_type=OCREngineType.TESSERACT, strict_mode=True)
+
         result = engine.process("path/to/document.pdf")
     """
 
@@ -522,10 +532,21 @@ class OCREngine:
         self,
         engine_type: OCREngineType = OCREngineType.TESSERACT,
         fallback_engine: Optional[OCREngineType] = None,
+        strict_mode: bool = False,
         **kwargs
     ):
+        """
+        Initialize OCR Engine.
+
+        Args:
+            engine_type: Primary OCR engine to use
+            fallback_engine: Optional fallback engine
+            strict_mode: If True, raises error when real OCR unavailable (no mock fallback)
+            **kwargs: Engine-specific options (lang, config, region)
+        """
         self.engine_type = engine_type
         self.fallback_engine_type = fallback_engine
+        self.strict_mode = strict_mode
         self.kwargs = kwargs
 
         self.engine = self._create_engine(engine_type)
@@ -535,19 +556,42 @@ class OCREngine:
         """Create OCR engine instance."""
         if engine_type == OCREngineType.TESSERACT:
             engine = TesseractEngine(**{k: v for k, v in self.kwargs.items() if k in ['lang', 'config']})
-            # If Tesseract isn't available, fall back to mock
+            # Check if Tesseract is available
             if engine.pytesseract is None:
+                if self.strict_mode:
+                    raise OCREngineError(
+                        "Tesseract OCR is not available. Please install Tesseract:\n"
+                        "  macOS: brew install tesseract\n"
+                        "  Ubuntu: apt install tesseract-ocr\n"
+                        "  Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki"
+                    )
                 print("Warning: Tesseract not available, using mock OCR engine for demo")
                 return MockOCREngine()
             return engine
         elif engine_type == OCREngineType.AWS_TEXTRACT:
-            return AWSTextractEngine(**{k: v for k, v in self.kwargs.items() if k in ['region']})
+            engine = AWSTextractEngine(**{k: v for k, v in self.kwargs.items() if k in ['region']})
+            if engine.client is None and self.strict_mode:
+                raise OCREngineError(
+                    "AWS Textract is not available. Please configure AWS credentials:\n"
+                    "  pip install boto3\n"
+                    "  aws configure"
+                )
+            return engine
         elif engine_type == OCREngineType.MOCK:
+            if self.strict_mode:
+                raise OCREngineError(
+                    "Mock OCR engine cannot be used in strict mode. "
+                    "Please configure a real OCR engine (Tesseract or AWS Textract)."
+                )
             return MockOCREngine()
         else:
             # Default: try Tesseract, fall back to mock
             engine = TesseractEngine()
             if engine.pytesseract is None:
+                if self.strict_mode:
+                    raise OCREngineError(
+                        "No OCR engine available. Please install Tesseract or configure AWS Textract."
+                    )
                 return MockOCREngine()
             return engine
 

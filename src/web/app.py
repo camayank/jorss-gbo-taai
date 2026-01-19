@@ -251,6 +251,17 @@ except ImportError as e:
 
 
 # =============================================================================
+# SMART TAX API - Document-First Tax Preparation
+# =============================================================================
+try:
+    from web.smart_tax_api import router as smart_tax_router
+    app.include_router(smart_tax_router, prefix="/api")
+    logger.info("Smart Tax API enabled at /api/smart-tax")
+except ImportError as e:
+    logger.warning(f"Smart Tax API not available: {e}")
+
+
+# =============================================================================
 # ERROR HANDLING SYSTEM
 # =============================================================================
 
@@ -833,6 +844,22 @@ def system_hub(request: Request):
     - Complete API reference
     """
     return templates.TemplateResponse("system_hub.html", {"request": request})
+
+
+@app.get("/smart-tax", response_class=HTMLResponse)
+@app.get("/smart-tax/{path:path}", response_class=HTMLResponse)
+def smart_tax_app(request: Request, path: str = ""):
+    """
+    Smart Tax - Document-First Tax Preparation.
+
+    5-screen adaptive flow:
+    1. UPLOAD - Upload tax documents
+    2. DETECT - Automatic document analysis
+    3. CONFIRM - Review extracted data
+    4. REPORT - View tax summary and recommendations
+    5. ACT - File or connect with CPA
+    """
+    return templates.TemplateResponse("smart_tax.html", {"request": request})
 
 
 @app.post("/api/chat")

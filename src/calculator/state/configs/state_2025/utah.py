@@ -51,7 +51,7 @@ class UtahCalculator(BaseStateCalculator):
         # Utah Taxpayer Tax Credit (6% of federal deductions and exemptions)
         personal_exemptions = 2 if filing_status in ("married_joint", "qualifying_widow") else 1
         dependent_exemptions = len(tax_return.taxpayer.dependents)
-        federal_std_ded = 14600 if filing_status not in ("married_joint", "qualifying_widow") else 29200
+        federal_std_ded = 15750 if filing_status not in ("married_joint", "qualifying_widow") else 31500
 
         taxpayer_credit = (federal_std_ded + ((personal_exemptions + dependent_exemptions) * 4150)) * 0.06
         # Credit phases out at higher income

@@ -1,0 +1,371 @@
+# Tax Year 2024 Configuration
+# Source: IRS Revenue Procedure 2023-34
+# Purpose: Historical tax year data for amended returns, prior year comparisons,
+#          and year-over-year analysis. DO NOT USE FOR CURRENT ADVISORY SERVICES.
+# Current Advisory Year: 2025 (see tax_year_2025.yaml)
+
+_metadata:
+  version: "2024.1.0"
+  tax_year: 2024
+  effective_date: "2024-01-01"
+  source: "IRS"
+  irs_references:
+    - "Rev. Proc. 2023-34"
+    - "Publication 17 (2024)"
+  last_updated: "2025-01-20"
+  updated_by: "system"
+  notes: "Historical tax year - for amended returns and YoY comparisons only"
+  is_current_advisory_year: false
+
+# =============================================================================
+# STANDARD DEDUCTION (2024)
+# =============================================================================
+standard_deduction:
+  single: 14600
+  married_joint: 29200
+  married_separate: 14600
+  head_of_household: 21900
+  qualifying_widow: 29200
+
+additional_standard_deduction_65_or_blind:
+  single: 1950
+  married: 1550
+  head_of_household: 1950
+
+# =============================================================================
+# TAX BRACKETS (2024 - Ordinary Income)
+# =============================================================================
+ordinary_income_brackets:
+  single:
+    - [11600, 0.10]
+    - [47150, 0.12]
+    - [100525, 0.22]
+    - [191950, 0.24]
+    - [243725, 0.32]
+    - [609350, 0.35]
+    - [999999999, 0.37]
+  married_joint:
+    - [23200, 0.10]
+    - [94300, 0.12]
+    - [201050, 0.22]
+    - [383900, 0.24]
+    - [487450, 0.32]
+    - [731200, 0.35]
+    - [999999999, 0.37]
+  married_separate:
+    - [11600, 0.10]
+    - [47150, 0.12]
+    - [100525, 0.22]
+    - [191950, 0.24]
+    - [243725, 0.32]
+    - [365600, 0.35]
+    - [999999999, 0.37]
+  head_of_household:
+    - [16550, 0.10]
+    - [63100, 0.12]
+    - [100500, 0.22]
+    - [191950, 0.24]
+    - [243700, 0.32]
+    - [609350, 0.35]
+    - [999999999, 0.37]
+
+# =============================================================================
+# CAPITAL GAINS BRACKETS (2024)
+# =============================================================================
+capital_gains_brackets:
+  zero_rate_threshold:
+    single: 47025
+    married_joint: 94050
+    married_separate: 47025
+    head_of_household: 63000
+  fifteen_rate_threshold:
+    single: 518900
+    married_joint: 583750
+    married_separate: 291850
+    head_of_household: 551350
+
+capital_loss_limit: 3000
+capital_loss_limit_mfs: 1500
+
+# =============================================================================
+# SELF-EMPLOYMENT TAX (2024)
+# =============================================================================
+se_net_earnings_factor: 0.9235
+se_tax_rate: 0.153
+ss_rate: 0.124
+medicare_rate: 0.029
+ss_wage_base: 168600
+
+additional_medicare_tax_rate: 0.009
+additional_medicare_threshold:
+  single: 200000
+  married_joint: 250000
+  married_separate: 125000
+  head_of_household: 200000
+
+# =============================================================================
+# NET INVESTMENT INCOME TAX (NIIT) - 2024
+# =============================================================================
+niit_rate: 0.038
+niit_threshold:
+  single: 200000
+  married_joint: 250000
+  married_separate: 125000
+  head_of_household: 200000
+
+# =============================================================================
+# ALTERNATIVE MINIMUM TAX (AMT) - 2024
+# =============================================================================
+amt_rate_26: 0.26
+amt_rate_28: 0.28
+amt_28_threshold:
+  single: 232600
+  married_joint: 232600
+  married_separate: 116300
+
+amt_exemption:
+  single: 85700
+  married_joint: 133300
+  married_separate: 66650
+
+amt_exemption_phaseout_start:
+  single: 609350
+  married_joint: 1218700
+  married_separate: 609350
+
+amt_exemption_phaseout_rate: 0.25
+
+# =============================================================================
+# CHILD TAX CREDIT (2024)
+# =============================================================================
+child_tax_credit_amount: 2000
+child_tax_credit_refundable: 1700
+child_tax_credit_other_dependent: 500
+child_tax_credit_max_age: 16
+
+child_tax_credit_phaseout_start:
+  single: 200000
+  married_joint: 400000
+  married_separate: 200000
+  head_of_household: 200000
+
+child_tax_credit_phaseout_rate: 0.05
+
+# =============================================================================
+# EARNED INCOME TAX CREDIT (EITC) - 2024
+# =============================================================================
+eitc_max_credit:
+  0: 632
+  1: 4213
+  2: 6960
+  3: 7830
+
+eitc_income_limits:
+  single:
+    0: 18591
+    1: 49084
+    2: 55768
+    3: 59899
+  married_joint:
+    0: 25511
+    1: 56004
+    2: 62688
+    3: 66819
+
+eitc_investment_income_limit: 11600
+
+# =============================================================================
+# RETIREMENT CONTRIBUTION LIMITS (2024)
+# =============================================================================
+ira_contribution_limit: 7000
+ira_catchup_50_plus: 1000
+
+ira_phaseout_covered:
+  single:
+    start: 77000
+    end: 87000
+  married_joint:
+    start: 123000
+    end: 143000
+  married_separate:
+    start: 0
+    end: 10000
+
+ira_phaseout_spouse_covered:
+  married_joint:
+    start: 230000
+    end: 240000
+  married_separate:
+    start: 0
+    end: 10000
+
+roth_ira_phaseout:
+  single:
+    start: 146000
+    end: 161000
+  married_joint:
+    start: 230000
+    end: 240000
+  married_separate:
+    start: 0
+    end: 10000
+
+k401_contribution_limit: 23000
+k401_catchup_50_plus: 7500
+
+hsa_individual_limit: 4150
+hsa_family_limit: 8300
+hsa_catchup_55_plus: 1000
+
+sep_ira_limit: 69000
+
+fsa_limit: 3200
+dcfsa_limit: 5000
+
+# =============================================================================
+# EDUCATION CREDITS (2024)
+# =============================================================================
+aotc_max_credit: 2500
+aotc_refundable_portion: 0.40
+aotc_phaseout:
+  single:
+    start: 80000
+    end: 90000
+  married_joint:
+    start: 160000
+    end: 180000
+
+llc_max_credit: 2000
+llc_rate: 0.20
+llc_phaseout:
+  single:
+    start: 80000
+    end: 90000
+  married_joint:
+    start: 160000
+    end: 180000
+
+# =============================================================================
+# SAVER'S CREDIT (2024)
+# =============================================================================
+savers_credit_max_contribution: 2000
+savers_credit_thresholds:
+  fifty_percent:
+    single: 23000
+    married_joint: 46000
+    head_of_household: 34500
+  twenty_percent:
+    single: 25000
+    married_joint: 50000
+    head_of_household: 37500
+  ten_percent:
+    single: 38250
+    married_joint: 76500
+    head_of_household: 57375
+
+# =============================================================================
+# DEDUCTION LIMITS (2024)
+# =============================================================================
+salt_cap: 10000
+medical_expense_floor_pct: 0.075
+student_loan_interest_max: 2500
+educator_expense_max: 300
+
+student_loan_phaseout:
+  single:
+    start: 80000
+    end: 95000
+  married_joint:
+    start: 165000
+    end: 195000
+
+charitable_cash_limit_pct: 0.60
+charitable_appreciated_limit_pct: 0.30
+
+# =============================================================================
+# QBI DEDUCTION (2024)
+# =============================================================================
+qbi_deduction_rate: 0.20
+qbi_threshold:
+  single:
+    start: 191950
+    end: 241950
+  married_joint:
+    start: 383900
+    end: 483900
+
+# =============================================================================
+# CLEAN VEHICLE CREDITS (2024)
+# =============================================================================
+clean_vehicle_credit_new_max: 7500
+clean_vehicle_credit_used_max: 4000
+
+clean_vehicle_income_limits:
+  new:
+    single: 150000
+    married_joint: 300000
+    head_of_household: 225000
+  used:
+    single: 75000
+    married_joint: 150000
+    head_of_household: 112500
+
+clean_vehicle_msrp_limits:
+  sedan: 55000
+  suv_van_truck: 80000
+
+# =============================================================================
+# ENERGY CREDITS (2024)
+# =============================================================================
+residential_clean_energy_rate: 0.30
+energy_efficient_home_rate: 0.30
+energy_efficient_annual_limit: 1200
+energy_efficient_window_limit: 600
+energy_efficient_door_limit: 500
+energy_efficient_panel_limit: 600
+energy_efficient_audit_limit: 150
+heat_pump_annual_limit: 2000
+
+# =============================================================================
+# GIFT AND ESTATE (2024)
+# =============================================================================
+annual_gift_exclusion: 18000
+estate_exemption: 13610000
+
+# =============================================================================
+# SECTION 179 (2024)
+# =============================================================================
+section_179_limit: 1220000
+section_179_phaseout_threshold: 3050000
+section_179_suv_limit: 30500
+
+# =============================================================================
+# MILEAGE RATES (2024)
+# =============================================================================
+mileage_rates:
+  business: 0.67
+  medical_moving: 0.21
+  charity: 0.14
+
+# =============================================================================
+# ADOPTION CREDIT (2024)
+# =============================================================================
+adoption_credit_max: 16810
+adoption_credit_phaseout:
+  start: 252150
+  end: 292150
+
+# =============================================================================
+# FOREIGN EARNED INCOME (2024)
+# =============================================================================
+foreign_earned_income_exclusion: 126500
+foreign_housing_exclusion_base: 19272
+foreign_housing_exclusion_max: 36797
+
+# =============================================================================
+# PENALTY RATES (2024)
+# =============================================================================
+early_withdrawal_penalty_rate: 0.10
+early_withdrawal_penalty_simple_rate: 0.25
+estimated_tax_underpayment_threshold: 1000
+estimated_tax_penalty_rate: 0.08

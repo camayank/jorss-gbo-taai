@@ -916,8 +916,8 @@ DEDUCTION_RULES = [
         severity=RuleSeverity.HIGH,
         irs_reference="IRC Section 199A(d)",
         thresholds_by_status={
-            "single": 191950.0,
-            "married_joint": 383900.0
+            "single": 197300.0,  # 2025 QBI phaseout start
+            "married_joint": 394600.0  # 2025 QBI phaseout start
         }
     ),
 
@@ -1238,11 +1238,11 @@ CREDIT_RULES = [
     TaxRule(
         rule_id="CRD010",
         name="EITC Investment Income Limit",
-        description="Investment income must be $11,600 or less",
+        description="Investment income must be $11,950 or less (2025)",
         category=RuleCategory.CREDIT,
         severity=RuleSeverity.HIGH,
         irs_reference="IRC Section 32(i)",
-        limit=11600.0
+        limit=11950.0  # 2025 limit
     ),
     TaxRule(
         rule_id="CRD011",

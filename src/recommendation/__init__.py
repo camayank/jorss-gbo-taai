@@ -6,6 +6,7 @@ This module provides intelligent analysis and recommendations for:
 - Credit eligibility and optimization
 - Tax-saving strategies
 - State-specific benefits
+- Real-time tax estimates from minimal data
 """
 
 from .recommendation_engine import TaxRecommendationEngine
@@ -26,6 +27,13 @@ from .ai_enhancer import (
     AIEnhancedRecommendation,
     AIRecommendationSummary,
     get_ai_enhancer,
+)
+from .realtime_estimator import (
+    RealTimeEstimator,
+    TaxEstimate,
+    EstimateConfidence,
+    quick_estimate_from_w2,
+    get_refund_range,
 )
 
 __all__ = [
@@ -49,4 +57,10 @@ __all__ = [
     "AIEnhancedRecommendation",
     "AIRecommendationSummary",
     "get_ai_enhancer",
+    # Real-time estimation
+    "RealTimeEstimator",
+    "TaxEstimate",
+    "EstimateConfidence",
+    "quick_estimate_from_w2",
+    "get_refund_range",
 ]

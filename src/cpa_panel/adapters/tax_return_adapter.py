@@ -193,15 +193,15 @@ class DeductionsCompat:
             self.self_employment_tax_deduction = adj.get('se_tax_deduction', 0)
 
     def _get_standard_deduction(self, filing_status: str, is_over_65: bool = False, is_blind: bool = False) -> float:
-        """Return standard deduction amount."""
+        """Return standard deduction amount (2025 values)."""
         base = {
-            'single': 14600,
-            'married_filing_jointly': 29200,
-            'married_filing_separately': 14600,
-            'head_of_household': 21900,
-        }.get(filing_status, 14600)
+            'single': 15750,
+            'married_filing_jointly': 31500,
+            'married_filing_separately': 15750,
+            'head_of_household': 23850,
+        }.get(filing_status, 15750)
         if is_over_65:
-            base += 1950 if filing_status == 'single' else 1550
+            base += 2000 if filing_status in ('single', 'head_of_household') else 1600
         return base
 
 class IncomeCompat:

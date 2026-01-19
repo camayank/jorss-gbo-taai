@@ -528,10 +528,10 @@ K1_TRUST_RULES = [
         severity=RuleSeverity.HIGH,
         irs_reference="IRC Section 199A(b)(2)",
         thresholds_by_status={
-            "single": 191950.0,
-            "married_joint": 383900.0,
-            "married_separate": 191950.0,
-            "head_of_household": 191950.0
+            "single": 197300.0,  # 2025 QBI threshold
+            "married_joint": 394600.0,  # 2025 QBI threshold
+            "married_separate": 197300.0,  # 2025 QBI threshold
+            "head_of_household": 197300.0  # 2025 QBI threshold
         },
         recommendation="Calculate W-2 wage limitation if income above threshold"
     ),
@@ -542,8 +542,8 @@ K1_TRUST_RULES = [
         category=RuleCategory.K1_TRUST,
         severity=RuleSeverity.HIGH,
         irs_reference="IRC Section 199A(b)(3)",
-        phase_out_start=191950.0,
-        phase_out_end=241950.0,
+        phase_out_start=197300.0,  # 2025 QBI threshold (single)
+        phase_out_end=247300.0,  # 2025 QBI phase-out end (single)
         recommendation="Phase in W-2 wage limitation within income range"
     ),
     TaxRule(
