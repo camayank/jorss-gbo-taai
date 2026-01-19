@@ -3483,7 +3483,7 @@
     async function handleFiles(files) {
       for (const file of files) {
         if (file.size > 10 * 1024 * 1024) {
-          showToast(`${file.name} is too large (max 10MB)`, 'error');
+          showToast(`${escapeHtml(file.name)} is too large (max 10MB)`, 'error');
           continue;
         }
 
@@ -3519,7 +3519,7 @@
             if (data.success || data.data) {
               doc.status = 'complete';
               doc.document_id = data.data?.document_id || data.document_id;
-              showToast(`${file.name} uploaded successfully`, 'success');
+              showToast(`${escapeHtml(file.name)} uploaded successfully`, 'success');
             } else {
               throw new Error(data.error || 'Upload failed');
             }
@@ -3529,7 +3529,7 @@
         } catch (e) {
           console.error('Upload error:', e);
           doc.status = 'error';
-          showToast(`Failed to upload ${file.name}: ${e.message}`, 'error');
+          showToast(`Failed to upload ${escapeHtml(file.name)}`, 'error');
         }
 
         renderFileList();

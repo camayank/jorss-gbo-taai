@@ -3154,7 +3154,7 @@
 
     function markImplemented() {
       if (state.selectedInsight) {
-        showToast(`Marked "${state.selectedInsight.title}" as implemented`, 'success');
+        showToast(`Marked "${escapeHtml(state.selectedInsight.title)}" as implemented`, 'success');
         closePanel();
         loadAllData();
       }
@@ -3512,8 +3512,8 @@
         html += `<div style="margin-bottom:16px"><div style="font-weight:600;margin-bottom:8px">Recommendations</div>`;
         results.recommendations.forEach(rec => {
           html += `<div style="padding:12px;background:var(--gray-50);border-radius:var(--radius-md);margin-bottom:8px">
-            <div style="font-weight:500">${rec.title || rec.name || 'Recommendation'}</div>
-            <div style="font-size:12px;color:var(--gray-600);margin-top:4px">${rec.description || ''}</div>
+            <div style="font-weight:500">${escapeHtml(rec.title || rec.name || 'Recommendation')}</div>
+            <div style="font-size:12px;color:var(--gray-600);margin-top:4px">${escapeHtml(rec.description || '')}</div>
             ${rec.savings ? `<div style="font-weight:600;color:var(--success);margin-top:4px">+${formatCurrency(rec.savings)}</div>` : ''}
           </div>`;
         });
@@ -3521,7 +3521,7 @@
       }
 
       if (results.summary) {
-        html += `<div style="font-size:13px;color:var(--gray-600);line-height:1.6">${results.summary}</div>`;
+        html += `<div style="font-size:13px;color:var(--gray-600);line-height:1.6">${escapeHtml(results.summary)}</div>`;
       }
 
       document.getElementById('advisory-results').innerHTML = html || '<div style="color:var(--gray-500)">Analysis complete. See details above.</div>';
@@ -3599,12 +3599,12 @@
           const data = await response.json();
 
           if (data.success) {
-            showToast(`Uploaded: ${file.name}`, 'success');
+            showToast(`Uploaded: ${escapeHtml(file.name)}`, 'success');
           } else {
-            showToast(`Failed to upload: ${file.name}`, 'error');
+            showToast(`Failed to upload: ${escapeHtml(file.name)}`, 'error');
           }
         } catch (e) {
-          showToast(`Upload error: ${file.name}`, 'error');
+          showToast(`Upload error: ${escapeHtml(file.name)}`, 'error');
         }
       }
 
@@ -3756,9 +3756,9 @@
           const sections = data.sections || [];
           document.getElementById('report-sections').innerHTML = sections.map(section => `
             <label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--gray-100)">
-              <input type="checkbox" name="report-section" value="${section.id}" checked>
-              <span style="font-weight:500">${section.name}</span>
-              <span style="font-size:11px;color:var(--gray-500);margin-left:auto">${section.description || ''}</span>
+              <input type="checkbox" name="report-section" value="${escapeHtml(section.id)}" checked>
+              <span style="font-weight:500">${escapeHtml(section.name)}</span>
+              <span style="font-size:11px;color:var(--gray-500);margin-left:auto">${escapeHtml(section.description || '')}</span>
             </label>
           `).join('');
         }
@@ -3786,9 +3786,9 @@
           const report = data.report || {};
           let html = `
             <div style="padding:20px;background:var(--gray-50);border-radius:var(--radius-md);margin-bottom:20px">
-              <h2 style="font-size:20px;margin-bottom:8px">${report.title || 'Tax Advisory Report'}</h2>
+              <h2 style="font-size:20px;margin-bottom:8px">${escapeHtml(report.title || 'Tax Advisory Report')}</h2>
               <div style="font-size:13px;color:var(--gray-600)">
-                Client: ${report.client_name || 'Client'} | Tax Year: ${report.tax_year || 2025}
+                Client: ${escapeHtml(report.client_name || 'Client')} | Tax Year: ${escapeHtml(String(report.tax_year || 2025))}
               </div>
               <div style="font-size:24px;font-weight:700;color:var(--success);margin-top:12px">
                 Total Potential Savings: ${formatCurrency(report.total_potential_savings || 0)}
@@ -3800,8 +3800,8 @@
             report.sections.forEach(section => {
               html += `
                 <div style="margin-bottom:20px">
-                  <h3 style="font-size:16px;font-weight:600;margin-bottom:8px;color:var(--gray-900)">${section.title || 'Section'}</h3>
-                  <div style="font-size:13px;color:var(--gray-700);line-height:1.6;white-space:pre-wrap">${section.content || ''}</div>
+                  <h3 style="font-size:16px;font-weight:600;margin-bottom:8px;color:var(--gray-900)">${escapeHtml(section.title || 'Section')}</h3>
+                  <div style="font-size:13px;color:var(--gray-700);line-height:1.6;white-space:pre-wrap">${escapeHtml(section.content || '')}</div>
                 </div>
               `;
             });
@@ -4257,10 +4257,10 @@
       const container = document.getElementById('onboard-opportunities');
       container.innerHTML = onboardState.opportunities.map(opp => `
         <div class="opportunity-card">
-          <div class="opportunity-icon ${opp.category}">${getCategoryIcon(opp.category)}</div>
+          <div class="opportunity-icon ${escapeHtml(opp.category)}">${getCategoryIcon(opp.category)}</div>
           <div class="opportunity-content">
-            <div class="opportunity-title">${opp.title}</div>
-            <div class="opportunity-desc">${opp.description}</div>
+            <div class="opportunity-title">${escapeHtml(opp.title)}</div>
+            <div class="opportunity-desc">${escapeHtml(opp.description)}</div>
           </div>
           <div class="opportunity-savings">+${formatCurrency(opp.estimated_savings)}</div>
         </div>
@@ -4456,8 +4456,8 @@
         <div class="insight-item">
           <div class="insight-icon savings">${getCategoryIcon(opp.category)}</div>
           <div class="insight-content">
-            <div class="insight-title">${opp.title}</div>
-            <div class="insight-desc">${opp.description}</div>
+            <div class="insight-title">${escapeHtml(opp.title)}</div>
+            <div class="insight-desc">${escapeHtml(opp.description)}</div>
           </div>
           <div class="insight-amount">+${formatCurrency(opp.estimated_savings)}</div>
         </div>
@@ -4469,8 +4469,8 @@
         <div class="insight-item">
           <div class="insight-icon savings">${getCategoryIcon(opp.category)}</div>
           <div class="insight-content">
-            <div class="insight-title">${opp.title}</div>
-            <div class="insight-desc">${opp.description}</div>
+            <div class="insight-title">${escapeHtml(opp.title)}</div>
+            <div class="insight-desc">${escapeHtml(opp.description)}</div>
           </div>
           <div class="insight-amount">+${formatCurrency(opp.estimated_savings)}</div>
         </div>
