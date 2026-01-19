@@ -26,34 +26,65 @@
        - Consistent with Admin & CPA Panels
        ================================================================ */
     :root {
-      /* Unified Indigo Theme */
+      /* ============================================
+         UNIFIED DESIGN SYSTEM - Client Portal
+         Matches Admin & CPA Panel design tokens
+         ============================================ */
+
+      /* Primary Colors - Indigo */
       --primary: #6366f1;
-      --primary-light: #e0e7ff;
       --primary-dark: #4f46e5;
-      --secondary: #10b981;
-      --secondary-light: #d1fae5;
+      --primary-light: #818cf8;
+      --primary-50: #eef2ff;
+      --primary-100: #e0e7ff;
+
+      /* Accent Colors - Purple (Client-specific for advisory branding) */
       --accent: #8b5cf6;
       --accent-light: #ede9fe;
+
+      /* Semantic Colors */
+      --success: #10b981;
+      --success-light: #d1fae5;
+      --secondary: #10b981;       /* Alias for backwards compatibility */
+      --secondary-light: #d1fae5; /* Alias for backwards compatibility */
+
+      --warning: #f59e0b;
+      --warning-light: #fef3c7;
+
       --error: #ef4444;
       --error-light: #fee2e2;
 
+      --info: #3b82f6;
+      --info-light: #dbeafe;
+
+      /* Grayscale */
       --gray-50: #f9fafb;
       --gray-100: #f3f4f6;
       --gray-200: #e5e7eb;
       --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
       --gray-500: #6b7280;
       --gray-600: #4b5563;
       --gray-700: #374151;
       --gray-800: #1f2937;
       --gray-900: #111827;
 
-      --radius: 12px;
-      --radius-sm: 8px;
+      /* Shadows */
       --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-      --shadow: 0 4px 12px rgba(0,0,0,0.1);
-      --shadow-lg: 0 12px 40px rgba(0,0,0,0.15);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -1px rgba(0,0,0,0.04);
+      --shadow: 0 4px 12px rgba(0,0,0,0.1);  /* Alias for backwards compatibility */
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -2px rgba(0,0,0,0.04);
+      --shadow-xl: 0 12px 40px rgba(0,0,0,0.15);
 
-      --transition: 0.2s ease;
+      /* Border Radius */
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius: 12px;  /* Alias for backwards compatibility */
+
+      /* Transitions */
+      --transition: 150ms ease;
+      --transition-fast: 150ms ease;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -182,7 +213,7 @@
     .step.active .step-circle {
       background: var(--primary);
       color: white;
-      box-shadow: 0 0 0 4px var(--primary-light);
+      box-shadow: 0 0 0 4px var(--primary-50);
     }
 
     .step.completed .step-circle {
@@ -222,13 +253,18 @@
     }
 
     /* ================================================================
-       CARDS & CONTAINERS
+       CARDS & CONTAINERS - Unified Design System
        ================================================================ */
     .card {
       background: white;
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
       overflow: hidden;
+      transition: box-shadow var(--transition);
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-lg);
     }
 
     .card-header {
@@ -290,7 +326,7 @@
     .form-input:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px var(--primary-light);
+      box-shadow: 0 0 0 3px var(--primary-50);
     }
 
     .form-input.error {
@@ -364,12 +400,35 @@
     }
 
     .btn-success {
-      background: var(--secondary);
+      background: var(--success);
       color: white;
     }
 
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .btn-danger {
+      background: var(--error);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--gray-600);
+      border: 2px solid var(--gray-200);
+    }
+
+    .btn-ghost:hover {
+      background: var(--gray-100);
+    }
+
     .btn:focus-visible {
-      outline: 3px solid var(--primary-light);
+      outline: 3px solid var(--primary-50);
       outline-offset: 2px;
     }
 
@@ -388,7 +447,7 @@
 
     .upload-zone:hover, .upload-zone.dragover {
       border-color: var(--primary);
-      background: var(--primary-light);
+      background: var(--primary-50);
     }
 
     .upload-icon {
