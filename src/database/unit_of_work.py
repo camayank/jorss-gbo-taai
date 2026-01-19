@@ -23,6 +23,10 @@ from domain.repositories import (
 from domain.events import DomainEvent
 from database.async_engine import get_async_session_factory
 from database.repositories.tax_return_repository import TaxReturnRepository
+from database.repositories.scenario_repository import ScenarioRepository
+from database.repositories.advisory_repository import AdvisoryRepository
+from database.repositories.client_repository import ClientRepository
+from database.repositories.event_store import EventStore
 
 logger = logging.getLogger(__name__)
 
@@ -81,32 +85,36 @@ class UnitOfWork(IUnitOfWork):
     def scenarios(self) -> IScenarioRepository:
         """Get the scenario repository."""
         if self._scenarios is None:
-            # TODO: Implement ScenarioRepository
-            raise NotImplementedError("ScenarioRepository not yet implemented")
+            if self._session is None:
+                raise RuntimeError("UnitOfWork not initialized. Use 'async with' context.")
+            self._scenarios = ScenarioRepository(self._session)
         return self._scenarios
 
     @property
     def advisory(self) -> IAdvisoryRepository:
         """Get the advisory repository."""
         if self._advisory is None:
-            # TODO: Implement AdvisoryRepository
-            raise NotImplementedError("AdvisoryRepository not yet implemented")
+            if self._session is None:
+                raise RuntimeError("UnitOfWork not initialized. Use 'async with' context.")
+            self._advisory = AdvisoryRepository(self._session)
         return self._advisory
 
     @property
     def clients(self) -> IClientRepository:
         """Get the client repository."""
         if self._clients is None:
-            # TODO: Implement ClientRepository
-            raise NotImplementedError("ClientRepository not yet implemented")
+            if self._session is None:
+                raise RuntimeError("UnitOfWork not initialized. Use 'async with' context.")
+            self._clients = ClientRepository(self._session)
         return self._clients
 
     @property
     def events(self) -> IEventStore:
         """Get the event store."""
         if self._events is None:
-            # TODO: Implement EventStore
-            raise NotImplementedError("EventStore not yet implemented")
+            if self._session is None:
+                raise RuntimeError("UnitOfWork not initialized. Use 'async with' context.")
+            self._events = EventStore(self._session)
         return self._events
 
     @property

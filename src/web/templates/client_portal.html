@@ -9,7 +9,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="description" content="Get your FREE tax advisory report - discover your tax savings potential">
-  <meta name="theme-color" content="#1e40af">
+  <meta name="theme-color" content="#6366f1">
   <meta name="robots" content="index, follow">
 
   <!-- Fonts -->
@@ -19,29 +19,33 @@
 
   <style>
     /* ================================================================
-       DESIGN SYSTEM - Global Standards Compliant
+       DESIGN SYSTEM - Unified Indigo Theme
        - WCAG 2.1 AA Color Contrast
        - Accessible Focus States
        - Responsive Breakpoints
+       - Consistent with Admin & CPA Panels
        ================================================================ */
     :root {
-      --primary: #1e40af;
-      --primary-light: #dbeafe;
-      --primary-dark: #1e3a8a;
-      --secondary: #059669;
+      /* Unified Indigo Theme */
+      --primary: #6366f1;
+      --primary-light: #e0e7ff;
+      --primary-dark: #4f46e5;
+      --secondary: #10b981;
       --secondary-light: #d1fae5;
-      --accent: #f59e0b;
-      --accent-light: #fef3c7;
-      --error: #dc2626;
+      --accent: #8b5cf6;
+      --accent-light: #ede9fe;
+      --error: #ef4444;
       --error-light: #fee2e2;
 
       --gray-50: #f9fafb;
       --gray-100: #f3f4f6;
       --gray-200: #e5e7eb;
       --gray-300: #d1d5db;
-      --gray-500: #374151;
-      --gray-600: #1f2937;
-      --gray-700: #111827;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
 
       --radius: 12px;
       --radius-sm: 8px;
@@ -1135,6 +1139,707 @@
     }
 
     /* ================================================================
+       CLIENT DASHBOARD STYLES
+       ================================================================ */
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .dashboard-welcome h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--gray-800);
+      margin-bottom: 4px;
+    }
+
+    .dashboard-welcome p {
+      font-size: 14px;
+      color: var(--gray-500);
+    }
+
+    .dashboard-cpa-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--gray-50);
+      border-radius: var(--radius-sm);
+    }
+
+    .cpa-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .cpa-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--gray-700);
+    }
+
+    .cpa-contact {
+      font-size: 12px;
+      color: var(--gray-500);
+    }
+
+    .cpa-contact a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .cpa-contact a:hover {
+      text-decoration: underline;
+    }
+
+    /* Dashboard Stats */
+    .dashboard-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .dashboard-stats { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 500px) {
+      .dashboard-stats { grid-template-columns: 1fr; }
+    }
+
+    .dash-stat-card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--gray-100);
+    }
+
+    .dash-stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .dash-stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--gray-800);
+      line-height: 1.2;
+    }
+
+    .dash-stat-label {
+      font-size: 13px;
+      color: var(--gray-500);
+    }
+
+    /* Dashboard Tabs */
+    .dashboard-tabs {
+      display: flex;
+      gap: 4px;
+      background: white;
+      border-radius: var(--radius);
+      padding: 6px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+      overflow-x: auto;
+    }
+
+    .dash-tab {
+      flex: 1;
+      padding: 12px 20px;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--gray-600);
+      cursor: pointer;
+      transition: var(--transition);
+      white-space: nowrap;
+    }
+
+    .dash-tab:hover {
+      background: var(--gray-100);
+    }
+
+    .dash-tab.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .dash-tab-content {
+      display: none;
+    }
+
+    .dash-tab-content.active {
+      display: block;
+    }
+
+    /* Dashboard Grid */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .dashboard-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Return Progress Steps */
+    .return-progress {
+      margin-bottom: 20px;
+    }
+
+    .progress-steps {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 16px;
+      position: relative;
+    }
+
+    .progress-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      position: relative;
+    }
+
+    .progress-step::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: -50%;
+      right: 50%;
+      height: 2px;
+      background: var(--gray-200);
+    }
+
+    .progress-step:first-child::before {
+      display: none;
+    }
+
+    .progress-step.completed::before {
+      background: var(--secondary);
+    }
+
+    .progress-step.active::before {
+      background: var(--primary);
+    }
+
+    .step-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--gray-200);
+      border: 3px solid white;
+      box-shadow: 0 0 0 2px var(--gray-200);
+      z-index: 1;
+      margin-bottom: 8px;
+    }
+
+    .progress-step.completed .step-dot {
+      background: var(--secondary);
+      box-shadow: 0 0 0 2px var(--secondary);
+    }
+
+    .progress-step.active .step-dot {
+      background: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    .progress-step .step-label {
+      font-size: 11px;
+      color: var(--gray-500);
+      text-align: center;
+    }
+
+    .progress-step.completed .step-label {
+      color: var(--secondary);
+    }
+
+    .progress-step.active .step-label {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .return-info {
+      background: var(--gray-50);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+    }
+
+    .return-info p {
+      font-size: 14px;
+      color: var(--gray-600);
+      margin-bottom: 8px;
+    }
+
+    .return-info p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Action Items */
+    .action-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: var(--gray-50);
+      border-radius: var(--radius-sm);
+      margin-bottom: 12px;
+      border-left: 4px solid var(--gray-300);
+    }
+
+    .action-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .action-item.urgent {
+      background: var(--error-light);
+      border-left-color: var(--error);
+    }
+
+    .action-icon {
+      font-size: 24px;
+    }
+
+    .action-content {
+      flex: 1;
+    }
+
+    .action-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--gray-700);
+      margin-bottom: 2px;
+    }
+
+    .action-desc {
+      font-size: 13px;
+      color: var(--gray-500);
+    }
+
+    /* Activity Timeline */
+    .activity-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .activity-timeline .timeline-item {
+      display: flex;
+      gap: 16px;
+      padding-bottom: 0;
+    }
+
+    .timeline-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+
+    .activity-timeline .timeline-content {
+      flex: 1;
+      padding-top: 0;
+    }
+
+    .activity-timeline .timeline-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--gray-700);
+      margin-bottom: 2px;
+    }
+
+    .activity-timeline .timeline-desc {
+      font-size: 13px;
+      color: var(--gray-500);
+    }
+
+    .activity-timeline .timeline-time {
+      font-size: 11px;
+      color: var(--gray-400);
+      margin-top: 4px;
+    }
+
+    /* Data Table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .data-table th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 2px solid var(--gray-100);
+    }
+
+    .data-table td {
+      padding: 16px;
+      font-size: 14px;
+      color: var(--gray-600);
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .data-table tbody tr:hover {
+      background: var(--gray-50);
+    }
+
+    /* Status Badges */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-badge.status-progress {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .status-badge.status-complete {
+      background: var(--secondary-light);
+      color: var(--secondary);
+    }
+
+    .status-badge.status-pending {
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+
+    /* Document Requests */
+    .doc-request {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      background: var(--gray-50);
+      border-radius: var(--radius-sm);
+      margin-bottom: 12px;
+      border-left: 4px solid var(--primary);
+    }
+
+    .doc-request:last-child {
+      margin-bottom: 0;
+    }
+
+    .doc-request.urgent {
+      background: var(--error-light);
+      border-left-color: var(--error);
+    }
+
+    .doc-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--gray-700);
+    }
+
+    .doc-desc {
+      font-size: 13px;
+      color: var(--gray-500);
+      margin-top: 2px;
+    }
+
+    .doc-meta {
+      font-size: 12px;
+      color: var(--gray-400);
+      margin-top: 2px;
+    }
+
+    /* Uploaded Documents */
+    .uploaded-doc {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--gray-50);
+      border-radius: var(--radius-sm);
+      margin-bottom: 8px;
+    }
+
+    .uploaded-doc:last-child {
+      margin-bottom: 0;
+    }
+
+    .doc-icon {
+      font-size: 24px;
+    }
+
+    .uploaded-doc .doc-info {
+      flex: 1;
+    }
+
+    /* Messages */
+    .messages-card {
+      display: flex;
+      flex-direction: column;
+      height: 500px;
+    }
+
+    .messages-card .card-body {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message {
+      display: flex;
+      gap: 12px;
+      max-width: 80%;
+    }
+
+    .message.sent {
+      margin-left: auto;
+      flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .message-content {
+      background: var(--gray-100);
+      padding: 12px 16px;
+      border-radius: var(--radius);
+    }
+
+    .message.sent .message-content {
+      background: var(--primary);
+      color: white;
+    }
+
+    .message-text {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .message-time {
+      font-size: 11px;
+      color: var(--gray-500);
+      margin-top: 4px;
+    }
+
+    .message.sent .message-time {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .message-input-area {
+      display: flex;
+      gap: 12px;
+      padding: 16px 24px;
+      border-top: 1px solid var(--gray-100);
+      background: white;
+    }
+
+    .message-input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .message-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    /* Balance Display */
+    .balance-display {
+      text-align: center;
+      padding: 24px;
+    }
+
+    .balance-amount {
+      font-size: 42px;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+
+    .balance-status {
+      font-size: 14px;
+      color: var(--secondary);
+      margin-top: 8px;
+    }
+
+    .balance-status.due {
+      color: var(--error);
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow: hidden;
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .modal-header h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: var(--gray-500);
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .modal-close:hover {
+      color: var(--gray-700);
+    }
+
+    .modal-body {
+      padding: 24px;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 16px 24px;
+      border-top: 1px solid var(--gray-100);
+      background: var(--gray-50);
+    }
+
+    /* Form Select */
+    .form-select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-family: inherit;
+      background: white;
+      cursor: pointer;
+    }
+
+    .form-select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    /* Small Button Variant */
+    .btn-sm {
+      padding: 8px 16px;
+      font-size: 13px;
+      min-height: 36px;
+    }
+
+    /* Logout Button */
+    .btn-logout {
+      background: none;
+      border: none;
+      color: var(--gray-400);
+      cursor: pointer;
+      padding: 4px 8px;
+      font-size: 14px;
+      margin-left: 8px;
+      transition: var(--transition);
+    }
+
+    .btn-logout:hover {
+      color: var(--error);
+    }
+
+    /* Card Header Actions */
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-header h3 {
+      margin: 0;
+    }
+
+    /* ================================================================
        RESPONSIVE
        ================================================================ */
     @media (max-width: 768px) {
@@ -1143,6 +1848,11 @@
       .card-header, .card-body { padding: 16px; }
       .stepper { overflow-x: auto; padding-bottom: 8px; }
       .step-connector { width: 40px; }
+      .dashboard-header { flex-direction: column; gap: 16px; text-align: center; }
+      .dashboard-cpa-info { width: 100%; justify-content: center; }
+      .message { max-width: 90%; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 10px 8px; }
     }
   </style>
 </head>
@@ -1609,6 +2319,377 @@
           </div>
         </div>
       </div>
+
+      <!-- ================================================================
+           CLIENT DASHBOARD - Post-Conversion Experience
+           Shown when user is an active client (not just a lead)
+           ================================================================ -->
+      <div class="screen" id="screen-dashboard">
+        <div class="dashboard-header">
+          <div class="dashboard-welcome">
+            <h1>Welcome back, <span id="dashboard-client-name">Client</span>!</h1>
+            <p>Here's the status of your tax services</p>
+          </div>
+          <div class="dashboard-cpa-info">
+            <div class="cpa-avatar" id="dashboard-cpa-avatar">JD</div>
+            <div>
+              <div class="cpa-name" id="dashboard-cpa-name">Your CPA</div>
+              <div class="cpa-contact">
+                <a href="#" id="dashboard-cpa-email-link">Contact</a>
+                <span>|</span>
+                <a href="#" id="dashboard-cpa-phone-link">Call</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Stats -->
+        <div class="dashboard-stats">
+          <div class="dash-stat-card">
+            <div class="dash-stat-icon" style="background: var(--primary-light); color: var(--primary);">&#128196;</div>
+            <div class="dash-stat-content">
+              <div class="dash-stat-value" id="dash-returns-count">0</div>
+              <div class="dash-stat-label">Active Returns</div>
+            </div>
+          </div>
+          <div class="dash-stat-card">
+            <div class="dash-stat-icon" style="background: var(--secondary-light); color: var(--secondary);">&#128206;</div>
+            <div class="dash-stat-content">
+              <div class="dash-stat-value" id="dash-docs-pending">0</div>
+              <div class="dash-stat-label">Docs Needed</div>
+            </div>
+          </div>
+          <div class="dash-stat-card">
+            <div class="dash-stat-icon" style="background: var(--accent-light); color: var(--accent);">&#128172;</div>
+            <div class="dash-stat-content">
+              <div class="dash-stat-value" id="dash-messages-count">0</div>
+              <div class="dash-stat-label">Messages</div>
+            </div>
+          </div>
+          <div class="dash-stat-card">
+            <div class="dash-stat-icon" style="background: var(--error-light); color: var(--error);">&#128176;</div>
+            <div class="dash-stat-content">
+              <div class="dash-stat-value" id="dash-balance">$0</div>
+              <div class="dash-stat-label">Balance Due</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Tabs -->
+        <div class="dashboard-tabs">
+          <button class="dash-tab active" onclick="showDashboardTab('overview')">Overview</button>
+          <button class="dash-tab" onclick="showDashboardTab('returns')">My Returns</button>
+          <button class="dash-tab" onclick="showDashboardTab('documents')">Documents</button>
+          <button class="dash-tab" onclick="showDashboardTab('messages')">Messages</button>
+          <button class="dash-tab" onclick="showDashboardTab('billing')">Billing</button>
+        </div>
+
+        <!-- Tab Content: Overview -->
+        <div class="dash-tab-content active" id="tab-overview">
+          <div class="dashboard-grid">
+            <!-- Current Return Status -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Current Return Status</h3>
+                <span class="status-badge" id="return-status-badge">In Progress</span>
+              </div>
+              <div class="card-body">
+                <div class="return-progress">
+                  <div class="progress-bar">
+                    <div class="progress-fill" id="return-progress-fill" style="width: 40%"></div>
+                  </div>
+                  <div class="progress-steps" id="return-progress-steps">
+                    <div class="progress-step completed">
+                      <div class="step-dot"></div>
+                      <div class="step-label">Info Received</div>
+                    </div>
+                    <div class="progress-step active">
+                      <div class="step-dot"></div>
+                      <div class="step-label">In Review</div>
+                    </div>
+                    <div class="progress-step">
+                      <div class="step-dot"></div>
+                      <div class="step-label">Ready for Review</div>
+                    </div>
+                    <div class="progress-step">
+                      <div class="step-dot"></div>
+                      <div class="step-label">Filed</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="return-info" id="return-info">
+                  <p><strong>Tax Year:</strong> <span id="return-tax-year">2024</span></p>
+                  <p><strong>Return Type:</strong> <span id="return-type">1040 Individual</span></p>
+                  <p><strong>Last Updated:</strong> <span id="return-updated">Today</span></p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Items -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">&#9888; Action Required</h3>
+              </div>
+              <div class="card-body" id="action-items-list">
+                <div class="action-item urgent">
+                  <div class="action-icon">&#128206;</div>
+                  <div class="action-content">
+                    <div class="action-title">Upload W-2 Forms</div>
+                    <div class="action-desc">Your CPA needs your W-2 from all employers</div>
+                  </div>
+                  <button class="btn btn-sm btn-primary" onclick="showDashboardTab('documents')">Upload</button>
+                </div>
+                <div class="action-item">
+                  <div class="action-icon">&#128172;</div>
+                  <div class="action-content">
+                    <div class="action-title">Review Message</div>
+                    <div class="action-desc">Your CPA has a question about your deductions</div>
+                  </div>
+                  <button class="btn btn-sm btn-secondary" onclick="showDashboardTab('messages')">View</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="card" style="margin-top: 24px;">
+            <div class="card-header">
+              <h3 class="card-title">Recent Activity</h3>
+            </div>
+            <div class="card-body" id="recent-activity">
+              <div class="activity-timeline">
+                <div class="timeline-item">
+                  <div class="timeline-dot" style="background: var(--secondary);"></div>
+                  <div class="timeline-content">
+                    <div class="timeline-title">Document Received</div>
+                    <div class="timeline-desc">Your W-2 has been received and is being processed</div>
+                    <div class="timeline-time">2 hours ago</div>
+                  </div>
+                </div>
+                <div class="timeline-item">
+                  <div class="timeline-dot" style="background: var(--primary);"></div>
+                  <div class="timeline-content">
+                    <div class="timeline-title">Return Started</div>
+                    <div class="timeline-desc">Your CPA has started preparing your 2024 tax return</div>
+                    <div class="timeline-time">Yesterday</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Content: My Returns -->
+        <div class="dash-tab-content" id="tab-returns">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Tax Returns</h3>
+            </div>
+            <div class="card-body" id="returns-list">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Tax Year</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Refund/Owed</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="returns-table-body">
+                  <tr>
+                    <td>2024</td>
+                    <td>1040 Individual</td>
+                    <td><span class="status-badge status-progress">In Progress</span></td>
+                    <td>Calculating...</td>
+                    <td><button class="btn btn-sm btn-secondary">View</button></td>
+                  </tr>
+                  <tr>
+                    <td>2023</td>
+                    <td>1040 Individual</td>
+                    <td><span class="status-badge status-complete">Filed</span></td>
+                    <td style="color: var(--secondary);">+$2,847 Refund</td>
+                    <td><button class="btn btn-sm btn-secondary">Download</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Content: Documents -->
+        <div class="dash-tab-content" id="tab-documents">
+          <div class="dashboard-grid">
+            <!-- Document Requests -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">&#128206; Documents Needed</h3>
+              </div>
+              <div class="card-body" id="doc-requests-list">
+                <div class="doc-request urgent">
+                  <div class="doc-info">
+                    <div class="doc-name">W-2 Forms</div>
+                    <div class="doc-desc">From all employers for 2024</div>
+                  </div>
+                  <div class="doc-actions">
+                    <input type="file" id="upload-w2" style="display: none;" onchange="uploadRequestedDoc(this, 'w2')">
+                    <button class="btn btn-sm btn-primary" onclick="document.getElementById('upload-w2').click()">Upload</button>
+                  </div>
+                </div>
+                <div class="doc-request">
+                  <div class="doc-info">
+                    <div class="doc-name">1099-INT</div>
+                    <div class="doc-desc">Interest income statements</div>
+                  </div>
+                  <div class="doc-actions">
+                    <input type="file" id="upload-1099int" style="display: none;" onchange="uploadRequestedDoc(this, '1099-int')">
+                    <button class="btn btn-sm btn-primary" onclick="document.getElementById('upload-1099int').click()">Upload</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Uploaded Documents -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">&#128193; Uploaded Documents</h3>
+                <button class="btn btn-sm btn-secondary" onclick="openUploadModal()">+ Upload New</button>
+              </div>
+              <div class="card-body" id="uploaded-docs-list">
+                <div class="uploaded-doc">
+                  <div class="doc-icon">&#128196;</div>
+                  <div class="doc-info">
+                    <div class="doc-name">W2_Employer1_2024.pdf</div>
+                    <div class="doc-meta">Uploaded Jan 15, 2025 • 245 KB</div>
+                  </div>
+                  <span class="status-badge status-complete">Received</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Content: Messages -->
+        <div class="dash-tab-content" id="tab-messages">
+          <div class="card messages-card">
+            <div class="card-header">
+              <h3 class="card-title">&#128172; Messages with <span id="messages-cpa-name">Your CPA</span></h3>
+            </div>
+            <div class="card-body messages-body" id="messages-container">
+              <div class="message received">
+                <div class="message-avatar">JD</div>
+                <div class="message-content">
+                  <div class="message-text">Hi! I've started reviewing your documents. Quick question - did you have any additional 1099 income this year?</div>
+                  <div class="message-time">Yesterday at 2:30 PM</div>
+                </div>
+              </div>
+              <div class="message sent">
+                <div class="message-content">
+                  <div class="message-text">Yes, I had some freelance work. I'll upload those 1099s now.</div>
+                  <div class="message-time">Yesterday at 3:15 PM</div>
+                </div>
+              </div>
+              <div class="message received">
+                <div class="message-avatar">JD</div>
+                <div class="message-content">
+                  <div class="message-text">Perfect! Once I receive those, I should have your return ready for review within 2-3 business days.</div>
+                  <div class="message-time">Yesterday at 3:20 PM</div>
+                </div>
+              </div>
+            </div>
+            <div class="message-input-area">
+              <input type="text" id="message-input" class="message-input" placeholder="Type your message...">
+              <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Content: Billing -->
+        <div class="dash-tab-content" id="tab-billing">
+          <div class="dashboard-grid">
+            <!-- Current Balance -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Current Balance</h3>
+              </div>
+              <div class="card-body">
+                <div class="balance-display">
+                  <div class="balance-amount" id="billing-balance">$0.00</div>
+                  <div class="balance-status" id="billing-status">Paid in Full</div>
+                </div>
+                <button class="btn btn-primary" id="pay-now-btn" style="display: none;">Pay Now</button>
+              </div>
+            </div>
+
+            <!-- Payment History -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Invoices & Payments</h3>
+              </div>
+              <div class="card-body" id="invoices-list">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Description</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="invoices-table-body">
+                    <tr>
+                      <td>Jan 10, 2025</td>
+                      <td>2024 Tax Return Preparation</td>
+                      <td>$350.00</td>
+                      <td><span class="status-badge status-pending">Due Feb 1</span></td>
+                      <td><button class="btn btn-sm btn-primary">Pay</button></td>
+                    </tr>
+                    <tr>
+                      <td>Apr 15, 2024</td>
+                      <td>2023 Tax Return Preparation</td>
+                      <td>$300.00</td>
+                      <td><span class="status-badge status-complete">Paid</span></td>
+                      <td><button class="btn btn-sm btn-secondary">Receipt</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Modal -->
+  <div class="modal-overlay" id="upload-modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Upload Document</h3>
+        <button class="modal-close" onclick="closeUploadModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Document Type</label>
+          <select id="upload-doc-type" class="form-select">
+            <option value="w2">W-2</option>
+            <option value="1099">1099</option>
+            <option value="1098">1098 (Mortgage Interest)</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="upload-zone" id="modal-upload-zone">
+          <input type="file" id="modal-file-input" style="display: none;" onchange="handleModalUpload(this)">
+          <div class="upload-icon">&#128206;</div>
+          <p>Drag and drop or <a href="#" onclick="document.getElementById('modal-file-input').click(); return false;">browse</a></p>
+          <p class="upload-hint">PDF, JPG, PNG (max 10MB)</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeUploadModal()">Cancel</button>
+        <button class="btn btn-primary" id="modal-upload-btn" disabled>Upload</button>
+      </div>
     </div>
   </div>
 
@@ -1620,6 +2701,7 @@
     // APPLICATION STATE - Lead Magnet Flow
     // ================================================================
     const API_BASE = '/api/cpa';
+    const CORE_API = '/api/core';  // Unified Core Platform API
 
     const state = {
       currentStep: 1,
@@ -1676,7 +2758,29 @@
       },
 
       documents: [],
-      startTime: null
+      startTime: null,
+
+      // Client Dashboard State (post-conversion)
+      clientDashboard: {
+        isAuthenticated: false,
+        clientId: null,
+        clientName: '',
+        assignedCpa: {
+          id: null,
+          name: '',
+          initials: '',
+          email: '',
+          phone: ''
+        },
+        returns: [],
+        currentReturn: null,
+        documentRequests: [],
+        uploadedDocuments: [],
+        messages: [],
+        invoices: [],
+        balance: 0,
+        unreadMessages: 0
+      }
     };
 
     // ================================================================
@@ -1705,6 +2809,12 @@
 
       // Setup drag and drop
       setupDragAndDrop();
+
+      // Check for client dashboard access (authenticated client)
+      const clientToken = urlParams.get('token') || localStorage.getItem('client_token');
+      if (clientToken) {
+        await loadClientDashboard();
+      }
     });
 
     // ================================================================
@@ -2752,6 +3862,880 @@
 
       // Go to saved step
       goToStep(state.currentStep);
+    }
+
+    // ================================================================
+    // CLIENT DASHBOARD - Post-Conversion Experience
+    // ================================================================
+
+    /**
+     * Load the client dashboard after authentication
+     */
+    async function loadClientDashboard() {
+      try {
+        // Check for client token in URL or localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        const clientToken = urlParams.get('token') || localStorage.getItem('client_token');
+
+        if (!clientToken) {
+          console.log('No client token found');
+          return;
+        }
+
+        // Store token
+        localStorage.setItem('client_token', clientToken);
+
+        // Load client data from API
+        const clientData = await clientApi('/client/dashboard');
+
+        // Update state
+        state.clientDashboard = {
+          ...state.clientDashboard,
+          isAuthenticated: true,
+          clientId: clientData.client_id,
+          clientName: clientData.name || 'Client',
+          assignedCpa: {
+            id: clientData.cpa?.id,
+            name: clientData.cpa?.name || 'Your CPA',
+            initials: getInitials(clientData.cpa?.name || 'CPA'),
+            email: clientData.cpa?.email || '',
+            phone: clientData.cpa?.phone || ''
+          },
+          returns: clientData.returns || [],
+          currentReturn: clientData.current_return || null,
+          documentRequests: clientData.document_requests || [],
+          uploadedDocuments: clientData.uploaded_documents || [],
+          messages: clientData.messages || [],
+          invoices: clientData.invoices || [],
+          balance: clientData.balance || 0,
+          unreadMessages: clientData.unread_messages || 0
+        };
+
+        // Show dashboard
+        showDashboard();
+        updateDashboardUI();
+
+      } catch (error) {
+        console.error('Failed to load dashboard:', error);
+        showToast('Failed to load dashboard. Please try again.', 'error');
+      }
+    }
+
+    /**
+     * Show the client dashboard screen
+     */
+    function showDashboard() {
+      // Hide stepper and other screens
+      document.getElementById('stepper').style.display = 'none';
+
+      // Hide all screens
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+
+      // Show dashboard
+      document.getElementById('screen-dashboard').classList.add('active');
+
+      // Update header for dashboard mode
+      const userDisplay = document.getElementById('user-display');
+      userDisplay.innerHTML = `
+        <span>&#128100;</span>
+        <span>${escapeHtml(state.clientDashboard.clientName)}</span>
+        <button class="btn-logout" onclick="logout()" title="Logout">&#x2715;</button>
+      `;
+    }
+
+    /**
+     * Update all dashboard UI elements with current state
+     */
+    function updateDashboardUI() {
+      const dash = state.clientDashboard;
+
+      // Update welcome section
+      document.getElementById('dashboard-client-name').textContent = escapeHtml(dash.clientName);
+
+      // Update CPA info
+      document.getElementById('dashboard-cpa-avatar').textContent = dash.assignedCpa.initials;
+      document.getElementById('dashboard-cpa-name').textContent = escapeHtml(dash.assignedCpa.name);
+      document.getElementById('dashboard-cpa-email-link').href = `mailto:${dash.assignedCpa.email}`;
+      document.getElementById('dashboard-cpa-phone-link').href = `tel:${dash.assignedCpa.phone}`;
+
+      // Update stats
+      document.getElementById('dash-returns-count').textContent = dash.returns.filter(r => r.status !== 'filed').length;
+      document.getElementById('dash-docs-pending').textContent = dash.documentRequests.filter(d => !d.fulfilled).length;
+      document.getElementById('dash-messages-count').textContent = dash.unreadMessages;
+      document.getElementById('dash-balance').textContent = formatCurrency(dash.balance);
+
+      // Update current return status
+      if (dash.currentReturn) {
+        updateReturnProgress(dash.currentReturn);
+      }
+
+      // Update action items
+      updateActionItems();
+
+      // Update messages tab CPA name
+      document.getElementById('messages-cpa-name').textContent = escapeHtml(dash.assignedCpa.name);
+
+      // Update billing balance
+      document.getElementById('billing-balance').textContent = formatCurrency(dash.balance);
+      const balanceStatus = document.getElementById('billing-status');
+      const payBtn = document.getElementById('pay-now-btn');
+      if (dash.balance > 0) {
+        balanceStatus.textContent = 'Payment Due';
+        balanceStatus.classList.add('due');
+        payBtn.style.display = 'block';
+      } else {
+        balanceStatus.textContent = 'Paid in Full';
+        balanceStatus.classList.remove('due');
+        payBtn.style.display = 'none';
+      }
+    }
+
+    /**
+     * Switch between dashboard tabs
+     */
+    function showDashboardTab(tabName) {
+      // Update tab buttons
+      document.querySelectorAll('.dash-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      event.currentTarget?.classList.add('active');
+
+      // Find the clicked tab button if not using event
+      if (!event?.currentTarget) {
+        document.querySelectorAll('.dash-tab').forEach(tab => {
+          if (tab.textContent.toLowerCase().includes(tabName.toLowerCase())) {
+            tab.classList.add('active');
+          }
+        });
+      }
+
+      // Update tab content
+      document.querySelectorAll('.dash-tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+
+      // Load tab-specific data
+      switch (tabName) {
+        case 'returns':
+          loadReturnsTab();
+          break;
+        case 'documents':
+          loadDocumentsTab();
+          break;
+        case 'messages':
+          loadMessagesTab();
+          scrollToLatestMessage();
+          break;
+        case 'billing':
+          loadBillingTab();
+          break;
+      }
+    }
+
+    /**
+     * Update return progress visualization
+     */
+    function updateReturnProgress(returnData) {
+      const stages = ['received', 'review', 'ready', 'filed'];
+      const currentStageIndex = stages.indexOf(returnData.status || 'received');
+      const progress = ((currentStageIndex + 1) / stages.length) * 100;
+
+      document.getElementById('return-progress-fill').style.width = `${progress}%`;
+      document.getElementById('return-tax-year').textContent = returnData.tax_year || new Date().getFullYear();
+      document.getElementById('return-type').textContent = returnData.return_type || '1040 Individual';
+      document.getElementById('return-updated').textContent = formatRelativeTime(returnData.updated_at);
+
+      // Update progress steps
+      const stepsContainer = document.getElementById('return-progress-steps');
+      const steps = stepsContainer.querySelectorAll('.progress-step');
+      steps.forEach((step, index) => {
+        step.classList.remove('completed', 'active');
+        if (index < currentStageIndex) {
+          step.classList.add('completed');
+        } else if (index === currentStageIndex) {
+          step.classList.add('active');
+        }
+      });
+
+      // Update status badge
+      const statusBadge = document.getElementById('return-status-badge');
+      const statusLabels = {
+        'received': 'Info Received',
+        'review': 'In Review',
+        'ready': 'Ready for Review',
+        'filed': 'Filed'
+      };
+      statusBadge.textContent = statusLabels[returnData.status] || 'In Progress';
+      statusBadge.className = `status-badge status-${returnData.status === 'filed' ? 'complete' : 'progress'}`;
+    }
+
+    /**
+     * Update action items in overview
+     */
+    function updateActionItems() {
+      const container = document.getElementById('action-items-list');
+      const dash = state.clientDashboard;
+      const items = [];
+
+      // Add pending document requests
+      dash.documentRequests.filter(d => !d.fulfilled).forEach(doc => {
+        items.push({
+          type: 'document',
+          urgent: doc.urgent,
+          icon: '&#128206;',
+          title: `Upload ${escapeHtml(doc.name)}`,
+          desc: escapeHtml(doc.description || 'Your CPA needs this document'),
+          action: 'Upload',
+          handler: `showDashboardTab('documents')`
+        });
+      });
+
+      // Add unread messages
+      if (dash.unreadMessages > 0) {
+        items.push({
+          type: 'message',
+          urgent: false,
+          icon: '&#128172;',
+          title: `${dash.unreadMessages} New Message${dash.unreadMessages > 1 ? 's' : ''}`,
+          desc: 'You have unread messages from your CPA',
+          action: 'View',
+          handler: `showDashboardTab('messages')`
+        });
+      }
+
+      // Add pending invoices
+      dash.invoices.filter(i => i.status === 'pending').forEach(inv => {
+        items.push({
+          type: 'invoice',
+          urgent: isOverdue(inv.due_date),
+          icon: '&#128176;',
+          title: `Payment Due: ${formatCurrency(inv.amount)}`,
+          desc: `Due ${formatDate(inv.due_date)}`,
+          action: 'Pay',
+          handler: `showDashboardTab('billing')`
+        });
+      });
+
+      if (items.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state" style="padding: 24px;">
+            <div class="empty-icon">&#10003;</div>
+            <div class="empty-title">All caught up!</div>
+            <div class="empty-desc">No action items at this time.</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = items.slice(0, 5).map(item => `
+        <div class="action-item ${item.urgent ? 'urgent' : ''}">
+          <div class="action-icon">${item.icon}</div>
+          <div class="action-content">
+            <div class="action-title">${item.title}</div>
+            <div class="action-desc">${item.desc}</div>
+          </div>
+          <button class="btn btn-sm btn-${item.urgent ? 'primary' : 'secondary'}" onclick="${item.handler}">${item.action}</button>
+        </div>
+      `).join('');
+    }
+
+    /**
+     * Load returns tab data - Uses Core Platform API
+     */
+    async function loadReturnsTab() {
+      try {
+        // Use Core API for tax returns
+        const returns = await coreApi('/tax-returns/my');
+        state.clientDashboard.returns = returns;
+
+        const tbody = document.getElementById('returns-table-body');
+        if (returns.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px;">No tax returns yet.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = returns.map(ret => `
+          <tr>
+            <td>${ret.tax_year}</td>
+            <td>${escapeHtml(ret.return_type || 'individual')}</td>
+            <td><span class="status-badge status-${getStatusClass(ret.status)}">${escapeHtml(formatStatus(ret.status))}</span></td>
+            <td style="color: ${ret.refund_amount > 0 ? 'var(--secondary)' : 'var(--error)'};">
+              ${ret.refund_amount !== undefined ? (ret.refund_amount > 0 ? '+' : '') + formatCurrency(ret.refund_amount) + (ret.refund_amount > 0 ? ' Refund' : ' Owed') : 'Calculating...'}
+            </td>
+            <td>
+              ${ret.status === 'filed'
+                ? `<button class="btn btn-sm btn-secondary" onclick="downloadReturn('${ret.id}')">Download</button>`
+                : `<button class="btn btn-sm btn-secondary" onclick="viewReturnDetails('${ret.id}')">View</button>`
+              }
+            </td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        console.error('Failed to load returns:', error);
+      }
+    }
+
+    /**
+     * Format status for display
+     */
+    function formatStatus(status) {
+      const statusLabels = {
+        'draft': 'Draft',
+        'in_progress': 'In Progress',
+        'pending_review': 'Pending Review',
+        'under_review': 'Under Review',
+        'needs_info': 'Needs Info',
+        'approved': 'Approved',
+        'filed': 'Filed',
+        'rejected': 'Rejected'
+      };
+      return statusLabels[status] || status;
+    }
+
+    /**
+     * Load documents tab data - Uses Core Platform API
+     */
+    async function loadDocumentsTab() {
+      try {
+        // Use Core API for documents
+        const [requests, uploads] = await Promise.all([
+          coreApi('/documents/requests/pending'),
+          coreApi('/documents/my')
+        ]);
+
+        state.clientDashboard.documentRequests = requests;
+        state.clientDashboard.uploadedDocuments = uploads;
+
+        // Update requests list
+        const requestsList = document.getElementById('doc-requests-list');
+        if (requests.length === 0) {
+          requestsList.innerHTML = `<div style="text-align: center; padding: 24px; color: var(--gray-500);">No documents needed at this time.</div>`;
+        } else {
+          requestsList.innerHTML = requests.filter(d => d.status === 'pending').map((doc, i) => `
+            <div class="doc-request ${doc.required ? 'urgent' : ''}">
+              <div class="doc-info">
+                <div class="doc-name">${escapeHtml(doc.category)}</div>
+                <div class="doc-desc">${escapeHtml(doc.description)}</div>
+              </div>
+              <div class="doc-actions">
+                <input type="file" id="upload-req-${i}" style="display: none;" onchange="uploadRequestedDoc(this, '${doc.id}')">
+                <button class="btn btn-sm btn-primary" onclick="document.getElementById('upload-req-${i}').click()">Upload</button>
+              </div>
+            </div>
+          `).join('');
+        }
+
+        // Update uploads list
+        const uploadsList = document.getElementById('uploaded-docs-list');
+        if (uploads.length === 0) {
+          uploadsList.innerHTML = `<div style="text-align: center; padding: 24px; color: var(--gray-500);">No documents uploaded yet.</div>`;
+        } else {
+          uploadsList.innerHTML = uploads.map(doc => `
+            <div class="uploaded-doc">
+              <div class="doc-icon">&#128196;</div>
+              <div class="doc-info">
+                <div class="doc-name">${escapeHtml(doc.filename || doc.original_filename)}</div>
+                <div class="doc-meta">Uploaded ${formatDate(doc.uploaded_at)} &bull; ${formatFileSize(doc.file_size)}</div>
+              </div>
+              <span class="status-badge status-${getDocStatusClass(doc.status)}">${escapeHtml(formatDocStatus(doc.status))}</span>
+            </div>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('Failed to load documents:', error);
+      }
+    }
+
+    /**
+     * Get document status CSS class
+     */
+    function getDocStatusClass(status) {
+      const classes = {
+        'pending': 'pending',
+        'uploaded': 'progress',
+        'verified': 'complete',
+        'rejected': 'error'
+      };
+      return classes[status] || 'progress';
+    }
+
+    /**
+     * Format document status for display
+     */
+    function formatDocStatus(status) {
+      const labels = {
+        'pending': 'Pending',
+        'uploaded': 'Received',
+        'verified': 'Verified',
+        'rejected': 'Rejected'
+      };
+      return labels[status] || status;
+    }
+
+    /**
+     * Upload a document for a specific request
+     */
+    async function uploadRequestedDoc(input, requestId) {
+      const file = input.files[0];
+      if (!file) return;
+
+      try {
+        showToast('Uploading document...', 'info');
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('request_id', requestId);
+
+        await clientApiUpload('/client/documents/upload', formData);
+
+        showToast('Document uploaded successfully!', 'success');
+        loadDocumentsTab();
+        updateActionItems();
+
+      } catch (error) {
+        console.error('Upload failed:', error);
+        showToast('Failed to upload document. Please try again.', 'error');
+      }
+
+      // Reset input
+      input.value = '';
+    }
+
+    /**
+     * Open upload modal
+     */
+    function openUploadModal() {
+      document.getElementById('upload-modal').style.display = 'flex';
+    }
+
+    /**
+     * Close upload modal
+     */
+    function closeUploadModal() {
+      document.getElementById('upload-modal').style.display = 'none';
+      document.getElementById('modal-file-input').value = '';
+      document.getElementById('modal-upload-btn').disabled = true;
+    }
+
+    /**
+     * Handle file selection in upload modal
+     */
+    function handleModalUpload(input) {
+      const file = input.files[0];
+      document.getElementById('modal-upload-btn').disabled = !file;
+
+      if (file) {
+        // Update modal UI to show selected file
+        const uploadZone = document.getElementById('modal-upload-zone');
+        uploadZone.innerHTML = `
+          <div class="file-item" style="border: none; background: none;">
+            <div class="file-icon">&#128196;</div>
+            <div class="file-info">
+              <div class="file-name">${escapeHtml(file.name)}</div>
+              <div class="file-size">${formatFileSize(file.size)}</div>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="resetModalUpload()">Change</button>
+          </div>
+        `;
+      }
+    }
+
+    /**
+     * Reset modal upload zone
+     */
+    function resetModalUpload() {
+      document.getElementById('modal-file-input').value = '';
+      document.getElementById('modal-upload-btn').disabled = true;
+      document.getElementById('modal-upload-zone').innerHTML = `
+        <input type="file" id="modal-file-input" style="display: none;" onchange="handleModalUpload(this)">
+        <div class="upload-icon">&#128206;</div>
+        <p>Drag and drop or <a href="#" onclick="document.getElementById('modal-file-input').click(); return false;">browse</a></p>
+        <p class="upload-hint">PDF, JPG, PNG (max 10MB)</p>
+      `;
+    }
+
+    /**
+     * Load messages tab data
+     */
+    async function loadMessagesTab() {
+      try {
+        // Use Core API for messaging - get conversations first
+        const conversations = await coreApi('/messages/conversations');
+
+        // Get the first conversation (CPA conversation) or empty
+        const conversation = conversations.find(c => c.type === 'tax_return' || c.type === 'direct') || conversations[0];
+
+        if (!conversation) {
+          const container = document.getElementById('messages-container');
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">&#128172;</div>
+              <div class="empty-title">No messages yet</div>
+              <div class="empty-desc">Send a message to your CPA to get started.</div>
+            </div>
+          `;
+          return;
+        }
+
+        // Store conversation ID for sending messages
+        state.clientDashboard.conversationId = conversation.id;
+
+        // Get messages in the conversation
+        const messages = await coreApi(`/messages/conversations/${conversation.id}/messages`);
+        state.clientDashboard.messages = messages;
+
+        const container = document.getElementById('messages-container');
+        if (messages.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">&#128172;</div>
+              <div class="empty-title">No messages yet</div>
+              <div class="empty-desc">Send a message to your CPA to get started.</div>
+            </div>
+          `;
+          return;
+        }
+
+        const cpa = state.clientDashboard.assignedCpa;
+        const myId = state.clientDashboard.clientId;
+
+        // Messages come in reverse order, so reverse for display
+        const sortedMessages = [...messages].reverse();
+
+        container.innerHTML = sortedMessages.map(msg => `
+          <div class="message ${msg.sender_id === myId ? 'sent' : 'received'}">
+            ${msg.sender_id !== myId ? `<div class="message-avatar">${getInitials(msg.sender_name)}</div>` : ''}
+            <div class="message-content">
+              <div class="message-text">${escapeHtml(msg.content)}</div>
+              <div class="message-time">${formatRelativeTime(msg.created_at)}</div>
+            </div>
+          </div>
+        `).join('');
+
+        // Mark conversation as read
+        await coreApi(`/messages/conversations/${conversation.id}/read`, { method: 'POST' }).catch(() => {});
+        state.clientDashboard.unreadMessages = 0;
+        document.getElementById('dash-messages-count').textContent = '0';
+
+      } catch (error) {
+        console.error('Failed to load messages:', error);
+      }
+    }
+
+    /**
+     * Send a message to CPA - Uses Core Platform API
+     */
+    async function sendMessage() {
+      const input = document.getElementById('message-input');
+      const content = input.value.trim();
+
+      if (!content) return;
+
+      try {
+        // Get or create conversation
+        let conversationId = state.clientDashboard.conversationId;
+
+        if (!conversationId && state.clientDashboard.assignedCpa?.id) {
+          // Create a new conversation
+          const newConv = await coreApi('/messages/conversations', {
+            method: 'POST',
+            body: JSON.stringify({
+              type: 'direct',
+              participant_ids: [state.clientDashboard.assignedCpa.id],
+              initial_message: content
+            })
+          });
+          conversationId = newConv.id;
+          state.clientDashboard.conversationId = conversationId;
+          input.value = '';
+          loadMessagesTab();
+          return;
+        }
+
+        // Send message to existing conversation
+        await coreApi(`/messages/conversations/${conversationId}/messages`, {
+          method: 'POST',
+          body: JSON.stringify({ content, message_type: 'text' })
+        });
+
+        input.value = '';
+
+        // Optimistically add message to UI
+        const container = document.getElementById('messages-container');
+        const messageEl = document.createElement('div');
+        messageEl.className = 'message sent';
+        messageEl.innerHTML = `
+          <div class="message-content">
+            <div class="message-text">${escapeHtml(content)}</div>
+            <div class="message-time">Just now</div>
+          </div>
+        `;
+        container.appendChild(messageEl);
+        scrollToLatestMessage();
+
+      } catch (error) {
+        console.error('Failed to send message:', error);
+        showToast('Failed to send message. Please try again.', 'error');
+      }
+    }
+
+    /**
+     * Scroll to latest message
+     */
+    function scrollToLatestMessage() {
+      const container = document.getElementById('messages-container');
+      container.scrollTop = container.scrollHeight;
+    }
+
+    /**
+     * Load billing tab data - Uses Core Platform API
+     */
+    async function loadBillingTab() {
+      try {
+        // Use Core API for billing
+        const [invoices, subscription] = await Promise.all([
+          coreApi('/billing/invoices'),
+          coreApi('/billing/subscription').catch(() => null)
+        ]);
+
+        state.clientDashboard.invoices = invoices || [];
+
+        // Calculate outstanding balance from unpaid invoices
+        const balance = invoices
+          .filter(inv => inv.status !== 'paid')
+          .reduce((sum, inv) => sum + inv.total, 0);
+        state.clientDashboard.balance = balance;
+
+        // Update balance display
+        document.getElementById('billing-balance').textContent = formatCurrency(balance);
+
+        const tbody = document.getElementById('invoices-table-body');
+        if (invoices.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px;">No invoices yet.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = invoices.map(inv => `
+          <tr>
+            <td>${formatDate(inv.created_at)}</td>
+            <td>${escapeHtml(inv.invoice_number)}</td>
+            <td>${formatCurrency(inv.total)}</td>
+            <td><span class="status-badge status-${inv.status === 'paid' ? 'complete' : 'pending'}">${inv.status === 'paid' ? 'Paid' : `Due ${formatDate(inv.due_date)}`}</span></td>
+            <td>
+              ${inv.status === 'paid'
+                ? `<button class="btn btn-sm btn-secondary" onclick="downloadReceipt('${inv.id}')">Receipt</button>`
+                : `<button class="btn btn-sm btn-primary" onclick="payInvoice('${inv.id}')">Pay</button>`
+              }
+            </td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        console.error('Failed to load billing:', error);
+      }
+    }
+
+    /**
+     * Core Platform API helper with auth
+     * Uses the unified /api/core endpoints
+     */
+    async function coreApi(endpoint, options = {}) {
+      const token = localStorage.getItem('client_token');
+      const response = await fetch(`${CORE_API}${endpoint}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...options.headers
+        },
+        ...options
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('client_token');
+          showToast('Session expired. Please log in again.', 'error');
+          setTimeout(() => window.location.href = '/client/login', 2000);
+        }
+        throw new Error((await response.json()).detail || 'Request failed');
+      }
+
+      return response.json();
+    }
+
+    /**
+     * Client API helper with auth (legacy CPA endpoints)
+     */
+    async function clientApi(endpoint, options = {}) {
+      const token = localStorage.getItem('client_token');
+      const response = await fetch(`${API_BASE}${endpoint}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...options.headers
+        },
+        ...options
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Token expired, redirect to login
+          localStorage.removeItem('client_token');
+          showToast('Session expired. Please log in again.', 'error');
+          setTimeout(() => window.location.href = '/client/login', 2000);
+        }
+        throw new Error((await response.json()).detail || 'Request failed');
+      }
+
+      return response.json();
+    }
+
+    /**
+     * Client API helper for file uploads
+     */
+    async function clientApiUpload(endpoint, formData) {
+      const token = localStorage.getItem('client_token');
+      const response = await fetch(`${API_BASE}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error((await response.json()).detail || 'Upload failed');
+      }
+
+      return response.json();
+    }
+
+    /**
+     * Logout client
+     */
+    function logout() {
+      localStorage.removeItem('client_token');
+      window.location.href = '/';
+    }
+
+    /**
+     * Download a filed return - Uses Core Platform API
+     */
+    async function downloadReturn(returnId) {
+      try {
+        // Core API doesn't have download yet, get the return details
+        const ret = await coreApi(`/tax-returns/${returnId}`);
+        showToast('Return download will be available when filing is complete.', 'info');
+      } catch (error) {
+        showToast('Failed to download return.', 'error');
+      }
+    }
+
+    /**
+     * View return details
+     */
+    function viewReturnDetails(returnId) {
+      const ret = state.clientDashboard.returns.find(r => r.id === returnId);
+      if (ret) {
+        state.clientDashboard.currentReturn = ret;
+        updateReturnProgress(ret);
+        showDashboardTab('overview');
+      }
+    }
+
+    /**
+     * Download payment receipt - Uses Core Platform API
+     */
+    async function downloadReceipt(invoiceId) {
+      try {
+        const response = await coreApi(`/billing/invoices/${invoiceId}/download`);
+        if (response.download_url) {
+          window.open(response.download_url, '_blank');
+        } else {
+          showToast('Receipt download started.', 'info');
+        }
+      } catch (error) {
+        showToast('Failed to download receipt.', 'error');
+      }
+    }
+
+    /**
+     * Pay an invoice - Uses Core Platform API
+     */
+    async function payInvoice(invoiceId) {
+      try {
+        const response = await coreApi(`/billing/invoices/${invoiceId}/pay`, { method: 'POST' });
+        if (response.success) {
+          showToast('Payment successful!', 'success');
+          loadBillingTab();
+        } else if (response.payment_url) {
+          window.location.href = response.payment_url;
+        }
+      } catch (error) {
+        showToast('Failed to process payment. Please try again.', 'error');
+      }
+    }
+
+    // ================================================================
+    // DASHBOARD HELPER FUNCTIONS
+    // ================================================================
+
+    function getInitials(name) {
+      if (!name) return '??';
+      return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    }
+
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function formatRelativeTime(dateStr) {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+      if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+      if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+      return formatDate(dateStr);
+    }
+
+    function formatFileSize(bytes) {
+      if (!bytes) return '0 B';
+      const units = ['B', 'KB', 'MB', 'GB'];
+      let i = 0;
+      while (bytes >= 1024 && i < units.length - 1) {
+        bytes /= 1024;
+        i++;
+      }
+      return `${bytes.toFixed(1)} ${units[i]}`;
+    }
+
+    function getStatusClass(status) {
+      const map = {
+        'received': 'progress',
+        'review': 'progress',
+        'ready': 'pending',
+        'filed': 'complete',
+        'pending': 'pending',
+        'paid': 'complete'
+      };
+      return map[status] || 'progress';
+    }
+
+    function isOverdue(dateStr) {
+      if (!dateStr) return false;
+      return new Date(dateStr) < new Date();
     }
 
     // ================================================================

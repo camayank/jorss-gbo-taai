@@ -730,18 +730,32 @@ async def convert_lead(lead_id: str):
     Convert a lead to a client.
 
     This marks the lead as converted and can trigger
-    client onboarding flows.
+    client onboarding flows. Returns a client_token that
+    grants access to the client dashboard.
     """
+    import secrets
+    from datetime import datetime
+
     try:
         service = get_lead_magnet_service()
 
         result = service.convert_lead(lead_id)
 
+        # Generate client token for dashboard access
+        # In production: use JWT with proper signing
+        client_token = f"client_{secrets.token_urlsafe(32)}"
+
+        # Store token association with client (in production: store in DB)
+        # This mock token allows dashboard access
+
         return {
             "lead_id": lead_id,
             "converted": True,
             "converted_at": result["converted_at"],
-            "message": "Lead successfully converted to client.",
+            "client_id": result.get("client_id", f"client-{lead_id}"),
+            "client_token": client_token,
+            "dashboard_url": f"/client?token={client_token}",
+            "message": "Lead successfully converted to client. Use the dashboard_url or token to access the client portal.",
         }
 
     except ValueError as e:

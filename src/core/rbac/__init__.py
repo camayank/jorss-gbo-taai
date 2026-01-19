@@ -72,7 +72,9 @@ from .dependencies import (
     require_any_permission,
     RequirePermission,
     RequireRole,
+    RequireSubscriptionTier,
     require_firm_context,
+    require_firm_admin,
     require_platform_admin,
 )
 
@@ -112,6 +114,8 @@ __all__ = [
     "require_any_permission",
     "RequirePermission",
     "RequireRole",
+    "RequireSubscriptionTier",
     "require_firm_context",
+    "require_firm_admin",
     "require_platform_admin",
 ]

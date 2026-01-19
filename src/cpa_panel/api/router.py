@@ -158,6 +158,14 @@ try:
 except ImportError as e:
     logger.warning(f"Lead magnet routes not available: {e}")
 
+# NEW: Client Portal routes - B2C client dashboard
+try:
+    from .client_portal_routes import router as client_portal_router
+    cpa_router.include_router(client_portal_router)
+    logger.info("Client portal routes enabled")
+except ImportError as e:
+    logger.warning(f"Client portal routes not available: {e}")
+
 # Include core domain routers
 cpa_router.include_router(workflow_router)
 cpa_router.include_router(analysis_router)
@@ -199,6 +207,7 @@ async def cpa_health_check():
             "smart_onboarding": "active (60-second client onboarding)",
             "lead_generation": "active (prospect lead capture)",
             "lead_magnet": "active (smart tax advisory lead magnet flow)",
+            "client_portal": "active (B2C client dashboard)",
         },
     }
 
@@ -387,6 +396,28 @@ async def get_route_documentation():
                     "GET /leads/cpa/{cpa_id} - Leads for CPA",
                     "POST /leads/{lead_id}/assign - Assign to CPA",
                     "POST /leads/{lead_id}/convert - Convert to client",
+                ],
+            },
+            "client_portal": {
+                "description": "B2C client dashboard (authenticated clients)",
+                "endpoints": [
+                    "GET /client/dashboard - Full dashboard data",
+                    "GET /client/returns - List tax returns",
+                    "GET /client/returns/{id} - Return details",
+                    "GET /client/returns/{id}/download - Download filed return",
+                    "GET /client/documents/requests - Document requests",
+                    "GET /client/documents/uploaded - Uploaded documents",
+                    "POST /client/documents/upload - Upload document",
+                    "GET /client/messages - Message thread",
+                    "POST /client/messages - Send message",
+                    "POST /client/messages/read - Mark messages read",
+                    "GET /client/billing - Billing summary",
+                    "GET /client/billing/invoices/{id} - Invoice details",
+                    "POST /client/billing/invoices/{id}/pay - Pay invoice",
+                    "GET /client/billing/invoices/{id}/receipt - Download receipt",
+                    "GET /client/profile - Client profile",
+                    "PUT /client/profile - Update profile",
+                    "GET /client/notifications - Notifications",
                 ],
             },
         },

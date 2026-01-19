@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard - Tax Advisory Platform</title>
+  <title>Platform Admin - TaxFlow</title>
   <style>
     :root {
-      --primary: #059669;
-      --primary-dark: #047857;
-      --primary-light: #10b981;
-      --accent: #1e40af;
-      --accent-light: #3b82f6;
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --primary-light: #818cf8;
+      --accent: #0ea5e9;
+      --accent-light: #38bdf8;
       --gray-50: #f9fafb;
       --gray-100: #f3f4f6;
       --gray-200: #e5e7eb;
@@ -25,6 +25,7 @@
       --warning: #f59e0b;
       --error: #ef4444;
       --info: #3b82f6;
+      --purple: #8b5cf6;
 
       --sidebar-width: 260px;
       --header-height: 64px;
@@ -34,8 +35,8 @@
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--gray-50);
-      color: var(--gray-900);
+      background: var(--gray-900);
+      color: var(--gray-100);
       min-height: 100vh;
     }
 
@@ -45,11 +46,10 @@
       min-height: 100vh;
     }
 
-    /* Sidebar */
+    /* Sidebar - Dark Theme for Platform Admin */
     .sidebar {
       width: var(--sidebar-width);
-      background: white;
-      border-right: 1px solid var(--gray-200);
+      background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
       display: flex;
       flex-direction: column;
       position: fixed;
@@ -59,7 +59,7 @@
 
     .sidebar-header {
       padding: 20px;
-      border-bottom: 1px solid var(--gray-100);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
 
     .sidebar-logo {
@@ -67,25 +67,36 @@
       align-items: center;
       gap: 12px;
       text-decoration: none;
-      color: var(--gray-900);
+      color: white;
     }
 
     .sidebar-logo-icon {
-      width: 36px;
-      height: 36px;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-      border-radius: 8px;
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--purple) 100%);
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
       font-weight: 700;
-      font-size: 16px;
+      font-size: 18px;
     }
 
     .sidebar-logo-text {
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .sidebar-logo-badge {
+      font-size: 10px;
+      background: var(--warning);
+      color: var(--gray-900);
+      padding: 2px 6px;
+      border-radius: 4px;
       font-weight: 600;
-      font-size: 16px;
+      margin-left: -8px;
+      margin-top: -12px;
     }
 
     .sidebar-nav {
@@ -99,11 +110,11 @@
     }
 
     .nav-section-title {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--gray-400);
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.4);
       padding: 0 12px;
       margin-bottom: 8px;
     }
@@ -115,7 +126,7 @@
       padding: 10px 12px;
       border-radius: 8px;
       text-decoration: none;
-      color: var(--gray-600);
+      color: rgba(255,255,255,0.7);
       font-size: 14px;
       font-weight: 500;
       transition: all 0.15s ease;
@@ -123,8 +134,8 @@
     }
 
     .nav-item:hover {
-      background: var(--gray-100);
-      color: var(--gray-900);
+      background: rgba(255,255,255,0.1);
+      color: white;
     }
 
     .nav-item.active {
@@ -134,7 +145,7 @@
 
     .nav-item-icon {
       font-size: 18px;
-      opacity: 0.8;
+      opacity: 0.9;
     }
 
     .nav-item-badge {
@@ -149,7 +160,7 @@
 
     .sidebar-footer {
       padding: 16px;
-      border-top: 1px solid var(--gray-100);
+      border-top: 1px solid rgba(255,255,255,0.1);
     }
 
     .user-card {
@@ -162,7 +173,7 @@
     }
 
     .user-card:hover {
-      background: var(--gray-50);
+      background: rgba(255,255,255,0.1);
     }
 
     .user-avatar {
@@ -185,20 +196,21 @@
     .user-name {
       font-size: 13px;
       font-weight: 600;
-      color: var(--gray-900);
+      color: white;
     }
 
     .user-role {
-      font-size: 12px;
-      color: var(--gray-500);
+      font-size: 11px;
+      color: var(--warning);
+      font-weight: 500;
     }
 
     /* Main Content */
     .main-content {
       flex: 1;
       margin-left: var(--sidebar-width);
-      display: flex;
-      flex-direction: column;
+      background: var(--gray-50);
+      min-height: 100vh;
     }
 
     /* Header */
@@ -215,33 +227,57 @@
       z-index: 50;
     }
 
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
     .header-title {
       font-size: 20px;
       font-weight: 600;
+      color: var(--gray-900);
+    }
+
+    .header-subtitle {
+      font-size: 13px;
+      color: var(--gray-500);
     }
 
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
     }
+
+    .env-badge {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .env-badge.production { background: #fee2e2; color: var(--error); }
+    .env-badge.staging { background: #fef3c7; color: #b45309; }
+    .env-badge.development { background: #d1fae5; color: var(--success); }
 
     .header-search {
       position: relative;
     }
 
     .header-search input {
-      width: 280px;
+      width: 300px;
       padding: 8px 12px 8px 36px;
       border: 1px solid var(--gray-200);
       border-radius: 8px;
       font-size: 14px;
       outline: none;
+      color: var(--gray-900);
     }
 
     .header-search input:focus {
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     }
 
     .header-search-icon {
@@ -252,119 +288,64 @@
       color: var(--gray-400);
     }
 
-    .notification-btn {
-      position: relative;
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
-      border: 1px solid var(--gray-200);
-      background: white;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      color: var(--gray-600);
-    }
-
-    .notification-btn:hover {
-      background: var(--gray-50);
-    }
-
-    .notification-badge {
-      position: absolute;
-      top: -4px;
-      right: -4px;
-      width: 18px;
-      height: 18px;
-      background: var(--error);
-      color: white;
-      font-size: 10px;
-      font-weight: 600;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
     /* Page Content */
     .page-content {
-      flex: 1;
       padding: 24px;
     }
 
-    /* Alert Bar */
-    .alert-bar {
-      background: linear-gradient(90deg, var(--warning) 0%, #d97706 100%);
-      color: white;
-      padding: 12px 24px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 14px;
+    /* Page Section */
+    .page-section {
+      display: none;
     }
 
-    .alert-bar-icon {
-      font-size: 18px;
+    .page-section.active {
+      display: block;
+      animation: fadeIn 0.2s ease;
     }
 
-    .alert-bar-message {
-      flex: 1;
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    .alert-bar-action {
-      background: rgba(255,255,255,0.2);
-      border: none;
-      color: white;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-    }
-
-    .alert-bar-action:hover {
-      background: rgba(255,255,255,0.3);
-    }
-
-    .alert-bar-close {
-      background: none;
-      border: none;
-      color: white;
-      opacity: 0.7;
-      cursor: pointer;
-      font-size: 18px;
-    }
-
-    /* Metrics Grid */
-    .metrics-grid {
+    /* Platform Stats */
+    .platform-stats {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
       margin-bottom: 24px;
     }
 
-    .metric-card {
+    .stat-card {
       background: white;
       border-radius: 12px;
       padding: 20px;
       border: 1px solid var(--gray-200);
     }
 
-    .metric-header {
+    .stat-card.highlight {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--purple) 100%);
+      color: white;
+      border: none;
+    }
+
+    .stat-header {
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: flex-start;
       margin-bottom: 12px;
     }
 
-    .metric-label {
+    .stat-label {
       font-size: 13px;
-      font-weight: 500;
       color: var(--gray-500);
     }
 
-    .metric-icon {
+    .stat-card.highlight .stat-label {
+      color: rgba(255,255,255,0.8);
+    }
+
+    .stat-icon {
       width: 36px;
       height: 36px;
       border-radius: 8px;
@@ -374,36 +355,101 @@
       font-size: 18px;
     }
 
-    .metric-icon.green { background: #d1fae5; color: var(--primary); }
-    .metric-icon.blue { background: #dbeafe; color: var(--accent); }
-    .metric-icon.yellow { background: #fef3c7; color: var(--warning); }
-    .metric-icon.purple { background: #ede9fe; color: #7c3aed; }
+    .stat-icon.blue { background: #dbeafe; color: var(--info); }
+    .stat-icon.green { background: #d1fae5; color: var(--success); }
+    .stat-icon.yellow { background: #fef3c7; color: var(--warning); }
+    .stat-icon.purple { background: #ede9fe; color: var(--purple); }
+    .stat-icon.red { background: #fee2e2; color: var(--error); }
 
-    .metric-value {
+    .stat-card.highlight .stat-icon {
+      background: rgba(255,255,255,0.2);
+      color: white;
+    }
+
+    .stat-value {
       font-size: 28px;
       font-weight: 700;
       color: var(--gray-900);
+    }
+
+    .stat-card.highlight .stat-value {
+      color: white;
+    }
+
+    .stat-change {
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .stat-change.positive { color: var(--success); }
+    .stat-change.negative { color: var(--error); }
+
+    .stat-card.highlight .stat-change {
+      color: rgba(255,255,255,0.9);
+    }
+
+    /* Clickable Stat Cards */
+    .stat-card.clickable {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .stat-card.clickable:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+
+    .stat-card.clickable.highlight:hover {
+      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+    }
+
+    .stat-link {
+      font-size: 12px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--gray-100);
+      color: var(--primary);
+      font-weight: 500;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .stat-card.clickable:hover .stat-link {
+      opacity: 1;
+    }
+
+    .stat-card.clickable.highlight .stat-link {
+      border-top-color: rgba(255,255,255,0.2);
+      color: white;
+    }
+
+    /* Clickable Distribution Bars */
+    .distribution-bar {
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-radius: 8px;
+      padding: 12px;
+      margin: -12px;
       margin-bottom: 8px;
     }
 
-    .metric-change {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 12px;
+    .distribution-bar:hover {
+      background: var(--gray-50);
     }
 
-    .metric-change.positive { color: var(--success); }
-    .metric-change.negative { color: var(--error); }
-    .metric-change.neutral { color: var(--gray-500); }
-
-    /* Content Grid */
-    .content-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 24px;
+    .distribution-bar:hover .bar-link {
+      opacity: 1;
     }
 
+    .bar-link {
+      font-size: 11px;
+      color: var(--primary);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      margin-left: 8px;
+    }
+
+    /* Cards */
     .card {
       background: white;
       border-radius: 12px;
@@ -422,26 +468,292 @@
     .card-title {
       font-size: 15px;
       font-weight: 600;
+      color: var(--gray-900);
     }
 
-    .card-action {
-      font-size: 13px;
-      color: var(--primary);
-      text-decoration: none;
-      font-weight: 500;
-    }
-
-    .card-action:hover {
-      text-decoration: underline;
+    .card-actions {
+      display: flex;
+      gap: 8px;
     }
 
     .card-body {
       padding: 20px;
     }
 
-    /* Activity List */
-    .activity-list {
-      list-style: none;
+    .card-body.no-padding {
+      padding: 0;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--gray-700);
+      border: 1px solid var(--gray-200);
+    }
+
+    .btn-secondary:hover {
+      background: var(--gray-50);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--gray-600);
+    }
+
+    .btn-ghost:hover {
+      background: var(--gray-100);
+    }
+
+    .btn-danger {
+      background: var(--error);
+      color: white;
+    }
+
+    .btn-sm {
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
+    /* Data Tables */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .data-table th {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--gray-500);
+      background: var(--gray-50);
+    }
+
+    .data-table td {
+      font-size: 13px;
+      color: var(--gray-700);
+    }
+
+    .data-table tbody tr:hover {
+      background: var(--gray-50);
+    }
+
+    .data-table tbody tr {
+      cursor: pointer;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-success { background: #d1fae5; color: #047857; }
+    .badge-warning { background: #fef3c7; color: #b45309; }
+    .badge-error { background: #fee2e2; color: #dc2626; }
+    .badge-info { background: #dbeafe; color: #1d4ed8; }
+    .badge-gray { background: var(--gray-100); color: var(--gray-600); }
+    .badge-purple { background: #ede9fe; color: #7c3aed; }
+
+    /* Tier Badges */
+    .tier-badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .tier-starter { background: var(--gray-100); color: var(--gray-600); }
+    .tier-professional { background: #dbeafe; color: #1d4ed8; }
+    .tier-enterprise { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: white; }
+
+    /* Avatar */
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .avatar-sm { width: 24px; height: 24px; font-size: 10px; }
+    .avatar-lg { width: 40px; height: 40px; font-size: 14px; }
+
+    /* Firm Logo */
+    .firm-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      color: white;
+    }
+
+    /* Grid Layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    /* Section Header */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--gray-900);
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .filter-select {
+      padding: 8px 12px;
+      border: 1px solid var(--gray-200);
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--gray-700);
+      background: white;
+      outline: none;
+    }
+
+    .filter-select:focus {
+      border-color: var(--primary);
+    }
+
+    .search-input {
+      padding: 8px 12px;
+      border: 1px solid var(--gray-200);
+      border-radius: 6px;
+      font-size: 13px;
+      width: 250px;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+    }
+
+    /* Status Indicator */
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    .status-dot.active { background: var(--success); }
+    .status-dot.inactive { background: var(--gray-300); }
+    .status-dot.pending { background: var(--warning); }
+    .status-dot.suspended { background: var(--error); }
+
+    /* User Cell */
+    .user-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-cell-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .user-cell-name {
+      font-weight: 500;
+      color: var(--gray-900);
+    }
+
+    .user-cell-email {
+      font-size: 12px;
+      color: var(--gray-500);
+    }
+
+    /* Firm Cell */
+    .firm-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .firm-cell-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .firm-cell-name {
+      font-weight: 500;
+      color: var(--gray-900);
+    }
+
+    .firm-cell-id {
+      font-size: 11px;
+      color: var(--gray-400);
+      font-family: monospace;
+    }
+
+    /* Activity Feed */
+    .activity-feed {
+      max-height: 400px;
+      overflow-y: auto;
     }
 
     .activity-item {
@@ -466,9 +778,10 @@
       flex-shrink: 0;
     }
 
-    .activity-icon.green { background: #d1fae5; color: var(--primary); }
-    .activity-icon.blue { background: #dbeafe; color: var(--accent); }
-    .activity-icon.yellow { background: #fef3c7; color: var(--warning); }
+    .activity-icon.success { background: #d1fae5; color: var(--success); }
+    .activity-icon.warning { background: #fef3c7; color: var(--warning); }
+    .activity-icon.info { background: #dbeafe; color: var(--info); }
+    .activity-icon.error { background: #fee2e2; color: var(--error); }
 
     .activity-content {
       flex: 1;
@@ -477,198 +790,259 @@
     .activity-text {
       font-size: 13px;
       color: var(--gray-700);
-      line-height: 1.4;
     }
 
     .activity-text strong {
       color: var(--gray-900);
     }
 
-    .activity-time {
-      font-size: 12px;
+    .activity-meta {
+      font-size: 11px;
       color: var(--gray-400);
       margin-top: 4px;
     }
 
-    /* Quick Actions */
-    .quick-actions {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
-
-    .quick-action {
+    /* Chart Placeholder */
+    .chart-placeholder {
+      height: 200px;
+      background: var(--gray-50);
+      border-radius: 8px;
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid var(--gray-200);
-      text-decoration: none;
-      color: var(--gray-700);
+      justify-content: center;
+      color: var(--gray-400);
+      font-size: 13px;
+    }
+
+    /* Detail Panel */
+    .detail-panel {
+      position: fixed;
+      right: 0;
+      top: 0;
+      width: 480px;
+      height: 100vh;
+      background: white;
+      box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+      z-index: 200;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
+
+    .detail-panel.open {
+      transform: translateX(0);
+    }
+
+    .detail-panel-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--gray-200);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .detail-panel-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .detail-panel-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: var(--gray-400);
+      cursor: pointer;
+    }
+
+    .detail-panel-body {
+      padding: 20px;
+      overflow-y: auto;
+      height: calc(100vh - 80px);
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--gray-200);
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      padding: 12px 20px;
       font-size: 13px;
       font-weight: 500;
+      color: var(--gray-500);
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
       transition: all 0.15s ease;
     }
 
-    .quick-action:hover {
-      border-color: var(--primary);
-      background: var(--gray-50);
+    .tab:hover {
+      color: var(--gray-700);
     }
 
-    .quick-action-icon {
-      font-size: 18px;
-      opacity: 0.7;
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
     }
 
-    /* Alerts Panel */
-    .alerts-list {
-      list-style: none;
-    }
-
-    .alert-item {
+    /* Feature Flag */
+    .feature-flag {
       display: flex;
-      gap: 12px;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 8px;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid var(--gray-100);
     }
 
-    .alert-item.warning {
-      background: #fef3c7;
+    .feature-flag:last-child {
+      border-bottom: none;
     }
 
-    .alert-item.info {
-      background: #dbeafe;
-    }
-
-    .alert-item.error {
-      background: #fee2e2;
-    }
-
-    .alert-item-icon {
-      font-size: 18px;
-    }
-
-    .alert-item.warning .alert-item-icon { color: var(--warning); }
-    .alert-item.info .alert-item-icon { color: var(--info); }
-    .alert-item.error .alert-item-icon { color: var(--error); }
-
-    .alert-item-content {
+    .feature-flag-info {
       flex: 1;
     }
 
-    .alert-item-title {
-      font-size: 13px;
-      font-weight: 600;
+    .feature-flag-name {
+      font-weight: 500;
       color: var(--gray-900);
       margin-bottom: 4px;
     }
 
-    .alert-item-message {
+    .feature-flag-desc {
       font-size: 12px;
-      color: var(--gray-600);
-      line-height: 1.4;
-    }
-
-    /* Subscription Banner */
-    .subscription-banner {
-      background: linear-gradient(135deg, var(--accent) 0%, #1e3a8a 100%);
-      border-radius: 12px;
-      padding: 20px;
-      color: white;
-      margin-top: 16px;
-    }
-
-    .subscription-banner-title {
-      font-size: 15px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-
-    .subscription-banner-text {
-      font-size: 13px;
-      opacity: 0.9;
-      margin-bottom: 16px;
-      line-height: 1.5;
-    }
-
-    .subscription-banner-btn {
-      background: white;
-      color: var(--accent);
-      border: none;
-      padding: 10px 16px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .subscription-banner-btn:hover {
-      background: var(--gray-100);
-    }
-
-    /* Health Score */
-    .health-score {
-      text-align: center;
-      padding: 24px;
-    }
-
-    .health-score-value {
-      font-size: 48px;
-      font-weight: 700;
-      color: var(--primary);
-    }
-
-    .health-score-label {
-      font-size: 13px;
       color: var(--gray-500);
-      margin-top: 8px;
     }
 
-    .health-score-bar {
-      height: 8px;
-      background: var(--gray-200);
-      border-radius: 4px;
-      margin-top: 16px;
-      overflow: hidden;
+    /* Toggle Switch */
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
     }
 
-    .health-score-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
-      border-radius: 4px;
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
     }
 
-    /* Security Utils for escaping */
-    .escaped-content {
-      white-space: pre-wrap;
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--gray-300);
+      transition: 0.3s;
+      border-radius: 24px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    .toggle input:checked + .toggle-slider {
+      background-color: var(--success);
+    }
+
+    .toggle input:checked + .toggle-slider:before {
+      transform: translateX(20px);
     }
 
     /* Responsive */
+    @media (max-width: 1400px) {
+      .platform-stats {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
     @media (max-width: 1200px) {
-      .metrics-grid {
+      .platform-stats {
         grid-template-columns: repeat(2, 1fr);
       }
-      .content-grid {
+      .grid-2, .grid-3 {
         grid-template-columns: 1fr;
       }
     }
 
-    @media (max-width: 768px) {
-      .sidebar {
-        transform: translateX(-100%);
-        transition: transform 0.3s ease;
+    /* Loading Spinners */
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--gray-200);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .loading-spinner-small {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
       }
-      .sidebar.open {
+      to {
         transform: translateX(0);
+        opacity: 1;
       }
-      .main-content {
-        margin-left: 0;
+    }
+
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
       }
-      .metrics-grid {
-        grid-template-columns: 1fr;
+      to {
+        transform: translateX(100%);
+        opacity: 0;
       }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Button loading state */
+    .btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    /* Form input focus */
+    .form-input:focus, .form-select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    /* Notification toast animation */
+    #notification-toast {
+      animation: slideIn 0.3s ease-out;
     }
   </style>
 </head>
@@ -678,72 +1052,104 @@
     <aside class="sidebar">
       <div class="sidebar-header">
         <a href="/admin" class="sidebar-logo">
-          <div class="sidebar-logo-icon">TP</div>
-          <span class="sidebar-logo-text">TaxPro Admin</span>
+          <div class="sidebar-logo-icon">TF</div>
+          <div>
+            <span class="sidebar-logo-text">TaxFlow</span>
+            <span class="sidebar-logo-badge">ADMIN</span>
+          </div>
         </a>
       </div>
 
       <nav class="sidebar-nav">
         <div class="nav-section">
-          <div class="nav-section-title">Overview</div>
-          <a href="/admin" class="nav-item active">
-            <span class="nav-item-icon">&#128200;</span>
-            Dashboard
+          <div class="nav-section-title">Platform</div>
+          <a href="/admin" class="nav-item" data-page="">
+            <span class="nav-item-icon">&#128202;</span>
+            Overview
+          </a>
+          <a href="/admin/firms" class="nav-item" data-page="firms">
+            <span class="nav-item-icon">&#127970;</span>
+            Firms
+            <span class="nav-item-badge">---</span>
+          </a>
+          <a href="/admin/users" class="nav-item" data-page="users">
+            <span class="nav-item-icon">&#128101;</span>
+            Users
+          </a>
+          <a href="/admin/partners" class="nav-item" data-page="partners">
+            <span class="nav-item-icon">&#129309;</span>
+            Partners
           </a>
         </div>
 
         <div class="nav-section">
-          <div class="nav-section-title">Management</div>
-          <a href="/admin/team" class="nav-item">
-            <span class="nav-item-icon">&#128101;</span>
-            Team
-            <span class="nav-item-badge">5</span>
+          <div class="nav-section-title">Business</div>
+          <a href="/admin/subscriptions" class="nav-item" data-page="subscriptions">
+            <span class="nav-item-icon">&#128179;</span>
+            Subscriptions
           </a>
-          <a href="/admin/clients" class="nav-item">
-            <span class="nav-item-icon">&#128188;</span>
-            Clients
-          </a>
-          <a href="/admin/workflows" class="nav-item">
-            <span class="nav-item-icon">&#128203;</span>
-            Workflows
+          <a href="/admin/revenue" class="nav-item" data-page="revenue">
+            <span class="nav-item-icon">&#128176;</span>
+            Revenue
           </a>
         </div>
 
         <div class="nav-section">
           <div class="nav-section-title">Operations</div>
-          <a href="/admin/compliance" class="nav-item">
+          <a href="/admin/compliance" class="nav-item" data-page="compliance">
             <span class="nav-item-icon">&#128737;</span>
             Compliance
           </a>
-          <a href="/admin/billing" class="nav-item">
-            <span class="nav-item-icon">&#128179;</span>
-            Billing
+          <a href="/admin/audit" class="nav-item" data-page="audit">
+            <span class="nav-item-icon">&#128220;</span>
+            Audit Logs
           </a>
-          <a href="/admin/branding" class="nav-item">
-            <span class="nav-item-icon">&#127912;</span>
-            Branding
+          <a href="/admin/support" class="nav-item" data-page="support">
+            <span class="nav-item-icon">&#127384;</span>
+            Support Tickets
+            <span class="nav-item-badge">12</span>
           </a>
         </div>
 
         <div class="nav-section">
           <div class="nav-section-title">System</div>
-          <a href="/admin/settings" class="nav-item">
+          <a href="/admin/features" class="nav-item" data-page="features">
             <span class="nav-item-icon">&#9881;</span>
-            Settings
+            Feature Flags
           </a>
-          <a href="/admin/api-keys" class="nav-item">
-            <span class="nav-item-icon">&#128273;</span>
-            API Keys
+          <a href="/admin/rbac" class="nav-item" data-page="rbac">
+            <span class="nav-item-icon">&#128274;</span>
+            RBAC
+          </a>
+          <a href="/admin/health" class="nav-item" data-page="health">
+            <span class="nav-item-icon">&#128154;</span>
+            System Health
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Quick Links</div>
+          <a href="/hub" class="nav-item">
+            <span class="nav-item-icon">&#127968;</span>
+            System Hub
+          </a>
+          <a href="/cpa" class="nav-item">
+            <span class="nav-item-icon">&#128188;</span>
+            CPA Panel
+          </a>
+          <a href="/docs" class="nav-item" target="_blank">
+            <span class="nav-item-icon">&#128196;</span>
+            API Docs
           </a>
         </div>
       </nav>
 
       <div class="sidebar-footer">
-        <div class="user-card" id="user-menu">
-          <div class="user-avatar" id="user-avatar">JD</div>
+        <div class="user-card">
+          <div class="user-avatar">SA</div>
           <div class="user-info">
-            <div class="user-name" id="user-name">John Doe</div>
-            <div class="user-role" id="user-role">Firm Admin</div>
+            <div class="user-name">Super Admin</div>
+            <div class="user-role">Platform Admin</div>
           </div>
         </div>
       </div>
@@ -751,255 +1157,2936 @@
 
     <!-- Main Content -->
     <main class="main-content">
-      <!-- Alert Bar -->
-      <div class="alert-bar" id="alert-bar">
-        <span class="alert-bar-icon">&#9888;</span>
-        <span class="alert-bar-message" id="alert-bar-message">3 returns approaching deadline</span>
-        <button class="alert-bar-action" onclick="viewAlerts()">View All</button>
-        <button class="alert-bar-close" onclick="closeAlertBar()">&times;</button>
-      </div>
-
       <!-- Header -->
       <header class="header">
-        <h1 class="header-title">Dashboard</h1>
+        <div class="header-left">
+          <div>
+            <h1 class="header-title" id="page-title">Platform Overview</h1>
+            <p class="header-subtitle" id="page-subtitle">Multi-tenant administration</p>
+          </div>
+        </div>
         <div class="header-actions">
+          <span class="env-badge development">DEVELOPMENT</span>
           <div class="header-search">
             <span class="header-search-icon">&#128269;</span>
-            <input type="text" placeholder="Search clients, returns..." id="search-input">
+            <input type="text" placeholder="Search firms, users, partners..." id="global-search">
           </div>
-          <button class="notification-btn" id="notification-btn">
-            &#128276;
-            <span class="notification-badge" id="notification-badge">3</span>
-          </button>
         </div>
       </header>
 
       <!-- Page Content -->
       <div class="page-content">
-        <!-- Metrics Grid -->
-        <div class="metrics-grid" id="metrics-grid">
-          <div class="metric-card">
-            <div class="metric-header">
-              <span class="metric-label">Active Returns</span>
-              <div class="metric-icon green">&#128196;</div>
+
+        <!-- Platform Overview Section -->
+        <div class="page-section active" id="section-overview">
+          <!-- Platform Stats - Clickable Tiles -->
+          <div class="platform-stats" id="platform-stats">
+            <div class="stat-card highlight clickable" title="View Revenue & Subscriptions" onclick="navigateTo('subscriptions')">
+              <div class="stat-header">
+                <span class="stat-label">Total MRR</span>
+                <div class="stat-icon">&#128176;</div>
+              </div>
+              <div class="stat-value" id="stat-mrr">$---</div>
+              <div class="stat-change positive" id="stat-mrr-change">Loading...</div>
+              <div class="stat-link">View Revenue &#8594;</div>
             </div>
-            <div class="metric-value" id="metric-returns">47</div>
-            <div class="metric-change positive">
-              <span>&#9650;</span> 12.5% vs last month
+            <div class="stat-card clickable" title="View All Firms" onclick="navigateTo('firms')">
+              <div class="stat-header">
+                <span class="stat-label">Active Firms</span>
+                <div class="stat-icon blue">&#127970;</div>
+              </div>
+              <div class="stat-value" id="stat-firms">---</div>
+              <div class="stat-change positive" id="stat-firms-change">Loading...</div>
+              <div class="stat-link">Manage Firms &#8594;</div>
+            </div>
+            <div class="stat-card clickable" title="View All Users" onclick="navigateTo('users')">
+              <div class="stat-header">
+                <span class="stat-label">Total Users</span>
+                <div class="stat-icon green">&#128101;</div>
+              </div>
+              <div class="stat-value" id="stat-users">---</div>
+              <div class="stat-change positive" id="stat-users-change">Loading...</div>
+              <div class="stat-link">Manage Users &#8594;</div>
+            </div>
+            <div class="stat-card clickable" title="View At-Risk Subscriptions" onclick="navigateTo('subscriptions', {filter: 'at_risk'})">
+              <div class="stat-header">
+                <span class="stat-label">Churn Rate</span>
+                <div class="stat-icon purple">&#128200;</div>
+              </div>
+              <div class="stat-value" id="stat-churn">---</div>
+              <div class="stat-change" id="stat-churn-change">Loading...</div>
+              <div class="stat-link">View At-Risk &#8594;</div>
+            </div>
+            <div class="stat-card clickable" title="View System Health" onclick="navigateTo('health')">
+              <div class="stat-header">
+                <span class="stat-label">Health Score</span>
+                <div class="stat-icon yellow">&#128154;</div>
+              </div>
+              <div class="stat-value" id="stat-health">---</div>
+              <div class="stat-change" id="stat-health-change">Loading...</div>
+              <div class="stat-link">System Health &#8594;</div>
             </div>
           </div>
 
-          <div class="metric-card">
-            <div class="metric-header">
-              <span class="metric-label">Pending Review</span>
-              <div class="metric-icon yellow">&#128339;</div>
+          <!-- Overview Grid -->
+          <div class="grid-2">
+            <!-- Recent Activity -->
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Platform Activity</h2>
+                <button class="btn btn-ghost btn-sm" onclick="navigateTo('audit')">View All</button>
+              </div>
+              <div class="card-body no-padding">
+                <div class="activity-feed" id="platform-activity-feed" style="padding: 0 20px;">
+                  <div style="padding: 40px; text-align: center; color: var(--gray-400);">Loading activity...</div>
+                </div>
+              </div>
             </div>
-            <div class="metric-value" id="metric-pending">12</div>
-            <div class="metric-change negative">
-              <span>&#9660;</span> 3 vs last week
+
+            <!-- Firms by Tier -->
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Subscription Distribution</h2>
+              </div>
+              <div class="card-body" id="subscription-distribution">
+                <div style="padding: 40px; text-align: center; color: var(--gray-400);">Loading distribution...</div>
+              </div>
             </div>
           </div>
 
-          <div class="metric-card">
-            <div class="metric-header">
-              <span class="metric-label">Compliance Score</span>
-              <div class="metric-icon blue">&#128737;</div>
+          <!-- Top Firms Table -->
+          <div class="card" style="margin-top: 20px;">
+            <div class="card-header">
+              <h2 class="card-title">Top Firms by Activity</h2>
+              <button class="btn btn-secondary btn-sm" onclick="navigateTo('firms')">View All Firms</button>
             </div>
-            <div class="metric-value" id="metric-compliance">94%</div>
-            <div class="metric-change positive">
-              <span>&#9650;</span> 2% vs last month
-            </div>
-          </div>
-
-          <div class="metric-card">
-            <div class="metric-header">
-              <span class="metric-label">Est. Revenue</span>
-              <div class="metric-icon purple">&#128176;</div>
-            </div>
-            <div class="metric-value" id="metric-revenue">$125K</div>
-            <div class="metric-change positive">
-              <span>&#9650;</span> 8.3% vs last year
+            <div class="card-body no-padding">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Firm</th>
+                    <th>Tier</th>
+                    <th>Users</th>
+                    <th>Returns (MTD)</th>
+                    <th>MRR</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="top-firms-table">
+                  <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--gray-400);">Loading firms...</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
 
-        <!-- Content Grid -->
-        <div class="content-grid">
-          <!-- Left Column -->
-          <div>
-            <!-- Activity Feed -->
+        <!-- Firms Section -->
+        <div class="page-section" id="section-firms">
+          <div class="section-header">
+            <h2 class="section-title" id="firms-section-title">All Firms</h2>
+            <div class="card-actions">
+              <button class="btn btn-secondary" onclick="exportFirms()">&#128190; Export</button>
+              <button class="btn btn-primary" onclick="openAddFirmModal()">&#43; Add Firm</button>
+            </div>
+          </div>
+
+          <div class="filter-bar">
+            <select class="filter-select" id="firm-tier-filter">
+              <option value="">All Tiers</option>
+              <option value="enterprise">Enterprise</option>
+              <option value="professional">Professional</option>
+              <option value="starter">Starter</option>
+            </select>
+            <select class="filter-select" id="firm-status-filter">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="trial">Trial</option>
+              <option value="suspended">Suspended</option>
+              <option value="churned">Churned</option>
+            </select>
+            <select class="filter-select" id="firm-partner-filter">
+              <option value="">All Partners</option>
+              <option value="direct">Direct (No Partner)</option>
+              <option value="partner-001">TaxPartner Pro</option>
+              <option value="partner-002">AccountingHub</option>
+            </select>
+            <input type="text" class="search-input" placeholder="Search firms...">
+          </div>
+
+          <div class="card">
+            <div class="card-body no-padding">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Firm</th>
+                    <th>Partner</th>
+                    <th>Tier</th>
+                    <th>Users</th>
+                    <th>Clients</th>
+                    <th>Returns</th>
+                    <th>MRR</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                  </tr>
+                </thead>
+                <tbody id="firms-table">
+                  <tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--gray-400);">Loading firms...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Users Section -->
+        <div class="page-section" id="section-users">
+          <div class="section-header">
+            <h2 class="section-title" id="users-section-title">All Users</h2>
+            <div class="card-actions">
+              <button class="btn btn-secondary" onclick="exportUsers()">&#128190; Export</button>
+              <button class="btn btn-primary" onclick="openInviteUserModal()">&#43; Invite User</button>
+            </div>
+          </div>
+
+          <div class="filter-bar">
+            <select class="filter-select" id="user-role-filter">
+              <option value="">All Roles</option>
+              <option value="firm_admin">Firm Admin</option>
+              <option value="senior_preparer">Senior Preparer</option>
+              <option value="preparer">Preparer</option>
+              <option value="reviewer">Reviewer</option>
+            </select>
+            <select class="filter-select" id="user-firm-filter">
+              <option value="">All Firms</option>
+            </select>
+            <select class="filter-select" id="user-status-filter">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="invited">Invited</option>
+              <option value="locked">Locked</option>
+            </select>
+            <input type="text" class="search-input" id="user-search" placeholder="Search users...">
+          </div>
+
+          <div class="card">
+            <div class="card-body no-padding">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Firm</th>
+                    <th>Role</th>
+                    <th>Returns (MTD)</th>
+                    <th>Last Active</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="users-table">
+                  <tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--gray-400);">Loading users...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Partners Section -->
+        <div class="page-section" id="section-partners">
+          <div class="section-header">
+            <h2 class="section-title" id="partners-section-title">White-Label Partners</h2>
+            <button class="btn btn-primary" onclick="openAddPartnerModal()">&#43; Add Partner</button>
+          </div>
+
+          <div class="filter-bar">
+            <select class="filter-select" id="partner-status-filter">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="pending">Pending</option>
+            </select>
+            <input type="text" class="search-input" id="partner-search" placeholder="Search partners...">
+          </div>
+
+          <div class="grid-3" id="partners-grid">
+            <div class="card">
+              <div class="card-body" style="text-align: center; padding: 40px; color: var(--gray-400);">
+                Loading partners...
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subscriptions Section -->
+        <div class="page-section" id="section-subscriptions">
+          <div class="section-header">
+            <h2 class="section-title">Subscription Management</h2>
+          </div>
+
+          <div class="platform-stats" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Total MRR</span>
+                <div class="stat-icon green">&#128176;</div>
+              </div>
+              <div class="stat-value">$---</div>
+              <div class="stat-change positive">Loading...</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Active Subscriptions</span>
+                <div class="stat-icon blue">&#128179;</div>
+              </div>
+              <div class="stat-value">---</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">At-Risk Firms</span>
+                <div class="stat-icon yellow">&#9888;</div>
+              </div>
+              <div class="stat-value">---</div>
+              <div class="stat-change">Loading...</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Churn Rate</span>
+                <div class="stat-icon red">&#128200;</div>
+              </div>
+              <div class="stat-value">---%</div>
+              <div class="stat-change">Loading...</div>
+            </div>
+          </div>
+
+          <div class="grid-2" style="margin-top: 20px;">
             <div class="card">
               <div class="card-header">
-                <h2 class="card-title">Recent Activity</h2>
-                <a href="/admin/activity" class="card-action">View All</a>
+                <h2 class="card-title">Recent Subscription Changes</h2>
               </div>
-              <div class="card-body">
-                <ul class="activity-list" id="activity-list">
-                  <li class="activity-item">
-                    <div class="activity-icon green">&#10003;</div>
-                    <div class="activity-content">
-                      <div class="activity-text"><strong>Sarah Chen</strong> submitted tax return for <strong>Robert Williams</strong></div>
-                      <div class="activity-time">15 minutes ago</div>
-                    </div>
-                  </li>
-                  <li class="activity-item">
-                    <div class="activity-icon blue">&#128100;</div>
-                    <div class="activity-content">
-                      <div class="activity-text"><strong>Mike Thompson</strong> approved return for <strong>Jennifer Smith</strong></div>
-                      <div class="activity-time">1 hour ago</div>
-                    </div>
-                  </li>
-                  <li class="activity-item">
-                    <div class="activity-icon yellow">&#128196;</div>
-                    <div class="activity-content">
-                      <div class="activity-text">New client <strong>David Johnson</strong> onboarded via lead magnet</div>
-                      <div class="activity-time">3 hours ago</div>
-                    </div>
-                  </li>
-                </ul>
+              <div class="card-body no-padding">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Firm</th>
+                      <th>Change</th>
+                      <th>MRR Impact</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Acme Tax Services</td>
+                      <td><span class="badge badge-success">Upgrade</span> Pro → Enterprise</td>
+                      <td style="color: var(--success);">+$6,000</td>
+                      <td>Today</td>
+                    </tr>
+                    <tr>
+                      <td>Johnson CPA Group</td>
+                      <td><span class="badge badge-info">New</span> Professional Trial</td>
+                      <td style="color: var(--gray-500);">$0 (trial)</td>
+                      <td>Yesterday</td>
+                    </tr>
+                    <tr>
+                      <td>Small Tax Shop</td>
+                      <td><span class="badge badge-error">Churned</span></td>
+                      <td style="color: var(--error);">-$1,100</td>
+                      <td>3 days ago</td>
+                    </tr>
+                    <tr>
+                      <td>Premier Tax LLC</td>
+                      <td><span class="badge badge-warning">Downgrade</span> Enterprise → Pro</td>
+                      <td style="color: var(--error);">-$6,000</td>
+                      <td>1 week ago</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
-            <!-- Quick Actions -->
-            <div class="card" style="margin-top: 20px;">
+            <div class="card">
               <div class="card-header">
-                <h2 class="card-title">Quick Actions</h2>
+                <h2 class="card-title">Failed Payments</h2>
+                <span class="badge badge-error">3 pending</span>
               </div>
-              <div class="card-body">
-                <div class="quick-actions">
-                  <a href="/admin/team/invite" class="quick-action">
-                    <span class="quick-action-icon">&#128100;</span>
-                    Add Team Member
-                  </a>
-                  <a href="/cpa?filter=pending_review" class="quick-action">
-                    <span class="quick-action-icon">&#128203;</span>
-                    View Review Queue
-                  </a>
-                  <a href="/admin/compliance/export" class="quick-action">
-                    <span class="quick-action-icon">&#128190;</span>
-                    Export Compliance
-                  </a>
-                  <a href="/admin/billing" class="quick-action">
-                    <span class="quick-action-icon">&#128179;</span>
-                    View Billing
-                  </a>
+              <div class="card-body no-padding">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Firm</th>
+                      <th>Amount</th>
+                      <th>Attempts</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Metro Tax Group</td>
+                      <td>$3,000</td>
+                      <td>2 of 3</td>
+                      <td><button class="btn btn-sm btn-secondary">Retry</button></td>
+                    </tr>
+                    <tr>
+                      <td>City CPAs</td>
+                      <td>$1,100</td>
+                      <td>3 of 3</td>
+                      <td><button class="btn btn-sm btn-danger">Contact</button></td>
+                    </tr>
+                    <tr>
+                      <td>Harbor Accounting</td>
+                      <td>$3,000</td>
+                      <td>1 of 3</td>
+                      <td><button class="btn btn-sm btn-secondary">Retry</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature Flags Section -->
+        <div class="page-section" id="section-features">
+          <div class="section-header">
+            <h2 class="section-title">Feature Flags</h2>
+            <button class="btn btn-primary">&#43; Create Flag</button>
+          </div>
+
+          <div class="card">
+            <div class="card-body no-padding">
+              <div class="feature-flag">
+                <div class="feature-flag-info">
+                  <div class="feature-flag-name">AI Tax Advisor v2</div>
+                  <div class="feature-flag-desc">New AI-powered tax optimization recommendations engine</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                  <span class="badge badge-warning">Beta</span>
+                  <span style="font-size: 12px; color: var(--gray-500);">42 firms</span>
+                  <label class="toggle">
+                    <input type="checkbox" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="feature-flag">
+                <div class="feature-flag-info">
+                  <div class="feature-flag-name">Multi-State Filing</div>
+                  <div class="feature-flag-desc">Support for multi-state tax return filing</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                  <span class="badge badge-success">GA</span>
+                  <span style="font-size: 12px; color: var(--gray-500);">All firms</span>
+                  <label class="toggle">
+                    <input type="checkbox" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="feature-flag">
+                <div class="feature-flag-info">
+                  <div class="feature-flag-name">Crypto Tax Support</div>
+                  <div class="feature-flag-desc">Cryptocurrency transaction import and tax calculation</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                  <span class="badge badge-info">Enterprise</span>
+                  <span style="font-size: 12px; color: var(--gray-500);">Enterprise only</span>
+                  <label class="toggle">
+                    <input type="checkbox" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="feature-flag">
+                <div class="feature-flag-info">
+                  <div class="feature-flag-name">Dark Mode</div>
+                  <div class="feature-flag-desc">Dark theme for CPA and Client portals</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                  <span class="badge badge-gray">Disabled</span>
+                  <span style="font-size: 12px; color: var(--gray-500);">0 firms</span>
+                  <label class="toggle">
+                    <input type="checkbox">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="feature-flag">
+                <div class="feature-flag-info">
+                  <div class="feature-flag-name">API v3</div>
+                  <div class="feature-flag-desc">New REST API with GraphQL support</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                  <span class="badge badge-purple">Alpha</span>
+                  <span style="font-size: 12px; color: var(--gray-500);">5 firms</span>
+                  <label class="toggle">
+                    <input type="checkbox" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- Right Column -->
-          <div>
-            <!-- Health Score -->
+        <!-- System Health Section -->
+        <div class="page-section" id="section-health">
+          <div class="section-header">
+            <h2 class="section-title">System Health</h2>
+            <span class="badge badge-success" style="font-size: 14px; padding: 8px 16px;">All Systems Operational</span>
+          </div>
+
+          <div class="platform-stats" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">API Uptime (30d)</span>
+                <div class="stat-icon green">&#128994;</div>
+              </div>
+              <div class="stat-value">99.97%</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Avg Response Time</span>
+                <div class="stat-icon blue">&#9889;</div>
+              </div>
+              <div class="stat-value">124ms</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Error Rate (24h)</span>
+                <div class="stat-icon yellow">&#9888;</div>
+              </div>
+              <div class="stat-value">0.02%</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Active Connections</span>
+                <div class="stat-icon purple">&#128279;</div>
+              </div>
+              <div class="stat-value">1,247</div>
+            </div>
+          </div>
+
+          <div class="grid-2" style="margin-top: 20px;">
             <div class="card">
               <div class="card-header">
-                <h2 class="card-title">Firm Health Score</h2>
+                <h2 class="card-title">Service Status</h2>
+              </div>
+              <div class="card-body no-padding">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Service</th>
+                      <th>Status</th>
+                      <th>Response</th>
+                      <th>Last Check</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>API Gateway</td>
+                      <td><span class="badge badge-success">Healthy</span></td>
+                      <td>45ms</td>
+                      <td>30s ago</td>
+                    </tr>
+                    <tr>
+                      <td>Database (Primary)</td>
+                      <td><span class="badge badge-success">Healthy</span></td>
+                      <td>12ms</td>
+                      <td>30s ago</td>
+                    </tr>
+                    <tr>
+                      <td>Redis Cache</td>
+                      <td><span class="badge badge-success">Healthy</span></td>
+                      <td>2ms</td>
+                      <td>30s ago</td>
+                    </tr>
+                    <tr>
+                      <td>Document Storage</td>
+                      <td><span class="badge badge-success">Healthy</span></td>
+                      <td>89ms</td>
+                      <td>30s ago</td>
+                    </tr>
+                    <tr>
+                      <td>AI Engine</td>
+                      <td><span class="badge badge-warning">Degraded</span></td>
+                      <td>450ms</td>
+                      <td>30s ago</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Recent Incidents</h2>
               </div>
               <div class="card-body">
-                <div class="health-score">
-                  <div class="health-score-value" id="health-score">94</div>
-                  <div class="health-score-label">Overall Health</div>
-                  <div class="health-score-bar">
-                    <div class="health-score-fill" id="health-score-fill" style="width: 94%"></div>
+                <div class="activity-feed">
+                  <div class="activity-item">
+                    <div class="activity-icon warning">&#9888;</div>
+                    <div class="activity-content">
+                      <div class="activity-text"><strong>AI Engine latency spike</strong> - Response times elevated</div>
+                      <div class="activity-meta">Ongoing - Started 15 min ago</div>
+                    </div>
+                  </div>
+                  <div class="activity-item">
+                    <div class="activity-icon success">&#10003;</div>
+                    <div class="activity-content">
+                      <div class="activity-text"><strong>Database failover</strong> - Completed successfully</div>
+                      <div class="activity-meta">Resolved - 2 days ago (3 min duration)</div>
+                    </div>
+                  </div>
+                  <div class="activity-item">
+                    <div class="activity-icon success">&#10003;</div>
+                    <div class="activity-content">
+                      <div class="activity-text"><strong>Scheduled maintenance</strong> - API v2.5 deployment</div>
+                      <div class="activity-meta">Completed - 1 week ago</div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            <!-- Alerts -->
-            <div class="card" style="margin-top: 20px;">
-              <div class="card-header">
-                <h2 class="card-title">AI Alerts</h2>
-                <a href="/admin/alerts" class="card-action">View All</a>
-              </div>
-              <div class="card-body">
-                <ul class="alerts-list" id="alerts-list">
-                  <li class="alert-item warning">
-                    <span class="alert-item-icon">&#9888;</span>
-                    <div class="alert-item-content">
-                      <div class="alert-item-title">Deadline Approaching</div>
-                      <div class="alert-item-message">3 returns due in 5 days</div>
-                    </div>
-                  </li>
-                  <li class="alert-item info">
-                    <span class="alert-item-icon">&#9432;</span>
-                    <div class="alert-item-content">
-                      <div class="alert-item-title">Upgrade Opportunity</div>
-                      <div class="alert-item-message">40% complex returns - Pro plan recommended</div>
-                    </div>
-                  </li>
-                </ul>
-              </div>
+        <!-- RBAC Section -->
+        <div class="page-section" id="section-rbac">
+          <div class="section-header">
+            <h2 class="section-title">Platform RBAC Configuration</h2>
+          </div>
+
+          <!-- RBAC Stats -->
+          <div class="platform-stats" style="margin-bottom: 24px;">
+            <div class="stat-card">
+              <div class="stat-value" id="rbac-total-users">---</div>
+              <div class="stat-label">Total Users</div>
             </div>
+            <div class="stat-card">
+              <div class="stat-value" id="rbac-total-roles">---</div>
+              <div class="stat-label">System Roles</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="rbac-custom-roles">---</div>
+              <div class="stat-label">Custom Roles</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="rbac-total-perms">---</div>
+              <div class="stat-label">Permissions</div>
+            </div>
+          </div>
 
-            <!-- Subscription Banner -->
-            <div class="subscription-banner">
-              <div class="subscription-banner-title">Professional Plan</div>
-              <div class="subscription-banner-text">You're using 5/10 team members and 156/500 clients this month.</div>
-              <button class="subscription-banner-btn" onclick="viewBilling()">View Usage</button>
+          <div class="tabs">
+            <div class="tab active" onclick="showRbacTab('roles')">System Roles</div>
+            <div class="tab" onclick="showRbacTab('permissions')">Permissions</div>
+            <div class="tab" onclick="showRbacTab('admins')">Platform Admins</div>
+          </div>
+
+          <div id="rbac-content">
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-header">
+                  <h2 class="card-title">Platform Roles</h2>
+                </div>
+                <div class="card-body no-padding">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Role</th>
+                        <th>Description</th>
+                        <th>Users</th>
+                        <th>Permissions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="rbac-roles-table">
+                      <tr>
+                        <td colspan="4" style="text-align: center; padding: 40px; color: var(--gray-400);">Loading roles...</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <h2 class="card-title">Permission Categories</h2>
+                </div>
+                <div class="card-body" id="rbac-categories">
+                  <div style="text-align: center; padding: 40px; color: var(--gray-400);">Loading...</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- Audit Logs Section -->
+        <div class="page-section" id="section-audit">
+          <div class="section-header">
+            <h2 class="section-title">Audit Logs</h2>
+            <button class="btn btn-secondary">&#128190; Export</button>
+          </div>
+
+          <div class="filter-bar">
+            <select class="filter-select" id="audit-action-filter">
+              <option value="">All Actions</option>
+              <option value="LOGIN_SUCCESS">Login Success</option>
+              <option value="LOGIN_FAILED">Login Failed</option>
+              <option value="RETURN_SUBMITTED">Return Submitted</option>
+              <option value="PERMISSION_CHANGE">Permission Change</option>
+              <option value="FEATURE_FLAG_UPDATED">Feature Flag Updated</option>
+              <option value="IMPERSONATE">Impersonate</option>
+            </select>
+            <select class="filter-select" id="audit-firm-filter">
+              <option value="">All Firms</option>
+            </select>
+            <input type="date" class="filter-select" id="audit-start-date" title="Start Date">
+            <input type="date" class="filter-select" id="audit-end-date" title="End Date">
+            <input type="text" class="search-input" id="audit-search" placeholder="Search logs...">
+          </div>
+
+          <div class="card">
+            <div class="card-body no-padding">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Actor</th>
+                    <th>Action</th>
+                    <th>Target</th>
+                    <th>Details</th>
+                    <th>IP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="font-family: monospace; font-size: 12px;">2026-01-18 14:32:15</td>
+                    <td>admin@taxflow.com</td>
+                    <td><span class="badge badge-info">impersonate</span></td>
+                    <td>john.doe@acmetax.com</td>
+                    <td>Support session started</td>
+                    <td style="font-family: monospace;">192.168.1.1</td>
+                  </tr>
+                  <tr>
+                    <td style="font-family: monospace; font-size: 12px;">2026-01-18 14:28:42</td>
+                    <td>jessica@taxflow.com</td>
+                    <td><span class="badge badge-warning">subscription</span></td>
+                    <td>Acme Tax Services</td>
+                    <td>Upgraded to Enterprise</td>
+                    <td style="font-family: monospace;">192.168.1.2</td>
+                  </tr>
+                  <tr>
+                    <td style="font-family: monospace; font-size: 12px;">2026-01-18 14:15:33</td>
+                    <td>system</td>
+                    <td><span class="badge badge-success">login</span></td>
+                    <td>admin@taxflow.com</td>
+                    <td>MFA verified</td>
+                    <td style="font-family: monospace;">192.168.1.1</td>
+                  </tr>
+                  <tr>
+                    <td style="font-family: monospace; font-size: 12px;">2026-01-18 13:45:12</td>
+                    <td>robert@taxflow.com</td>
+                    <td><span class="badge badge-purple">permission</span></td>
+                    <td>Premier Tax LLC</td>
+                    <td>Added API access</td>
+                    <td style="font-family: monospace;">192.168.1.3</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
       </div>
     </main>
   </div>
 
+  <!-- Detail Panel (Slide-out) -->
+  <div class="detail-panel" id="detail-panel">
+    <div class="detail-panel-header">
+      <h2 class="detail-panel-title" id="detail-panel-title">Firm Details</h2>
+      <button class="detail-panel-close" onclick="closeDetailPanel()">&times;</button>
+    </div>
+    <div class="detail-panel-body" id="detail-panel-body">
+      <!-- Dynamic content -->
+    </div>
+  </div>
+
   <script>
-    // Security utilities
-    function escapeHtml(text) {
-      if (!text) return '';
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
+    // =============================================================================
+    // API HELPER & UTILITIES
+    // =============================================================================
 
-    function sanitizeId(id) {
-      if (!id) return '';
-      return id.replace(/[^a-zA-Z0-9_-]/g, '');
-    }
-
-    // Event handlers
-    function closeAlertBar() {
-      const alertBar = document.getElementById('alert-bar');
-      if (alertBar) alertBar.style.display = 'none';
-    }
-
-    function viewAlerts() {
-      window.location.href = '/admin/alerts';
-    }
-
-    function viewBilling() {
-      window.location.href = '/admin/billing';
-    }
-
-    // Load dashboard data
-    async function loadDashboard() {
+    /**
+     * API helper function for making authenticated requests
+     * @param {string} endpoint - API endpoint (e.g., '/firms', '/dashboard')
+     * @param {object} options - fetch options
+     * @param {boolean} isSuperAdmin - if true, uses /api/v1/superadmin prefix
+     */
+    async function api(endpoint, options = {}, isSuperAdmin = true) {
       try {
-        const response = await fetch('/api/v1/admin/dashboard');
-        if (!response.ok) throw new Error('Failed to load dashboard');
+        const prefix = isSuperAdmin ? '/api/v1/superadmin' : '/api/v1/admin';
+        const response = await fetch(`${prefix}${endpoint}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+          },
+          ...options
+        });
 
-        const data = await response.json();
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          throw new Error(error.detail || `Request failed: ${response.status}`);
+        }
 
-        // Update metrics (with escaping)
-        document.getElementById('metric-returns').textContent = escapeHtml(String(data.metrics?.[0]?.value || '47'));
-        document.getElementById('metric-pending').textContent = escapeHtml(String(data.metrics?.[1]?.value || '12'));
-        document.getElementById('metric-compliance').textContent = escapeHtml(String(data.metrics?.[2]?.value || '94%'));
-        document.getElementById('metric-revenue').textContent = escapeHtml(String(data.metrics?.[3]?.value || '$125K'));
-
-        // Update health score
-        const healthScore = data.health_score || 94;
-        document.getElementById('health-score').textContent = escapeHtml(String(healthScore));
-        document.getElementById('health-score-fill').style.width = healthScore + '%';
-
+        return response.json();
       } catch (error) {
-        console.log('Using default dashboard data');
+        console.error(`API Error [${endpoint}]:`, error);
+        throw error;
       }
     }
 
-    // Initialize
-    document.addEventListener('DOMContentLoaded', function() {
-      loadDashboard();
+    /**
+     * Shorthand for firm admin API calls
+     */
+    async function adminApi(endpoint, options = {}) {
+      return api(endpoint, options, false);
+    }
+
+    // Core Platform API Base
+    const CORE_API = '/api/core';
+
+    /**
+     * Core Platform API helper (unified API for all user types)
+     * Use this for user management, billing, messaging that spans all roles
+     */
+    async function coreApi(endpoint, options = {}) {
+      try {
+        const response = await fetch(`${CORE_API}${endpoint}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+          },
+          ...options
+        });
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          throw new Error(error.detail || `Request failed: ${response.status}`);
+        }
+
+        return response.json();
+      } catch (error) {
+        console.error(`Core API Error [${endpoint}]:`, error);
+        throw error;
+      }
+    }
+
+    /**
+     * XSS Prevention - Escape HTML entities
+     */
+    function escapeHtml(text) {
+      if (text === null || text === undefined) return '';
+      const div = document.createElement('div');
+      div.textContent = String(text);
+      return div.innerHTML;
+    }
+
+    /**
+     * Format currency values
+     */
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(amount);
+    }
+
+    /**
+     * Format numbers with commas
+     */
+    function formatNumber(num) {
+      return new Intl.NumberFormat('en-US').format(num);
+    }
+
+    /**
+     * Format relative time
+     */
+    function formatRelativeTime(dateString) {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins} min ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+      return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    }
+
+    /**
+     * Show loading state in an element
+     */
+    function showLoading(elementId) {
+      const el = document.getElementById(elementId);
+      if (el) {
+        el.innerHTML = `<div class="loading-spinner" style="display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--gray-400);">
+          <span style="font-size: 24px; animation: spin 1s linear infinite;">&#9696;</span>
+          <span style="margin-left: 12px;">Loading...</span>
+        </div>`;
+      }
+    }
+
+    /**
+     * Show error state in an element
+     */
+    function showError(elementId, message) {
+      const el = document.getElementById(elementId);
+      if (el) {
+        el.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--error);">
+          <span style="font-size: 24px;">&#9888;</span>
+          <span style="margin-left: 12px;">${escapeHtml(message)}</span>
+        </div>`;
+      }
+    }
+
+    // =============================================================================
+    // DATA STATE
+    // =============================================================================
+
+    let platformMetrics = null;
+    let firmsData = [];
+    let usersData = [];
+    let partnersData = [];
+    let auditLogs = [];
+    let featureFlags = [];
+    let systemHealth = null;
+
+    // =============================================================================
+    // API DATA LOADERS
+    // =============================================================================
+
+    /**
+     * Load platform dashboard metrics
+     */
+    async function loadDashboardMetrics() {
+      updateDebug('Loading dashboard metrics from API...');
+      try {
+        platformMetrics = await api('/dashboard');
+        updateDebug('Dashboard: Got ' + platformMetrics.total_firms + ' firms, $' + platformMetrics.total_mrr + ' MRR');
+        updateDashboardStats(platformMetrics);
+      } catch (error) {
+        console.error('Failed to load dashboard metrics:', error);
+        updateDebug('Dashboard ERROR: ' + error.message);
+        showError('dashboard-stats', 'Failed to load metrics: ' + error.message);
+      }
+    }
+
+    /**
+     * Load all firms
+     */
+    async function loadFirms(filters = {}) {
+      updateDebug('Loading firms from API...');
+      try {
+        const params = new URLSearchParams();
+        if (filters.tier) params.append('tier', filters.tier);
+        if (filters.status) params.append('status', filters.status);
+        if (filters.search) params.append('search', filters.search);
+
+        const queryString = params.toString();
+        firmsData = await api(`/firms${queryString ? '?' + queryString : ''}`);
+        updateDebug('Firms: Loaded ' + firmsData.length + ' firms');
+        updateFirmsTable(firmsData);
+        updateFirmCount(firmsData.length);
+      } catch (error) {
+        console.error('Failed to load firms:', error);
+        updateDebug('Firms ERROR: ' + error.message);
+        showError('firms-table', 'Failed to load firms');
+      }
+    }
+
+    // loadUsers() and loadPartners() are defined below with variable declarations
+
+    /**
+     * Load feature flags
+     */
+    async function loadFeatureFlags() {
+      try {
+        featureFlags = await api('/features');
+        updateFeatureFlagsUI(featureFlags);
+      } catch (error) {
+        console.error('Failed to load feature flags:', error);
+      }
+    }
+
+    /**
+     * Load system health
+     */
+    async function loadSystemHealth() {
+      try {
+        systemHealth = await api('/system/health');
+        updateSystemHealthUI(systemHealth);
+      } catch (error) {
+        console.error('Failed to load system health:', error);
+      }
+    }
+
+    /**
+     * Load RBAC overview
+     */
+    let rbacData = null;
+    async function loadRbac() {
+      try {
+        rbacData = await api('/rbac/overview');
+        updateRbacUI(rbacData);
+      } catch (error) {
+        console.error('Failed to load RBAC data:', error);
+        document.getElementById('rbac-roles-table').innerHTML = `
+          <tr><td colspan="4" style="text-align: center; padding: 40px; color: var(--danger);">Failed to load RBAC data</td></tr>
+        `;
+      }
+    }
+
+    /**
+     * Update RBAC UI
+     */
+    function updateRbacUI(data) {
+      if (!data) return;
+
+      // Update stats
+      const totalUsers = document.getElementById('rbac-total-users');
+      const totalRoles = document.getElementById('rbac-total-roles');
+      const customRoles = document.getElementById('rbac-custom-roles');
+      const totalPerms = document.getElementById('rbac-total-perms');
+
+      if (totalUsers) totalUsers.textContent = formatNumber(data.total_users || 0);
+      if (totalRoles) totalRoles.textContent = (data.system_roles || []).length;
+      if (customRoles) customRoles.textContent = data.custom_roles_count || 0;
+      if (totalPerms) totalPerms.textContent = data.total_permissions || 0;
+
+      // Update roles table
+      const rolesTable = document.getElementById('rbac-roles-table');
+      if (rolesTable && data.system_roles) {
+        rolesTable.innerHTML = data.system_roles.map(role => {
+          const badgeClass = role.name.includes('Admin') ? 'badge-error' :
+                             role.name.includes('Senior') ? 'badge-info' :
+                             role.name.includes('Preparer') ? 'badge-gray' : 'badge-success';
+          return `
+            <tr>
+              <td><span class="badge ${badgeClass}">${escapeHtml(role.name)}</span></td>
+              <td>${escapeHtml(role.description || '')}</td>
+              <td>${formatNumber(role.user_count || 0)}</td>
+              <td>${role.permissions_count || 0}</td>
+            </tr>
+          `;
+        }).join('') || '<tr><td colspan="4" style="text-align: center; padding: 20px;">No roles found</td></tr>';
+      }
+
+      // Update categories
+      const categoriesDiv = document.getElementById('rbac-categories');
+      if (categoriesDiv && data.permission_categories) {
+        categoriesDiv.innerHTML = data.permission_categories.map(cat => `
+          <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--gray-100);">
+            <span style="text-transform: capitalize;">${escapeHtml(cat.category)}</span>
+            <span class="badge badge-gray">${cat.permissions} permissions</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    /**
+     * Show RBAC tab content
+     */
+    async function showRbacTab(tab) {
+      document.querySelectorAll('#section-rbac .tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+
+      const content = document.getElementById('rbac-content');
+      if (!content) return;
+
+      switch(tab) {
+        case 'permissions':
+          content.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading-spinner"></div></div>';
+          try {
+            const perms = await api('/rbac/permissions');
+            content.innerHTML = `
+              <div class="card">
+                <div class="card-header">
+                  <h2 class="card-title">All Permissions</h2>
+                </div>
+                <div class="card-body no-padding">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Permission</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${(perms.permissions || []).map(p => `
+                        <tr>
+                          <td><code style="background: var(--gray-100); padding: 4px 8px; border-radius: 4px;">${escapeHtml(p.id)}</code></td>
+                          <td><span class="badge badge-gray">${escapeHtml(p.category)}</span></td>
+                          <td>${escapeHtml(p.description || '')}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            `;
+          } catch (error) {
+            content.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--danger);">Failed to load permissions</div>';
+          }
+          break;
+        case 'admins':
+          content.innerHTML = `
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Platform Administrators</h2>
+                <button class="btn btn-primary btn-sm" onclick="openAddAdminModal()">+ Add Admin</button>
+              </div>
+              <div class="card-body">
+                <p style="text-align: center; color: var(--gray-500);">Platform admin management will load from API</p>
+              </div>
+            </div>
+          `;
+          break;
+        default:
+          loadRbac();
+      }
+    }
+
+    function openAddAdminModal() {
+      alert('Add platform admin - Feature coming soon');
+    }
+
+    // loadAuditLogs() is defined below using adminApi() for correct /admin prefix
+
+    /**
+     * Load subscription/billing data
+     */
+    async function loadSubscriptionData() {
+      try {
+        const [mrr, churn] = await Promise.all([
+          api('/subscriptions/mrr').catch(() => null),
+          api('/subscriptions/churn').catch(() => null)
+        ]);
+        updateSubscriptionUI(mrr, churn);
+      } catch (error) {
+        console.error('Failed to load subscription data:', error);
+      }
+    }
+
+    // =============================================================================
+    // UI UPDATE FUNCTIONS
+    // =============================================================================
+
+    /**
+     * Update dashboard statistics cards
+     */
+    function updateDashboardStats(metrics) {
+      if (!metrics) return;
+
+      // Update specific stat elements
+      const statMrr = document.getElementById('stat-mrr');
+      const statMrrChange = document.getElementById('stat-mrr-change');
+      const statFirms = document.getElementById('stat-firms');
+      const statFirmsChange = document.getElementById('stat-firms-change');
+      const statUsers = document.getElementById('stat-users');
+      const statUsersChange = document.getElementById('stat-users-change');
+      const statChurn = document.getElementById('stat-churn');
+      const statChurnChange = document.getElementById('stat-churn-change');
+      const statHealth = document.getElementById('stat-health');
+      const statHealthChange = document.getElementById('stat-health-change');
+
+      if (statMrr) statMrr.textContent = formatCurrency(metrics.total_mrr || 0);
+      if (statMrrChange) statMrrChange.innerHTML = '&#9650; MoM growth';
+
+      if (statFirms) statFirms.textContent = formatNumber(metrics.active_firms || metrics.total_firms || 0);
+      if (statFirmsChange) statFirmsChange.innerHTML = `&#9650; ${formatNumber(metrics.trial_firms || 0)} trials`;
+
+      // Estimate users from tier distribution
+      const totalUsers = Object.values(metrics.tier_distribution || {}).reduce((a, b) => a + b, 0) * 7;
+      if (statUsers) statUsers.textContent = formatNumber(totalUsers || 0);
+      if (statUsersChange) statUsersChange.textContent = 'Across all firms';
+
+      if (statChurn) statChurn.textContent = (metrics.churn_rate || 0).toFixed(1) + '%';
+      if (statChurnChange) statChurnChange.textContent = 'Monthly rate';
+
+      if (statHealth) statHealth.textContent = (metrics.avg_health_score || 0) + '%';
+      if (statHealthChange) statHealthChange.textContent = 'Avg score';
+
+      // Update subscription distribution
+      updateSubscriptionDistribution(metrics.tier_distribution);
+
+      // Update platform activity
+      updatePlatformActivity();
+
+      // Update top firms table
+      updateTopFirmsTable();
+    }
+
+    /**
+     * Update subscription distribution bars
+     */
+    function updateSubscriptionDistribution(distribution) {
+      const container = document.getElementById('subscription-distribution');
+      if (!container || !distribution) {
+        if (container) container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--gray-400);">No distribution data</div>';
+        return;
+      }
+
+      const total = Object.values(distribution).reduce((a, b) => a + b, 0);
+      if (total === 0) return;
+
+      const tiers = [
+        { key: 'enterprise', name: 'Enterprise', color: 'linear-gradient(90deg, #fbbf24, #f59e0b)', price: 999 },
+        { key: 'professional', name: 'Professional', color: 'var(--info)', price: 499 },
+        { key: 'starter', name: 'Starter', color: 'var(--gray-400)', price: 199 }
+      ];
+
+      container.innerHTML = tiers.map(tier => {
+        const count = distribution[tier.key] || 0;
+        const mrr = count * tier.price;
+        const percent = total > 0 ? (count / total * 100) : 0;
+        return `
+          <div class="distribution-bar" onclick="navigateTo('firms', {tier: '${tier.key}'})" title="View ${tier.name} firms">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
+              <span style="font-size: 13px; color: var(--gray-700);">${tier.name}<span class="bar-link">View firms &#8594;</span></span>
+              <span style="font-size: 13px; font-weight: 600;">${formatNumber(count)} firms (${formatCurrency(mrr)} MRR)</span>
+            </div>
+            <div style="height: 8px; background: var(--gray-100); border-radius: 4px; overflow: hidden;">
+              <div style="width: ${percent}%; height: 100%; background: ${tier.color}; border-radius: 4px;"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /**
+     * Update platform activity feed
+     */
+    async function updatePlatformActivity() {
+      const container = document.getElementById('platform-activity-feed');
+      if (!container) return;
+
+      try {
+        // Load real activity from API
+        const activities = await api('/activity').catch(() => []);
+
+        if (!activities || activities.length === 0) {
+          container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--gray-400);">No recent activity</div>';
+          return;
+        }
+
+        // Map activity types to icons and styles
+        const activityStyles = {
+          'firm_onboarded': { type: 'success', icon: '&#10003;' },
+          'feature_flag_updated': { type: 'info', icon: '&#9881;' },
+          'high_usage_alert': { type: 'warning', icon: '&#9888;' },
+          'subscription_upgraded': { type: 'success', icon: '&#9650;' },
+          'subscription_downgraded': { type: 'warning', icon: '&#9660;' },
+          'user_invited': { type: 'info', icon: '&#128231;' },
+          'user_deactivated': { type: 'warning', icon: '&#128683;' },
+          'default': { type: 'info', icon: '&#8226;' }
+        };
+
+        container.innerHTML = activities.map(act => {
+          const style = activityStyles[act.activity_type] || activityStyles['default'];
+          const timeAgo = formatRelativeTime(act.created_at);
+          const firmInfo = act.firm_name ? ` - ${escapeHtml(act.firm_name)}` : '';
+
+          return `
+            <div class="activity-item">
+              <div class="activity-icon ${style.type}">${style.icon}</div>
+              <div class="activity-content">
+                <div class="activity-text">${escapeHtml(act.description)}${firmInfo}</div>
+                <div class="activity-meta">${escapeHtml(timeAgo)}${act.actor_name ? ' by ' + escapeHtml(act.actor_name) : ''}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('Failed to load platform activity:', error);
+        container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--error);">Failed to load activity</div>';
+      }
+    }
+
+    /**
+     * Update top firms table on overview
+     */
+    async function updateTopFirmsTable() {
+      const tbody = document.getElementById('top-firms-table');
+      if (!tbody) return;
+
+      if (!firmsData || firmsData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--gray-400);">No firms data</td></tr>';
+        return;
+      }
+
+      // Sort by returns and take top 5
+      const topFirms = [...firmsData].sort((a, b) => (b.returns_this_month || 0) - (a.returns_this_month || 0)).slice(0, 5);
+
+      tbody.innerHTML = topFirms.map(firm => `
+        <tr onclick="openFirmDetail('${escapeHtml(firm.firm_id)}')" style="cursor: pointer;" title="View ${escapeHtml(firm.name)} details">
+          <td>
+            <div class="firm-cell">
+              <div class="firm-logo" style="background: ${getColorForName(firm.name)};">${getInitials(firm.name)}</div>
+              <div class="firm-cell-info">
+                <span class="firm-cell-name">${escapeHtml(firm.name)}</span>
+                <span class="firm-cell-id">${escapeHtml(firm.firm_id)}</span>
+              </div>
+            </div>
+          </td>
+          <td><span class="tier-badge tier-${firm.subscription_tier}">${escapeHtml(firm.subscription_tier)}</span></td>
+          <td>${formatNumber(firm.team_members || 0)}</td>
+          <td>${formatNumber(firm.returns_this_month || 0)}</td>
+          <td>$${formatNumber((firm.health_score || 0) * 100)}</td>
+          <td><span class="status-dot ${firm.subscription_status === 'active' ? 'active' : 'pending'}"></span>${escapeHtml(firm.subscription_status || 'unknown')}</td>
+        </tr>
+      `).join('');
+    }
+
+    /**
+     * Update firm count in sidebar and header
+     */
+    function updateFirmCount(count) {
+      const badge = document.querySelector('.nav-item[data-page="firms"] .nav-item-badge');
+      if (badge) badge.textContent = formatNumber(count);
+
+      const sectionTitle = document.getElementById('firms-section-title');
+      if (sectionTitle) sectionTitle.textContent = `All Firms (${formatNumber(count)})`;
+    }
+
+    /**
+     * Update firms table
+     */
+    function updateFirmsTable(firms) {
+      const tbody = document.getElementById('firms-table');
+      if (!tbody) return;
+
+      if (!firms || firms.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--gray-400);">No firms found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = firms.map(firm => `
+        <tr onclick="openFirmDetail('${escapeHtml(firm.firm_id)}')" style="cursor: pointer;">
+          <td>
+            <div class="firm-cell">
+              <div class="firm-logo" style="background: ${getColorForName(firm.name)};">${getInitials(firm.name)}</div>
+              <div class="firm-cell-info">
+                <span class="firm-cell-name">${escapeHtml(firm.name)}</span>
+                <span class="firm-cell-id">${escapeHtml(firm.firm_id)}</span>
+              </div>
+            </div>
+          </td>
+          <td><span class="badge badge-gray">Direct</span></td>
+          <td><span class="tier-badge tier-${firm.subscription_tier}">${escapeHtml(firm.subscription_tier)}</span></td>
+          <td>${formatNumber(firm.team_members || 0)}</td>
+          <td>${formatNumber(firm.clients || 0)}</td>
+          <td>${formatNumber(firm.returns_this_month || 0)}</td>
+          <td>$${formatNumber((firm.health_score || 0) * 100)}</td>
+          <td><span class="status-dot ${firm.subscription_status === 'active' ? 'active' : 'pending'}"></span>${escapeHtml(firm.subscription_status || 'unknown')}</td>
+          <td>${formatRelativeTime(firm.created_at)}</td>
+        </tr>
+      `).join('');
+
+      // Update firm count
+      updateFirmCount(firms.length);
+    }
+
+    /**
+     * Update users table
+     */
+    function updateUsersTable(users) {
+      const tbody = document.getElementById('users-table');
+      if (!tbody) return;
+
+      if (!users || users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--gray-400);">No users found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = users.map(user => {
+        const roleColors = {
+          'firm_admin': 'badge-purple',
+          'senior_preparer': 'badge-info',
+          'preparer': 'badge-gray',
+          'reviewer': 'badge-success'
+        };
+        const roleColor = roleColors[user.role] || 'badge-gray';
+
+        return `
+          <tr>
+            <td>
+              <div class="user-cell">
+                <div class="avatar" style="background: ${getColorForName(user.full_name || user.email)};">${getInitials(user.full_name || user.email)}</div>
+                <div class="user-cell-info">
+                  <span class="user-cell-name">${escapeHtml(user.full_name || user.first_name + ' ' + user.last_name)}</span>
+                  <span class="user-cell-email">${escapeHtml(user.email)}</span>
+                </div>
+              </div>
+            </td>
+            <td>${escapeHtml(user.firm_name || 'Unknown')}</td>
+            <td><span class="badge ${roleColor}">${escapeHtml(user.role || 'N/A')}</span></td>
+            <td>${formatNumber(user.returns_this_month || 0)}</td>
+            <td>${user.last_login_at ? formatRelativeTime(user.last_login_at) : 'Never'}</td>
+            <td><span class="status-dot ${user.is_active ? 'active' : 'inactive'}"></span>${user.is_active ? 'Active' : 'Inactive'}</td>
+            <td>
+              <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); impersonateUser('${escapeHtml(user.user_id)}')">Impersonate</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // Update users count
+      const title = document.getElementById('users-section-title');
+      if (title) title.textContent = `All Users (${formatNumber(users.length)})`;
+    }
+
+    /**
+     * Update partners grid
+     */
+    function updatePartnersGrid(partners) {
+      const container = document.getElementById('partners-grid');
+      if (!container) return;
+
+      if (!partners || partners.length === 0) {
+        container.innerHTML = `
+          <div class="card">
+            <div class="card-body" style="text-align: center; padding: 60px; color: var(--gray-400);">
+              <div style="font-size: 48px; margin-bottom: 16px;">&#129309;</div>
+              <div>No partners yet</div>
+              <button class="btn btn-primary" style="margin-top: 16px;" onclick="openAddPartnerModal()">Add First Partner</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = partners.map(partner => `
+        <div class="card">
+          <div class="card-body">
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+              <div class="firm-logo" style="background: ${getColorForName(partner.name)}; width: 56px; height: 56px; font-size: 20px;">${getInitials(partner.name)}</div>
+              <div>
+                <div style="font-weight: 600; font-size: 16px; color: var(--gray-900);">${escapeHtml(partner.name)}</div>
+                <div style="font-size: 12px; color: var(--gray-500);">${escapeHtml(partner.domain || '')}</div>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+              <div>
+                <div style="font-size: 20px; font-weight: 700; color: var(--gray-900);">${formatNumber(partner.firms_count || 0)}</div>
+                <div style="font-size: 11px; color: var(--gray-500);">Firms</div>
+              </div>
+              <div>
+                <div style="font-size: 20px; font-weight: 700; color: var(--gray-900);">${formatNumber(partner.users_count || 0)}</div>
+                <div style="font-size: 11px; color: var(--gray-500);">Users</div>
+              </div>
+              <div>
+                <div style="font-size: 20px; font-weight: 700; color: var(--success);">${formatCurrency(partner.mrr || 0)}</div>
+                <div style="font-size: 11px; color: var(--gray-500);">MRR</div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-secondary btn-sm" style="flex: 1;" onclick="openPartnerDetail('${escapeHtml(partner.partner_id)}')">Manage</button>
+              <button class="btn btn-ghost btn-sm" onclick="openPartnerSettings('${escapeHtml(partner.partner_id)}')">&#9881;</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      // Update partners count
+      const title = document.getElementById('partners-section-title');
+      if (title) title.textContent = `White-Label Partners (${formatNumber(partners.length)})`;
+    }
+
+    /**
+     * Update feature flags UI
+     */
+    function updateFeatureFlagsUI(flags) {
+      const container = document.querySelector('#section-features .card-body');
+      if (!container) return;
+
+      if (!flags || flags.length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--gray-400);">No feature flags configured</div>';
+        return;
+      }
+
+      container.innerHTML = flags.map(flag => {
+        const statusBadge = flag.is_enabled_globally ? 'badge-success' : (flag.rollout_percentage > 0 ? 'badge-warning' : 'badge-gray');
+        const statusText = flag.is_enabled_globally ? 'GA' : (flag.rollout_percentage > 0 ? `${flag.rollout_percentage}%` : 'Disabled');
+
+        return `
+          <div class="feature-flag">
+            <div class="feature-flag-info">
+              <div class="feature-flag-name">${escapeHtml(flag.name)}</div>
+              <div class="feature-flag-desc">${escapeHtml(flag.description || '')}</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <span class="badge ${statusBadge}">${statusText}</span>
+              <span style="font-size: 12px; color: var(--gray-500);">${formatNumber(flag.enabled_firms || 0)} firms</span>
+              <label class="toggle">
+                <input type="checkbox" ${flag.is_enabled_globally ? 'checked' : ''} onchange="toggleFeatureFlag('${escapeHtml(flag.flag_id)}', this.checked)">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /**
+     * Update system health UI
+     */
+    function updateSystemHealthUI(health) {
+      if (!health) return;
+
+      // Update status badge
+      const statusBadge = document.querySelector('#section-health .section-header .badge');
+      if (statusBadge) {
+        statusBadge.className = `badge ${health.status === 'healthy' ? 'badge-success' : 'badge-warning'}`;
+        statusBadge.textContent = health.status === 'healthy' ? 'All Systems Operational' : 'Degraded Performance';
+      }
+
+      // Update health stats
+      const healthStats = document.querySelector('#section-health .platform-stats');
+      if (healthStats) {
+        healthStats.innerHTML = `
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">API Uptime (30d)</span>
+              <div class="stat-icon green">&#128994;</div>
+            </div>
+            <div class="stat-value">${(100 - (health.error_rate_1h || 0)).toFixed(2)}%</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">Avg Response Time</span>
+              <div class="stat-icon blue">&#9889;</div>
+            </div>
+            <div class="stat-value">${health.avg_response_time_ms || 0}ms</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">Error Rate (1h)</span>
+              <div class="stat-icon yellow">&#9888;</div>
+            </div>
+            <div class="stat-value">${(health.error_rate_1h || 0).toFixed(2)}%</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">Active Jobs</span>
+              <div class="stat-icon purple">&#128279;</div>
+            </div>
+            <div class="stat-value">${formatNumber(health.active_jobs || 0)}</div>
+          </div>
+        `;
+      }
+
+      // Update service table
+      const serviceTable = document.querySelector('#section-health .data-table tbody');
+      if (serviceTable && health.services) {
+        serviceTable.innerHTML = Object.entries(health.services).map(([name, service]) => {
+          const displayName = name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          const statusClass = service.status === 'healthy' ? 'badge-success' : 'badge-warning';
+          const metric = service.latency_ms ? `${service.latency_ms}ms` :
+                        service.memory_mb ? `${service.memory_mb}MB` :
+                        service.connections ? `${service.connections} conn` :
+                        service.workers ? `${service.workers} workers` :
+                        service.queue_size ? `${service.queue_size} queued` : '-';
+
+          return `
+            <tr>
+              <td>${escapeHtml(displayName)}</td>
+              <td><span class="badge ${statusClass}">${escapeHtml(service.status || 'unknown')}</span></td>
+              <td>${metric}</td>
+              <td>Just now</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    /**
+     * Update subscription UI
+     */
+    function updateSubscriptionUI(mrr, churn) {
+      // Update subscription section stats
+      const statsContainer = document.querySelector('#section-subscriptions .platform-stats');
+      if (!statsContainer) return;
+
+      if (mrr) {
+        statsContainer.innerHTML = `
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">Total MRR</span>
+              <div class="stat-icon green">&#128176;</div>
+            </div>
+            <div class="stat-value">${formatCurrency(mrr.total_mrr || 0)}</div>
+            <div class="stat-change positive">&#9650; ${((mrr.trends?.change_percent || 0)).toFixed(1)}% MoM</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">Active Subscriptions</span>
+              <div class="stat-icon blue">&#128179;</div>
+            </div>
+            <div class="stat-value">${formatNumber(Object.values(mrr.by_tier || {}).reduce((a, t) => a + (t.count || 0), 0))}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">At-Risk Firms</span>
+              <div class="stat-icon yellow">&#9888;</div>
+            </div>
+            <div class="stat-value">${formatNumber(churn?.at_risk_firms || 0)}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <span class="stat-label">Churn Rate</span>
+              <div class="stat-icon red">&#128200;</div>
+            </div>
+            <div class="stat-value">${(churn?.churn_rate || 0).toFixed(1)}%</div>
+          </div>
+        `;
+      }
+    }
+
+    /**
+     * Update audit logs table
+     */
+    function updateAuditLogsTable(logs) {
+      const tbody = document.querySelector('#section-audit .data-table tbody');
+      if (!tbody) return;
+
+      if (!logs || logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--gray-400);">No audit logs found</td></tr>';
+        return;
+      }
+
+      const actionColors = {
+        'login': 'badge-success',
+        'impersonate': 'badge-info',
+        'subscription': 'badge-warning',
+        'permission': 'badge-purple',
+        'data_access': 'badge-gray'
+      };
+
+      tbody.innerHTML = logs.map(log => {
+        const actionColor = actionColors[log.action] || 'badge-gray';
+        return `
+          <tr>
+            <td style="font-family: monospace; font-size: 12px;">${new Date(log.timestamp).toISOString().replace('T', ' ').slice(0, 19)}</td>
+            <td>${escapeHtml(log.user_email || log.user_id || 'system')}</td>
+            <td><span class="badge ${actionColor}">${escapeHtml(log.action)}</span></td>
+            <td>${escapeHtml(log.resource_type || '')} ${escapeHtml(log.resource_id || '')}</td>
+            <td>${escapeHtml(JSON.stringify(log.details || {}).slice(0, 50))}...</td>
+            <td style="font-family: monospace;">${escapeHtml(log.ip_address || 'N/A')}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // =============================================================================
+    // HELPER FUNCTIONS
+    // =============================================================================
+
+    /**
+     * Get initials from name
+     */
+    function getInitials(name) {
+      return name?.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() || '??';
+    }
+
+    /**
+     * Get consistent color for a name
+     */
+    function getColorForName(name) {
+      const colors = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
+      let hash = 0;
+      for (let i = 0; i < (name?.length || 0); i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return colors[Math.abs(hash) % colors.length];
+    }
+
+    // =============================================================================
+    // ACTION HANDLERS
+    // =============================================================================
+
+    /**
+     * Toggle feature flag
+     */
+    async function toggleFeatureFlag(flagId, enabled) {
+      try {
+        await api(`/features/${flagId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ is_enabled_globally: enabled })
+        });
+        // Reload feature flags to get updated state
+        await loadFeatureFlags();
+      } catch (error) {
+        alert('Failed to update feature flag: ' + error.message);
+        // Revert checkbox
+        await loadFeatureFlags();
+      }
+    }
+
+    /**
+     * Create new firm
+     */
+    async function createFirm(formData) {
+      try {
+        const result = await api('/firms', {
+          method: 'POST',
+          body: JSON.stringify(formData)
+        });
+        await loadFirms();
+        closeDetailPanel();
+        return result;
+      } catch (error) {
+        alert('Failed to create firm: ' + error.message);
+        throw error;
+      }
+    }
+
+    /**
+     * Update firm
+     */
+    async function updateFirm(firmId, formData) {
+      try {
+        const result = await api(`/firms/${firmId}`, {
+          method: 'PUT',
+          body: JSON.stringify(formData)
+        });
+        await loadFirms();
+        return result;
+      } catch (error) {
+        alert('Failed to update firm: ' + error.message);
+        throw error;
+      }
+    }
+
+    /**
+     * Impersonate firm
+     */
+    async function impersonateFirm(firmId, reason) {
+      try {
+        const result = await api(`/firms/${firmId}/impersonate?reason=${encodeURIComponent(reason)}`, {
+          method: 'POST'
+        });
+        if (result.impersonation_token) {
+          alert(`Impersonation started for ${result.firm_name}. Token expires in ${result.expires_in}s`);
+          // Could redirect to CPA panel with token
+        }
+        return result;
+      } catch (error) {
+        alert('Failed to impersonate: ' + error.message);
+        throw error;
+      }
+    }
+
+    /**
+     * Impersonate user
+     */
+    async function impersonateUser(userId) {
+      const reason = prompt('Enter reason for impersonation (required for audit):');
+      if (!reason) return;
+
+      try {
+        // This would need a backend endpoint
+        alert(`Impersonation for user ${userId} - Feature coming soon`);
+      } catch (error) {
+        alert('Failed to impersonate user: ' + error.message);
+      }
+    }
+
+    /**
+     * Load users data - Uses both Admin API and Core Platform API
+     */
+    async function loadUsers(filters = {}) {
+      updateDebug('Loading users with filters: ' + JSON.stringify(filters));
+      try {
+        // Build query params
+        const params = new URLSearchParams();
+        if (filters.role) params.append('role', filters.role);
+        if (filters.firm_id) params.append('firm_id', filters.firm_id);
+        if (filters.status) params.append('status', filters.status);
+        if (filters.search) params.append('search', filters.search);
+
+        const queryString = params.toString();
+        const response = await api(`/users${queryString ? '?' + queryString : ''}`).catch(() => []);
+        usersData = Array.isArray(response) ? response : [];
+
+        updateDebug('Users: Loaded ' + usersData.length + ' users');
+        updateUsersTable(usersData);
+
+        // Populate firm filter dropdown if not already populated
+        populateFirmFilter();
+      } catch (error) {
+        console.error('Failed to load users:', error);
+        updateDebug('Users ERROR: ' + error.message);
+        usersData = [];
+        updateUsersTable([]);
+      }
+    }
+
+    /**
+     * Populate firm filter dropdown with available firms
+     */
+    function populateFirmFilter() {
+      const firmFilter = document.getElementById('user-firm-filter');
+      if (!firmFilter || firmFilter.options.length > 1) return;
+
+      // Get unique firms from firmsData or usersData
+      const firms = firmsData.length > 0 ? firmsData :
+        [...new Map(usersData.map(u => [u.firm_id, { firm_id: u.firm_id, name: u.firm_name }])).values()];
+
+      firms.forEach(firm => {
+        const option = document.createElement('option');
+        option.value = firm.firm_id;
+        option.textContent = firm.name;
+        firmFilter.appendChild(option);
+      });
+    }
+
+    /**
+     * Get user statistics from Core Platform API
+     */
+    async function loadCoreUserStats() {
+      try {
+        const stats = await coreApi('/users/stats/summary');
+        return stats;
+      } catch (error) {
+        console.error('Failed to load core user stats:', error);
+        return null;
+      }
+    }
+
+    /**
+     * Load billing data from Core Platform API
+     */
+    async function loadCoreBillingData() {
+      try {
+        const [plans, invoices] = await Promise.all([
+          coreApi('/billing/plans').catch(() => []),
+          coreApi('/billing/invoices').catch(() => [])
+        ]);
+        return { plans, invoices };
+      } catch (error) {
+        console.error('Failed to load core billing data:', error);
+        return { plans: [], invoices: [] };
+      }
+    }
+
+    /**
+     * Load partners data
+     */
+    async function loadPartners(filters = {}) {
+      updateDebug('Loading partners with filters: ' + JSON.stringify(filters));
+      try {
+        // Build query params
+        const params = new URLSearchParams();
+        if (filters.status) params.append('status', filters.status);
+        if (filters.search) params.append('search', filters.search);
+
+        const queryString = params.toString();
+        const response = await api(`/partners${queryString ? '?' + queryString : ''}`).catch(() => []);
+        partnersData = Array.isArray(response) ? response : [];
+        updateDebug('Partners: Loaded ' + partnersData.length + ' partners');
+        updatePartnersGrid(partnersData);
+      } catch (error) {
+        console.error('Failed to load partners:', error);
+        updateDebug('Partners ERROR: ' + error.message);
+        partnersData = [];
+        updatePartnersGrid([]);
+      }
+    }
+
+    /**
+     * Load audit logs
+     */
+    async function loadAuditLogs(filters = {}) {
+      updateDebug('Loading audit logs with filters: ' + JSON.stringify(filters));
+      try {
+        // Build query params
+        const params = new URLSearchParams();
+        if (filters.action) params.append('action', filters.action);
+        if (filters.firm_id) params.append('firm_id', filters.firm_id);
+        if (filters.start_date) params.append('start_date', filters.start_date);
+        if (filters.end_date) params.append('end_date', filters.end_date);
+
+        const queryString = params.toString();
+        const response = await api(`/audit/logs${queryString ? '?' + queryString : ''}`).catch(() => null);
+        const logs = response?.logs || [];
+        updateDebug('Audit Logs: Loaded ' + logs.length + ' entries');
+        updateAuditLogsTable(logs);
+      } catch (error) {
+        console.error('Failed to load audit logs:', error);
+        updateDebug('Audit Logs ERROR: ' + error.message);
+        updateAuditLogsTable([]);
+      }
+    }
+
+    // =============================================================================
+    // MODAL HANDLERS
+    // =============================================================================
+
+    /**
+     * Open Add Firm modal
+     */
+    function openAddFirmModal() {
+      const modal = createModal('Add New Firm', `
+        <form id="add-firm-form">
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Firm Name *</label>
+            <input type="text" name="name" required class="form-input" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Admin Email *</label>
+            <input type="email" name="admin_email" required class="form-input" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Subscription Tier</label>
+            <select name="subscription_tier" class="form-select" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+              <option value="starter">Starter</option>
+              <option value="professional" selected>Professional</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Firm</button>
+          </div>
+        </form>
+      `);
+
+      document.getElementById('add-firm-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        await createFirm({
+          name: formData.get('name'),
+          admin_email: formData.get('admin_email'),
+          subscription_tier: formData.get('subscription_tier')
+        });
+        closeModal();
+      });
+    }
+
+    /**
+     * Open Invite User modal
+     */
+    function openInviteUserModal() {
+      const modal = createModal('Invite User', `
+        <form id="invite-user-form">
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Email Address *</label>
+            <input type="email" name="email" required class="form-input" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Firm *</label>
+            <select name="firm_id" required class="form-select" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+              <option value="">Select a firm...</option>
+              ${(firmsData || []).map(f => `<option value="${escapeHtml(f.firm_id)}">${escapeHtml(f.name)}</option>`).join('')}
+            </select>
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Role</label>
+            <select name="role" class="form-select" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+              <option value="preparer">Preparer</option>
+              <option value="senior_preparer">Senior Preparer</option>
+              <option value="reviewer">Reviewer</option>
+              <option value="firm_admin">Firm Admin</option>
+            </select>
+          </div>
+          <div id="invite-error" style="display: none; color: var(--danger); margin-bottom: 16px; padding: 10px; background: #fef2f2; border-radius: 6px;"></div>
+          <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="invite-submit-btn">Send Invitation</button>
+          </div>
+        </form>
+      `);
+
+      document.getElementById('invite-user-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const submitBtn = document.getElementById('invite-submit-btn');
+        const errorDiv = document.getElementById('invite-error');
+
+        // Validation
+        const email = formData.get('email');
+        const firmId = formData.get('firm_id');
+        if (!email || !firmId) {
+          errorDiv.textContent = 'Please fill in all required fields';
+          errorDiv.style.display = 'block';
+          return;
+        }
+
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="loading-spinner-small"></span> Sending...';
+        errorDiv.style.display = 'none';
+
+        try {
+          const result = await api('/users/invite', {
+            method: 'POST',
+            body: JSON.stringify({
+              email: email,
+              firm_id: firmId,
+              role: formData.get('role') || 'preparer'
+            })
+          });
+
+          closeModal();
+          showNotification(`Invitation sent to ${email}`, 'success');
+          loadUsers(); // Refresh users list
+        } catch (error) {
+          console.error('Failed to send invitation:', error);
+          errorDiv.textContent = error.message || 'Failed to send invitation';
+          errorDiv.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Send Invitation';
+        }
+      });
+    }
+
+    /**
+     * Open Add Partner modal
+     */
+    function openAddPartnerModal() {
+      const modal = createModal('Add Partner', `
+        <form id="add-partner-form">
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Partner Name *</label>
+            <input type="text" name="name" required class="form-input" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Domain</label>
+            <input type="text" name="domain" placeholder="partner.com" class="form-input" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Contact Email *</label>
+            <input type="email" name="contact_email" required class="form-input" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Revenue Share %</label>
+            <input type="number" name="revenue_share" min="0" max="50" value="10" class="form-input" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          </div>
+          <div id="partner-error" style="display: none; color: var(--danger); margin-bottom: 16px; padding: 10px; background: #fef2f2; border-radius: 6px;"></div>
+          <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="partner-submit-btn">Add Partner</button>
+          </div>
+        </form>
+      `);
+
+      document.getElementById('add-partner-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const submitBtn = document.getElementById('partner-submit-btn');
+        const errorDiv = document.getElementById('partner-error');
+
+        // Validation
+        const name = formData.get('name');
+        const contactEmail = formData.get('contact_email');
+        if (!name || !contactEmail) {
+          errorDiv.textContent = 'Please fill in all required fields';
+          errorDiv.style.display = 'block';
+          return;
+        }
+
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="loading-spinner-small"></span> Creating...';
+        errorDiv.style.display = 'none';
+
+        try {
+          const result = await api(`/partners?name=${encodeURIComponent(name)}&contact_email=${encodeURIComponent(contactEmail)}&domain=${encodeURIComponent(formData.get('domain') || '')}&revenue_share_percent=${formData.get('revenue_share') || 10}`, {
+            method: 'POST'
+          });
+
+          closeModal();
+          showNotification(`Partner "${name}" created successfully`, 'success');
+          loadPartners(); // Refresh partners list
+        } catch (error) {
+          console.error('Failed to create partner:', error);
+          errorDiv.textContent = error.message || 'Failed to create partner';
+          errorDiv.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Add Partner';
+        }
+      });
+    }
+
+    /**
+     * Show notification toast
+     */
+    function showNotification(message, type = 'info') {
+      // Remove existing notification
+      const existing = document.getElementById('notification-toast');
+      if (existing) existing.remove();
+
+      const colors = {
+        success: { bg: '#10b981', border: '#059669' },
+        error: { bg: '#ef4444', border: '#dc2626' },
+        warning: { bg: '#f59e0b', border: '#d97706' },
+        info: { bg: '#6366f1', border: '#4f46e5' }
+      };
+      const color = colors[type] || colors.info;
+
+      const toast = document.createElement('div');
+      toast.id = 'notification-toast';
+      toast.style.cssText = `
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        padding: 16px 24px;
+        background: ${color.bg};
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1001;
+        animation: slideIn 0.3s ease-out;
+      `;
+      toast.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span>${escapeHtml(message)}</span>
+          <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; cursor: pointer; font-size: 18px;">&times;</button>
+        </div>
+      `;
+
+      document.body.appendChild(toast);
+
+      // Auto-remove after 5 seconds
+      setTimeout(() => {
+        if (toast.parentElement) {
+          toast.style.animation = 'slideOut 0.3s ease-in forwards';
+          setTimeout(() => toast.remove(), 300);
+        }
+      }, 5000);
+    }
+
+    /**
+     * Create modal helper
+     */
+    function createModal(title, content) {
+      // Remove existing modal if any
+      closeModal();
+
+      const overlay = document.createElement('div');
+      overlay.id = 'modal-overlay';
+      overlay.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;';
+      overlay.onclick = (e) => { if (e.target === overlay) closeModal(); };
+
+      overlay.innerHTML = `
+        <div style="background: white; border-radius: 12px; width: 480px; max-width: 90vw; max-height: 90vh; overflow: auto;">
+          <div style="padding: 20px; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="font-size: 18px; font-weight: 600;">${escapeHtml(title)}</h2>
+            <button onclick="closeModal()" style="background: none; border: none; cursor: pointer; font-size: 20px;">&times;</button>
+          </div>
+          <div style="padding: 20px;">
+            ${content}
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+      return overlay;
+    }
+
+    /**
+     * Close modal
+     */
+    function closeModal() {
+      const overlay = document.getElementById('modal-overlay');
+      if (overlay) overlay.remove();
+    }
+
+    /**
+     * Open partner detail
+     */
+    async function openPartnerDetail(partnerId) {
+      const panel = document.getElementById('detail-panel');
+      document.getElementById('detail-panel-title').textContent = 'Partner Details';
+      document.getElementById('detail-panel-body').innerHTML = `
+        <div style="display: flex; justify-content: center; padding: 40px;">
+          <div class="loading-spinner"></div>
+        </div>
+      `;
+      panel.classList.add('open');
+
+      try {
+        const partner = await api(`/partners/${partnerId}`);
+        const initials = getInitials(partner.name || 'Unknown');
+        const color = getColorForName(partner.name || 'Unknown');
+
+        document.getElementById('detail-panel-body').innerHTML = `
+          <div style="margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
+              <div class="firm-logo" style="background: ${color}; width: 64px; height: 64px; font-size: 24px;">${escapeHtml(initials)}</div>
+              <div>
+                <div style="font-size: 20px; font-weight: 600;">${escapeHtml(partner.name || 'Unknown Partner')}</div>
+                <div style="color: var(--gray-500);">${escapeHtml(partner.domain || 'No domain')}</div>
+                <span class="badge badge-${partner.status === 'active' ? 'success' : 'warning'}">${escapeHtml(partner.status || 'Unknown')}</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
+            <div style="background: var(--gray-50); padding: 16px; border-radius: 8px;">
+              <div style="font-size: 24px; font-weight: 700;">${formatNumber(partner.firms_count || 0)}</div>
+              <div style="font-size: 12px; color: var(--gray-500);">Firms</div>
+            </div>
+            <div style="background: var(--gray-50); padding: 16px; border-radius: 8px;">
+              <div style="font-size: 24px; font-weight: 700;">${formatNumber(partner.users_count || 0)}</div>
+              <div style="font-size: 12px; color: var(--gray-500);">Users</div>
+            </div>
+            <div style="background: var(--gray-50); padding: 16px; border-radius: 8px;">
+              <div style="font-size: 24px; font-weight: 700; color: var(--success);">${formatCurrency(partner.mrr || 0)}</div>
+              <div style="font-size: 12px; color: var(--gray-500);">Monthly Revenue</div>
+            </div>
+            <div style="background: var(--gray-50); padding: 16px; border-radius: 8px;">
+              <div style="font-size: 24px; font-weight: 700;">${partner.revenue_share_percent || 0}%</div>
+              <div style="font-size: 12px; color: var(--gray-500);">Revenue Share</div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 24px;">
+            <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Contact Information</h4>
+            <div style="background: var(--gray-50); padding: 16px; border-radius: 8px;">
+              <div style="margin-bottom: 8px;"><strong>Email:</strong> ${escapeHtml(partner.contact_email || 'N/A')}</div>
+              <div><strong>Phone:</strong> ${escapeHtml(partner.contact_phone || 'N/A')}</div>
+            </div>
+          </div>
+
+          <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Quick Actions</h3>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn btn-secondary" style="justify-content: flex-start;" onclick="viewPartnerFirms('${partnerId}')">&#128188; View Partner Firms</button>
+            <button class="btn btn-secondary" style="justify-content: flex-start;" onclick="openPartnerSettings('${partnerId}')">&#9881; Partner Settings</button>
+            <button class="btn btn-secondary" style="justify-content: flex-start;" onclick="viewPartnerPayouts('${partnerId}')">&#128176; Payout History</button>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Failed to load partner details:', error);
+        document.getElementById('detail-panel-body').innerHTML = `
+          <div style="text-align: center; padding: 40px; color: var(--danger);">
+            <p>Failed to load partner details</p>
+            <p style="font-size: 12px; color: var(--gray-500);">${escapeHtml(error.message)}</p>
+            <button class="btn btn-secondary" onclick="openPartnerDetail('${partnerId}')" style="margin-top: 16px;">Retry</button>
+          </div>
+        `;
+      }
+    }
+
+    /**
+     * View partner firms
+     */
+    async function viewPartnerFirms(partnerId) {
+      try {
+        const result = await api(`/partners/${partnerId}/firms`);
+        const modal = createModal('Partner Firms', `
+          <div style="max-height: 400px; overflow-y: auto;">
+            ${(result.firms || []).map(f => `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--gray-100);">
+                <div>
+                  <div style="font-weight: 600;">${escapeHtml(f.name)}</div>
+                  <div style="font-size: 12px; color: var(--gray-500);">${f.users} users</div>
+                </div>
+                <div style="text-align: right;">
+                  <span class="badge badge-info">${escapeHtml(f.subscription_tier)}</span>
+                  <div style="font-size: 12px; color: var(--success);">${formatCurrency(f.mrr || 0)}/mo</div>
+                </div>
+              </div>
+            `).join('') || '<p style="text-align: center; color: var(--gray-500);">No firms found</p>'}
+          </div>
+          <div style="margin-top: 16px; text-align: right;">
+            <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+          </div>
+        `);
+      } catch (error) {
+        alert('Failed to load partner firms: ' + error.message);
+      }
+    }
+
+    function viewPartnerPayouts(partnerId) {
+      alert('Partner payout history - Feature coming soon');
+    }
+
+    /**
+     * Open partner settings modal
+     */
+    function openPartnerSettings(partnerId) {
+      const partner = partnersData.find(p => p.partner_id === partnerId) || {};
+      const modal = createModal('Partner Settings', `
+        <form id="partner-settings-form">
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Partner Name</label>
+            <input type="text" name="name" value="${escapeHtml(partner.name || '')}" class="form-input" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Domain</label>
+            <input type="text" name="domain" value="${escapeHtml(partner.domain || '')}" class="form-input" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Revenue Share %</label>
+            <input type="number" name="revenue_share" value="${partner.revenue_share_percent || 10}" min="0" max="50" class="form-input" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Status</label>
+            <select name="status" class="form-select" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+              <option value="active" ${partner.status === 'active' ? 'selected' : ''}>Active</option>
+              <option value="inactive" ${partner.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="partner-settings-btn">Save Changes</button>
+          </div>
+        </form>
+      `);
+
+      document.getElementById('partner-settings-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const submitBtn = document.getElementById('partner-settings-btn');
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="loading-spinner-small"></span> Saving...';
+
+        try {
+          await api(`/partners/${partnerId}?name=${encodeURIComponent(formData.get('name'))}&revenue_share_percent=${formData.get('revenue_share')}&status=${formData.get('status')}`, {
+            method: 'PUT'
+          });
+          closeModal();
+          showNotification('Partner settings updated', 'success');
+          loadPartners();
+        } catch (error) {
+          alert('Failed to update partner: ' + error.message);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Save Changes';
+        }
+      });
+    }
+
+    // =============================================================================
+    // EXPORT HANDLERS
+    // =============================================================================
+
+    /**
+     * Export firms data
+     */
+    function exportFirms() {
+      if (!firmsData || firmsData.length === 0) {
+        alert('No data to export');
+        return;
+      }
+      downloadCSV(firmsData, 'firms-export.csv');
+    }
+
+    /**
+     * Export users data
+     */
+    function exportUsers() {
+      if (!usersData || usersData.length === 0) {
+        alert('No data to export');
+        return;
+      }
+      downloadCSV(usersData, 'users-export.csv');
+    }
+
+    /**
+     * Download data as CSV
+     */
+    function downloadCSV(data, filename) {
+      const headers = Object.keys(data[0] || {});
+      const csv = [
+        headers.join(','),
+        ...data.map(row => headers.map(h => JSON.stringify(row[h] || '')).join(','))
+      ].join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // =============================================================================
+    // PAGE CONFIGURATION
+    // =============================================================================
+
+    // Page configuration
+    const pageConfig = {
+      '': { title: 'Platform Overview', subtitle: 'Multi-tenant administration', section: 'section-overview' },
+      'firms': { title: 'Firms Management', subtitle: 'All CPA firms on the platform', section: 'section-firms' },
+      'users': { title: 'Users Management', subtitle: 'All users across all firms', section: 'section-users' },
+      'partners': { title: 'Partner Management', subtitle: 'White-label partners', section: 'section-partners' },
+      'subscriptions': { title: 'Subscriptions', subtitle: 'Billing and revenue management', section: 'section-subscriptions' },
+      'revenue': { title: 'Revenue Analytics', subtitle: 'Platform revenue metrics', section: 'section-subscriptions' },
+      'compliance': { title: 'Compliance', subtitle: 'Platform-wide compliance status', section: 'section-audit' },
+      'audit': { title: 'Audit Logs', subtitle: 'Platform activity audit trail', section: 'section-audit' },
+      'support': { title: 'Support Tickets', subtitle: 'Customer support queue', section: 'section-overview' },
+      'features': { title: 'Feature Flags', subtitle: 'Platform feature configuration', section: 'section-features' },
+      'rbac': { title: 'RBAC Configuration', subtitle: 'Roles and permissions', section: 'section-rbac' },
+      'health': { title: 'System Health', subtitle: 'Infrastructure status', section: 'section-health' },
+    };
+
+    function getCurrentPage() {
+      const path = window.location.pathname;
+      const match = path.match(/^\/admin\/?(.*)$/);
+      return match ? match[1].split('/')[0] : '';
+    }
+
+    function updateActiveNav() {
+      const currentPage = getCurrentPage();
+      document.querySelectorAll('.nav-item').forEach(item => {
+        const page = item.getAttribute('data-page');
+        if (page === currentPage) {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+    }
+
+    function updatePageHeader() {
+      const currentPage = getCurrentPage();
+      const config = pageConfig[currentPage] || pageConfig[''];
+      document.getElementById('page-title').textContent = config.title;
+      document.getElementById('page-subtitle').textContent = config.subtitle;
+      document.title = config.title + ' - TaxFlow Admin';
+    }
+
+    function showCurrentSection() {
+      const currentPage = getCurrentPage();
+      const config = pageConfig[currentPage] || pageConfig[''];
+
+      document.querySelectorAll('.page-section').forEach(section => {
+        section.classList.remove('active');
+      });
+
+      const activeSection = document.getElementById(config.section);
+      if (activeSection) {
+        activeSection.classList.add('active');
+      }
+    }
+
+    /**
+     * Navigate to a page within the SPA
+     * @param {string} page - The page name (e.g., 'firms', 'users', 'subscriptions')
+     * @param {object} params - Optional query parameters (e.g., {filter: 'enterprise'})
+     */
+    function navigateTo(page, params = {}) {
+      let url = '/admin' + (page ? '/' + page : '');
+
+      // Add query parameters if provided
+      const queryString = new URLSearchParams(params).toString();
+      if (queryString) {
+        url += '?' + queryString;
+      }
+
+      // Update URL without page reload
+      history.pushState(null, '', url);
+
+      // Update active nav, page header, and section
+      updateActiveNav();
+      updatePageHeader();
+      showCurrentSection();
+
+      // If navigating to firms with a tier filter, apply the filter
+      if (page === 'firms' && params.tier) {
+        const tierFilter = document.getElementById('firm-tier-filter');
+        if (tierFilter) {
+          tierFilter.value = params.tier;
+          loadFirms({ tier: params.tier });
+        }
+      }
+
+      // If navigating to users with filters, apply them
+      if (page === 'users' && (params.role || params.status)) {
+        if (params.role) {
+          const roleFilter = document.getElementById('user-role-filter');
+          if (roleFilter) roleFilter.value = params.role;
+        }
+        loadUsers(params);
+      }
+
+      // Handle subscriptions filter
+      if (page === 'subscriptions' && params.filter) {
+        // Could set up subscription filter here if implemented
+        console.log('Navigate to subscriptions with filter:', params.filter);
+      }
+    }
+
+    // Listen for browser back/forward navigation
+    window.addEventListener('popstate', () => {
+      updateActiveNav();
+      updatePageHeader();
+      showCurrentSection();
     });
+
+    // Detail Panel
+    async function openFirmDetail(firmId) {
+      const panel = document.getElementById('detail-panel');
+      document.getElementById('detail-panel-title').textContent = 'Firm Details';
+      document.getElementById('detail-panel-body').innerHTML = `
+        <div style="display: flex; justify-content: center; padding: 40px;">
+          <div class="loading-spinner"></div>
+        </div>
+      `;
+      panel.classList.add('open');
+
+      try {
+        // Load firm details from API
+        const firm = await api(`/firms/${firmId}`);
+        const initials = getInitials(firm.name || 'Unknown');
+        const color = getColorForName(firm.name || 'Unknown');
+
+        document.getElementById('detail-panel-body').innerHTML = `
+          <div style="margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
+              <div class="firm-logo" style="background: ${color}; width: 64px; height: 64px; font-size: 24px;">${escapeHtml(initials)}</div>
+              <div>
+                <div style="font-size: 20px; font-weight: 600;">${escapeHtml(firm.name || 'Unknown Firm')}</div>
+                <div style="color: var(--gray-500);">${escapeHtml(firmId)}</div>
+                <span class="badge badge-${firm.subscription_status === 'active' ? 'success' : 'warning'}">${escapeHtml(firm.subscription_tier || 'Unknown')}</span>
+              </div>
+            </div>
+          </div>
+          <div class="tabs" style="margin-bottom: 20px;">
+            <div class="tab active" onclick="showFirmTab('overview', '${firmId}')">Overview</div>
+            <div class="tab" onclick="showFirmTab('users', '${firmId}')">Users</div>
+            <div class="tab" onclick="showFirmTab('billing', '${firmId}')">Billing</div>
+            <div class="tab" onclick="showFirmTab('settings', '${firmId}')">Settings</div>
+          </div>
+          <div id="firm-detail-content">
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
+              <div style="background: var(--gray-50); padding: 16px; border-radius: 8px;">
+                <div style="font-size: 24px; font-weight: 700;">${formatNumber(firm.team_members || 0)}</div>
+                <div style="font-size: 12px; color: var(--gray-500);">Team Members</div>
+              </div>
+              <div style="background: var(--gray-50); padding: 16px; border-radius: 8px;">
+                <div style="font-size: 24px; font-weight: 700;">${formatNumber(firm.clients || 0)}</div>
+                <div style="font-size: 12px; color: var(--gray-500);">Clients</div>
+              </div>
+              <div style="background: var(--gray-50); padding: 16px; border-radius: 8px;">
+                <div style="font-size: 24px; font-weight: 700;">${formatNumber(firm.returns_this_month || 0)}</div>
+                <div style="font-size: 12px; color: var(--gray-500);">Returns This Month</div>
+              </div>
+              <div style="background: var(--gray-50); padding: 16px; border-radius: 8px;">
+                <div style="font-size: 24px; font-weight: 700; color: var(--success);">${formatCurrency(firm.usage_this_month?.mrr || 0)}</div>
+                <div style="font-size: 12px; color: var(--gray-500);">Monthly Revenue</div>
+              </div>
+            </div>
+            <div style="margin-bottom: 24px;">
+              <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Health Metrics</h4>
+              <div style="display: flex; gap: 16px;">
+                <div style="flex: 1;">
+                  <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">Health Score</div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="flex: 1; height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden;">
+                      <div style="width: ${firm.health_score || 0}%; height: 100%; background: ${(firm.health_score || 0) >= 80 ? 'var(--success)' : (firm.health_score || 0) >= 60 ? 'var(--warning)' : 'var(--danger)'};"></div>
+                    </div>
+                    <span style="font-weight: 600;">${firm.health_score || 0}%</span>
+                  </div>
+                </div>
+                <div>
+                  <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">Churn Risk</div>
+                  <span class="badge badge-${firm.churn_risk === 'low' ? 'success' : firm.churn_risk === 'medium' ? 'warning' : 'danger'}">${escapeHtml(firm.churn_risk || 'unknown')}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Quick Actions</h3>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn btn-secondary" style="justify-content: flex-start;" onclick="impersonateFirm('${firmId}')">&#128100; Impersonate Firm Admin</button>
+            <button class="btn btn-secondary" style="justify-content: flex-start;" onclick="viewFirmBilling('${firmId}')">&#128179; View Billing Details</button>
+            <button class="btn btn-secondary" style="justify-content: flex-start;" onclick="manageFirmPermissions('${firmId}')">&#128274; Manage Permissions</button>
+            <button class="btn btn-secondary" style="justify-content: flex-start;" onclick="viewFirmAuditLogs('${firmId}')">&#128196; View Audit Logs</button>
+            <button class="btn btn-danger" style="justify-content: flex-start; margin-top: 16px;" onclick="suspendFirm('${firmId}')">&#128683; Suspend Firm</button>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Failed to load firm details:', error);
+        document.getElementById('detail-panel-body').innerHTML = `
+          <div style="text-align: center; padding: 40px; color: var(--danger);">
+            <p>Failed to load firm details</p>
+            <p style="font-size: 12px; color: var(--gray-500);">${escapeHtml(error.message)}</p>
+            <button class="btn btn-secondary" onclick="openFirmDetail('${firmId}')" style="margin-top: 16px;">Retry</button>
+          </div>
+        `;
+      }
+    }
+
+    // Firm detail tab switching
+    function showFirmTab(tab, firmId) {
+      document.querySelectorAll('#detail-panel .tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+
+      const content = document.getElementById('firm-detail-content');
+      if (!content) return;
+
+      switch(tab) {
+        case 'users':
+          content.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--gray-500);">Loading users...</div>';
+          loadFirmUsers(firmId);
+          break;
+        case 'billing':
+          content.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--gray-500);">Loading billing...</div>';
+          loadFirmBilling(firmId);
+          break;
+        case 'settings':
+          content.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--gray-500);">Loading settings...</div>';
+          break;
+        default:
+          openFirmDetail(firmId);
+      }
+    }
+
+    async function loadFirmUsers(firmId) {
+      // Would load users for this firm
+      const content = document.getElementById('firm-detail-content');
+      content.innerHTML = `
+        <div style="padding: 20px;">
+          <h4 style="margin-bottom: 16px;">Team Members</h4>
+          <p style="color: var(--gray-500);">User list will be loaded from API</p>
+        </div>
+      `;
+    }
+
+    async function loadFirmBilling(firmId) {
+      const content = document.getElementById('firm-detail-content');
+      content.innerHTML = `
+        <div style="padding: 20px;">
+          <h4 style="margin-bottom: 16px;">Billing Information</h4>
+          <p style="color: var(--gray-500);">Billing details will be loaded from API</p>
+        </div>
+      `;
+    }
+
+    // Firm action handlers
+    async function impersonateFirm(firmId) {
+      const reason = prompt('Enter reason for impersonation (required for audit):');
+      if (!reason) return;
+
+      try {
+        const result = await api(`/firms/${firmId}/impersonate?reason=${encodeURIComponent(reason)}`, { method: 'POST' });
+        alert(`Impersonation token generated. Session expires in ${result.expires_in} seconds.`);
+        // Could redirect to CPA panel with token
+      } catch (error) {
+        alert('Failed to impersonate: ' + error.message);
+      }
+    }
+
+    function viewFirmBilling(firmId) {
+      showFirmTab('billing', firmId);
+    }
+
+    function manageFirmPermissions(firmId) {
+      alert('Permission management for firm ' + firmId + ' - Feature coming soon');
+    }
+
+    function viewFirmAuditLogs(firmId) {
+      // Navigate to audit logs filtered by firm
+      window.location.href = '/admin/audit?firm=' + firmId;
+    }
+
+    async function suspendFirm(firmId) {
+      if (!confirm('Are you sure you want to suspend this firm? All users will be logged out.')) return;
+
+      try {
+        await api(`/firms/${firmId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ subscription_status: 'suspended' })
+        });
+        alert('Firm suspended successfully');
+        closeDetailPanel();
+        loadFirms();
+      } catch (error) {
+        alert('Failed to suspend firm: ' + error.message);
+      }
+    }
+
+    function closeDetailPanel() {
+      document.getElementById('detail-panel').classList.remove('open');
+    }
+
+    // =============================================================================
+    // INITIALIZATION
+    // =============================================================================
+
+    /**
+     * Debug logging (console only)
+     */
+    function updateDebug(message) {
+      console.log('[Admin]', message);
+    }
+
+    /**
+     * Initialize page and load data
+     */
+    async function initializePage() {
+      updateDebug('Starting initialization...');
+      updateActiveNav();
+      updatePageHeader();
+      showCurrentSection();
+
+      // Load data based on current section
+      const currentPage = getCurrentPage();
+      updateDebug('Page: ' + (currentPage || 'overview') + ' - Loading data...');
+
+      try {
+        await loadPageData(currentPage);
+        updateDebug('Page: ' + (currentPage || 'overview') + ' - Data loaded successfully!');
+      } catch (error) {
+        updateDebug('ERROR: ' + error.message);
+      }
+    }
+
+    /**
+     * Load data for the current page
+     */
+    async function loadPageData(page) {
+      switch(page) {
+        case '':
+          await Promise.all([
+            loadDashboardMetrics(),
+            loadFirms(),
+            updatePlatformActivity()
+          ]);
+          break;
+        case 'firms':
+          await loadFirms();
+          break;
+        case 'users':
+          await loadUsers();
+          break;
+        case 'partners':
+          await loadPartners();
+          break;
+        case 'subscriptions':
+        case 'revenue':
+          await loadSubscriptionData();
+          break;
+        case 'features':
+          await loadFeatureFlags();
+          break;
+        case 'health':
+          await loadSystemHealth();
+          break;
+        case 'rbac':
+          await loadRbac();
+          break;
+        case 'audit':
+        case 'compliance':
+          await loadAuditLogs();
+          break;
+      }
+    }
+
+    /**
+     * Set up filter event listeners
+     */
+    function setupFilterListeners() {
+      // ===================
+      // FIRM FILTERS
+      // ===================
+      const tierFilter = document.getElementById('firm-tier-filter');
+      const firmStatusFilter = document.getElementById('firm-status-filter');
+      const partnerFilter = document.getElementById('firm-partner-filter');
+      const firmSearchInput = document.querySelector('#section-firms .search-input');
+
+      const applyFirmFilters = () => {
+        loadFirms({
+          tier: tierFilter?.value || '',
+          status: firmStatusFilter?.value || '',
+          partner: partnerFilter?.value || '',
+          search: firmSearchInput?.value || ''
+        });
+      };
+
+      tierFilter?.addEventListener('change', applyFirmFilters);
+      firmStatusFilter?.addEventListener('change', applyFirmFilters);
+      partnerFilter?.addEventListener('change', applyFirmFilters);
+      firmSearchInput?.addEventListener('input', debounce(applyFirmFilters, 300));
+
+      // ===================
+      // USER FILTERS
+      // ===================
+      const userRoleFilter = document.getElementById('user-role-filter');
+      const userFirmFilter = document.getElementById('user-firm-filter');
+      const userStatusFilter = document.getElementById('user-status-filter');
+      const userSearchInput = document.getElementById('user-search');
+
+      const applyUserFilters = () => {
+        loadUsers({
+          role: userRoleFilter?.value || '',
+          firm_id: userFirmFilter?.value || '',
+          status: userStatusFilter?.value || '',
+          search: userSearchInput?.value || ''
+        });
+      };
+
+      userRoleFilter?.addEventListener('change', applyUserFilters);
+      userFirmFilter?.addEventListener('change', applyUserFilters);
+      userStatusFilter?.addEventListener('change', applyUserFilters);
+      userSearchInput?.addEventListener('input', debounce(applyUserFilters, 300));
+
+      // ===================
+      // AUDIT LOG FILTERS
+      // ===================
+      const auditActionFilter = document.getElementById('audit-action-filter');
+      const auditFirmFilter = document.getElementById('audit-firm-filter');
+      const auditStartDate = document.getElementById('audit-start-date');
+      const auditEndDate = document.getElementById('audit-end-date');
+
+      const applyAuditFilters = () => {
+        loadAuditLogs({
+          action: auditActionFilter?.value || '',
+          firm_id: auditFirmFilter?.value || '',
+          start_date: auditStartDate?.value || '',
+          end_date: auditEndDate?.value || ''
+        });
+      };
+
+      auditActionFilter?.addEventListener('change', applyAuditFilters);
+      auditFirmFilter?.addEventListener('change', applyAuditFilters);
+      auditStartDate?.addEventListener('change', applyAuditFilters);
+      auditEndDate?.addEventListener('change', applyAuditFilters);
+
+      // ===================
+      // PARTNER FILTERS
+      // ===================
+      const partnerStatusFilter = document.getElementById('partner-status-filter');
+      const partnerSearchInput = document.getElementById('partner-search');
+
+      const applyPartnerFilters = () => {
+        loadPartners({
+          status: partnerStatusFilter?.value || '',
+          search: partnerSearchInput?.value || ''
+        });
+      };
+
+      partnerStatusFilter?.addEventListener('change', applyPartnerFilters);
+      partnerSearchInput?.addEventListener('input', debounce(applyPartnerFilters, 300));
+    }
+
+    /**
+     * Debounce helper
+     */
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+
+    /**
+     * Open global search
+     */
+    function openGlobalSearch() {
+      const searchInput = document.getElementById('global-search');
+      if (searchInput) {
+        searchInput.focus();
+        searchInput.select();
+      }
+    }
+
+    /**
+     * Close all modals/panels
+     */
+    function closeAllModals() {
+      closeDetailPanel();
+    }
+
+    // Initialize on DOM ready
+    document.addEventListener('DOMContentLoaded', function() {
+      initializePage();
+      setupFilterListeners();
+      setupNavClickHandlers();
+    });
+
+    /**
+     * Set up nav item click handlers for SPA navigation
+     */
+    function setupNavClickHandlers() {
+      document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+        item.addEventListener('click', function(e) {
+          e.preventDefault();
+          const page = this.getAttribute('data-page');
+          navigateTo(page);
+        });
+      });
+    }
+
+    // =============================================================================
+    // KEYBOARD SHORTCUTS
+    // =============================================================================
+
+    document.addEventListener('keydown', function(e) {
+      // Escape - close panels/modals
+      if (e.key === 'Escape') {
+        closeAllModals();
+      }
+
+      // Ctrl/Cmd + K - open search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        openGlobalSearch();
+      }
+
+      // Ctrl/Cmd + Shift + F - jump to firms
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') {
+        e.preventDefault();
+        navigateTo('firms');
+      }
+
+      // Ctrl/Cmd + Shift + U - jump to users
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'U') {
+        e.preventDefault();
+        navigateTo('users');
+      }
+
+      // Ctrl/Cmd + Shift + H - jump to health
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
+        e.preventDefault();
+        navigateTo('health');
+      }
+
+      // Ctrl/Cmd + Shift + O - jump to overview
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'O') {
+        e.preventDefault();
+        navigateTo('');
+      }
+    });
+
+    // =============================================================================
+    // REFRESH DATA PERIODICALLY
+    // =============================================================================
+
+    // Refresh system health every 30 seconds when on health page
+    setInterval(() => {
+      if (getCurrentPage() === 'health') {
+        loadSystemHealth();
+      }
+    }, 30000);
+
+    // Refresh dashboard metrics every 60 seconds when on overview
+    setInterval(() => {
+      if (getCurrentPage() === '') {
+        loadDashboardMetrics();
+      }
+    }, 60000);
   </script>
 </body>
 </html>

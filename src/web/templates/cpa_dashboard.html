@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#059669">
+  <meta name="theme-color" content="#6366f1">
   <meta name="description" content="CPA Tax Advisory Intelligence - Maximize Client Tax Savings">
   <title>Tax Advisory Intelligence | CPA Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,12 +11,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #059669;
-      --primary-hover: #047857;
-      --primary-light: #d1fae5;
-      --primary-50: #ecfdf5;
-      --accent: #1e40af;
-      --accent-light: #dbeafe;
+      /* Unified Indigo Theme - Matching Admin Panel */
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-light: #e0e7ff;
+      --primary-50: #eef2ff;
+      --accent: #8b5cf6;
+      --accent-light: #ede9fe;
       --gray-50: #f9fafb;
       --gray-100: #f3f4f6;
       --gray-200: #e5e7eb;
@@ -27,18 +28,18 @@
       --gray-700: #374151;
       --gray-800: #1f2937;
       --gray-900: #111827;
-      --success: #059669;
+      --success: #10b981;
       --success-light: #d1fae5;
-      --warning: #d97706;
+      --warning: #f59e0b;
       --warning-light: #fef3c7;
-      --error: #dc2626;
+      --error: #ef4444;
       --error-light: #fee2e2;
-      --info: #0284c7;
-      --info-light: #e0f2fe;
-      --savings: #059669;
-      --savings-bg: linear-gradient(135deg, #059669 0%, #10b981 100%);
-      --sidebar-width: 240px;
-      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+      --info: #3b82f6;
+      --info-light: #dbeafe;
+      --savings: #10b981;
+      --savings-bg: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      --sidebar-width: 260px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
       --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.06);
       --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08);
       --transition-fast: 150ms ease;
@@ -2199,6 +2200,36 @@
       return { success: false };
     }
 
+    // Core Platform API Base
+    const CORE_API = '/api/core';
+
+    // Core Platform API helper (unified API for all user types)
+    async function coreApi(endpoint, options = {}) {
+      const token = localStorage.getItem('cpa_token') || state.preparerId;
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(state.preparerId && { 'X-Preparer-ID': state.preparerId }),
+      };
+
+      try {
+        const response = await fetch(`${CORE_API}${endpoint}`, {
+          ...options,
+          headers: { ...headers, ...(options.headers || {}) },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Request failed: ${response.status}`);
+        }
+
+        return await response.json();
+      } catch (e) {
+        console.error(`Core API Error: ${endpoint}`, e);
+        return { success: false, error: e.message };
+      }
+    }
+
     // =============================================================================
     // SECURITY UTILITY FUNCTIONS
     // =============================================================================
@@ -4277,11 +4308,48 @@
     }
 
     async function loadClientDetailData(clientId) {
-      // Try to load from API
+      // Try to load from CPA API first
       try {
         const data = await api(`/api/cpa/insights/client/${clientId}`);
         if (data.success) {
           updateClientDetailUI(data);
+
+          // Also load from Core Platform API for enhanced data
+          loadCoreClientData(clientId);
+          return;
+        }
+      } catch (e) {
+        console.log('Trying core API for client detail');
+      }
+
+      // Try Core Platform API as fallback
+      try {
+        const [profile, recommendations, returns] = await Promise.all([
+          coreApi(`/users/${clientId}`).catch(() => null),
+          coreApi(`/recommendations?user_id=${clientId}`).catch(() => []),
+          coreApi(`/tax-returns?user_id=${clientId}`).catch(() => [])
+        ]);
+
+        if (profile) {
+          const taxReturn = returns[0] || {};
+          const totalSavings = recommendations.reduce((sum, r) => sum + (r.estimated_savings_high || 0), 0);
+
+          updateClientDetailUI({
+            client_name: profile.full_name || `${profile.first_name} ${profile.last_name}`,
+            tax_year: taxReturn.tax_year || 2024,
+            filing_status: 'Single',
+            agi: taxReturn.adjusted_gross_income || 0,
+            total_tax: taxReturn.total_tax || 0,
+            effective_rate: taxReturn.gross_income > 0 ? (taxReturn.total_tax / taxReturn.gross_income * 100) : 0,
+            refund_or_owed: taxReturn.refund_amount || -taxReturn.amount_due || 0,
+            total_potential_savings: totalSavings,
+            opportunities: recommendations.map(r => ({
+              category: r.category,
+              title: r.title,
+              description: r.summary,
+              estimated_savings: r.estimated_savings_high
+            }))
+          });
           return;
         }
       } catch (e) {
@@ -4356,6 +4424,119 @@
       `).join('');
 
       document.getElementById('detail-all-opportunities').innerHTML = allOppsHtml || '<div class="empty-state"><div class="empty-title">No opportunities found</div></div>';
+    }
+
+    /**
+     * Load enhanced data from Core Platform API
+     * This enriches the client detail view with core platform data
+     */
+    async function loadCoreClientData(clientId) {
+      try {
+        // Load recommendations from Core API
+        const recommendations = await coreApi(`/recommendations?user_id=${clientId}`);
+        if (Array.isArray(recommendations) && recommendations.length > 0) {
+          clientDetailState.coreRecommendations = recommendations;
+
+          // Update recommendations section if it exists
+          const recsContainer = document.getElementById('detail-core-recommendations');
+          if (recsContainer) {
+            recsContainer.innerHTML = recommendations.slice(0, 5).map(rec => `
+              <div class="insight-item" data-rec-id="${rec.id}">
+                <div class="insight-icon ${rec.priority}">${getCategoryIcon(rec.category)}</div>
+                <div class="insight-content">
+                  <div class="insight-title">${escapeHtml(rec.title)}</div>
+                  <div class="insight-desc">${escapeHtml(rec.summary)}</div>
+                  <div style="margin-top:4px;font-size:11px;color:var(--gray-500);">
+                    Confidence: ${rec.confidence_score}% | Priority: ${rec.priority}
+                  </div>
+                </div>
+                <div class="insight-amount">
+                  <span style="font-size:11px;color:var(--gray-500);">Est. savings</span><br>
+                  ${formatCurrency(rec.estimated_savings_low)} - ${formatCurrency(rec.estimated_savings_high)}
+                </div>
+              </div>
+            `).join('');
+          }
+        }
+
+        // Load documents from Core API
+        const documents = await coreApi(`/documents?user_id=${clientId}`);
+        if (Array.isArray(documents) && documents.length > 0) {
+          clientDetailState.coreDocuments = documents;
+        }
+
+        // Load messages/conversations from Core API
+        const conversations = await coreApi(`/messages/conversations`);
+        const clientConversation = conversations.find(c =>
+          c.participants?.some(p => p.user_id === clientId)
+        );
+        if (clientConversation) {
+          clientDetailState.conversationId = clientConversation.id;
+          clientDetailState.unreadMessages = clientConversation.unread_count || 0;
+        }
+
+      } catch (e) {
+        console.log('Core API enhancement data not available:', e.message);
+      }
+    }
+
+    /**
+     * Send a message to a client using Core API
+     */
+    async function sendMessageToClient(clientId, message) {
+      try {
+        let conversationId = clientDetailState.conversationId;
+
+        if (!conversationId) {
+          // Create a new conversation
+          const newConv = await coreApi('/messages/conversations', {
+            method: 'POST',
+            body: JSON.stringify({
+              type: 'direct',
+              participant_ids: [clientId],
+              initial_message: message
+            })
+          });
+          conversationId = newConv.id;
+          clientDetailState.conversationId = conversationId;
+        } else {
+          // Send to existing conversation
+          await coreApi(`/messages/conversations/${conversationId}/messages`, {
+            method: 'POST',
+            body: JSON.stringify({ content: message, message_type: 'text' })
+          });
+        }
+
+        showToast('Message sent successfully', 'success');
+        return true;
+      } catch (e) {
+        showToast('Failed to send message', 'error');
+        return false;
+      }
+    }
+
+    /**
+     * Create a recommendation for a client using Core API
+     */
+    async function createClientRecommendation(clientId, recommendation) {
+      try {
+        const result = await coreApi('/recommendations', {
+          method: 'POST',
+          body: JSON.stringify({
+            user_id: clientId,
+            ...recommendation
+          })
+        });
+
+        if (result.id) {
+          showToast('Recommendation created', 'success');
+          loadCoreClientData(clientId); // Refresh
+          return result;
+        }
+      } catch (e) {
+        showToast('Failed to create recommendation', 'error');
+      }
+      return null;
     }
 
     async function runClientScenario(templateId) {

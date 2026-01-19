@@ -369,6 +369,23 @@
             margin-top: 0.25rem;
         }
 
+        .module-link {
+            display: block;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .module-link:hover {
+            background: var(--primary-light);
+            border-left-color: var(--primary-hover);
+            transform: translateX(4px);
+        }
+
+        .module-link:hover h5 {
+            color: var(--primary);
+        }
+
         .footer {
             background: rgba(0, 0, 0, 0.2);
             padding: 2rem;
@@ -400,11 +417,11 @@
             <a href="/" class="logo">Tax<span>Flow</span> Platform</a>
             <nav class="nav-links">
                 <a href="#portals">Portals</a>
-                <a href="#architecture">Architecture</a>
-                <a href="#modules">Modules</a>
-                <a href="#flows">Flows</a>
+                <a href="#cpa-features">CPA Panel</a>
+                <a href="#admin-sections">Admin</a>
+                <a href="#dev-tools">Dev Tools</a>
                 <a href="#api">API</a>
-                <a href="/api/health">Health Check</a>
+                <a href="/docs">Swagger</a>
             </nav>
         </div>
     </header>
@@ -566,132 +583,132 @@
                 <div class="card">
                     <h3 style="margin-bottom: 1rem;">Tax Engine</h3>
                     <div class="module-grid">
-                        <div class="module-item">
+                        <a href="/api/calculate/complete" class="module-item module-link">
                             <h5>Federal Engine</h5>
                             <p>IRS Form 1040 calculations</p>
-                        </div>
-                        <div class="module-item">
+                        </a>
+                        <a href="/api/config/tax-year/2024" class="module-item module-link">
                             <h5>State Engine</h5>
                             <p>All 50 states + DC</p>
-                        </div>
-                        <div class="module-item">
+                        </a>
+                        <a href="/api/rules" class="module-item module-link">
                             <h5>Rules Engine</h5>
                             <p>Business rules processing</p>
-                        </div>
-                        <div class="module-item">
+                        </a>
+                        <a href="/api/optimize/credits" class="module-item module-link">
                             <h5>Credits Engine</h5>
                             <p>Tax credits calculations</p>
-                        </div>
+                        </a>
                     </div>
                 </div>
 
                 <div class="card">
                     <h3 style="margin-bottom: 1rem;">CPA Panel</h3>
                     <div class="module-grid">
-                        <div class="module-item">
+                        <a href="/api/cpa/queue/counts" class="module-item module-link">
                             <h5>Workflow</h5>
                             <p>Review & approval flows</p>
-                        </div>
-                        <div class="module-item">
+                        </a>
+                        <a href="/api/cpa/intelligence/metrics" class="module-item module-link">
                             <h5>Practice Intelligence</h5>
                             <p>Firm analytics & metrics</p>
-                        </div>
-                        <div class="module-item">
+                        </a>
+                        <a href="/api/cpa/engagement/complexity-services/standard" class="module-item module-link">
                             <h5>Engagement</h5>
                             <p>Letters & e-signatures</p>
-                        </div>
-                        <div class="module-item">
+                        </a>
+                        <a href="/api/cpa/staff/members" class="module-item module-link">
                             <h5>Staff Management</h5>
                             <p>Assignments & workload</p>
-                        </div>
+                        </a>
                     </div>
                 </div>
 
                 <div class="card">
                     <h3 style="margin-bottom: 1rem;">Admin Panel</h3>
                     <div class="module-grid">
-                        <div class="module-item">
+                        <a href="/api/v1/admin/admin/rbac/roles" class="module-item module-link">
                             <h5>RBAC System</h5>
                             <p>Roles & permissions</p>
-                        </div>
-                        <div class="module-item">
+                        </a>
+                        <a href="/api/v1/admin/team" class="module-item module-link">
                             <h5>Team Management</h5>
                             <p>Users & invitations</p>
-                        </div>
-                        <div class="module-item">
+                        </a>
+                        <a href="/api/v1/admin/billing" class="module-item module-link">
                             <h5>Billing</h5>
                             <p>Subscriptions & invoices</p>
-                        </div>
-                        <div class="module-item">
+                        </a>
+                        <a href="/api/v1/admin/compliance" class="module-item module-link">
                             <h5>Compliance</h5>
                             <p>Audit logs & reports</p>
-                        </div>
+                        </a>
                     </div>
                 </div>
 
                 <div class="card">
                     <h3 style="margin-bottom: 1rem;">Document Processing</h3>
                     <div class="module-grid">
-                        <div class="module-item">
+                        <a href="/api/upload" class="module-item module-link">
                             <h5>OCR Engine</h5>
                             <p>Document text extraction</p>
-                        </div>
-                        <div class="module-item">
+                        </a>
+                        <a href="/api/supported-documents" class="module-item module-link">
                             <h5>Field Extraction</h5>
                             <p>W-2, 1099, K-1 parsing</p>
-                        </div>
-                        <div class="module-item">
+                        </a>
+                        <a href="/api/validate/fields" class="module-item module-link">
                             <h5>Validation</h5>
                             <p>Data verification</p>
-                        </div>
-                        <div class="module-item">
+                        </a>
+                        <a href="/api/documents" class="module-item module-link">
                             <h5>Storage</h5>
                             <p>Secure document vault</p>
-                        </div>
+                        </a>
                     </div>
                 </div>
 
                 <div class="card">
                     <h3 style="margin-bottom: 1rem;">Advisory Engine</h3>
                     <div class="module-grid">
-                        <div class="module-item">
+                        <a href="/api/scenarios" class="module-item module-link">
                             <h5>Scenarios</h5>
                             <p>What-if analysis</p>
-                        </div>
-                        <div class="module-item">
+                        </a>
+                        <a href="/api/optimize" class="module-item module-link">
                             <h5>Optimization</h5>
                             <p>Tax savings finder</p>
-                        </div>
-                        <div class="module-item">
+                        </a>
+                        <a href="/api/smart-insights" class="module-item module-link">
                             <h5>Smart Insights</h5>
                             <p>AI recommendations</p>
-                        </div>
-                        <div class="module-item">
+                        </a>
+                        <a href="/api/entity-comparison" class="module-item module-link">
                             <h5>Entity Comparison</h5>
                             <p>Business structure analysis</p>
-                        </div>
+                        </a>
                     </div>
                 </div>
 
                 <div class="card">
                     <h3 style="margin-bottom: 1rem;">Core Infrastructure</h3>
                     <div class="module-grid">
-                        <div class="module-item">
+                        <a href="/api/v1/admin/admin/rbac/permissions" class="module-item module-link">
                             <h5>RBAC</h5>
                             <p>48 permissions, 12 roles</p>
-                        </div>
-                        <div class="module-item">
+                        </a>
+                        <a href="/api/v1/superadmin/firms" class="module-item module-link">
                             <h5>Partners</h5>
                             <p>White-label support</p>
-                        </div>
-                        <div class="module-item">
+                        </a>
+                        <a href="/api/health/cache" class="module-item module-link">
                             <h5>Cache</h5>
                             <p>Multi-layer caching</p>
-                        </div>
-                        <div class="module-item">
+                        </a>
+                        <a href="/api/audit" class="module-item module-link">
                             <h5>Audit Trail</h5>
                             <p>Compliance logging</p>
-                        </div>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -880,10 +897,10 @@
                 <div class="api-group">
                     <h4><span style="color: var(--danger);">Admin & RBAC</span></h4>
                     <div class="api-endpoints">
-                        <span class="api-endpoint"><span class="method get">GET</span>/api/v1/admin/rbac/permissions</span>
-                        <span class="api-endpoint"><span class="method get">GET</span>/api/v1/admin/rbac/roles</span>
-                        <span class="api-endpoint"><span class="method post">POST</span>/api/v1/admin/rbac/roles</span>
-                        <span class="api-endpoint"><span class="method put">PUT</span>/api/v1/admin/rbac/roles/{id}/permissions</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/v1/admin/admin/rbac/permissions</span>
+                        <span class="api-endpoint"><span class="method get">GET</span>/api/v1/admin/admin/rbac/roles</span>
+                        <span class="api-endpoint"><span class="method post">POST</span>/api/v1/admin/admin/rbac/roles</span>
+                        <span class="api-endpoint"><span class="method put">PUT</span>/api/v1/admin/admin/rbac/roles/{id}/permissions</span>
                         <span class="api-endpoint"><span class="method get">GET</span>/api/v1/admin/rbac/users/{id}/roles</span>
                         <span class="api-endpoint"><span class="method post">POST</span>/api/v1/admin/rbac/users/{id}/roles</span>
                         <span class="api-endpoint"><span class="method post">POST</span>/api/v1/admin/rbac/users/{id}/permissions</span>
@@ -906,27 +923,265 @@
             </div>
         </section>
 
+        <!-- CPA Panel Features -->
+        <section id="cpa-features" class="section">
+            <h2 class="section-title">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                CPA Panel Features
+            </h2>
+            <div class="grid grid-4">
+                <a href="/api/cpa/health" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon green"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                        <h3>CPA Health</h3>
+                    </div>
+                    <p>Check CPA panel status and all route availability</p>
+                </a>
+                <a href="/api/cpa/docs/routes" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon blue"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></div>
+                        <h3>Route Docs</h3>
+                    </div>
+                    <p>Complete CPA panel API documentation</p>
+                </a>
+                <a href="/api/cpa/queue/counts" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon purple"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg></div>
+                        <h3>Review Queue</h3>
+                    </div>
+                    <p>View queue counts by status</p>
+                </a>
+                <a href="/api/cpa/leads/queue/summary" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon orange"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></div>
+                        <h3>Lead Pipeline</h3>
+                    </div>
+                    <p>Lead queue summary and metrics</p>
+                </a>
+                <a href="/api/cpa/insights/summary" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon blue"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg></div>
+                        <h3>Insights Summary</h3>
+                    </div>
+                    <p>Aggregated insights dashboard metrics</p>
+                </a>
+                <a href="/api/cpa/intelligence/metrics" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon green"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg></div>
+                        <h3>Practice Intelligence</h3>
+                    </div>
+                    <p>Firm-wide analytics and KPIs</p>
+                </a>
+                <a href="/api/cpa/pricing/tiers" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon purple"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                        <h3>Pricing Tiers</h3>
+                    </div>
+                    <p>Complexity-based pricing configuration</p>
+                </a>
+                <a href="/api/cpa/signals/catalog" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon orange"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg></div>
+                        <h3>Signal Catalog</h3>
+                    </div>
+                    <p>Available lead signals and triggers</p>
+                </a>
+            </div>
+        </section>
+
+        <!-- Admin Panel Sections -->
+        <section id="admin-sections" class="section">
+            <h2 class="section-title">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                Admin Panel Sections
+            </h2>
+            <div class="grid grid-4">
+                <a href="/api/v1/admin/admin/rbac/permissions" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon orange"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg></div>
+                        <h3>Permissions</h3>
+                    </div>
+                    <p>View all 48 system permissions</p>
+                </a>
+                <a href="/api/v1/admin/admin/rbac/roles" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon purple"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></div>
+                        <h3>Roles</h3>
+                    </div>
+                    <p>Manage 12 system roles and custom roles</p>
+                </a>
+                <a href="/api/v1/admin/dashboard" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon blue"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg></div>
+                        <h3>Dashboard</h3>
+                    </div>
+                    <p>Admin dashboard with firm metrics</p>
+                </a>
+                <a href="/api/v1/admin/team" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon green"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg></div>
+                        <h3>Team Management</h3>
+                    </div>
+                    <p>Invite users, manage team members</p>
+                </a>
+                <a href="/api/v1/admin/billing" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon orange"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg></div>
+                        <h3>Billing</h3>
+                    </div>
+                    <p>Subscriptions, invoices, payment methods</p>
+                </a>
+                <a href="/api/v1/admin/settings" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon purple"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg></div>
+                        <h3>Settings</h3>
+                    </div>
+                    <p>Firm settings and configuration</p>
+                </a>
+                <a href="/api/v1/admin/compliance" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon blue"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg></div>
+                        <h3>Compliance</h3>
+                    </div>
+                    <p>Audit logs and compliance reports</p>
+                </a>
+                <a href="/api/v1/admin/auth/login" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon green"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg></div>
+                        <h3>Authentication</h3>
+                    </div>
+                    <p>Login, token management, SSO</p>
+                </a>
+            </div>
+        </section>
+
+        <!-- Developer Tools -->
+        <section id="dev-tools" class="section">
+            <h2 class="section-title">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                Developer Tools & Documentation
+            </h2>
+            <div class="grid grid-4">
+                <a href="/docs" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon blue"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></div>
+                        <h3>Swagger UI</h3>
+                    </div>
+                    <p>Interactive API documentation</p>
+                </a>
+                <a href="/redoc" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon green"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg></div>
+                        <h3>ReDoc</h3>
+                    </div>
+                    <p>Alternative API documentation</p>
+                </a>
+                <a href="/openapi.json" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon purple"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg></div>
+                        <h3>OpenAPI Schema</h3>
+                    </div>
+                    <p>Download OpenAPI 3.0 specification</p>
+                </a>
+                <a href="/api/config/parameters" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon orange"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></div>
+                        <h3>Config Parameters</h3>
+                    </div>
+                    <p>View system configuration</p>
+                </a>
+                <a href="/api/config/tax-year/2024" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon blue"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>
+                        <h3>Tax Year Config</h3>
+                    </div>
+                    <p>2024 tax year parameters</p>
+                </a>
+                <a href="/api/workspace/dashboard" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon green"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg></div>
+                        <h3>Workspace API</h3>
+                    </div>
+                    <p>Preparer workspace dashboard</p>
+                </a>
+                <a href="/api/cpa/states/info" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon purple"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                        <h3>Lead States</h3>
+                    </div>
+                    <p>Lead state machine documentation</p>
+                </a>
+                <a href="/api/cpa/exposure/contracts" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon orange"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg></div>
+                        <h3>Exposure Contracts</h3>
+                    </div>
+                    <p>Red-line compliant data contracts</p>
+                </a>
+            </div>
+        </section>
+
         <!-- Quick Links -->
         <section class="section">
             <h2 class="section-title">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-                Quick Links
+                Quick Links & Health Checks
             </h2>
             <div class="grid grid-4">
                 <a href="/api/health" class="card access-card">
-                    <h3>System Health</h3>
-                    <p>Check system status and service health</p>
+                    <div class="card-header">
+                        <div class="card-icon green"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg></div>
+                        <h3>System Health</h3>
+                    </div>
+                    <p>Overall system status</p>
+                </a>
+                <a href="/api/health/database" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon blue"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg></div>
+                        <h3>Database Health</h3>
+                    </div>
+                    <p>PostgreSQL connection status</p>
+                </a>
+                <a href="/api/health/cache" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon purple"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg></div>
+                        <h3>Cache Health</h3>
+                    </div>
+                    <p>Redis cache status</p>
+                </a>
+                <a href="/api/health/resilience" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon orange"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg></div>
+                        <h3>Resilience</h3>
+                    </div>
+                    <p>Circuit breaker status</p>
+                </a>
+                <a href="/api/health/migrations" class="card access-card">
+                    <div class="card-header">
+                        <div class="card-icon blue"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg></div>
+                        <h3>Migrations</h3>
+                    </div>
+                    <p>Database migration status</p>
                 </a>
                 <a href="/test-auth" class="card access-card">
-                    <h3>Auth Test</h3>
-                    <p>Test authentication and token generation</p>
+                    <div class="card-header">
+                        <div class="card-icon green"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg></div>
+                        <h3>Auth Test</h3>
+                    </div>
+                    <p>Test authentication flow</p>
                 </a>
                 <a href="/api/supported-documents" class="card access-card">
-                    <h3>Supported Documents</h3>
-                    <p>View all supported tax document types</p>
+                    <div class="card-header">
+                        <div class="card-icon purple"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></div>
+                        <h3>Supported Documents</h3>
+                    </div>
+                    <p>W-2, 1099, K-1 and more</p>
                 </a>
                 <a href="/dashboard" class="card access-card">
-                    <h3>Basic Dashboard</h3>
+                    <div class="card-header">
+                        <div class="card-icon orange"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg></div>
+                        <h3>Basic Dashboard</h3>
+                    </div>
                     <p>Simple dashboard view</p>
                 </a>
             </div>

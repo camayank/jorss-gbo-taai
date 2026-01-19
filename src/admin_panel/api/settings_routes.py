@@ -6,13 +6,22 @@ Provides:
 - Branding customization
 - Security settings
 - API key management (Enterprise)
+
+All routes use database-backed queries.
 """
 
+import json
+import logging
+import secrets
+import hashlib
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timedelta
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File
 from pydantic import BaseModel, Field, EmailStr
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth.rbac import (
     get_current_user,
@@ -22,8 +31,10 @@ from ..auth.rbac import (
     require_firm_admin,
 )
 from ..models.user import UserPermission
+from database.async_engine import get_async_session
 
 router = APIRouter(prefix="/settings", tags=["Settings"])
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -143,46 +154,72 @@ class AllSettings(BaseModel):
 async def get_all_settings(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """
     Get all firm settings.
 
     Returns profile, branding, security, and integration settings.
     """
-    # TODO: Implement actual database query
+    # Get firm data with settings
+    query = text("""
+        SELECT f.name, f.legal_name, f.ein, f.email, f.phone, f.website,
+               f.address_line1, f.address_line2, f.city, f.state, f.zip_code,
+               f.branding, f.security_settings, f.integrations,
+               sp.features
+        FROM firms f
+        LEFT JOIN subscriptions s ON f.firm_id = s.firm_id AND s.status = 'active'
+        LEFT JOIN subscription_plans sp ON s.plan_id = sp.plan_id
+        WHERE f.firm_id = :firm_id
+    """)
+    result = await session.execute(query, {"firm_id": firm_id})
+    row = result.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Firm not found")
+
+    # Parse JSON fields
+    branding = json.loads(row[11]) if row[11] else {}
+    security = json.loads(row[12]) if row[12] else {}
+    integrations = json.loads(row[13]) if row[13] else {}
+    features = json.loads(row[14]) if row[14] else {}
+
+    # Check if API keys are enabled (Enterprise feature)
+    api_keys_enabled = features.get("api_access", False)
+
     return AllSettings(
         profile=FirmProfile(
-            name="Demo Tax Practice",
-            legal_name="Demo Tax Practice LLC",
-            ein="12-3456789",
-            email="contact@demotax.com",
-            phone="555-0100",
-            website="https://demotax.com",
-            address_line1="123 Main St",
-            address_line2="Suite 400",
-            city="San Francisco",
-            state="CA",
-            zip_code="94105",
+            name=row[0] or "",
+            legal_name=row[1],
+            ein=row[2],
+            email=row[3],
+            phone=row[4],
+            website=row[5],
+            address_line1=row[6],
+            address_line2=row[7],
+            city=row[8],
+            state=row[9],
+            zip_code=row[10],
         ),
         branding=BrandingSettings(
-            logo_url="/static/logos/demo-tax.png",
-            primary_color="#059669",
-            secondary_color="#1e40af",
-            email_signature="Thank you for choosing Demo Tax Practice.",
-            disclaimer_text="This communication is for informational purposes only.",
+            logo_url=branding.get("logo_url"),
+            primary_color=branding.get("primary_color", "#059669"),
+            secondary_color=branding.get("secondary_color", "#1e40af"),
+            custom_domain=branding.get("custom_domain"),
+            email_signature=branding.get("email_signature"),
+            disclaimer_text=branding.get("disclaimer_text"),
+            welcome_message=branding.get("welcome_message"),
         ),
         security=SecuritySettings(
-            mfa_required=False,
-            session_timeout_minutes=60,
-            password_expiry_days=90,
-            require_reviewer_approval=True,
-            allow_self_review=False,
+            mfa_required=security.get("mfa_required", False),
+            session_timeout_minutes=security.get("session_timeout_minutes", 60),
+            password_expiry_days=security.get("password_expiry_days", 90),
+            ip_whitelist=security.get("ip_whitelist"),
+            require_reviewer_approval=security.get("require_reviewer_approval", True),
+            allow_self_review=security.get("allow_self_review", False),
         ),
-        integrations={
-            "calendar_sync": False,
-            "slack_notifications": False,
-        },
-        api_keys_enabled=False,  # Based on plan
+        integrations=integrations,
+        api_keys_enabled=api_keys_enabled,
     )
 
 
@@ -190,21 +227,32 @@ async def get_all_settings(
 async def get_firm_profile(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """Get firm profile information."""
-    # TODO: Implement actual query
+    query = text("""
+        SELECT name, legal_name, ein, email, phone, website,
+               address_line1, address_line2, city, state, zip_code
+        FROM firms WHERE firm_id = :firm_id
+    """)
+    result = await session.execute(query, {"firm_id": firm_id})
+    row = result.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Firm not found")
+
     return FirmProfile(
-        name="Demo Tax Practice",
-        legal_name="Demo Tax Practice LLC",
-        ein="12-3456789",
-        email="contact@demotax.com",
-        phone="555-0100",
-        website="https://demotax.com",
-        address_line1="123 Main St",
-        address_line2="Suite 400",
-        city="San Francisco",
-        state="CA",
-        zip_code="94105",
+        name=row[0] or "",
+        legal_name=row[1],
+        ein=row[2],
+        email=row[3],
+        phone=row[4],
+        website=row[5],
+        address_line1=row[6],
+        address_line2=row[7],
+        city=row[8],
+        state=row[9],
+        zip_code=row[10],
     )
 
 
@@ -214,34 +262,83 @@ async def update_firm_profile(
     update: FirmProfileUpdate,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """Update firm profile information."""
-    # TODO: Implement actual update
-    return FirmProfile(
-        name=update.name or "Demo Tax Practice",
-        legal_name=update.legal_name,
-        ein=update.ein,
-        email=update.email,
-        phone=update.phone,
-        website=update.website,
-        address_line1=update.address_line1,
-        address_line2=update.address_line2,
-        city=update.city,
-        state=update.state,
-        zip_code=update.zip_code,
-    )
+    # Build update fields
+    updates = []
+    params = {"firm_id": firm_id, "updated_at": datetime.utcnow().isoformat()}
+
+    if update.name is not None:
+        updates.append("name = :name")
+        params["name"] = update.name
+    if update.legal_name is not None:
+        updates.append("legal_name = :legal_name")
+        params["legal_name"] = update.legal_name
+    if update.ein is not None:
+        updates.append("ein = :ein")
+        params["ein"] = update.ein
+    if update.email is not None:
+        updates.append("email = :email")
+        params["email"] = update.email
+    if update.phone is not None:
+        updates.append("phone = :phone")
+        params["phone"] = update.phone
+    if update.website is not None:
+        updates.append("website = :website")
+        params["website"] = update.website
+    if update.address_line1 is not None:
+        updates.append("address_line1 = :address_line1")
+        params["address_line1"] = update.address_line1
+    if update.address_line2 is not None:
+        updates.append("address_line2 = :address_line2")
+        params["address_line2"] = update.address_line2
+    if update.city is not None:
+        updates.append("city = :city")
+        params["city"] = update.city
+    if update.state is not None:
+        updates.append("state = :state")
+        params["state"] = update.state
+    if update.zip_code is not None:
+        updates.append("zip_code = :zip_code")
+        params["zip_code"] = update.zip_code
+
+    if updates:
+        updates.append("updated_at = :updated_at")
+        update_clause = ", ".join(updates)
+        query = text(f"UPDATE firms SET {update_clause} WHERE firm_id = :firm_id")
+        await session.execute(query, params)
+        await session.commit()
+        logger.info(f"Firm {firm_id} profile updated by {user.email}")
+
+    # Return updated profile
+    return await get_firm_profile(user, firm_id, session)
 
 
 @router.get("/branding", response_model=BrandingSettings)
 async def get_branding_settings(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """Get firm branding settings."""
+    query = text("SELECT branding FROM firms WHERE firm_id = :firm_id")
+    result = await session.execute(query, {"firm_id": firm_id})
+    row = result.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Firm not found")
+
+    branding = json.loads(row[0]) if row[0] else {}
+
     return BrandingSettings(
-        logo_url="/static/logos/demo-tax.png",
-        primary_color="#059669",
-        secondary_color="#1e40af",
+        logo_url=branding.get("logo_url"),
+        primary_color=branding.get("primary_color", "#059669"),
+        secondary_color=branding.get("secondary_color", "#1e40af"),
+        custom_domain=branding.get("custom_domain"),
+        email_signature=branding.get("email_signature"),
+        disclaimer_text=branding.get("disclaimer_text"),
+        welcome_message=branding.get("welcome_message"),
     )
 
 
@@ -251,16 +348,52 @@ async def update_branding_settings(
     update: BrandingUpdate,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """Update firm branding settings."""
-    # TODO: Implement actual update
+    # Get current branding
+    query = text("SELECT branding FROM firms WHERE firm_id = :firm_id")
+    result = await session.execute(query, {"firm_id": firm_id})
+    row = result.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Firm not found")
+
+    branding = json.loads(row[0]) if row[0] else {}
+
+    # Update fields
+    if update.primary_color is not None:
+        branding["primary_color"] = update.primary_color
+    if update.secondary_color is not None:
+        branding["secondary_color"] = update.secondary_color
+    if update.email_signature is not None:
+        branding["email_signature"] = update.email_signature
+    if update.disclaimer_text is not None:
+        branding["disclaimer_text"] = update.disclaimer_text
+    if update.welcome_message is not None:
+        branding["welcome_message"] = update.welcome_message
+
+    # Save
+    update_query = text("""
+        UPDATE firms SET branding = :branding, updated_at = :updated_at
+        WHERE firm_id = :firm_id
+    """)
+    await session.execute(update_query, {
+        "firm_id": firm_id,
+        "branding": json.dumps(branding),
+        "updated_at": datetime.utcnow().isoformat(),
+    })
+    await session.commit()
+    logger.info(f"Firm {firm_id} branding updated by {user.email}")
+
     return BrandingSettings(
-        logo_url="/static/logos/demo-tax.png",
-        primary_color=update.primary_color or "#059669",
-        secondary_color=update.secondary_color or "#1e40af",
-        email_signature=update.email_signature,
-        disclaimer_text=update.disclaimer_text,
-        welcome_message=update.welcome_message,
+        logo_url=branding.get("logo_url"),
+        primary_color=branding.get("primary_color", "#059669"),
+        secondary_color=branding.get("secondary_color", "#1e40af"),
+        custom_domain=branding.get("custom_domain"),
+        email_signature=branding.get("email_signature"),
+        disclaimer_text=branding.get("disclaimer_text"),
+        welcome_message=branding.get("welcome_message"),
     )
 
 
@@ -270,6 +403,7 @@ async def upload_logo(
     file: UploadFile = File(...),
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """
     Upload firm logo.
@@ -278,7 +412,7 @@ async def upload_logo(
     Max size: 2MB
     Recommended size: 200x200px
     """
-    # Validate file
+    # Validate file type
     allowed_types = {"image/png", "image/jpeg", "image/svg+xml"}
     if file.content_type not in allowed_types:
         raise HTTPException(
@@ -286,14 +420,43 @@ async def upload_logo(
             detail=f"Invalid file type. Allowed: {', '.join(allowed_types)}",
         )
 
-    # TODO: Implement actual file upload
-    # - Validate file size
-    # - Store in S3/cloud storage
-    # - Update firm record
+    # Read and validate file size (2MB max)
+    content = await file.read()
+    max_size = 2 * 1024 * 1024  # 2MB
+    if len(content) > max_size:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File too large. Maximum size is 2MB.",
+        )
+
+    # Generate logo path (in production, this would upload to S3/cloud storage)
+    ext = file.filename.split(".")[-1] if file.filename else "png"
+    logo_url = f"/static/logos/{firm_id}/logo.{ext}"
+
+    # Update firm branding with new logo URL
+    query = text("SELECT branding FROM firms WHERE firm_id = :firm_id")
+    result = await session.execute(query, {"firm_id": firm_id})
+    row = result.fetchone()
+
+    branding = json.loads(row[0]) if row and row[0] else {}
+    branding["logo_url"] = logo_url
+
+    update_query = text("""
+        UPDATE firms SET branding = :branding, updated_at = :updated_at
+        WHERE firm_id = :firm_id
+    """)
+    await session.execute(update_query, {
+        "firm_id": firm_id,
+        "branding": json.dumps(branding),
+        "updated_at": datetime.utcnow().isoformat(),
+    })
+    await session.commit()
+
+    logger.info(f"Firm {firm_id} logo uploaded by {user.email}")
 
     return {
         "status": "success",
-        "logo_url": f"/static/logos/{firm_id}/logo.png",
+        "logo_url": logo_url,
     }
 
 
@@ -301,14 +464,25 @@ async def upload_logo(
 async def get_security_settings(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """Get firm security settings."""
+    query = text("SELECT security_settings FROM firms WHERE firm_id = :firm_id")
+    result = await session.execute(query, {"firm_id": firm_id})
+    row = result.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Firm not found")
+
+    security = json.loads(row[0]) if row[0] else {}
+
     return SecuritySettings(
-        mfa_required=False,
-        session_timeout_minutes=60,
-        password_expiry_days=90,
-        require_reviewer_approval=True,
-        allow_self_review=False,
+        mfa_required=security.get("mfa_required", False),
+        session_timeout_minutes=security.get("session_timeout_minutes", 60),
+        password_expiry_days=security.get("password_expiry_days", 90),
+        ip_whitelist=security.get("ip_whitelist"),
+        require_reviewer_approval=security.get("require_reviewer_approval", True),
+        allow_self_review=security.get("allow_self_review", False),
     )
 
 
@@ -318,21 +492,86 @@ async def update_security_settings(
     update: SecuritySettingsUpdate,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """Update firm security settings."""
-    # IP whitelist is Enterprise only
+    # Check if IP whitelist is requested - Enterprise only
     if update.ip_whitelist is not None:
-        # TODO: Check if firm is on Enterprise plan
-        pass
+        # Check if firm has Enterprise features
+        plan_query = text("""
+            SELECT sp.features FROM subscriptions s
+            JOIN subscription_plans sp ON s.plan_id = sp.plan_id
+            WHERE s.firm_id = :firm_id AND s.status = 'active'
+        """)
+        plan_result = await session.execute(plan_query, {"firm_id": firm_id})
+        plan_row = plan_result.fetchone()
+        features = json.loads(plan_row[0]) if plan_row and plan_row[0] else {}
 
-    # TODO: Implement actual update
+        if not features.get("ip_whitelist", False):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="IP whitelist is an Enterprise feature. Please upgrade your plan.",
+            )
+
+    # Get current security settings
+    query = text("SELECT security_settings FROM firms WHERE firm_id = :firm_id")
+    result = await session.execute(query, {"firm_id": firm_id})
+    row = result.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Firm not found")
+
+    security = json.loads(row[0]) if row[0] else {}
+
+    # Update fields
+    if update.mfa_required is not None:
+        security["mfa_required"] = update.mfa_required
+    if update.session_timeout_minutes is not None:
+        security["session_timeout_minutes"] = update.session_timeout_minutes
+    if update.password_expiry_days is not None:
+        security["password_expiry_days"] = update.password_expiry_days
+    if update.ip_whitelist is not None:
+        security["ip_whitelist"] = update.ip_whitelist
+    if update.require_reviewer_approval is not None:
+        security["require_reviewer_approval"] = update.require_reviewer_approval
+    if update.allow_self_review is not None:
+        security["allow_self_review"] = update.allow_self_review
+
+    # Save
+    update_query = text("""
+        UPDATE firms SET security_settings = :security, updated_at = :updated_at
+        WHERE firm_id = :firm_id
+    """)
+    await session.execute(update_query, {
+        "firm_id": firm_id,
+        "security": json.dumps(security),
+        "updated_at": datetime.utcnow().isoformat(),
+    })
+    await session.commit()
+
+    # Log audit event for security changes
+    audit_query = text("""
+        INSERT INTO audit_logs (log_id, firm_id, user_id, action, resource_type, details, created_at)
+        VALUES (:log_id, :firm_id, :user_id, 'security_settings_updated', 'firm', :details, :created_at)
+    """)
+    await session.execute(audit_query, {
+        "log_id": str(uuid4()),
+        "firm_id": firm_id,
+        "user_id": user.user_id,
+        "details": json.dumps({"updated_fields": list(update.model_dump(exclude_unset=True).keys())}),
+        "created_at": datetime.utcnow().isoformat(),
+    })
+    await session.commit()
+
+    logger.info(f"Firm {firm_id} security settings updated by {user.email}")
+
     return SecuritySettings(
-        mfa_required=update.mfa_required if update.mfa_required is not None else False,
-        session_timeout_minutes=update.session_timeout_minutes or 60,
-        password_expiry_days=update.password_expiry_days or 90,
-        ip_whitelist=update.ip_whitelist,
-        require_reviewer_approval=update.require_reviewer_approval if update.require_reviewer_approval is not None else True,
-        allow_self_review=update.allow_self_review if update.allow_self_review is not None else False,
+        mfa_required=security.get("mfa_required", False),
+        session_timeout_minutes=security.get("session_timeout_minutes", 60),
+        password_expiry_days=security.get("password_expiry_days", 90),
+        ip_whitelist=security.get("ip_whitelist"),
+        require_reviewer_approval=security.get("require_reviewer_approval", True),
+        allow_self_review=security.get("allow_self_review", False),
     )
 
 
@@ -340,29 +579,67 @@ async def update_security_settings(
 # API KEY ROUTES (ENTERPRISE ONLY)
 # =============================================================================
 
+async def _check_api_access(session: AsyncSession, firm_id: str) -> bool:
+    """Check if firm has API access (Enterprise feature)."""
+    query = text("""
+        SELECT sp.features FROM subscriptions s
+        JOIN subscription_plans sp ON s.plan_id = sp.plan_id
+        WHERE s.firm_id = :firm_id AND s.status = 'active'
+    """)
+    result = await session.execute(query, {"firm_id": firm_id})
+    row = result.fetchone()
+    if not row:
+        return False
+    features = json.loads(row[0]) if row[0] else {}
+    return features.get("api_access", False)
+
+
 @router.get("/api-keys", response_model=List[ApiKey])
 @require_permission(UserPermission.MANAGE_API_KEYS)
 async def list_api_keys(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """
     List all API keys for the firm.
 
     NOTE: Full keys are never shown after creation.
     """
-    # TODO: Check if firm has API access (Enterprise plan)
-    # TODO: Implement actual query
+    # Check if firm has API access
+    if not await _check_api_access(session, firm_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="API keys are an Enterprise feature. Please upgrade your plan.",
+        )
+
+    query = text("""
+        SELECT key_id, name, key_prefix, created_at, last_used_at, expires_at, is_active
+        FROM api_keys
+        WHERE firm_id = :firm_id
+        ORDER BY created_at DESC
+    """)
+    result = await session.execute(query, {"firm_id": firm_id})
+    rows = result.fetchall()
+
+    def parse_dt(val):
+        if val is None:
+            return None
+        if isinstance(val, datetime):
+            return val
+        return datetime.fromisoformat(val.replace('Z', '+00:00'))
+
     return [
         ApiKey(
-            key_id="key-1",
-            name="Production Integration",
-            prefix="tp_live_",
-            created_at=datetime.utcnow(),
-            last_used_at=datetime.utcnow(),
-            expires_at=None,
-            is_active=True,
-        ),
+            key_id=str(row[0]),
+            name=row[1] or "",
+            prefix=row[2] or "",
+            created_at=parse_dt(row[3]) or datetime.utcnow(),
+            last_used_at=parse_dt(row[4]),
+            expires_at=parse_dt(row[5]),
+            is_active=row[6] if row[6] is not None else True,
+        )
+        for row in rows
     ]
 
 
@@ -372,6 +649,7 @@ async def create_api_key(
     request: ApiKeyCreate,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """
     Create a new API key.
@@ -379,17 +657,71 @@ async def create_api_key(
     IMPORTANT: The full API key is only shown once in this response.
     Store it securely - it cannot be retrieved later.
     """
-    # TODO: Check if firm has API access (Enterprise plan)
-    # TODO: Generate secure API key
-    import secrets
-    api_key = f"tp_live_{secrets.token_urlsafe(32)}"
+    # Check if firm has API access
+    if not await _check_api_access(session, firm_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="API keys are an Enterprise feature. Please upgrade your plan.",
+        )
+
+    # Generate secure API key
+    key_id = str(uuid4())
+    raw_key = secrets.token_urlsafe(32)
+    api_key = f"tp_live_{raw_key}"
+    key_prefix = api_key[:12]  # Store first 12 chars for identification
+
+    # Hash the key for storage (we never store the full key)
+    key_hash = hashlib.sha256(api_key.encode()).hexdigest()
+
+    now = datetime.utcnow()
+    expires_at = None
+    if request.expires_in_days:
+        expires_at = now + timedelta(days=request.expires_in_days)
+
+    # Insert API key
+    query = text("""
+        INSERT INTO api_keys (
+            key_id, firm_id, name, key_hash, key_prefix,
+            created_by, created_at, expires_at, is_active
+        ) VALUES (
+            :key_id, :firm_id, :name, :key_hash, :key_prefix,
+            :created_by, :created_at, :expires_at, true
+        )
+    """)
+    await session.execute(query, {
+        "key_id": key_id,
+        "firm_id": firm_id,
+        "name": request.name,
+        "key_hash": key_hash,
+        "key_prefix": key_prefix,
+        "created_by": user.user_id,
+        "created_at": now.isoformat(),
+        "expires_at": expires_at.isoformat() if expires_at else None,
+    })
+
+    # Log audit event
+    audit_query = text("""
+        INSERT INTO audit_logs (log_id, firm_id, user_id, action, resource_type, resource_id, details, created_at)
+        VALUES (:log_id, :firm_id, :user_id, 'api_key_created', 'api_key', :key_id, :details, :created_at)
+    """)
+    await session.execute(audit_query, {
+        "log_id": str(uuid4()),
+        "firm_id": firm_id,
+        "user_id": user.user_id,
+        "key_id": key_id,
+        "details": json.dumps({"name": request.name}),
+        "created_at": now.isoformat(),
+    })
+    await session.commit()
+
+    logger.info(f"API key {key_id} created for firm {firm_id} by {user.email}")
 
     return ApiKeyCreated(
-        key_id="key-new",
+        key_id=key_id,
         name=request.name,
-        api_key=api_key,
-        created_at=datetime.utcnow(),
-        expires_at=None,
+        api_key=api_key,  # Only time the full key is shown!
+        created_at=now,
+        expires_at=expires_at,
     )
 
 
@@ -399,7 +731,46 @@ async def revoke_api_key(
     key_id: str,
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """Revoke an API key."""
-    # TODO: Implement actual revocation
+    # Check if firm has API access
+    if not await _check_api_access(session, firm_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="API keys are an Enterprise feature. Please upgrade your plan.",
+        )
+
+    # Revoke the key (soft delete)
+    now = datetime.utcnow()
+    query = text("""
+        UPDATE api_keys SET is_active = false, revoked_at = :revoked_at, revoked_by = :revoked_by
+        WHERE key_id = :key_id AND firm_id = :firm_id
+    """)
+    result = await session.execute(query, {
+        "key_id": key_id,
+        "firm_id": firm_id,
+        "revoked_at": now.isoformat(),
+        "revoked_by": user.user_id,
+    })
+
+    if result.rowcount == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="API key not found")
+
+    # Log audit event
+    audit_query = text("""
+        INSERT INTO audit_logs (log_id, firm_id, user_id, action, resource_type, resource_id, created_at)
+        VALUES (:log_id, :firm_id, :user_id, 'api_key_revoked', 'api_key', :key_id, :created_at)
+    """)
+    await session.execute(audit_query, {
+        "log_id": str(uuid4()),
+        "firm_id": firm_id,
+        "user_id": user.user_id,
+        "key_id": key_id,
+        "created_at": now.isoformat(),
+    })
+    await session.commit()
+
+    logger.info(f"API key {key_id} revoked for firm {firm_id} by {user.email}")
+
     return None

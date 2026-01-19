@@ -11,6 +11,7 @@ New code should use core.rbac.dependencies instead.
 This module provides backward-compatible aliases.
 """
 
+import os
 from functools import wraps
 from typing import Optional, Callable, List, Set, Union
 from dataclasses import dataclass
@@ -30,6 +31,64 @@ security = HTTPBearer(auto_error=False)
 # Feature flag for new RBAC system
 # Set to True to enable the new core.rbac system
 RBAC_V2_ENABLED = True
+
+# =============================================================================
+# TESTING MODE CONFIGURATION
+# =============================================================================
+# Testing mode bypasses authentication for end-to-end testing.
+#
+# SECURITY: Testing mode requires BOTH conditions:
+#   1. TESTING_MODE=true environment variable
+#   2. ENVIRONMENT must be 'development', 'test', or 'local' (NOT 'production' or 'staging')
+
+def _is_testing_mode_allowed() -> bool:
+    """
+    Determine if testing mode can be safely enabled.
+
+    Testing mode is ONLY allowed when:
+    1. TESTING_MODE environment variable is explicitly set to "true"
+    2. ENVIRONMENT is NOT production or staging
+    3. Optional: TESTING_MODE_SECRET matches (for additional security)
+    """
+    testing_requested = os.environ.get("TESTING_MODE", "false").lower() == "true"
+
+    if not testing_requested:
+        return False
+
+    # Check environment - block testing mode in production/staging
+    environment = os.environ.get("ENVIRONMENT", "development").lower()
+    production_environments = {"production", "prod", "staging", "stage", "live"}
+
+    if environment in production_environments:
+        logger.critical(
+            "SECURITY ALERT: Admin TESTING_MODE=true attempted in %s environment. "
+            "This is BLOCKED for security. Remove TESTING_MODE from environment.",
+            environment
+        )
+        return False
+
+    # Optional additional security: require a secret key for testing mode
+    testing_secret = os.environ.get("TESTING_MODE_SECRET", "")
+    expected_secret = os.environ.get("TESTING_MODE_EXPECTED_SECRET", "")
+
+    if expected_secret and testing_secret != expected_secret:
+        logger.warning(
+            "Admin TESTING_MODE requested but TESTING_MODE_SECRET does not match. "
+            "Testing mode DISABLED."
+        )
+        return False
+
+    return True
+
+
+TESTING_MODE = _is_testing_mode_allowed()
+
+if TESTING_MODE:
+    logger.warning("=" * 70)
+    logger.warning("Admin RBAC TESTING MODE ENABLED - Authentication bypassed")
+    logger.warning("This should ONLY be used in development/test environments!")
+    logger.warning("Set ENVIRONMENT=production to disable testing mode.")
+    logger.warning("=" * 70)
 
 
 @dataclass
@@ -86,6 +145,29 @@ async def get_current_user(
         async def protected_route(user: TenantContext = Depends(get_current_user)):
             return {"user_id": user.user_id}
     """
+    # Testing mode: return mock admin context
+    if TESTING_MODE:
+        mock_payload = TokenPayload(
+            sub="test-admin-user",
+            email="admin@test.local",
+            type=TokenType.ACCESS,
+            firm_id="test-firm-001",
+            role=UserRole.FIRM_ADMIN.value,
+            permissions=[p.value for p in UserPermission],  # All permissions
+            is_platform_admin=True,
+            exp=0,
+            jti="test-token",
+        )
+        return TenantContext(
+            user_id="test-admin-user",
+            email="admin@test.local",
+            firm_id="test-firm-001",
+            role=UserRole.FIRM_ADMIN.value,
+            permissions=set(p.value for p in UserPermission),  # All permissions
+            is_platform_admin=True,
+            token_payload=mock_payload,
+        )
+
     if credentials is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

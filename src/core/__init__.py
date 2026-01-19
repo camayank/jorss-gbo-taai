@@ -6,8 +6,28 @@ This module provides:
 - Partner management for white-label support
 - Shared caching infrastructure
 - Cross-module authentication
+- Unified Platform API for all user types
+- Unified user models and services
 """
 
+# Core Platform API
+from .api import core_router, API_TAGS
+from .models.user import (
+    UserType,
+    CPARole,
+    UnifiedUser,
+    UserProfile,
+    UserPreferences,
+    UserContext,
+)
+from .services import (
+    CoreAuthService,
+    get_auth_service,
+    CoreUserService,
+    get_user_service,
+)
+
+# RBAC System
 from .rbac import (
     # Models
     Permission,
@@ -41,7 +61,22 @@ from .rbac import (
 )
 
 __all__ = [
-    # Models
+    # Core Platform API
+    "core_router",
+    "API_TAGS",
+    # Unified User Models
+    "UserType",
+    "CPARole",
+    "UnifiedUser",
+    "UserProfile",
+    "UserPreferences",
+    "UserContext",
+    # Core Services
+    "CoreAuthService",
+    "get_auth_service",
+    "CoreUserService",
+    "get_user_service",
+    # RBAC Models
     "Permission",
     "RoleTemplate",
     "RolePermission",
@@ -49,7 +84,7 @@ __all__ = [
     "UserPermissionOverride",
     "RBACauditLog",
     "PermissionCacheVersion",
-    # Enums
+    # RBAC Enums
     "HierarchyLevel",
     "PermissionCategory",
     "OverrideAction",

@@ -131,32 +131,75 @@ except ImportError:
 # Set to True to enable database-driven permission resolution
 RBAC_V2_ENABLED = True
 
+# TESTING_MODE: When True, all routes are public for end-to-end testing
+# Set to False for production deployment
+TESTING_MODE = os.environ.get("TESTING_MODE", "false").lower() == "true"
+
 if RBAC_V2_ENABLED:
     try:
         from core.rbac.middleware import RBACMiddleware, RBACMiddlewareConfig
 
         # Configure RBAC middleware
-        rbac_config = RBACMiddlewareConfig(
-            public_paths={
-                "/",
-                "/health",
-                "/metrics",
-                "/api/v1/auth/login",
-                "/api/v1/auth/register",
-                "/api/v1/auth/forgot-password",
-                "/api/v1/auth/reset-password",
-                "/api/v1/auth/verify-email",
-                "/docs",
-                "/redoc",
-                "/openapi.json",
-            },
-            public_path_prefixes={
-                "/static/",
-                "/assets/",
-            },
-            rbac_v2_enabled=True,
-            fallback_to_legacy=True,
-        )
+        if TESTING_MODE:
+            # Testing mode: all pages accessible without authentication
+            logger.info("TESTING MODE ENABLED - All routes are public")
+            rbac_config = RBACMiddlewareConfig(
+                public_paths={
+                    # Core pages
+                    "/",
+                    "/health",
+                    "/metrics",
+                    "/docs",
+                    "/redoc",
+                    "/openapi.json",
+                    "/manifest.json",
+                    # UI Pages - All portals
+                    "/dashboard",
+                    "/cpa",
+                    "/client",
+                    "/test-auth",
+                    "/hub",
+                    "/system-hub",
+                    # Auth endpoints
+                    "/api/v1/auth/login",
+                    "/api/v1/auth/register",
+                    "/api/v1/auth/forgot-password",
+                    "/api/v1/auth/reset-password",
+                    "/api/v1/auth/verify-email",
+                },
+                public_path_prefixes={
+                    "/static/",
+                    "/assets/",
+                    # Testing mode: all routes accessible
+                    "/admin/",
+                    "/api/",
+                },
+                rbac_v2_enabled=True,
+                fallback_to_legacy=True,
+            )
+        else:
+            # Production mode: only auth endpoints are public
+            rbac_config = RBACMiddlewareConfig(
+                public_paths={
+                    "/",
+                    "/health",
+                    "/metrics",
+                    "/api/v1/auth/login",
+                    "/api/v1/auth/register",
+                    "/api/v1/auth/forgot-password",
+                    "/api/v1/auth/reset-password",
+                    "/api/v1/auth/verify-email",
+                    "/docs",
+                    "/redoc",
+                    "/openapi.json",
+                },
+                public_path_prefixes={
+                    "/static/",
+                    "/assets/",
+                },
+                rbac_v2_enabled=True,
+                fallback_to_legacy=True,
+            )
 
         # Get database session factory for permission resolution
         def get_db_session_factory():
@@ -230,6 +273,17 @@ try:
     logger.info("Admin Panel API enabled")
 except ImportError as e:
     logger.warning(f"Admin Panel API not available: {e}")
+
+
+# =============================================================================
+# CORE PLATFORM API - Unified API for All User Types
+# =============================================================================
+try:
+    from core import core_router
+    app.include_router(core_router)
+    logger.info("Core Platform API enabled at /api/core")
+except ImportError as e:
+    logger.warning(f"Core Platform API not available: {e}")
 
 
 # =============================================================================
