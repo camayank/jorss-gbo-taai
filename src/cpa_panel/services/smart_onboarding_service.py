@@ -15,14 +15,19 @@ import os
 import uuid
 import logging
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any, Tuple, BinaryIO
+from typing import Optional, List, Dict, Any, Tuple, BinaryIO, TYPE_CHECKING
 from decimal import Decimal
 from datetime import datetime
 from enum import Enum
 import json
 
+from sqlalchemy import text
+
 from .form_1040_parser import Form1040Parser, Parsed1040Data, FilingStatus
 from .ai_question_generator import AIQuestionGenerator, QuestionSet, SmartQuestion
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -616,10 +621,11 @@ class SmartOnboardingService:
 
         return Decimal("0.37")
 
-    def create_client(
+    async def create_client(
         self,
         session_id: str,
-        client_name: Optional[str] = None
+        client_name: Optional[str] = None,
+        db_session: Optional["AsyncSession"] = None,
     ) -> OnboardingSession:
         """
         Create a client from the onboarding session.
@@ -627,6 +633,7 @@ class SmartOnboardingService:
         Args:
             session_id: Onboarding session ID
             client_name: Override client name (defaults to extracted name)
+            db_session: Database session for persistence
 
         Returns:
             Updated session with client_id
@@ -643,8 +650,62 @@ class SmartOnboardingService:
             session.parsed_1040.taxpayer_name if session.parsed_1040 else None
         ) or "New Client"
 
-        # Generate client ID (in real implementation, this would create in database)
+        # Split name into first/last
+        name_parts = name.split(maxsplit=1)
+        first_name = name_parts[0] if name_parts else ""
+        last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+        # Generate client ID
         client_id = str(uuid.uuid4())
+        now = datetime.utcnow()
+
+        # Persist to database if session provided
+        if db_session:
+            try:
+                # Build profile data from analysis
+                profile_data = {}
+                if session.analysis:
+                    profile_data["opportunities"] = [
+                        o.to_dict() for o in session.analysis.opportunities
+                    ]
+                    profile_data["potential_savings"] = float(session.analysis.total_potential_savings)
+                if session.parsed_1040:
+                    profile_data["tax_year"] = session.parsed_1040.tax_year
+                    profile_data["filing_status"] = session.parsed_1040.filing_status.value if session.parsed_1040.filing_status else None
+                    profile_data["agi"] = float(session.parsed_1040.adjusted_gross_income or 0)
+
+                # Get preparer_id from CPA
+                preparer_query = text("""
+                    SELECT user_id FROM users WHERE user_id = :cpa_id LIMIT 1
+                """)
+                preparer_result = await db_session.execute(preparer_query, {"cpa_id": session.cpa_id})
+                preparer_row = preparer_result.fetchone()
+                preparer_id = str(preparer_row[0]) if preparer_row else None
+
+                # Insert client record
+                query = text("""
+                    INSERT INTO clients (
+                        client_id, preparer_id, first_name, last_name,
+                        is_active, created_at, profile_data
+                    ) VALUES (
+                        :client_id, :preparer_id, :first_name, :last_name,
+                        true, :created_at, :profile_data
+                    )
+                """)
+                await db_session.execute(query, {
+                    "client_id": client_id,
+                    "preparer_id": preparer_id,
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "created_at": now,
+                    "profile_data": json.dumps(profile_data),
+                })
+                await db_session.commit()
+
+                logger.info(f"Session {session_id}: Persisted client {client_id} to database")
+            except Exception as e:
+                logger.error(f"Failed to persist client to database: {e}")
+                # Continue without database persistence
 
         session.client_id = client_id
         session.client_name = name

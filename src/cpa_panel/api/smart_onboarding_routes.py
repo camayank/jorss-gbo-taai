@@ -10,11 +10,14 @@ Provides endpoints for the 60-second client onboarding flow:
 6. Create client
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 import logging
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ...database.connection import get_async_session
 from ..services.smart_onboarding_service import (
     get_smart_onboarding_service,
     OnboardingStatus,
@@ -323,7 +326,11 @@ async def submit_answers(session_id: str, request: SubmitAnswersRequest):
     summary="Create client from session",
     description="Create a new client from the completed onboarding session"
 )
-async def create_client(session_id: str, request: CreateClientRequest):
+async def create_client(
+    session_id: str,
+    request: CreateClientRequest,
+    db_session: AsyncSession = Depends(get_async_session),
+):
     """
     Create a client from the onboarding session.
 
@@ -335,7 +342,11 @@ async def create_client(session_id: str, request: CreateClientRequest):
     """
     try:
         service = get_smart_onboarding_service()
-        session = service.create_client(session_id, request.client_name)
+        session = await service.create_client(
+            session_id,
+            request.client_name,
+            db_session=db_session,
+        )
 
         return {
             "session_id": session.session_id,

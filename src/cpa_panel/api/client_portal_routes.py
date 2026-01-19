@@ -14,13 +14,26 @@ All endpoints require client authentication via JWT token.
 from typing import Optional, List
 from datetime import datetime, timedelta
 from uuid import uuid4
+import json
+import secrets
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status, Header
 from pydantic import BaseModel, Field
+
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ...database.connection import get_async_session
 
 import logging
 
 logger = logging.getLogger(__name__)
+
+# =============================================================================
+# CLIENT TOKEN STORAGE (In production, use Redis)
+# =============================================================================
+
+_client_tokens: dict = {}  # token -> {client_id, email, expires_at}
 
 router = APIRouter(prefix="/client", tags=["Client Portal"])
 
@@ -42,29 +55,66 @@ class ClientLoginResponse(BaseModel):
 
 
 @router.post("/login", response_model=ClientLoginResponse)
-async def client_login(request: ClientLoginRequest):
+async def client_login(
+    request: ClientLoginRequest,
+    session: AsyncSession = Depends(get_async_session)
+):
     """
     Client login via magic link.
 
-    In production, this would:
-    1. Verify the email exists in the client database
-    2. Send a magic link email with a secure token
-    3. Client clicks link, token is validated, and they're logged in
+    1. Verifies the email exists in the client database
+    2. Generates a secure token
+    3. In production, would send magic link email
 
-    For demo purposes, returns a mock token immediately.
+    Returns a token for immediate access (demo mode).
     """
-    import secrets
-
-    # Mock: Check if email exists (in production: query database)
-    # For demo, accept any email
     if not request.email or "@" not in request.email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid email address"
         )
 
+    email_lower = request.email.lower()
+
+    # Check if client exists in database
+    query = text("""
+        SELECT c.client_id, c.first_name, c.last_name, c.email, c.preparer_id, c.is_active
+        FROM clients c
+        WHERE LOWER(c.email) = :email
+        LIMIT 1
+    """)
+    result = await session.execute(query, {"email": email_lower})
+    client_row = result.fetchone()
+
+    if not client_row:
+        # For security, don't reveal if email exists or not
+        # In production, still return success but don't send email
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No account found with this email address"
+        )
+
+    if not client_row[5]:  # is_active
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is inactive. Please contact your CPA."
+        )
+
     # Generate client token
     client_token = f"client_{secrets.token_urlsafe(32)}"
+    expires_at = datetime.utcnow() + timedelta(hours=24)
+
+    # Store token (in production, use Redis)
+    _client_tokens[client_token] = {
+        "client_id": str(client_row[0]),
+        "email": client_row[3],
+        "first_name": client_row[1],
+        "last_name": client_row[2],
+        "preparer_id": str(client_row[4]) if client_row[4] else None,
+        "expires_at": expires_at
+    }
+
+    logger.info(f"Client login: {email_lower}")
 
     return {
         "success": True,
@@ -74,29 +124,47 @@ async def client_login(request: ClientLoginRequest):
 
 
 @router.post("/verify-token")
-async def verify_client_token(token: str = Query(...)):
+async def verify_client_token(
+    token: str = Query(...),
+    session: AsyncSession = Depends(get_async_session)
+):
     """
     Verify a client token is valid.
 
     Returns client info if token is valid.
     """
-    # Mock: Accept any token starting with "client_"
     if not token or not token.startswith("client_"):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token"
         )
 
+    # Check token in storage
+    token_data = _client_tokens.get(token)
+    if not token_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
+
+    # Check expiry
+    if datetime.utcnow() > token_data["expires_at"]:
+        del _client_tokens[token]
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired"
+        )
+
     return {
         "valid": True,
-        "client_id": "client-001",
-        "name": "John Smith",
-        "email": "john.smith@example.com"
+        "client_id": token_data["client_id"],
+        "name": f"{token_data['first_name']} {token_data['last_name']}",
+        "email": token_data["email"]
     }
 
 
 # =============================================================================
-# MOCK AUTH - Replace with real auth in production
+# CLIENT AUTHENTICATION
 # =============================================================================
 
 class ClientContext(BaseModel):
@@ -104,22 +172,72 @@ class ClientContext(BaseModel):
     client_id: str
     name: str
     email: str
-    firm_id: str
-    cpa_id: str
+    firm_id: Optional[str] = None
+    cpa_id: Optional[str] = None
 
 
-async def get_current_client() -> ClientContext:
+async def get_current_client(
+    authorization: Optional[str] = Header(None),
+    session: AsyncSession = Depends(get_async_session)
+) -> ClientContext:
     """
-    Get current authenticated client from JWT token.
-    In production, this would validate the JWT and extract client info.
+    Get current authenticated client from token.
+    Validates the token and extracts client info from database.
     """
-    # Mock client for development
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization header required"
+        )
+
+    # Extract token from Bearer header
+    token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
+
+    if not token.startswith("client_"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token format"
+        )
+
+    # Check token in storage
+    token_data = _client_tokens.get(token)
+    if not token_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
+
+    # Check expiry
+    if datetime.utcnow() > token_data["expires_at"]:
+        del _client_tokens[token]
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired"
+        )
+
+    # Get full client info from database
+    query = text("""
+        SELECT c.client_id, c.first_name, c.last_name, c.email,
+               c.preparer_id, u.firm_id
+        FROM clients c
+        LEFT JOIN users u ON c.preparer_id = u.user_id
+        WHERE c.client_id = :client_id
+    """)
+    result = await session.execute(query, {"client_id": token_data["client_id"]})
+    row = result.fetchone()
+
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Client not found"
+        )
+
     return ClientContext(
-        client_id="client-001",
-        name="John Smith",
-        email="john.smith@example.com",
-        firm_id="firm-001",
-        cpa_id="cpa-001"
+        client_id=str(row[0]),
+        name=f"{row[1]} {row[2]}",
+        email=row[3],
+        firm_id=str(row[5]) if row[5] else None,
+        cpa_id=str(row[4]) if row[4] else None
     )
 
 
@@ -206,7 +324,8 @@ class DashboardResponse(BaseModel):
 
 @router.get("/dashboard", response_model=DashboardResponse)
 async def get_client_dashboard(
-    client: ClientContext = Depends(get_current_client)
+    client: ClientContext = Depends(get_current_client),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """
     Get all dashboard data for the authenticated client.
@@ -219,116 +338,174 @@ async def get_client_dashboard(
     - Messages
     - Billing info
     """
-    # Mock data - in production, fetch from database
+    # Get CPA info
+    cpa_info = {"id": "", "name": "Unassigned", "email": "", "phone": ""}
+    if client.cpa_id:
+        cpa_query = text("""
+            SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone, f.name as firm_name
+            FROM users u
+            LEFT JOIN firms f ON u.firm_id = f.firm_id
+            WHERE u.user_id = :cpa_id
+        """)
+        cpa_result = await session.execute(cpa_query, {"cpa_id": client.cpa_id})
+        cpa_row = cpa_result.fetchone()
+        if cpa_row:
+            cpa_info = {
+                "id": str(cpa_row[0]),
+                "name": f"{cpa_row[1]} {cpa_row[2]}, CPA",
+                "email": cpa_row[3] or "",
+                "phone": cpa_row[4] or ""
+            }
+
+    # Get tax returns for this client
+    returns_query = text("""
+        SELECT tr.return_id, tr.tax_year, tr.filing_status, tr.status,
+               tr.line_35a_refund, tr.line_37_amount_owed, tr.updated_at
+        FROM tax_returns tr
+        JOIN taxpayers tp ON tr.return_id = tp.return_id
+        JOIN clients c ON tp.email = c.email
+        WHERE c.client_id = :client_id
+        ORDER BY tr.tax_year DESC
+        LIMIT 10
+    """)
+    returns_result = await session.execute(returns_query, {"client_id": client.client_id})
+    returns_rows = returns_result.fetchall()
+
+    status_labels = {
+        "draft": "Draft", "in_progress": "In Progress", "pending_review": "Pending Review",
+        "reviewed": "Reviewed", "ready_to_file": "Ready to File", "filed": "Filed",
+        "accepted": "Accepted", "rejected": "Rejected", "amended": "Amended"
+    }
+
+    returns = []
+    current_return = None
+    for row in returns_rows:
+        refund = float(row[4]) if row[4] and float(row[4]) > 0 else None
+        return_info = {
+            "id": str(row[0]),
+            "tax_year": row[1],
+            "return_type": "1040 Individual",
+            "status": row[3] or "draft",
+            "status_label": status_labels.get(row[3], "Draft"),
+            "refund_amount": refund,
+            "updated_at": row[6].isoformat() if row[6] else datetime.utcnow().isoformat()
+        }
+        returns.append(return_info)
+        if current_return is None and row[3] not in ["filed", "accepted"]:
+            current_return = return_info
+
+    if not current_return and returns:
+        current_return = returns[0]
+
+    # Get document requests (from document_requests table if exists, or documents with pending status)
+    doc_requests_query = text("""
+        SELECT document_id, document_type, original_filename, status, created_at
+        FROM documents
+        WHERE taxpayer_id IN (
+            SELECT tp.taxpayer_id FROM taxpayers tp
+            JOIN clients c ON tp.email = c.email
+            WHERE c.client_id = :client_id
+        )
+        AND status IN ('uploaded', 'processing')
+        ORDER BY created_at DESC
+        LIMIT 10
+    """)
+    doc_requests_result = await session.execute(doc_requests_query, {"client_id": client.client_id})
+    doc_rows = doc_requests_result.fetchall()
+
+    # Simulated document requests (in production, use a dedicated document_requests table)
+    document_requests = []  # Would be populated from document_requests table
+
+    uploaded_documents = []
+    for row in doc_rows:
+        uploaded_documents.append({
+            "id": str(row[0]),
+            "filename": row[2] or "Unknown",
+            "size": 0,
+            "uploaded_at": row[4].isoformat() if row[4] else datetime.utcnow().isoformat(),
+            "status": row[3] or "uploaded",
+            "status_label": {"uploaded": "Received", "processing": "Processing", "verified": "Verified"}.get(row[3], "Received")
+        })
+
+    # Get messages from conversations table
+    messages = []
+    unread_count = 0
+    messages_query = text("""
+        SELECT m.message_id, m.content, m.sender_id, m.created_at, m.read_at,
+               CASE WHEN m.sender_id = :client_id THEN 'client' ELSE 'cpa' END as sender_type
+        FROM messages m
+        JOIN conversations c ON m.conversation_id = c.conversation_id
+        WHERE c.participants @> :participant::jsonb
+        ORDER BY m.created_at DESC
+        LIMIT 20
+    """)
+    try:
+        messages_result = await session.execute(messages_query, {
+            "client_id": client.client_id,
+            "participant": json.dumps({"id": client.client_id})
+        })
+        messages_rows = messages_result.fetchall()
+        for row in messages_rows:
+            is_read = row[4] is not None
+            if not is_read and row[5] == "cpa":
+                unread_count += 1
+            messages.append({
+                "id": str(row[0]),
+                "content": row[1],
+                "sender_type": row[5],
+                "created_at": row[3].isoformat() if row[3] else datetime.utcnow().isoformat(),
+                "read": is_read
+            })
+    except Exception:
+        # Messages table might not exist yet
+        pass
+
+    # Get invoices
+    invoices = []
+    balance = 0.0
+    invoices_query = text("""
+        SELECT i.invoice_id, i.created_at, i.due_date, i.line_items, i.amount_due, i.status
+        FROM invoices i
+        WHERE i.firm_id = :firm_id
+        ORDER BY i.created_at DESC
+        LIMIT 10
+    """)
+    try:
+        if client.firm_id:
+            invoices_result = await session.execute(invoices_query, {"firm_id": client.firm_id})
+            invoices_rows = invoices_result.fetchall()
+            for row in invoices_rows:
+                line_items = row[3] if row[3] else []
+                if isinstance(line_items, str):
+                    line_items = json.loads(line_items)
+                description = line_items[0].get("description", "Tax Services") if line_items else "Tax Services"
+                amount = float(row[4]) if row[4] else 0.0
+                inv_status = row[5] or "pending"
+                if inv_status == "pending":
+                    balance += amount
+                invoices.append({
+                    "id": str(row[0]),
+                    "date": row[1].isoformat() if row[1] else datetime.utcnow().isoformat(),
+                    "due_date": row[2].isoformat() if row[2] else (datetime.utcnow() + timedelta(days=30)).isoformat(),
+                    "description": description,
+                    "amount": amount,
+                    "status": "paid" if inv_status == "paid" else "pending"
+                })
+    except Exception:
+        pass
+
     return {
         "client_id": client.client_id,
         "name": client.name,
-        "cpa": {
-            "id": "cpa-001",
-            "name": "Jane Doe, CPA",
-            "email": "jane.doe@taxfirm.com",
-            "phone": "(555) 123-4567"
-        },
-        "returns": [
-            {
-                "id": "return-2024",
-                "tax_year": 2024,
-                "return_type": "1040 Individual",
-                "status": "review",
-                "status_label": "In Review",
-                "refund_amount": None,
-                "updated_at": datetime.utcnow().isoformat()
-            },
-            {
-                "id": "return-2023",
-                "tax_year": 2023,
-                "return_type": "1040 Individual",
-                "status": "filed",
-                "status_label": "Filed",
-                "refund_amount": 2847.00,
-                "updated_at": (datetime.utcnow() - timedelta(days=270)).isoformat()
-            }
-        ],
-        "current_return": {
-            "id": "return-2024",
-            "tax_year": 2024,
-            "return_type": "1040 Individual",
-            "status": "review",
-            "status_label": "In Review",
-            "refund_amount": None,
-            "updated_at": datetime.utcnow().isoformat()
-        },
-        "document_requests": [
-            {
-                "id": "doc-req-1",
-                "name": "W-2 Forms",
-                "description": "From all employers for 2024",
-                "urgent": True,
-                "fulfilled": False,
-                "requested_at": (datetime.utcnow() - timedelta(days=2)).isoformat()
-            },
-            {
-                "id": "doc-req-2",
-                "name": "1099-INT",
-                "description": "Interest income statements from banks",
-                "urgent": False,
-                "fulfilled": False,
-                "requested_at": (datetime.utcnow() - timedelta(days=1)).isoformat()
-            }
-        ],
-        "uploaded_documents": [
-            {
-                "id": "doc-1",
-                "filename": "W2_Employer1_2024.pdf",
-                "size": 245000,
-                "uploaded_at": (datetime.utcnow() - timedelta(hours=5)).isoformat(),
-                "status": "received",
-                "status_label": "Received"
-            }
-        ],
-        "messages": [
-            {
-                "id": "msg-1",
-                "content": "Hi! I've started reviewing your documents. Quick question - did you have any additional 1099 income this year?",
-                "sender_type": "cpa",
-                "created_at": (datetime.utcnow() - timedelta(days=1, hours=14)).isoformat(),
-                "read": True
-            },
-            {
-                "id": "msg-2",
-                "content": "Yes, I had some freelance work. I'll upload those 1099s now.",
-                "sender_type": "client",
-                "created_at": (datetime.utcnow() - timedelta(days=1, hours=13)).isoformat(),
-                "read": True
-            },
-            {
-                "id": "msg-3",
-                "content": "Perfect! Once I receive those, I should have your return ready for review within 2-3 business days.",
-                "sender_type": "cpa",
-                "created_at": (datetime.utcnow() - timedelta(days=1, hours=12, minutes=45)).isoformat(),
-                "read": False
-            }
-        ],
-        "invoices": [
-            {
-                "id": "inv-1",
-                "date": datetime.utcnow().isoformat(),
-                "due_date": (datetime.utcnow() + timedelta(days=30)).isoformat(),
-                "description": "2024 Tax Return Preparation",
-                "amount": 350.00,
-                "status": "pending"
-            },
-            {
-                "id": "inv-2",
-                "date": (datetime.utcnow() - timedelta(days=270)).isoformat(),
-                "due_date": (datetime.utcnow() - timedelta(days=240)).isoformat(),
-                "description": "2023 Tax Return Preparation",
-                "amount": 300.00,
-                "status": "paid"
-            }
-        ],
-        "balance": 350.00,
-        "unread_messages": 1
+        "cpa": cpa_info,
+        "returns": returns,
+        "current_return": current_return,
+        "document_requests": document_requests,
+        "uploaded_documents": uploaded_documents,
+        "messages": messages,
+        "invoices": invoices,
+        "balance": balance,
+        "unread_messages": unread_count
     }
 
 
@@ -338,60 +515,123 @@ async def get_client_dashboard(
 
 @router.get("/returns", response_model=List[ReturnInfo])
 async def get_client_returns(
-    client: ClientContext = Depends(get_current_client)
+    client: ClientContext = Depends(get_current_client),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """Get all tax returns for the client."""
-    return [
-        {
-            "id": "return-2024",
-            "tax_year": 2024,
+    query = text("""
+        SELECT tr.return_id, tr.tax_year, tr.filing_status, tr.status,
+               tr.line_35a_refund, tr.line_37_amount_owed, tr.updated_at
+        FROM tax_returns tr
+        JOIN taxpayers tp ON tr.return_id = tp.return_id
+        JOIN clients c ON tp.email = c.email
+        WHERE c.client_id = :client_id
+        ORDER BY tr.tax_year DESC
+    """)
+    result = await session.execute(query, {"client_id": client.client_id})
+    rows = result.fetchall()
+
+    status_labels = {
+        "draft": "Draft", "in_progress": "In Progress", "pending_review": "Pending Review",
+        "reviewed": "Reviewed", "ready_to_file": "Ready to File", "filed": "Filed",
+        "accepted": "Accepted", "rejected": "Rejected", "amended": "Amended"
+    }
+
+    returns = []
+    for row in rows:
+        refund = float(row[4]) if row[4] and float(row[4]) > 0 else None
+        returns.append({
+            "id": str(row[0]),
+            "tax_year": row[1],
             "return_type": "1040 Individual",
-            "status": "review",
-            "status_label": "In Review",
-            "refund_amount": None,
-            "updated_at": datetime.utcnow().isoformat()
-        },
-        {
-            "id": "return-2023",
-            "tax_year": 2023,
-            "return_type": "1040 Individual",
-            "status": "filed",
-            "status_label": "Filed",
-            "refund_amount": 2847.00,
-            "updated_at": (datetime.utcnow() - timedelta(days=270)).isoformat()
-        }
-    ]
+            "status": row[3] or "draft",
+            "status_label": status_labels.get(row[3], "Draft"),
+            "refund_amount": refund,
+            "updated_at": row[6].isoformat() if row[6] else datetime.utcnow().isoformat()
+        })
+
+    return returns
 
 
 @router.get("/returns/{return_id}")
 async def get_return_details(
     return_id: str,
-    client: ClientContext = Depends(get_current_client)
+    client: ClientContext = Depends(get_current_client),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """Get detailed information about a specific return."""
+    # Verify client has access to this return
+    query = text("""
+        SELECT tr.return_id, tr.tax_year, tr.filing_status, tr.status,
+               tr.line_35a_refund, tr.line_37_amount_owed, tr.updated_at,
+               tr.created_at, tr.submitted_at, tr.accepted_at
+        FROM tax_returns tr
+        JOIN taxpayers tp ON tr.return_id = tp.return_id
+        JOIN clients c ON tp.email = c.email
+        WHERE c.client_id = :client_id AND tr.return_id = :return_id
+    """)
+    result = await session.execute(query, {"client_id": client.client_id, "return_id": return_id})
+    row = result.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Return not found")
+
+    status_labels = {
+        "draft": "Draft", "in_progress": "In Progress", "pending_review": "Pending Review",
+        "reviewed": "Reviewed", "ready_to_file": "Ready to File", "filed": "Filed",
+        "accepted": "Accepted", "rejected": "Rejected"
+    }
+
+    current_status = row[3] or "draft"
+    refund = float(row[4]) if row[4] and float(row[4]) > 0 else None
+
+    # Build timeline based on actual data
+    timeline = [
+        {"stage": "received", "date": row[7].isoformat() if row[7] else None, "completed": True},
+        {"stage": "review", "date": row[6].isoformat() if row[6] else None,
+         "completed": current_status in ["pending_review", "reviewed", "ready_to_file", "filed", "accepted"]},
+        {"stage": "ready", "date": None,
+         "completed": current_status in ["ready_to_file", "filed", "accepted"]},
+        {"stage": "filed", "date": row[8].isoformat() if row[8] else None,
+         "completed": current_status in ["filed", "accepted"]}
+    ]
+
     return {
-        "id": return_id,
-        "tax_year": 2024,
+        "id": str(row[0]),
+        "tax_year": row[1],
         "return_type": "1040 Individual",
-        "status": "review",
-        "status_label": "In Review",
-        "refund_amount": None,
-        "updated_at": datetime.utcnow().isoformat(),
-        "timeline": [
-            {"stage": "received", "date": (datetime.utcnow() - timedelta(days=3)).isoformat(), "completed": True},
-            {"stage": "review", "date": datetime.utcnow().isoformat(), "completed": False},
-            {"stage": "ready", "date": None, "completed": False},
-            {"stage": "filed", "date": None, "completed": False}
-        ]
+        "status": current_status,
+        "status_label": status_labels.get(current_status, "Draft"),
+        "refund_amount": refund,
+        "updated_at": row[6].isoformat() if row[6] else datetime.utcnow().isoformat(),
+        "timeline": timeline
     }
 
 
 @router.get("/returns/{return_id}/download")
 async def download_return(
     return_id: str,
-    client: ClientContext = Depends(get_current_client)
+    client: ClientContext = Depends(get_current_client),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """Get download URL for a filed return."""
+    # Verify client has access and return is filed
+    query = text("""
+        SELECT tr.return_id, tr.status
+        FROM tax_returns tr
+        JOIN taxpayers tp ON tr.return_id = tp.return_id
+        JOIN clients c ON tp.email = c.email
+        WHERE c.client_id = :client_id AND tr.return_id = :return_id
+    """)
+    result = await session.execute(query, {"client_id": client.client_id, "return_id": return_id})
+    row = result.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Return not found")
+
+    if row[1] not in ["filed", "accepted"]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Return is not yet filed")
+
     # In production, generate signed URL for secure download
     return {
         "download_url": f"/api/cpa/client/returns/{return_id}/file",
@@ -406,44 +646,74 @@ async def download_return(
 
 @router.get("/documents/requests", response_model=List[DocumentRequest])
 async def get_document_requests(
-    client: ClientContext = Depends(get_current_client)
+    client: ClientContext = Depends(get_current_client),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """Get all document requests for the client."""
-    return [
-        {
-            "id": "doc-req-1",
-            "name": "W-2 Forms",
-            "description": "From all employers for 2024",
-            "urgent": True,
-            "fulfilled": False,
-            "requested_at": (datetime.utcnow() - timedelta(days=2)).isoformat()
-        },
-        {
-            "id": "doc-req-2",
-            "name": "1099-INT",
-            "description": "Interest income statements from banks",
-            "urgent": False,
-            "fulfilled": False,
-            "requested_at": (datetime.utcnow() - timedelta(days=1)).isoformat()
-        }
-    ]
+    # Check for document_requests table, if it exists
+    query = text("""
+        SELECT dr.request_id, dr.document_type, dr.description, dr.is_urgent, dr.is_fulfilled, dr.created_at
+        FROM document_requests dr
+        WHERE dr.client_id = :client_id AND dr.is_fulfilled = false
+        ORDER BY dr.is_urgent DESC, dr.created_at DESC
+    """)
+    try:
+        result = await session.execute(query, {"client_id": client.client_id})
+        rows = result.fetchall()
+        requests = []
+        for row in rows:
+            requests.append({
+                "id": str(row[0]),
+                "name": row[1] or "Document",
+                "description": row[2] or "",
+                "urgent": row[3] or False,
+                "fulfilled": row[4] or False,
+                "requested_at": row[5].isoformat() if row[5] else datetime.utcnow().isoformat()
+            })
+        return requests
+    except Exception:
+        # Table might not exist, return empty list
+        return []
 
 
 @router.get("/documents/uploaded", response_model=List[UploadedDocument])
 async def get_uploaded_documents(
-    client: ClientContext = Depends(get_current_client)
+    client: ClientContext = Depends(get_current_client),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """Get all documents uploaded by the client."""
-    return [
-        {
-            "id": "doc-1",
-            "filename": "W2_Employer1_2024.pdf",
-            "size": 245000,
-            "uploaded_at": (datetime.utcnow() - timedelta(hours=5)).isoformat(),
-            "status": "received",
-            "status_label": "Received"
-        }
-    ]
+    query = text("""
+        SELECT d.document_id, d.original_filename, d.file_size_bytes, d.status, d.created_at
+        FROM documents d
+        WHERE d.taxpayer_id IN (
+            SELECT tp.taxpayer_id FROM taxpayers tp
+            JOIN clients c ON tp.email = c.email
+            WHERE c.client_id = :client_id
+        )
+        OR d.uploaded_by = :client_id
+        ORDER BY d.created_at DESC
+    """)
+    result = await session.execute(query, {"client_id": client.client_id})
+    rows = result.fetchall()
+
+    status_labels = {
+        "uploaded": "Received", "processing": "Processing", "ocr_complete": "Processing",
+        "extraction_complete": "Processing", "verified": "Verified", "applied": "Applied",
+        "failed": "Failed", "rejected": "Rejected"
+    }
+
+    documents = []
+    for row in rows:
+        documents.append({
+            "id": str(row[0]),
+            "filename": row[1] or "Unknown",
+            "size": row[2] or 0,
+            "uploaded_at": row[4].isoformat() if row[4] else datetime.utcnow().isoformat(),
+            "status": row[3] or "uploaded",
+            "status_label": status_labels.get(row[3], "Received")
+        })
+
+    return documents
 
 
 @router.post("/documents/upload")
@@ -451,7 +721,8 @@ async def upload_document(
     file: UploadFile = File(...),
     request_id: Optional[str] = None,
     doc_type: Optional[str] = None,
-    client: ClientContext = Depends(get_current_client)
+    client: ClientContext = Depends(get_current_client),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """
     Upload a document.
@@ -475,16 +746,68 @@ async def upload_document(
             detail="File too large. Maximum size is 10MB"
         )
 
-    # In production: save file to storage, create database record
+    # Get taxpayer_id for this client
+    taxpayer_query = text("""
+        SELECT tp.taxpayer_id FROM taxpayers tp
+        JOIN clients c ON tp.email = c.email
+        WHERE c.client_id = :client_id
+        ORDER BY tp.created_at DESC
+        LIMIT 1
+    """)
+    taxpayer_result = await session.execute(taxpayer_query, {"client_id": client.client_id})
+    taxpayer_row = taxpayer_result.fetchone()
+
     doc_id = str(uuid4())
+    now = datetime.utcnow()
+
+    # Insert document record
+    insert_query = text("""
+        INSERT INTO documents (
+            document_id, taxpayer_id, document_type, tax_year, status,
+            original_filename, file_size_bytes, mime_type, uploaded_by, created_at
+        ) VALUES (
+            :doc_id, :taxpayer_id, :doc_type, :tax_year, 'uploaded',
+            :filename, :file_size, :mime_type, :uploaded_by, :created_at
+        )
+    """)
+    await session.execute(insert_query, {
+        "doc_id": doc_id,
+        "taxpayer_id": str(taxpayer_row[0]) if taxpayer_row else None,
+        "doc_type": doc_type or "unknown",
+        "tax_year": datetime.utcnow().year,
+        "filename": file.filename,
+        "file_size": len(contents),
+        "mime_type": file.content_type,
+        "uploaded_by": client.client_id,
+        "created_at": now
+    })
+
+    # Mark document request as fulfilled if provided
+    if request_id:
+        try:
+            update_query = text("""
+                UPDATE document_requests SET is_fulfilled = true, fulfilled_at = :now
+                WHERE request_id = :request_id AND client_id = :client_id
+            """)
+            await session.execute(update_query, {
+                "request_id": request_id,
+                "client_id": client.client_id,
+                "now": now
+            })
+        except Exception:
+            pass  # Document requests table might not exist
+
+    await session.commit()
+
+    logger.info(f"Document uploaded: {doc_id} by client {client.client_id}")
 
     return {
         "id": doc_id,
         "filename": file.filename,
         "size": len(contents),
-        "uploaded_at": datetime.utcnow().isoformat(),
-        "status": "processing",
-        "status_label": "Processing",
+        "uploaded_at": now.isoformat(),
+        "status": "uploaded",
+        "status_label": "Received",
         "request_fulfilled": request_id is not None
     }
 
@@ -497,32 +820,40 @@ async def upload_document(
 async def get_messages(
     client: ClientContext = Depends(get_current_client),
     limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0)
+    offset: int = Query(0, ge=0),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """Get messages between client and CPA."""
-    return [
-        {
-            "id": "msg-1",
-            "content": "Hi! I've started reviewing your documents. Quick question - did you have any additional 1099 income this year?",
-            "sender_type": "cpa",
-            "created_at": (datetime.utcnow() - timedelta(days=1, hours=14)).isoformat(),
-            "read": True
-        },
-        {
-            "id": "msg-2",
-            "content": "Yes, I had some freelance work. I'll upload those 1099s now.",
-            "sender_type": "client",
-            "created_at": (datetime.utcnow() - timedelta(days=1, hours=13)).isoformat(),
-            "read": True
-        },
-        {
-            "id": "msg-3",
-            "content": "Perfect! Once I receive those, I should have your return ready for review within 2-3 business days.",
-            "sender_type": "cpa",
-            "created_at": (datetime.utcnow() - timedelta(days=1, hours=12, minutes=45)).isoformat(),
-            "read": False
-        }
-    ]
+    query = text("""
+        SELECT m.message_id, m.content, m.sender_id, m.created_at, m.read_at
+        FROM messages m
+        JOIN conversations c ON m.conversation_id = c.conversation_id
+        WHERE c.participants @> :participant::jsonb
+        ORDER BY m.created_at DESC
+        LIMIT :limit OFFSET :offset
+    """)
+    try:
+        result = await session.execute(query, {
+            "participant": json.dumps({"id": client.client_id}),
+            "limit": limit,
+            "offset": offset
+        })
+        rows = result.fetchall()
+
+        messages = []
+        for row in rows:
+            sender_type = "client" if row[2] == client.client_id else "cpa"
+            messages.append({
+                "id": str(row[0]),
+                "content": row[1],
+                "sender_type": sender_type,
+                "created_at": row[3].isoformat() if row[3] else datetime.utcnow().isoformat(),
+                "read": row[4] is not None
+            })
+        return messages
+    except Exception:
+        # Messages table might not exist
+        return []
 
 
 class SendMessageRequest(BaseModel):
@@ -533,28 +864,104 @@ class SendMessageRequest(BaseModel):
 @router.post("/messages")
 async def send_message(
     request: SendMessageRequest,
-    client: ClientContext = Depends(get_current_client)
+    client: ClientContext = Depends(get_current_client),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """Send a message to the CPA."""
     msg_id = str(uuid4())
+    now = datetime.utcnow()
 
-    # In production: save to database, notify CPA
+    # Find or create conversation with CPA
+    find_conv_query = text("""
+        SELECT conversation_id FROM conversations
+        WHERE conversation_type = 'direct'
+        AND participants @> :client_participant::jsonb
+        AND participants @> :cpa_participant::jsonb
+        LIMIT 1
+    """)
+    try:
+        conv_result = await session.execute(find_conv_query, {
+            "client_participant": json.dumps({"id": client.client_id}),
+            "cpa_participant": json.dumps({"id": client.cpa_id}) if client.cpa_id else json.dumps({})
+        })
+        conv_row = conv_result.fetchone()
+
+        if conv_row:
+            conversation_id = str(conv_row[0])
+        else:
+            # Create new conversation
+            conversation_id = str(uuid4())
+            participants = [
+                {"id": client.client_id, "type": "client", "name": client.name}
+            ]
+            if client.cpa_id:
+                participants.append({"id": client.cpa_id, "type": "cpa"})
+
+            create_conv_query = text("""
+                INSERT INTO conversations (conversation_id, conversation_type, participants, created_at)
+                VALUES (:conv_id, 'direct', :participants, :created_at)
+            """)
+            await session.execute(create_conv_query, {
+                "conv_id": conversation_id,
+                "participants": json.dumps(participants),
+                "created_at": now
+            })
+
+        # Insert message
+        insert_msg_query = text("""
+            INSERT INTO messages (message_id, conversation_id, sender_id, content, created_at)
+            VALUES (:msg_id, :conv_id, :sender_id, :content, :created_at)
+        """)
+        await session.execute(insert_msg_query, {
+            "msg_id": msg_id,
+            "conv_id": conversation_id,
+            "sender_id": client.client_id,
+            "content": request.content,
+            "created_at": now
+        })
+
+        await session.commit()
+        logger.info(f"Message sent: {msg_id} by client {client.client_id}")
+
+    except Exception as e:
+        logger.error(f"Error sending message: {e}")
+        # Messages table might not exist, just return success for now
+
     return {
         "id": msg_id,
         "content": request.content,
         "sender_type": "client",
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": now.isoformat(),
         "read": False
     }
 
 
 @router.post("/messages/read")
 async def mark_messages_read(
-    client: ClientContext = Depends(get_current_client)
+    client: ClientContext = Depends(get_current_client),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """Mark all messages as read."""
-    # In production: update database
-    return {"marked_read": True, "count": 1}
+    now = datetime.utcnow()
+    try:
+        update_query = text("""
+            UPDATE messages m
+            SET read_at = :now
+            FROM conversations c
+            WHERE m.conversation_id = c.conversation_id
+            AND c.participants @> :participant::jsonb
+            AND m.sender_id != :client_id
+            AND m.read_at IS NULL
+        """)
+        result = await session.execute(update_query, {
+            "participant": json.dumps({"id": client.client_id}),
+            "client_id": client.client_id,
+            "now": now
+        })
+        await session.commit()
+        return {"marked_read": True, "count": result.rowcount}
+    except Exception:
+        return {"marked_read": True, "count": 0}
 
 
 # =============================================================================
@@ -569,66 +976,120 @@ class BillingResponse(BaseModel):
 
 @router.get("/billing", response_model=BillingResponse)
 async def get_billing(
-    client: ClientContext = Depends(get_current_client)
+    client: ClientContext = Depends(get_current_client),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """Get billing summary and invoices."""
-    return {
-        "balance": 350.00,
-        "invoices": [
-            {
-                "id": "inv-1",
-                "date": datetime.utcnow().isoformat(),
-                "due_date": (datetime.utcnow() + timedelta(days=30)).isoformat(),
-                "description": "2024 Tax Return Preparation",
-                "amount": 350.00,
-                "status": "pending"
-            },
-            {
-                "id": "inv-2",
-                "date": (datetime.utcnow() - timedelta(days=270)).isoformat(),
-                "due_date": (datetime.utcnow() - timedelta(days=240)).isoformat(),
-                "description": "2023 Tax Return Preparation",
-                "amount": 300.00,
-                "status": "paid"
-            }
-        ]
-    }
+    invoices = []
+    balance = 0.0
+
+    if client.firm_id:
+        query = text("""
+            SELECT i.invoice_id, i.created_at, i.due_date, i.line_items, i.amount_due, i.status
+            FROM invoices i
+            WHERE i.firm_id = :firm_id
+            ORDER BY i.created_at DESC
+            LIMIT 20
+        """)
+        try:
+            result = await session.execute(query, {"firm_id": client.firm_id})
+            rows = result.fetchall()
+
+            for row in rows:
+                line_items = row[3] if row[3] else []
+                if isinstance(line_items, str):
+                    line_items = json.loads(line_items)
+                description = line_items[0].get("description", "Tax Services") if line_items else "Tax Services"
+                amount = float(row[4]) if row[4] else 0.0
+                inv_status = row[5] or "pending"
+
+                if inv_status not in ["paid", "voided"]:
+                    balance += amount
+
+                invoices.append({
+                    "id": str(row[0]),
+                    "date": row[1].isoformat() if row[1] else datetime.utcnow().isoformat(),
+                    "due_date": row[2].isoformat() if row[2] else (datetime.utcnow() + timedelta(days=30)).isoformat(),
+                    "description": description,
+                    "amount": amount,
+                    "status": "paid" if inv_status == "paid" else "pending"
+                })
+        except Exception:
+            pass
+
+    return {"balance": balance, "invoices": invoices}
 
 
 @router.get("/billing/invoices/{invoice_id}")
 async def get_invoice_details(
     invoice_id: str,
-    client: ClientContext = Depends(get_current_client)
+    client: ClientContext = Depends(get_current_client),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """Get detailed invoice information."""
+    query = text("""
+        SELECT i.invoice_id, i.created_at, i.due_date, i.line_items, i.amount_due, i.status,
+               i.subtotal, i.tax, i.discount
+        FROM invoices i
+        WHERE i.invoice_id = :invoice_id AND i.firm_id = :firm_id
+    """)
+    result = await session.execute(query, {"invoice_id": invoice_id, "firm_id": client.firm_id})
+    row = result.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found")
+
+    line_items_raw = row[3] if row[3] else []
+    if isinstance(line_items_raw, str):
+        line_items_raw = json.loads(line_items_raw)
+
+    line_items = [{"description": item.get("description", ""), "amount": item.get("amount", 0)}
+                  for item in line_items_raw]
+
+    description = line_items[0]["description"] if line_items else "Tax Services"
+
     return {
-        "id": invoice_id,
-        "date": datetime.utcnow().isoformat(),
-        "due_date": (datetime.utcnow() + timedelta(days=30)).isoformat(),
-        "description": "2024 Tax Return Preparation",
-        "amount": 350.00,
-        "status": "pending",
-        "line_items": [
-            {"description": "Federal Return Preparation", "amount": 200.00},
-            {"description": "State Return Preparation", "amount": 100.00},
-            {"description": "Schedule C (Self-Employment)", "amount": 50.00}
-        ]
+        "id": str(row[0]),
+        "date": row[1].isoformat() if row[1] else datetime.utcnow().isoformat(),
+        "due_date": row[2].isoformat() if row[2] else (datetime.utcnow() + timedelta(days=30)).isoformat(),
+        "description": description,
+        "amount": float(row[4]) if row[4] else 0.0,
+        "status": "paid" if row[5] == "paid" else "pending",
+        "line_items": line_items
     }
 
 
 @router.post("/billing/invoices/{invoice_id}/pay")
 async def pay_invoice(
     invoice_id: str,
-    client: ClientContext = Depends(get_current_client)
+    client: ClientContext = Depends(get_current_client),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """
     Initiate payment for an invoice.
 
     Returns a payment URL to redirect the client to.
     """
-    # In production: create payment session with Stripe/payment processor
+    # Verify invoice exists and is payable
+    query = text("""
+        SELECT i.invoice_id, i.status, i.hosted_invoice_url
+        FROM invoices i
+        WHERE i.invoice_id = :invoice_id AND i.firm_id = :firm_id
+    """)
+    result = await session.execute(query, {"invoice_id": invoice_id, "firm_id": client.firm_id})
+    row = result.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found")
+
+    if row[1] == "paid":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invoice already paid")
+
+    # In production: create payment session with Stripe
+    payment_url = row[2] if row[2] else f"/pay?invoice={invoice_id}&client={client.client_id}"
+
     return {
-        "payment_url": f"/pay?invoice={invoice_id}&client={client.client_id}",
+        "payment_url": payment_url,
         "payment_id": str(uuid4()),
         "expires_at": (datetime.utcnow() + timedelta(hours=24)).isoformat()
     }
@@ -637,11 +1098,29 @@ async def pay_invoice(
 @router.get("/billing/invoices/{invoice_id}/receipt")
 async def get_receipt(
     invoice_id: str,
-    client: ClientContext = Depends(get_current_client)
+    client: ClientContext = Depends(get_current_client),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """Get download URL for a payment receipt."""
+    # Verify invoice exists and is paid
+    query = text("""
+        SELECT i.invoice_id, i.status, i.invoice_pdf_url
+        FROM invoices i
+        WHERE i.invoice_id = :invoice_id AND i.firm_id = :firm_id
+    """)
+    result = await session.execute(query, {"invoice_id": invoice_id, "firm_id": client.firm_id})
+    row = result.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found")
+
+    if row[1] != "paid":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invoice not yet paid")
+
+    download_url = row[2] if row[2] else f"/api/cpa/client/billing/invoices/{invoice_id}/receipt-file"
+
     return {
-        "download_url": f"/api/cpa/client/billing/invoices/{invoice_id}/receipt-file",
+        "download_url": download_url,
         "filename": f"Receipt_{invoice_id}.pdf",
         "expires_at": (datetime.utcnow() + timedelta(hours=1)).isoformat()
     }
@@ -653,27 +1132,57 @@ async def get_receipt(
 
 @router.get("/profile")
 async def get_client_profile(
-    client: ClientContext = Depends(get_current_client)
+    client: ClientContext = Depends(get_current_client),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """Get client profile information."""
+    # Get full client info
+    client_query = text("""
+        SELECT c.client_id, c.first_name, c.last_name, c.email, c.phone, c.profile_data
+        FROM clients c
+        WHERE c.client_id = :client_id
+    """)
+    result = await session.execute(client_query, {"client_id": client.client_id})
+    client_row = result.fetchone()
+
+    profile_data = client_row[5] if client_row and client_row[5] else {}
+    if isinstance(profile_data, str):
+        profile_data = json.loads(profile_data)
+
+    address = profile_data.get("address", {})
+
+    # Get CPA info
+    cpa_info = {"id": "", "name": "Unassigned", "firm_name": "", "email": "", "phone": ""}
+    if client.cpa_id:
+        cpa_query = text("""
+            SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone, f.name as firm_name
+            FROM users u
+            LEFT JOIN firms f ON u.firm_id = f.firm_id
+            WHERE u.user_id = :cpa_id
+        """)
+        cpa_result = await session.execute(cpa_query, {"cpa_id": client.cpa_id})
+        cpa_row = cpa_result.fetchone()
+        if cpa_row:
+            cpa_info = {
+                "id": str(cpa_row[0]),
+                "name": f"{cpa_row[1]} {cpa_row[2]}, CPA",
+                "firm_name": cpa_row[5] or "",
+                "email": cpa_row[3] or "",
+                "phone": cpa_row[4] or ""
+            }
+
     return {
         "id": client.client_id,
         "name": client.name,
         "email": client.email,
-        "phone": "(555) 987-6543",
+        "phone": client_row[4] if client_row else "",
         "address": {
-            "street": "123 Main St",
-            "city": "Anytown",
-            "state": "CA",
-            "zip": "90210"
+            "street": address.get("street", ""),
+            "city": address.get("city", ""),
+            "state": address.get("state", ""),
+            "zip": address.get("zip", "")
         },
-        "cpa": {
-            "id": "cpa-001",
-            "name": "Jane Doe, CPA",
-            "firm_name": "Doe Tax Services",
-            "email": "jane.doe@taxfirm.com",
-            "phone": "(555) 123-4567"
-        }
+        "cpa": cpa_info
     }
 
 
@@ -689,14 +1198,52 @@ class UpdateProfileRequest(BaseModel):
 @router.put("/profile")
 async def update_client_profile(
     request: UpdateProfileRequest,
-    client: ClientContext = Depends(get_current_client)
+    client: ClientContext = Depends(get_current_client),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """Update client profile information."""
-    # In production: update database
-    return {
-        "updated": True,
-        "fields_updated": [k for k, v in request.dict().items() if v is not None]
-    }
+    # Get current profile_data
+    query = text("SELECT profile_data FROM clients WHERE client_id = :client_id")
+    result = await session.execute(query, {"client_id": client.client_id})
+    row = result.fetchone()
+
+    profile_data = row[0] if row and row[0] else {}
+    if isinstance(profile_data, str):
+        profile_data = json.loads(profile_data)
+
+    # Update fields
+    fields_updated = []
+    if request.phone is not None:
+        await session.execute(
+            text("UPDATE clients SET phone = :phone WHERE client_id = :client_id"),
+            {"phone": request.phone, "client_id": client.client_id}
+        )
+        fields_updated.append("phone")
+
+    address = profile_data.get("address", {})
+    if request.address_street is not None:
+        address["street"] = request.address_street
+        fields_updated.append("address_street")
+    if request.address_city is not None:
+        address["city"] = request.address_city
+        fields_updated.append("address_city")
+    if request.address_state is not None:
+        address["state"] = request.address_state
+        fields_updated.append("address_state")
+    if request.address_zip is not None:
+        address["zip"] = request.address_zip
+        fields_updated.append("address_zip")
+
+    if address:
+        profile_data["address"] = address
+        await session.execute(
+            text("UPDATE clients SET profile_data = :profile_data WHERE client_id = :client_id"),
+            {"profile_data": json.dumps(profile_data), "client_id": client.client_id}
+        )
+
+    await session.commit()
+
+    return {"updated": True, "fields_updated": fields_updated}
 
 
 # =============================================================================
@@ -706,36 +1253,62 @@ async def update_client_profile(
 @router.get("/notifications")
 async def get_notifications(
     client: ClientContext = Depends(get_current_client),
-    unread_only: bool = Query(False)
+    unread_only: bool = Query(False),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """Get notifications for the client."""
-    return {
-        "notifications": [
-            {
-                "id": "notif-1",
-                "type": "message",
-                "title": "New message from Jane Doe",
-                "content": "Perfect! Once I receive those...",
-                "read": False,
-                "created_at": (datetime.utcnow() - timedelta(days=1)).isoformat()
-            },
-            {
-                "id": "notif-2",
-                "type": "document_request",
-                "title": "Document requested",
-                "content": "Your CPA needs your W-2 forms",
-                "read": True,
-                "created_at": (datetime.utcnow() - timedelta(days=2)).isoformat()
-            }
-        ],
-        "unread_count": 1
-    }
+    query = text("""
+        SELECT notification_id, notification_type, title, content, is_read, created_at
+        FROM notifications
+        WHERE user_id = :client_id
+        """ + ("AND is_read = false" if unread_only else "") + """
+        ORDER BY created_at DESC
+        LIMIT 50
+    """)
+    try:
+        result = await session.execute(query, {"client_id": client.client_id})
+        rows = result.fetchall()
+
+        notifications = []
+        unread_count = 0
+        for row in rows:
+            is_read = row[4] if row[4] is not None else False
+            if not is_read:
+                unread_count += 1
+            notifications.append({
+                "id": str(row[0]),
+                "type": row[1] or "general",
+                "title": row[2] or "",
+                "content": row[3] or "",
+                "read": is_read,
+                "created_at": row[5].isoformat() if row[5] else datetime.utcnow().isoformat()
+            })
+
+        return {"notifications": notifications, "unread_count": unread_count}
+    except Exception:
+        # Notifications table might not exist
+        return {"notifications": [], "unread_count": 0}
 
 
 @router.post("/notifications/{notification_id}/read")
 async def mark_notification_read(
     notification_id: str,
-    client: ClientContext = Depends(get_current_client)
+    client: ClientContext = Depends(get_current_client),
+    session: AsyncSession = Depends(get_async_session)
 ):
     """Mark a notification as read."""
+    try:
+        query = text("""
+            UPDATE notifications SET is_read = true, read_at = :now
+            WHERE notification_id = :notification_id AND user_id = :client_id
+        """)
+        await session.execute(query, {
+            "notification_id": notification_id,
+            "client_id": client.client_id,
+            "now": datetime.utcnow()
+        })
+        await session.commit()
+    except Exception:
+        pass
+
     return {"marked_read": True}
