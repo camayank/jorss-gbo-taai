@@ -17,8 +17,13 @@ import hashlib
 from typing import Optional, List
 from datetime import datetime, timedelta
 from uuid import uuid4
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File
+
+# Logo storage directory
+LOGO_DIR = Path(__file__).parent.parent.parent / "web" / "static" / "logos"
+LOGO_DIR.mkdir(parents=True, exist_ok=True)
 from pydantic import BaseModel, Field, EmailStr
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -429,9 +434,25 @@ async def upload_logo(
             detail="File too large. Maximum size is 2MB.",
         )
 
-    # Generate logo path (in production, this would upload to S3/cloud storage)
-    ext = file.filename.split(".")[-1] if file.filename else "png"
-    logo_url = f"/static/logos/{firm_id}/logo.{ext}"
+    # Determine file extension
+    ext_map = {
+        "image/png": "png",
+        "image/jpeg": "jpg",
+        "image/svg+xml": "svg",
+    }
+    ext = ext_map.get(file.content_type, "png")
+
+    # Create firm-specific logo directory
+    firm_logo_dir = LOGO_DIR / firm_id
+    firm_logo_dir.mkdir(parents=True, exist_ok=True)
+
+    # Save the logo file
+    logo_filename = f"logo.{ext}"
+    logo_path = firm_logo_dir / logo_filename
+    logo_path.write_bytes(content)
+
+    # Generate URL for the logo
+    logo_url = f"/static/logos/{firm_id}/{logo_filename}"
 
     # Update firm branding with new logo URL
     query = text("SELECT branding FROM firms WHERE firm_id = :firm_id")
@@ -452,11 +473,12 @@ async def upload_logo(
     })
     await session.commit()
 
-    logger.info(f"Firm {firm_id} logo uploaded by {user.email}")
+    logger.info(f"Firm {firm_id} logo uploaded by {user.email} -> {logo_url}")
 
     return {
         "status": "success",
         "logo_url": logo_url,
+        "message": "Logo uploaded successfully",
     }
 
 

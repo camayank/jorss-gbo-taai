@@ -3776,6 +3776,7 @@
           break;
         case 'settings':
           content.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--gray-500);">Loading settings...</div>';
+          loadFirmSettings(firmId);
           break;
         default:
           openFirmDetail(firmId);
@@ -3801,6 +3802,188 @@
           <p style="color: var(--gray-500);">Billing details will be loaded from API</p>
         </div>
       `;
+    }
+
+    async function loadFirmSettings(firmId) {
+      const content = document.getElementById('firm-detail-content');
+      const firm = firmsData.find(f => f.firm_id === firmId) || {};
+      const branding = firm.branding || {};
+
+      content.innerHTML = `
+        <div style="padding: 20px;">
+          <h4 style="margin-bottom: 20px;">Branding Settings</h4>
+
+          <!-- Logo Upload Section -->
+          <div style="margin-bottom: 24px; padding: 20px; background: var(--gray-50); border-radius: 8px;">
+            <label style="display: block; margin-bottom: 12px; font-weight: 600;">Firm Logo</label>
+            <div style="display: flex; align-items: center; gap: 20px;">
+              <div id="logo-preview" style="width: 80px; height: 80px; border: 2px dashed var(--gray-300); border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: white;">
+                ${branding.logo_url
+                  ? `<img src="${escapeHtml(branding.logo_url)}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="Logo">`
+                  : `<span style="color: var(--gray-400); font-size: 12px;">No logo</span>`
+                }
+              </div>
+              <div>
+                <input type="file" id="logo-upload-input" accept="image/png,image/jpeg,image/svg+xml" style="display: none;" onchange="handleLogoUpload(event, '${firmId}')">
+                <button class="btn btn-primary" onclick="document.getElementById('logo-upload-input').click()" style="margin-bottom: 8px;">
+                  📤 Upload Logo
+                </button>
+                <div style="font-size: 12px; color: var(--gray-500);">PNG, JPG, or SVG. Max 2MB.</div>
+              </div>
+            </div>
+            <div id="logo-upload-status" style="margin-top: 12px; display: none;"></div>
+          </div>
+
+          <!-- Color Settings -->
+          <div style="margin-bottom: 24px;">
+            <label style="display: block; margin-bottom: 12px; font-weight: 600;">Brand Colors</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div>
+                <label style="display: block; margin-bottom: 6px; font-size: 14px; color: var(--gray-600);">Primary Color</label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <input type="color" id="primary-color" value="${escapeHtml(branding.primary_color || '#059669')}" style="width: 50px; height: 36px; border: none; cursor: pointer;">
+                  <input type="text" id="primary-color-text" value="${escapeHtml(branding.primary_color || '#059669')}" style="flex: 1; padding: 8px; border: 1px solid var(--gray-200); border-radius: 6px;" pattern="^#[0-9A-Fa-f]{6}$">
+                </div>
+              </div>
+              <div>
+                <label style="display: block; margin-bottom: 6px; font-size: 14px; color: var(--gray-600);">Secondary Color</label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <input type="color" id="secondary-color" value="${escapeHtml(branding.secondary_color || '#1e40af')}" style="width: 50px; height: 36px; border: none; cursor: pointer;">
+                  <input type="text" id="secondary-color-text" value="${escapeHtml(branding.secondary_color || '#1e40af')}" style="flex: 1; padding: 8px; border: 1px solid var(--gray-200); border-radius: 6px;" pattern="^#[0-9A-Fa-f]{6}$">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Text Settings -->
+          <div style="margin-bottom: 24px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 600;">Welcome Message</label>
+            <input type="text" id="welcome-message" value="${escapeHtml(branding.welcome_message || '')}" placeholder="Welcome to our tax portal" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          </div>
+
+          <div style="margin-bottom: 24px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 600;">Email Signature</label>
+            <input type="text" id="email-signature" value="${escapeHtml(branding.email_signature || '')}" placeholder="Powered by Your Firm Name" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          </div>
+
+          <div style="margin-bottom: 24px;">
+            <label style="display: block; margin-bottom: 6px; font-weight: 600;">Disclaimer Text</label>
+            <textarea id="disclaimer-text" rows="3" placeholder="Legal disclaimer for reports..." style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px; resize: vertical;">${escapeHtml(branding.disclaimer_text || '')}</textarea>
+          </div>
+
+          <!-- Save Button -->
+          <div style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 16px; border-top: 1px solid var(--gray-200);">
+            <button class="btn btn-primary" onclick="saveFirmBranding('${firmId}')">Save Branding Settings</button>
+          </div>
+        </div>
+      `;
+
+      // Sync color picker with text input
+      document.getElementById('primary-color').addEventListener('input', (e) => {
+        document.getElementById('primary-color-text').value = e.target.value;
+      });
+      document.getElementById('primary-color-text').addEventListener('input', (e) => {
+        if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+          document.getElementById('primary-color').value = e.target.value;
+        }
+      });
+      document.getElementById('secondary-color').addEventListener('input', (e) => {
+        document.getElementById('secondary-color-text').value = e.target.value;
+      });
+      document.getElementById('secondary-color-text').addEventListener('input', (e) => {
+        if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+          document.getElementById('secondary-color').value = e.target.value;
+        }
+      });
+    }
+
+    async function handleLogoUpload(event, firmId) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const statusDiv = document.getElementById('logo-upload-status');
+      const previewDiv = document.getElementById('logo-preview');
+
+      // Validate file type
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/svg+xml'];
+      if (!allowedTypes.includes(file.type)) {
+        statusDiv.innerHTML = '<span style="color: var(--danger);">Invalid file type. Use PNG, JPG, or SVG.</span>';
+        statusDiv.style.display = 'block';
+        return;
+      }
+
+      // Validate file size (2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        statusDiv.innerHTML = '<span style="color: var(--danger);">File too large. Maximum 2MB.</span>';
+        statusDiv.style.display = 'block';
+        return;
+      }
+
+      // Show uploading status
+      statusDiv.innerHTML = '<span style="color: var(--primary);">⏳ Uploading...</span>';
+      statusDiv.style.display = 'block';
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/v1/admin/settings/branding/logo', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || 'Upload failed');
+        }
+
+        const result = await response.json();
+
+        // Update preview
+        previewDiv.innerHTML = `<img src="${escapeHtml(result.logo_url)}?t=${Date.now()}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="Logo">`;
+        statusDiv.innerHTML = '<span style="color: var(--success);">✓ Logo uploaded successfully!</span>';
+
+        // Update local data
+        const firm = firmsData.find(f => f.firm_id === firmId);
+        if (firm) {
+          firm.branding = firm.branding || {};
+          firm.branding.logo_url = result.logo_url;
+        }
+
+        showNotification('Logo uploaded successfully', 'success');
+      } catch (error) {
+        console.error('Logo upload failed:', error);
+        statusDiv.innerHTML = `<span style="color: var(--danger);">✗ ${escapeHtml(error.message)}</span>`;
+        showNotification('Failed to upload logo', 'error');
+      }
+    }
+
+    async function saveFirmBranding(firmId) {
+      const branding = {
+        primary_color: document.getElementById('primary-color-text').value,
+        secondary_color: document.getElementById('secondary-color-text').value,
+        welcome_message: document.getElementById('welcome-message').value,
+        email_signature: document.getElementById('email-signature').value,
+        disclaimer_text: document.getElementById('disclaimer-text').value,
+      };
+
+      try {
+        await api(`/settings/branding`, {
+          method: 'PUT',
+          body: JSON.stringify(branding),
+        });
+
+        // Update local data
+        const firm = firmsData.find(f => f.firm_id === firmId);
+        if (firm) {
+          firm.branding = { ...firm.branding, ...branding };
+        }
+
+        showNotification('Branding settings saved', 'success');
+      } catch (error) {
+        console.error('Failed to save branding:', error);
+        showNotification('Failed to save branding settings', 'error');
+      }
     }
 
     // Firm action handlers
