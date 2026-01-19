@@ -8,7 +8,6 @@ Provides:
 - Backward-compatible aliases
 """
 
-import os
 from functools import wraps
 from typing import Optional, List, Set, Union, Callable, Any
 from uuid import UUID
@@ -23,65 +22,28 @@ from .models import HierarchyLevel
 logger = logging.getLogger(__name__)
 
 # =============================================================================
-# TESTING MODE CONFIGURATION
+# SECURITY NOTE
 # =============================================================================
-# When TESTING_MODE is enabled, authentication is bypassed and a mock admin
-# context is used for all requests. This allows end-to-end testing without auth.
+# Authentication is ALWAYS enforced. There is no bypass mechanism.
 #
-# SECURITY: Testing mode requires BOTH conditions:
-#   1. TESTING_MODE=true environment variable
-#   2. ENVIRONMENT must be 'development', 'test', or 'local' (NOT 'production' or 'staging')
+# For testing, use proper dependency injection with test fixtures:
 #
-# This prevents accidental bypass of authentication in production environments.
-
-def _is_testing_mode_allowed() -> bool:
-    """
-    Determine if testing mode can be safely enabled.
-
-    Testing mode is ONLY allowed when:
-    1. TESTING_MODE environment variable is explicitly set to "true"
-    2. ENVIRONMENT is NOT production or staging
-    3. Optional: TESTING_MODE_SECRET matches (for additional security)
-    """
-    testing_requested = os.environ.get("TESTING_MODE", "false").lower() == "true"
-
-    if not testing_requested:
-        return False
-
-    # Check environment - block testing mode in production/staging
-    environment = os.environ.get("ENVIRONMENT", "development").lower()
-    production_environments = {"production", "prod", "staging", "stage", "live"}
-
-    if environment in production_environments:
-        logger.critical(
-            "SECURITY ALERT: TESTING_MODE=true attempted in %s environment. "
-            "This is BLOCKED for security. Remove TESTING_MODE from environment.",
-            environment
-        )
-        return False
-
-    # Optional additional security: require a secret key for testing mode
-    testing_secret = os.environ.get("TESTING_MODE_SECRET", "")
-    expected_secret = os.environ.get("TESTING_MODE_EXPECTED_SECRET", "")
-
-    if expected_secret and testing_secret != expected_secret:
-        logger.warning(
-            "TESTING_MODE requested but TESTING_MODE_SECRET does not match. "
-            "Testing mode DISABLED."
-        )
-        return False
-
-    return True
-
-
-TESTING_MODE = _is_testing_mode_allowed()
-
-if TESTING_MODE:
-    logger.warning("=" * 70)
-    logger.warning("RBAC TESTING MODE ENABLED - Authentication bypassed for all routes")
-    logger.warning("This should ONLY be used in development/test environments!")
-    logger.warning("Set ENVIRONMENT=production to disable testing mode.")
-    logger.warning("=" * 70)
+#   @pytest.fixture
+#   def mock_rbac_context():
+#       return RBACContext(
+#           user_id=uuid4(),
+#           email="test@example.com",
+#           is_authenticated=True,
+#           permissions={"read_clients", "write_clients"},
+#           ...
+#       )
+#
+#   async def test_endpoint(mock_rbac_context):
+#       app.dependency_overrides[get_rbac_context] = lambda: mock_rbac_context
+#       # run test
+#       app.dependency_overrides.clear()
+#
+# =============================================================================
 
 # HTTP Bearer token security scheme
 security = HTTPBearer(auto_error=False)
@@ -126,9 +88,6 @@ class RBACContext(RBACContextData):
 
     def require_authenticated(self) -> None:
         """Raise 401 if not authenticated."""
-        # Testing mode: bypass authentication checks
-        if TESTING_MODE:
-            return
         if not self.is_authenticated:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -138,9 +97,6 @@ class RBACContext(RBACContextData):
 
     def require_permission(self, permission: str) -> None:
         """Raise 403 if permission not granted."""
-        # Testing mode: bypass permission checks
-        if TESTING_MODE:
-            return
         if not self.has_permission(permission):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -149,8 +105,6 @@ class RBACContext(RBACContextData):
 
     def require_any_permission(self, permissions: List[str]) -> None:
         """Raise 403 if none of the permissions are granted."""
-        if TESTING_MODE:
-            return
         if not self.has_any_permission(permissions):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -159,8 +113,6 @@ class RBACContext(RBACContextData):
 
     def require_all_permissions(self, permissions: List[str]) -> None:
         """Raise 403 if any permission is not granted."""
-        if TESTING_MODE:
-            return
         if not self.has_all_permissions(permissions):
             missing = [p for p in permissions if p not in self.permissions]
             raise HTTPException(
@@ -170,8 +122,6 @@ class RBACContext(RBACContextData):
 
     def require_role(self, role: str) -> None:
         """Raise 403 if role not assigned."""
-        if TESTING_MODE:
-            return
         if not self.has_role(role):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -180,8 +130,6 @@ class RBACContext(RBACContextData):
 
     def require_any_role(self, roles: List[str]) -> None:
         """Raise 403 if none of the roles are assigned."""
-        if TESTING_MODE:
-            return
         if not self.has_any_role(roles):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -190,8 +138,6 @@ class RBACContext(RBACContextData):
 
     def require_hierarchy_level(self, max_level: int) -> None:
         """Raise 403 if hierarchy level is below required."""
-        if TESTING_MODE:
-            return
         if self.hierarchy_level > max_level:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -200,8 +146,6 @@ class RBACContext(RBACContextData):
 
     def require_firm_access(self, firm_id: UUID) -> None:
         """Raise 403 if user cannot access firm."""
-        if TESTING_MODE:
-            return
         if not self.can_access_firm(firm_id):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

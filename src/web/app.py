@@ -131,75 +131,39 @@ except ImportError:
 # Set to True to enable database-driven permission resolution
 RBAC_V2_ENABLED = True
 
-# TESTING_MODE: When True, all routes are public for end-to-end testing
-# Set to False for production deployment
-TESTING_MODE = os.environ.get("TESTING_MODE", "false").lower() == "true"
+# =============================================================================
+# SECURITY NOTE: No testing mode bypass
+# =============================================================================
+# Authentication is ALWAYS enforced. For testing, use dependency overrides:
+#   app.dependency_overrides[get_current_user] = lambda: mock_user
+# =============================================================================
 
 if RBAC_V2_ENABLED:
     try:
         from core.rbac.middleware import RBACMiddleware, RBACMiddlewareConfig
 
-        # Configure RBAC middleware
-        if TESTING_MODE:
-            # Testing mode: all pages accessible without authentication
-            logger.info("TESTING MODE ENABLED - All routes are public")
-            rbac_config = RBACMiddlewareConfig(
-                public_paths={
-                    # Core pages
-                    "/",
-                    "/health",
-                    "/metrics",
-                    "/docs",
-                    "/redoc",
-                    "/openapi.json",
-                    "/manifest.json",
-                    # UI Pages - All portals
-                    "/dashboard",
-                    "/cpa",
-                    "/client",
-                    "/test-auth",
-                    "/hub",
-                    "/system-hub",
-                    # Auth endpoints
-                    "/api/v1/auth/login",
-                    "/api/v1/auth/register",
-                    "/api/v1/auth/forgot-password",
-                    "/api/v1/auth/reset-password",
-                    "/api/v1/auth/verify-email",
-                },
-                public_path_prefixes={
-                    "/static/",
-                    "/assets/",
-                    # Testing mode: all routes accessible
-                    "/admin/",
-                    "/api/",
-                },
-                rbac_v2_enabled=True,
-                fallback_to_legacy=True,
-            )
-        else:
-            # Production mode: only auth endpoints are public
-            rbac_config = RBACMiddlewareConfig(
-                public_paths={
-                    "/",
-                    "/health",
-                    "/metrics",
-                    "/api/v1/auth/login",
-                    "/api/v1/auth/register",
-                    "/api/v1/auth/forgot-password",
-                    "/api/v1/auth/reset-password",
-                    "/api/v1/auth/verify-email",
-                    "/docs",
-                    "/redoc",
-                    "/openapi.json",
-                },
-                public_path_prefixes={
-                    "/static/",
-                    "/assets/",
-                },
-                rbac_v2_enabled=True,
-                fallback_to_legacy=True,
-            )
+        # Configure RBAC middleware - authentication required for protected routes
+        rbac_config = RBACMiddlewareConfig(
+            public_paths={
+                "/",
+                "/health",
+                "/metrics",
+                "/api/v1/auth/login",
+                "/api/v1/auth/register",
+                "/api/v1/auth/forgot-password",
+                "/api/v1/auth/reset-password",
+                "/api/v1/auth/verify-email",
+                "/docs",
+                "/redoc",
+                "/openapi.json",
+            },
+            public_path_prefixes={
+                "/static/",
+                "/assets/",
+            },
+            rbac_v2_enabled=True,
+            fallback_to_legacy=True,
+        )
 
         # Get database session factory for permission resolution
         def get_db_session_factory():
