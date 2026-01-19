@@ -2847,7 +2847,6 @@
             phone: data.phone || '',
             bookingLink: data.booking_link || '#contact'
           };
-          console.log('CPA Profile loaded:', state.cpaProfile);
         }
       } catch (e) {
         console.warn('Could not load CPA profile:', e);
@@ -3054,8 +3053,6 @@
           const newUrl = new URL(window.location);
           newUrl.searchParams.set('session', state.sessionId);
           window.history.replaceState({}, '', newUrl);
-
-          console.log('Assessment session started:', state.sessionId);
         }
       } catch (e) {
         console.warn('Could not start session via API:', e);
@@ -3175,8 +3172,6 @@
           const savings = savingsMap[data.complexity] || savingsMap['simple'];
           state.report.savingsRangeLow = savings.low;
           state.report.savingsRangeHigh = savings.high;
-
-          console.log('Profile submitted:', data);
         }
       } catch (e) {
         console.warn('Could not submit profile:', e);
@@ -3756,7 +3751,6 @@
             const newUrl = new URL(window.location);
             newUrl.searchParams.set('session', state.sessionId);
             window.history.replaceState({}, '', newUrl);
-            console.log('Session created:', state.sessionId, 'Client:', state.clientId);
           }
         } else {
           throw new Error(`API returned ${response.status}`);
@@ -3888,7 +3882,6 @@
         const clientToken = urlParams.get('token') || localStorage.getItem('client_token');
 
         if (!clientToken) {
-          console.log('No client token found');
           return;
         }
 

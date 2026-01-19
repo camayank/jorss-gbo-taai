@@ -2507,7 +2507,7 @@
           }),
         }).then(r => r.json());
         if (data.success) state.preparerId = data.preparer.preparer_id;
-      } catch (e) { console.log('Preparer init skipped'); }
+      } catch (e) { /* Preparer init skipped - using default */ }
     }
 
     async function loadAllData() {
@@ -2565,8 +2565,6 @@
             document.getElementById('clients-with-savings').textContent = data.clients_by_savings.length;
             state.clientsBySavings = data.clients_by_savings;
           }
-
-          console.log(`Loaded ${state.insights.length} real insights from recommendation engine`);
           return;
         }
       } catch (e) {
@@ -2631,8 +2629,6 @@
             });
             updateCategoryBreakdown(breakdown);
           }
-
-          console.log(`Loaded ${state.insights.length} recommendations from database`);
           return;
         }
       } catch (e) {
@@ -3585,8 +3581,19 @@
     async function viewExtracted(sessionId, documentId) {
       try {
         const data = await api(`/api/cpa/session/${sessionId}/documents/${documentId}/extracted`);
-        if (data.success) {
-          alert(JSON.stringify(data.extracted_data, null, 2));
+        if (data.success && data.extracted_data) {
+          // Show extracted data in a modal-like overlay
+          const overlay = document.createElement('div');
+          overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+          overlay.innerHTML = `
+            <div style="background:white;padding:24px;border-radius:12px;max-width:600px;max-height:80vh;overflow:auto;margin:20px;">
+              <h3 style="margin:0 0 16px;font-size:18px;font-weight:600;">Extracted Document Data</h3>
+              <pre style="background:#f3f4f6;padding:16px;border-radius:8px;overflow:auto;font-size:12px;white-space:pre-wrap;">${escapeHtml(JSON.stringify(data.extracted_data, null, 2))}</pre>
+              <button onclick="this.closest('div').parentElement.remove()" style="margin-top:16px;padding:8px 16px;background:#6366f1;color:white;border:none;border-radius:6px;cursor:pointer;">Close</button>
+            </div>
+          `;
+          overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+          document.body.appendChild(overlay);
         }
       } catch (e) {
         showToast('Failed to load extracted data', 'error');
@@ -3942,7 +3949,6 @@
         const data = await api('/api/cpa/onboarding/start', { method: 'POST' });
         if (data.success) {
           onboardState.sessionId = data.session_id;
-          console.log('Onboarding session started:', onboardState.sessionId);
         }
       } catch (e) {
         console.error('Failed to start onboarding session:', e);
@@ -4329,7 +4335,6 @@
           return;
         }
       } catch (e) {
-        console.log('Trying core API for client detail');
       }
 
       // Try Core Platform API as fallback
@@ -4363,7 +4368,6 @@
           return;
         }
       } catch (e) {
-        console.log('Using demo data for client detail');
       }
 
       // Use demo data from onboarding if available
@@ -4486,7 +4490,7 @@
         }
 
       } catch (e) {
-        console.log('Core API enhancement data not available:', e.message);
+        // Core API enhancement data not available - using basic data
       }
     }
 

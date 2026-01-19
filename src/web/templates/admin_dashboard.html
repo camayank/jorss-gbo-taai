@@ -2260,7 +2260,7 @@
     }
 
     function openAddAdminModal() {
-      alert('Add platform admin - Feature coming soon');
+      showNotification('Add platform admin - Feature coming soon', 'info');
     }
 
     // loadAuditLogs() is defined below using adminApi() for correct /admin prefix
@@ -2829,7 +2829,7 @@
         // Reload feature flags to get updated state
         await loadFeatureFlags();
       } catch (error) {
-        alert('Failed to update feature flag: ' + error.message);
+        showNotification('Failed to update feature flag. Please try again.', 'error');
         // Revert checkbox
         await loadFeatureFlags();
       }
@@ -2848,7 +2848,7 @@
         closeDetailPanel();
         return result;
       } catch (error) {
-        alert('Failed to create firm: ' + error.message);
+        showNotification('Failed to create firm. Please try again.', 'error');
         throw error;
       }
     }
@@ -2865,7 +2865,7 @@
         await loadFirms();
         return result;
       } catch (error) {
-        alert('Failed to update firm: ' + error.message);
+        showNotification('Failed to update firm. Please try again.', 'error');
         throw error;
       }
     }
@@ -2879,12 +2879,12 @@
           method: 'POST'
         });
         if (result.impersonation_token) {
-          alert(`Impersonation started for ${result.firm_name}. Token expires in ${result.expires_in}s`);
+          showNotification(`Impersonation started for ${escapeHtml(result.firm_name)}. Token expires in ${result.expires_in}s`, 'success');
           // Could redirect to CPA panel with token
         }
         return result;
       } catch (error) {
-        alert('Failed to impersonate: ' + error.message);
+        showNotification('Failed to impersonate firm. Please try again.', 'error');
         throw error;
       }
     }
@@ -2898,9 +2898,9 @@
 
       try {
         // This would need a backend endpoint
-        alert(`Impersonation for user ${userId} - Feature coming soon`);
+        showNotification('User impersonation - Feature coming soon', 'info');
       } catch (error) {
-        alert('Failed to impersonate user: ' + error.message);
+        showNotification('Failed to impersonate user. Please try again.', 'error');
       }
     }
 
@@ -3407,12 +3407,12 @@
           </div>
         `);
       } catch (error) {
-        alert('Failed to load partner firms: ' + error.message);
+        showNotification('Failed to load partner firms. Please try again.', 'error');
       }
     }
 
     function viewPartnerPayouts(partnerId) {
-      alert('Partner payout history - Feature coming soon');
+      showNotification('Partner payout history - Feature coming soon', 'info');
     }
 
     /**
@@ -3464,7 +3464,7 @@
           showNotification('Partner settings updated', 'success');
           loadPartners();
         } catch (error) {
-          alert('Failed to update partner: ' + error.message);
+          showNotification('Failed to update partner. Please try again.', 'error');
           submitBtn.disabled = false;
           submitBtn.textContent = 'Save Changes';
         }
@@ -3480,7 +3480,7 @@
      */
     function exportFirms() {
       if (!firmsData || firmsData.length === 0) {
-        alert('No data to export');
+        showNotification('No data to export', 'warning');
         return;
       }
       downloadCSV(firmsData, 'firms-export.csv');
@@ -3491,7 +3491,7 @@
      */
     function exportUsers() {
       if (!usersData || usersData.length === 0) {
-        alert('No data to export');
+        showNotification('No data to export', 'warning');
         return;
       }
       downloadCSV(usersData, 'users-export.csv');
@@ -3618,8 +3618,7 @@
 
       // Handle subscriptions filter
       if (page === 'subscriptions' && params.filter) {
-        // Could set up subscription filter here if implemented
-        console.log('Navigate to subscriptions with filter:', params.filter);
+        // TODO: Set up subscription filter when implemented
       }
     }
 
@@ -3776,10 +3775,10 @@
 
       try {
         const result = await api(`/firms/${firmId}/impersonate?reason=${encodeURIComponent(reason)}`, { method: 'POST' });
-        alert(`Impersonation token generated. Session expires in ${result.expires_in} seconds.`);
+        showNotification(`Impersonation token generated. Session expires in ${result.expires_in} seconds.`, 'success');
         // Could redirect to CPA panel with token
       } catch (error) {
-        alert('Failed to impersonate: ' + error.message);
+        showNotification('Failed to impersonate. Please try again.', 'error');
       }
     }
 
@@ -3788,7 +3787,7 @@
     }
 
     function manageFirmPermissions(firmId) {
-      alert('Permission management for firm ' + firmId + ' - Feature coming soon');
+      showNotification('Permission management - Feature coming soon', 'info');
     }
 
     function viewFirmAuditLogs(firmId) {
@@ -3804,11 +3803,11 @@
           method: 'PUT',
           body: JSON.stringify({ subscription_status: 'suspended' })
         });
-        alert('Firm suspended successfully');
+        showNotification('Firm suspended successfully', 'success');
         closeDetailPanel();
         loadFirms();
       } catch (error) {
-        alert('Failed to suspend firm: ' + error.message);
+        showNotification('Failed to suspend firm. Please try again.', 'error');
       }
     }
 
@@ -3821,10 +3820,11 @@
     // =============================================================================
 
     /**
-     * Debug logging (console only)
+     * Debug logging - disabled in production
+     * Enable by setting window.DEBUG_ADMIN = true in browser console
      */
     function updateDebug(message) {
-      console.log('[Admin]', message);
+      if (window.DEBUG_ADMIN) console.log('[Admin]', message);
     }
 
     /**
