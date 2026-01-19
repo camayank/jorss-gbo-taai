@@ -4306,6 +4306,12 @@
       // Reset to overview tab
       switchClientTab('overview');
 
+      // Show loading state
+      document.getElementById('detail-client-name').textContent = 'Loading...';
+      document.getElementById('detail-total-savings').textContent = '...';
+      document.getElementById('detail-agi').textContent = '...';
+      document.getElementById('detail-total-tax').textContent = '...';
+
       // Load client data
       loadClientDetailData(clientId);
     }

@@ -3051,6 +3051,12 @@
         return;
       }
 
+      // Show loading state on button
+      const startBtn = document.getElementById('btn-start');
+      const originalText = startBtn.textContent;
+      startBtn.disabled = true;
+      startBtn.textContent = 'Starting...';
+
       try {
         // Create session via API
         const response = await fetch(`${API_BASE}/lead-magnet/start`, {
