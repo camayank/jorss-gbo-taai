@@ -3871,6 +3871,38 @@
             <textarea id="disclaimer-text" rows="3" placeholder="Legal disclaimer for reports..." style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px; resize: vertical;">${escapeHtml(branding.disclaimer_text || '')}</textarea>
           </div>
 
+          <!-- Live Branding Preview -->
+          <div style="margin-bottom: 24px;">
+            <label style="display: block; margin-bottom: 12px; font-weight: 600;">🔍 Live Preview</label>
+            <div id="branding-preview" style="border: 1px solid var(--gray-200); border-radius: 8px; overflow: hidden; background: white;">
+              <!-- Preview Header -->
+              <div id="preview-header" style="padding: 12px 20px; display: flex; align-items: center; gap: 12px; background: ${escapeHtml(branding.primary_color || '#059669')};">
+                <div id="preview-logo" style="width: 40px; height: 40px; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                  ${branding.logo_url
+                    ? `<img src="${escapeHtml(branding.logo_url)}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="Logo">`
+                    : `<span style="color: #999; font-size: 10px;">Logo</span>`
+                  }
+                </div>
+                <span style="color: white; font-weight: 600; font-size: 16px;">${escapeHtml(firm.name || 'Firm Name')}</span>
+              </div>
+              <!-- Preview Content -->
+              <div style="padding: 20px;">
+                <p id="preview-welcome" style="margin: 0 0 16px 0; font-size: 18px; color: var(--gray-900);">${escapeHtml(branding.welcome_message || 'Welcome to our tax portal')}</p>
+                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                  <button id="preview-btn-primary" style="padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; color: white; background: ${escapeHtml(branding.primary_color || '#059669')};">Primary Button</button>
+                  <button id="preview-btn-secondary" style="padding: 8px 16px; border: 2px solid ${escapeHtml(branding.secondary_color || '#1e40af')}; border-radius: 6px; cursor: pointer; font-weight: 500; background: white; color: ${escapeHtml(branding.secondary_color || '#1e40af')};">Secondary Button</button>
+                </div>
+                <p style="margin: 0; font-size: 14px; color: var(--gray-600);">
+                  Sample text with a <a id="preview-link" href="#" style="color: ${escapeHtml(branding.primary_color || '#059669')}; text-decoration: none;">primary link</a> and some content.
+                </p>
+              </div>
+              <!-- Preview Footer -->
+              <div style="padding: 12px 20px; background: var(--gray-50); border-top: 1px solid var(--gray-200);">
+                <p id="preview-signature" style="margin: 0; font-size: 12px; color: var(--gray-500);">${escapeHtml(branding.email_signature || 'Powered by Your Firm Name')}</p>
+              </div>
+            </div>
+          </div>
+
           <!-- Save Button -->
           <div style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 16px; border-top: 1px solid var(--gray-200);">
             <button class="btn btn-primary" onclick="saveFirmBranding('${firmId}')">Save Branding Settings</button>
@@ -3878,23 +3910,64 @@
         </div>
       `;
 
-      // Sync color picker with text input
+      // Function to update the live preview
+      function updateBrandingPreview() {
+        const primaryColor = document.getElementById('primary-color').value;
+        const secondaryColor = document.getElementById('secondary-color').value;
+        const welcomeMessage = document.getElementById('welcome-message').value;
+        const emailSignature = document.getElementById('email-signature').value;
+
+        // Update header
+        const previewHeader = document.getElementById('preview-header');
+        if (previewHeader) previewHeader.style.background = primaryColor;
+
+        // Update buttons
+        const btnPrimary = document.getElementById('preview-btn-primary');
+        if (btnPrimary) btnPrimary.style.background = primaryColor;
+
+        const btnSecondary = document.getElementById('preview-btn-secondary');
+        if (btnSecondary) {
+          btnSecondary.style.borderColor = secondaryColor;
+          btnSecondary.style.color = secondaryColor;
+        }
+
+        // Update link
+        const previewLink = document.getElementById('preview-link');
+        if (previewLink) previewLink.style.color = primaryColor;
+
+        // Update text content
+        const previewWelcome = document.getElementById('preview-welcome');
+        if (previewWelcome) previewWelcome.textContent = welcomeMessage || 'Welcome to our tax portal';
+
+        const previewSignature = document.getElementById('preview-signature');
+        if (previewSignature) previewSignature.textContent = emailSignature || 'Powered by Your Firm Name';
+      }
+
+      // Sync color picker with text input and update preview
       document.getElementById('primary-color').addEventListener('input', (e) => {
         document.getElementById('primary-color-text').value = e.target.value;
+        updateBrandingPreview();
       });
       document.getElementById('primary-color-text').addEventListener('input', (e) => {
         if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
           document.getElementById('primary-color').value = e.target.value;
+          updateBrandingPreview();
         }
       });
       document.getElementById('secondary-color').addEventListener('input', (e) => {
         document.getElementById('secondary-color-text').value = e.target.value;
+        updateBrandingPreview();
       });
       document.getElementById('secondary-color-text').addEventListener('input', (e) => {
         if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
           document.getElementById('secondary-color').value = e.target.value;
+          updateBrandingPreview();
         }
       });
+
+      // Update preview when text fields change
+      document.getElementById('welcome-message').addEventListener('input', updateBrandingPreview);
+      document.getElementById('email-signature').addEventListener('input', updateBrandingPreview);
     }
 
     async function handleLogoUpload(event, firmId) {
@@ -3939,9 +4012,15 @@
 
         const result = await response.json();
 
-        // Update preview
+        // Update upload preview
         previewDiv.innerHTML = `<img src="${escapeHtml(result.logo_url)}?t=${Date.now()}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="Logo">`;
         statusDiv.innerHTML = '<span style="color: var(--success);">✓ Logo uploaded successfully!</span>';
+
+        // Update live branding preview logo
+        const brandingPreviewLogo = document.getElementById('preview-logo');
+        if (brandingPreviewLogo) {
+          brandingPreviewLogo.innerHTML = `<img src="${escapeHtml(result.logo_url)}?t=${Date.now()}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="Logo">`;
+        }
 
         // Update local data
         const firm = firmsData.find(f => f.firm_id === firmId);
