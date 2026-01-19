@@ -82,6 +82,128 @@ def generate_request_id() -> str:
 
 
 # =============================================================================
+# SECURE ERROR HANDLING - Prevents internal error leakage
+# =============================================================================
+
+# User-friendly error messages by category (no internal details exposed)
+SAFE_ERROR_MESSAGES = {
+    "db": "A database error occurred. Please try again later.",
+    "validation": "The provided data is invalid. Please check your input.",
+    "not_found": "The requested resource was not found.",
+    "permission": "You don't have permission to perform this action.",
+    "file": "An error occurred while processing the file.",
+    "ocr": "Document processing failed. Please try again.",
+    "pdf": "PDF generation failed. Please try again.",
+    "json": "Invalid data format. Please check your input.",
+    "config": "A configuration error occurred. Please contact support.",
+    "timeout": "The operation timed out. Please try again.",
+    "rate_limit": "Too many requests. Please wait and try again.",
+    "default": "An unexpected error occurred. Please try again later.",
+}
+
+
+def get_safe_error_message(error: Exception, category: str = "default") -> str:
+    """
+    Get a safe, user-friendly error message without exposing internal details.
+
+    Args:
+        error: The exception that was caught
+        category: Error category for selecting appropriate message
+
+    Returns:
+        A generic user-friendly error message
+    """
+    return SAFE_ERROR_MESSAGES.get(category, SAFE_ERROR_MESSAGES["default"])
+
+
+def log_and_raise_http_error(
+    error: Exception,
+    status_code: int = 500,
+    category: str = "default",
+    context: Optional[str] = None,
+    logger_instance: Optional[logging.Logger] = None
+) -> None:
+    """
+    Securely handle errors: log details internally, raise safe HTTP exception.
+
+    This function:
+    1. Generates a unique request ID for tracing
+    2. Logs the full error details (including stack trace) for debugging
+    3. Raises an HTTPException with a safe, generic message
+
+    Args:
+        error: The exception that was caught
+        status_code: HTTP status code to return (default 500)
+        category: Error category for selecting appropriate user message
+        context: Optional context about what operation failed (for logging only)
+        logger_instance: Optional logger to use (defaults to module logger)
+
+    Raises:
+        HTTPException with safe error message and request ID
+    """
+    from fastapi import HTTPException
+
+    request_id = generate_request_id()
+    log = logger_instance or logger
+
+    # Log full details internally for debugging
+    log.error(
+        f"[{request_id}] Error in {context or 'operation'}: {type(error).__name__}: {str(error)}",
+        exc_info=True,
+        extra={
+            "request_id": request_id,
+            "error_type": type(error).__name__,
+            "error_message": str(error),
+            "category": category,
+            "context": context,
+        }
+    )
+
+    # Return safe message to user with request ID for support reference
+    safe_message = get_safe_error_message(error, category)
+    raise HTTPException(
+        status_code=status_code,
+        detail=f"{safe_message} (Reference: {request_id})"
+    )
+
+
+def create_safe_http_exception(
+    error: Exception,
+    status_code: int = 500,
+    category: str = "default",
+    context: Optional[str] = None,
+    logger_instance: Optional[logging.Logger] = None
+) -> "HTTPException":
+    """
+    Create a safe HTTPException without raising it (for cases where you need the exception object).
+
+    Returns:
+        HTTPException with safe error message and request ID
+    """
+    from fastapi import HTTPException
+
+    request_id = generate_request_id()
+    log = logger_instance or logger
+
+    # Log full details internally
+    log.error(
+        f"[{request_id}] Error in {context or 'operation'}: {type(error).__name__}: {str(error)}",
+        exc_info=True,
+        extra={
+            "request_id": request_id,
+            "error_type": type(error).__name__,
+            "category": category,
+        }
+    )
+
+    safe_message = get_safe_error_message(error, category)
+    return HTTPException(
+        status_code=status_code,
+        detail=f"{safe_message} (Reference: {request_id})"
+    )
+
+
+# =============================================================================
 # DATABASE CONNECTION MANAGEMENT
 # =============================================================================
 

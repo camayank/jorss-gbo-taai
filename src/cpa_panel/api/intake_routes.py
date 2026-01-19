@@ -17,7 +17,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-from .common import get_tenant_id, format_success_response, format_error_response, ErrorCode
+from .common import get_tenant_id, format_success_response, format_error_response, ErrorCode, log_and_raise_http_error
 from ..security import (
     sanitize_filename,
     validate_session_id,
@@ -315,8 +315,7 @@ async def start_intake(request: Request):
         })
 
     except Exception as e:
-        logger.error(f"Start intake error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context="starting intake")
 
 
 @intake_router.post("/clients/{session_id}/info")
@@ -401,8 +400,7 @@ async def save_client_info(session_id: str, request: Request):
         })
 
     except Exception as e:
-        logger.error(f"Save client info error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context="saving client info")
 
 
 @intake_router.post("/clients/{session_id}/documents")
@@ -544,8 +542,7 @@ async def list_documents(session_id: str, request: Request):
         })
 
     except Exception as e:
-        logger.error(f"List documents error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context="listing documents")
 
 
 @intake_router.post("/clients/{session_id}/submit")
@@ -595,8 +592,7 @@ async def submit_for_review(session_id: str, request: Request):
         })
 
     except Exception as e:
-        logger.error(f"Submit for review error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context="submitting for review")
 
 
 @intake_router.get("/clients/{session_id}/intake/status")
@@ -665,8 +661,7 @@ async def get_intake_status(session_id: str, request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Get intake status error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context=f"getting intake status for {session_id}")
 
 
 @intake_router.get("/clients/{session_id}/intake/progress")
@@ -717,8 +712,7 @@ async def get_intake_progress(session_id: str, request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Get intake progress error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context=f"getting intake progress for {session_id}")
 
 
 @intake_router.get("/clients/{session_id}/intake/estimate")
@@ -786,8 +780,7 @@ async def get_intake_estimate(session_id: str, request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Get intake estimate error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context=f"getting intake estimate for {session_id}")
 
 
 @intake_router.post("/clients/{session_id}/intake/answers")
@@ -842,8 +835,7 @@ async def submit_intake_answers(session_id: str, request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Submit intake answers error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context=f"submitting intake answers for {session_id}")
 
 
 # =============================================================================
@@ -904,5 +896,4 @@ async def get_client_full(session_id: str, request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Get client full error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context=f"getting full client data for {session_id}")

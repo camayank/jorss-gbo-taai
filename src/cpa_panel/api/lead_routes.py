@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from typing import Optional, List
 import logging
 
-from .common import get_tenant_id, get_lead_state_engine
+from .common import get_tenant_id, get_lead_state_engine, log_and_raise_http_error
 
 logger = logging.getLogger(__name__)
 
@@ -53,8 +53,7 @@ async def get_lead(lead_id: str, request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting lead {lead_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context=f"getting lead {lead_id}")
 
 
 @lead_router.post("/leads")
@@ -95,8 +94,7 @@ async def create_lead(request: Request):
             "created": len(lead.signals_received) == 0,
         })
     except Exception as e:
-        logger.error(f"Error creating lead: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context="creating lead")
 
 
 # =============================================================================
@@ -154,12 +152,11 @@ async def process_signal(lead_id: str, request: Request):
             "current_state": lead.current_state.name,
         })
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Invalid signal or lead data provided.")
     except TransitionError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Invalid state transition requested.")
     except Exception as e:
-        logger.error(f"Error processing signal: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context="processing signal")
 
 
 @lead_router.post("/leads/{lead_id}/signals/batch")
@@ -209,8 +206,7 @@ async def process_signals_batch(lead_id: str, request: Request):
             "errors": errors,
         })
     except Exception as e:
-        logger.error(f"Error processing batch signals: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context="processing batch signals")
 
 
 # =============================================================================
@@ -236,8 +232,7 @@ async def get_queue_summary(request: Request):
             "tenant_id": tenant_id,
         })
     except Exception as e:
-        logger.error(f"Error getting queue summary: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context="getting queue summary")
 
 
 @lead_router.get("/leads/queue/visible")
@@ -265,8 +260,7 @@ async def get_visible_leads(request: Request, limit: int = 50, offset: int = 0):
             "offset": offset,
         })
     except Exception as e:
-        logger.error(f"Error getting visible leads: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context="getting visible leads")
 
 
 @lead_router.get("/leads/queue/monetizable")
@@ -293,8 +287,7 @@ async def get_monetizable_leads(request: Request, limit: int = 50, offset: int =
             "offset": offset,
         })
     except Exception as e:
-        logger.error(f"Error getting monetizable leads: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context="getting monetizable leads")
 
 
 @lead_router.get("/leads/queue/priority")
@@ -317,8 +310,7 @@ async def get_priority_leads(request: Request):
             "count": len(leads),
         })
     except Exception as e:
-        logger.error(f"Error getting priority leads: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context="getting priority leads")
 
 
 @lead_router.get("/leads/queue/state/{state}")
@@ -357,8 +349,7 @@ async def get_leads_by_state(state: str, request: Request, limit: int = 50, offs
             "offset": offset,
         })
     except Exception as e:
-        logger.error(f"Error getting leads by state: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context="getting leads by state")
 
 
 # =============================================================================
@@ -393,8 +384,7 @@ async def get_signal_catalog(request: Request):
             "count": len(catalog),
         })
     except Exception as e:
-        logger.error(f"Error getting signal catalog: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context="getting signal catalog")
 
 
 # =============================================================================
@@ -430,5 +420,4 @@ async def get_states_info(request: Request):
             "states": states,
         })
     except Exception as e:
-        logger.error(f"Error getting states info: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log_and_raise_http_error(e, category="db", context="getting states info")
