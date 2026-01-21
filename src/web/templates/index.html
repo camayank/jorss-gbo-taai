@@ -4238,6 +4238,111 @@
       font-weight: 600;
     }
 
+    /* ============ CATEGORY SELECTION GRID (Smart Filtering) ============ */
+    .category-selection-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .category-selection-card {
+      position: relative;
+      cursor: pointer;
+      display: block;
+    }
+
+    .category-checkbox-input {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+    }
+
+    .category-card-content {
+      border: 2px solid var(--border-default);
+      border-radius: 12px;
+      padding: 24px;
+      background: white;
+      transition: all 0.2s ease;
+      text-align: center;
+      position: relative;
+    }
+
+    .category-selection-card:hover .category-card-content {
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .category-checkbox-input:checked + .category-card-content {
+      border-color: var(--primary);
+      background: var(--primary-lighter);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+    }
+
+    .category-checkbox-input:checked + .category-card-content::after {
+      content: '✓';
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 28px;
+      height: 28px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .category-icon-large {
+      font-size: 48px;
+      display: block;
+      margin-bottom: 12px;
+    }
+
+    .category-card-content strong {
+      display: block;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .category-card-content p {
+      font-size: 14px;
+      color: var(--text-tertiary);
+      line-height: 1.4;
+      margin: 0;
+    }
+
+    /* Special styling for "None of these" option */
+    .category-selection-card.category-none .category-card-content {
+      border-color: var(--success);
+      border-width: 2px;
+    }
+
+    .category-selection-card.category-none:hover .category-card-content,
+    .category-selection-card.category-none .category-checkbox-input:checked + .category-card-content {
+      border-color: var(--success);
+      background: var(--success-lighter);
+    }
+
+    .category-selection-card.category-none .category-checkbox-input:checked + .category-card-content::after {
+      background: var(--success);
+    }
+
+    /* Hidden category styles */
+    .deduction-category.hidden {
+      display: none;
+    }
+
     @media (max-width: 600px) {
       .question-row {
         flex-direction: column;
@@ -8403,7 +8508,116 @@
             </div>
           </div>
 
-          <!-- STEP 4: Deductions -->
+          <!-- ============================================================ -->
+          <!-- STEP 4a: DEDUCTION CATEGORY SCREENING (Smart Filtering) -->
+          <!-- ============================================================ -->
+          <div id="step4-screening" class="step-view hidden">
+            <div class="step-header">
+              <h2 class="step-title">Let's find your deductions</h2>
+              <p class="step-subtitle">Select the categories that apply to you. We'll only ask about relevant deductions to save you time.</p>
+            </div>
+
+            <div class="category-selection-grid">
+              <!-- Home & Property -->
+              <label class="category-selection-card">
+                <input type="checkbox" class="category-checkbox-input" data-category="home" id="cat-home">
+                <div class="category-card-content">
+                  <span class="category-icon-large">🏠</span>
+                  <strong>Home & Property</strong>
+                  <p>Mortgage interest, property taxes, home office</p>
+                </div>
+              </label>
+
+              <!-- Charitable Giving -->
+              <label class="category-selection-card">
+                <input type="checkbox" class="category-checkbox-input" data-category="charity" id="cat-charity">
+                <div class="category-card-content">
+                  <span class="category-icon-large">❤️</span>
+                  <strong>Charitable Giving</strong>
+                  <p>Cash or goods donated to qualified nonprofits</p>
+                </div>
+              </label>
+
+              <!-- Medical & Health -->
+              <label class="category-selection-card">
+                <input type="checkbox" class="category-checkbox-input" data-category="medical" id="cat-medical">
+                <div class="category-card-content">
+                  <span class="category-icon-large">🏥</span>
+                  <strong>Medical & Health</strong>
+                  <p>Out-of-pocket medical expenses, HSA contributions</p>
+                </div>
+              </label>
+
+              <!-- Education -->
+              <label class="category-selection-card">
+                <input type="checkbox" class="category-checkbox-input" data-category="education" id="cat-education">
+                <div class="category-card-content">
+                  <span class="category-icon-large">🎓</span>
+                  <strong>Education</strong>
+                  <p>Student loan interest, tuition, educator expenses</p>
+                </div>
+              </label>
+
+              <!-- Family & Childcare -->
+              <label class="category-selection-card">
+                <input type="checkbox" class="category-checkbox-input" data-category="family" id="cat-family">
+                <div class="category-card-content">
+                  <span class="category-icon-large">👨‍👩‍👧</span>
+                  <strong>Family & Childcare</strong>
+                  <p>Childcare, dependent care, adoption expenses</p>
+                </div>
+              </label>
+
+              <!-- Retirement Savings -->
+              <label class="category-selection-card">
+                <input type="checkbox" class="category-checkbox-input" data-category="retirement" id="cat-retirement">
+                <div class="category-card-content">
+                  <span class="category-icon-large">💰</span>
+                  <strong>Retirement Savings</strong>
+                  <p>IRA contributions, 401(k) deferrals</p>
+                </div>
+              </label>
+
+              <!-- Business Expenses -->
+              <label class="category-selection-card">
+                <input type="checkbox" class="category-checkbox-input" data-category="business" id="cat-business">
+                <div class="category-card-content">
+                  <span class="category-icon-large">💼</span>
+                  <strong>Business Expenses</strong>
+                  <p>Self-employment, freelance, side business</p>
+                </div>
+              </label>
+
+              <!-- Investment Income -->
+              <label class="category-selection-card">
+                <input type="checkbox" class="category-checkbox-input" data-category="investment" id="cat-investment">
+                <div class="category-card-content">
+                  <span class="category-icon-large">📈</span>
+                  <strong>Investment Income</strong>
+                  <p>Interest, dividends, capital gains</p>
+                </div>
+              </label>
+
+              <!-- None of these -->
+              <label class="category-selection-card category-none">
+                <input type="checkbox" class="category-checkbox-input" data-category="none" id="cat-none">
+                <div class="category-card-content">
+                  <span class="category-icon-large">✓</span>
+                  <strong>None of these apply</strong>
+                  <p>I'll use the standard deduction</p>
+                </div>
+              </label>
+            </div>
+
+            <div class="nav-buttons">
+              <button class="btn btn-secondary" id="btnBackFromCategoryScreen">Back</button>
+              <button class="btn btn-primary" id="btnProceedFromCategoryScreen">Continue</button>
+            </div>
+          </div>
+
+          <!-- ============================================================ -->
+          <!-- STEP 4b: DEDUCTION DETAIL QUESTIONS (Filtered) -->
+          <!-- ============================================================ -->
           <div id="step4" class="step-view hidden">
             <div class="step-header">
               <h2 class="step-title">Maximize your deductions</h2>
@@ -8412,7 +8626,7 @@
 
             <div class="deductions-container" id="deductionQuestions">
               <!-- Home & Property -->
-              <div class="deduction-category">
+              <div class="deduction-category" data-category="home">
                 <div class="category-header">
                   <span class="category-icon">🏠</span>
                   <span class="category-title">Home & Property</span>
@@ -8450,7 +8664,7 @@
               </div>
 
               <!-- Charitable Giving -->
-              <div class="deduction-category">
+              <div class="deduction-category" data-category="charity">
                 <div class="category-header">
                   <span class="category-icon">❤️</span>
                   <span class="category-title">Charitable Giving</span>
@@ -8488,7 +8702,7 @@
               </div>
 
               <!-- Medical & Health -->
-              <div class="deduction-category">
+              <div class="deduction-category" data-category="medical">
                 <div class="category-header">
                   <span class="category-icon">🏥</span>
                   <span class="category-title">Medical & Health</span>
@@ -8541,7 +8755,7 @@
               </div>
 
               <!-- Education -->
-              <div class="deduction-category">
+              <div class="deduction-category" data-category="education">
                 <div class="category-header">
                   <span class="category-icon">🎓</span>
                   <span class="category-title">Education</span>
@@ -8594,7 +8808,7 @@
               </div>
 
               <!-- Family & Childcare -->
-              <div class="deduction-category">
+              <div class="deduction-category" data-category="family">
                 <div class="category-header">
                   <span class="category-icon">👨‍👩‍👧</span>
                   <span class="category-title">Family & Childcare</span>
@@ -8647,7 +8861,7 @@
               </div>
 
               <!-- Retirement -->
-              <div class="deduction-category">
+              <div class="deduction-category" data-category="retirement">
                 <div class="category-header">
                   <span class="category-icon">🏦</span>
                   <span class="category-title">Retirement Savings</span>
@@ -8685,7 +8899,7 @@
               </div>
 
               <!-- Work & Business -->
-              <div class="deduction-category">
+              <div class="deduction-category" data-category="business">
                 <div class="category-header">
                   <span class="category-icon">💼</span>
                   <span class="category-title">Work & Business</span>
@@ -8738,7 +8952,7 @@
               </div>
 
               <!-- State & Local Taxes -->
-              <div class="deduction-category">
+              <div class="deduction-category" data-category="always">
                 <div class="category-header">
                   <span class="category-icon">🏛️</span>
                   <span class="category-title">State & Local Taxes</span>
@@ -8776,7 +8990,7 @@
               </div>
 
               <!-- Other Deductions -->
-              <div class="deduction-category">
+              <div class="deduction-category" data-category="always">
                 <div class="category-header">
                   <span class="category-icon">📝</span>
                   <span class="category-title">Other Deductions</span>
@@ -11784,9 +11998,109 @@
     });
 
     document.getElementById('btnBack3').addEventListener('click', () => goToStep(2));
-    document.getElementById('btnNext3').addEventListener('click', () => goToStep(4));
+    document.getElementById('btnNext3').addEventListener('click', () => {
+      // Go to category screening instead of directly to step 4
+      hideSteps();
+      document.getElementById('step4-screening').classList.remove('hidden');
+      setActiveStep(4);
+    });
 
-    // ============ STEP 4: DEDUCTIONS ============
+    // ============ STEP 4a: SMART CATEGORY FILTERING ============
+
+    // Track selected categories
+    let selectedCategories = [];
+
+    // Setup category selection screen
+    function setupCategorySelection() {
+      const checkboxes = document.querySelectorAll('.category-checkbox-input');
+      const noneCheckbox = document.getElementById('cat-none');
+
+      if (!noneCheckbox) return; // Safety check
+
+      // If "none" is checked, uncheck all others
+      noneCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+          checkboxes.forEach(cb => {
+            if (cb !== noneCheckbox && cb.id !== 'cat-none') {
+              cb.checked = false;
+            }
+          });
+        }
+      });
+
+      // If any other is checked, uncheck "none"
+      checkboxes.forEach(cb => {
+        if (cb.id !== 'cat-none') {
+          cb.addEventListener('change', function() {
+            if (this.checked && noneCheckbox) {
+              noneCheckbox.checked = false;
+            }
+          });
+        }
+      });
+    }
+
+    // Proceed from category selection
+    document.getElementById('btnProceedFromCategoryScreen')?.addEventListener('click', function() {
+      // Get selected categories
+      selectedCategories = Array.from(document.querySelectorAll('.category-checkbox-input:checked'))
+        .map(cb => cb.dataset.category)
+        .filter(cat => cat && cat !== 'none');
+
+      // If "none" selected, skip to credits (step 5)
+      if (document.getElementById('cat-none')?.checked) {
+        hideSteps();
+        document.getElementById('step5').classList.remove('hidden');
+        setActiveStep(5);
+        return;
+      }
+
+      // Show only selected deduction categories
+      filterDeductionCategories();
+
+      // Show step 4 details
+      hideSteps();
+      document.getElementById('step4').classList.remove('hidden');
+      setActiveStep(4);
+    });
+
+    // Back from category screening
+    document.getElementById('btnBackFromCategoryScreen')?.addEventListener('click', function() {
+      hideSteps();
+      document.getElementById('step3').classList.remove('hidden');
+      setActiveStep(3);
+    });
+
+    // Filter deduction categories based on selection
+    function filterDeductionCategories() {
+      const allCategories = document.querySelectorAll('.deduction-category[data-category]');
+
+      allCategories.forEach(cat => {
+        const categoryName = cat.dataset.category;
+
+        // Always show categories marked as "always"
+        if (categoryName === 'always') {
+          cat.classList.remove('hidden');
+          return;
+        }
+
+        // Show selected categories, hide others
+        if (selectedCategories.includes(categoryName)) {
+          cat.classList.remove('hidden');
+        } else {
+          cat.classList.add('hidden');
+        }
+      });
+
+      // Log for debugging
+      const hiddenCount = allCategories.length - selectedCategories.length - 2; // -2 for "always" categories
+      console.log(`Smart filtering: Showing ${selectedCategories.length} categories, hiding ${hiddenCount} irrelevant categories`);
+    }
+
+    // Initialize on load
+    setupCategorySelection();
+
+    // ============ STEP 4b: DEDUCTION DETAIL QUESTIONS ============
     // 2025 Standard Deduction amounts (IRS Rev. Proc. 2024-40)
     const standardDeductions = {
       'single': 15750,
