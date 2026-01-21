@@ -23,7 +23,7 @@ from datetime import datetime
 from enum import Enum
 
 from fastapi import FastAPI, Request, Response, UploadFile, File, Form, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -55,6 +55,7 @@ from security.middleware import (
     SecurityHeadersMiddleware,
     RateLimitMiddleware,
     RequestValidationMiddleware,
+    CSRFMiddleware,
 )
 
 # =============================================================================
@@ -109,6 +110,29 @@ try:
     logger.info("Request validation middleware enabled")
 except Exception as e:
     logger.warning(f"Request validation middleware failed: {e}")
+
+# 4. CSRF Protection (for state-changing operations)
+try:
+    # Get or generate secret key for CSRF tokens
+    csrf_secret = os.environ.get("CSRF_SECRET_KEY")
+    if not csrf_secret:
+        import secrets
+        csrf_secret = secrets.token_hex(32)
+        logger.warning("CSRF_SECRET_KEY not set, using generated key (not persistent across restarts)")
+
+    app.add_middleware(
+        CSRFMiddleware,
+        secret_key=csrf_secret,
+        exempt_paths={
+            "/api/health",
+            "/api/webhook",
+            "/api/chat",  # Uses Bearer auth
+            "/api/sessions/check-active",  # Read-only
+        }
+    )
+    logger.info("CSRF protection middleware enabled")
+except Exception as e:
+    logger.warning(f"CSRF middleware failed: {e}")
 
 
 # =============================================================================
@@ -259,6 +283,22 @@ try:
     logger.info("Smart Tax API enabled at /api/smart-tax")
 except ImportError as e:
     logger.warning(f"Smart Tax API not available: {e}")
+
+# Session Management API (Phase 2.2: Session endpoints for resume, transfer, etc.)
+try:
+    from web.sessions_api import router as sessions_router
+    app.include_router(sessions_router)
+    logger.info("Session Management API enabled at /api/sessions")
+except ImportError as e:
+    logger.warning(f"Session Management API not available: {e}")
+
+# Register Auto-Save API
+try:
+    from web.auto_save_api import router as auto_save_router
+    app.include_router(auto_save_router)
+    logger.info("Auto-Save API enabled at /api/auto-save")
+except ImportError as e:
+    logger.warning(f"Auto-Save API not available: {e}")
 
 
 # =============================================================================
@@ -761,7 +801,63 @@ def _get_or_create_session_agent(session_id: Optional[str]) -> tuple[str, TaxAge
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    """
+    Main entry point - serves comprehensive tax filing interface.
+
+    This is the primary landing page for the platform.
+    For the single unified client experience, both / and /file serve the same interface.
+    """
+    from src.config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "branding": {
+            "platform_name": branding.platform_name,
+            "company_name": branding.company_name,
+            "tagline": branding.tagline,
+            "primary_color": branding.primary_color,
+            "secondary_color": branding.secondary_color,
+            "accent_color": branding.accent_color,
+            "logo_url": branding.logo_url,
+            "support_email": branding.support_email,
+            "support_phone": branding.support_phone,
+        }
+    })
+
+
+@app.get("/file", response_class=HTMLResponse)
+def unified_filing(request: Request):
+    """
+    Unified filing interface - single entry point for all authenticated clients.
+
+    This route serves the same comprehensive tax filing interface as /.
+    Supports multiple workflow modes via query parameters:
+    - ?mode=smart (smart tax flow with intelligent routing)
+    - ?mode=express (document upload first, OCR-driven)
+    - ?mode=chat (AI conversational interface)
+
+    Benefits of having both / and /file:
+    - Fixes broken /smart-tax redirect chain
+    - Explicit URL for tax filing functionality
+    - No breaking changes for existing bookmarks to /
+    - Clear semantic meaning in URL structure
+    """
+    from src.config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "branding": {
+            "platform_name": branding.platform_name,
+            "company_name": branding.company_name,
+            "tagline": branding.tagline,
+            "primary_color": branding.primary_color,
+            "secondary_color": branding.secondary_color,
+            "accent_color": branding.accent_color,
+            "logo_url": branding.logo_url,
+            "support_email": branding.support_email,
+            "support_phone": branding.support_phone,
+        }
+    })
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
@@ -789,16 +885,18 @@ def cpa_dashboard(request: Request):
 @app.get("/client", response_class=HTMLResponse)
 def client_portal(request: Request):
     """
-    Client Portal - Lead Magnet Flow.
+    Client Access - Redirect to unified filing interface.
 
-    Smart Tax Advisory Lead Magnet with:
-    - CPA branding (via ?cpa=slug URL param)
-    - Quick 2-min or Full 5-min assessment
-    - Smart dropdown questions (no free text)
-    - FREE Tier 1 report with teaser insights
-    - Contact capture for lead generation
+    UPDATED: For the single unified client experience, authenticated CPA firm
+    clients access the main filing platform at /file.
+
+    The original client_portal.html (lead magnet flow) is replaced with direct
+    access to the comprehensive tax filing interface for all authenticated clients.
+
+    No free access, no tiered access - all clients get the full authenticated experience.
     """
-    return templates.TemplateResponse("client_portal.html", {"request": request})
+    logger.info("Client accessing platform - redirecting to /file")
+    return RedirectResponse(url="/file", status_code=302)
 
 
 @app.get("/test-auth", response_class=HTMLResponse)
@@ -848,9 +946,21 @@ def system_hub(request: Request):
 
 @app.get("/smart-tax", response_class=HTMLResponse)
 @app.get("/smart-tax/{path:path}", response_class=HTMLResponse)
-def smart_tax_app(request: Request, path: str = ""):
+def smart_tax_redirect(request: Request, path: str = ""):
     """
-    Smart Tax - Document-First Tax Preparation.
+    DEPRECATED: Redirect to unified /file interface.
+
+    Smart Tax functionality now available at /file?mode=smart
+    This maintains backward compatibility for bookmarks/links.
+    """
+    logger.info(f"Redirecting /smart-tax to /file?mode=smart")
+    return RedirectResponse(url="/file?mode=smart", status_code=301)
+
+# LEGACY ROUTE - Keeping for backward compatibility but redirecting
+@app.get("/smart-tax-legacy", response_class=HTMLResponse)
+def smart_tax_app_legacy(request: Request, path: str = ""):
+    """
+    LEGACY: Smart Tax - Document-First Tax Preparation.
 
     5-screen adaptive flow:
     1. UPLOAD - Upload tax documents
@@ -860,6 +970,113 @@ def smart_tax_app(request: Request, path: str = ""):
     5. ACT - File or connect with CPA
     """
     return templates.TemplateResponse("smart_tax.html", {"request": request})
+
+
+@app.get("/results", response_class=HTMLResponse)
+def filing_results(request: Request, session_id: str = None):
+    """
+    Show completed tax return results with subscription tier filtering.
+
+    Displays:
+    - Refund or tax owed amount (all tiers)
+    - Return statistics (all tiers)
+    - Advisory recommendations (filtered by tier)
+    - Upgrade prompts for free users
+    - Integration with scenarios and projections
+
+    NEW: Premium report gating - free users see teaser only
+    """
+    from src.config.branding import get_branding_config
+    from src.database.session_persistence import get_session_persistence
+    from src.subscription.tier_control import ReportAccessControl, SubscriptionTier, get_user_tier
+
+    # Get session_id from query param or cookie
+    if not session_id:
+        session_id = request.query_params.get('session_id')
+    if not session_id:
+        session_id = request.cookies.get('tax_session_id')
+
+    if not session_id:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="No session found. Please complete your tax return first.")
+
+    # Load session and tax return data
+    persistence = get_session_persistence()
+    session_data = persistence.load_session(session_id)
+
+    if not session_data:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Return not found or expired.")
+
+    # Load tax return data
+    return_data = persistence.load_session_tax_return(session_id)
+    if not return_data:
+        return_data = {}
+
+    # Calculate refund or owed
+    total_tax = return_data.get('total_tax', 0)
+    total_withholding = return_data.get('total_withholding', 0)
+    refund = None
+    tax_owed = None
+
+    if total_withholding > total_tax:
+        refund = total_withholding - total_tax
+    else:
+        tax_owed = total_tax - total_withholding
+
+    # Get branding
+    branding = get_branding_config()
+
+    # NEW: Apply subscription tier filtering to advisory report
+    user_id = session_data.get("user_id")  # None for anonymous users
+    user_tier = get_user_tier(user_id)
+
+    # Build full advisory report (mock data if not in return_data)
+    full_report = return_data.get("advisory_report", {
+        "current_federal_tax": total_tax,
+        "refund": refund,
+        "tax_owed": tax_owed,
+        "effective_rate": return_data.get("effective_rate", 0),
+        "top_opportunities": return_data.get("recommendations", []),
+        "detailed_findings": return_data.get("detailed_findings", []),
+        "executive_summary": return_data.get("executive_summary", ""),
+        "scenarios": return_data.get("scenarios", []),
+        "projections": return_data.get("projections", []),
+        "overall_confidence": return_data.get("confidence", 85),
+    })
+
+    # Filter report by subscription tier
+    filtered_report = ReportAccessControl.filter_report(full_report, user_tier)
+
+    # Determine if we should show upgrade banner
+    show_upgrade = (
+        user_tier in [SubscriptionTier.FREE, SubscriptionTier.BASIC] and
+        "upgrade_prompt" in filtered_report
+    )
+
+    return templates.TemplateResponse("results.html", {
+        "request": request,
+        "session_id": session_id,
+        "return_id": return_data.get('return_id', session_id[:12]),
+        "return_data": return_data,
+        "refund": refund,
+        "tax_owed": tax_owed,
+        "report": filtered_report,  # NEW: Filtered advisory report
+        "user_tier": user_tier.value,  # NEW: Current subscription tier
+        "show_upgrade": show_upgrade,  # NEW: Show upgrade banner?
+        "branding": {
+            "platform_name": branding.platform_name,
+            "company_name": branding.company_name,
+            "primary_color": branding.primary_color,
+            "secondary_color": branding.secondary_color,
+            "accent_color": branding.accent_color,
+            "logo_url": branding.logo_url,
+            "favicon_url": branding.favicon_url,
+            "custom_css": branding.custom_css,
+            "custom_js": branding.custom_js,
+            "meta_description": branding.meta_description,
+        }
+    })
 
 
 @app.post("/api/chat")
@@ -1877,6 +2094,20 @@ async def startup_database():
         logger.error(f"Database initialization failed: {e}")
 
 
+@app.on_event("startup")
+async def startup_auto_save():
+    """Start auto-save manager on application startup."""
+    try:
+        from src.web.auto_save import get_auto_save_manager
+        import asyncio
+
+        auto_save = get_auto_save_manager()
+        asyncio.create_task(auto_save.start())
+        logger.info("Auto-save manager started (interval: 30s)")
+    except Exception as e:
+        logger.error(f"Auto-save initialization failed: {e}")
+
+
 @app.on_event("shutdown")
 async def shutdown_database():
     """Close database connections on application shutdown."""
@@ -1887,6 +2118,20 @@ async def shutdown_database():
         logger.info("Database connections closed")
     except Exception as e:
         logger.error(f"Error closing database: {e}")
+
+
+@app.on_event("shutdown")
+async def shutdown_auto_save():
+    """Stop auto-save manager on application shutdown."""
+    try:
+        from src.web.auto_save import get_auto_save_manager
+
+        auto_save = get_auto_save_manager()
+        auto_save.stop()
+        await auto_save.flush(force_all=True)  # Final flush
+        logger.info("Auto-save manager stopped")
+    except Exception as e:
+        logger.error(f"Error stopping auto-save: {e}")
 
 
 @app.get("/api/health/migrations")
