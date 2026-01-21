@@ -177,26 +177,140 @@
     .logo {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       color: white;
       font-weight: 700;
       font-size: 24px;
     }
 
-    .logo-icon {
-      width: 40px;
-      height: 40px;
-      background: rgba(255,255,255,0.2);
+    .logo-image {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
       border-radius: 10px;
+      background: rgba(255,255,255,0.15);
+      padding: 6px;
+    }
+
+    .logo-placeholder {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.15) 100%);
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
+      font-size: 24px;
+      font-weight: 700;
+      color: white;
+      text-transform: uppercase;
+      backdrop-filter: blur(10px);
+    }
+
+    /* Legacy support - hide old $ icon if it appears */
+    .logo-icon {
+      display: none;
+    }
+
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .logo-name {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .logo-credentials {
+      font-size: 10px;
+      color: rgba(255,255,255,0.75);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    .logo-tagline {
+      font-size: 11px;
+      font-weight: 400;
+      opacity: 0.7;
+      line-height: 1;
+      letter-spacing: 0.3px;
+    }
+
+    .header-center {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0 20px;
+    }
+
+    .trust-badges {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .trust-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: rgba(255,255,255,0.9);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.2);
+      white-space: nowrap;
+    }
+
+    .trust-icon {
+      flex-shrink: 0;
+      opacity: 0.95;
     }
 
     .header-actions {
       display: flex;
       gap: 12px;
+      align-items: center;
+    }
+
+    .save-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 8px 12px;
+      border-radius: 8px;
+      color: rgba(255,255,255,0.9);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .save-icon {
+      flex-shrink: 0;
+      opacity: 0.9;
+    }
+
+    .save-icon.saving {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .save-text {
+      white-space: nowrap;
     }
 
     .btn-header {
@@ -209,10 +323,16 @@
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s;
+      white-space: nowrap;
     }
 
     .btn-header:hover {
       background: rgba(255,255,255,0.25);
+      transform: translateY(-1px);
+    }
+
+    .btn-header:active {
+      transform: translateY(0);
     }
 
     /* ============ MAIN CONTENT ============ */
@@ -4144,7 +4264,7 @@
       }
     }
 
-    /* ============ WELCOME MODAL ============ */
+    /* ============ SMART TRIAGE MODAL ============ */
     .welcome-modal {
       position: fixed;
       top: 0;
@@ -4162,10 +4282,35 @@
       background: white;
       border-radius: 24px;
       padding: 48px;
-      max-width: 500px;
+      max-width: 600px;
       width: 90%;
       text-align: center;
       box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .triage-step {
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .triage-progress {
+      height: 4px;
+      background: var(--gray-200);
+      border-radius: 4px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+
+    .triage-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .welcome-header { margin-bottom: 32px; }
@@ -4173,32 +4318,228 @@
     .welcome-header h1 { font-size: 28px; color: var(--text-primary); margin-bottom: 8px; font-weight: 700; }
     .welcome-header p { color: var(--text-secondary); font-size: 16px; }
 
-    .welcome-options { display: flex; flex-direction: column; gap: 12px; }
+    .triage-options { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
 
-    .welcome-option {
+    .triage-option {
       display: flex;
       align-items: center;
       gap: 16px;
       padding: 20px;
-      border: 2px solid var(--border-light);
+      border: 2px solid var(--gray-200);
       border-radius: 16px;
       cursor: pointer;
       transition: all 0.2s;
       text-align: left;
-      background: var(--bg-primary);
+      background: white;
+      width: 100%;
     }
 
-    .welcome-option:hover {
+    .triage-option:hover {
+      border-color: var(--primary);
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+
+    .to-icon { font-size: 32px; flex-shrink: 0; }
+    .to-text { flex: 1; }
+    .to-title { font-weight: 600; color: var(--text-primary); margin-bottom: 4px; font-size: 16px; }
+    .to-desc { font-size: 13px; color: var(--text-tertiary); }
+
+    .triage-back {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 14px;
+      cursor: pointer;
+      padding: 8px;
+      margin-top: 16px;
+      transition: color 0.2s;
+    }
+
+    .triage-back:hover {
+      color: var(--primary);
+    }
+
+    /* Recommendation Card */
+    .recommendation-card {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+      border: 2px solid var(--primary);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 32px;
+      position: relative;
+    }
+
+    .rec-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--accent), #f56565);
+      color: white;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 12px rgba(245, 94, 101, 0.3);
+    }
+
+    .rec-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+      justify-content: center;
+    }
+
+    .rec-icon { font-size: 48px; }
+    .rec-title { font-size: 24px; font-weight: 700; color: var(--text-primary); }
+    .rec-time { font-size: 14px; color: var(--text-secondary); margin-top: 4px; }
+
+    .rec-features {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .rec-feature {
+      background: white;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      color: var(--text-primary);
+      text-align: left;
+      font-weight: 500;
+    }
+
+    /* Other Paths */
+    .other-paths {
+      border-top: 1px solid var(--gray-200);
+      padding-top: 24px;
+    }
+
+    .other-paths-label {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+
+    .other-paths-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .other-path {
+      padding: 16px;
+      border: 1px solid var(--gray-300);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: white;
+    }
+
+    .other-path:hover {
       border-color: var(--primary);
       background: var(--primary-lighter);
     }
 
-    .wo-icon { font-size: 32px; }
-    .wo-title { font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
-    .wo-desc { font-size: 13px; color: var(--text-tertiary); }
+    .op-icon { font-size: 28px; margin-bottom: 8px; }
+    .op-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+    .op-time { font-size: 11px; color: var(--text-tertiary); }
 
-    .welcome-footer { margin-top: 32px; }
+    .triage-footer { margin-top: 24px; }
     .secure-note { font-size: 13px; color: var(--text-tertiary); }
+
+    /* Mobile Responsive Triage */
+    @media (max-width: 768px) {
+      .welcome-content {
+        padding: 32px 24px;
+        max-width: 95%;
+      }
+
+      .welcome-header h1 {
+        font-size: 24px;
+      }
+
+      .welcome-icon {
+        font-size: 48px;
+      }
+
+      .triage-option {
+        padding: 16px;
+      }
+
+      .to-icon {
+        font-size: 28px;
+      }
+
+      .to-title {
+        font-size: 15px;
+      }
+
+      .recommendation-card {
+        padding: 24px 20px;
+      }
+
+      .rec-title {
+        font-size: 20px;
+      }
+
+      .rec-features {
+        font-size: 13px;
+      }
+
+      .other-paths-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .welcome-content {
+        padding: 24px 16px;
+        border-radius: 16px;
+      }
+
+      .welcome-header h1 {
+        font-size: 20px;
+      }
+
+      .welcome-header p {
+        font-size: 14px;
+      }
+
+      .triage-option {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .to-text {
+        text-align: center;
+      }
+
+      .rec-header {
+        flex-direction: column;
+      }
+
+      .rec-title {
+        font-size: 18px;
+      }
+
+      .other-paths-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .btn-lg {
+        width: 100%;
+        padding: 14px;
+        font-size: 15px;
+      }
+    }
 
     /* Import Modal */
     .import-modal {
@@ -5627,9 +5968,41 @@
         font-size: 20px;
       }
 
-      .logo-icon {
-        width: 36px;
-        height: 36px;
+      .logo-image {
+        width: 40px;
+        height: 40px;
+      }
+
+      .logo-placeholder {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+      }
+
+      .logo-credentials {
+        font-size: 9px;
+      }
+
+      .logo-name {
+        font-size: 19px;
+      }
+
+      .logo-tagline {
+        font-size: 10px;
+      }
+
+      .header-center {
+        padding: 0 12px;
+      }
+
+      .trust-badges {
+        gap: 12px;
+      }
+
+      .trust-badge {
+        font-size: 11px;
+        padding: 5px 10px;
+        gap: 5px;
       }
 
       .header-actions {
@@ -5698,6 +6071,7 @@
       .header {
         padding: 10px 4px;
         margin-bottom: 8px;
+        flex-wrap: wrap;
       }
 
       .logo {
@@ -5705,10 +6079,57 @@
         gap: 8px;
       }
 
+      .logo-image {
+        width: 36px;
+        height: 36px;
+      }
+
       .logo-icon {
         width: 32px;
         height: 32px;
         font-size: 16px;
+      }
+
+      .logo-name {
+        font-size: 17px;
+      }
+
+      .logo-tagline {
+        display: none;
+      }
+
+      .header-center {
+        width: 100%;
+        order: 3;
+        padding: 8px 0 0;
+        margin-top: 8px;
+        border-top: 1px solid rgba(255,255,255,0.15);
+      }
+
+      .trust-badges {
+        justify-content: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .trust-badge {
+        font-size: 10px;
+        padding: 4px 8px;
+        gap: 4px;
+      }
+
+      .trust-icon {
+        width: 12px;
+        height: 12px;
+      }
+
+      .header-actions {
+        gap: 6px;
+      }
+
+      .btn-header {
+        padding: 7px 12px;
+        font-size: 12px;
       }
 
       /* Cards */
@@ -6561,6 +6982,271 @@
       border-radius: 0 8px 8px 0;
       margin: 8px 0;
     }
+
+    /* ============ FLOATING CHAT BUTTON & PANEL ============ */
+    .floating-chat-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1000;
+    }
+
+    .floating-chat-btn:hover {
+      transform: scale(1.1) translateY(-2px);
+      box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5);
+    }
+
+    .floating-chat-btn:active {
+      transform: scale(0.95);
+    }
+
+    .chat-icon {
+      position: absolute;
+      transition: opacity 0.2s;
+    }
+
+    .chat-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: var(--accent);
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 12px;
+      border: 2px solid white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .floating-chat-panel {
+      position: fixed;
+      bottom: 96px;
+      right: 24px;
+      width: 380px;
+      height: 520px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 999;
+      overflow: hidden;
+    }
+
+    .floating-chat-panel.hidden {
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+      pointer-events: none;
+    }
+
+    .floating-chat-header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: 16px 16px 0 0;
+    }
+
+    .floating-chat-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .floating-chat-close {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .floating-chat-close:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .floating-chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: var(--gray-50);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .chat-welcome-message {
+      background: white;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid var(--gray-200);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .chat-welcome-message p {
+      margin: 8px 0;
+      color: var(--gray-700);
+      line-height: 1.5;
+    }
+
+    .chat-welcome-message strong {
+      color: var(--gray-900);
+      font-size: 16px;
+    }
+
+    .chat-welcome-message ul {
+      margin: 12px 0;
+      padding-left: 24px;
+    }
+
+    .chat-welcome-message li {
+      margin: 6px 0;
+      color: var(--gray-600);
+    }
+
+    .chat-message {
+      max-width: 80%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .chat-message.user {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-message.agent {
+      background: white;
+      color: var(--gray-800);
+      align-self: flex-start;
+      border: 1px solid var(--gray-200);
+      border-bottom-left-radius: 4px;
+    }
+
+    .floating-chat-input-area {
+      padding: 16px;
+      background: white;
+      border-top: 1px solid var(--gray-200);
+      display: flex;
+      gap: 12px;
+    }
+
+    .floating-chat-input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid var(--gray-300);
+      border-radius: 24px;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .floating-chat-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .floating-chat-send {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .floating-chat-send:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .floating-chat-send:active {
+      transform: scale(0.95);
+    }
+
+    .floating-chat-send:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+      .floating-chat-btn {
+        bottom: 20px;
+        right: 20px;
+        width: 56px;
+        height: 56px;
+      }
+
+      .floating-chat-panel {
+        bottom: 88px;
+        right: 16px;
+        left: 16px;
+        width: auto;
+        height: 480px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .floating-chat-panel {
+        bottom: 0;
+        right: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        border-radius: 0;
+      }
+
+      .floating-chat-btn {
+        bottom: 16px;
+        right: 16px;
+      }
+    }
+
+    /* Pulse animation for chat button */
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+      }
+      50% {
+        transform: scale(1.05);
+        box-shadow: 0 12px 32px rgba(102, 126, 234, 0.6);
+      }
+    }
   </style>
 
   <!-- Alpine.js - lightweight reactive framework -->
@@ -6785,15 +7471,65 @@
   </div>
 
   <div class="app-container">
-    <!-- Header -->
+    <!-- Header - White-Label Professional Design -->
     <header class="header">
+      <!-- Left: Firm Branding -->
       <div class="logo">
-        <div class="logo-icon">$</div>
-        <span>TaxFlow</span>
+        {% if branding and branding.logo_url %}
+        <img src="{{ branding.logo_url }}" alt="{{ branding.company_name }}" class="logo-image" />
+        {% else %}
+        <div class="logo-placeholder">
+          {{ branding.company_name[0] if branding and branding.company_name else 'T' }}
+        </div>
+        {% endif %}
+        <div class="logo-text">
+          <span class="logo-name">{{ branding.company_name if branding else 'TaxFlow' }}</span>
+          {% if branding and branding.firm_credentials %}
+          <span class="logo-credentials">{{ branding.firm_credentials }}</span>
+          {% endif %}
+          {% if branding and branding.tagline %}
+          <span class="logo-tagline">{{ branding.tagline }}</span>
+          {% endif %}
+        </div>
       </div>
+
+      <!-- Center: Trust Badges -->
+      <div class="header-center">
+        <div class="trust-badges">
+          <span class="trust-badge">
+            <svg class="trust-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            {{ branding.security_claim if branding and branding.security_claim else 'Secure & Encrypted' }}
+          </span>
+          <span class="trust-badge">
+            <svg class="trust-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            IRS Certified
+          </span>
+        </div>
+      </div>
+
+      <!-- Right: Save Status & Help -->
       <div class="header-actions">
-        <button class="btn-header" id="btnReset">Start Over</button>
-        <button class="btn-header" id="btnHelp">Help</button>
+        <div class="save-status" id="saveStatus">
+          <svg class="save-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          <span class="save-text">All changes saved</span>
+        </div>
+        <button class="btn-header" id="btnHelp">
+          {% if branding and branding.support_phone %}
+          📞 {{ branding.support_phone }}
+          {% else %}
+          Help
+          {% endif %}
+        </button>
       </div>
     </header>
 
@@ -6836,44 +7572,120 @@
         <div class="step-content">
 
           <!-- ============================================================ -->
-          <!-- STEP 0: WELCOME / PRE-ONBOARDING (Modal Overlay) -->
+          <!-- STEP 0: SMART TRIAGE MODAL -->
           <!-- ============================================================ -->
           <div id="welcomeModal" class="welcome-modal">
             <div class="welcome-content">
-              <div class="welcome-header">
-                <div class="welcome-icon">🎯</div>
-                <h1>Welcome to TaxFlow</h1>
-                <p>Smart tax filing for Tax Year 2025</p>
+              <!-- Triage Step 1: Has Documents? -->
+              <div id="triageStep1" class="triage-step">
+                <div class="welcome-header">
+                  <div class="triage-progress">
+                    <div class="triage-progress-bar" style="width: 33%"></div>
+                  </div>
+                  <div class="welcome-icon">📄</div>
+                  <h1>Let's find the fastest path for you</h1>
+                  <p>Do you have your tax documents ready?</p>
+                </div>
+
+                <div class="triage-options">
+                  <button class="triage-option" data-answer="yes" data-next="triageStep2">
+                    <div class="to-icon">✅</div>
+                    <div class="to-text">
+                      <div class="to-title">Yes, I have my documents</div>
+                      <div class="to-desc">W-2, 1099s, receipts, etc.</div>
+                    </div>
+                  </button>
+
+                  <button class="triage-option" data-answer="no" data-next="triageStep2">
+                    <div class="to-icon">❌</div>
+                    <div class="to-text">
+                      <div class="to-title">No, I don't have them yet</div>
+                      <div class="to-desc">I'll enter information manually</div>
+                    </div>
+                  </button>
+                </div>
+
+                <div class="triage-footer">
+                  <p class="secure-note">🔒 Bank-level encryption • Average time: 8 minutes</p>
+                </div>
               </div>
 
-              <div class="welcome-options">
-                <div class="welcome-option" data-type="new">
-                  <div class="wo-icon">✨</div>
-                  <div class="wo-text">
-                    <div class="wo-title">I'm new here</div>
-                    <div class="wo-desc">Start fresh - we'll guide you step by step</div>
+              <!-- Triage Step 2: Tax Situation Complexity -->
+              <div id="triageStep2" class="triage-step hidden">
+                <div class="welcome-header">
+                  <div class="triage-progress">
+                    <div class="triage-progress-bar" style="width: 67%"></div>
                   </div>
+                  <div class="welcome-icon">🎯</div>
+                  <h1>How would you describe your tax situation?</h1>
+                  <p>This helps us recommend the best approach</p>
                 </div>
 
-                <div class="welcome-option" data-type="returning">
-                  <div class="wo-icon">🔄</div>
-                  <div class="wo-text">
-                    <div class="wo-title">I filed with TaxFlow before</div>
-                    <div class="wo-desc">We'll import your information from last year</div>
-                  </div>
+                <div class="triage-options">
+                  <button class="triage-option" data-complexity="simple" data-next="triageRecommendation">
+                    <div class="to-icon">😊</div>
+                    <div class="to-text">
+                      <div class="to-title">Simple & Straightforward</div>
+                      <div class="to-desc">W-2 income, standard deduction</div>
+                    </div>
+                  </button>
+
+                  <button class="triage-option" data-complexity="moderate" data-next="triageRecommendation">
+                    <div class="to-icon">🤔</div>
+                    <div class="to-text">
+                      <div class="to-title">Somewhat Complex</div>
+                      <div class="to-desc">Multiple income sources, some deductions</div>
+                    </div>
+                  </button>
+
+                  <button class="triage-option" data-complexity="complex" data-next="triageRecommendation">
+                    <div class="to-icon">🧮</div>
+                    <div class="to-text">
+                      <div class="to-title">Complex</div>
+                      <div class="to-desc">Self-employed, investments, rental property</div>
+                    </div>
+                  </button>
                 </div>
 
-                <div class="welcome-option" data-type="import">
-                  <div class="wo-icon">📥</div>
-                  <div class="wo-text">
-                    <div class="wo-title">Import from another service</div>
-                    <div class="wo-desc">TurboTax, H&R Block, or upload prior year PDF</div>
-                  </div>
-                </div>
+                <button class="triage-back" onclick="showTriageStep('triageStep1')">← Back</button>
               </div>
 
-              <div class="welcome-footer">
-                <p class="secure-note">🔒 Your data is encrypted and secure</p>
+              <!-- Triage Recommendation -->
+              <div id="triageRecommendation" class="triage-step hidden">
+                <div class="welcome-header">
+                  <div class="triage-progress">
+                    <div class="triage-progress-bar" style="width: 100%"></div>
+                  </div>
+                  <div class="welcome-icon">⚡</div>
+                  <h1 id="recommendationTitle">We recommend: Express Lane</h1>
+                  <p id="recommendationDesc">Upload documents and we'll handle the rest</p>
+                </div>
+
+                <div class="recommendation-card" id="recommendedPath">
+                  <div class="rec-badge">RECOMMENDED FOR YOU</div>
+                  <div class="rec-header">
+                    <div class="rec-icon">⚡</div>
+                    <div class="rec-info">
+                      <div class="rec-title">Express Lane</div>
+                      <div class="rec-time">⏱️ ~3 minutes</div>
+                    </div>
+                  </div>
+                  <div class="rec-features">
+                    <div class="rec-feature">✓ Upload tax documents</div>
+                    <div class="rec-feature">✓ AI extracts your data</div>
+                    <div class="rec-feature">✓ Review and file</div>
+                  </div>
+                  <button class="btn btn-primary btn-lg" id="startRecommended">Start Filing →</button>
+                </div>
+
+                <div class="other-paths">
+                  <p class="other-paths-label">Or choose a different path:</p>
+                  <div class="other-paths-grid" id="otherPathsGrid">
+                    <!-- Populated dynamically -->
+                  </div>
+                </div>
+
+                <button class="triage-back" onclick="showTriageStep('triageStep2')">← Back</button>
               </div>
             </div>
           </div>
@@ -9888,39 +10700,224 @@
       }
     }
 
-    // ============ WELCOME MODAL ============
+    // ============ SMART TRIAGE MODAL ============
+
+    const triageState = {
+      hasDocuments: null,
+      complexity: null,
+      recommendedPath: null
+    };
+
     function showWelcomeModal() {
       elements.welcomeModal.classList.remove('hidden');
       document.getElementById('step1').classList.add('hidden');
+      showTriageStep('triageStep1');
     }
 
     function hideWelcomeModal() {
       elements.welcomeModal.classList.add('hidden');
     }
 
-    // Welcome option click handlers
-    document.querySelectorAll('.welcome-option').forEach(option => {
-      option.addEventListener('click', () => {
-        const type = option.dataset.type;
+    function showTriageStep(stepId) {
+      // Hide all triage steps
+      document.querySelectorAll('.triage-step').forEach(step => {
+        step.classList.add('hidden');
+      });
 
-        if (type === 'new') {
-          // New user - start wizard
-          state.wizard.isReturningUser = false;
-          hideWelcomeModal();
-          showSubstep('1a');
-        } else if (type === 'returning') {
-          // Returning user - simulate import from TaxFlow
-          state.wizard.isReturningUser = true;
-          hideWelcomeModal();
-          // Show a loading state then skip to personal info
-          simulateReturningUserImport();
-        } else if (type === 'import') {
-          // Import from another service
-          hideWelcomeModal();
-          elements.importModal.classList.remove('hidden');
+      // Show requested step
+      const step = document.getElementById(stepId);
+      if (step) {
+        step.classList.remove('hidden');
+      }
+    }
+
+    // Triage option click handlers
+    document.querySelectorAll('.triage-option').forEach(option => {
+      option.addEventListener('click', () => {
+        const answer = option.dataset.answer;
+        const complexity = option.dataset.complexity;
+        const nextStep = option.dataset.next;
+
+        // Save triage answers
+        if (answer) {
+          triageState.hasDocuments = (answer === 'yes');
+        }
+        if (complexity) {
+          triageState.complexity = complexity;
+        }
+
+        // If going to recommendation, generate it first
+        if (nextStep === 'triageRecommendation') {
+          generateRecommendation();
+        }
+
+        // Navigate to next step
+        if (nextStep) {
+          showTriageStep(nextStep);
         }
       });
     });
+
+    function generateRecommendation() {
+      const { hasDocuments, complexity } = triageState;
+
+      // Smart recommendation algorithm
+      let recommendedPath, otherPaths;
+
+      if (hasDocuments && complexity === 'simple') {
+        recommendedPath = {
+          id: 'express',
+          icon: '⚡',
+          title: 'Express Lane',
+          desc: 'Upload documents and we\'ll handle the rest',
+          time: '~3 minutes',
+          features: [
+            '✓ Upload tax documents (W-2, 1099s)',
+            '✓ AI extracts your data automatically',
+            '✓ Review and file in minutes'
+          ]
+        };
+        otherPaths = ['smart', 'guided', 'chat'];
+      } else if (hasDocuments && complexity === 'moderate') {
+        recommendedPath = {
+          id: 'smart',
+          icon: '🎯',
+          title: 'Smart Tax',
+          desc: 'Adaptive questions with document support',
+          time: '~8 minutes',
+          features: [
+            '✓ Upload documents for automatic extraction',
+            '✓ Answer targeted questions about deductions',
+            '✓ Maximize your refund with smart suggestions'
+          ]
+        };
+        otherPaths = ['express', 'guided', 'chat'];
+      } else if (complexity === 'complex' || !hasDocuments) {
+        recommendedPath = {
+          id: 'chat',
+          icon: '💬',
+          title: 'AI Chat',
+          desc: 'Conversational tax filing with AI guidance',
+          time: '~12 minutes',
+          features: [
+            '✓ Chat with AI tax assistant',
+            '✓ Get personalized guidance for complex situations',
+            '✓ Ask questions anytime during filing'
+          ]
+        };
+        otherPaths = ['smart', 'express', 'guided'];
+      } else {
+        recommendedPath = {
+          id: 'guided',
+          icon: '📋',
+          title: 'Guided Forms',
+          desc: 'Traditional step-by-step form filling',
+          time: '~15 minutes',
+          features: [
+            '✓ Complete IRS forms step-by-step',
+            '✓ Detailed explanations for each field',
+            '✓ Comprehensive deduction checklist'
+          ]
+        };
+        otherPaths = ['smart', 'express', 'chat'];
+      }
+
+      triageState.recommendedPath = recommendedPath.id;
+
+      // Update recommendation UI
+      document.getElementById('recommendationTitle').textContent = `We recommend: ${recommendedPath.title}`;
+      document.getElementById('recommendationDesc').textContent = recommendedPath.desc;
+
+      const recCard = document.getElementById('recommendedPath');
+      recCard.innerHTML = `
+        <div class="rec-badge">RECOMMENDED FOR YOU</div>
+        <div class="rec-header">
+          <div class="rec-icon">${recommendedPath.icon}</div>
+          <div class="rec-info">
+            <div class="rec-title">${recommendedPath.title}</div>
+            <div class="rec-time">⏱️ ${recommendedPath.time}</div>
+          </div>
+        </div>
+        <div class="rec-features">
+          ${recommendedPath.features.map(f => `<div class="rec-feature">${f}</div>`).join('')}
+        </div>
+        <button class="btn btn-primary btn-lg" onclick="startWorkflow('${recommendedPath.id}')">Start Filing →</button>
+      `;
+
+      // Populate other paths
+      const pathsData = {
+        express: { icon: '⚡', title: 'Express Lane', time: '~3 min' },
+        smart: { icon: '🎯', title: 'Smart Tax', time: '~8 min' },
+        chat: { icon: '💬', title: 'AI Chat', time: '~12 min' },
+        guided: { icon: '📋', title: 'Guided Forms', time: '~15 min' }
+      };
+
+      const otherPathsGrid = document.getElementById('otherPathsGrid');
+      otherPathsGrid.innerHTML = otherPaths.map(pathId => {
+        const path = pathsData[pathId];
+        return `
+          <div class="other-path" onclick="startWorkflow('${pathId}')">
+            <div class="op-icon">${path.icon}</div>
+            <div class="op-title">${path.title}</div>
+            <div class="op-time">${path.time}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function startWorkflow(workflowType) {
+      // Create session with workflow type via API
+      try {
+        const response = await fetch('/api/sessions/create-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            workflow_type: workflowType,
+            tax_year: 2025
+          })
+        });
+
+        const data = await response.json();
+
+        // Store session ID
+        state.sessionId = data.session_id;
+        sessionStorage.setItem('tax_session_id', data.session_id);
+        sessionStorage.setItem('workflow_type', workflowType);
+
+        // Track analytics
+        if (window.gtag) {
+          gtag('event', 'workflow_selected', {
+            'workflow_type': workflowType,
+            'has_documents': triageState.hasDocuments,
+            'complexity': triageState.complexity,
+            'was_recommended': (workflowType === triageState.recommendedPath)
+          });
+        }
+
+        // Hide welcome modal
+        hideWelcomeModal();
+
+        // Route to appropriate flow
+        if (workflowType === 'express') {
+          // Start Express Lane (document upload)
+          showStep(2); // Go to document upload step
+        } else if (workflowType === 'chat') {
+          // Start AI Chat
+          showStep(3); // Go to chat step
+        } else {
+          // Start Guided/Smart (traditional wizard)
+          showSubstep('1a');
+        }
+
+      } catch (error) {
+        console.error('Failed to create session:', error);
+        // Fallback: proceed without session API
+        hideWelcomeModal();
+        showSubstep('1a');
+      }
+    }
 
     // Import modal handlers
     document.querySelectorAll('.import-option').forEach(option => {
@@ -15136,6 +16133,111 @@ Generated by TaxFlow - Tax Year 2025
 
       // Initialize Smart Insights
       initSmartInsights();
+
+      // Initialize Floating Chat
+      initFloatingChat();
+    }
+
+    // ============ FLOATING CHAT ============
+    function initFloatingChat() {
+      const chatBtn = document.getElementById('floatingChatBtn');
+      const chatPanel = document.getElementById('floatingChatPanel');
+      const chatClose = document.getElementById('floatingChatClose');
+      const chatInput = document.getElementById('floatingChatInput');
+      const chatSend = document.getElementById('floatingChatSend');
+      const chatMessages = document.getElementById('floatingChatMessages');
+
+      if (!chatBtn || !chatPanel) return;
+
+      let isOpen = false;
+
+      // Toggle chat panel
+      function toggleChat() {
+        isOpen = !isOpen;
+        if (isOpen) {
+          chatPanel.classList.remove('hidden');
+          chatInput.focus();
+          // Track analytics
+          if (window.gtag) {
+            gtag('event', 'floating_chat_opened', {
+              'current_step': currentStep
+            });
+          }
+        } else {
+          chatPanel.classList.add('hidden');
+        }
+      }
+
+      // Send message
+      async function sendMessage() {
+        const message = chatInput.value.trim();
+        if (!message) return;
+
+        // Add user message to chat
+        addFloatingChatMessage(message, 'user');
+        chatInput.value = '';
+
+        // Disable send button while processing
+        chatSend.disabled = true;
+
+        try {
+          // Call the existing chat API
+          const response = await callChat({ message: message });
+
+          // Add agent response
+          addFloatingChatMessage(response, 'agent');
+
+          // Track analytics
+          if (window.gtag) {
+            gtag('event', 'floating_chat_message_sent', {
+              'current_step': currentStep
+            });
+          }
+        } catch (error) {
+          console.error('Chat error:', error);
+          addFloatingChatMessage('Sorry, I encountered an error. Please try again.', 'agent');
+        } finally {
+          chatSend.disabled = false;
+        }
+      }
+
+      // Add message to chat UI
+      function addFloatingChatMessage(text, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message ${sender}`;
+        messageDiv.textContent = text;
+        chatMessages.appendChild(messageDiv);
+
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      // Event listeners
+      chatBtn.addEventListener('click', toggleChat);
+      chatClose.addEventListener('click', toggleChat);
+
+      chatSend.addEventListener('click', sendMessage);
+
+      chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+
+      // Close on outside click (optional)
+      document.addEventListener('click', (e) => {
+        if (isOpen &&
+            !chatPanel.contains(e.target) &&
+            !chatBtn.contains(e.target)) {
+          toggleChat();
+        }
+      });
+
+      // Pulse animation on first load
+      setTimeout(() => {
+        chatBtn.style.animation = 'pulse 2s ease-in-out';
+      }, 2000);
     }
 
     init();
@@ -15694,6 +16796,56 @@ Generated by TaxFlow - Tax Year 2025
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Floating Chat Button -->
+  <button id="floatingChatBtn" class="floating-chat-btn" aria-label="Open chat assistant">
+    <svg class="chat-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </svg>
+    <span class="chat-badge" id="chatBadge">AI</span>
+  </button>
+
+  <!-- Floating Chat Panel -->
+  <div id="floatingChatPanel" class="floating-chat-panel hidden">
+    <div class="floating-chat-header">
+      <div class="floating-chat-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <span>Tax Assistant</span>
+      </div>
+      <button class="floating-chat-close" id="floatingChatClose" aria-label="Close chat">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="floating-chat-messages" id="floatingChatMessages">
+      <div class="chat-welcome-message">
+        <p><strong>Hi! I'm your AI tax assistant.</strong></p>
+        <p>I can help you with:</p>
+        <ul>
+          <li>Understanding tax questions</li>
+          <li>Finding deductions you might have missed</li>
+          <li>Explaining tax terms</li>
+          <li>Navigating the filing process</li>
+        </ul>
+        <p>What can I help you with today?</p>
+      </div>
+    </div>
+    <div class="floating-chat-input-area">
+      <input type="text" class="floating-chat-input" id="floatingChatInput" placeholder="Ask me anything about taxes..." />
+      <button class="floating-chat-send" id="floatingChatSend" aria-label="Send message">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
     </div>
   </div>
 </body>

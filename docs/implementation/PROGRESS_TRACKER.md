@@ -66,9 +66,60 @@ git checkout checkpoint-pre-ux-upgrade -- src/web/app.py
 
 ---
 
-### ⏳ Issue #2: White-Label Branding
-**Status**: Pending
+### ✅ Issue #2: White-Label Branding in Header
+**Status**: ✅ IMPLEMENTED - Ready for User Testing
 **Priority**: CRITICAL
+**Time Spent**: 50 minutes
+**Completed**: 2026-01-21
+
+**Changes Implemented**:
+- [x] Added firm_credentials field to BrandingConfig
+- [x] Updated branding config to_dict() method
+- [x] Updated load_branding_from_env() function
+- [x] Passed branding fields to templates (app.py)
+- [x] Replaced "$" icon with professional logo placeholder
+- [x] Added firm credentials display below company name
+- [x] Removed threatening "Start Over" button
+- [x] Added reassuring auto-save status indicator
+- [x] Made trust badges use branding config (security_claim)
+- [x] Updated CSS for professional appearance
+- [x] Mobile responsive styling added
+
+**Files Modified**:
+- src/config/branding.py
+  - Line 28: Added firm_credentials field
+  - Line 66: Added to to_dict() method
+  - Line 94: Added to load_branding_from_env()
+- src/web/app.py
+  - Lines 812-827: Added firm_credentials, security_claim, review_claim to branding dict (2 routes)
+- src/web/templates/index.html
+  - Lines 7418-7478: Complete header redesign
+  - Lines 195-243: Logo CSS (logo-placeholder, credentials)
+  - Lines 279-336: Save status CSS
+  - Mobile responsive updates
+
+**Solution Implemented**:
+- Logo fallback: Firm initial in styled badge (e.g., "C" for CA4CPA)
+- Professional credentials: "IRS-Approved E-File Provider" displayed
+- Save status: Live indicator replacing "Start Over" button
+- Trust badges: Use branding.security_claim for white-labeling
+- Clean, professional header layout
+
+**Testing Checklist**:
+- [ ] Logo placeholder shows firm initial correctly
+- [ ] Firm credentials display correctly
+- [ ] No "Start Over" button visible
+- [ ] Auto-save status shows (not animated yet, needs JS)
+- [ ] Trust badges use branding config
+- [ ] Mobile responsive
+- [ ] ✅ **User tested and approved** (PENDING)
+
+**Benefits**:
+- ✅ Professional appearance (no more "$")
+- ✅ Trust signals (firm credentials prominent)
+- ✅ White-label ready (uses branding config)
+- ✅ Reassuring UX (save status vs threatening button)
+- ✅ Configurable per firm
 
 ---
 

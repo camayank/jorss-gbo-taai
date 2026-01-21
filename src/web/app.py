@@ -815,12 +815,15 @@ def index(request: Request):
             "platform_name": branding.platform_name,
             "company_name": branding.company_name,
             "tagline": branding.tagline,
+            "firm_credentials": branding.firm_credentials,
             "primary_color": branding.primary_color,
             "secondary_color": branding.secondary_color,
             "accent_color": branding.accent_color,
             "logo_url": branding.logo_url,
             "support_email": branding.support_email,
             "support_phone": branding.support_phone,
+            "security_claim": branding.security_claim,
+            "review_claim": branding.review_claim,
         }
     })
 
@@ -850,12 +853,15 @@ def unified_filing(request: Request):
             "platform_name": branding.platform_name,
             "company_name": branding.company_name,
             "tagline": branding.tagline,
+            "firm_credentials": branding.firm_credentials,
             "primary_color": branding.primary_color,
             "secondary_color": branding.secondary_color,
             "accent_color": branding.accent_color,
             "logo_url": branding.logo_url,
             "support_email": branding.support_email,
             "support_phone": branding.support_phone,
+            "security_claim": branding.security_claim,
+            "review_claim": branding.review_claim,
         }
     })
 
