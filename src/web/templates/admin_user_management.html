@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            color: #2d3748;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: #1a202c;
+        }
+
+        .breadcrumb {
+            color: #718096;
+            font-size: 14px;
+        }
+
+        /* Filters Bar */
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .filter-group input:focus,
+        .filter-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-input {
+            grid-column: 1 / -1;
+        }
+
+        .search-input input {
+            width: 100%;
+            padding: 10px 15px;
+            font-size: 15px;
+        }
+
+        /* Stats Bar */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .stat-card .trend {
+            font-size: 12px;
+            color: #48bb78;
+            margin-top: 5px;
+        }
+
+        .stat-card .trend.down {
+            color: #f56565;
+        }
+
+        /* User Table */
+        .user-table-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .user-table thead {
+            background: #f7fafc;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .user-table th {
+            padding: 12px 15px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: #4a5568;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .user-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .user-table tbody tr {
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+
+        .user-table tbody tr:hover {
+            background: #f7fafc;
+        }
+
+        /* Role Badge */
+        .role-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .role-badge.platform-admin {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .role-badge.partner {
+            background: #c6f6d5;
+            color: #276749;
+        }
+
+        .role-badge.staff {
+            background: #bee3f8;
+            color: #2c5282;
+        }
+
+        .role-badge.firm-client,
+        .role-badge.direct-client {
+            background: #e9d8fd;
+            color: #6b46c1;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-badge.active {
+            background: #c6f6d5;
+            color: #276749;
+        }
+
+        .status-badge.suspended {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .status-badge.inactive {
+            background: #e2e8f0;
+            color: #718096;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .btn-danger {
+            background: #fc8181;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #f56565;
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+
+        /* Pagination */
+        .pagination {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .pagination-info {
+            font-size: 14px;
+            color: #718096;
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 5px;
+        }
+
+        .pagination-controls button {
+            padding: 6px 12px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pagination-controls button:hover:not(:disabled) {
+            background: #f7fafc;
+            border-color: #cbd5e0;
+        }
+
+        .pagination-controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-controls button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 900px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            color: #1a202c;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #a0aec0;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: #f7fafc;
+            color: #4a5568;
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .modal-footer {
+            padding: 20px 25px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* User Detail View */
+        .user-detail-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .detail-section {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .detail-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-field {
+            margin-bottom: 15px;
+        }
+
+        .detail-field label {
+            display: block;
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 5px;
+        }
+
+        .detail-field value {
+            display: block;
+            font-size: 14px;
+            color: #1a202c;
+            font-weight: 500;
+        }
+
+        .permission-list {
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+        .permission-item {
+            padding: 8px;
+            border-bottom: 1px solid #f7fafc;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .permission-item:last-child {
+            border-bottom: none;
+        }
+
+        .permission-item .override-badge {
+            background: #fed7aa;
+            color: #c05621;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        /* Activity Log */
+        .activity-log {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .activity-entry {
+            padding: 12px;
+            border-left: 3px solid #e2e8f0;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 6px;
+        }
+
+        .activity-entry.success {
+            border-left-color: #48bb78;
+        }
+
+        .activity-entry.failed {
+            border-left-color: #f56565;
+        }
+
+        .activity-entry .timestamp {
+            font-size: 11px;
+            color: #a0aec0;
+            margin-bottom: 4px;
+        }
+
+        .activity-entry .action {
+            font-size: 14px;
+            color: #2d3748;
+            font-weight: 500;
+        }
+
+        .activity-entry .details {
+            font-size: 12px;
+            color: #718096;
+            margin-top: 4px;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-group .hint {
+            font-size: 12px;
+            color: #a0aec0;
+            margin-top: 4px;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #a0aec0;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #a0aec0;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .empty-state-text {
+            font-size: 16px;
+            color: #718096;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 5px;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            border: none;
+            background: none;
+            font-size: 14px;
+            font-weight: 500;
+            color: #718096;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: #4a5568;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- SECURITY: Include centralized security utilities -->
+    <script src="/static/js/security-utils.js"></script>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <div class="breadcrumb">Admin / User Management</div>
+                <h1>👥 User Management</h1>
+            </div>
+            <button class="btn btn-primary" onclick="createNewUser()">
+                + Add User
+            </button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="label">Total Users</div>
+                <div class="value" id="statTotalUsers">-</div>
+                <div class="trend">↑ 12% from last month</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Active Users</div>
+                <div class="value" id="statActiveUsers">-</div>
+                <div class="trend">↑ 8% from last month</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Suspended</div>
+                <div class="value" id="statSuspendedUsers">-</div>
+                <div class="trend down">↓ 3% from last month</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Failed Logins (24h)</div>
+                <div class="value" id="statFailedLogins">-</div>
+                <div class="trend">-</div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-group search-input">
+                <label>Search</label>
+                <input type="text" id="searchInput" placeholder="Search by email or name..." oninput="applyFilters()">
+            </div>
+            <div class="filter-group">
+                <label>Role</label>
+                <select id="roleFilter" onchange="applyFilters()">
+                    <option value="">All Roles</option>
+                    <option value="PLATFORM_ADMIN">Platform Admin</option>
+                    <option value="PARTNER">Partner</option>
+                    <option value="STAFF">Staff</option>
+                    <option value="FIRM_CLIENT">Firm Client</option>
+                    <option value="DIRECT_CLIENT">Direct Client</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Status</label>
+                <select id="statusFilter" onchange="applyFilters()">
+                    <option value="">All Statuses</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="suspended">Suspended</option>
+                    <option value="pending_verification">Pending</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Tenant</label>
+                <select id="tenantFilter" onchange="applyFilters()">
+                    <option value="">All Tenants</option>
+                    <!-- Populated dynamically -->
+                </select>
+            </div>
+        </div>
+
+        <!-- User Table -->
+        <div class="user-table-container">
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Tenant</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Last Login</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody">
+                    <tr>
+                        <td colspan="7">
+                            <div class="loading">Loading users</div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Pagination -->
+            <div class="pagination">
+                <div class="pagination-info" id="paginationInfo">
+                    Showing 0 of 0 users
+                </div>
+                <div class="pagination-controls" id="paginationControls">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Detail Modal -->
+    <div class="modal" id="userDetailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalUserName">User Details</h2>
+                <button class="modal-close" onclick="closeModal('userDetailModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('details')">Details</button>
+                    <button class="tab" onclick="switchTab('permissions')">Permissions</button>
+                    <button class="tab" onclick="switchTab('activity')">Activity</button>
+                    <button class="tab" onclick="switchTab('security')">Security</button>
+                </div>
+
+                <!-- Details Tab -->
+                <div class="tab-content active" id="detailsTab">
+                    <div class="user-detail-grid">
+                        <div>
+                            <div class="detail-section">
+                                <h3>Basic Information</h3>
+                                <div class="detail-field">
+                                    <label>Email</label>
+                                    <value id="detailEmail">-</value>
+                                </div>
+                                <div class="detail-field">
+                                    <label>Full Name</label>
+                                    <value id="detailFullName">-</value>
+                                </div>
+                                <div class="detail-field">
+                                    <label>User ID</label>
+                                    <value id="detailUserId">-</value>
+                                </div>
+                                <div class="detail-field">
+                                    <label>Tenant</label>
+                                    <value id="detailTenant">-</value>
+                                </div>
+                            </div>
+
+                            <div class="detail-section" style="margin-top: 20px;">
+                                <h3>Activity Summary</h3>
+                                <div class="detail-field">
+                                    <label>Total Returns</label>
+                                    <value id="detailTotalReturns">-</value>
+                                </div>
+                                <div class="detail-field">
+                                    <label>Recent Activity (7 days)</label>
+                                    <value id="detailRecentActivity">-</value>
+                                </div>
+                                <div class="detail-field">
+                                    <label>Failed Logins (24h)</label>
+                                    <value id="detailFailedLogins">-</value>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="detail-section">
+                                <h3>Role & Status</h3>
+                                <div class="detail-field">
+                                    <label>Current Role</label>
+                                    <value id="detailRole">-</value>
+                                    <button class="btn btn-sm btn-secondary" onclick="changeUserRole()" style="margin-top: 10px;">
+                                        Change Role
+                                    </button>
+                                </div>
+                                <div class="detail-field" style="margin-top: 15px;">
+                                    <label>Account Status</label>
+                                    <value id="detailStatus">-</value>
+                                    <button class="btn btn-sm btn-secondary" onclick="changeUserStatus()" style="margin-top: 10px;">
+                                        Change Status
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="detail-section" style="margin-top: 20px;">
+                                <h3>Timestamps</h3>
+                                <div class="detail-field">
+                                    <label>Created</label>
+                                    <value id="detailCreated">-</value>
+                                </div>
+                                <div class="detail-field">
+                                    <label>Updated</label>
+                                    <value id="detailUpdated">-</value>
+                                </div>
+                                <div class="detail-field">
+                                    <label>Last Login</label>
+                                    <value id="detailLastLogin">-</value>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Permissions Tab -->
+                <div class="tab-content" id="permissionsTab">
+                    <div class="detail-section">
+                        <h3>Effective Permissions (<span id="permissionCount">0</span> total)</h3>
+                        <div class="permission-list" id="permissionList">
+                            <div class="loading">Loading permissions</div>
+                        </div>
+                    </div>
+                    <div class="detail-section" style="margin-top: 20px;">
+                        <h3>Permission Overrides</h3>
+                        <div id="permissionOverrides">
+                            <p style="color: #a0aec0; font-size: 14px;">No permission overrides</p>
+                        </div>
+                        <button class="btn btn-sm btn-secondary" onclick="addPermissionOverride()" style="margin-top: 15px;">
+                            + Add Override
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Activity Tab -->
+                <div class="tab-content" id="activityTab">
+                    <div class="detail-section">
+                        <h3>Recent Activity</h3>
+                        <div class="activity-log" id="activityLog">
+                            <div class="loading">Loading activity</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Tab -->
+                <div class="tab-content" id="securityTab">
+                    <div class="detail-section">
+                        <h3>Security Actions</h3>
+                        <div style="margin-top: 15px;">
+                            <button class="btn btn-danger" onclick="suspendUser()">
+                                🚫 Suspend User
+                            </button>
+                            <button class="btn btn-secondary" onclick="resetPassword()" style="margin-left: 10px;">
+                                🔑 Reset Password
+                            </button>
+                            <button class="btn btn-secondary" onclick="forceLogout()" style="margin-left: 10px;">
+                                🚪 Force Logout
+                            </button>
+                        </div>
+                    </div>
+                    <div class="detail-section" style="margin-top: 20px;">
+                        <h3>Two-Factor Authentication</h3>
+                        <div class="detail-field">
+                            <label>Status</label>
+                            <value id="detail2FAStatus">Disabled</value>
+                        </div>
+                        <button class="btn btn-sm btn-secondary" onclick="toggle2FA()" style="margin-top: 10px;">
+                            Enable 2FA
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('userDetailModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Role Modal -->
+    <div class="modal" id="changeRoleModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Change User Role</h2>
+                <button class="modal-close" onclick="closeModal('changeRoleModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Current Role</label>
+                    <input type="text" id="currentRole" readonly>
+                </div>
+                <div class="form-group">
+                    <label>New Role</label>
+                    <select id="newRole">
+                        <option value="PLATFORM_ADMIN">Platform Admin</option>
+                        <option value="PARTNER">Partner</option>
+                        <option value="STAFF">Staff</option>
+                        <option value="FIRM_CLIENT">Firm Client</option>
+                        <option value="DIRECT_CLIENT">Direct Client</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Reason for Change</label>
+                    <textarea id="roleChangeReason" placeholder="Explain why this role change is needed..."></textarea>
+                    <div class="hint">This will be logged in the audit trail</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('changeRoleModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitRoleChange()">Change Role</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =================================================================
+        // SECURITY: HTML Escaping to Prevent XSS
+        // =================================================================
+        const HTML_ENTITIES = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#x27;',
+            '/': '&#x2F;',
+            '`': '&#x60;',
+            '=': '&#x3D;'
+        };
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str).replace(/[&<>"'`=\/]/g, char => HTML_ENTITIES[char]);
+        }
+
+        // Validate and sanitize ID (alphanumeric, dash, underscore, hyphen only)
+        function sanitizeId(id) {
+            if (!id) return '';
+            return String(id).replace(/[^a-zA-Z0-9_-]/g, '');
+        }
+
+        // Validate role against whitelist
+        function validateRole(role) {
+            const validRoles = ['PLATFORM_ADMIN', 'PARTNER', 'STAFF', 'FIRM_CLIENT', 'DIRECT_CLIENT'];
+            return validRoles.includes(role) ? role : 'UNKNOWN';
+        }
+
+        // Validate status against whitelist
+        function validateStatus(status) {
+            const validStatuses = ['active', 'inactive', 'suspended', 'pending_verification'];
+            return validStatuses.includes(status) ? status : 'unknown';
+        }
+
+        // =================================================================
+        // State
+        // =================================================================
+        let currentPage = 1;
+        let pageSize = 50;
+        let totalUsers = 0;
+        let currentFilters = {
+            search: '',
+            role: '',
+            status: '',
+            tenant_id: ''
+        };
+        let selectedUserId = null;
+
+        // Load users on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUsers();
+            loadStats();
+        });
+
+        // Load users with filters
+        async function loadUsers() {
+            try {
+                const params = new URLSearchParams({
+                    page: currentPage,
+                    page_size: pageSize,
+                    ...currentFilters
+                });
+
+                // SECURITY: Use secureFetch with timeout handling
+                const response = await SecurityUtils.secureFetch(`/api/admin/users?${params}`);
+                const data = await response.json();
+
+                totalUsers = data.total;
+                renderUserTable(data.users);
+                renderPagination(data.page, data.total_pages);
+                updatePaginationInfo(data.users.length, data.total);
+            } catch (error) {
+                console.error('Failed to load users:', error);
+                document.getElementById('userTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">⚠️</div>
+                                <div class="empty-state-text">Failed to load users</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Render user table
+        function renderUserTable(users) {
+            const tbody = document.getElementById('userTableBody');
+
+            if (users.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">👤</div>
+                                <div class="empty-state-text">No users found</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // SECURITY: Use DOM methods and escaped data to prevent XSS
+            tbody.innerHTML = users.map(user => {
+                // Sanitize user_id for use in onclick (prevent injection)
+                const safeUserId = sanitizeId(user.user_id);
+                // Escape user-controlled strings
+                const safeName = escapeHtml(user.full_name);
+                const safeEmail = escapeHtml(user.email);
+                const safeTenantName = escapeHtml(user.tenant_name);
+                // Validate role and status against whitelist
+                const validRole = validateRole(user.role);
+                const validStatus = validateStatus(user.status);
+                const roleClass = validRole.toLowerCase().replace('_', '-');
+                const roleDisplay = validRole.replace('_', ' ');
+
+                return `
+                <tr data-user-id="${safeUserId}">
+                    <td>
+                        <div style="font-weight: 500;">${safeName}</div>
+                        <div style="font-size: 12px; color: #a0aec0;">${safeEmail}</div>
+                    </td>
+                    <td>
+                        <span class="role-badge ${roleClass}">
+                            ${roleDisplay}
+                        </span>
+                    </td>
+                    <td>
+                        ${safeTenantName || '<span style="color: #a0aec0;">No tenant</span>'}
+                    </td>
+                    <td>
+                        <span class="status-badge ${validStatus}">
+                            ${validStatus}
+                        </span>
+                    </td>
+                    <td>${escapeHtml(formatDate(user.created_at))}</td>
+                    <td>${user.last_login ? escapeHtml(formatDate(user.last_login)) : '<span style="color: #a0aec0;">Never</span>'}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-sm btn-secondary" data-action="view" data-user-id="${safeUserId}">
+                                View
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `}).join('');
+
+            // SECURITY: Use event delegation instead of inline onclick
+            tbody.querySelectorAll('tr[data-user-id]').forEach(row => {
+                row.addEventListener('click', (e) => {
+                    // Don't trigger row click if clicking action button
+                    if (e.target.closest('.action-buttons')) return;
+                    viewUserDetails(row.dataset.userId);
+                });
+            });
+            tbody.querySelectorAll('button[data-action="view"]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    viewUserDetails(btn.dataset.userId);
+                });
+            });
+        }
+
+        // Apply filters
+        function applyFilters() {
+            currentFilters = {
+                search: document.getElementById('searchInput').value,
+                role: document.getElementById('roleFilter').value,
+                status: document.getElementById('statusFilter').value,
+                tenant_id: document.getElementById('tenantFilter').value
+            };
+            currentPage = 1;
+            loadUsers();
+        }
+
+        // View user details
+        async function viewUserDetails(userId) {
+            selectedUserId = userId;
+
+            try {
+                const response = await SecurityUtils.secureFetch(`/api/admin/users/${encodeURIComponent(userId)}`);
+                const user = await response.json();
+
+                // Populate basic details
+                document.getElementById('modalUserName').textContent = user.full_name;
+                document.getElementById('detailEmail').textContent = user.email;
+                document.getElementById('detailFullName').textContent = user.full_name;
+                document.getElementById('detailUserId').textContent = user.user_id;
+                document.getElementById('detailTenant').textContent = user.tenant_name || 'No tenant';
+                document.getElementById('detailRole').innerHTML = `<span class="role-badge ${user.role.toLowerCase().replace('_', '-')}">${user.role.replace('_', ' ')}</span>`;
+                document.getElementById('detailStatus').innerHTML = `<span class="status-badge ${user.status}">${user.status}</span>`;
+                document.getElementById('detailTotalReturns').textContent = user.total_returns;
+                document.getElementById('detailRecentActivity').textContent = user.recent_activity_count;
+                document.getElementById('detailFailedLogins').textContent = user.failed_login_attempts;
+                document.getElementById('detailCreated').textContent = formatDate(user.created_at);
+                document.getElementById('detailUpdated').textContent = formatDate(user.updated_at);
+                document.getElementById('detailLastLogin').textContent = user.last_login ? formatDate(user.last_login) : 'Never';
+
+                // Load permissions
+                loadUserPermissions(userId);
+
+                // Load activity
+                loadUserActivity(userId);
+
+                // Show modal
+                openModal('userDetailModal');
+            } catch (error) {
+                console.error('Failed to load user details:', error);
+                alert('Failed to load user details');
+            }
+        }
+
+        // Load user permissions
+        async function loadUserPermissions(userId) {
+            try {
+                const response = await SecurityUtils.secureFetch(`/api/admin/users/${encodeURIComponent(userId)}/permissions/effective`);
+                const data = await response.json();
+
+                document.getElementById('permissionCount').textContent = data.effective_permissions.length;
+
+                const permissionList = document.getElementById('permissionList');
+                // SECURITY: Escape permission codes to prevent XSS
+                permissionList.innerHTML = data.effective_permissions.map(code => {
+                    const safeCode = escapeHtml(code);
+                    const isOverride = data.overrides && (code in data.overrides);
+                    return `
+                        <div class="permission-item">
+                            <span>${safeCode}</span>
+                            ${isOverride ? '<span class="override-badge">OVERRIDE</span>' : ''}
+                        </div>
+                    `;
+                }).join('');
+
+                // Show overrides
+                if (data.overrides && Object.keys(data.overrides).length > 0) {
+                    // SECURITY: Escape permission codes and validate granted status
+                    const overridesHtml = Object.entries(data.overrides).map(([code, granted]) => {
+                        const safeCode = escapeHtml(code);
+                        const isGranted = granted === true;
+                        return `
+                        <div class="permission-item">
+                            <span>${safeCode}</span>
+                            <span class="status-badge ${isGranted ? 'active' : 'suspended'}">
+                                ${isGranted ? 'GRANTED' : 'REVOKED'}
+                            </span>
+                        </div>
+                    `}).join('');
+                    document.getElementById('permissionOverrides').innerHTML = overridesHtml;
+                }
+            } catch (error) {
+                console.error('Failed to load permissions:', error);
+            }
+        }
+
+        // Load user activity
+        async function loadUserActivity(userId) {
+            try {
+                const response = await SecurityUtils.secureFetch(`/api/admin/users/${encodeURIComponent(userId)}/activity?days=30&limit=50`);
+                const data = await response.json();
+
+                const activityLog = document.getElementById('activityLog');
+
+                if (data.entries.length === 0) {
+                    activityLog.innerHTML = '<p style="color: #a0aec0;">No recent activity</p>';
+                    return;
+                }
+
+                // SECURITY: Escape all user-controlled data to prevent XSS
+                activityLog.innerHTML = data.entries.map(entry => {
+                    const safeAction = escapeHtml(entry.action);
+                    const safeResourceType = escapeHtml(entry.resource_type);
+                    const safeTimestamp = escapeHtml(formatDate(entry.timestamp));
+                    // Escape JSON stringified details - critical for preventing XSS
+                    const safeDetails = entry.details ? escapeHtml(JSON.stringify(entry.details)) : '';
+                    // Validate success as boolean
+                    const isSuccess = entry.success === true;
+
+                    return `
+                    <div class="activity-entry ${isSuccess ? 'success' : 'failed'}">
+                        <div class="timestamp">${safeTimestamp}</div>
+                        <div class="action">${safeAction} - ${safeResourceType}</div>
+                        ${safeDetails ? `<div class="details">${safeDetails}</div>` : ''}
+                    </div>
+                `}).join('');
+            } catch (error) {
+                console.error('Failed to load activity:', error);
+            }
+        }
+
+        // Change user role
+        function changeUserRole() {
+            const currentRole = document.getElementById('detailRole').textContent.trim().toUpperCase().replace(' ', '_');
+            document.getElementById('currentRole').value = currentRole;
+            closeModal('userDetailModal');
+            openModal('changeRoleModal');
+        }
+
+        async function submitRoleChange() {
+            const newRole = document.getElementById('newRole').value;
+            const reason = document.getElementById('roleChangeReason').value;
+
+            if (!reason.trim()) {
+                alert('Please provide a reason for this change');
+                return;
+            }
+
+            try {
+                // SECURITY: Use secureFetch with CSRF token for state-changing operation
+                const response = await SecurityUtils.secureFetch(`/api/admin/users/${encodeURIComponent(selectedUserId)}/role`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ new_role: newRole, reason })
+                });
+
+                if (response.ok) {
+                    alert('Role changed successfully');
+                    closeModal('changeRoleModal');
+                    viewUserDetails(selectedUserId);
+                    loadUsers();
+                } else {
+                    const error = await response.json();
+                    alert('Failed to change role: ' + error.detail);
+                }
+            } catch (error) {
+                console.error('Failed to change role:', error);
+                alert('Failed to change role');
+            }
+        }
+
+        // Load stats
+        async function loadStats() {
+            try {
+                const response = await SecurityUtils.secureFetch('/api/admin/users?page=1&page_size=1');
+                const data = await response.json();
+                document.getElementById('statTotalUsers').textContent = data.total;
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        // Pagination
+        function renderPagination(currentPage, totalPages) {
+            const controls = document.getElementById('paginationControls');
+            let html = '';
+
+            html += `<button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>`;
+
+            for (let i = 1; i <= Math.min(totalPages, 5); i++) {
+                html += `<button class="${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+            }
+
+            if (totalPages > 5) {
+                html += `<button disabled>...</button>`;
+                html += `<button onclick="changePage(${totalPages})">${totalPages}</button>`;
+            }
+
+            html += `<button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>`;
+
+            controls.innerHTML = html;
+        }
+
+        function changePage(page) {
+            if (page < 1) return;
+            currentPage = page;
+            loadUsers();
+        }
+
+        function updatePaginationInfo(showing, total) {
+            document.getElementById('paginationInfo').textContent =
+                `Showing ${showing} of ${total} users`;
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        // Modal helpers
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Utility functions
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Placeholder functions
+        function createNewUser() {
+            alert('Create user functionality - to be implemented');
+        }
+
+        function changeUserStatus() {
+            alert('Change status functionality - to be implemented');
+        }
+
+        function addPermissionOverride() {
+            alert('Add permission override - to be implemented');
+        }
+
+        function suspendUser() {
+            if (confirm('Are you sure you want to suspend this user?')) {
+                alert('Suspend user functionality - to be implemented');
+            }
+        }
+
+        function resetPassword() {
+            alert('Reset password functionality - to be implemented');
+        }
+
+        function forceLogout() {
+            alert('Force logout functionality - to be implemented');
+        }
+
+        function toggle2FA() {
+            alert('2FA toggle functionality - to be implemented');
+        }
+    </script>
+</body>
+</html>

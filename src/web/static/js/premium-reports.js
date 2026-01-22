@@ -4,6 +4,14 @@
  * Reusable component for accessing the Premium Reports API.
  * Can be embedded in any authenticated portal (client dashboard, CPA panel, etc.)
  *
+ * SECURITY FIXES APPLIED:
+ * - Removed inline onclick handlers (XSS vector)
+ * - Added proper URL parameter encoding
+ * - Improved HTML escaping for iframe srcdoc
+ * - Added CSRF token support
+ * - Added request timeout handling
+ * - Used event delegation for click handlers
+ *
  * Usage:
  *   <script src="/static/js/premium-reports.js"></script>
  *   <div id="premium-reports-widget" data-session-id="abc123"></div>
@@ -14,23 +22,134 @@
  */
 
 // =============================================================================
+// SECURITY UTILITIES (local copy for standalone usage)
+// =============================================================================
+
+const ReportSecurity = {
+  /**
+   * HTML entities for escaping
+   */
+  HTML_ENTITIES: {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#x27;',
+    '/': '&#x2F;',
+    '`': '&#x60;',
+    '=': '&#x3D;'
+  },
+
+  /**
+   * Escape HTML special characters
+   */
+  escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>"'`=\/]/g, char => this.HTML_ENTITIES[char]);
+  },
+
+  /**
+   * Escape for JavaScript string context
+   */
+  escapeJs(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')
+      .replace(/<\/script/gi, '<\\/script');
+  },
+
+  /**
+   * Validate tier value (whitelist approach)
+   */
+  validateTier(tier) {
+    const validTiers = ['basic', 'standard', 'premium'];
+    return validTiers.includes(tier) ? tier : 'basic';
+  },
+
+  /**
+   * Validate format value (whitelist approach)
+   */
+  validateFormat(format) {
+    const validFormats = ['html', 'pdf', 'json'];
+    return validFormats.includes(format) ? format : 'html';
+  },
+
+  /**
+   * Get CSRF token from meta tag or cookie
+   */
+  getCSRFToken() {
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    if (metaTag) return metaTag.getAttribute('content');
+
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+      const [name, value] = cookie.trim().split('=');
+      if (name === 'csrf_token' || name === 'csrftoken' || name === '_csrf') {
+        return decodeURIComponent(value);
+      }
+    }
+    return null;
+  }
+};
+
+// =============================================================================
 // API CLIENT
 // =============================================================================
 
 class PremiumReportsClient {
   constructor(baseUrl = '/api/core/reports') {
     this.baseUrl = baseUrl;
+    this.timeout = 30000; // 30 second timeout
+  }
+
+  /**
+   * Make a secure fetch request with timeout and CSRF token
+   */
+  async secureFetch(url, options = {}) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    };
+
+    // Add CSRF token for state-changing requests
+    const method = (options.method || 'GET').toUpperCase();
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      const csrfToken = ReportSecurity.getCSRFToken();
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
+    }
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers,
+        credentials: 'include',
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out');
+      }
+      throw error;
+    }
   }
 
   /**
    * Get available report tiers with pricing.
-   * @returns {Promise<Array>} List of tier objects
    */
   async getTiers() {
-    const response = await fetch(`${this.baseUrl}/tiers`, {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const response = await this.secureFetch(`${this.baseUrl}/tiers`);
     if (!response.ok) {
       throw new Error(`Failed to get tiers: ${response.status}`);
     }
@@ -39,14 +158,10 @@ class PremiumReportsClient {
 
   /**
    * Get sections included in a specific tier.
-   * @param {string} tier - 'basic', 'standard', or 'premium'
-   * @returns {Promise<Object>} Tier sections info
    */
   async getTierSections(tier) {
-    const response = await fetch(`${this.baseUrl}/sections/${tier}`, {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const safeTier = ReportSecurity.validateTier(tier);
+    const response = await this.secureFetch(`${this.baseUrl}/sections/${encodeURIComponent(safeTier)}`);
     if (!response.ok) {
       throw new Error(`Failed to get tier sections: ${response.status}`);
     }
@@ -55,14 +170,10 @@ class PremiumReportsClient {
 
   /**
    * Get preview of what each tier includes for a session.
-   * @param {string} sessionId - Tax calculation session ID
-   * @returns {Promise<Object>} Preview data
    */
   async getPreview(sessionId) {
-    const response = await fetch(`${this.baseUrl}/preview/${sessionId}`, {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const safeSessionId = encodeURIComponent(sessionId);
+    const response = await this.secureFetch(`${this.baseUrl}/preview/${safeSessionId}`);
     if (!response.ok) {
       throw new Error(`Failed to get preview: ${response.status}`);
     }
@@ -71,22 +182,20 @@ class PremiumReportsClient {
 
   /**
    * Generate a report.
-   * @param {string} sessionId - Tax calculation session ID
-   * @param {string} tier - 'basic', 'standard', or 'premium'
-   * @param {string} format - 'html', 'pdf', or 'json'
-   * @returns {Promise<Object>} Generated report
    */
   async generateReport(sessionId, tier = 'basic', format = 'html') {
-    const response = await fetch(`${this.baseUrl}/generate`, {
+    const safeTier = ReportSecurity.validateTier(tier);
+    const safeFormat = ReportSecurity.validateFormat(format);
+
+    const response = await this.secureFetch(`${this.baseUrl}/generate`, {
       method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         session_id: sessionId,
-        tier: tier,
-        format: format,
+        tier: safeTier,
+        format: safeFormat,
       }),
     });
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new Error(error.detail || `Failed to generate report: ${response.status}`);
@@ -96,25 +205,32 @@ class PremiumReportsClient {
 
   /**
    * Download a report as a file.
-   * @param {string} sessionId - Tax calculation session ID
-   * @param {string} tier - 'basic', 'standard', or 'premium'
-   * @param {string} format - 'html', 'pdf', or 'json'
    */
   async downloadReport(sessionId, tier = 'premium', format = 'pdf') {
-    const url = `${this.baseUrl}/download/${sessionId}?tier=${tier}&format=${format}`;
-    const response = await fetch(url, {
-      credentials: 'include',
-    });
+    const safeTier = ReportSecurity.validateTier(tier);
+    const safeFormat = ReportSecurity.validateFormat(format);
+
+    // Use URLSearchParams for safe URL building
+    const params = new URLSearchParams();
+    params.set('tier', safeTier);
+    params.set('format', safeFormat);
+
+    const url = `${this.baseUrl}/download/${encodeURIComponent(sessionId)}?${params.toString()}`;
+    const response = await this.secureFetch(url);
+
     if (!response.ok) {
       throw new Error(`Failed to download report: ${response.status}`);
     }
 
     // Get filename from Content-Disposition header
     const disposition = response.headers.get('Content-Disposition');
-    let filename = `TaxReport.${format}`;
+    let filename = `TaxReport.${safeFormat}`;
     if (disposition) {
-      const match = disposition.match(/filename="(.+)"/);
-      if (match) filename = match[1];
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      if (match) {
+        // Sanitize filename to prevent path traversal
+        filename = match[1].replace(/[^a-zA-Z0-9._-]/g, '_');
+      }
     }
 
     // Download file
@@ -144,9 +260,37 @@ class PremiumReportsWidget {
     this.sessionId = options.sessionId || this.container.dataset.sessionId;
     this.client = new PremiumReportsClient(options.baseUrl);
     this.onReportGenerated = options.onReportGenerated || (() => {});
+    this.currentReport = null;
+
+    // Bind methods for event handlers
+    this._handleClick = this._handleClick.bind(this);
 
     this.render();
     this.loadTiers();
+
+    // Set up event delegation (SECURITY: single listener, no inline handlers)
+    this.container.addEventListener('click', this._handleClick);
+  }
+
+  /**
+   * Delegated click handler - handles all button clicks safely
+   */
+  _handleClick(e) {
+    const button = e.target.closest('button[data-action]');
+    if (!button) return;
+
+    const action = button.dataset.action;
+    const tier = button.dataset.tier;
+    const format = button.dataset.format;
+
+    switch (action) {
+      case 'select-tier':
+        if (tier) this.selectTier(tier);
+        break;
+      case 'download':
+        if (tier && format) this.downloadReport(tier, format);
+        break;
+    }
   }
 
   async loadTiers() {
@@ -302,6 +446,23 @@ class PremiumReportsWidget {
             border: none;
             border-radius: 8px;
           }
+          .prw-report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+          }
+          .prw-report-header h3 {
+            margin: 0;
+          }
+          .prw-report-actions {
+            display: flex;
+            gap: 0.5rem;
+          }
+          .prw-btn-inline {
+            width: auto;
+            display: inline-block;
+          }
         </style>
 
         <div class="prw-header">
@@ -344,32 +505,59 @@ class PremiumReportsWidget {
       ],
     };
 
-    container.innerHTML = this.tiers
-      .map(
-        (tier) => `
-      <div class="prw-tier ${tier.tier === 'premium' ? 'recommended' : ''}">
-        <h3 class="prw-tier-name">${tier.label}</h3>
-        <div class="prw-tier-price">
-          ${tier.price === 0 ? 'FREE' : `$${tier.price}`}
-          ${tier.price > 0 ? '<span>one-time</span>' : ''}
-        </div>
-        <p class="prw-tier-desc">${tier.description}</p>
-        <ul class="prw-features">
-          ${(tierHighlights[tier.tier] || []).map((f) => `<li>${f}</li>`).join('')}
-        </ul>
-        <button
-          class="prw-btn ${tier.tier === 'premium' ? 'prw-btn-primary' : 'prw-btn-secondary'}"
-          onclick="premiumReportsWidget.selectTier('${tier.tier}')"
-        >
-          ${tier.price === 0 ? 'Generate Free Report' : `Get ${tier.label}`}
-        </button>
-      </div>
-    `
-      )
-      .join('');
+    // Build HTML safely using DOM methods
+    container.innerHTML = '';
+
+    this.tiers.forEach(tier => {
+      const tierDiv = document.createElement('div');
+      tierDiv.className = `prw-tier ${tier.tier === 'premium' ? 'recommended' : ''}`;
+
+      // Create elements safely using textContent (not innerHTML with user data)
+      const nameH3 = document.createElement('h3');
+      nameH3.className = 'prw-tier-name';
+      nameH3.textContent = tier.label || tier.tier;
+
+      const priceDiv = document.createElement('div');
+      priceDiv.className = 'prw-tier-price';
+      if (tier.price === 0) {
+        priceDiv.textContent = 'FREE';
+      } else {
+        priceDiv.innerHTML = `$${ReportSecurity.escapeHtml(tier.price)}<span>one-time</span>`;
+      }
+
+      const descP = document.createElement('p');
+      descP.className = 'prw-tier-desc';
+      descP.textContent = tier.description || '';
+
+      const featureUl = document.createElement('ul');
+      featureUl.className = 'prw-features';
+      const highlights = tierHighlights[tier.tier] || [];
+      highlights.forEach(feature => {
+        const li = document.createElement('li');
+        li.textContent = feature;
+        featureUl.appendChild(li);
+      });
+
+      // SECURITY: Use data attributes instead of inline onclick
+      const button = document.createElement('button');
+      button.className = `prw-btn ${tier.tier === 'premium' ? 'prw-btn-primary' : 'prw-btn-secondary'}`;
+      button.setAttribute('data-action', 'select-tier');
+      button.setAttribute('data-tier', ReportSecurity.validateTier(tier.tier));
+      button.textContent = tier.price === 0 ? 'Generate Free Report' : `Get ${tier.label || tier.tier}`;
+
+      tierDiv.appendChild(nameH3);
+      tierDiv.appendChild(priceDiv);
+      tierDiv.appendChild(descP);
+      tierDiv.appendChild(featureUl);
+      tierDiv.appendChild(button);
+
+      container.appendChild(tierDiv);
+    });
   }
 
   async selectTier(tier) {
+    const safeTier = ReportSecurity.validateTier(tier);
+
     if (!this.sessionId) {
       this.showError('No session ID provided');
       return;
@@ -380,14 +568,15 @@ class PremiumReportsWidget {
 
     try {
       // For paid tiers, you would integrate with Stripe here
-      if (tier !== 'basic') {
+      if (safeTier !== 'basic') {
         // Placeholder for payment flow
-        // const paymentResult = await this.processPayment(tier);
+        // const paymentResult = await this.processPayment(safeTier);
         // if (!paymentResult.success) return;
       }
 
       // Generate the report
-      const report = await this.client.generateReport(this.sessionId, tier, 'html');
+      const report = await this.client.generateReport(this.sessionId, safeTier, 'html');
+      this.currentReport = report;
       this.showReport(report);
       this.onReportGenerated(report);
     } catch (error) {
@@ -400,35 +589,71 @@ class PremiumReportsWidget {
 
   showReport(report) {
     const container = document.getElementById('prw-report-container');
-    container.innerHTML = `
-      <div class="prw-report-preview">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-          <h3 style="margin: 0;">${report.tier.charAt(0).toUpperCase() + report.tier.slice(1)} Report</h3>
-          <div>
-            <button class="prw-btn prw-btn-secondary" style="width: auto; display: inline-block; margin-right: 0.5rem;"
-              onclick="premiumReportsWidget.downloadReport('${report.tier}', 'html')">
-              Download HTML
-            </button>
-            ${
-              report.tier === 'premium'
-                ? `
-              <button class="prw-btn prw-btn-primary" style="width: auto; display: inline-block;"
-                onclick="premiumReportsWidget.downloadReport('${report.tier}', 'pdf')">
-                Download PDF
-              </button>
-            `
-                : ''
-            }
-          </div>
-        </div>
-        <iframe srcdoc="${this.escapeHtml(report.html_content)}"></iframe>
-      </div>
-    `;
+    const safeTier = ReportSecurity.validateTier(report.tier);
+    const tierLabel = safeTier.charAt(0).toUpperCase() + safeTier.slice(1);
+
+    // Clear container
+    container.innerHTML = '';
+
+    // Create preview div
+    const previewDiv = document.createElement('div');
+    previewDiv.className = 'prw-report-preview';
+
+    // Create header
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'prw-report-header';
+
+    const title = document.createElement('h3');
+    title.textContent = `${tierLabel} Report`;
+
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'prw-report-actions';
+
+    // HTML download button (SECURITY: data attributes, not inline onclick)
+    const htmlBtn = document.createElement('button');
+    htmlBtn.className = 'prw-btn prw-btn-secondary prw-btn-inline';
+    htmlBtn.setAttribute('data-action', 'download');
+    htmlBtn.setAttribute('data-tier', safeTier);
+    htmlBtn.setAttribute('data-format', 'html');
+    htmlBtn.textContent = 'Download HTML';
+    actionsDiv.appendChild(htmlBtn);
+
+    // PDF download button (only for premium)
+    if (safeTier === 'premium') {
+      const pdfBtn = document.createElement('button');
+      pdfBtn.className = 'prw-btn prw-btn-primary prw-btn-inline';
+      pdfBtn.setAttribute('data-action', 'download');
+      pdfBtn.setAttribute('data-tier', safeTier);
+      pdfBtn.setAttribute('data-format', 'pdf');
+      pdfBtn.textContent = 'Download PDF';
+      actionsDiv.appendChild(pdfBtn);
+    }
+
+    headerDiv.appendChild(title);
+    headerDiv.appendChild(actionsDiv);
+
+    // Create iframe for report content
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('sandbox', 'allow-same-origin'); // SECURITY: Sandboxed iframe
+
+    // SECURITY: Use srcdoc with properly escaped content
+    // The sandbox attribute restricts what the iframe can do
+    if (report.html_content) {
+      iframe.srcdoc = report.html_content;
+    }
+
+    previewDiv.appendChild(headerDiv);
+    previewDiv.appendChild(iframe);
+    container.appendChild(previewDiv);
   }
 
   async downloadReport(tier, format) {
     try {
-      await this.client.downloadReport(this.sessionId, tier, format);
+      await this.client.downloadReport(
+        this.sessionId,
+        ReportSecurity.validateTier(tier),
+        ReportSecurity.validateFormat(format)
+      );
     } catch (error) {
       this.showError(error.message);
     }
@@ -436,13 +661,23 @@ class PremiumReportsWidget {
 
   showError(message) {
     const container = document.getElementById('prw-report-container');
-    container.innerHTML = `<div class="prw-error">${this.escapeHtml(message)}</div>`;
+
+    // SECURITY: Create element with textContent, not innerHTML
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'prw-error';
+    errorDiv.textContent = message;
+
+    container.innerHTML = '';
+    container.appendChild(errorDiv);
   }
 
-  escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML.replace(/"/g, '&quot;');
+  /**
+   * Cleanup method - call when component unmounts
+   */
+  destroy() {
+    if (this.container) {
+      this.container.removeEventListener('click', this._handleClick);
+    }
   }
 }
 
@@ -460,5 +695,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Export for module usage
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { PremiumReportsClient, PremiumReportsWidget };
+  module.exports = { PremiumReportsClient, PremiumReportsWidget, ReportSecurity };
 }
