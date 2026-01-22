@@ -189,12 +189,14 @@ class TesseractEngine(BaseOCREngine):
             return self._create_fallback_result(f"Tesseract error: {str(e)}")
 
     def process_pdf(self, pdf_path: str) -> OCRResult:
-        """Process PDF with Tesseract (requires pdf2image)."""
+        """Process PDF with Tesseract (requires pdf2image) or fallback to pdfplumber."""
+        import time
+        start_time = time.time()
+
+        # Try pdf2image + Tesseract OCR first (for image-based PDFs)
         try:
             from pdf2image import convert_from_path
-            import time
 
-            start_time = time.time()
             images = convert_from_path(pdf_path)
 
             all_blocks = []
@@ -241,6 +243,58 @@ class TesseractEngine(BaseOCREngine):
                 confidence=avg_confidence,
                 engine_used="tesseract",
                 page_count=len(images),
+                processing_time_ms=processing_time,
+            )
+
+        except ImportError:
+            # pdf2image not available, try pdfplumber for text-based PDFs
+            pass
+        except Exception as e:
+            logger.warning(f"pdf2image OCR failed: {e}, trying pdfplumber fallback")
+
+        # Fallback: Use pdfplumber for text-based PDFs
+        try:
+            import pdfplumber
+
+            all_text = []
+            all_blocks = []
+            page_count = 0
+
+            with pdfplumber.open(pdf_path) as pdf:
+                page_count = len(pdf.pages)
+                for page_num, page in enumerate(pdf.pages, 1):
+                    page_text = page.extract_text() or ""
+                    if page_text:
+                        all_text.append(f"--- Page {page_num} ---\n{page_text}")
+
+                        # Create text blocks from words
+                        words = page.extract_words() or []
+                        for word in words:
+                            all_blocks.append(TextBlock(
+                                text=word.get('text', ''),
+                                confidence=95.0,  # High confidence for extracted text
+                                bbox=BoundingBox(
+                                    left=int(word.get('x0', 0)),
+                                    top=int(word.get('top', 0)),
+                                    width=int(word.get('x1', 0) - word.get('x0', 0)),
+                                    height=int(word.get('bottom', 0) - word.get('top', 0)),
+                                    page=page_num
+                                ),
+                                block_type="word"
+                            ))
+
+            processing_time = int((time.time() - start_time) * 1000)
+            raw_text = "\n".join(all_text)
+
+            if not raw_text.strip():
+                return self._create_fallback_result("No text extracted from PDF (may be image-based)")
+
+            return OCRResult(
+                raw_text=raw_text,
+                blocks=all_blocks,
+                confidence=95.0,  # pdfplumber extracts embedded text accurately
+                engine_used="pdfplumber",
+                page_count=page_count,
                 processing_time_ms=processing_time,
             )
 

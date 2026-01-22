@@ -532,6 +532,7 @@ ROLE_PERMISSIONS: dict[Role, FrozenSet[Permission]] = {
     # -------------------------------------------------------------------------
     Role.FIRM_CLIENT: frozenset({
         Permission.SELF_VIEW_RETURN,
+        Permission.SELF_EDIT_RETURN,  # ADDED: Fix permission bug - clients can edit DRAFT returns
         Permission.SELF_VIEW_STATUS,
         Permission.SELF_UPLOAD_DOCS,
         Permission.DOCUMENT_VIEW,

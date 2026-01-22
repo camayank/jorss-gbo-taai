@@ -415,6 +415,20 @@ class ScheduleCBusiness(BaseModel):
         description="Type of business"
     )
 
+    # QBI/SSTB Classification (IRC §199A)
+    principal_product_or_service: Optional[str] = Field(
+        None,
+        description="Line D: Description of principal product or service (used for SSTB determination)"
+    )
+    is_sstb: Optional[bool] = Field(
+        None,
+        description="Is this a Specified Service Trade or Business (SSTB) per IRC §199A(d)(2)? Auto-detected if None."
+    )
+    sstb_category: Optional[str] = Field(
+        None,
+        description="SSTB category if applicable (health, law, accounting, etc.)"
+    )
+
     # Employer Identification Number (if applicable)
     ein: Optional[str] = Field(None, description="EIN if you have employees or file excise/pension returns")
 
@@ -581,12 +595,61 @@ class ScheduleCBusiness(BaseModel):
             return 0.0
         return self.calculate_net_profit_loss()
 
+    def get_sstb_classification(self) -> bool:
+        """
+        Determine if this business is a Specified Service Trade or Business (SSTB).
+
+        Uses automatic classification if is_sstb not explicitly set.
+        Classification based on business name, code, and description per IRC §199A(d)(2).
+
+        Returns:
+            True if business is an SSTB, False otherwise
+        """
+        # If explicitly set, use that value
+        if self.is_sstb is not None:
+            return self.is_sstb
+
+        # Auto-classify using SSTB classifier
+        from calculator.sstb_classifier import SSTBClassifier
+
+        result = SSTBClassifier.is_sstb(
+            business_name=self.business_name,
+            business_code=self.business_code,
+            business_description=self.principal_product_or_service,
+        )
+        return result
+
+    def get_sstb_category(self) -> str:
+        """
+        Get the SSTB category for this business.
+
+        Returns:
+            SSTB category string (e.g., 'health', 'law', 'consulting') or 'non_sstb'
+        """
+        # If explicitly set, use that value
+        if self.sstb_category:
+            return self.sstb_category
+
+        # Auto-classify using SSTB classifier
+        from calculator.sstb_classifier import SSTBClassifier, SSTBCategory
+
+        category = SSTBClassifier.classify_business(
+            business_name=self.business_name,
+            business_code=self.business_code,
+            business_description=self.principal_product_or_service,
+        )
+        return category.value
+
     def get_qbi_income(self) -> float:
         """
         Get qualified business income for Section 199A deduction.
 
         Generally equals net profit, but may have adjustments for
         specified service trades or businesses (SSTB).
+
+        Note: SSTB classification affects QBI deduction limitations,
+        not the QBI amount itself. The QBI deduction phaseout is
+        handled in the QBI calculator.
         """
         net = self.calculate_net_profit_loss()
         # QBI cannot be negative for the deduction calculation

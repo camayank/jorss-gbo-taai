@@ -32,7 +32,7 @@ from domain import (
 # Import existing models and calculator
 from models.tax_return import TaxReturn
 from calculator.engine import FederalTaxEngine, CalculationBreakdown
-from calculator.state_tax_engine import StateTaxEngine
+from calculator.state import StateTaxEngine
 from database.persistence import (
     TaxReturnPersistence,
     get_persistence,

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="0; url=http://127.0.0.1:8000/tax-advisory">
+    <title>Opening Tax Advisory Platform...</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        .box {
+            background: white;
+            padding: 60px 40px;
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+        }
+        h1 {
+            font-size: 48px;
+            color: #111827;
+            margin: 0 0 20px 0;
+        }
+        p {
+            font-size: 24px;
+            color: #6b7280;
+            margin: 0 0 40px 0;
+        }
+        .spinner {
+            width: 80px;
+            height: 80px;
+            border: 8px solid #e5e7eb;
+            border-top-color: #10b981;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 30px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        a {
+            display: inline-block;
+            padding: 20px 40px;
+            background: #10b981;
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: 700;
+            margin-top: 20px;
+        }
+        a:hover {
+            background: #059669;
+        }
+        .fixed-list {
+            background: #dcfce7;
+            border: 3px solid #10b981;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 30px 0;
+            text-align: left;
+        }
+        .fixed-list h3 {
+            color: #065f46;
+            margin: 0 0 16px 0;
+        }
+        .fixed-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .fixed-list li {
+            padding: 8px 0;
+            color: #065f46;
+        }
+        .fixed-list li:before {
+            content: "✅ ";
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <div class="spinner"></div>
+        <h1>Opening Platform...</h1>
+        <p>Redirecting to Tax Advisory Platform</p>
+
+        <div class="fixed-list">
+            <h3>✅ Fixed Just Now:</h3>
+            <ul>
+                <li>Removed purple gradient background</li>
+                <li>Changed to dark semi-transparent overlay</li>
+                <li>Server restarted with new code</li>
+                <li>All branding updated</li>
+            </ul>
+        </div>
+
+        <a href="http://127.0.0.1:8000/tax-advisory">Click if not auto-redirected →</a>
+
+        <div style="margin-top: 30px; padding: 20px; background: #fef3c7; border-radius: 12px; border-left: 4px solid #f59e0b;">
+            <p style="font-size: 16px; color: #92400e; margin: 0; line-height: 1.8;">
+                <strong>💡 Still seeing purple?</strong><br>
+                1. Close ALL browser tabs with localhost<br>
+                2. Open in <strong>Incognito/Private mode</strong><br>
+                3. Or hard refresh: <strong>Cmd+Shift+R</strong> (Mac) / <strong>Ctrl+Shift+R</strong> (Windows)
+            </p>
+        </div>
+    </div>
+</body>
+</html>

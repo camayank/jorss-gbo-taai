@@ -1,96 +1,19 @@
-"""Export and Import Module.
+"""
+PDF Export System - Professional PDF generation for advisory reports.
 
-Professional-grade export and import functionality for:
-- CPA/EA professional tax software formats
-- IRS e-filing XML formats
-- PDF generation for print and filing
-- Prior year return import
-- Client data exchange formats
+Main exports:
+    AdvisoryPDFExporter: Main PDF generation class
+    export_advisory_report_to_pdf: Convenience function
 """
 
-from export.professional_formats import (
-    ProfessionalExporter,
-    ExportFormat,
-    ExportResult,
-)
-from export.irs_efile import (
-    IRSEFileGenerator,
-    MeF_XML_Generator,
-    StateEFileGenerator,
-)
-from export.pdf_generator import (
-    TaxReturnPDFGenerator,
-    WorkpaperGenerator,
-)
-from export.data_importer import (
-    DataImporter,
-    PriorYearImporter,
-    BulkImporter,
-)
-from export.computation_statement import (
-    TaxComputationStatement,
-    AssumptionCategory,
-    Assumption,
-    ComputationLine,
-    ComputationSection,
-)
-from export.draft_return import (
-    DraftReturnGenerator,
-    CompletionStatus,
-    MissingItem,
-    ScheduleRequirement,
-    generate_complete_draft_package,
-)
-from export.premium_report_generator import (
-    PremiumReportGenerator,
-    ReportTier,
-    ReportFormat,
-    ReportSection,
-    GeneratedReport,
-    ActionItem,
-    generate_report,
-    get_tier_sections,
-    get_tier_pricing,
-    TIER_SECTIONS,
+from .advisory_pdf_exporter import (
+    AdvisoryPDFExporter,
+    export_advisory_report_to_pdf,
+    PDFWatermark,
 )
 
 __all__ = [
-    # Professional formats
-    "ProfessionalExporter",
-    "ExportFormat",
-    "ExportResult",
-    # IRS e-file
-    "IRSEFileGenerator",
-    "MeF_XML_Generator",
-    "StateEFileGenerator",
-    # PDF generation
-    "TaxReturnPDFGenerator",
-    "WorkpaperGenerator",
-    # Data import
-    "DataImporter",
-    "PriorYearImporter",
-    "BulkImporter",
-    # Computation statement (Big4 level)
-    "TaxComputationStatement",
-    "AssumptionCategory",
-    "Assumption",
-    "ComputationLine",
-    "ComputationSection",
-    # Draft return generation
-    "DraftReturnGenerator",
-    "CompletionStatus",
-    "MissingItem",
-    "ScheduleRequirement",
-    "generate_complete_draft_package",
-    # Premium report generator
-    "PremiumReportGenerator",
-    "ReportTier",
-    "ReportFormat",
-    "ReportSection",
-    "GeneratedReport",
-    "ActionItem",
-    "generate_report",
-    "get_tier_sections",
-    "get_tier_pricing",
-    "TIER_SECTIONS",
+    "AdvisoryPDFExporter",
+    "export_advisory_report_to_pdf",
+    "PDFWatermark",
 ]

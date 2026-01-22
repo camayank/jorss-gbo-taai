@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Tell Me EXACTLY What You Want</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8fafc;
+            padding: 40px;
+            line-height: 1.8;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 50px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 42px;
+            color: #dc2626;
+            margin-bottom: 24px;
+        }
+        .apology {
+            background: #fef2f2;
+            border-left: 6px solid #dc2626;
+            padding: 24px;
+            margin-bottom: 32px;
+            border-radius: 8px;
+        }
+        .apology p {
+            color: #991b1b;
+            font-size: 20px;
+            line-height: 1.8;
+        }
+        .question {
+            background: #f0f9ff;
+            border: 3px solid #3b82f6;
+            padding: 32px;
+            margin: 32px 0;
+            border-radius: 12px;
+        }
+        .question h2 {
+            color: #1e40af;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+        .question ul {
+            list-style: none;
+            padding: 0;
+        }
+        .question li {
+            padding: 16px 0;
+            font-size: 18px;
+            color: #1e3a8a;
+            border-bottom: 1px solid #dbeafe;
+        }
+        .question li:last-child {
+            border-bottom: none;
+        }
+        .example {
+            background: #dcfce7;
+            padding: 24px;
+            border-radius: 8px;
+            margin: 24px 0;
+        }
+        .example h3 {
+            color: #065f46;
+            margin-bottom: 16px;
+            font-size: 22px;
+        }
+        .example p {
+            color: #065f46;
+            font-size: 17px;
+            line-height: 1.8;
+        }
+        strong {
+            color: #1e40af;
+        }
+        .mockup {
+            background: #1e293b;
+            color: #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 20px 0;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>I'm Sorry - I Need to Listen</h1>
+
+        <div class="apology">
+            <p>
+                <strong>I apologize.</strong> I've been making changes without fully understanding what you actually want.<br><br>
+                You've been frustrated for hours, and I kept "fixing" things that weren't what you needed.
+            </p>
+        </div>
+
+        <div class="question">
+            <h2>🎯 Tell Me EXACTLY What You Want to See</h2>
+            <p style="margin-bottom: 24px; font-size: 18px; color: #374151;">
+                When a user visits http://127.0.0.1:8000/tax-advisory, describe step-by-step what should happen:
+            </p>
+            <ul>
+                <li><strong>1. First Screen:</strong> What should the user see first? (modal? chat? form? simple message?)</li>
+                <li><strong>2. Main Interface:</strong> Should it be a chat widget? A conversational form? Something else?</li>
+                <li><strong>3. Data Collection:</strong> How should the user provide their information? (talking to AI? uploading docs? filling form?)</li>
+                <li><strong>4. Navigation:</strong> Should they see steps at the top? Or is everything conversational?</li>
+                <li><strong>5. Express Lane:</strong> Where does document upload fit in?</li>
+                <li><strong>6. The Form:</strong> Should the big form be hidden completely? Only shown when AI needs it?</li>
+            </ul>
+        </div>
+
+        <div class="example">
+            <h3>Example Answer (just to show format):</h3>
+            <p>
+                <strong>"I want:"</strong><br>
+                1. User sees a simple welcome message (NOT a modal popup)<br>
+                2. AI chat widget opens automatically on the right side<br>
+                3. AI asks questions one by one conversationally<br>
+                4. User can also upload documents anytime using a button<br>
+                5. The big form is completely hidden - AI fills it in background<br>
+                6. No step indicators visible - everything feels like chatting
+            </p>
+        </div>
+
+        <div class="question">
+            <h2>📱 Show Me an Example</h2>
+            <p style="margin-bottom: 20px; font-size: 18px; color: #374151;">
+                Is there a tax platform you've used that works the way you want? For example:
+            </p>
+            <div class="mockup">
+# Like TurboTax Live (chat with expert)?
+# Like Stripe Sigma (conversational queries)?
+# Like Intercom chat (widget on side)?
+# Like something else?
+            </div>
+        </div>
+
+        <div class="question">
+            <h2>🚫 What You DON'T Want</h2>
+            <p style="margin-bottom: 24px; font-size: 18px; color: #374151;">Tell me what's wrong with the current version:</p>
+            <ul>
+                <li>❌ Form too bulky?</li>
+                <li>❌ Too many steps visible?</li>
+                <li>❌ Modal popup annoying?</li>
+                <li>❌ Not conversational enough?</li>
+                <li>❌ Looks overwhelming for layman?</li>
+                <li>❌ Something else?</li>
+            </ul>
+        </div>
+
+        <div style="background: #fef3c7; padding: 32px; border-radius: 12px; margin-top: 40px; border: 3px solid #f59e0b;">
+            <h3 style="color: #92400e; font-size: 24px; margin-bottom: 16px;">💬 Let's Start Over</h3>
+            <p style="color: #92400e; font-size: 18px; line-height: 1.8;">
+                Please describe in detail (or show me a screenshot/example) of exactly what you want the platform to look and feel like.<br><br>
+                I'll then build it exactly as you describe - no more guessing.
+            </p>
+        </div>
+
+        <div style="margin-top: 40px; padding: 32px; background: #f8fafc; border-radius: 12px;">
+            <h3 style="color: #111827; margin-bottom: 16px;">Current Server Status:</h3>
+            <p style="color: #6b7280; font-size: 16px;">
+                • Server: Running on port 8000<br>
+                • URL: http://127.0.0.1:8000/tax-advisory<br>
+                • Waiting for your instructions on what to build
+            </p>
+        </div>
+    </div>
+</body>
+</html>

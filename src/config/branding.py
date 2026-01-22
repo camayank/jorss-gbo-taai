@@ -22,14 +22,14 @@ class BrandingConfig:
     """Configuration for platform branding and appearance"""
 
     # Platform Identity
-    platform_name: str = "Tax Filing Platform"
-    company_name: str = "Your CPA Firm"
-    tagline: str = "Professional Tax Filing Made Simple"
-    firm_credentials: str = "IRS-Approved E-File Provider"
+    platform_name: str = "Tax Advisory Platform"
+    company_name: str = "Professional Tax Advisory"
+    tagline: str = "CPA-Grade Tax Analysis & Optimization"
+    firm_credentials: str = "Comprehensive Tax Advisory Services"
 
     # Visual Branding
-    primary_color: str = "#667eea"
-    secondary_color: str = "#764ba2"
+    primary_color: str = "#3b82f6"
+    secondary_color: str = "#2563eb"
     accent_color: str = "#f59e0b"  # For highlights, badges, etc.
     logo_url: Optional[str] = None
     favicon_url: Optional[str] = None
@@ -40,9 +40,19 @@ class BrandingConfig:
     website_url: Optional[str] = None
 
     # Features & Messaging
-    filing_time_claim: str = "3 Minutes"
+    filing_time_claim: str = "Comprehensive Analysis"
     security_claim: str = "Bank-level encryption"
-    review_claim: str = "CPA Reviewed"
+    review_claim: str = "CPA-Grade Analysis"
+
+    # Trust Badges Configuration
+    show_encryption_badge: bool = True
+    encryption_level: str = "256-bit"
+    show_cpa_badge: bool = False
+    cpa_credentials: str = "CPA Verified"
+    show_soc2_badge: bool = False
+    soc2_type: str = "SOC 2 Type II"
+    show_aicpa_badge: bool = False
+    show_gdpr_badge: bool = True
 
     # Legal
     terms_url: Optional[str] = None
@@ -50,8 +60,8 @@ class BrandingConfig:
     company_address: Optional[str] = None
 
     # SEO & Meta
-    meta_description: str = "File your taxes quickly and securely with professional CPA review"
-    meta_keywords: str = "tax filing, CPA, tax preparation, tax return"
+    meta_description: str = "Get professional tax advisory services with comprehensive analysis, optimization strategies, and CPA-grade recommendations"
+    meta_keywords: str = "tax advisory, tax optimization, CPA tax analysis, tax planning, tax savings"
 
     # Custom CSS/Styles (for advanced customization)
     custom_css: Optional[str] = None
@@ -75,6 +85,14 @@ class BrandingConfig:
             'filing_time_claim': self.filing_time_claim,
             'security_claim': self.security_claim,
             'review_claim': self.review_claim,
+            'show_encryption_badge': self.show_encryption_badge,
+            'encryption_level': self.encryption_level,
+            'show_cpa_badge': self.show_cpa_badge,
+            'cpa_credentials': self.cpa_credentials,
+            'show_soc2_badge': self.show_soc2_badge,
+            'soc2_type': self.soc2_type,
+            'show_aicpa_badge': self.show_aicpa_badge,
+            'show_gdpr_badge': self.show_gdpr_badge,
             'terms_url': self.terms_url,
             'privacy_url': self.privacy_url,
             'company_address': self.company_address,
@@ -88,13 +106,13 @@ class BrandingConfig:
 def load_branding_from_env() -> BrandingConfig:
     """Load branding configuration from environment variables"""
     return BrandingConfig(
-        platform_name=os.getenv('PLATFORM_NAME', 'Tax Filing Platform'),
-        company_name=os.getenv('COMPANY_NAME', 'Your CPA Firm'),
-        tagline=os.getenv('PLATFORM_TAGLINE', 'Professional Tax Filing Made Simple'),
-        firm_credentials=os.getenv('FIRM_CREDENTIALS', 'IRS-Approved E-File Provider'),
+        platform_name=os.getenv('PLATFORM_NAME', 'Tax Advisory Platform'),
+        company_name=os.getenv('COMPANY_NAME', 'Professional Tax Advisory'),
+        tagline=os.getenv('PLATFORM_TAGLINE', 'CPA-Grade Tax Analysis & Optimization'),
+        firm_credentials=os.getenv('FIRM_CREDENTIALS', 'Comprehensive Tax Advisory Services'),
 
-        primary_color=os.getenv('BRAND_PRIMARY_COLOR', '#667eea'),
-        secondary_color=os.getenv('BRAND_SECONDARY_COLOR', '#764ba2'),
+        primary_color=os.getenv('BRAND_PRIMARY_COLOR', '#3b82f6'),
+        secondary_color=os.getenv('BRAND_SECONDARY_COLOR', '#2563eb'),
         accent_color=os.getenv('BRAND_ACCENT_COLOR', '#f59e0b'),
         logo_url=os.getenv('BRAND_LOGO_URL'),
         favicon_url=os.getenv('BRAND_FAVICON_URL'),
@@ -103,16 +121,25 @@ def load_branding_from_env() -> BrandingConfig:
         support_phone=os.getenv('SUPPORT_PHONE'),
         website_url=os.getenv('COMPANY_WEBSITE'),
 
-        filing_time_claim=os.getenv('FILING_TIME_CLAIM', '3 Minutes'),
+        filing_time_claim=os.getenv('FILING_TIME_CLAIM', 'Comprehensive Analysis'),
         security_claim=os.getenv('SECURITY_CLAIM', 'Bank-level encryption'),
-        review_claim=os.getenv('REVIEW_CLAIM', 'CPA Reviewed'),
+        review_claim=os.getenv('REVIEW_CLAIM', 'CPA-Grade Analysis'),
+
+        show_encryption_badge=os.getenv('SHOW_ENCRYPTION_BADGE', 'true').lower() == 'true',
+        encryption_level=os.getenv('ENCRYPTION_LEVEL', '256-bit'),
+        show_cpa_badge=os.getenv('SHOW_CPA_BADGE', 'false').lower() == 'true',
+        cpa_credentials=os.getenv('CPA_CREDENTIALS', 'CPA Verified'),
+        show_soc2_badge=os.getenv('SHOW_SOC2_BADGE', 'false').lower() == 'true',
+        soc2_type=os.getenv('SOC2_TYPE', 'SOC 2 Type II'),
+        show_aicpa_badge=os.getenv('SHOW_AICPA_BADGE', 'false').lower() == 'true',
+        show_gdpr_badge=os.getenv('SHOW_GDPR_BADGE', 'true').lower() == 'true',
 
         terms_url=os.getenv('TERMS_URL'),
         privacy_url=os.getenv('PRIVACY_URL'),
         company_address=os.getenv('COMPANY_ADDRESS'),
 
-        meta_description=os.getenv('META_DESCRIPTION', 'File your taxes quickly and securely with professional CPA review'),
-        meta_keywords=os.getenv('META_KEYWORDS', 'tax filing, CPA, tax preparation, tax return'),
+        meta_description=os.getenv('META_DESCRIPTION', 'Get professional tax advisory services with comprehensive analysis, optimization strategies, and CPA-grade recommendations'),
+        meta_keywords=os.getenv('META_KEYWORDS', 'tax advisory, tax optimization, CPA tax analysis, tax planning, tax savings'),
 
         custom_css=os.getenv('CUSTOM_CSS_PATH'),
         custom_js=os.getenv('CUSTOM_JS_PATH'),

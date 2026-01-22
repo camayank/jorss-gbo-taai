@@ -13,6 +13,13 @@ from datetime import datetime
 from enum import Enum
 from uuid import uuid4
 import json
+import logging
+
+# Import database persistence
+from src.database.unified_session import UnifiedFilingSession, FilingState, WorkflowType, DocumentInfo
+from src.database.session_persistence import get_session_persistence
+
+logger = logging.getLogger(__name__)
 
 
 class SessionState(str, Enum):
@@ -105,34 +112,61 @@ class SmartTaxOrchestrator:
     """
 
     def __init__(self):
-        self._sessions: Dict[str, SmartTaxSession] = {}
+        # REPLACED: in-memory dictionary with database persistence
+        # OLD: self._sessions: Dict[str, SmartTaxSession] = {}
+        # NEW: Use get_session_persistence() for all session operations
+        self.persistence = get_session_persistence()
 
     def create_session(
         self,
         filing_status: str = "single",
         num_dependents: int = 0,
         tax_year: int = 2024,
-    ) -> SmartTaxSession:
-        """Create a new Smart Tax session."""
-        session_id = str(uuid4())
-        now = datetime.now().isoformat()
+        user_id: Optional[str] = None,
+    ) -> UnifiedFilingSession:
+        """
+        Create a new Smart Tax session.
 
-        session = SmartTaxSession(
+        UPDATED: Now uses UnifiedFilingSession and saves to database.
+        """
+        session_id = str(uuid4())
+
+        # Create unified session (replaces SmartTaxSession)
+        session = UnifiedFilingSession(
             session_id=session_id,
-            created_at=now,
-            updated_at=now,
-            state=SessionState.UPLOAD,
-            filing_status=filing_status,
-            num_dependents=num_dependents,
+            workflow_type=WorkflowType.SMART,
+            state=FilingState.UPLOAD,
             tax_year=tax_year,
+            user_id=user_id,
+            is_anonymous=(user_id is None),
+            metadata={
+                "filing_status": filing_status,
+                "num_dependents": num_dependents
+            }
         )
 
-        self._sessions[session_id] = session
+        # Save to database (replaces in-memory dict)
+        try:
+            self.persistence.save_unified_session(session)
+            logger.info(f"Created Smart Tax session: {session_id}")
+        except Exception as e:
+            logger.error(f"Failed to save session {session_id}: {e}")
+            raise
+
         return session
 
-    def get_session(self, session_id: str) -> Optional[SmartTaxSession]:
-        """Get an existing session."""
-        return self._sessions.get(session_id)
+    def get_session(self, session_id: str) -> Optional[UnifiedFilingSession]:
+        """
+        Get an existing session.
+
+        UPDATED: Now loads from database instead of in-memory dict.
+        """
+        try:
+            session = self.persistence.load_unified_session(session_id)
+            return session
+        except Exception as e:
+            logger.error(f"Failed to load session {session_id}: {e}")
+            return None
 
     def process_document(
         self,
@@ -153,7 +187,8 @@ class SmartTaxOrchestrator:
         Returns:
             Updated estimate and session state
         """
-        session = self._sessions.get(session_id)
+        # Load session from database (UPDATED: was self._sessions.get)
+        session = self.get_session(session_id)
         if not session:
             return {"error": "Session not found"}
 
@@ -263,6 +298,14 @@ class SmartTaxOrchestrator:
         # Generate questions if needed
         session.pending_questions = self._generate_questions(session, inference_result)
 
+        # Save updated session to database (NEW)
+        try:
+            self.persistence.save_unified_session(session)
+            logger.info(f"Saved session {session_id} after document processing")
+        except Exception as e:
+            logger.error(f"Failed to save session {session_id}: {e}")
+            # Continue - don't fail the request
+
         return {
             "session_id": session_id,
             "state": session.state.value,
@@ -285,7 +328,8 @@ class SmartTaxOrchestrator:
         """
         Process user's answer to a question and update estimate.
         """
-        session = self._sessions.get(session_id)
+        # Load session from database (UPDATED: was self._sessions.get)
+        session = self.get_session(session_id)
         if not session:
             return {"error": "Session not found"}
 
@@ -344,6 +388,13 @@ class SmartTaxOrchestrator:
 
         session.updated_at = datetime.now().isoformat()
 
+        # Save updated session to database (NEW)
+        try:
+            self.persistence.save_unified_session(session)
+            logger.info(f"Saved session {session_id} after answering question")
+        except Exception as e:
+            logger.error(f"Failed to save session {session_id}: {e}")
+
         return {
             "session_id": session_id,
             "state": session.state.value,
@@ -360,7 +411,8 @@ class SmartTaxOrchestrator:
         """
         User confirms or corrects extracted data.
         """
-        session = self._sessions.get(session_id)
+        # Load session from database (UPDATED: was self._sessions.get)
+        session = self.get_session(session_id)
         if not session:
             return {"error": "Session not found"}
 
@@ -404,6 +456,13 @@ class SmartTaxOrchestrator:
 
         session.updated_at = datetime.now().isoformat()
 
+        # Save updated session to database (NEW)
+        try:
+            self.persistence.save_unified_session(session)
+            logger.info(f"Saved session {session_id} after confirming data")
+        except Exception as e:
+            logger.error(f"Failed to save session {session_id}: {e}")
+
         return {
             "session_id": session_id,
             "state": session.state.value,
@@ -414,7 +473,8 @@ class SmartTaxOrchestrator:
 
     def get_estimate(self, session_id: str) -> Dict[str, Any]:
         """Get current estimate for session."""
-        session = self._sessions.get(session_id)
+        # Load session from database (UPDATED: was self._sessions.get)
+        session = self.get_session(session_id)
         if not session:
             return {"error": "Session not found"}
 
@@ -428,7 +488,8 @@ class SmartTaxOrchestrator:
 
     def get_session_summary(self, session_id: str) -> Dict[str, Any]:
         """Get full session summary."""
-        session = self._sessions.get(session_id)
+        # Load session from database (UPDATED: was self._sessions.get)
+        session = self.get_session(session_id)
         if not session:
             return {"error": "Session not found"}
 

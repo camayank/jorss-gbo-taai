@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 import logging
+from .unified_session import UnifiedFilingSession
 
 logger = logging.getLogger(__name__)
 
@@ -215,7 +216,11 @@ class SessionPersistence:
         session_type: str = "agent",
         data: Optional[Dict[str, Any]] = None,
         metadata: Optional[Dict[str, Any]] = None,
-        agent_state: Optional[bytes] = None
+        agent_state: Optional[bytes] = None,
+        user_id: Optional[str] = None,
+        is_anonymous: bool = True,
+        workflow_type: Optional[str] = None,
+        return_id: Optional[str] = None
     ) -> None:
         """
         Save or update a session.
@@ -227,6 +232,10 @@ class SessionPersistence:
             data: Session data dictionary
             metadata: Additional metadata
             agent_state: Pickled TaxAgent state (optional)
+            user_id: User ID for authenticated sessions (NEW)
+            is_anonymous: Whether session is anonymous (NEW)
+            workflow_type: Workflow type ('express', 'smart', 'chat', 'guided') (NEW)
+            return_id: Link to TaxReturnRecord when filing complete (NEW)
         """
         now = datetime.utcnow()
         expires_at = now + timedelta(hours=self.ttl_hours)
@@ -251,7 +260,11 @@ class SessionPersistence:
                         expires_at = ?,
                         data_json = ?,
                         metadata_json = ?,
-                        agent_state_blob = ?
+                        agent_state_blob = ?,
+                        user_id = ?,
+                        is_anonymous = ?,
+                        workflow_type = ?,
+                        return_id = ?
                     WHERE session_id = ?
                 """, (
                     tenant_id,
@@ -261,6 +274,10 @@ class SessionPersistence:
                     json.dumps(data, default=str),
                     json.dumps(metadata, default=str),
                     agent_state,
+                    user_id,
+                    1 if is_anonymous else 0,
+                    workflow_type,
+                    return_id,
                     session_id
                 ))
             else:
@@ -268,8 +285,9 @@ class SessionPersistence:
                     INSERT INTO session_states (
                         session_id, tenant_id, session_type,
                         created_at, last_activity, expires_at,
-                        data_json, metadata_json, agent_state_blob
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        data_json, metadata_json, agent_state_blob,
+                        user_id, is_anonymous, workflow_type, return_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     session_id,
                     tenant_id,
@@ -279,7 +297,11 @@ class SessionPersistence:
                     expires_at.isoformat(),
                     json.dumps(data, default=str),
                     json.dumps(metadata, default=str),
-                    agent_state
+                    agent_state,
+                    user_id,
+                    1 if is_anonymous else 0,
+                    workflow_type,
+                    return_id
                 ))
 
             conn.commit()
@@ -749,13 +771,13 @@ class SessionPersistence:
                 "tax_year": row[2]
             }
 
-    def delete_session_tax_return(self, session_id: str) -> bool:
+    def delete_session_tax_return(self, session_id: str, tenant_id: str = "default") -> bool:
         """Delete tax return data for a session."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "DELETE FROM session_tax_returns WHERE session_id = ?",
-                (session_id,)
+                "DELETE FROM session_tax_returns WHERE session_id = ? AND tenant_id = ?",
+                (session_id, tenant_id)
             )
             conn.commit()
             return cursor.rowcount > 0
@@ -833,16 +855,11 @@ class SessionPersistence:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
-            if tenant_id:
-                cursor.execute("""
-                    SELECT trail_json FROM audit_trails
-                    WHERE session_id = ? AND tenant_id = ?
-                """, (session_id, tenant_id))
-            else:
-                cursor.execute("""
-                    SELECT trail_json FROM audit_trails
-                    WHERE session_id = ?
-                """, (session_id,))
+            # SECURITY: Always require tenant_id for multi-tenant isolation
+            cursor.execute("""
+                SELECT trail_json FROM audit_trails
+                WHERE session_id = ? AND tenant_id = ?
+            """, (session_id, tenant_id))
 
             row = cursor.fetchone()
             return row[0] if row else None
@@ -1096,6 +1113,314 @@ class SessionPersistence:
                 }
                 for row in cursor.fetchall()
             ]
+
+    # =========================================================================
+    # UNIFIED SESSION METHODS - NEW UNIFIED FILING PLATFORM
+    # =========================================================================
+
+    def save_unified_session(
+        self,
+        session: UnifiedFilingSession,
+        tenant_id: str = "default"
+    ) -> None:
+        """
+        Save unified filing session to database.
+
+        This replaces workflow-specific session saves.
+
+        Args:
+            session: UnifiedFilingSession instance
+            tenant_id: Tenant identifier
+        """
+        # Convert session to dict for storage
+        session_dict = session.to_dict()
+
+        # Save to session_states with new fields
+        self.save_session(
+            session_id=session.session_id,
+            tenant_id=tenant_id,
+            session_type="unified_filing",
+            data=session_dict,
+            metadata=session.metadata,
+            user_id=session.user_id,
+            is_anonymous=session.is_anonymous,
+            workflow_type=session.workflow_type.value,
+            return_id=session.return_id
+        )
+
+        # Also save tax return data if present
+        if session.user_confirmed_data or session.calculated_results:
+            return_data = {**session.extracted_data, **session.user_confirmed_data}
+            self.save_session_tax_return(
+                session_id=session.session_id,
+                tenant_id=tenant_id,
+                tax_year=session.tax_year,
+                return_data=return_data,
+                calculated_results=session.calculated_results
+            )
+
+    def load_unified_session(
+        self,
+        session_id: str,
+        tenant_id: Optional[str] = None
+    ) -> Optional[UnifiedFilingSession]:
+        """
+        Load unified filing session from database.
+
+        Args:
+            session_id: Session identifier
+            tenant_id: Optional tenant filter
+
+        Returns:
+            UnifiedFilingSession or None if not found/expired
+        """
+        # Load session record
+        session_record = self.load_session(session_id, tenant_id)
+        if not session_record:
+            return None
+
+        # Load session data
+        try:
+            session = UnifiedFilingSession.from_dict(session_record.data)
+            return session
+        except Exception as e:
+            logger.error(f"Failed to deserialize unified session {session_id}: {e}")
+            return None
+
+    def get_user_sessions(
+        self,
+        user_id: str,
+        workflow_type: Optional[str] = None,
+        tax_year: Optional[int] = None
+    ) -> List[UnifiedFilingSession]:
+        """
+        Get all active sessions for a user.
+
+        Args:
+            user_id: User identifier
+            workflow_type: Optional filter by workflow type
+            tax_year: Optional filter by tax year
+
+        Returns:
+            List of UnifiedFilingSession objects
+        """
+        now = datetime.utcnow().isoformat()
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            query = """
+                SELECT session_id, data_json
+                FROM session_states
+                WHERE user_id = ? AND expires_at > ?
+            """
+            params = [user_id, now]
+
+            if workflow_type:
+                query += " AND workflow_type = ?"
+                params.append(workflow_type)
+
+            query += " ORDER BY last_activity DESC"
+
+            cursor.execute(query, params)
+
+            sessions = []
+            for row in cursor.fetchall():
+                try:
+                    session_data = json.loads(row[1])
+                    session = UnifiedFilingSession.from_dict(session_data)
+
+                    # Filter by tax year if specified
+                    if tax_year and session.tax_year != tax_year:
+                        continue
+
+                    sessions.append(session)
+                except Exception as e:
+                    logger.error(f"Failed to load session {row[0]}: {e}")
+                    continue
+
+            return sessions
+
+    def transfer_session_to_user(
+        self,
+        session_id: str,
+        user_id: str,
+        tenant_id: str = "default"
+    ) -> bool:
+        """
+        Transfer an anonymous session to an authenticated user.
+
+        This is used when a user logs in after starting an anonymous filing session.
+
+        Args:
+            session_id: Session to transfer
+            user_id: User to transfer to
+            tenant_id: Tenant identifier
+
+        Returns:
+            True if successful, False otherwise
+        """
+        now = datetime.utcnow().isoformat()
+        transfer_id = str(uuid.uuid4())
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            # Check if session exists and is anonymous
+            cursor.execute("""
+                SELECT is_anonymous FROM session_states
+                WHERE session_id = ?
+            """, (session_id,))
+            row = cursor.fetchone()
+
+            if not row:
+                logger.warning(f"Session {session_id} not found for transfer")
+                return False
+
+            if row[0] != 1:
+                logger.warning(f"Session {session_id} is not anonymous")
+                return False
+
+            # Update session to authenticated
+            cursor.execute("""
+                UPDATE session_states SET
+                    user_id = ?,
+                    is_anonymous = 0
+                WHERE session_id = ?
+            """, (user_id, session_id))
+
+            # Record transfer for audit
+            cursor.execute("""
+                INSERT INTO session_transfers
+                (transfer_id, session_id, from_anonymous, to_user_id, transferred_at)
+                VALUES (?, ?, 1, ?, ?)
+            """, (transfer_id, session_id, user_id, now))
+
+            conn.commit()
+            return True
+
+    def save_with_version(
+        self,
+        session: UnifiedFilingSession,
+        expected_version: int,
+        tenant_id: str = "default"
+    ) -> bool:
+        """
+        Save session with optimistic locking.
+
+        Args:
+            session: UnifiedFilingSession to save
+            expected_version: Expected current version
+            tenant_id: Tenant identifier
+
+        Returns:
+            True if saved successfully, False if version conflict
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            # Load current tax return to check version
+            cursor.execute("""
+                SELECT version FROM session_tax_returns
+                WHERE session_id = ?
+            """, (session.session_id,))
+            row = cursor.fetchone()
+
+            if row:
+                current_version = row[0]
+                if current_version != expected_version:
+                    logger.warning(
+                        f"Version conflict for session {session.session_id}: "
+                        f"expected {expected_version}, current {current_version}"
+                    )
+                    return False
+
+                # Update with incremented version
+                new_version = current_version + 1
+                cursor.execute("""
+                    UPDATE session_tax_returns SET
+                        version = ?,
+                        updated_at = ?,
+                        return_data_json = ?
+                    WHERE session_id = ? AND version = ?
+                """, (
+                    new_version,
+                    datetime.utcnow().isoformat(),
+                    json.dumps({**session.extracted_data, **session.user_confirmed_data}, default=str),
+                    session.session_id,
+                    expected_version
+                ))
+
+                if cursor.rowcount == 0:
+                    return False
+
+                session.version = new_version
+            else:
+                # No existing return, create with version 0
+                session.version = 0
+
+            # Save the session
+            self.save_unified_session(session, tenant_id)
+            conn.commit()
+            return True
+
+    def check_active_session(
+        self,
+        user_id: Optional[str] = None,
+        session_id: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Check if user has an active session.
+
+        Used for the "resume banner" on landing page.
+
+        Args:
+            user_id: User to check (if authenticated)
+            session_id: Session ID to check (if anonymous)
+
+        Returns:
+            Dict with session info if active, None otherwise
+        """
+        now = datetime.utcnow().isoformat()
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            if user_id:
+                # Check for authenticated user's sessions
+                cursor.execute("""
+                    SELECT session_id, workflow_type, data_json
+                    FROM session_states
+                    WHERE user_id = ? AND expires_at > ?
+                    ORDER BY last_activity DESC
+                    LIMIT 1
+                """, (user_id, now))
+            elif session_id:
+                # Check specific session
+                cursor.execute("""
+                    SELECT session_id, workflow_type, data_json
+                    FROM session_states
+                    WHERE session_id = ? AND expires_at > ?
+                """, (session_id, now))
+            else:
+                return None
+
+            row = cursor.fetchone()
+            if not row:
+                return None
+
+            try:
+                session_data = json.loads(row[2])
+                return {
+                    "session_id": row[0],
+                    "workflow_type": row[1],
+                    "state": session_data.get("state"),
+                    "tax_year": session_data.get("tax_year"),
+                    "completeness_score": session_data.get("completeness_score", 0)
+                }
+            except Exception as e:
+                logger.error(f"Failed to parse session data: {e}")
+                return None
 
 
 # Global instance

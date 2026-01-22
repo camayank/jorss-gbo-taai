@@ -1,0 +1,188 @@
+# Tax Year 2025 Deadlines
+# IRS Publication 509: Tax Calendars
+# https://www.irs.gov/pub/irs-pdf/p509.pdf
+
+metadata:
+  version: "1.0"
+  tax_year: 2025
+  effective_date: "2025-01-01"
+  source: "IRS"
+  irs_references:
+    - "IRS Publication 509"
+    - "Form 1040 Instructions"
+  last_updated: "2026-01-22"
+  updated_by: "System Configuration"
+  notes: "Standard tax year 2025 deadlines for individual returns"
+
+# Primary filing deadlines
+filing_deadlines:
+  # Individual tax return filing deadlines
+  primary:
+    date: "2026-04-15"
+    description: "Primary filing deadline for 2025 tax returns"
+    applies_to:
+      - "Form 1040"
+      - "Form 1040-SR"
+    extensions_available: true
+
+  extension:
+    date: "2026-10-15"
+    description: "Extended filing deadline (with Form 4868)"
+    applies_to:
+      - "Form 1040 with extension"
+    payment_deadline: "2026-04-15"  # Payment still due by primary deadline
+    notes: "Extension to file does not extend time to pay"
+
+# Estimated tax payment deadlines
+estimated_tax_deadlines:
+  q1_2025:
+    date: "2025-04-15"
+    description: "Q1 2025 estimated tax payment"
+    applies_to: "Self-employed, business owners, investors"
+    form: "Form 1040-ES"
+
+  q2_2025:
+    date: "2025-06-16"  # June 16 because June 15 is Sunday
+    description: "Q2 2025 estimated tax payment"
+    applies_to: "Self-employed, business owners, investors"
+    form: "Form 1040-ES"
+
+  q3_2025:
+    date: "2025-09-15"
+    description: "Q3 2025 estimated tax payment"
+    applies_to: "Self-employed, business owners, investors"
+    form: "Form 1040-ES"
+
+  q4_2025:
+    date: "2026-01-15"
+    description: "Q4 2025 estimated tax payment"
+    applies_to: "Self-employed, business owners, investors"
+    form: "Form 1040-ES"
+
+# Retirement contribution deadlines
+retirement_deadlines:
+  # 401(k), 403(b), 457 contributions
+  employer_plans:
+    date: "2025-12-31"
+    description: "Deadline for 2025 401(k), 403(b), 457 contributions"
+    applies_to:
+      - "401(k)"
+      - "403(b)"
+      - "457 plans"
+      - "SIMPLE IRA"
+      - "SEP IRA (employee deferrals)"
+    max_contribution: 23500
+    catch_up_age: 50
+    catch_up_amount: 7500
+    notes: "Contributions must be made by December 31, 2025"
+
+  # IRA contributions (Traditional and Roth)
+  ira:
+    date: "2026-04-15"
+    description: "Deadline for 2025 IRA contributions"
+    applies_to:
+      - "Traditional IRA"
+      - "Roth IRA"
+    max_contribution: 7000
+    catch_up_age: 50
+    catch_up_amount: 1000
+    notes: "Can contribute until tax filing deadline (without extension)"
+
+  # Health Savings Account (HSA)
+  hsa:
+    date: "2026-04-15"
+    description: "Deadline for 2025 HSA contributions"
+    applies_to: "Health Savings Accounts"
+    max_contribution_individual: 4150
+    max_contribution_family: 8300
+    catch_up_age: 55
+    catch_up_amount: 1000
+    notes: "Must have High Deductible Health Plan (HDHP)"
+
+  # SEP IRA (employer contributions)
+  sep_ira:
+    date: "2026-10-15"  # With extension
+    description: "Deadline for 2025 SEP IRA contributions (with extension)"
+    applies_to: "Self-employed, small business owners"
+    max_contribution_percent: 25
+    max_contribution_amount: 69000
+    notes: "Can contribute until extended filing deadline"
+
+# Business-related deadlines
+business_deadlines:
+  # S-Corporation election
+  scorp_election:
+    date: "2025-03-15"
+    description: "Deadline to elect S-Corp status for 2025 (Form 2553)"
+    applies_to: "New businesses wanting S-Corp status for 2025"
+    form: "Form 2553"
+    late_election_available: true
+    notes: "Must file within 2 months and 15 days of start of tax year"
+
+  scorp_election_2026:
+    date: "2026-03-15"
+    description: "Deadline to elect S-Corp status for 2026"
+    applies_to: "Businesses wanting S-Corp status for 2026"
+    form: "Form 2553"
+
+  # Home office
+  home_office:
+    date: "2025-12-31"
+    description: "Must use home office exclusively for business during 2025"
+    applies_to: "Self-employed with home office"
+    form: "Form 8829 or Schedule C"
+    notes: "Regular and exclusive use required throughout tax year"
+
+# Education savings deadlines
+education_deadlines:
+  # 529 plan contributions
+  five_two_nine:
+    date: "2025-12-31"
+    description: "Deadline for 2025 state tax deduction (varies by state)"
+    applies_to: "529 Education Savings Plans"
+    notes: "State tax benefits may require contribution by Dec 31"
+    state_specific: true
+
+# Dependent care deadlines
+dependent_care_deadlines:
+  # Dependent Care FSA
+  fsa:
+    date: "2025-12-31"
+    description: "Deadline to incur expenses for Dependent Care FSA"
+    applies_to: "Dependent Care Flexible Spending Account"
+    max_contribution: 5000
+    notes: "Some plans allow grace period or rollover"
+
+# Holiday/weekend adjustments
+adjustments:
+  - When a deadline falls on Saturday, Sunday, or legal holiday, the deadline is the next business day
+  - April 15, 2026 is a Wednesday (no adjustment needed)
+  - June 15, 2025 is a Sunday (moved to June 16, 2025)
+
+# State-specific notes
+state_variations:
+  note: "Some states have different filing deadlines. Check state-specific requirements."
+  examples:
+    - "Delaware: May 1 for state returns"
+    - "Hawaii: April 20 for state returns"
+    - "Iowa: April 30 for state returns"
+    - "Louisiana: May 15 for state returns"
+    - "Virginia: May 1 for state returns"
+
+# Common penalty information (for reference)
+penalties:
+  late_filing:
+    rate: "5% per month"
+    max: "25% of unpaid tax"
+    notes: "Penalty for filing late without extension"
+
+  late_payment:
+    rate: "0.5% per month"
+    max: "25% of unpaid tax"
+    notes: "Penalty for paying late"
+
+  combined_max: "47.5% total (22.5% late filing + 25% late payment)"
+
+  estimated_tax:
+    penalty: "Underpayment penalty based on federal short-term rate plus 3%"
+    safe_harbor: "Pay 90% of current year tax or 100% of prior year tax (110% if AGI > $150k)"

@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Branding Settings | {{ branding.platform_name }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #2d3748;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .page-header {
+            margin-bottom: 40px;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .page-header p {
+            color: #718096;
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #1a202c;
+        }
+
+        .card h3 {
+            font-size: 1.1rem;
+            margin: 25px 0 15px;
+            color: #4a5568;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #718096;
+            font-size: 0.875rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .color-picker input[type="color"] {
+            width: 60px;
+            height: 40px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .color-picker input[type="text"] {
+            flex: 1;
+        }
+
+        .file-upload {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-upload:hover {
+            border-color: {{ branding.primary_color }};
+            background: #f7fafc;
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .file-upload-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .preview-image {
+            max-width: 200px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .credentials-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .credential-tag {
+            background: {{ branding.primary_color }}20;
+            color: {{ branding.primary_color }};
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .credential-tag button {
+            background: none;
+            border: none;
+            color: {{ branding.primary_color }};
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .add-credential {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .add-credential input {
+            flex: 1;
+        }
+
+        .add-credential button {
+            padding: 10px 20px;
+            background: {{ branding.primary_color }};
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: {{ branding.primary_color }};
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .preview-card {
+            background: linear-gradient(135deg, {{ branding.primary_color }} 0%, {{ branding.secondary_color }} 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .preview-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .preview-photo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .preview-info h3 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .preview-info p {
+            opacity: 0.9;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: #bee3f8;
+            color: #2c5282;
+            border-left: 4px solid #3182ce;
+        }
+
+        .alert-success {
+            background: #c6f6d5;
+            color: #22543d;
+            border-left: 4px solid #38a169;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-header">
+            <h1>🎨 My Branding Settings</h1>
+            <p>Customize how you appear to your clients</p>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <!-- Preview Card -->
+        <div class="preview-card">
+            <div class="preview-header">
+                <div class="preview-photo" id="previewPhoto">
+                    <img id="previewPhotoImg" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: none;" />
+                    <span id="previewInitials">JD</span>
+                </div>
+                <div class="preview-info">
+                    <h3 id="previewDisplayName">John Doe, CPA</h3>
+                    <p id="previewTagline">Your Trusted Tax Advisor</p>
+                </div>
+            </div>
+            <p id="previewBio">Helping individuals and businesses with tax planning and compliance for over 15 years.</p>
+            <div class="credentials-list" id="previewCredentials" style="margin-top: 15px;">
+                <!-- Credentials preview -->
+            </div>
+        </div>
+
+        <!-- Personal Information -->
+        <div class="card">
+            <h2>Personal Information</h2>
+
+            <div class="alert alert-info">
+                ℹ️ <strong>Note:</strong> These settings customize your personal profile within {{ branding.company_name }}. Your clients will see this information when working with you.
+            </div>
+
+            <div class="form-group">
+                <label>Display Name</label>
+                <input type="text" id="displayName" placeholder="e.g., John Smith, CPA" oninput="updatePreview()" />
+                <small>How your name appears to clients (e.g., "John Smith, CPA")</small>
+            </div>
+
+            <div class="form-group">
+                <label>Professional Tagline</label>
+                <input type="text" id="tagline" placeholder="e.g., Your Trusted Tax Advisor" oninput="updatePreview()" />
+                <small>A short description of your expertise</small>
+            </div>
+
+            <div class="form-group">
+                <label>Bio</label>
+                <textarea id="bio" placeholder="Tell clients about your background and expertise..." oninput="updatePreview()"></textarea>
+                <small>A brief professional biography (2-3 sentences)</small>
+            </div>
+        </div>
+
+        <!-- Credentials & Experience -->
+        <div class="card">
+            <h2>Credentials & Experience</h2>
+
+            <div class="form-group">
+                <label>Professional Credentials</label>
+                <div class="credentials-list" id="credentialsList">
+                    <!-- Populated dynamically -->
+                </div>
+                <div class="add-credential">
+                    <input type="text" id="newCredential" placeholder="e.g., CPA, CFP, EA" onkeypress="if(event.key==='Enter') addCredential()" />
+                    <button onclick="addCredential()">Add</button>
+                </div>
+                <small>Certifications, licenses, and designations</small>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Years of Experience</label>
+                    <input type="number" id="yearsExperience" min="0" max="60" placeholder="e.g., 15" />
+                </div>
+                <div class="form-group">
+                    <label>Specializations</label>
+                    <select id="specializationSelect" onchange="addSpecialization()">
+                        <option value="">Select a specialization...</option>
+                        <option value="Individual Tax">Individual Tax</option>
+                        <option value="Business Tax">Business Tax</option>
+                        <option value="Estate Planning">Estate Planning</option>
+                        <option value="Tax Planning">Tax Planning</option>
+                        <option value="Audit Representation">Audit Representation</option>
+                        <option value="International Tax">International Tax</option>
+                    </select>
+                    <div class="credentials-list" id="specializationsList" style="margin-top: 10px;">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="card">
+            <h2>Contact Information</h2>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Direct Email</label>
+                    <input type="email" id="directEmail" placeholder="john@firm.com" />
+                    <small>Optional: Your direct email for client communication</small>
+                </div>
+                <div class="form-group">
+                    <label>Direct Phone</label>
+                    <input type="tel" id="directPhone" placeholder="(555) 123-4567" />
+                    <small>Optional: Your direct phone number</small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Office Address</label>
+                <textarea id="officeAddress" rows="3" placeholder="123 Main Street&#10;Suite 100&#10;City, ST 12345"></textarea>
+                <small>Optional: Your office location</small>
+            </div>
+        </div>
+
+        <!-- Visual Customization -->
+        <div class="card">
+            <h2>Visual Customization</h2>
+
+            <div class="form-group">
+                <label>Accent Color</label>
+                <div class="color-picker">
+                    <input type="color" id="accentColor" onchange="updateAccentColor()" />
+                    <input type="text" id="accentColorText" value="{{ branding.primary_color }}" oninput="updateAccentColorFromText()" />
+                </div>
+                <small>Customize your accent color (used for highlights in your client portal)</small>
+            </div>
+
+            <h3>Profile Photo</h3>
+            <div class="file-upload" onclick="document.getElementById('photoUpload').click()">
+                <div class="file-upload-icon">📸</div>
+                <p><strong>Click to upload</strong> or drag and drop</p>
+                <p style="font-size: 0.875rem; color: #718096; margin-top: 5px;">JPG, PNG or WebP (max 5MB)</p>
+                <input type="file" id="photoUpload" accept="image/*" onchange="uploadPhoto()" />
+                <img id="photoPreview" class="preview-image" style="display: none;" />
+            </div>
+
+            <h3>Signature (for documents)</h3>
+            <div class="file-upload" onclick="document.getElementById('signatureUpload').click()">
+                <div class="file-upload-icon">✍️</div>
+                <p><strong>Click to upload</strong> or drag and drop</p>
+                <p style="font-size: 0.875rem; color: #718096; margin-top: 5px;">Transparent PNG recommended (max 2MB)</p>
+                <input type="file" id="signatureUpload" accept="image/*" onchange="uploadSignature()" />
+                <img id="signaturePreview" class="preview-image" style="display: none;" />
+            </div>
+        </div>
+
+        <!-- Client Portal Message -->
+        <div class="card">
+            <h2>Client Portal Welcome Message</h2>
+
+            <div class="form-group">
+                <label>Welcome Message</label>
+                <textarea id="welcomeMessage" rows="4" placeholder="Welcome! I'm excited to help you with your tax needs this year..."></textarea>
+                <small>This message appears when clients first access their portal</small>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div style="display: flex; gap: 15px; margin-bottom: 40px;">
+            <button class="btn btn-primary" onclick="saveBranding()">💾 Save Changes</button>
+            <button class="btn btn-secondary" onclick="resetBranding()">🔄 Reset to Defaults</button>
+        </div>
+    </div>
+
+    <script>
+        let credentials = [];
+        let specializations = [];
+
+        // Load existing branding on page load
+        window.addEventListener('DOMContentLoaded', loadBranding);
+
+        async function loadBranding() {
+            try {
+                const response = await fetch('/api/cpa/branding/my-branding');
+                if (response.ok) {
+                    const branding = await response.json();
+
+                    document.getElementById('displayName').value = branding.display_name || '';
+                    document.getElementById('tagline').value = branding.tagline || '';
+                    document.getElementById('bio').value = branding.bio || '';
+                    document.getElementById('directEmail').value = branding.direct_email || '';
+                    document.getElementById('directPhone').value = branding.direct_phone || '';
+                    document.getElementById('officeAddress').value = branding.office_address || '';
+                    document.getElementById('yearsExperience').value = branding.years_experience || '';
+                    document.getElementById('welcomeMessage').value = branding.welcome_message || '';
+
+                    if (branding.accent_color) {
+                        document.getElementById('accentColor').value = branding.accent_color;
+                        document.getElementById('accentColorText').value = branding.accent_color;
+                    }
+
+                    credentials = branding.credentials || [];
+                    specializations = branding.specializations || [];
+
+                    if (branding.profile_photo_url) {
+                        document.getElementById('photoPreview').src = branding.profile_photo_url;
+                        document.getElementById('photoPreview').style.display = 'block';
+                    }
+
+                    if (branding.signature_image_url) {
+                        document.getElementById('signaturePreview').src = branding.signature_image_url;
+                        document.getElementById('signaturePreview').style.display = 'block';
+                    }
+
+                    renderCredentials();
+                    renderSpecializations();
+                    updatePreview();
+                }
+            } catch (error) {
+                console.error('Failed to load branding:', error);
+            }
+        }
+
+        function updatePreview() {
+            const displayName = document.getElementById('displayName').value || 'Your Name, CPA';
+            const tagline = document.getElementById('tagline').value || 'Your Professional Tagline';
+            const bio = document.getElementById('bio').value || 'Your professional biography will appear here.';
+
+            document.getElementById('previewDisplayName').textContent = displayName;
+            document.getElementById('previewTagline').textContent = tagline;
+            document.getElementById('previewBio').textContent = bio;
+
+            // Update preview photo
+            const photoPreview = document.getElementById('photoPreview');
+            const previewPhotoImg = document.getElementById('previewPhotoImg');
+            const previewInitials = document.getElementById('previewInitials');
+
+            if (photoPreview.style.display !== 'none') {
+                previewPhotoImg.src = photoPreview.src;
+                previewPhotoImg.style.display = 'block';
+                previewInitials.style.display = 'none';
+            } else {
+                const initials = displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                previewInitials.textContent = initials;
+            }
+
+            // Update preview credentials
+            const previewCredentials = document.getElementById('previewCredentials');
+            previewCredentials.innerHTML = credentials.map(c => `
+                <div class="credential-tag">${c}</div>
+            `).join('');
+        }
+
+        function addCredential() {
+            const input = document.getElementById('newCredential');
+            const value = input.value.trim();
+
+            if (value && !credentials.includes(value)) {
+                credentials.push(value);
+                input.value = '';
+                renderCredentials();
+                updatePreview();
+            }
+        }
+
+        function removeCredential(credential) {
+            credentials = credentials.filter(c => c !== credential);
+            renderCredentials();
+            updatePreview();
+        }
+
+        function renderCredentials() {
+            const list = document.getElementById('credentialsList');
+            list.innerHTML = credentials.map(c => `
+                <div class="credential-tag">
+                    ${c}
+                    <button onclick="removeCredential('${c}')">&times;</button>
+                </div>
+            `).join('');
+        }
+
+        function addSpecialization() {
+            const select = document.getElementById('specializationSelect');
+            const value = select.value;
+
+            if (value && !specializations.includes(value)) {
+                specializations.push(value);
+                select.value = '';
+                renderSpecializations();
+            }
+        }
+
+        function removeSpecialization(spec) {
+            specializations = specializations.filter(s => s !== spec);
+            renderSpecializations();
+        }
+
+        function renderSpecializations() {
+            const list = document.getElementById('specializationsList');
+            list.innerHTML = specializations.map(s => `
+                <div class="credential-tag">
+                    ${s}
+                    <button onclick="removeSpecialization('${s}')">&times;</button>
+                </div>
+            `).join('');
+        }
+
+        function updateAccentColor() {
+            const color = document.getElementById('accentColor').value;
+            document.getElementById('accentColorText').value = color;
+        }
+
+        function updateAccentColorFromText() {
+            const color = document.getElementById('accentColorText').value;
+            document.getElementById('accentColor').value = color;
+        }
+
+        async function uploadPhoto() {
+            const file = document.getElementById('photoUpload').files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/cpa/branding/my-branding/profile-photo', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('photoPreview').src = data.url;
+                    document.getElementById('photoPreview').style.display = 'block';
+                    updatePreview();
+                    showAlert('Profile photo uploaded successfully!', 'success');
+                } else {
+                    showAlert('Failed to upload photo', 'error');
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                showAlert('Error uploading photo', 'error');
+            }
+        }
+
+        async function uploadSignature() {
+            const file = document.getElementById('signatureUpload').files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/cpa/branding/my-branding/signature', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('signaturePreview').src = data.url;
+                    document.getElementById('signaturePreview').style.display = 'block';
+                    showAlert('Signature uploaded successfully!', 'success');
+                } else {
+                    showAlert('Failed to upload signature', 'error');
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                showAlert('Error uploading signature', 'error');
+            }
+        }
+
+        async function saveBranding() {
+            try {
+                const response = await fetch('/api/cpa/branding/my-branding', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        display_name: document.getElementById('displayName').value,
+                        tagline: document.getElementById('tagline').value,
+                        bio: document.getElementById('bio').value,
+                        direct_email: document.getElementById('directEmail').value,
+                        direct_phone: document.getElementById('directPhone').value,
+                        office_address: document.getElementById('officeAddress').value,
+                        credentials: credentials,
+                        years_experience: parseInt(document.getElementById('yearsExperience').value) || null,
+                        specializations: specializations,
+                        welcome_message: document.getElementById('welcomeMessage').value,
+                        accent_color: document.getElementById('accentColorText').value,
+                    })
+                });
+
+                if (response.ok) {
+                    showAlert('Branding saved successfully!', 'success');
+                } else {
+                    showAlert('Failed to save branding', 'error');
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                showAlert('Error saving branding', 'error');
+            }
+        }
+
+        async function resetBranding() {
+            if (!confirm('Are you sure you want to reset all branding to defaults?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/cpa/branding/my-branding', {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showAlert('Branding reset successfully!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showAlert('Failed to reset branding', 'error');
+                }
+            } catch (error) {
+                console.error('Reset error:', error);
+                showAlert('Error resetting branding', 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-info';
+
+            alertContainer.innerHTML = `
+                <div class="alert ${alertClass}">
+                    ${message}
+                </div>
+            `;
+
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

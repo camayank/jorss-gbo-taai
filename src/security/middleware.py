@@ -53,10 +53,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         """Default Content-Security-Policy."""
         return "; ".join([
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline'",  # Allow inline scripts for templates
-            "style-src 'self' 'unsafe-inline'",   # Allow inline styles
+            "script-src 'self' 'unsafe-inline' https://unpkg.com",  # Allow CDN scripts
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",  # Allow Google Fonts
             "img-src 'self' data: https:",
-            "font-src 'self' https:",
+            "font-src 'self' https: https://fonts.gstatic.com",  # Allow Google Fonts
             "connect-src 'self'",
             "frame-ancestors 'none'",
             "base-uri 'self'",

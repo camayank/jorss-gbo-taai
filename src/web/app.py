@@ -18,6 +18,7 @@ Routes:
 import os
 import uuid
 import traceback
+import threading
 from typing import Dict, Optional, List, Any
 from datetime import datetime
 from enum import Enum
@@ -56,6 +57,12 @@ from security.middleware import (
     RateLimitMiddleware,
     RequestValidationMiddleware,
     CSRFMiddleware,
+)
+from security.auth_decorators import (
+    require_auth,
+    require_session_owner,
+    rate_limit,
+    Role,
 )
 
 # =============================================================================
@@ -128,6 +135,8 @@ try:
             "/api/webhook",
             "/api/chat",  # Uses Bearer auth
             "/api/sessions/check-active",  # Read-only
+            "/api/validate/fields",  # Field validation
+            "/api/v1/",  # REST API endpoints (use Bearer auth in production)
         }
     )
     logger.info("CSRF protection middleware enabled")
@@ -284,6 +293,14 @@ try:
 except ImportError as e:
     logger.warning(f"Smart Tax API not available: {e}")
 
+# Unified Filing API (Express Lane, Smart Tax, AI Chat, Guided workflows)
+try:
+    from web.unified_filing_api import router as unified_filing_router
+    app.include_router(unified_filing_router)
+    logger.info("Unified Filing API enabled at /api/filing")
+except ImportError as e:
+    logger.warning(f"Unified Filing API not available: {e}")
+
 # Session Management API (Phase 2.2: Session endpoints for resume, transfer, etc.)
 try:
     from web.sessions_api import router as sessions_router
@@ -299,6 +316,70 @@ try:
     logger.info("Auto-Save API enabled at /api/auto-save")
 except ImportError as e:
     logger.warning(f"Auto-Save API not available: {e}")
+
+# Register Advisory Reports API
+try:
+    from web.advisory_api import router as advisory_router
+    app.include_router(advisory_router)
+    logger.info("Advisory Reports API enabled at /api/v1/advisory-reports")
+except ImportError as e:
+    logger.warning(f"Advisory Reports API not available: {e}")
+
+# Register Audit Trail API (Compliance logging for all data changes)
+try:
+    from web.audit_api import router as audit_router
+    app.include_router(audit_router)
+    logger.info("Audit Trail API enabled at /api/v1/audit")
+except ImportError as e:
+    logger.warning(f"Audit Trail API not available: {e}")
+
+# Register Capital Gains / Form 8949 API
+try:
+    from web.capital_gains_api import router as capital_gains_router
+    app.include_router(capital_gains_router)
+    logger.info("Capital Gains API enabled at /api/v1/capital-gains")
+except ImportError as e:
+    logger.warning(f"Capital Gains API not available: {e}")
+
+# Register K-1 Basis Tracking API
+try:
+    from web.k1_basis_api import router as k1_basis_router
+    app.include_router(k1_basis_router)
+    logger.info("K-1 Basis Tracking API enabled at /api/v1/k1-basis")
+except ImportError as e:
+    logger.warning(f"K-1 Basis Tracking API not available: {e}")
+
+# Register Rental Property Depreciation API
+try:
+    from web.rental_depreciation_api import router as rental_depreciation_router
+    app.include_router(rental_depreciation_router)
+    logger.info("Rental Depreciation API enabled at /api/v1/rental-depreciation")
+except ImportError as e:
+    logger.warning(f"Rental Depreciation API not available: {e}")
+
+# Register Draft Forms PDF API
+try:
+    from web.draft_forms_api import router as draft_forms_router
+    app.include_router(draft_forms_router)
+    logger.info("Draft Forms API enabled at /api/v1/draft-forms")
+except ImportError as e:
+    logger.warning(f"Draft Forms API not available: {e}")
+
+# Register Unified Tax Advisor API - THE CORE INTELLIGENCE
+try:
+    from web.unified_advisor_api import router as unified_advisor_router
+    app.include_router(unified_advisor_router)
+    logger.info("Unified Tax Advisor API enabled at /api/v1/advisor")
+except ImportError as e:
+    logger.warning(f"Unified Tax Advisor API not available: {e}")
+
+# Register AI Chat API
+try:
+    from web.ai_chat_api import router as ai_chat_router
+    app.include_router(ai_chat_router)
+    logger.info("AI Chat API enabled at /api/ai-chat")
+except ImportError as e:
+    logger.warning(f"AI Chat API not available: {e}")
 
 
 # =============================================================================
@@ -558,6 +639,7 @@ _document_processor = DocumentProcessor()
 # In-memory document tracking (for tests and quick lookups)
 # Note: Production document data is also stored via persistence layer
 _DOCUMENTS: Dict[str, Dict[str, Any]] = {}
+_DOCUMENTS_LOCK = threading.Lock()  # Prevent race conditions on concurrent access
 
 # =============================================================================
 # AUDIT TRAIL MANAGEMENT - CPA COMPLIANCE REQUIREMENT
@@ -829,41 +911,24 @@ def index(request: Request):
 
 
 @app.get("/file", response_class=HTMLResponse)
-def unified_filing(request: Request):
+def intelligent_tax_advisor(request: Request):
     """
-    Unified filing interface - single entry point for all authenticated clients.
+    Intelligent Conversational Tax Advisory Platform
 
-    This route serves the same comprehensive tax filing interface as /.
-    Supports multiple workflow modes via query parameters:
-    - ?mode=smart (smart tax flow with intelligent routing)
-    - ?mode=express (document upload first, OCR-driven)
-    - ?mode=chat (AI conversational interface)
+    Premium individual tax advisory interface with AI-powered guidance.
+    Positioning: Individual tax advisory (NOT tax filing).
 
-    Benefits of having both / and /file:
-    - Fixes broken /smart-tax redirect chain
-    - Explicit URL for tax filing functionality
-    - No breaking changes for existing bookmarks to /
-    - Clear semantic meaning in URL structure
+    Features:
+    - AI-powered conversational interface (CPA-level expertise)
+    - Document upload with intelligent OCR analysis
+    - Real-time strategic tax insights and recommendations
+    - Futuristic 2050 design aesthetic
+    - Warm, professional CPA client relations approach
+
+    The platform positions tax advisory as the primary service,
+    with tax filing available as a secondary service later.
     """
-    from src.config.branding import get_branding_config
-    branding = get_branding_config()
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "branding": {
-            "platform_name": branding.platform_name,
-            "company_name": branding.company_name,
-            "tagline": branding.tagline,
-            "firm_credentials": branding.firm_credentials,
-            "primary_color": branding.primary_color,
-            "secondary_color": branding.secondary_color,
-            "accent_color": branding.accent_color,
-            "logo_url": branding.logo_url,
-            "support_email": branding.support_email,
-            "support_phone": branding.support_phone,
-            "security_claim": branding.security_claim,
-            "review_claim": branding.review_claim,
-        }
-    })
+    return templates.TemplateResponse("intelligent_advisor.html", {"request": request})
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
@@ -903,6 +968,12 @@ def client_portal(request: Request):
     """
     logger.info("Client accessing platform - redirecting to /file")
     return RedirectResponse(url="/file", status_code=302)
+
+
+@app.get("/advisory-report-preview", response_class=HTMLResponse)
+async def advisory_report_preview(request: Request):
+    """Serve advisory report preview page."""
+    return templates.TemplateResponse("advisory_report_preview.html", {"request": request})
 
 
 @app.get("/test-auth", response_class=HTMLResponse)
@@ -948,6 +1019,28 @@ def system_hub(request: Request):
     - Complete API reference
     """
     return templates.TemplateResponse("system_hub.html", {"request": request})
+
+
+@app.get("/test-hub", response_class=HTMLResponse)
+@app.get("/testing-hub", response_class=HTMLResponse)
+def testing_hub(request: Request):
+    """
+    Platform Testing Hub - First-Level Validation Interface.
+
+    Provides structured testing interface with 3 user flows:
+    - Flow 1: Individual Taxpayer (W-2, $75k, married, 2 kids)
+    - Flow 2: Business Owner (S-Corp, $150k, home office)
+    - Flow 3: High-Income Professional ($250k, tax planning)
+
+    Each flow includes:
+    - Pre-defined test scenarios
+    - Expected results and metrics
+    - Success criteria validation
+    - Automated data population
+
+    Access: http://127.0.0.1:8000/test-hub
+    """
+    return templates.TemplateResponse("test_hub.html", {"request": request})
 
 
 @app.get("/smart-tax", response_class=HTMLResponse)
@@ -1087,9 +1180,33 @@ def filing_results(request: Request, session_id: str = None):
 
 @app.post("/api/chat")
 async def chat(request: Request, response: Response):
+    from security.validation import sanitize_string
+
     body = await request.json()
-    user_message = (body.get("message") or "").strip()
-    action = (body.get("action") or "message").strip().lower()
+
+    # Validate and sanitize user message
+    user_message_raw = body.get("message", "")
+    if not isinstance(user_message_raw, str):
+        return JSONResponse(
+            {"error": "Invalid message format"},
+            status_code=400
+        )
+
+    # Sanitize message (prevent XSS, limit length)
+    user_message = sanitize_string(user_message_raw, max_length=5000, allow_newlines=True)
+
+    # Validate action
+    action_raw = body.get("action", "message")
+    if not isinstance(action_raw, str):
+        return JSONResponse(
+            {"error": "Invalid action format"},
+            status_code=400
+        )
+
+    action = sanitize_string(action_raw, max_length=50).lower()
+    valid_actions = {"message", "reset", "summary", "calculate"}
+    if action not in valid_actions:
+        action = "message"
 
     session_id = request.cookies.get("tax_session_id")
     session_id, agent = _get_or_create_session_agent(session_id)
@@ -1131,7 +1248,7 @@ async def chat(request: Request, response: Response):
         _calculator.calculate_complete_return(tax_return)
         return JSONResponse({"reply": _forms.generate_summary(tax_return)})
 
-    if not user_message:
+    if not user_message or len(user_message.strip()) == 0:
         return JSONResponse({"reply": "Please type a message."})
 
     reply = agent.process_message(user_message)
@@ -1168,6 +1285,8 @@ def _get_or_create_session_id(request: Request) -> str:
 
 
 @app.post("/api/upload")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
+@rate_limit(requests_per_minute=10)
 async def upload_document(
     request: Request,
     file: UploadFile = File(...),
@@ -1257,6 +1376,8 @@ async def upload_document(
 # =============================================================================
 
 @app.post("/api/upload/async")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
+@rate_limit(requests_per_minute=10)
 async def upload_document_async(
     request: Request,
     file: UploadFile = File(...),
@@ -1459,8 +1580,13 @@ async def get_document_processing_status(document_id: str, request: Request):
     persistence = _get_persistence()
 
     # Check in-memory store first (for tests and quick lookups)
-    if document_id in _DOCUMENTS:
-        doc_data = _DOCUMENTS[document_id]
+    # Use lock to prevent race conditions on concurrent access
+    with _DOCUMENTS_LOCK:
+        if document_id in _DOCUMENTS:
+            doc_data = _DOCUMENTS[document_id].copy()  # Copy to release lock quickly
+
+    # Process outside lock to minimize lock duration
+    if 'doc_data' in locals():
         doc_session_id = doc_data.get("session_id")
 
         # Verify session ownership
@@ -1867,6 +1993,7 @@ async def apply_document(document_id: str, request: Request):
 
 
 @app.delete("/api/documents/{document_id}")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
 async def delete_document(document_id: str, request: Request):
     """Delete an uploaded document."""
     session_id = request.cookies.get("tax_session_id") or ""
@@ -2176,6 +2303,7 @@ async def migration_status():
 # =============================================================================
 
 @app.post("/api/optimize")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
 async def get_optimization_recommendations(request: Request):
     """
     Get comprehensive tax optimization recommendations.
@@ -2202,6 +2330,7 @@ async def get_optimization_recommendations(request: Request):
 
 
 @app.post("/api/optimize/filing-status")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
 async def compare_filing_statuses(request: Request):
     """
     Compare tax liability across all 5 filing statuses.
@@ -2366,6 +2495,7 @@ async def analyze_deductions(request: Request):
 
 
 @app.post("/api/calculate/complete")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
 async def calculate_complete_return(request: Request):
     """
     Calculate complete federal and state tax return.
@@ -3042,6 +3172,7 @@ async def health_check():
 # =============================================================================
 
 @app.post("/api/returns/save")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
 async def save_tax_return(request: Request):
     """
     Save the current tax return to database.
@@ -3271,6 +3402,7 @@ async def list_saved_returns(tax_year: int = 2025, limit: int = 50):
 
 
 @app.delete("/api/returns/{return_id}")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.ADMIN])
 async def delete_saved_return(return_id: str):
     """Delete a saved tax return."""
     from database.persistence import get_persistence
@@ -3406,6 +3538,8 @@ async def submit_return_for_review(session_id: str, request: Request):
 
 
 @app.post("/api/returns/{session_id}/approve")
+@require_auth(roles=[Role.CPA])
+@require_session_owner(session_param="session_id")
 async def approve_return(session_id: str, request: Request):
     """
     CPA sign-off on a return.
@@ -5012,6 +5146,7 @@ async def calculate_scenario(scenario_id: str, request: Request):
 
 
 @app.delete("/api/scenarios/{scenario_id}")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
 async def delete_scenario(scenario_id: str, request: Request):
     """
     Delete a scenario.
@@ -5763,4 +5898,74 @@ async def dismiss_smart_insight(insight_id: str, request: Request):
         "insight_id": insight_id,
         "message": "Insight dismissed"
     })
+
+
+
+# ============================================================================
+# BRAND NEW URL - TAX ADVISORY PORTAL (Zero Cache Issues)
+# ============================================================================
+@app.get("/tax-advisory", response_class=HTMLResponse)
+@app.get("/advisory", response_class=HTMLResponse)  
+@app.get("/start", response_class=HTMLResponse)
+@app.get("/analysis", response_class=HTMLResponse)
+def new_tax_advisory_portal(request: Request):
+    """
+    BRAND NEW URL - Tax Advisory Platform Entry Point
+    
+    Fresh URLs with zero browser cache - serves the comprehensive tax advisory interface.
+    
+    Available URLs (all serve the same new interface):
+    - /tax-advisory
+    - /advisory
+    - /start
+    - /analysis
+    
+    Features:
+    - Professional CPA-grade tax analysis
+    - AI-powered conversational data collection (OpenAI integration)
+    - OCR document extraction for express filing
+    - Entity structure comparison (LLC/S-Corp/C-Corp)
+    - Multi-year tax projections (3-5 years)
+    - Strategic tax reduction recommendations
+    - Professional PDF advisory report (20-40 pages)
+    
+    This is the NEW entry point with modern UI/UX and advisory messaging.
+    """
+    from src.config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "branding": {
+            "platform_name": branding.platform_name,
+            "company_name": branding.company_name,
+            "tagline": branding.tagline,
+            "firm_credentials": branding.firm_credentials,
+            "primary_color": branding.primary_color,
+            "secondary_color": branding.secondary_color,
+            "accent_color": branding.accent_color,
+            "logo_url": branding.logo_url,
+            "favicon_url": branding.favicon_url,
+            "support_email": branding.support_email,
+            "support_phone": branding.support_phone,
+            "website_url": branding.website_url,
+            "meta_description": branding.meta_description,
+        }
+    })
+
+
+
+@app.get("/simple", response_class=HTMLResponse)
+@app.get("/conversation", response_class=HTMLResponse)
+@app.get("/chat", response_class=HTMLResponse)
+def simple_conversational_interface(request: Request):
+    """
+    Simple Conversational Tax Advisory Interface
+
+    Clean, single-flow conversational interface with:
+    - AI chat as primary interface
+    - Document upload option
+    - Manual data entry fallback
+    - No bulky forms - everything conversational
+    """
+    return templates.TemplateResponse("simple_conversational.html", {"request": request})
 

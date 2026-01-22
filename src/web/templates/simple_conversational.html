@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tax Advisory - Conversational Platform</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Simple Header */
+    .header {
+      padding: 20px 40px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 20px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .header-right {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .status {
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    /* Main Conversational Area */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #f9fafb;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .messages {
+      flex: 1;
+      padding: 32px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .message {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .message.ai {
+      flex-direction: row;
+    }
+
+    .message.user {
+      flex-direction: row-reverse;
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .message.ai .avatar {
+      background: #dbeafe;
+    }
+
+    .message.user .avatar {
+      background: #dcfce7;
+    }
+
+    .bubble {
+      max-width: 600px;
+      padding: 16px 20px;
+      border-radius: 16px;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .message.ai .bubble {
+      background: white;
+      border: 1px solid #e5e7eb;
+      color: #111827;
+    }
+
+    .message.user .bubble {
+      background: #3b82f6;
+      color: white;
+    }
+
+    /* Input Area */
+    .input-area {
+      padding: 24px 32px;
+      background: white;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .input-box {
+      flex: 1;
+      display: flex;
+      gap: 12px;
+      background: #f3f4f6;
+      padding: 12px 20px;
+      border-radius: 24px;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .input-box:focus-within {
+      background: white;
+      border-color: #3b82f6;
+    }
+
+    #userInput {
+      flex: 1;
+      border: none;
+      background: none;
+      font-size: 16px;
+      color: #111827;
+      outline: none;
+    }
+
+    #userInput::placeholder {
+      color: #9ca3af;
+    }
+
+    .upload-btn {
+      background: none;
+      border: none;
+      color: #6b7280;
+      cursor: pointer;
+      font-size: 20px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+
+    .upload-btn:hover {
+      background: #e5e7eb;
+      color: #3b82f6;
+    }
+
+    .send-btn {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 20px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .send-btn:hover {
+      background: #2563eb;
+    }
+
+    .send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .quick-action {
+      background: white;
+      border: 2px solid #e5e7eb;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      color: #374151;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .quick-action:hover {
+      border-color: #3b82f6;
+      color: #3b82f6;
+      background: #eff6ff;
+    }
+
+    /* Typing Indicator */
+    .typing {
+      display: flex;
+      gap: 4px;
+      padding: 12px 16px;
+    }
+
+    .typing span {
+      width: 8px;
+      height: 8px;
+      background: #9ca3af;
+      border-radius: 50%;
+      animation: typing 1.4s infinite;
+    }
+
+    .typing span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes typing {
+      0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.7;
+      }
+      30% {
+        transform: translateY(-10px);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">Professional Tax Advisory</div>
+    <div class="header-right">
+      <div class="status">💬 AI Assistant Active</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="chat-container">
+      <div class="messages" id="messages">
+        <!-- Initial AI Message -->
+        <div class="message ai">
+          <div class="avatar">🤖</div>
+          <div class="bubble">
+            <strong>Hi! I'm your AI tax advisor.</strong><br><br>
+            I'll help you analyze your tax situation and create a comprehensive advisory report. Let's start with a simple question:<br><br>
+            <strong>Do you have your tax documents ready?</strong> (W-2, 1099s, etc.)
+            <div class="quick-actions">
+              <div class="quick-action" onclick="sendQuickReply('Yes, I have my documents')">Yes, I have documents</div>
+              <div class="quick-action" onclick="sendQuickReply('No, I want to chat first')">No, chat first</div>
+              <div class="quick-action" onclick="sendQuickReply('What documents do I need?')">What do I need?</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-area">
+        <div class="input-box">
+          <input
+            type="text"
+            id="userInput"
+            placeholder="Type your message..."
+            onkeypress="if(event.key==='Enter') sendMessage()"
+          />
+          <button class="upload-btn" onclick="uploadDocument()">📎</button>
+        </div>
+        <button class="send-btn" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let conversationState = {
+      hasDocuments: null,
+      filingStatus: null,
+      income: null,
+      step: 'initial'
+    };
+
+    function sendQuickReply(text) {
+      addMessage('user', text);
+      handleAIResponse(text);
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('userInput');
+      const text = input.value.trim();
+
+      if (!text) return;
+
+      addMessage('user', text);
+      input.value = '';
+
+      handleAIResponse(text);
+    }
+
+    function addMessage(type, text) {
+      const messages = document.getElementById('messages');
+
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${type}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar';
+      avatar.textContent = type === 'ai' ? '🤖' : '👤';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.innerHTML = text;
+
+      messageDiv.appendChild(avatar);
+      messageDiv.appendChild(bubble);
+      messages.appendChild(messageDiv);
+
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function showTyping() {
+      const messages = document.getElementById('messages');
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'message ai';
+      typingDiv.id = 'typing-indicator';
+      typingDiv.innerHTML = `
+        <div class="avatar">🤖</div>
+        <div class="bubble">
+          <div class="typing">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      `;
+      messages.appendChild(typingDiv);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function hideTyping() {
+      const typing = document.getElementById('typing-indicator');
+      if (typing) typing.remove();
+    }
+
+    async function handleAIResponse(userMessage) {
+      showTyping();
+
+      // Simulate AI thinking
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      hideTyping();
+
+      // Simple conversational logic
+      const lower = userMessage.toLowerCase();
+
+      if (lower.includes('yes') && lower.includes('document')) {
+        conversationState.hasDocuments = true;
+        addMessage('ai', `Great! You can upload your documents here, and I'll extract the information automatically.<br><br><strong>What would you like to upload first?</strong><div class="quick-actions"><div class="quick-action" onclick="uploadDocument()">📄 Upload W-2</div><div class="quick-action" onclick="uploadDocument()">📄 Upload 1099</div><div class="quick-action" onclick="sendQuickReply('I want to enter manually')">✏️ Enter manually</div></div>`);
+      } else if (lower.includes('no') || lower.includes('chat first')) {
+        conversationState.hasDocuments = false;
+        addMessage('ai', `No problem! Let's start with some basic questions.<br><br><strong>What's your filing status?</strong><div class="quick-actions"><div class="quick-action" onclick="sendQuickReply('Single')">Single</div><div class="quick-action" onclick="sendQuickReply('Married Filing Jointly')">Married Filing Jointly</div><div class="quick-action" onclick="sendQuickReply('Head of Household')">Head of Household</div></div>`);
+      } else if (lower.includes('what') && lower.includes('need')) {
+        addMessage('ai', `Here's what you'll typically need:<br><br>📄 <strong>Income Documents:</strong><br>• W-2 from employers<br>• 1099 forms (interest, dividends, freelance)<br>• Business income records<br><br>📄 <strong>Deduction Records:</strong><br>• Mortgage interest statements<br>• Charitable donations<br>• Medical expenses<br><br><strong>Do you have some of these ready?</strong><div class="quick-actions"><div class="quick-action" onclick="sendQuickReply('Yes, I have them')">Yes</div><div class="quick-action" onclick="sendQuickReply('I will get them later')">Later</div></div>`);
+      } else if (lower.includes('single') || lower.includes('married') || lower.includes('head')) {
+        conversationState.filingStatus = userMessage;
+        addMessage('ai', `Perfect! Filing as <strong>${userMessage}</strong>.<br><br>Now, let's talk about your income. <strong>What's your approximate annual income?</strong><div class="quick-actions"><div class="quick-action" onclick="sendQuickReply('Under $50,000')">Under $50K</div><div class="quick-action" onclick="sendQuickReply('$50,000 - $100,000')">$50K - $100K</div><div class="quick-action" onclick="sendQuickReply('Over $100,000')">Over $100K</div></div>`);
+      } else {
+        // Default response
+        addMessage('ai', `I understand. Let me help you with that.<br><br><strong>Would you like to:</strong><div class="quick-actions"><div class="quick-action" onclick="uploadDocument()">📤 Upload documents</div><div class="quick-action" onclick="sendQuickReply('Tell me about deductions')">💰 Learn about deductions</div><div class="quick-action" onclick="sendQuickReply('How does this work?')">❓ How it works</div></div>`);
+      }
+    }
+
+    function uploadDocument() {
+      alert('Document upload will open here (OCR integration)');
+    }
+
+    // Initialize
+    document.getElementById('userInput').focus();
+  </script>
+</body>
+</html>

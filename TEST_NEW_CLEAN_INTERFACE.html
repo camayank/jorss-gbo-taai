@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="2; url=http://127.0.0.1:8000/simple">
+    <title>Opening Clean Conversational Interface...</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .container {
+            text-align: center;
+            max-width: 700px;
+            padding: 60px 40px;
+        }
+        h1 {
+            font-size: 56px;
+            margin-bottom: 24px;
+            font-weight: 900;
+        }
+        p {
+            font-size: 24px;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+        .features {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 32px;
+            margin: 32px 0;
+            text-align: left;
+        }
+        .features h3 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .features ul {
+            list-style: none;
+            padding: 0;
+        }
+        .features li {
+            padding: 12px 0;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .features li:before {
+            content: "✓";
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 40px auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 16px 40px;
+            background: white;
+            color: #3b82f6;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 New Clean Interface</h1>
+        <p>Redirecting to conversational platform...</p>
+
+        <div class="features">
+            <h3>✨ What's New:</h3>
+            <ul>
+                <li>NO bulky forms - pure conversation</li>
+                <li>AI asks for documents first</li>
+                <li>Manual entry fallback if needed</li>
+                <li>Single unified flow</li>
+                <li>Clean, modern design</li>
+                <li>Quick action buttons</li>
+            </ul>
+        </div>
+
+        <div class="spinner"></div>
+
+        <a href="http://127.0.0.1:8000/simple">Click if not redirected →</a>
+
+        <div style="margin-top: 40px; font-size: 16px; opacity: 0.7;">
+            Available URLs:<br>
+            • http://127.0.0.1:8000/simple<br>
+            • http://127.0.0.1:8000/conversation<br>
+            • http://127.0.0.1:8000/chat
+        </div>
+    </div>
+</body>
+</html>

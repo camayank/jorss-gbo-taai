@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Simple Test - What Do You See?</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: white;
+            padding: 40px;
+            color: #111827;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 48px;
+            margin-bottom: 24px;
+            color: #111827;
+        }
+        .section {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 32px;
+            margin: 24px 0;
+        }
+        .section h2 {
+            font-size: 32px;
+            margin-bottom: 16px;
+            color: #1e40af;
+        }
+        .section p {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #374151;
+            margin-bottom: 16px;
+        }
+        .issue {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 20px;
+            margin: 16px 0;
+        }
+        .issue strong {
+            color: #991b1b;
+            display: block;
+            margin-bottom: 8px;
+        }
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 16px;
+            font-size: 16px;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            font-family: inherit;
+            resize: vertical;
+        }
+        button {
+            padding: 16px 32px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .test-links {
+            display: grid;
+            gap: 16px;
+            margin-top: 32px;
+        }
+        .test-link {
+            display: block;
+            padding: 24px;
+            background: white;
+            border: 3px solid #3b82f6;
+            border-radius: 12px;
+            text-decoration: none;
+            color: #1e40af;
+            font-size: 20px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .test-link:hover {
+            background: #eff6ff;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Diagnostic Page</h1>
+
+        <div class="section">
+            <h2>Tell Me What You See</h2>
+            <p>Please describe exactly what appears when you open the platform URL. This will help me fix the issue.</p>
+
+            <div class="issue">
+                <strong>Current Issues You Mentioned:</strong>
+                1. "It is horrible"<br>
+                2. "It is a container screen with purple page"<br>
+                3. "Now it is opening as a popup"<br>
+                4. "Some serious coding issues on UI"
+            </div>
+
+            <p><strong>What I need to know:</strong></p>
+            <textarea id="description" placeholder="Please describe:
+1. What colors do you see? (Purple? Blue? White?)
+2. What text appears on screen?
+3. Is there a form visible?
+4. Is there a modal/popup overlay?
+5. Can you click anything?
+6. Does anything look broken or misaligned?
+7. What should you see instead?
+
+Example: 'I see a purple gradient background with a white box in the center. The box says...'"></textarea>
+        </div>
+
+        <div class="section">
+            <h2>Test These URLs</h2>
+            <p>Click each link below and tell me what happens:</p>
+
+            <div class="test-links">
+                <a href="http://127.0.0.1:8000/tax-advisory" class="test-link" target="_blank">
+                    🔗 Test 1: /tax-advisory
+                </a>
+                <a href="http://127.0.0.1:8000/advisory" class="test-link" target="_blank">
+                    🔗 Test 2: /advisory
+                </a>
+                <a href="http://127.0.0.1:8000/file" class="test-link" target="_blank">
+                    🔗 Test 3: /file
+                </a>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>What Should You See (Expected)</h2>
+            <p><strong>Header at top:</strong></p>
+            <ul style="list-style: none; padding: 0; margin: 16px 0;">
+                <li>✅ "Professional Tax Advisory" logo/text on left</li>
+                <li>✅ Trust badges in center: "CPA-Grade Analysis | 100% Confidential | Comprehensive Analysis"</li>
+                <li>✅ "All changes saved" and help button on right</li>
+            </ul>
+
+            <p><strong>Main content:</strong></p>
+            <ul style="list-style: none; padding: 0; margin: 16px 0;">
+                <li>✅ Clean WHITE background (not purple)</li>
+                <li>✅ Full-width form with step indicator</li>
+                <li>✅ Blue colors (#3b82f6) - NOT purple</li>
+                <li>✅ "About You" section visible</li>
+            </ul>
+
+            <p><strong>What you should NOT see:</strong></p>
+            <ul style="list-style: none; padding: 0; margin: 16px 0;">
+                <li>❌ Purple gradient background</li>
+                <li>❌ Centered container/box</li>
+                <li>❌ "Your CPA Firm" text</li>
+                <li>❌ "IRS Certified" badge</li>
+                <li>❌ Welcome modal popup (I disabled it)</li>
+            </ul>
+        </div>
+
+        <div class="section" style="background: #dcfce7; border-color: #10b981;">
+            <h2>✅ What I Fixed</h2>
+            <p>
+                1. ✅ Changed branding from "Your CPA Firm" to "Professional Tax Advisory"<br>
+                2. ✅ Removed purple colors (#667eea, #764ba2)<br>
+                3. ✅ Fixed Content Security Policy (allowed external scripts)<br>
+                4. ✅ Fixed JavaScript errors<br>
+                5. ✅ Changed header badges to advisory-focused<br>
+                6. ✅ Removed welcome modal popup<br>
+                7. ✅ Server restarted with all changes
+            </p>
+        </div>
+
+        <div class="section" style="background: #fef3c7; border-color: #f59e0b;">
+            <h2>⚠️ If Still Seeing Old Version</h2>
+            <p><strong>Try these steps in order:</strong></p>
+            <ol style="margin: 16px 0; padding-left: 24px; line-height: 2;">
+                <li><strong>Close ALL browser tabs</strong> with localhost/127.0.0.1</li>
+                <li><strong>Quit browser completely</strong> (Command+Q on Mac, not just close window)</li>
+                <li><strong>Reopen browser in Incognito/Private mode</strong>:
+                    <ul style="margin-top: 8px;">
+                        <li>Chrome: Cmd+Shift+N or Ctrl+Shift+N</li>
+                        <li>Safari: Cmd+Shift+N</li>
+                        <li>Firefox: Cmd+Shift+P or Ctrl+Shift+P</li>
+                    </ul>
+                </li>
+                <li><strong>Paste URL</strong>: http://127.0.0.1:8000/tax-advisory</li>
+            </ol>
+        </div>
+
+        <div class="section">
+            <h2>📊 Server Status</h2>
+            <p>
+                <strong>Server Running:</strong> ✅ Yes<br>
+                <strong>Port:</strong> 8000<br>
+                <strong>Latest Changes:</strong> Deployed<br>
+                <strong>Log File:</strong> /tmp/server_direct.log
+            </p>
+        </div>
+    </div>
+</body>
+</html>

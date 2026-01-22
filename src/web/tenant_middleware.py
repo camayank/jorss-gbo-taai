@@ -1,165 +1,99 @@
 """
-Tenant Isolation Middleware.
+Tenant Resolution Middleware
 
-Provides tenant isolation without authentication (Prompt 7 compliance).
-Extracts X-Tenant-ID from request headers and attaches to request state
-for downstream data isolation.
+Automatically determines the tenant for each request based on:
+1. Custom domain (e.g., tax.yourfirm.com)
+2. Subdomain (e.g., yourfirm.taxplatform.com)
+3. URL parameter (e.g., ?tenant_id=xxx)
+4. Header (e.g., X-Tenant-ID)
+5. Default tenant
 
-This is NOT authentication. It's a trust-based isolation mechanism
-for separating data between different tenants (e.g., different CPA firms).
+Injects tenant branding into request state for template rendering.
 """
 
-import logging
-from typing import Optional, Callable
+from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-from starlette.responses import Response
+from typing import Optional
 
-logger = logging.getLogger(__name__)
-
-# Header name for tenant identification
-TENANT_HEADER = "X-Tenant-ID"
-
-# Default tenant for requests without header (e.g., browser-based)
-DEFAULT_TENANT = "default"
+from src.database.tenant_persistence import get_tenant_persistence
+from src.database.tenant_models import Tenant
 
 
-class TenantMiddleware(BaseHTTPMiddleware):
+class TenantResolutionMiddleware(BaseHTTPMiddleware):
     """
-    Middleware that extracts tenant ID from request headers.
-
-    Usage:
-        1. Requests with X-Tenant-ID header are scoped to that tenant
-        2. Requests without the header use 'default' tenant
-        3. Tenant ID is available via request.state.tenant_id
-
-    This provides data isolation without requiring authentication.
+    Middleware to resolve tenant from request and inject branding.
     """
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        """Extract tenant ID and attach to request state."""
-        # Extract tenant ID from header
-        tenant_id = request.headers.get(TENANT_HEADER, DEFAULT_TENANT)
+    def __init__(self, app, default_tenant_id: Optional[str] = None):
+        super().__init__(app)
+        self.default_tenant_id = default_tenant_id or "default"
+        self.persistence = get_tenant_persistence()
 
-        # Validate tenant ID format (basic sanitization)
-        tenant_id = self._sanitize_tenant_id(tenant_id)
+    async def dispatch(self, request: Request, call_next):
+        """Resolve tenant and inject into request state"""
 
-        # Attach to request state for downstream access
-        request.state.tenant_id = tenant_id
+        tenant = self._resolve_tenant(request)
 
-        # Log tenant access (for audit purposes)
-        logger.debug(f"Request tenant: {tenant_id} - {request.method} {request.url.path}")
+        # Inject tenant into request state
+        request.state.tenant = tenant
+        request.state.tenant_id = tenant.tenant_id if tenant else None
 
-        # Continue with request
+        # Inject branding into request state for templates
+        if tenant:
+            request.state.branding = self._tenant_branding_to_dict(tenant)
+        else:
+            # Use default branding from environment
+            from src.config.branding import get_branding_config
+            request.state.branding = get_branding_config().to_dict()
+
         response = await call_next(request)
-
-        # Include tenant ID in response headers for debugging
-        response.headers["X-Tenant-ID"] = tenant_id
-
         return response
 
-    def _sanitize_tenant_id(self, tenant_id: str) -> str:
-        """
-        Sanitize tenant ID to prevent injection attacks.
+    def _resolve_tenant(self, request: Request) -> Optional[Tenant]:
+        """Resolve tenant from request"""
 
-        Only allows alphanumeric characters, hyphens, and underscores.
-        Max length 64 characters.
-        """
-        if not tenant_id:
-            return DEFAULT_TENANT
+        # Strategy 1: URL parameter
+        tenant_id = request.query_params.get('tenant_id')
+        if tenant_id:
+            tenant = self.persistence.get_tenant(tenant_id)
+            if tenant:
+                return tenant
 
-        # Strip whitespace
-        tenant_id = tenant_id.strip()
+        # Strategy 2: Header
+        tenant_id = request.headers.get('X-Tenant-ID')
+        if tenant_id:
+            tenant = self.persistence.get_tenant(tenant_id)
+            if tenant:
+                return tenant
 
-        # Limit length
-        if len(tenant_id) > 64:
-            tenant_id = tenant_id[:64]
+        # Strategy 3: Custom domain
+        host = request.headers.get('host', '').split(':')[0]
+        if host:
+            tenant = self.persistence.get_tenant_by_domain(host)
+            if tenant:
+                return tenant
 
-        # Only allow safe characters
-        safe_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_")
-        if not all(c in safe_chars for c in tenant_id):
-            logger.warning(f"Invalid tenant ID format, using default: {tenant_id}")
-            return DEFAULT_TENANT
+        # Strategy 5: Default tenant
+        if self.default_tenant_id:
+            tenant = self.persistence.get_tenant(self.default_tenant_id)
+            if tenant:
+                return tenant
 
-        return tenant_id
+        return None
 
-
-def get_tenant_id(request: Request) -> str:
-    """
-    Get the tenant ID from request state.
-
-    Args:
-        request: The FastAPI/Starlette request object
-
-    Returns:
-        The tenant ID (default if not set)
-    """
-    return getattr(request.state, 'tenant_id', DEFAULT_TENANT)
-
-
-def require_tenant(request: Request) -> str:
-    """
-    Get tenant ID, raising error if not set.
-
-    Use this in endpoints that REQUIRE tenant isolation.
-
-    Args:
-        request: The FastAPI/Starlette request object
-
-    Returns:
-        The tenant ID
-
-    Raises:
-        ValueError: If tenant ID is not set or is default
-    """
-    tenant_id = get_tenant_id(request)
-    if tenant_id == DEFAULT_TENANT:
-        raise ValueError("Tenant ID required but not provided")
-    return tenant_id
+    def _tenant_branding_to_dict(self, tenant: Tenant) -> dict:
+        """Convert tenant branding to dictionary"""
+        branding = tenant.branding.to_dict()
+        branding['tenant_id'] = tenant.tenant_id
+        branding['features'] = tenant.features.to_dict()
+        return branding
 
 
-class TenantScope:
-    """
-    Context manager for tenant-scoped operations.
-
-    Usage:
-        with TenantScope(request) as tenant_id:
-            # Operations here are scoped to tenant_id
-            data = load_data(tenant_id=tenant_id)
-    """
-
-    def __init__(self, request: Request):
-        self.request = request
-        self.tenant_id = get_tenant_id(request)
-
-    def __enter__(self) -> str:
-        return self.tenant_id
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
+def get_tenant_from_request(request: Request) -> Optional[Tenant]:
+    """Get tenant from request state"""
+    return getattr(request.state, 'tenant', None)
 
 
-def tenant_filter(tenant_id: str):
-    """
-    Create a filter function for tenant-scoped data.
-
-    Usage:
-        records = [r for r in all_records if tenant_filter(tenant_id)(r)]
-
-    Args:
-        tenant_id: The tenant ID to filter by
-
-    Returns:
-        Filter function that checks if record belongs to tenant
-    """
-    def _filter(record) -> bool:
-        # Handle dict records
-        if isinstance(record, dict):
-            record_tenant = record.get('tenant_id', DEFAULT_TENANT)
-            return record_tenant == tenant_id or record_tenant == DEFAULT_TENANT
-
-        # Handle object records
-        record_tenant = getattr(record, 'tenant_id', DEFAULT_TENANT)
-        return record_tenant == tenant_id or record_tenant == DEFAULT_TENANT
-
-    return _filter
+def get_tenant_branding(request: Request) -> dict:
+    """Get branding from request state"""
+    return getattr(request.state, 'branding', {})

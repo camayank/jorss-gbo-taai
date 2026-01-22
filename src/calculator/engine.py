@@ -2,10 +2,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List
+from decimal import Decimal
 
 from models.tax_return import TaxReturn
 from calculator.tax_year_config import TaxYearConfig
 from calculator.qbi_calculator import QBICalculator
+from calculator.decimal_math import (
+    add, subtract, multiply, divide, min_decimal, max_decimal, money, to_decimal, to_float
+)
 from validation.dependent_validator import (
     DependentValidator,
     validate_all_dependents,
@@ -491,7 +495,7 @@ class FederalTaxEngine:
             filing_status=filing_status,
             config=self.config,
         )
-        breakdown.qbi_deduction = qbi_result.final_qbi_deduction
+        breakdown.qbi_deduction = float(qbi_result.final_qbi_deduction)
 
         # Adjust taxable income for QBI deduction
         breakdown.taxable_income = max(0, breakdown.taxable_income - breakdown.qbi_deduction)
@@ -1380,30 +1384,33 @@ class FederalTaxEngine:
 
         # ============================================
         # Fall back to individual field calculation
+        # Use Decimal for precision in AMT calculations
         # ============================================
-        exemption_base = self.config.amt_exemption.get(filing_status, 88100.0)
-        phaseout_start = self.config.amt_exemption_phaseout_start.get(filing_status, 626350.0) if self.config.amt_exemption_phaseout_start else 626350.0
-        threshold_28 = self.config.amt_28_threshold.get(filing_status, 232600.0) if self.config.amt_28_threshold else 232600.0
+        exemption_base = to_decimal(self.config.amt_exemption.get(filing_status, 88100.0))
+        phaseout_start = to_decimal(self.config.amt_exemption_phaseout_start.get(filing_status, 626350.0) if self.config.amt_exemption_phaseout_start else 626350.0)
+        threshold_28 = to_decimal(self.config.amt_28_threshold.get(filing_status, 232600.0) if self.config.amt_28_threshold else 232600.0)
 
-        result['exemption_base'] = exemption_base
+        result['exemption_base'] = to_float(exemption_base)
 
         # ============================================
         # Calculate AMTI (Alternative Minimum Taxable Income)
         # Start with taxable income and add back certain items
+        # Use Decimal for all calculations to avoid rounding errors
         # ============================================
-        amti = breakdown.taxable_income
+        amti = to_decimal(breakdown.taxable_income)
 
         # 1. SALT Addback (Form 6251 Line 2a) - if itemizing
-        salt_addback = 0.0
+        salt_addback = Decimal("0")
         if breakdown.deduction_type == "itemized" and hasattr(tax_return, 'deductions'):
             itemized = tax_return.deductions.itemized
-            salt_addback = min(
+            salt_total = to_decimal(
                 itemized.state_local_income_tax + itemized.state_local_sales_tax +
-                itemized.real_estate_tax + itemized.personal_property_tax,
-                self.config.salt_cap  # Already capped at $10k, but add full amount for AMT
+                itemized.real_estate_tax + itemized.personal_property_tax
             )
-            amti += salt_addback
-        result['salt_addback'] = salt_addback
+            salt_cap = to_decimal(self.config.salt_cap)
+            salt_addback = min_decimal(salt_total, salt_cap)
+            amti = add(amti, salt_addback)
+        result['salt_addback'] = to_float(salt_addback)
 
         # 2. Standard Deduction Addback (if used) - AMT doesn't allow standard deduction
         # But since we started with taxable income, we don't need to add it back
@@ -1411,92 +1418,112 @@ class FederalTaxEngine:
 
         # 3. ISO Exercise Spread (Form 6251 Line 2i)
         # The spread between exercise price and FMV on ISO exercise
-        iso_spread = getattr(income, 'amt_iso_exercise_spread', 0.0) or 0.0
-        amti += iso_spread
-        result['iso_exercise_spread'] = iso_spread
+        iso_spread = to_decimal(getattr(income, 'amt_iso_exercise_spread', 0.0) or 0.0)
+        amti = add(amti, iso_spread)
+        result['iso_exercise_spread'] = to_float(iso_spread)
 
         # 4. Private Activity Bond Interest (Form 6251 Line 2g)
         # Tax-exempt interest from private activity bonds is a preference item
-        pab_interest = getattr(income, 'amt_private_activity_bond_interest', 0.0) or 0.0
-        amti += pab_interest
-        result['private_activity_bond_interest'] = pab_interest
+        pab_interest = to_decimal(getattr(income, 'amt_private_activity_bond_interest', 0.0) or 0.0)
+        amti = add(amti, pab_interest)
+        result['private_activity_bond_interest'] = to_float(pab_interest)
 
         # 5. Depreciation Adjustment (Form 6251 Line 2a)
         # Difference between regular MACRS and AMT ADS depreciation
-        depreciation_adj = getattr(income, 'amt_depreciation_adjustment', 0.0) or 0.0
-        amti += depreciation_adj
-        result['depreciation_adjustment'] = depreciation_adj
+        depreciation_adj = to_decimal(getattr(income, 'amt_depreciation_adjustment', 0.0) or 0.0)
+        amti = add(amti, depreciation_adj)
+        result['depreciation_adjustment'] = to_float(depreciation_adj)
 
         # 6. Passive Activity Loss Adjustment (Form 6251 Line 2e)
-        passive_adj = getattr(income, 'amt_passive_activity_adjustment', 0.0) or 0.0
-        amti += passive_adj
-        result['passive_activity_adjustment'] = passive_adj
+        passive_adj = to_decimal(getattr(income, 'amt_passive_activity_adjustment', 0.0) or 0.0)
+        amti = add(amti, passive_adj)
+        result['passive_activity_adjustment'] = to_float(passive_adj)
 
         # 7. Loss Limitations Adjustment (Form 6251 Line 2d)
-        loss_adj = getattr(income, 'amt_loss_limitations_adjustment', 0.0) or 0.0
-        amti += loss_adj
-        result['loss_limitations_adjustment'] = loss_adj
+        loss_adj = to_decimal(getattr(income, 'amt_loss_limitations_adjustment', 0.0) or 0.0)
+        amti = add(amti, loss_adj)
+        result['loss_limitations_adjustment'] = to_float(loss_adj)
 
-        # 8. Other Preference Items
-        other_prefs = (
-            (getattr(income, 'amt_depletion_excess', 0.0) or 0.0) +
-            (getattr(income, 'amt_intangible_drilling_costs', 0.0) or 0.0) +
-            (getattr(income, 'amt_circulation_expenditures', 0.0) or 0.0) +
-            (getattr(income, 'amt_mining_exploration_costs', 0.0) or 0.0) +
-            (getattr(income, 'amt_research_experimental_costs', 0.0) or 0.0) +
-            (getattr(income, 'amt_long_term_contracts', 0.0) or 0.0) +
-            (getattr(income, 'amt_other_adjustments', 0.0) or 0.0)
-        )
-        amti += other_prefs
-        result['other_adjustments'] = other_prefs
+        # 8. Other Preference Items - Use Decimal precision for all additions
+        other_prefs = Decimal("0")
+        other_prefs = add(other_prefs, to_decimal(getattr(income, 'amt_depletion_excess', 0.0) or 0.0))
+        other_prefs = add(other_prefs, to_decimal(getattr(income, 'amt_intangible_drilling_costs', 0.0) or 0.0))
+        other_prefs = add(other_prefs, to_decimal(getattr(income, 'amt_circulation_expenditures', 0.0) or 0.0))
+        other_prefs = add(other_prefs, to_decimal(getattr(income, 'amt_mining_exploration_costs', 0.0) or 0.0))
+        other_prefs = add(other_prefs, to_decimal(getattr(income, 'amt_research_experimental_costs', 0.0) or 0.0))
+        other_prefs = add(other_prefs, to_decimal(getattr(income, 'amt_long_term_contracts', 0.0) or 0.0))
+        other_prefs = add(other_prefs, to_decimal(getattr(income, 'amt_other_adjustments', 0.0) or 0.0))
+        amti = add(amti, other_prefs)
+        result['other_adjustments'] = to_float(other_prefs)
 
         # Total adjustments
-        total_adjustments = (salt_addback + iso_spread + pab_interest +
-                            depreciation_adj + passive_adj + loss_adj + other_prefs)
-        result['total_adjustments'] = total_adjustments
-        result['amti'] = amti
+        total_adjustments = salt_addback
+        total_adjustments = add(total_adjustments, iso_spread)
+        total_adjustments = add(total_adjustments, pab_interest)
+        total_adjustments = add(total_adjustments, depreciation_adj)
+        total_adjustments = add(total_adjustments, passive_adj)
+        total_adjustments = add(total_adjustments, loss_adj)
+        total_adjustments = add(total_adjustments, other_prefs)
+        result['total_adjustments'] = to_float(total_adjustments)
+        result['amti'] = to_float(amti)
 
         # ============================================
         # Calculate AMT Exemption with Phaseout
         # Exemption phases out at 25 cents per dollar over threshold
+        # Use Decimal for precise phaseout calculation
         # ============================================
         exemption = exemption_base
         if amti > phaseout_start:
-            excess = amti - phaseout_start
-            exemption_reduction = excess * self.config.amt_exemption_phaseout_rate
-            exemption = max(0, exemption_base - exemption_reduction)
-        result['exemption_after_phaseout'] = exemption
+            excess = subtract(amti, phaseout_start)
+            phaseout_rate = to_decimal(self.config.amt_exemption_phaseout_rate)
+            exemption_reduction = multiply(excess, phaseout_rate)
+            exemption = max_decimal(Decimal("0"), subtract(exemption_base, exemption_reduction))
+        result['exemption_after_phaseout'] = to_float(exemption)
 
         # ============================================
         # Calculate Tentative Minimum Tax
         # 26% on first $232,600, 28% on remainder (2025 thresholds)
+        # Use Decimal to avoid rounding errors in rate calculations
         # ============================================
-        amt_taxable = max(0, amti - exemption)
-        result['amt_taxable_income'] = amt_taxable
+        amt_taxable = max_decimal(Decimal("0"), subtract(amti, exemption))
+        result['amt_taxable_income'] = to_float(amt_taxable)
+
+        amt_rate_26 = to_decimal(self.config.amt_rate_26)
+        amt_rate_28 = to_decimal(self.config.amt_rate_28)
 
         if amt_taxable <= threshold_28:
-            tmt = amt_taxable * self.config.amt_rate_26
+            tmt = multiply(amt_taxable, amt_rate_26)
         else:
-            tmt = (threshold_28 * self.config.amt_rate_26) + ((amt_taxable - threshold_28) * self.config.amt_rate_28)
-        result['tmt'] = round(tmt, 2)
+            # Two-bracket calculation: 26% up to threshold, 28% above
+            first_bracket = multiply(threshold_28, amt_rate_26)
+            excess_amount = subtract(amt_taxable, threshold_28)
+            second_bracket = multiply(excess_amount, amt_rate_28)
+            tmt = add(first_bracket, second_bracket)
+
+        # Round TMT to cents
+        tmt = money(tmt)
+        result['tmt'] = to_float(tmt)
 
         # ============================================
         # Compare to Regular Tax
         # AMT is excess of TMT over regular tax
         # ============================================
-        amt = max(0, tmt - regular_tax)
-        result['amt'] = round(amt, 2)
+        regular_tax_decimal = to_decimal(regular_tax)
+        amt = max_decimal(Decimal("0"), subtract(tmt, regular_tax_decimal))
+        amt = money(amt)  # Round to cents
+        result['amt'] = to_float(amt)
 
         # ============================================
         # Apply Prior Year AMT Credit (Form 8801)
         # ============================================
-        prior_credit = getattr(income, 'prior_year_amt_credit', 0.0) or 0.0
-        result['prior_year_amt_credit'] = prior_credit
+        prior_credit = to_decimal(getattr(income, 'prior_year_amt_credit', 0.0) or 0.0)
+        result['prior_year_amt_credit'] = to_float(prior_credit)
 
         # Prior year credit can offset regular tax but not below TMT
         # This is complex - simplified: reduce AMT by credit (not quite right but close)
-        amt_after_credit = max(0, amt - prior_credit)
-        result['amt_after_credit'] = round(amt_after_credit, 2)
+        amt_after_credit = max_decimal(Decimal("0"), subtract(amt, prior_credit))
+        amt_after_credit = money(amt_after_credit)
+        result['amt_after_credit'] = to_float(amt_after_credit)
 
         return result
 

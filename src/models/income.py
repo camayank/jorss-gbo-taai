@@ -2611,15 +2611,32 @@ class Income(BaseModel):
 
     def has_sstb_income(self) -> bool:
         """
-        Check if any K-1 is from a Specified Service Trade or Business (SSTB).
+        Check if taxpayer has any income from a Specified Service Trade or Business (SSTB).
+
+        Checks both:
+        1. Schedule C sole proprietorship businesses
+        2. Schedule K-1 partnership/S-corp income
 
         SSTBs include businesses in health, law, accounting, actuarial science,
         performing arts, consulting, athletics, financial services, brokerage,
         or any trade where the principal asset is the reputation/skill of employees.
 
-        SSTB income is subject to additional phase-out above the QBI threshold.
+        SSTB income is subject to additional QBI deduction phase-out above the threshold
+        per IRC §199A(d)(2).
+
+        Returns:
+            True if any business activity is classified as SSTB, False otherwise
         """
-        return any(k1.is_sstb for k1 in self.schedule_k1_forms)
+        # Check Schedule C businesses
+        if self.schedule_c_businesses:
+            if any(biz.get_sstb_classification() for biz in self.schedule_c_businesses):
+                return True
+
+        # Check K-1 forms from partnerships/S-corps
+        if any(k1.is_sstb for k1 in self.schedule_k1_forms):
+            return True
+
+        return False
 
     def get_k1_foreign_tax_paid(self) -> float:
         """Get foreign taxes paid from K-1 forms."""
