@@ -388,17 +388,20 @@ def validate_income_consistency(w2_wages: Optional[Decimal], federal_withheld: O
 # Data Sanitization
 # =============================================================================
 
-def sanitize_string(value: str, max_length: int = 1000) -> str:
+def sanitize_string(value: str, max_length: int = 1000, escape_html: bool = True) -> str:
     """
     Sanitize string input to prevent XSS and injection attacks.
 
     Args:
         value: Input string
         max_length: Maximum allowed length
+        escape_html: Whether to escape HTML entities (default True)
 
     Returns:
         Sanitized string
     """
+    import html as html_module
+
     if not value:
         return ""
 
@@ -413,6 +416,22 @@ def sanitize_string(value: str, max_length: int = 1000) -> str:
 
     # Remove control characters except newlines/tabs
     sanitized = ''.join(char for char in sanitized if char.isprintable() or char in '\n\t')
+
+    # Escape HTML entities to prevent XSS
+    if escape_html:
+        sanitized = html_module.escape(sanitized, quote=True)
+
+    # Remove dangerous patterns that might survive HTML escaping
+    # (e.g., already-encoded attacks)
+    dangerous_patterns = [
+        (r'(?i)javascript:', ''),  # javascript: protocol
+        (r'(?i)on\w+\s*=', ''),    # Event handlers like onclick=
+        (r'(?i)data:', ''),        # data: protocol
+        (r'(?i)vbscript:', ''),    # vbscript: protocol
+    ]
+
+    for pattern, replacement in dangerous_patterns:
+        sanitized = re.sub(pattern, replacement, sanitized)
 
     return sanitized
 

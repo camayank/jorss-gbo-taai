@@ -207,9 +207,17 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         if request.method in self.safe_methods:
             return await call_next(request)
 
-        # Skip exempt paths
-        if request.url.path in self.exempt_paths:
-            return await call_next(request)
+        # Skip exempt paths (supports both exact matches and prefix matches ending with /)
+        path = request.url.path
+        for exempt_path in self.exempt_paths:
+            if exempt_path.endswith('/'):
+                # Prefix match for paths ending with /
+                if path.startswith(exempt_path) or path == exempt_path.rstrip('/'):
+                    return await call_next(request)
+            else:
+                # Exact match
+                if path == exempt_path:
+                    return await call_next(request)
 
         # Skip API endpoints that use Bearer auth
         auth_header = request.headers.get("Authorization", "")

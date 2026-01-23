@@ -47,10 +47,25 @@ except ImportError:
 try:
     from web.validation_helpers import sanitize_string, validate_positive_integer
 except ImportError:
+    import html
+    import re
+
     def sanitize_string(s, max_len=1000):
+        """Sanitize string by escaping HTML and removing dangerous patterns."""
         if not s:
             return ""
-        return str(s)[:max_len].strip()
+        # Convert to string and truncate
+        s = str(s)[:max_len].strip()
+        # Escape HTML entities to prevent XSS
+        s = html.escape(s, quote=True)
+        # Remove any script tags that might have been encoded differently
+        s = re.sub(r'(?i)<\s*script[^>]*>.*?<\s*/\s*script\s*>', '', s)
+        # Remove javascript: protocol
+        s = re.sub(r'(?i)javascript:', '', s)
+        # Remove event handlers
+        s = re.sub(r'(?i)on\w+\s*=', '', s)
+        return s
+
     def validate_positive_integer(v):
         return max(0, int(v)) if v else 0
 
@@ -87,6 +102,37 @@ _chat_sessions: Dict[str, Dict[str, Any]] = {}
 
 # Session limits to prevent abuse
 MAX_CONVERSATION_TURNS = 100
+
+# Rate limiting - track requests per session
+_rate_limit_tracker: Dict[str, List[float]] = {}
+RATE_LIMIT_WINDOW = 60  # seconds
+RATE_LIMIT_MAX_REQUESTS = 30  # max requests per window
+
+
+def check_rate_limit(session_id: str) -> bool:
+    """
+    Check if session has exceeded rate limit.
+    Returns True if within limits, False if exceeded.
+    """
+    import time
+    now = time.time()
+
+    # Get request timestamps for this session
+    if session_id not in _rate_limit_tracker:
+        _rate_limit_tracker[session_id] = []
+
+    timestamps = _rate_limit_tracker[session_id]
+
+    # Remove old timestamps outside the window
+    timestamps[:] = [ts for ts in timestamps if now - ts < RATE_LIMIT_WINDOW]
+
+    # Check if limit exceeded
+    if len(timestamps) >= RATE_LIMIT_MAX_REQUESTS:
+        return False
+
+    # Add current timestamp
+    timestamps.append(now)
+    return True
 
 
 # ============================================================================
@@ -174,6 +220,28 @@ class UploadResponse(BaseModel):
 # Endpoints - IMPROVED
 # ============================================================================
 
+# Extended ChatRequest model to support system_context from frontend
+class ExtendedChatRequest(ChatMessageRequest):
+    """Extended request model for /chat endpoint compatibility"""
+    system_context: Optional[Dict[str, Any]] = Field(default=None)
+
+
+@router.post("/chat", response_model=ChatMessageResponse)
+async def process_chat_endpoint(request: ExtendedChatRequest):
+    """
+    Alias endpoint for /message - maintains backward compatibility.
+    Accepts additional system_context field from frontend.
+    """
+    # Convert to base ChatMessageRequest and forward
+    base_request = ChatMessageRequest(
+        session_id=request.session_id,
+        user_message=request.user_message,
+        conversation_history=request.conversation_history,
+        extracted_data=request.extracted_data
+    )
+    return await process_chat_message(base_request)
+
+
 @router.post("/message", response_model=ChatMessageResponse)
 async def process_chat_message(request: ChatMessageRequest):
     """
@@ -189,6 +257,18 @@ async def process_chat_message(request: ChatMessageRequest):
     request_id = f"CHAT-{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
 
     try:
+        # Rate limit check
+        if not check_rate_limit(request.session_id):
+            logger.warning(f"[{request_id}] Rate limit exceeded for session {request.session_id}")
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail={
+                    "error_type": "RateLimitExceeded",
+                    "user_message": "You're sending messages too quickly. Please wait a moment before trying again.",
+                    "request_id": request_id
+                }
+            )
+
         logger.info(f"[{request_id}] Chat message received", extra={
             "session_id": request.session_id,
             "message_length": len(request.user_message),

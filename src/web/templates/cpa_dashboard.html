@@ -2251,7 +2251,7 @@
             <div style="font-size:12px;opacity:0.9">Upload 1040 - Instant Analysis - Maximum Value</div>
           </div>
         </div>
-        <button class="panel-close" style="color:white;font-size:24px" onclick="closeSmartOnboarding()">&times;</button>
+        <button class="panel-close" style="color:white;font-size:24px" onclick="closeSmartOnboarding()" aria-label="Close onboarding panel">&times;</button>
       </div>
 
       <!-- Progress Bar -->
@@ -2428,7 +2428,7 @@
             <div style="font-size:12px;color:var(--gray-500)">Tax Year <span id="detail-tax-year">2024</span> | <span id="detail-filing-status">Single</span></div>
           </div>
         </div>
-        <button class="panel-close" onclick="closeClientDetail()">&times;</button>
+        <button class="panel-close" onclick="closeClientDetail()" aria-label="Close client details">&times;</button>
       </div>
 
       <div class="modal-body" style="padding:0;max-height:calc(95vh - 120px);overflow-y:auto">
@@ -2555,7 +2555,7 @@
   <div class="detail-panel" id="insight-panel">
     <div class="panel-header">
       <div class="panel-title" id="panel-title">Recommendation Details</div>
-      <button class="panel-close" onclick="closePanel()">&times;</button>
+      <button class="panel-close" onclick="closePanel()" aria-label="Close panel">&times;</button>
     </div>
     <div class="panel-body" id="panel-body"></div>
     <div class="panel-footer">
@@ -2629,12 +2629,34 @@
       categories: { retirement: 0, deductions: 0, credits: 0, qbi: 0, investment: 0 },
     };
 
+    // Get CSRF token from cookie
+    function getCSRFToken() {
+      const cookies = document.cookie.split(';');
+      for (const cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'csrf_token' || name === 'csrftoken' || name === '_csrf') {
+          return decodeURIComponent(value);
+        }
+      }
+      return null;
+    }
+
     // API Helper with retry and timeout
     async function api(endpoint, options = {}) {
       const headers = {
         'Content-Type': 'application/json',
         ...(state.preparerId && { 'X-Preparer-ID': state.preparerId }),
       };
+
+      // Add CSRF token for state-changing requests
+      const method = (options.method || 'GET').toUpperCase();
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+        const csrfToken = getCSRFToken();
+        if (csrfToken) {
+          headers['X-CSRF-Token'] = csrfToken;
+        }
+      }
+
       const timeout = options.timeout || 30000;
       const retries = options.retries || 1;
 
@@ -2682,6 +2704,15 @@
         ...(token && { 'Authorization': `Bearer ${token}` }),
         ...(state.preparerId && { 'X-Preparer-ID': state.preparerId }),
       };
+
+      // Add CSRF token for state-changing requests
+      const method = (options.method || 'GET').toUpperCase();
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+        const csrfToken = getCSRFToken();
+        if (csrfToken) {
+          headers['X-CSRF-Token'] = csrfToken;
+        }
+      }
 
       try {
         const response = await fetch(`${CORE_API}${endpoint}`, {

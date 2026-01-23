@@ -727,6 +727,11 @@
         grid-template-columns: 1fr;
       }
 
+      .path-options {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+      }
+
       .actions {
         flex-direction: column;
         gap: 12px;
@@ -989,7 +994,7 @@
           <p class="card-subtitle">How would you like to proceed with your tax return?</p>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 24px;">
+        <div class="path-options" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 24px;">
           <div style="border: 2px solid var(--gray-200); border-radius: var(--radius-lg); padding: 32px; cursor: pointer; transition: var(--transition);" onclick="selectOption('self-file')" id="option-self">
             <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
             <h3>Self-File</h3>
@@ -1094,9 +1099,35 @@
     // ==========================================================================
     const API_BASE = '/api/smart-tax';
 
+    /**
+     * Get CSRF token from cookie
+     * @returns {string|null} CSRF token or null if not found
+     */
+    function getCSRFToken() {
+      const cookies = document.cookie.split(';');
+      for (const cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'csrf_token' || name === 'csrftoken' || name === '_csrf') {
+          return decodeURIComponent(value);
+        }
+      }
+      return null;
+    }
+
     async function api(endpoint, options = {}) {
+      const headers = { 'Content-Type': 'application/json', ...options.headers };
+
+      // Add CSRF token for state-changing requests
+      const method = (options.method || 'GET').toUpperCase();
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+        const csrfToken = getCSRFToken();
+        if (csrfToken) {
+          headers['X-CSRF-Token'] = csrfToken;
+        }
+      }
+
       const response = await fetch(`${API_BASE}${endpoint}`, {
-        headers: { 'Content-Type': 'application/json', ...options.headers },
+        headers,
         ...options
       });
       if (!response.ok) {
@@ -1591,8 +1622,8 @@
               ${deductions.detected_credits.map(credit => `
                 <div class="alert alert-success" style="display: flex; justify-content: space-between; align-items: center;">
                   <div>
-                    <strong>${credit.name}</strong>
-                    <p style="margin: 4px 0 0; color: var(--gray-600);">${credit.description}</p>
+                    <strong>${escapeHtml(credit.name)}</strong>
+                    <p style="margin: 4px 0 0; color: var(--gray-600);">${escapeHtml(credit.description)}</p>
                   </div>
                   <span style="font-size: 1.25em; font-weight: 600; color: #22c55e;">+$${credit.estimated_amount?.toLocaleString() || '0'}</span>
                 </div>
@@ -1610,8 +1641,8 @@
                 <div class="alert alert-warning">
                   <span class="alert-icon">💡</span>
                   <div>
-                    <strong>${opp.title || opp.name}</strong>
-                    <p>${opp.description || opp.action}</p>
+                    <strong>${escapeHtml(opp.title || opp.name)}</strong>
+                    <p>${escapeHtml(opp.description || opp.action)}</p>
                     ${opp.potential_savings ? `<p style="color: #b45309; font-weight: 600;">Potential savings: $${opp.potential_savings.toLocaleString()}</p>` : ''}
                   </div>
                 </div>
@@ -1649,8 +1680,8 @@
                     <div class="alert ${insight.urgency === 'immediate' ? 'alert-error' : 'alert-warning'}">
                       <span class="alert-icon">${insight.urgency === 'immediate' ? '🚨' : '⏰'}</span>
                       <div>
-                        <strong>${insight.title}</strong>
-                        <p style="margin: 4px 0 0;">${insight.description}</p>
+                        <strong>${escapeHtml(insight.title)}</strong>
+                        <p style="margin: 4px 0 0;">${escapeHtml(insight.description)}</p>
                         ${insight.estimated_savings ? `<p style="font-weight: 600; margin-top: 8px;">Est. savings: $${insight.estimated_savings.toLocaleString()}</p>` : ''}
                       </div>
                     </div>
@@ -1667,7 +1698,7 @@
         recommendationsHtml += `
           <div class="card" style="background: var(--gray-50); margin-top: 24px; padding: 16px;">
             <p style="margin: 0; font-style: italic; color: var(--gray-600);">
-              <strong>AI Summary:</strong> ${intel.summary}
+              <strong>AI Summary:</strong> ${escapeHtml(intel.summary)}
             </p>
           </div>
         `;
@@ -1683,8 +1714,8 @@
               <div class="alert alert-info">
                 <span class="alert-icon">💡</span>
                 <div>
-                  <strong>${opp.title || 'Opportunity'}</strong>
-                  <p>${opp.description || ''}</p>
+                  <strong>${escapeHtml(opp.title || 'Opportunity')}</strong>
+                  <p>${escapeHtml(opp.description || '')}</p>
                   ${opp.potential_savings ? `<p><strong>Potential savings: $${opp.potential_savings.toLocaleString()}</strong></p>` : ''}
                 </div>
               </div>
@@ -1727,8 +1758,8 @@
                   <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
                     <input type="checkbox" id="checklist-${i}" style="margin-top: 4px; width: 18px; height: 18px; accent-color: var(--primary);">
                     <div>
-                      <strong>${item.item}</strong>
-                      <p style="margin: 4px 0 0; color: var(--gray-500); font-size: 0.9em;">${item.description}</p>
+                      <strong>${escapeHtml(item.item)}</strong>
+                      <p style="margin: 4px 0 0; color: var(--gray-500); font-size: 0.9em;">${escapeHtml(item.description)}</p>
                     </div>
                   </label>
                 `).join('')}
@@ -1757,7 +1788,7 @@
                       </div>
                       <div style="text-align: right;">
                         <span style="font-size: 1.25em; font-weight: 600;">$${q.recommended_payment?.toLocaleString() || '0'}</span>
-                        ${q.penalty_risk !== 'none' ? `<p style="color: #dc2626; font-size: 0.85em;">⚠️ ${q.penalty_risk} penalty risk</p>` : ''}
+                        ${q.penalty_risk !== 'none' ? `<p style="color: #dc2626; font-size: 0.85em;">⚠️ ${escapeHtml(q.penalty_risk)} penalty risk</p>` : ''}
                       </div>
                     </div>
                   `).join('')}
@@ -1790,8 +1821,8 @@
                       <div style="display: flex; gap: 8px; align-items: flex-start;">
                         <span>${style.icon}</span>
                         <div style="flex: 1;">
-                          <strong>${insight.title}</strong>
-                          <p style="margin: 4px 0 0; color: var(--gray-600); font-size: 0.9em;">${insight.description}</p>
+                          <strong>${escapeHtml(insight.title)}</strong>
+                          <p style="margin: 4px 0 0; color: var(--gray-600); font-size: 0.9em;">${escapeHtml(insight.description)}</p>
                           ${insight.estimated_savings ? `<p style="margin: 8px 0 0; font-weight: 600; color: ${style.border};">Potential savings: $${insight.estimated_savings.toLocaleString()}</p>` : ''}
                         </div>
                       </div>
@@ -1885,7 +1916,7 @@
         document.getElementById('btn-continue').disabled = false;
       } catch (e) {
         console.error('Quick estimate failed:', e);
-        alert('Failed to calculate estimate. Please try again.');
+        showAlert('Failed to calculate estimate. Please try again.', 'error');
       }
     }
 

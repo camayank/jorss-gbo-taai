@@ -801,6 +801,18 @@
         // API base URL
         const API_BASE = '/api/v1/advisory-reports';
 
+        /**
+         * Escapes HTML special characters to prevent XSS attacks.
+         * @param {string} text - The text to escape
+         * @returns {string} The escaped text safe for HTML insertion
+         */
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = String(text);
+            return div.innerHTML;
+        }
+
         // Load report on page load
         document.addEventListener('DOMContentLoaded', () => {
             // Initialize PDF button as disabled
@@ -980,7 +992,7 @@
             sections.forEach(section => {
                 const sectionDiv = document.createElement('div');
                 sectionDiv.className = 'section';
-                sectionDiv.innerHTML = `<h2>${section.title}</h2>`;
+                sectionDiv.innerHTML = `<h2>${escapeHtml(section.title)}</h2>`;
 
                 // Handle different section types
                 if (section.section_id === 'recommendations') {

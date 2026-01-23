@@ -490,7 +490,7 @@
     <div class="header">
         <h1>🏢 Tenant Management</h1>
         <div class="header-actions">
-            <button onclick="openCreateTenantModal()">➕ Create New Tenant</button>
+            <button onclick="openCreateTenantModal()" aria-label="Create new tenant">➕ Create New Tenant</button>
         </div>
     </div>
 
@@ -545,11 +545,11 @@
                         <h2>Tenant Information</h2>
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Tenant Name</label>
+                                <label for="tenantName">Tenant Name</label>
                                 <input type="text" id="tenantName" />
                             </div>
                             <div class="form-group">
-                                <label>Status</label>
+                                <label for="tenantStatus">Status</label>
                                 <select id="tenantStatus">
                                     <option value="active">Active</option>
                                     <option value="trial">Trial</option>
@@ -561,11 +561,11 @@
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Admin Email</label>
+                                <label for="adminEmail">Admin Email</label>
                                 <input type="email" id="adminEmail" />
                             </div>
                             <div class="form-group">
-                                <label>Subscription Tier</label>
+                                <label for="subscriptionTier">Subscription Tier</label>
                                 <select id="subscriptionTier">
                                     <option value="free">Free</option>
                                     <option value="starter">Starter</option>
@@ -586,24 +586,24 @@
                         <h2>Visual Branding</h2>
 
                         <div class="form-group">
-                            <label>Platform Name</label>
+                            <label for="platformName">Platform Name</label>
                             <input type="text" id="platformName" placeholder="e.g., TaxPro Online" />
                         </div>
 
                         <div class="form-group">
-                            <label>Company Name</label>
+                            <label for="companyName">Company Name</label>
                             <input type="text" id="companyName" placeholder="e.g., Smith & Associates, CPAs" />
                         </div>
 
                         <div class="form-group">
-                            <label>Tagline</label>
+                            <label for="tagline">Tagline</label>
                             <input type="text" id="tagline" placeholder="e.g., Professional Tax Filing Made Simple" />
                         </div>
 
                         <h3 style="margin: 30px 0 15px;">Theme Colors</h3>
 
                         <div class="form-group">
-                            <label>Theme Preset</label>
+                            <label for="themePreset">Theme Preset</label>
                             <select id="themePreset" onchange="applyThemePreset()">
                                 <option value="custom">Custom</option>
                                 <option value="professional_blue">Professional Blue</option>
@@ -616,17 +616,17 @@
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Primary Color</label>
+                                <label for="primaryColor">Primary Color</label>
                                 <div class="color-picker-group">
                                     <input type="color" id="primaryColor" onchange="updateColorInput('primary')" />
-                                    <input type="text" id="primaryColorText" value="#4f46e5" oninput="updateColorPicker('primary')" />
+                                    <input type="text" id="primaryColorText" value="#4f46e5" oninput="updateColorPicker('primary')" aria-label="Primary color hex value" />
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Secondary Color</label>
+                                <label for="secondaryColor">Secondary Color</label>
                                 <div class="color-picker-group">
                                     <input type="color" id="secondaryColor" onchange="updateColorInput('secondary')" />
-                                    <input type="text" id="secondaryColorText" value="#7c3aed" oninput="updateColorPicker('secondary')" />
+                                    <input type="text" id="secondaryColorText" value="#7c3aed" oninput="updateColorPicker('secondary')" aria-label="Secondary color hex value" />
                                 </div>
                             </div>
                         </div>
@@ -713,7 +713,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Create New Tenant</h2>
-                <button class="close-btn" onclick="closeCreateTenantModal()">&times;</button>
+                <button class="close-btn" onclick="closeCreateTenantModal()" aria-label="Close modal">&times;</button>
             </div>
 
             <div class="form-group">
@@ -1043,12 +1043,58 @@
             `;
         }
 
+        // Focus trap state for accessibility
+        let tenantModalPreviousFocus = null;
+        let tenantModalFocusTrap = null;
+
         function openCreateTenantModal() {
-            document.getElementById('createTenantModal').classList.add('show');
+            const modal = document.getElementById('createTenantModal');
+            modal.classList.add('show');
+
+            // Store previous focus
+            tenantModalPreviousFocus = document.activeElement;
+
+            // Set up focus trap
+            const focusableElements = modal.querySelectorAll(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            );
+            const firstFocusable = focusableElements[0];
+            const lastFocusable = focusableElements[focusableElements.length - 1];
+
+            if (firstFocusable) {
+                setTimeout(() => firstFocusable.focus(), 50);
+            }
+
+            tenantModalFocusTrap = (e) => {
+                if (e.key === 'Tab') {
+                    if (e.shiftKey && document.activeElement === firstFocusable) {
+                        e.preventDefault();
+                        lastFocusable.focus();
+                    } else if (!e.shiftKey && document.activeElement === lastFocusable) {
+                        e.preventDefault();
+                        firstFocusable.focus();
+                    }
+                }
+                if (e.key === 'Escape') {
+                    closeCreateTenantModal();
+                }
+            };
+
+            document.addEventListener('keydown', tenantModalFocusTrap);
         }
 
         function closeCreateTenantModal() {
             document.getElementById('createTenantModal').classList.remove('show');
+
+            // Clean up focus trap
+            if (tenantModalFocusTrap) {
+                document.removeEventListener('keydown', tenantModalFocusTrap);
+                tenantModalFocusTrap = null;
+            }
+            if (tenantModalPreviousFocus) {
+                tenantModalPreviousFocus.focus();
+                tenantModalPreviousFocus = null;
+            }
         }
 
         async function createTenant() {

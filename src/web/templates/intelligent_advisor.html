@@ -661,6 +661,51 @@
     let taxCalculations = null;
     let leadQualified = false;
 
+    // Toast notification function for user feedback
+    function showToast(message, type = 'info') {
+      // Remove any existing toast
+      const existingToast = document.querySelector('.toast-notification');
+      if (existingToast) existingToast.remove();
+
+      const toast = document.createElement('div');
+      toast.className = 'toast-notification toast-' + type;
+      toast.style.cssText = `
+        position: fixed;
+        bottom: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 12px 24px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        animation: slideUp 0.3s ease;
+        max-width: 90%;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      `;
+
+      // Style based on type
+      if (type === 'error') {
+        toast.style.background = '#ef4444';
+      } else if (type === 'warning') {
+        toast.style.background = '#f59e0b';
+      } else if (type === 'success') {
+        toast.style.background = '#10b981';
+      } else {
+        toast.style.background = '#3b82f6';
+      }
+
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      // Auto-remove after 4 seconds
+      setTimeout(() => {
+        toast.style.animation = 'slideDown 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
     // Initialize session
     async function initializeSession() {
       console.log('initializeSession called');
@@ -1308,6 +1353,52 @@
           }, 1000);
         }
 
+      // Error recovery handlers
+      } else if (value === 'wait_retry') {
+        addMessage('user', 'I\'ll wait and try again');
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `Thanks for your patience! I'm ready to continue now. What would you like to discuss?`, generateSmartQuickActions());
+        }, 3000);
+
+      } else if (value === 'reset_conversation') {
+        addMessage('user', 'Let\'s start over');
+        // Reset session and data
+        sessionId = null;
+        sessionStorage.removeItem('tax_session_id');
+        conversationHistory = [];
+        extractedData = {
+          filing_status: null,
+          income_range: null,
+          income_amount: null,
+          deductions: [],
+          credits: [],
+          focus_area: null,
+          tax_profile: {},
+          documents: [],
+          lead_data: { score: 0 }
+        };
+        updateProgress(0);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `No problem! Let's start fresh. I'm your AI-powered tax advisor, ready to help you discover strategic opportunities to optimize your tax situation.<br><br><strong>Would you like to upload tax documents for me to analyze, or shall we talk through your situation?</strong>`, [
+            { label: '📄 Upload documents', value: 'yes_upload' },
+            { label: '💬 Let\'s discuss my situation', value: 'no_manual' },
+            { label: '❓ How does this work?', value: 'how_it_works' }
+          ]);
+        }, 1000);
+
+      } else if (value === 'retry_message') {
+        addMessage('user', 'Let me try again');
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `I'm ready when you are! What would you like to discuss?`, generateSmartQuickActions());
+          document.getElementById('userInput').focus();
+        }, 500);
+
       } else {
         // For any other actions not handled, use AI processing
         const displayText = value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -1421,11 +1512,21 @@
               tax_year: 2025
             })
           });
-          const sessionData = await sessionResponse.json();
-          sessionId = sessionData.session_id;
+
+          if (!sessionResponse.ok) {
+            // If session creation fails, generate a temporary client-side ID
+            sessionId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            console.warn('Using temporary session ID:', sessionId);
+          } else {
+            const sessionData = await sessionResponse.json();
+            sessionId = sessionData.session_id;
+          }
           sessionStorage.setItem('tax_session_id', sessionId);
         } catch (error) {
           console.error('Failed to create session:', error);
+          // Generate temporary client-side session ID as fallback
+          sessionId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+          sessionStorage.setItem('tax_session_id', sessionId);
         }
       }
 
@@ -1485,12 +1586,41 @@
         hideTyping();
         console.error('AI response error:', error);
 
-        // Intelligent fallback based on what was asked
-        const fallbackResponse = generateIntelligentFallback(userMessage);
-        addMessage('ai', fallbackResponse, generateSmartQuickActions());
-      }
+        // Handle specific error types
+        let errorMessage = '';
+        let quickActions = generateSmartQuickActions();
 
-      isProcessing = false;
+        if (error.message && error.message.includes('429')) {
+          // Rate limit exceeded
+          errorMessage = "I'm getting a lot of requests right now. Please wait a moment before sending another message.";
+          quickActions = [
+            { label: 'Wait 30 seconds', value: 'wait_retry' },
+            { label: 'Start over', value: 'reset_conversation' }
+          ];
+        } else if (error.message && error.message.includes('404')) {
+          // Session not found - recreate
+          sessionId = null;
+          sessionStorage.removeItem('tax_session_id');
+          errorMessage = "Your session was reset. Let's continue from where we were. What would you like to discuss?";
+        } else if (error.message && error.message.includes('504') || error.message && error.message.includes('timeout')) {
+          // Timeout - suggest rephrasing
+          errorMessage = "That's taking longer than expected. Could you try rephrasing your question or asking something simpler?";
+        } else if (!navigator.onLine) {
+          // Offline
+          errorMessage = "It looks like you're offline. Please check your internet connection and try again.";
+          quickActions = [
+            { label: 'Try again', value: 'retry_message' }
+          ];
+        } else {
+          // Generic fallback
+          errorMessage = generateIntelligentFallback(userMessage);
+        }
+
+        addMessage('ai', errorMessage, quickActions);
+      } finally {
+        // Always reset processing flag
+        isProcessing = false;
+      }
     }
 
     // Build system context for AI to understand conversation state
@@ -1586,6 +1716,26 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
       if (lowerMessage.includes('cost') || lowerMessage.includes('price') || lowerMessage.includes('fee')) {
         return `Our individual tax advisory service is complimentary for the initial assessment. We'll provide you with a comprehensive analysis and recommendations at no cost.<br><br>If you'd like ongoing advisory support or assistance with tax filing, we'll discuss those services after your initial report.<br><br><strong>Would you like to continue with your free tax assessment?</strong>`;
+      }
+
+      // Handle confused or frustrated users
+      if (lowerMessage.includes('confused') || lowerMessage.includes('don\'t understand') || lowerMessage.includes('help')) {
+        return `I'm sorry for any confusion! Let me make this simpler.<br><br>I'm here to help you save money on your taxes. All you need to do is answer a few quick questions about your situation, and I'll provide personalized recommendations.<br><br><strong>Would you like to start with something simple? What's your filing status?</strong>`;
+      }
+
+      // Handle exit intent
+      if (lowerMessage.includes('quit') || lowerMessage.includes('exit') || lowerMessage.includes('stop') || lowerMessage.includes('bye')) {
+        return `I understand! Before you go, know that your progress has been saved. You can come back anytime to continue your tax assessment.<br><br>Is there anything specific I can help you with quickly before you go?`;
+      }
+
+      // Handle off-topic or personal questions
+      if (lowerMessage.includes('who are you') || lowerMessage.includes('what are you') || lowerMessage.includes('your name')) {
+        return `I'm your AI-powered tax advisor! I specialize in helping individuals optimize their tax situation.<br><br>I can analyze your income, deductions, and credits to find opportunities to save money on your taxes. <strong>Would you like to get started with a quick assessment?</strong>`;
+      }
+
+      // Handle vague income statements
+      if (lowerMessage.includes('make good money') || lowerMessage.includes('decent salary') || lowerMessage.includes('earn a lot')) {
+        return `That's great! To provide accurate tax advice, I'll need a more specific income range. This helps me identify the right deductions and credits for your situation.<br><br><strong>What's your approximate annual income?</strong>`;
       }
 
       // Generic helpful response
@@ -1731,12 +1881,17 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       const nameInput = document.getElementById('nameInput');
       const name = nameInput ? nameInput.value.trim() : '';
 
-      if (!name) {
-        alert('Please enter your name to continue');
+      // Validate name - at least 2 characters, no special characters
+      if (!name || name.length < 2) {
+        showToast('Please enter your name (at least 2 characters)', 'error');
+        if (nameInput) nameInput.focus();
         return;
       }
 
-      extractedData.contact.name = name;
+      // Sanitize - remove potentially dangerous characters
+      const sanitizedName = name.replace(/[<>"'&]/g, '').substring(0, 100);
+
+      extractedData.contact.name = sanitizedName;
       extractedData.lead_data.score += 15; // Higher score for engaged users
       addMessage('user', name);
 
@@ -1752,14 +1907,20 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
     async function captureEmail() {
       const emailInput = document.getElementById('emailInput');
-      const email = emailInput ? emailInput.value.trim() : '';
+      const email = emailInput ? emailInput.value.trim().toLowerCase() : '';
 
-      if (!email || !email.includes('@')) {
-        alert('Please enter a valid email address');
+      // Validate email with regex
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!email || !emailRegex.test(email)) {
+        showToast('Please enter a valid email address (e.g., name@example.com)', 'error');
+        if (emailInput) emailInput.focus();
         return;
       }
 
-      extractedData.contact.email = email;
+      // Sanitize and limit length
+      const sanitizedEmail = email.substring(0, 254);
+
+      extractedData.contact.email = sanitizedEmail;
       extractedData.lead_data.score += 20; // Qualified lead!
       leadQualified = true;
       addMessage('user', email);
@@ -2011,11 +2172,18 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
     async function captureIncome() {
       const incomeInput = document.getElementById('incomeInput');
-      const income = incomeInput ? parseInt(incomeInput.value) : 0;
+      const rawValue = incomeInput ? incomeInput.value.replace(/[^0-9]/g, '') : '0';
+      const income = parseInt(rawValue, 10);
 
+      // Validate income - must be positive and reasonable (max $50M for individuals)
       if (!income || income <= 0) {
-        alert('Please enter a valid income amount');
+        showToast('Please enter a valid income amount', 'error');
+        if (incomeInput) incomeInput.focus();
         return;
+      }
+
+      if (income > 50000000) {
+        showToast('Please verify this amount - it seems unusually high', 'warning');
       }
 
       extractedData.tax_profile.total_income = income;

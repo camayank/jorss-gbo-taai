@@ -595,7 +595,12 @@
       outline-offset: 2px;
     }
 
-    /* Data Tables */
+    /* Data Tables with responsive wrapper */
+    .table-responsive {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
     .data-table {
       width: 100%;
       border-collapse: collapse;
@@ -628,6 +633,21 @@
 
     .data-table tbody tr {
       cursor: pointer;
+    }
+
+    /* Responsive table for mobile */
+    @media (max-width: 768px) {
+      .table-responsive {
+        margin: 0 -16px;
+      }
+      .data-table {
+        min-width: 600px;
+      }
+      .data-table th,
+      .data-table td {
+        padding: 10px 12px;
+        font-size: 12px;
+      }
     }
 
     /* Badges */
@@ -2219,6 +2239,21 @@
     // =============================================================================
 
     /**
+     * Get CSRF token from cookie
+     * @returns {string|null} CSRF token or null if not found
+     */
+    function getCSRFToken() {
+      const cookies = document.cookie.split(';');
+      for (const cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'csrf_token' || name === 'csrftoken' || name === '_csrf') {
+          return decodeURIComponent(value);
+        }
+      }
+      return null;
+    }
+
+    /**
      * API helper function for making authenticated requests
      * @param {string} endpoint - API endpoint (e.g., '/firms', '/dashboard')
      * @param {object} options - fetch options
@@ -2227,11 +2262,22 @@
     async function api(endpoint, options = {}, isSuperAdmin = true) {
       try {
         const prefix = isSuperAdmin ? '/api/v1/superadmin' : '/api/v1/admin';
+        const headers = {
+          'Content-Type': 'application/json',
+          ...options.headers
+        };
+
+        // Add CSRF token for state-changing requests
+        const method = (options.method || 'GET').toUpperCase();
+        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+          const csrfToken = getCSRFToken();
+          if (csrfToken) {
+            headers['X-CSRF-Token'] = csrfToken;
+          }
+        }
+
         const response = await fetch(`${prefix}${endpoint}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...options.headers
-          },
+          headers,
           ...options
         });
 
@@ -2263,11 +2309,22 @@
      */
     async function coreApi(endpoint, options = {}) {
       try {
+        const headers = {
+          'Content-Type': 'application/json',
+          ...options.headers
+        };
+
+        // Add CSRF token for state-changing requests
+        const method = (options.method || 'GET').toUpperCase();
+        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+          const csrfToken = getCSRFToken();
+          if (csrfToken) {
+            headers['X-CSRF-Token'] = csrfToken;
+          }
+        }
+
         const response = await fetch(`${CORE_API}${endpoint}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...options.headers
-          },
+          headers,
           ...options
         });
 
@@ -4661,19 +4718,27 @@
     // REFRESH DATA PERIODICALLY
     // =============================================================================
 
+    // Store interval IDs for cleanup
+    const intervalIds = [];
+
     // Refresh system health every 30 seconds when on health page
-    setInterval(() => {
+    intervalIds.push(setInterval(() => {
       if (getCurrentPage() === 'health') {
         loadSystemHealth();
       }
-    }, 30000);
+    }, 30000));
 
     // Refresh dashboard metrics every 60 seconds when on overview
-    setInterval(() => {
+    intervalIds.push(setInterval(() => {
       if (getCurrentPage() === '') {
         loadDashboardMetrics();
       }
-    }, 60000);
+    }, 60000));
+
+    // Cleanup intervals on page unload to prevent memory leaks
+    window.addEventListener('beforeunload', () => {
+      intervalIds.forEach(id => clearInterval(id));
+    });
   </script>
 </body>
 </html>

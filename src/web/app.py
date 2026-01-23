@@ -884,30 +884,14 @@ def _get_or_create_session_agent(session_id: Optional[str]) -> tuple[str, TaxAge
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     """
-    Main entry point - serves comprehensive tax filing interface.
+    Main entry point - redirects to modern intelligent advisor interface.
 
-    This is the primary landing page for the platform.
-    For the single unified client experience, both / and /file serve the same interface.
+    The intelligent_advisor.html provides a premium, modern UI experience.
     """
-    from src.config.branding import get_branding_config
-    branding = get_branding_config()
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "branding": {
-            "platform_name": branding.platform_name,
-            "company_name": branding.company_name,
-            "tagline": branding.tagline,
-            "firm_credentials": branding.firm_credentials,
-            "primary_color": branding.primary_color,
-            "secondary_color": branding.secondary_color,
-            "accent_color": branding.accent_color,
-            "logo_url": branding.logo_url,
-            "support_email": branding.support_email,
-            "support_phone": branding.support_phone,
-            "security_claim": branding.security_claim,
-            "review_claim": branding.review_claim,
-        }
-    })
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/file", status_code=302)
+
+
 
 
 @app.get("/file", response_class=HTMLResponse)

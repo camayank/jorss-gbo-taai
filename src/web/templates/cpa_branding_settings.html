@@ -314,19 +314,19 @@
             </div>
 
             <div class="form-group">
-                <label>Display Name</label>
+                <label for="displayName">Display Name</label>
                 <input type="text" id="displayName" placeholder="e.g., John Smith, CPA" oninput="updatePreview()" />
                 <small>How your name appears to clients (e.g., "John Smith, CPA")</small>
             </div>
 
             <div class="form-group">
-                <label>Professional Tagline</label>
+                <label for="tagline">Professional Tagline</label>
                 <input type="text" id="tagline" placeholder="e.g., Your Trusted Tax Advisor" oninput="updatePreview()" />
                 <small>A short description of your expertise</small>
             </div>
 
             <div class="form-group">
-                <label>Bio</label>
+                <label for="bio">Bio</label>
                 <textarea id="bio" placeholder="Tell clients about your background and expertise..." oninput="updatePreview()"></textarea>
                 <small>A brief professional biography (2-3 sentences)</small>
             </div>
@@ -337,7 +337,7 @@
             <h2>Credentials & Experience</h2>
 
             <div class="form-group">
-                <label>Professional Credentials</label>
+                <label for="newCredential">Professional Credentials</label>
                 <div class="credentials-list" id="credentialsList">
                     <!-- Populated dynamically -->
                 </div>
@@ -350,11 +350,11 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>Years of Experience</label>
+                    <label for="yearsExperience">Years of Experience</label>
                     <input type="number" id="yearsExperience" min="0" max="60" placeholder="e.g., 15" />
                 </div>
                 <div class="form-group">
-                    <label>Specializations</label>
+                    <label for="specializationSelect">Specializations</label>
                     <select id="specializationSelect" onchange="addSpecialization()">
                         <option value="">Select a specialization...</option>
                         <option value="Individual Tax">Individual Tax</option>
@@ -377,19 +377,19 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>Direct Email</label>
+                    <label for="directEmail">Direct Email</label>
                     <input type="email" id="directEmail" placeholder="john@firm.com" />
                     <small>Optional: Your direct email for client communication</small>
                 </div>
                 <div class="form-group">
-                    <label>Direct Phone</label>
+                    <label for="directPhone">Direct Phone</label>
                     <input type="tel" id="directPhone" placeholder="(555) 123-4567" />
                     <small>Optional: Your direct phone number</small>
                 </div>
             </div>
 
             <div class="form-group">
-                <label>Office Address</label>
+                <label for="officeAddress">Office Address</label>
                 <textarea id="officeAddress" rows="3" placeholder="123 Main Street&#10;Suite 100&#10;City, ST 12345"></textarea>
                 <small>Optional: Your office location</small>
             </div>
@@ -400,10 +400,10 @@
             <h2>Visual Customization</h2>
 
             <div class="form-group">
-                <label>Accent Color</label>
+                <label for="accentColor">Accent Color</label>
                 <div class="color-picker">
                     <input type="color" id="accentColor" onchange="updateAccentColor()" />
-                    <input type="text" id="accentColorText" value="{{ branding.primary_color }}" oninput="updateAccentColorFromText()" />
+                    <input type="text" id="accentColorText" value="{{ branding.primary_color }}" oninput="updateAccentColorFromText()" aria-label="Accent color hex value" />
                 </div>
                 <small>Customize your accent color (used for highlights in your client portal)</small>
             </div>

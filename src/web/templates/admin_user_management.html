@@ -141,7 +141,24 @@
             background: white;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Responsive table styles */
+        @media (max-width: 768px) {
+            .user-table-container {
+                margin: 0 -15px;
+                border-radius: 0;
+            }
+            .user-table {
+                min-width: 600px;
+            }
+            .user-table th,
+            .user-table td {
+                padding: 10px 8px;
+                font-size: 13px;
+            }
         }
 
         .user-table {
@@ -662,11 +679,11 @@
         <!-- Filters -->
         <div class="filters">
             <div class="filter-group search-input">
-                <label>Search</label>
+                <label for="searchInput">Search</label>
                 <input type="text" id="searchInput" placeholder="Search by email or name..." oninput="applyFilters()">
             </div>
             <div class="filter-group">
-                <label>Role</label>
+                <label for="roleFilter">Role</label>
                 <select id="roleFilter" onchange="applyFilters()">
                     <option value="">All Roles</option>
                     <option value="PLATFORM_ADMIN">Platform Admin</option>
@@ -677,7 +694,7 @@
                 </select>
             </div>
             <div class="filter-group">
-                <label>Status</label>
+                <label for="statusFilter">Status</label>
                 <select id="statusFilter" onchange="applyFilters()">
                     <option value="">All Statuses</option>
                     <option value="active">Active</option>
@@ -687,7 +704,7 @@
                 </select>
             </div>
             <div class="filter-group">
-                <label>Tenant</label>
+                <label for="tenantFilter">Tenant</label>
                 <select id="tenantFilter" onchange="applyFilters()">
                     <option value="">All Tenants</option>
                     <!-- Populated dynamically -->
@@ -735,7 +752,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="modalUserName">User Details</h2>
-                <button class="modal-close" onclick="closeModal('userDetailModal')">&times;</button>
+                <button class="modal-close" onclick="closeModal('userDetailModal')" aria-label="Close modal">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="tabs">
@@ -892,15 +909,15 @@
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h2>Change User Role</h2>
-                <button class="modal-close" onclick="closeModal('changeRoleModal')">&times;</button>
+                <button class="modal-close" onclick="closeModal('changeRoleModal')" aria-label="Close modal">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Current Role</label>
+                    <label for="currentRole">Current Role</label>
                     <input type="text" id="currentRole" readonly>
                 </div>
                 <div class="form-group">
-                    <label>New Role</label>
+                    <label for="newRole">New Role</label>
                     <select id="newRole">
                         <option value="PLATFORM_ADMIN">Platform Admin</option>
                         <option value="PARTNER">Partner</option>
@@ -910,7 +927,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Reason for Change</label>
+                    <label for="roleChangeReason">Reason for Change</label>
                     <textarea id="roleChangeReason" placeholder="Explain why this role change is needed..."></textarea>
                     <div class="hint">This will be logged in the audit trail</div>
                 </div>
@@ -1308,13 +1325,69 @@
             document.getElementById(tabName + 'Tab').classList.add('active');
         }
 
-        // Modal helpers
+        // Modal helpers with focus trap for accessibility
+        let previouslyFocusedElement = null;
+        let focusTrapHandler = null;
+
         function openModal(modalId) {
-            document.getElementById(modalId).classList.add('active');
+            const modal = document.getElementById(modalId);
+            modal.classList.add('active');
+
+            // Store the element that had focus before opening
+            previouslyFocusedElement = document.activeElement;
+
+            // Get all focusable elements in the modal
+            const focusableElements = modal.querySelectorAll(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            );
+            const firstFocusable = focusableElements[0];
+            const lastFocusable = focusableElements[focusableElements.length - 1];
+
+            // Focus the first focusable element
+            if (firstFocusable) {
+                setTimeout(() => firstFocusable.focus(), 50);
+            }
+
+            // Set up focus trap
+            focusTrapHandler = (e) => {
+                if (e.key === 'Tab') {
+                    if (e.shiftKey) {
+                        // Shift + Tab: moving backwards
+                        if (document.activeElement === firstFocusable) {
+                            e.preventDefault();
+                            lastFocusable.focus();
+                        }
+                    } else {
+                        // Tab: moving forwards
+                        if (document.activeElement === lastFocusable) {
+                            e.preventDefault();
+                            firstFocusable.focus();
+                        }
+                    }
+                }
+                // Close on Escape
+                if (e.key === 'Escape') {
+                    closeModal(modalId);
+                }
+            };
+
+            document.addEventListener('keydown', focusTrapHandler);
         }
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.remove('active');
+
+            // Remove focus trap handler
+            if (focusTrapHandler) {
+                document.removeEventListener('keydown', focusTrapHandler);
+                focusTrapHandler = null;
+            }
+
+            // Restore focus to the element that triggered the modal
+            if (previouslyFocusedElement) {
+                previouslyFocusedElement.focus();
+                previouslyFocusedElement = null;
+            }
         }
 
         // Utility functions

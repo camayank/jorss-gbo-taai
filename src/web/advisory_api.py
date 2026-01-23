@@ -107,6 +107,9 @@ _pdf_store: dict[str, str] = {}
 # Store session mappings (session_id -> list[report_id])
 _session_reports: dict[str, List[str]] = {}
 
+# Store reverse mapping (report_id -> session_id)
+_report_session: dict[str, str] = {}
+
 
 # ============================================================================
 # HELPER FUNCTIONS
@@ -327,6 +330,9 @@ async def generate_report(
             _session_reports[request.session_id] = []
         _session_reports[request.session_id].append(report.report_id)
 
+        # Track reverse mapping (report_id -> session_id)
+        _report_session[report.report_id] = request.session_id
+
         # Generate PDF in background if requested
         if request.generate_pdf:
             background_tasks.add_task(
@@ -372,13 +378,16 @@ async def get_report_status(report_id: str):
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
 
+    # Get session_id from mapping
+    session_id = _report_session.get(report_id, "unknown")
+
     # Check if PDF is ready
     pdf_available = report_id in _pdf_store
     pdf_url = f"/api/v1/advisory-reports/{report_id}/pdf" if pdf_available else None
 
     return AdvisoryReportResponse(
         report_id=report.report_id,
-        session_id=report.session_id,
+        session_id=session_id,
         status=report.status,
         report_type=report.report_type.value,
         taxpayer_name=report.taxpayer_name,
