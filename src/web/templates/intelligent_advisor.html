@@ -492,6 +492,88 @@
       background: rgba(16, 185, 129, 0.1);
     }
 
+    /* AI Disclaimer Banner */
+    .ai-disclaimer-banner {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+
+    .disclaimer-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+    }
+
+    .disclaimer-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .disclaimer-icon {
+      flex-shrink: 0;
+    }
+
+    /* Confidence Indicator Styles */
+    .confidence-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin: 12px 0;
+    }
+
+    .confidence-high {
+      background: rgba(16, 185, 129, 0.1);
+      border-left: 3px solid #10b981;
+    }
+
+    .confidence-medium {
+      background: rgba(245, 158, 11, 0.1);
+      border-left: 3px solid #f59e0b;
+    }
+
+    .confidence-low {
+      background: rgba(239, 68, 68, 0.1);
+      border-left: 3px solid #ef4444;
+    }
+
+    /* Screen Reader Only */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* Focus Visible for Accessibility */
+    .quick-action:focus-visible,
+    button:focus-visible,
+    textarea:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    /* Reduced Motion Support */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
     /* Mobile Responsive */
     @media (max-width: 1024px) {
       .main {
@@ -501,6 +583,270 @@
       .side-panel {
         width: 100%;
       }
+
+      .ai-disclaimer-banner {
+        font-size: 12px;
+        padding: 10px 12px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .ai-disclaimer-banner {
+        border-radius: 8px;
+        margin-bottom: 12px;
+      }
+
+      .disclaimer-item {
+        font-size: 11px;
+      }
+    }
+
+    /* Header Right Section */
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .clear-chat-btn {
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .clear-chat-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: var(--text);
+    }
+
+    /* Connection Status */
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 20px;
+      font-size: 13px;
+      color: var(--accent);
+      transition: all 0.3s;
+    }
+
+    .connection-status.offline {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #ef4444;
+    }
+
+    .connection-status.offline .status-dot {
+      background: #ef4444;
+      animation: none;
+    }
+
+    /* Consent Modal */
+    .consent-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .consent-modal.hidden {
+      display: none;
+    }
+
+    .consent-content {
+      background: var(--surface);
+      border-radius: 16px;
+      max-width: 560px;
+      width: 100%;
+      padding: 32px;
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+    }
+
+    .consent-content h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: var(--text);
+    }
+
+    .consent-body {
+      margin-bottom: 24px;
+    }
+
+    .consent-body p {
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .consent-item {
+      display: flex;
+      gap: 12px;
+      padding: 12px;
+      background: rgba(99, 102, 241, 0.08);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .consent-item.warning {
+      background: rgba(245, 158, 11, 0.1);
+      border-left: 3px solid #f59e0b;
+    }
+
+    .consent-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .consent-checkbox {
+      display: flex;
+      gap: 12px;
+      padding: 16px;
+      background: var(--surface-light);
+      border-radius: 8px;
+      margin-top: 20px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .consent-checkbox input {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      cursor: pointer;
+      accent-color: var(--primary);
+    }
+
+    .consent-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .consent-link {
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .consent-link:hover {
+      text-decoration: underline;
+    }
+
+    .consent-btn {
+      padding: 14px 32px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .consent-btn:disabled {
+      background: var(--surface-light);
+      color: var(--text-secondary);
+      cursor: not-allowed;
+    }
+
+    .consent-btn:not(:disabled):hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    /* Message Timestamp */
+    .message-time {
+      font-size: 11px;
+      color: var(--text-secondary);
+      opacity: 0.6;
+      margin-top: 8px;
+      display: block;
+    }
+
+    .message.user .message-time {
+      text-align: right;
+    }
+
+    /* Copy Button */
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 4px 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 4px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .bubble {
+      position: relative;
+    }
+
+    .bubble:hover .copy-btn {
+      opacity: 1;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Improved Typing Indicator Accessibility */
+    .typing-indicator[aria-label] {
+      position: relative;
+    }
+
+    @media (max-width: 768px) {
+      .header-right {
+        gap: 8px;
+      }
+
+      .clear-chat-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+
+      .connection-status {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+
+      .consent-content {
+        padding: 20px;
+      }
+
+      .consent-content h2 {
+        font-size: 20px;
+      }
     }
   </style>
 </head>
@@ -509,18 +855,78 @@
 
   <div class="header">
     <div class="logo">✨ Premium Tax Advisory</div>
-    <div class="status-pill">
-      <span class="status-dot"></span>
-      CPA-Grade Advisory Active
+    <div class="header-right">
+      <button class="clear-chat-btn" onclick="clearConversation()" title="Start new conversation" aria-label="Start new conversation">
+        🔄 New Chat
+      </button>
+      <div class="connection-status" id="connectionStatus" role="status" aria-live="polite">
+        <span class="status-dot" id="connectionDot"></span>
+        <span id="connectionText">Connected</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Collection Consent Modal -->
+  <div class="consent-modal" id="consentModal" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
+    <div class="consent-content">
+      <h2 id="consentTitle">📋 Before We Begin</h2>
+      <div class="consent-body">
+        <p><strong>This AI assistant will collect personal tax information to provide guidance.</strong></p>
+
+        <div class="consent-item">
+          <span class="consent-icon">🔒</span>
+          <span><strong>Data Security:</strong> All information is encrypted (AES-256) in transit and at rest.</span>
+        </div>
+
+        <div class="consent-item">
+          <span class="consent-icon">⏰</span>
+          <span><strong>Data Retention:</strong> Your session data is automatically deleted after 30 days of inactivity.</span>
+        </div>
+
+        <div class="consent-item">
+          <span class="consent-icon">🚫</span>
+          <span><strong>No Selling:</strong> We never sell or share your personal information with third parties.</span>
+        </div>
+
+        <div class="consent-item warning">
+          <span class="consent-icon">⚠️</span>
+          <span><strong>IRS Circular 230 Notice:</strong> This AI provides general guidance only, NOT professional tax advice. It cannot represent you before the IRS. For complex tax situations, always consult a licensed CPA, EA, or tax attorney.</span>
+        </div>
+
+        <label class="consent-checkbox">
+          <input type="checkbox" id="dataConsent" required>
+          <span>I understand and consent to the collection of my tax information for advisory purposes. I acknowledge this is NOT professional tax advice.</span>
+        </label>
+      </div>
+
+      <div class="consent-actions">
+        <a href="/privacy" target="_blank" class="consent-link">Privacy Policy</a>
+        <a href="/terms" target="_blank" class="consent-link">Terms of Service</a>
+        <button class="consent-btn" id="acceptConsentBtn" onclick="acceptConsent()" disabled>
+          ✓ Accept & Continue
+        </button>
+      </div>
     </div>
   </div>
 
   <div class="main">
     <div class="chat-panel">
-      <div class="messages" id="messages">
+      <!-- Privacy & AI Disclaimer Notice -->
+      <div class="ai-disclaimer-banner" role="alert" aria-label="Important notices about AI assistance and privacy">
+        <div class="disclaimer-item">
+          <span class="disclaimer-icon">🤖</span>
+          <span><strong>AI Assistant:</strong> I provide estimates and general guidance, not professional tax advice. Always verify with a licensed CPA or tax professional.</span>
+        </div>
+        <div class="disclaimer-item">
+          <span class="disclaimer-icon">🔒</span>
+          <span><strong>Privacy:</strong> Your data is encrypted and never sold. <a href="/privacy" style="color: var(--primary);">Privacy Policy</a></span>
+        </div>
+      </div>
+
+      <div class="messages" id="messages" role="log" aria-live="polite" aria-label="Conversation with AI tax advisor">
         <!-- Static initial message for immediate display -->
-        <div class="message ai">
-          <div class="avatar">🤖</div>
+        <div class="message ai" role="article" aria-label="AI assistant message">
+          <div class="avatar" aria-hidden="true">🤖</div>
           <div class="bubble">
             <strong>Welcome! I'm your AI-powered tax advisory specialist.</strong><br><br>
             I help individuals like you identify tax-saving opportunities and connect you with our CPA team for personalized guidance. On average, our clients discover <strong>$3,000-$15,000 in overlooked deductions</strong> and tax-saving strategies.<br><br>
@@ -533,30 +939,37 @@
               • Generate a comprehensive advisory report<br>
               • Connect you with a CPA for personalized strategy
             </div>
+            <div class="confidence-indicator" style="background: rgba(59, 130, 246, 0.1); padding: 8px 12px; border-radius: 6px; font-size: 12px; color: var(--text-secondary); margin: 12px 0;">
+              ℹ️ <em>This is general guidance. Accuracy improves as you provide more information.</em>
+            </div>
             <strong>Before we dive in, may I have your name?</strong> (This helps me personalize your report)
-            <div class="quick-actions" id="initialQuickActions" style="margin-top: 16px;">
-              <button class="quick-action" data-action="enter_name">✍️ Enter my name</button>
-              <button class="quick-action" data-action="skip_name">⏭️ Skip for now</button>
+            <div class="quick-actions" id="initialQuickActions" style="margin-top: 16px;" role="group" aria-label="Quick response options">
+              <button class="quick-action" data-action="enter_name" aria-label="Enter my name to personalize the report">✍️ Enter my name</button>
+              <button class="quick-action" data-action="skip_name" aria-label="Skip entering name for now">⏭️ Skip for now</button>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="input-area">
+      <div class="input-area" role="form" aria-label="Send a message to AI advisor">
         <div class="input-wrapper">
+          <label for="userInput" class="sr-only">Type your message or question about taxes</label>
           <div class="input-box">
             <textarea
               id="userInput"
               placeholder="Share your questions or financial situation with me..."
               rows="1"
               onkeydown="handleKeyDown(event)"
+              aria-label="Type your message or question about taxes"
+              aria-describedby="inputHint"
             ></textarea>
+            <span id="inputHint" class="sr-only">Press Enter to send, Shift+Enter for new line</span>
             <div class="action-btns">
-              <button class="icon-btn" onclick="uploadDocument()" title="Upload Document">
-                📎
+              <button class="icon-btn" onclick="uploadDocument()" title="Upload Document" aria-label="Upload a tax document">
+                <span aria-hidden="true">📎</span>
               </button>
-              <button class="icon-btn" onclick="addVoiceInput()" title="Voice Input">
-                🎤
+              <button class="icon-btn" onclick="addVoiceInput()" title="Voice Input" aria-label="Use voice input">
+                <span aria-hidden="true">🎤</span>
               </button>
             </div>
           </div>
@@ -706,6 +1119,117 @@
       }, 4000);
     }
 
+    // ============ CONSENT MODAL ============
+    function checkConsent() {
+      const hasConsent = sessionStorage.getItem('tax_data_consent');
+      const consentModal = document.getElementById('consentModal');
+
+      if (hasConsent === 'true') {
+        consentModal.classList.add('hidden');
+        return true;
+      }
+
+      // Show consent modal
+      consentModal.classList.remove('hidden');
+      document.getElementById('dataConsent').focus();
+      return false;
+    }
+
+    function acceptConsent() {
+      const checkbox = document.getElementById('dataConsent');
+      if (!checkbox.checked) {
+        showToast('Please check the consent box to continue', 'warning');
+        return;
+      }
+
+      sessionStorage.setItem('tax_data_consent', 'true');
+      sessionStorage.setItem('tax_consent_timestamp', new Date().toISOString());
+      document.getElementById('consentModal').classList.add('hidden');
+
+      // Initialize session after consent
+      initializeSession();
+      showToast('Welcome! Your data will be handled securely.', 'success');
+    }
+
+    // Enable/disable accept button based on checkbox
+    document.addEventListener('DOMContentLoaded', function() {
+      const checkbox = document.getElementById('dataConsent');
+      const acceptBtn = document.getElementById('acceptConsentBtn');
+
+      if (checkbox && acceptBtn) {
+        checkbox.addEventListener('change', function() {
+          acceptBtn.disabled = !this.checked;
+        });
+      }
+    });
+
+    // ============ CONNECTION STATUS ============
+    function updateConnectionStatus(online) {
+      const statusEl = document.getElementById('connectionStatus');
+      const textEl = document.getElementById('connectionText');
+      const dotEl = document.getElementById('connectionDot');
+
+      if (online) {
+        statusEl.classList.remove('offline');
+        textEl.textContent = 'Connected';
+        dotEl.style.background = 'var(--accent)';
+      } else {
+        statusEl.classList.add('offline');
+        textEl.textContent = 'Offline';
+        dotEl.style.background = '#ef4444';
+        showToast('You appear to be offline. Messages will be sent when connection is restored.', 'warning');
+      }
+    }
+
+    // Monitor connection status
+    window.addEventListener('online', () => {
+      updateConnectionStatus(true);
+      showToast('Connection restored!', 'success');
+    });
+
+    window.addEventListener('offline', () => {
+      updateConnectionStatus(false);
+    });
+
+    // Periodic health check
+    let healthCheckInterval = null;
+    function startHealthCheck() {
+      healthCheckInterval = setInterval(async () => {
+        try {
+          const response = await fetch('/api/health', {
+            method: 'GET',
+            cache: 'no-store',
+            signal: AbortSignal.timeout(5000)
+          });
+          if (response.ok) {
+            updateConnectionStatus(true);
+          } else {
+            updateConnectionStatus(false);
+          }
+        } catch (e) {
+          // Don't mark as offline for network errors if we're still online per browser
+          if (!navigator.onLine) {
+            updateConnectionStatus(false);
+          }
+        }
+      }, 30000); // Every 30 seconds
+    }
+
+    // ============ CLEAR CONVERSATION ============
+    function clearConversation() {
+      if (!confirm('Start a new conversation? This will clear your current session.')) {
+        return;
+      }
+
+      // Clear session storage
+      sessionStorage.removeItem('tax_session_id');
+      sessionStorage.removeItem('tax_data_consent');
+      sessionStorage.removeItem('tax_consent_timestamp');
+
+      // Reload page to reset everything
+      window.location.reload();
+    }
+
     // Initialize session
     async function initializeSession() {
       console.log('initializeSession called');
@@ -743,7 +1267,58 @@
       console.log('Initial greeting added');
     }
 
-    function addMessage(type, text, quickActions = []) {
+    // Calculate confidence level based on data completeness
+    function getConfidenceLevel() {
+      let score = 0;
+      let maxScore = 100;
+
+      if (extractedData.filing_status) score += 15;
+      if (extractedData.income_range || extractedData.tax_profile?.total_income) score += 20;
+      if (extractedData.deductions && extractedData.deductions.length > 0) score += 15;
+      if (extractedData.credits && extractedData.credits.length > 0) score += 15;
+      if (extractedData.contact?.name) score += 5;
+      if (extractedData.documents && extractedData.documents.length > 0) score += 20;
+      if (extractedData.focus_area) score += 10;
+
+      const percentage = Math.round((score / maxScore) * 100);
+
+      if (percentage >= 70) return { level: 'high', percentage, label: 'High confidence' };
+      if (percentage >= 40) return { level: 'medium', percentage, label: 'Moderate confidence' };
+      return { level: 'low', percentage, label: 'Limited data' };
+    }
+
+    // Generate confidence disclaimer for AI messages
+    function getConfidenceDisclaimer(includeIRS = false) {
+      const confidence = getConfidenceLevel();
+      let disclaimer = '';
+
+      if (confidence.level === 'high') {
+        disclaimer = `<div class="confidence-indicator confidence-high">
+          <span>✅ ${confidence.label} (${confidence.percentage}% data)</span>
+          <span style="margin-left: auto; font-size: 11px;">Verify with a tax professional before filing</span>
+        </div>`;
+      } else if (confidence.level === 'medium') {
+        disclaimer = `<div class="confidence-indicator confidence-medium">
+          <span>⚠️ ${confidence.label} (${confidence.percentage}% data)</span>
+          <span style="margin-left: auto; font-size: 11px;">Provide more details for better accuracy</span>
+        </div>`;
+      } else {
+        disclaimer = `<div class="confidence-indicator confidence-low">
+          <span>ℹ️ ${confidence.label} (${confidence.percentage}% data)</span>
+          <span style="margin-left: auto; font-size: 11px;">General guidance only - more info needed</span>
+        </div>`;
+      }
+
+      if (includeIRS) {
+        disclaimer += `<div style="font-size: 11px; color: var(--text-secondary); margin-top: 8px;">
+          📋 Based on 2025 IRS guidelines. See <a href="https://www.irs.gov/forms-instructions" target="_blank" rel="noopener" style="color: var(--primary);">IRS.gov</a> for official forms.
+        </div>`;
+      }
+
+      return disclaimer;
+    }
+
+    function addMessage(type, text, quickActions = [], options = {}) {
       console.log('====== addMessage CALLED ======');
       console.log('Type:', type);
       console.log('Text preview:', text.substring(0, 50));
@@ -754,28 +1329,68 @@
 
       if (!messages) {
         console.error('Messages container not found!');
-        alert('ERROR: Messages container not found!');
+        showToast('Error displaying message', 'error');
         return;
       }
 
       const messageDiv = document.createElement('div');
       messageDiv.className = `message ${type}`;
+      messageDiv.setAttribute('role', 'article');
+      messageDiv.setAttribute('aria-label', type === 'ai' ? 'AI assistant message' : 'Your message');
 
       const avatar = document.createElement('div');
       avatar.className = 'avatar';
+      avatar.setAttribute('aria-hidden', 'true');
       avatar.textContent = type === 'ai' ? '🤖' : '👤';
 
       const bubble = document.createElement('div');
       bubble.className = 'bubble';
+
+      // Add confidence indicator for AI messages (unless explicitly disabled)
+      if (type === 'ai' && options.showConfidence !== false) {
+        const includeIRS = options.includeIRS || false;
+        text += getConfidenceDisclaimer(includeIRS);
+      }
+
       bubble.innerHTML = text;
+
+      // Add copy button for AI messages
+      if (type === 'ai') {
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-btn';
+        copyBtn.textContent = '📋 Copy';
+        copyBtn.setAttribute('aria-label', 'Copy this message');
+        copyBtn.onclick = (e) => {
+          e.stopPropagation();
+          const textContent = bubble.innerText.replace('📋 Copy', '').trim();
+          navigator.clipboard.writeText(textContent).then(() => {
+            copyBtn.textContent = '✓ Copied';
+            setTimeout(() => copyBtn.textContent = '📋 Copy', 2000);
+          });
+        };
+        bubble.appendChild(copyBtn);
+      }
+
+      // Add timestamp
+      const timestamp = document.createElement('span');
+      timestamp.className = 'message-time';
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      timestamp.textContent = timeStr;
+      timestamp.setAttribute('aria-label', `Sent at ${timeStr}`);
+      bubble.appendChild(timestamp);
 
       if (quickActions.length > 0) {
         const actionsDiv = document.createElement('div');
         actionsDiv.className = 'quick-actions';
-        quickActions.forEach(action => {
-          const btn = document.createElement('div');
+        actionsDiv.setAttribute('role', 'group');
+        actionsDiv.setAttribute('aria-label', 'Quick response options');
+
+        quickActions.forEach((action, index) => {
+          const btn = document.createElement('button');
           btn.className = 'quick-action';
           btn.textContent = action.label;
+          btn.setAttribute('aria-label', action.label.replace(/[^\w\s]/g, '').trim());
           btn.onclick = () => handleQuickAction(action.value);
           actionsDiv.appendChild(btn);
         });
@@ -797,14 +1412,18 @@
       const typing = document.createElement('div');
       typing.className = 'message ai';
       typing.id = 'typing-indicator';
+      typing.setAttribute('role', 'status');
+      typing.setAttribute('aria-live', 'polite');
+      typing.setAttribute('aria-label', 'AI assistant is typing a response');
       typing.innerHTML = `
-        <div class="avatar">🤖</div>
+        <div class="avatar" aria-hidden="true">🤖</div>
         <div class="bubble">
-          <div class="typing-indicator">
+          <div class="typing-indicator" role="img" aria-label="Typing">
             <span></span>
             <span></span>
             <span></span>
           </div>
+          <span class="sr-only">Please wait, the assistant is preparing a response...</span>
         </div>
       `;
       messages.appendChild(typing);
@@ -1391,13 +2010,19 @@
         }, 1000);
 
       } else if (value === 'retry_message') {
-        addMessage('user', 'Let me try again');
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `I'm ready when you are! What would you like to discuss?`, generateSmartQuickActions());
-          document.getElementById('userInput').focus();
-        }, 500);
+        // Retry the last message if available
+        if (lastUserMessage) {
+          addMessage('user', 'Retrying my last message...');
+          await processAIResponse(lastUserMessage);
+        } else {
+          addMessage('user', 'Let me try again');
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `I'm ready when you are! What would you like to discuss?`, generateSmartQuickActions());
+            document.getElementById('userInput').focus();
+          }, 500);
+        }
 
       } else {
         // For any other actions not handled, use AI processing
@@ -1497,21 +2122,77 @@
       }, 2000);
     }
 
+    // Retry helper with exponential backoff
+    async function fetchWithRetry(url, options, maxRetries = 3) {
+      let lastError;
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+          const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
+
+          // Don't retry on client errors (4xx) except 408 (timeout) and 429 (rate limit)
+          if (response.status >= 400 && response.status < 500 &&
+              response.status !== 408 && response.status !== 429) {
+            return response;
+          }
+
+          // Retry on server errors (5xx) or specific client errors
+          if (!response.ok && attempt < maxRetries) {
+            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 8000); // Max 8s delay
+            console.log(`Retry attempt ${attempt} after ${delay}ms`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+
+          return response;
+        } catch (error) {
+          lastError = error;
+
+          // Don't retry on abort errors
+          if (error.name === 'AbortError') {
+            throw new Error('Request timeout - please try again');
+          }
+
+          // Retry on network errors
+          if (attempt < maxRetries) {
+            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
+            console.log(`Network error, retry attempt ${attempt} after ${delay}ms`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+        }
+      }
+
+      throw lastError || new Error('Request failed after retries');
+    }
+
+    // Store last message for retry
+    let lastUserMessage = null;
+
     async function processAIResponse(userMessage) {
       isProcessing = true;
+      lastUserMessage = userMessage; // Store for retry
       showTyping();
 
       // Create session if not already created
       if (!sessionId) {
         try {
-          const sessionResponse = await fetch('/api/sessions/create-session', {
+          const sessionResponse = await fetchWithRetry('/api/sessions/create-session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               workflow_type: 'intelligent_conversational',
               tax_year: 2025
             })
-          });
+          }, 2); // 2 retries for session creation
 
           if (!sessionResponse.ok) {
             // If session creation fails, generate a temporary client-side ID
@@ -1534,7 +2215,7 @@
       const systemContext = buildSystemContext();
 
       try {
-        const response = await fetch('/api/ai-chat/chat', {
+        const response = await fetchWithRetry('/api/ai-chat/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1544,7 +2225,7 @@
             extracted_data: extractedData,
             system_context: systemContext
           })
-        });
+        }, 3); // 3 retries with exponential backoff
 
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
@@ -1626,13 +2307,22 @@
     // Build system context for AI to understand conversation state
     function buildSystemContext() {
       const progress = getCurrentProgress();
+      const confidence = getConfidenceLevel();
+
       let context = {
         role: 'system',
-        content: `You are a premium CPA tax advisor specializing in individual tax advisory. You're having a warm, professional conversation with a client.
+        content: `You are a premium CPA tax advisor AI assistant specializing in individual tax advisory. You're having a warm, professional conversation with a client.
+
+⚠️ CRITICAL AI DISCLOSURE REQUIREMENTS:
+- You are an AI assistant, NOT a licensed CPA or tax professional
+- Your responses are ESTIMATES and GENERAL GUIDANCE, not professional tax advice
+- Users should ALWAYS verify information with a licensed tax professional before making decisions
+- Include relevant IRS publication/form references when giving specific tax guidance
 
 CRITICAL: All tax advice, limits, deductions, and credits must follow 2025 IRS rules and regulations. Use only 2025 tax year information.
 
 Tax Year: 2025
+Data Confidence: ${confidence.level} (${confidence.percentage}% complete)
 Current conversation state:
 - Progress: ${progress}%
 - Filing Status: ${extractedData.filing_status || 'Not yet provided'}
@@ -1641,23 +2331,34 @@ Current conversation state:
 - Deductions: ${extractedData.deductions ? extractedData.deductions.join(', ') : 'None captured yet'}
 - Credits: ${extractedData.credits ? extractedData.credits.join(', ') : 'None captured yet'}
 
-2025 IRS Key Information (use these exact figures):
-- Standard Deduction Single: $15,000
-- Standard Deduction Married Filing Jointly: $30,000
-- Standard Deduction Head of Household: $22,500
-- Child Tax Credit: $2,000 per qualifying child
-- 401(k) Contribution Limit: $23,500 (under 50), $31,000 (50+)
-- IRA Contribution Limit: $7,000 (under 50), $8,000 (50+)
+2025 IRS Key Information (cite these sources):
+- Standard Deduction Single: $15,000 (IRS Rev. Proc. 2024-40)
+- Standard Deduction MFJ: $30,000 (IRS Rev. Proc. 2024-40)
+- Standard Deduction HOH: $22,500 (IRS Rev. Proc. 2024-40)
+- Child Tax Credit: $2,000/child (IRC §24, Form 8812)
+- 401(k) Limit: $23,500 / $31,000 catch-up (IRS Notice 2024-80)
+- IRA Limit: $7,000 / $8,000 catch-up (IRS Notice 2024-80)
+- EITC Max: $7,830 (3+ children) (IRS Rev. Proc. 2024-40)
+- SALT Deduction Cap: $10,000 (IRC §164(b)(6))
 
-Guidelines:
-1. Maintain a warm, experienced CPA tone - like a trusted advisor
-2. This is INDIVIDUAL tax advisory (not tax filing) - emphasize strategic planning
-3. ALWAYS use 2025 IRS rules, limits, and thresholds in your responses
-4. If the user asks off-topic questions, answer briefly then guide back to tax advisory
-5. Extract any tax-relevant information from their message and update the extracted_data
-6. Suggest next steps to move the conversation forward
-7. If they seem confused, offer to explain or provide specific options
-8. Always be helpful, patient, and professional
+IRS SOURCE CITATION GUIDELINES:
+When discussing specific tax topics, reference relevant IRS resources:
+- Deductions: "See IRS Publication 17, Chapter [X]"
+- Credits: "See Form [number] instructions"
+- Filing Status: "See IRS Publication 501"
+- Self-Employment: "See Schedule SE and IRS Publication 334"
+- Home Office: "See IRS Publication 587"
+- Retirement: "See IRS Publication 590-A/B"
+
+RESPONSE GUIDELINES:
+1. Maintain a warm, experienced advisor tone
+2. This is INDIVIDUAL tax advisory - emphasize strategic planning
+3. ALWAYS use 2025 IRS rules with source citations when specific
+4. If data confidence is LOW, emphasize this is general guidance only
+5. Extract tax-relevant information and suggest clarifying questions
+6. If the user asks off-topic questions, answer briefly then redirect
+7. Always recommend consulting a licensed CPA for final decisions
+8. Be helpful, patient, and professional
 
 If you need more information to provide good advice, ask specific questions.
 If they're ready to move forward, suggest generating their comprehensive advisory report.`
@@ -2244,6 +2945,12 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       const messagesContainer = document.getElementById('messages');
       console.log('Messages container found:', messagesContainer);
 
+      // Check initial connection status
+      updateConnectionStatus(navigator.onLine);
+
+      // Start health check monitoring
+      startHealthCheck();
+
       // Attach event listeners to initial quick action buttons
       const initialButtons = document.querySelectorAll('#initialQuickActions button[data-action]');
       console.log('Found initial buttons:', initialButtons.length);
@@ -2276,7 +2983,10 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         }
       });
 
-      initializeSession();
+      // Check consent before initializing session
+      if (checkConsent()) {
+        initializeSession();
+      }
 
       setTimeout(() => {
         const input = document.getElementById('userInput');

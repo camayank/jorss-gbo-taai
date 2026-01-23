@@ -357,7 +357,7 @@ def configure_security_middleware(
         app.add_middleware(
             CSRFMiddleware,
             secret_key=secret_key,
-            exempt_paths={"/api/health", "/api/webhook", "/api/chat"},
+            exempt_paths={"/api/health", "/api/webhook", "/api/chat", "/api/ai-chat/"},
         )
 
     logger.info("Security middleware configured")
