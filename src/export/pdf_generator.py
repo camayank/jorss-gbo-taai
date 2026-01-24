@@ -170,6 +170,9 @@ class TaxReturnPDFGenerator:
         return PDFSection(
             title="",
             content=[
+                # DRAFT DISCLAIMER BANNER
+                {"type": "alert", "text": "DRAFT - FOR REFERENCE ONLY - NOT FOR FILING", "style": "warning"},
+                {"type": "spacer", "height": 20},
                 {"type": "header", "text": "Individual Income Tax Return", "size": "large"},
                 {"type": "header", "text": "Tax Year 2025", "size": "medium"},
                 {"type": "spacer", "height": 40},
@@ -180,7 +183,13 @@ class TaxReturnPDFGenerator:
                 {"type": "text", "text": f"Filing Status: {taxpayer.filing_status.value if hasattr(taxpayer.filing_status, 'value') else taxpayer.filing_status}"},
                 {"type": "spacer", "height": 60},
                 {"type": "text", "text": f"Prepared: {datetime.now().strftime('%B %d, %Y')}"},
-                {"type": "text", "text": "Prepared by: Gorss-Gbo Tax Software"},
+                {"type": "text", "text": "Prepared by: TaxAdvisor Pro"},
+                {"type": "spacer", "height": 40},
+                # Legal disclaimer
+                {"type": "disclaimer", "text": "IMPORTANT: This is a DRAFT document for reference only. "
+                 "DO NOT file this with the IRS or any state tax authority. "
+                 "ALWAYS consult a licensed CPA, Enrolled Agent, or tax attorney before making "
+                 "any tax decisions or filing any tax returns."},
             ],
             page_break_after=True,
         )

@@ -484,12 +484,30 @@ class AdvisoryPDFExporter:
         return story
 
     def _build_disclaimers_section(self, content: Dict) -> List:
-        """Build disclaimers section."""
+        """Build disclaimers section with strong legal disclaimers."""
         story = []
 
-        # Disclaimers
+        # Standard legal disclaimer - always included
+        story.append(Paragraph("IMPORTANT LEGAL NOTICE", self.styles['SubsectionHeading']))
+        story.append(Paragraph(
+            "<b>NOT TAX ADVICE:</b> This document is for informational and educational purposes only. "
+            "TaxAdvisor Pro is a tax information platform, NOT a tax preparation service or tax advisory service. "
+            "All calculations, estimates, and recommendations are approximations based on general tax rules "
+            "and may not reflect your actual tax situation.",
+            self.styles['Disclaimer']
+        ))
+        story.append(Spacer(1, 0.1 * inch))
+        story.append(Paragraph(
+            "<b>CONSULT A PROFESSIONAL:</b> ALWAYS consult with a licensed CPA, Enrolled Agent, "
+            "or tax attorney before making any tax decisions or filing any tax returns. "
+            "Do not rely solely on this document for tax planning or filing decisions.",
+            self.styles['Disclaimer']
+        ))
+        story.append(Spacer(1, 0.2 * inch))
+
+        # Additional disclaimers from content
         if "disclaimers" in content:
-            story.append(Paragraph("Important Disclaimers", self.styles['SubsectionHeading']))
+            story.append(Paragraph("Additional Disclaimers", self.styles['SubsectionHeading']))
 
             for disclaimer in content["disclaimers"]:
                 story.append(Paragraph(f"• {disclaimer}", self.styles['Disclaimer']))

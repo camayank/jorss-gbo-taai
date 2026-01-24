@@ -151,7 +151,9 @@ try:
             "/api/chat",  # Uses Bearer auth
             "/api/sessions/check-active",  # Read-only
             "/api/validate/fields",  # Field validation
-            "/api/v1/",  # REST API endpoints (use Bearer auth in production)
+            "/api/v1/auth/",  # Auth endpoints only (login, register, refresh)
+            "/api/v1/admin/health",  # Health check endpoints
+            # Note: Other /api/v1/* endpoints require CSRF token OR Bearer auth
         }
     )
     logger.info("CSRF protection middleware enabled")
@@ -1131,6 +1133,90 @@ def cpa_payment_settings(request: Request):
     return templates.TemplateResponse("cpa_payment_settings.html", {"request": request})
 
 
+@app.get("/cpa/settings/branding", response_class=HTMLResponse)
+def cpa_branding_settings(request: Request):
+    """
+    CPA Branding Settings - White-label customization.
+
+    Allows CPAs to customize:
+    - Firm logo and colors
+    - Contact information
+    - Custom messaging
+    - Lead magnet branding
+    """
+    return templates.TemplateResponse("cpa_branding_settings.html", {"request": request})
+
+
+# =============================================================================
+# LEGAL PAGES & CPA LANDING
+# =============================================================================
+
+@app.get("/cpa-landing", response_class=HTMLResponse)
+@app.get("/for-cpas", response_class=HTMLResponse)
+def cpa_landing_page(request: Request):
+    """
+    CPA Landing Page - Marketing page for CPA lead generation platform.
+
+    White-label lead generation platform for CPAs with:
+    - Feature highlights
+    - Pricing tiers
+    - Demo access
+    """
+    return templates.TemplateResponse("cpa_landing.html", {"request": request})
+
+
+@app.get("/terms", response_class=HTMLResponse)
+@app.get("/terms-of-service", response_class=HTMLResponse)
+def terms_of_service(request: Request):
+    """
+    Terms of Service - Legal terms and conditions.
+
+    Includes important disclaimers:
+    - NOT tax advice
+    - Draft returns are reference only
+    - User responsibilities
+    """
+    return templates.TemplateResponse("terms.html", {"request": request})
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+@app.get("/privacy-policy", response_class=HTMLResponse)
+def privacy_policy(request: Request):
+    """
+    Privacy Policy - Data collection and usage policies.
+
+    Covers:
+    - Data collection practices
+    - How data is shared with CPAs
+    - CCPA and GDPR compliance
+    """
+    return templates.TemplateResponse("privacy.html", {"request": request})
+
+
+@app.get("/cookies", response_class=HTMLResponse)
+@app.get("/cookie-policy", response_class=HTMLResponse)
+def cookie_policy(request: Request):
+    """
+    Cookie Policy - Cookie usage disclosure.
+
+    Details essential, functional, and analytics cookies.
+    """
+    return templates.TemplateResponse("cookies.html", {"request": request})
+
+
+@app.get("/disclaimer", response_class=HTMLResponse)
+def disclaimer_page(request: Request):
+    """
+    Disclaimer - Important legal disclaimer.
+
+    Strong disclaimers:
+    - NOT TAX ADVICE
+    - Consult licensed CPA before filing
+    - Draft returns are reference only
+    """
+    return templates.TemplateResponse("disclaimer.html", {"request": request})
+
+
 @app.get("/client", response_class=HTMLResponse)
 def client_portal(request: Request):
     """
@@ -1154,21 +1240,27 @@ async def advisory_report_preview(request: Request):
     return templates.TemplateResponse("advisory_report_preview.html", {"request": request})
 
 
-@app.get("/test-auth", response_class=HTMLResponse)
-def test_auth_portal(request: Request):
-    """
-    Development/Testing Portal - Auth Bypass Page.
+# =============================================================================
+# DEVELOPMENT/TESTING ROUTES (Only available when ENABLE_TEST_ROUTES=true)
+# =============================================================================
+_ENABLE_TEST_ROUTES = os.environ.get("ENABLE_TEST_ROUTES", "false").lower() == "true"
 
-    WARNING: This page bypasses authentication for development purposes only.
-    In production, this route should be disabled or properly secured.
+if _ENABLE_TEST_ROUTES:
+    @app.get("/test-auth", response_class=HTMLResponse)
+    def test_auth_portal(request: Request):
+        """
+        Development/Testing Portal - Auth Bypass Page.
 
-    Provides quick access to:
-    - CPA Dashboard
-    - Client Portal
-    - API Documentation
-    - Health checks
-    """
-    return templates.TemplateResponse("test_auth.html", {"request": request})
+        WARNING: This page bypasses authentication for development purposes only.
+        In production, this route should be disabled or properly secured.
+
+        Provides quick access to:
+        - CPA Dashboard
+        - Client Portal
+        - API Documentation
+        - Health checks
+        """
+        return templates.TemplateResponse("test_auth.html", {"request": request})
 
 
 @app.get("/admin", response_class=HTMLResponse)
@@ -1199,26 +1291,27 @@ def system_hub(request: Request):
     return templates.TemplateResponse("system_hub.html", {"request": request})
 
 
-@app.get("/test-hub", response_class=HTMLResponse)
-@app.get("/testing-hub", response_class=HTMLResponse)
-def testing_hub(request: Request):
-    """
-    Platform Testing Hub - First-Level Validation Interface.
+if _ENABLE_TEST_ROUTES:
+    @app.get("/test-hub", response_class=HTMLResponse)
+    @app.get("/testing-hub", response_class=HTMLResponse)
+    def testing_hub(request: Request):
+        """
+        Platform Testing Hub - First-Level Validation Interface.
 
-    Provides structured testing interface with 3 user flows:
-    - Flow 1: Individual Taxpayer (W-2, $75k, married, 2 kids)
-    - Flow 2: Business Owner (S-Corp, $150k, home office)
-    - Flow 3: High-Income Professional ($250k, tax planning)
+        Provides structured testing interface with 3 user flows:
+        - Flow 1: Individual Taxpayer (W-2, $75k, married, 2 kids)
+        - Flow 2: Business Owner (S-Corp, $150k, home office)
+        - Flow 3: High-Income Professional ($250k, tax planning)
 
-    Each flow includes:
-    - Pre-defined test scenarios
-    - Expected results and metrics
-    - Success criteria validation
-    - Automated data population
+        Each flow includes:
+        - Pre-defined test scenarios
+        - Expected results and metrics
+        - Success criteria validation
+        - Automated data population
 
-    Access: http://127.0.0.1:8000/test-hub
-    """
-    return templates.TemplateResponse("test_hub.html", {"request": request})
+        Access: http://127.0.0.1:8000/test-hub (only when ENABLE_TEST_ROUTES=true)
+        """
+        return templates.TemplateResponse("test_hub.html", {"request": request})
 
 
 @app.get("/smart-tax", response_class=HTMLResponse)
@@ -5241,369 +5334,23 @@ if _USE_LEGACY_SCENARIO_ROUTES:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/scenarios")
-async def list_scenarios(return_id: str, request: Request):
-    """
-    List all scenarios for a tax return.
-
-    Returns summary of all scenarios created for the specified return.
-    """
-    service = _get_scenario_service()
-
-    scenarios = service.get_scenarios_for_return(return_id)
-
-    return JSONResponse({
-        "return_id": return_id,
-        "count": len(scenarios),
-        "scenarios": [
-            {
-                "scenario_id": str(s.scenario_id),
-                "name": s.name,
-                "type": s.scenario_type.value,
-                "status": s.status.value,
-                "is_recommended": s.is_recommended,
-                "total_tax": s.result.total_tax if s.result else None,
-                "savings": s.result.savings if s.result else None,
-                "created_at": s.created_at.isoformat(),
-            }
-            for s in scenarios
-        ]
-    })
-
-
-@app.get("/api/scenarios/{scenario_id}")
-async def get_scenario(scenario_id: str, request: Request):
-    """
-    Get detailed information about a specific scenario.
-
-    Returns full scenario details including modifications and results.
-    """
-    service = _get_scenario_service()
-
-    scenario = service.get_scenario(scenario_id)
-    if not scenario:
-        raise HTTPException(status_code=404, detail=f"Scenario not found: {scenario_id}")
-
-    result_data = None
-    if scenario.result:
-        result_data = {
-            "total_tax": scenario.result.total_tax,
-            "federal_tax": scenario.result.federal_tax,
-            "effective_rate": scenario.result.effective_rate,
-            "marginal_rate": scenario.result.marginal_rate,
-            "base_tax": scenario.result.base_tax,
-            "savings": scenario.result.savings,
-            "savings_percent": scenario.result.savings_percent,
-            "taxable_income": scenario.result.taxable_income,
-            "total_deductions": scenario.result.total_deductions,
-            "total_credits": scenario.result.total_credits,
-            "breakdown": scenario.result.breakdown,
-        }
-
-    return JSONResponse({
-        "scenario_id": str(scenario.scenario_id),
-        "return_id": str(scenario.return_id),
-        "name": scenario.name,
-        "description": scenario.description,
-        "type": scenario.scenario_type.value,
-        "status": scenario.status.value,
-        "is_recommended": scenario.is_recommended,
-        "recommendation_reason": scenario.recommendation_reason,
-        "created_at": scenario.created_at.isoformat(),
-        "calculated_at": scenario.calculated_at.isoformat() if scenario.calculated_at else None,
-        "modifications": [
-            {
-                "field_path": m.field_path,
-                "original_value": m.original_value,
-                "new_value": m.new_value,
-                "description": m.description,
-            }
-            for m in scenario.modifications
-        ],
-        "result": result_data,
-    })
-
-
-@app.post("/api/scenarios/{scenario_id}/calculate")
-async def calculate_scenario(scenario_id: str, request: Request):
-    """
-    Calculate tax results for a scenario.
-
-    Applies the scenario's modifications and computes the tax liability,
-    comparing against the base return to determine savings.
-    """
-    service = _get_scenario_service()
-
-    try:
-        scenario = service.calculate_scenario(scenario_id)
-
-        return JSONResponse({
-            "success": True,
-            "scenario_id": str(scenario.scenario_id),
-            "name": scenario.name,
-            "status": scenario.status.value,
-            "result": {
-                "total_tax": scenario.result.total_tax,
-                "federal_tax": scenario.result.federal_tax,
-                "effective_rate": scenario.result.effective_rate,
-                "marginal_rate": scenario.result.marginal_rate,
-                "base_tax": scenario.result.base_tax,
-                "savings": scenario.result.savings,
-                "savings_percent": scenario.result.savings_percent,
-                "taxable_income": scenario.result.taxable_income,
-                "total_deductions": scenario.result.total_deductions,
-                "total_credits": scenario.result.total_credits,
-                "breakdown": scenario.result.breakdown,
-            }
-        })
-
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error calculating scenario: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.delete("/api/scenarios/{scenario_id}")
-@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
-async def delete_scenario(scenario_id: str, request: Request):
-    """
-    Delete a scenario.
-
-    Permanently removes the scenario. This action cannot be undone.
-    """
-    service = _get_scenario_service()
-
-    success = service.delete_scenario(scenario_id)
-    if not success:
-        raise HTTPException(status_code=404, detail=f"Scenario not found: {scenario_id}")
-
-    return JSONResponse({
-        "success": True,
-        "message": f"Scenario {scenario_id} deleted",
-    })
-
-
-@app.post("/api/scenarios/compare")
-async def compare_scenarios(request_body: CompareScenarioRequest, request: Request):
-    """
-    Compare multiple scenarios to find the best option.
-
-    Calculates all scenarios if needed, then compares them to determine
-    which provides the lowest tax liability.
-    """
-    service = _get_scenario_service()
-
-    if len(request_body.scenario_ids) < 2:
-        raise HTTPException(status_code=400, detail="At least 2 scenarios required for comparison")
-
-    try:
-        comparison = service.compare_scenarios(
-            scenario_ids=request_body.scenario_ids,
-            return_id=request_body.return_id,
-        )
-
-        return JSONResponse(comparison)
-
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error comparing scenarios: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/api/scenarios/filing-status")
-async def generate_filing_status_scenarios(request_body: FilingStatusScenariosRequest, request: Request):
-    """
-    Generate and compare filing status scenarios.
-
-    Automatically creates scenarios for each eligible filing status and
-    calculates the tax liability for each. Returns comparison with
-    recommendation for the optimal status.
-    """
-    service = _get_scenario_service()
-
-    try:
-        scenarios = service.get_filing_status_scenarios(
-            return_id=request_body.return_id,
-            eligible_statuses=request_body.eligible_statuses,
-        )
-
-        # Find the best option
-        calculated = [s for s in scenarios if s.result]
-        if calculated:
-            best = min(calculated, key=lambda s: s.result.total_tax)
-            best.mark_as_recommended(f"Lowest tax liability: ${best.result.total_tax:,.2f}")
-
-        return JSONResponse({
-            "return_id": request_body.return_id,
-            "count": len(scenarios),
-            "scenarios": [
-                {
-                    "scenario_id": str(s.scenario_id),
-                    "name": s.name,
-                    "filing_status": s.modifications[0].new_value if s.modifications else None,
-                    "is_recommended": s.is_recommended,
-                    "recommendation_reason": s.recommendation_reason,
-                    "result": {
-                        "total_tax": s.result.total_tax,
-                        "effective_rate": s.result.effective_rate,
-                        "savings": s.result.savings,
-                        "savings_percent": s.result.savings_percent,
-                    } if s.result else None,
-                }
-                for s in scenarios
-            ],
-            "recommendation": {
-                "scenario_id": str(best.scenario_id),
-                "filing_status": best.modifications[0].new_value if best.modifications else None,
-                "total_tax": best.result.total_tax,
-                "savings": best.result.savings,
-            } if calculated else None,
-        })
-
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error generating filing status scenarios: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/api/scenarios/retirement")
-async def generate_retirement_scenarios(request_body: RetirementScenariosRequest, request: Request):
-    """
-    Generate retirement contribution comparison scenarios.
-
-    Creates scenarios for different 401k/IRA contribution levels to
-    show the tax impact of increasing retirement savings.
-    """
-    service = _get_scenario_service()
-
-    try:
-        scenarios = service.get_retirement_scenarios(
-            return_id=request_body.return_id,
-            contribution_amounts=request_body.contribution_amounts,
-        )
-
-        # Find the best option (lowest tax)
-        calculated = [s for s in scenarios if s.result]
-        best = min(calculated, key=lambda s: s.result.total_tax) if calculated else None
-
-        return JSONResponse({
-            "return_id": request_body.return_id,
-            "count": len(scenarios),
-            "scenarios": [
-                {
-                    "scenario_id": str(s.scenario_id),
-                    "name": s.name,
-                    "contribution_amount": s.modifications[0].new_value if s.modifications else 0,
-                    "result": {
-                        "total_tax": s.result.total_tax,
-                        "effective_rate": s.result.effective_rate,
-                        "savings": s.result.savings,
-                        "savings_percent": s.result.savings_percent,
-                    } if s.result else None,
-                }
-                for s in scenarios
-            ],
-            "recommendation": {
-                "scenario_id": str(best.scenario_id),
-                "contribution_amount": best.modifications[0].new_value if best.modifications else 0,
-                "total_tax": best.result.total_tax,
-                "max_savings": best.result.savings,
-            } if best else None,
-        })
-
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error generating retirement scenarios: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/api/scenarios/what-if")
-async def create_what_if_scenario(request_body: WhatIfScenarioRequest, request: Request):
-    """
-    Create a quick what-if scenario with simple field modifications.
-
-    Simplified endpoint for ad-hoc what-if analysis. Pass a dict of
-    field_path -> new_value and get immediate tax impact analysis.
-    """
-    service = _get_scenario_service()
-
-    try:
-        scenario = service.create_what_if_scenario(
-            return_id=request_body.return_id,
-            name=request_body.name,
-            modifications=request_body.modifications,
-        )
-
-        # Calculate immediately
-        scenario = service.calculate_scenario(str(scenario.scenario_id))
-
-        return JSONResponse({
-            "success": True,
-            "scenario_id": str(scenario.scenario_id),
-            "name": scenario.name,
-            "modifications": [
-                {
-                    "field_path": m.field_path,
-                    "original_value": m.original_value,
-                    "new_value": m.new_value,
-                }
-                for m in scenario.modifications
-            ],
-            "result": {
-                "total_tax": scenario.result.total_tax,
-                "base_tax": scenario.result.base_tax,
-                "savings": scenario.result.savings,
-                "savings_percent": scenario.result.savings_percent,
-                "effective_rate": scenario.result.effective_rate,
-                "marginal_rate": scenario.result.marginal_rate,
-            }
-        })
-
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error creating what-if scenario: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/api/scenarios/{scenario_id}/apply")
-async def apply_scenario(scenario_id: str, request_body: ApplyScenarioRequest, request: Request):
-    """
-    Apply a scenario's modifications to the base return.
-
-    This permanently updates the tax return with the scenario's changes.
-    Use this when the user decides to adopt a recommended scenario.
-    """
-    service = _get_scenario_service()
-
-    # Get session ID from request body or cookie
-    session_id = request_body.session_id or request.cookies.get("tax_session_id") or ""
-
-    if not session_id:
-        raise HTTPException(status_code=400, detail="Session ID required")
-
-    try:
-        result = service.apply_scenario(
-            scenario_id=scenario_id,
-            session_id=session_id,
-        )
-
-        return JSONResponse({
-            "success": True,
-            "scenario_id": scenario_id,
-            "message": "Scenario applied to tax return",
-            "updated_return": result,
-        })
-
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error applying scenario: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# =============================================================================
+# SCENARIO ROUTES - REMOVED (Migrated to web/routers/scenarios.py)
+# =============================================================================
+# The following scenario routes have been migrated to the modular router at:
+#   src/web/routers/scenarios.py (included via app.include_router at line ~402)
+#
+# Routes handled by the router:
+#   GET  /api/scenarios
+#   GET  /api/scenarios/{scenario_id}
+#   POST /api/scenarios/{scenario_id}/calculate
+#   DELETE /api/scenarios/{scenario_id}
+#   POST /api/scenarios/compare
+#   POST /api/scenarios/filing-status
+#   POST /api/scenarios/retirement
+#   POST /api/scenarios/what-if
+#   POST /api/scenarios/{scenario_id}/apply
+# =============================================================================
 
 
 # =============================================================================

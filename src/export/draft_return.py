@@ -475,10 +475,14 @@ class DraftReturnGenerator:
             "status": self.completion_status.value,
             "date_prepared": self._generated_at.strftime("%B %d, %Y"),
             "disclaimer": (
-                "DRAFT - NOT FOR FILING\n"
-                "This document is for review purposes only. "
-                "Client signature required before electronic filing. "
-                "Review all amounts for accuracy."
+                "DRAFT - FOR REFERENCE ONLY - NOT FOR FILING\n\n"
+                "IMPORTANT LEGAL NOTICE: This document is for informational and educational "
+                "purposes only. TaxAdvisor Pro is a tax information platform, NOT a tax preparation "
+                "service or tax advisory service. This draft return must NOT be filed with the IRS "
+                "or any state tax authority without professional review.\n\n"
+                "ALWAYS consult with a licensed CPA, Enrolled Agent, or tax attorney before making "
+                "any tax decisions or filing any tax returns. All calculations are estimates based "
+                "on general tax rules and may not reflect your actual tax situation."
             )
         }
 
