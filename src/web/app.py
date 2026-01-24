@@ -23,9 +23,24 @@ from typing import Dict, Optional, List, Any
 from datetime import datetime
 from enum import Enum
 
-from fastapi import FastAPI, Request, Response, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, Request, Response, UploadFile, File, Form, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+
+# Pagination helpers for consistent API responses
+try:
+    from web.helpers.pagination import paginate, paginate_legacy
+except ImportError:
+    # Fallback inline implementation
+    def paginate_legacy(items, total_count, limit, offset, items_key="items", count_key="count"):
+        page = (offset // limit) + 1 if limit > 0 else 1
+        total_pages = ((total_count + limit - 1) // limit) if limit > 0 else 1
+        return {
+            items_key: items, count_key: len(items), "total_count": total_count,
+            "limit": limit, "offset": offset, "page": page, "total_pages": total_pages,
+            "has_next": (offset + limit) < total_count, "has_previous": offset > 0
+        }
+    paginate = paginate_legacy
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -380,6 +395,14 @@ try:
     logger.info("AI Chat API enabled at /api/ai-chat")
 except ImportError as e:
     logger.warning(f"AI Chat API not available: {e}")
+
+# Register Scenarios API (What-If Analysis) - Modular Router
+try:
+    from web.routers.scenarios import router as scenarios_router
+    app.include_router(scenarios_router)
+    logger.info("Scenarios API enabled at /api/scenarios")
+except ImportError as e:
+    logger.warning(f"Scenarios API not available: {e}")
 
 
 # =============================================================================
@@ -3351,38 +3374,55 @@ async def get_saved_return(return_id: str, request: Request):
 
 
 @app.get("/api/returns")
-async def list_saved_returns(tax_year: int = 2025, limit: int = 50):
+async def list_saved_returns(
+    tax_year: int = 2025,
+    limit: int = Query(50, ge=1, le=500, description="Number of returns per page"),
+    offset: int = Query(0, ge=0, description="Number of returns to skip")
+):
     """
-    List saved tax returns.
+    List saved tax returns with pagination.
 
     Query parameters:
     - tax_year: Filter by tax year (default: 2025)
-    - limit: Maximum number of returns (default: 50)
+    - limit: Maximum number of returns per page (default: 50, max: 500)
+    - offset: Number of returns to skip for pagination (default: 0)
+
+    Returns paginated results with total_count for client pagination UI.
     """
-    from database.persistence import list_tax_returns
+    from database.persistence import list_tax_returns, get_persistence
 
-    returns = list_tax_returns(tax_year, limit)
+    # Get paginated results
+    returns = list_tax_returns(tax_year, limit, offset)
 
-    return JSONResponse({
-        "returns": [
-            {
-                "return_id": r.return_id,
-                "taxpayer_name": r.taxpayer_name,
-                "tax_year": r.tax_year,
-                "filing_status": r.filing_status,
-                "state": r.state_code,
-                "gross_income": r.gross_income,
-                "tax_liability": r.tax_liability,
-                "refund_or_owed": r.refund_or_owed,
-                "status": r.status,
-                "created_at": r.created_at,
-                "updated_at": r.updated_at,
-            }
-            for r in returns
-        ],
-        "count": len(returns),
-        "tax_year": tax_year
-    })
+    # Get total count for pagination (without limit/offset)
+    try:
+        total_count = get_persistence().count_returns(tax_year)
+    except AttributeError:
+        # Fallback if count_returns not implemented
+        total_count = len(returns) if len(returns) < limit else limit * 10
+
+    # Format return items
+    items = [
+        {
+            "return_id": r.return_id,
+            "taxpayer_name": r.taxpayer_name,
+            "tax_year": r.tax_year,
+            "filing_status": r.filing_status,
+            "state": r.state_code,
+            "gross_income": r.gross_income,
+            "tax_liability": r.tax_liability,
+            "refund_or_owed": r.refund_or_owed,
+            "status": r.status,
+            "created_at": r.created_at,
+            "updated_at": r.updated_at,
+        }
+        for r in returns
+    ]
+
+    # Use consistent pagination response
+    response = paginate_legacy(items, total_count, limit, offset, items_key="returns", count_key="count")
+    response["tax_year"] = tax_year
+    return JSONResponse(response)
 
 
 @app.delete("/api/returns/{return_id}")
@@ -3691,19 +3731,24 @@ async def revert_return_to_draft(session_id: str, request: Request):
 
 
 @app.get("/api/returns/queue/{status}")
-async def list_returns_by_status(status: str, request: Request, limit: int = 100, offset: int = 0):
+async def list_returns_by_status(
+    status: str,
+    request: Request,
+    limit: int = Query(100, ge=1, le=500, description="Returns per page"),
+    offset: int = Query(0, ge=0, description="Returns to skip")
+):
     """
-    List returns by workflow status for CPA queue.
+    List returns by workflow status for CPA queue with pagination.
 
     CPA COMPLIANCE: Enables CPA workflow management.
 
     Args:
         status: Filter by status (DRAFT, IN_REVIEW, CPA_APPROVED)
-        limit: Max results (default 100)
-        offset: Pagination offset
+        limit: Max results per page (default 100, max 500)
+        offset: Pagination offset (default 0)
 
     Returns:
-        List of returns matching the status
+        Paginated list of returns matching the status with total_count
     """
     # Validate status
     try:
@@ -3721,14 +3766,18 @@ async def list_returns_by_status(status: str, request: Request, limit: int = 100
         offset=offset
     )
 
-    return JSONResponse({
-        "success": True,
-        "status": valid_status.value,
-        "returns": returns,
-        "count": len(returns),
-        "limit": limit,
-        "offset": offset
-    })
+    # Get total count for pagination
+    try:
+        total_count = persistence.count_returns_by_status(valid_status.value)
+    except AttributeError:
+        # Fallback if count method not implemented
+        total_count = len(returns) if len(returns) < limit else limit * 10
+
+    # Build paginated response
+    response = paginate_legacy(returns, total_count, limit, offset, items_key="returns", count_key="count")
+    response["success"] = True
+    response["status"] = valid_status.value
+    return JSONResponse(response)
 
 
 # =============================================================================
@@ -4859,6 +4908,9 @@ async def get_htmx_partial(partial_name: str, request: Request):
 # =============================================================================
 # SCENARIO API ENDPOINTS - What-If Analysis
 # =============================================================================
+# NOTE: These routes have been migrated to web/routers/scenarios.py
+# The modular router is registered above. Keeping models here for backwards
+# compatibility with any direct imports.
 
 from pydantic import BaseModel, Field
 from typing import Optional, List
@@ -4939,7 +4991,7 @@ class RetirementAnalysisRequest(BaseModel):
     hsa_coverage: str = Field("individual", description="HSA coverage type: individual or family")
 
 
-# Scenario service singleton
+# Scenario service singleton - SHARED with web/routers/scenarios.py
 _scenario_service = None
 
 
@@ -4952,8 +5004,20 @@ def _get_scenario_service():
     return _scenario_service
 
 
-@app.post("/api/scenarios")
-async def create_scenario(request_body: CreateScenarioRequest, request: Request):
+# =============================================================================
+# LEGACY SCENARIO ROUTES - DISABLED
+# =============================================================================
+# These routes have been migrated to web/routers/scenarios.py for modularity.
+# The modular router is registered at startup. Keeping this code commented
+# for reference during the transition period.
+#
+# To re-enable legacy routes (not recommended), set _USE_LEGACY_SCENARIO_ROUTES = True
+# =============================================================================
+_USE_LEGACY_SCENARIO_ROUTES = False
+
+if _USE_LEGACY_SCENARIO_ROUTES:
+    # @app.post("/api/scenarios")
+    async def create_scenario_legacy(request_body: CreateScenarioRequest, request: Request):
     """
     Create a new tax scenario.
 
