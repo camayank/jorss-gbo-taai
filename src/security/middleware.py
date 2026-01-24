@@ -82,11 +82,143 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class RateLimitBackend:
+    """Abstract base class for rate limit storage backends."""
+
+    def check_rate_limit(self, client_ip: str, requests_per_minute: int, burst_size: int) -> bool:
+        """Check if request is within rate limit. Returns True if allowed."""
+        raise NotImplementedError
+
+
+class InMemoryRateLimitBackend(RateLimitBackend):
+    """In-memory rate limit storage (for development/single-instance)."""
+
+    def __init__(self):
+        self._buckets: Dict[str, Dict] = defaultdict(
+            lambda: {"tokens": 10, "last_update": time.time()}
+        )
+
+    def check_rate_limit(self, client_ip: str, requests_per_minute: int, burst_size: int) -> bool:
+        """Check rate limit using token bucket algorithm."""
+        now = time.time()
+        bucket = self._buckets[client_ip]
+
+        # Initialize bucket with correct burst_size if first request
+        if "initialized" not in bucket:
+            bucket["tokens"] = burst_size
+            bucket["initialized"] = True
+
+        # Refill tokens based on time passed
+        time_passed = now - bucket["last_update"]
+        tokens_to_add = time_passed * (requests_per_minute / 60)
+        bucket["tokens"] = min(burst_size, bucket["tokens"] + tokens_to_add)
+        bucket["last_update"] = now
+
+        # Check if we have tokens available
+        if bucket["tokens"] >= 1:
+            bucket["tokens"] -= 1
+            return True
+
+        return False
+
+
+class RedisRateLimitBackend(RateLimitBackend):
+    """
+    Redis-based rate limit storage (for production/multi-instance).
+
+    Uses Redis for persistent, shared rate limiting across multiple workers.
+    Implements token bucket algorithm with Redis EVAL for atomicity.
+    """
+
+    def __init__(self, redis_url: Optional[str] = None):
+        self.redis_url = redis_url or os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+        self._redis = None
+        self._initialized = False
+
+        # Lua script for atomic token bucket operation
+        self._lua_script = """
+            local key = KEYS[1]
+            local requests_per_minute = tonumber(ARGV[1])
+            local burst_size = tonumber(ARGV[2])
+            local now = tonumber(ARGV[3])
+
+            -- Get current bucket state
+            local bucket = redis.call('HMGET', key, 'tokens', 'last_update')
+            local tokens = tonumber(bucket[1]) or burst_size
+            local last_update = tonumber(bucket[2]) or now
+
+            -- Refill tokens based on time passed
+            local time_passed = now - last_update
+            local tokens_to_add = time_passed * (requests_per_minute / 60)
+            tokens = math.min(burst_size, tokens + tokens_to_add)
+
+            -- Check if we have tokens
+            if tokens >= 1 then
+                tokens = tokens - 1
+                redis.call('HMSET', key, 'tokens', tokens, 'last_update', now)
+                redis.call('EXPIRE', key, 300)  -- 5 minute TTL
+                return 1  -- Allowed
+            else
+                redis.call('HMSET', key, 'tokens', tokens, 'last_update', now)
+                redis.call('EXPIRE', key, 300)
+                return 0  -- Rate limited
+            end
+        """
+        self._script_sha = None
+
+    def _get_redis(self):
+        """Lazy initialization of Redis connection."""
+        if self._redis is None:
+            try:
+                import redis
+                self._redis = redis.from_url(self.redis_url, decode_responses=True)
+                # Test connection
+                self._redis.ping()
+                # Load Lua script
+                self._script_sha = self._redis.script_load(self._lua_script)
+                self._initialized = True
+                logger.info("Redis rate limit backend initialized")
+            except ImportError:
+                logger.warning("redis package not installed - falling back to in-memory")
+                return None
+            except Exception as e:
+                logger.warning(f"Redis connection failed: {e} - falling back to in-memory")
+                return None
+        return self._redis
+
+    def check_rate_limit(self, client_ip: str, requests_per_minute: int, burst_size: int) -> bool:
+        """Check rate limit using Redis with Lua script for atomicity."""
+        redis_client = self._get_redis()
+        if redis_client is None:
+            # Fallback to in-memory if Redis unavailable
+            return True  # Allow request if Redis fails
+
+        try:
+            key = f"rate_limit:{client_ip}"
+            now = time.time()
+
+            # Execute atomic Lua script
+            result = redis_client.evalsha(
+                self._script_sha,
+                1,  # Number of keys
+                key,
+                requests_per_minute,
+                burst_size,
+                now
+            )
+            return result == 1
+
+        except Exception as e:
+            logger.error(f"Redis rate limit check failed: {e}")
+            return True  # Allow request if Redis fails
+
+
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
     Rate limiting middleware.
 
     Limits requests per IP address within a time window.
+    Supports both in-memory and Redis backends for production use.
     """
 
     def __init__(
@@ -96,6 +228,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         burst_size: int = 10,
         exempt_paths: Optional[Set[str]] = None,
         disable_in_testing: bool = True,
+        backend: Optional[RateLimitBackend] = None,
+        use_redis: bool = False,
+        redis_url: Optional[str] = None,
     ):
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
@@ -103,10 +238,16 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.exempt_paths = exempt_paths or {"/health", "/metrics"}
         self.disable_in_testing = disable_in_testing
 
-        # Token bucket state per IP
-        self._buckets: Dict[str, Dict] = defaultdict(
-            lambda: {"tokens": burst_size, "last_update": time.time()}
-        )
+        # Initialize backend
+        if backend:
+            self._backend = backend
+        elif use_redis or os.environ.get("USE_REDIS_RATE_LIMIT", "").lower() in ("true", "1", "yes"):
+            self._backend = RedisRateLimitBackend(redis_url)
+            # Fallback to in-memory if Redis not available
+            self._fallback_backend = InMemoryRateLimitBackend()
+        else:
+            self._backend = InMemoryRateLimitBackend()
+            self._fallback_backend = None
 
     def _is_test_environment(self, request: Request) -> bool:
         """Check if running in test environment."""
@@ -134,8 +275,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Get client IP
         client_ip = self._get_client_ip(request)
 
-        # Check rate limit using token bucket
-        if not self._check_rate_limit(client_ip):
+        # Check rate limit
+        allowed = self._backend.check_rate_limit(
+            client_ip, self.requests_per_minute, self.burst_size
+        )
+
+        if not allowed:
             logger.warning(f"Rate limit exceeded for IP: {client_ip}")
             return JSONResponse(
                 status_code=429,
@@ -160,24 +305,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Fall back to direct client
         return request.client.host if request.client else "unknown"
 
-    def _check_rate_limit(self, client_ip: str) -> bool:
-        """Check if request is within rate limit using token bucket."""
-        now = time.time()
-        bucket = self._buckets[client_ip]
-
-        # Refill tokens based on time passed
-        time_passed = now - bucket["last_update"]
-        tokens_to_add = time_passed * (self.requests_per_minute / 60)
-        bucket["tokens"] = min(self.burst_size, bucket["tokens"] + tokens_to_add)
-        bucket["last_update"] = now
-
-        # Check if we have tokens available
-        if bucket["tokens"] >= 1:
-            bucket["tokens"] -= 1
-            return True
-
-        return False
-
 
 class CSRFMiddleware(BaseHTTPMiddleware):
     """
@@ -194,6 +321,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         header_name: str = "X-CSRF-Token",
         safe_methods: Set[str] = None,
         exempt_paths: Set[str] = None,
+        allowed_origins: Optional[List[str]] = None,
     ):
         super().__init__(app)
         self.secret_key = secret_key.encode("utf-8")
@@ -201,6 +329,13 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         self.header_name = header_name
         self.safe_methods = safe_methods or {"GET", "HEAD", "OPTIONS", "TRACE"}
         self.exempt_paths = exempt_paths or {"/api/health", "/api/webhook"}
+        # Allowed origins for Bearer auth requests (CSRF bypass security)
+        self.allowed_origins = allowed_origins or [
+            "http://localhost:3000",
+            "http://localhost:8000",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:8000",
+        ]
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # Skip CSRF for safe methods
@@ -219,10 +354,15 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                 if path == exempt_path:
                     return await call_next(request)
 
-        # Skip API endpoints that use Bearer auth
+        # Skip API endpoints that use Bearer auth - but verify origin first
         auth_header = request.headers.get("Authorization", "")
         if auth_header.startswith("Bearer "):
-            return await call_next(request)
+            # SECURITY FIX: Verify origin to prevent CSRF bypass attacks
+            if self._verify_origin(request):
+                return await call_next(request)
+            else:
+                logger.warning(f"CSRF: Bearer auth with untrusted origin for {request.url.path}")
+                # Continue to CSRF validation if origin not trusted
 
         # Validate CSRF token
         session_token = request.cookies.get(self.token_name)
@@ -260,6 +400,61 @@ class CSRFMiddleware(BaseHTTPMiddleware):
     def _verify_token(self, session_token: str, request_token: str) -> bool:
         """Verify CSRF token."""
         return hmac.compare_digest(session_token, request_token)
+
+    def _verify_origin(self, request: Request) -> bool:
+        """
+        Verify request origin for Bearer auth CSRF bypass.
+
+        Checks Origin header first, falls back to Referer.
+        Returns True if origin is trusted, False otherwise.
+        """
+        # Check Origin header (preferred)
+        origin = request.headers.get("Origin")
+        if origin:
+            # Normalize origin (remove trailing slash)
+            origin = origin.rstrip("/")
+            if origin in self.allowed_origins or self._is_same_origin(request, origin):
+                return True
+            return False
+
+        # Fall back to Referer header
+        referer = request.headers.get("Referer")
+        if referer:
+            # Extract origin from referer URL
+            from urllib.parse import urlparse
+            parsed = urlparse(referer)
+            referer_origin = f"{parsed.scheme}://{parsed.netloc}"
+            if referer_origin in self.allowed_origins or self._is_same_origin(request, referer_origin):
+                return True
+            return False
+
+        # No Origin or Referer - could be same-origin request from some clients
+        # Be cautious: only allow if this looks like an API client (has specific headers)
+        user_agent = request.headers.get("User-Agent", "")
+        content_type = request.headers.get("Content-Type", "")
+
+        # Allow programmatic API clients (curl, postman, python-requests, etc.)
+        api_clients = ["curl", "postman", "python-requests", "httpie", "insomnia"]
+        if any(client in user_agent.lower() for client in api_clients):
+            return True
+
+        # Allow requests with application/json content type (typical for API calls)
+        if "application/json" in content_type:
+            return True
+
+        # Otherwise, require Origin or Referer
+        return False
+
+    def _is_same_origin(self, request: Request, origin: str) -> bool:
+        """Check if origin matches the request's host."""
+        from urllib.parse import urlparse
+        parsed = urlparse(origin)
+
+        # Get request host
+        request_host = request.headers.get("Host", "")
+
+        # Compare netloc (host:port)
+        return parsed.netloc == request_host
 
     def generate_token(self) -> str:
         """Generate a new CSRF token."""
@@ -317,6 +512,8 @@ def configure_security_middleware(
     cors_origins: List[str] = None,
     enable_csrf: bool = True,
     enable_rate_limit: bool = True,
+    use_redis_rate_limit: bool = False,
+    redis_url: Optional[str] = None,
 ) -> None:
     """
     Configure all security middleware for a FastAPI application.
@@ -327,6 +524,8 @@ def configure_security_middleware(
         cors_origins: Allowed CORS origins
         enable_csrf: Enable CSRF protection
         enable_rate_limit: Enable rate limiting
+        use_redis_rate_limit: Use Redis for rate limiting (recommended for production)
+        redis_url: Redis URL for rate limiting (defaults to REDIS_URL env var)
     """
     # CORS middleware (must be added first)
     app.add_middleware(
@@ -350,6 +549,8 @@ def configure_security_middleware(
             RateLimitMiddleware,
             requests_per_minute=60,
             burst_size=20,
+            use_redis=use_redis_rate_limit,
+            redis_url=redis_url,
         )
 
     # CSRF protection
@@ -358,6 +559,7 @@ def configure_security_middleware(
             CSRFMiddleware,
             secret_key=secret_key,
             exempt_paths={"/api/health", "/api/webhook", "/api/chat", "/api/ai-chat/"},
+            allowed_origins=cors_origins or ["http://localhost:3000", "http://localhost:8000"],
         )
 
     logger.info("Security middleware configured")

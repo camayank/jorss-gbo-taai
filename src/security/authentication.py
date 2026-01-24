@@ -56,6 +56,91 @@ class JWTClaims:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
+class TokenRevocationBackend:
+    """Abstract base class for token revocation storage."""
+
+    def is_revoked(self, jti: str) -> bool:
+        """Check if token is revoked."""
+        raise NotImplementedError
+
+    def revoke(self, jti: str, exp: int) -> None:
+        """Revoke a token."""
+        raise NotImplementedError
+
+
+class InMemoryRevocationBackend(TokenRevocationBackend):
+    """In-memory token revocation (for development/single-instance)."""
+
+    def __init__(self):
+        self._revoked_tokens: Set[str] = set()
+
+    def is_revoked(self, jti: str) -> bool:
+        return jti in self._revoked_tokens
+
+    def revoke(self, jti: str, exp: int) -> None:
+        self._revoked_tokens.add(jti)
+
+
+class RedisRevocationBackend(TokenRevocationBackend):
+    """
+    Redis-based token revocation (for production/multi-instance).
+
+    Stores revoked token IDs in Redis with TTL matching token expiration.
+    This ensures revocations persist across restarts and work in multi-worker deployments.
+    """
+
+    def __init__(self, redis_url: Optional[str] = None):
+        self.redis_url = redis_url or os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+        self._redis = None
+        self._initialized = False
+
+    def _get_redis(self):
+        """Lazy initialization of Redis connection."""
+        if self._redis is None:
+            try:
+                import redis
+                self._redis = redis.from_url(self.redis_url, decode_responses=True)
+                self._redis.ping()
+                self._initialized = True
+                logger.info("Redis token revocation backend initialized")
+            except ImportError:
+                logger.warning("redis package not installed - falling back to in-memory")
+                return None
+            except Exception as e:
+                logger.warning(f"Redis connection failed: {e} - falling back to in-memory")
+                return None
+        return self._redis
+
+    def is_revoked(self, jti: str) -> bool:
+        """Check if token is revoked in Redis."""
+        redis_client = self._get_redis()
+        if redis_client is None:
+            return False  # Allow if Redis unavailable (fail open)
+
+        try:
+            key = f"revoked_token:{jti}"
+            return redis_client.exists(key) > 0
+        except Exception as e:
+            logger.error(f"Redis revocation check failed: {e}")
+            return False
+
+    def revoke(self, jti: str, exp: int) -> None:
+        """Revoke token in Redis with TTL."""
+        redis_client = self._get_redis()
+        if redis_client is None:
+            return
+
+        try:
+            key = f"revoked_token:{jti}"
+            # Calculate TTL (time until token expires)
+            ttl = max(1, exp - int(time.time()))
+            # Store revocation with TTL (auto-cleanup after token expires)
+            redis_client.setex(key, ttl, "revoked")
+            logger.info(f"Token revoked in Redis: {jti[:8]}... (TTL: {ttl}s)")
+        except Exception as e:
+            logger.error(f"Redis token revocation failed: {e}")
+
+
 class AuthenticationManager:
     """
     JWT-based authentication manager.
@@ -63,7 +148,7 @@ class AuthenticationManager:
     Security Features:
     - HMAC-SHA256 signed tokens
     - Token expiration
-    - Token revocation support
+    - Token revocation support (Redis or in-memory)
     - Rate limiting (per user)
     - Role-based access control
     """
@@ -75,13 +160,20 @@ class AuthenticationManager:
     # Rate limit: requests per minute
     RATE_LIMIT = 60
 
-    def __init__(self, secret_key: Optional[str] = None):
+    def __init__(
+        self,
+        secret_key: Optional[str] = None,
+        use_redis: bool = False,
+        redis_url: Optional[str] = None,
+    ):
         """
         Initialize the authentication manager.
 
         Args:
             secret_key: JWT signing key. If not provided, uses JWT_SECRET_KEY
                        environment variable.
+            use_redis: Use Redis for token revocation (recommended for production)
+            redis_url: Redis URL (defaults to REDIS_URL env var)
         """
         self._secret_key = secret_key or os.environ.get("JWT_SECRET_KEY")
 
@@ -100,10 +192,17 @@ class AuthenticationManager:
 
         self._key_bytes = self._secret_key.encode("utf-8")
 
-        # Token revocation list (in production, use Redis)
-        self._revoked_tokens: Set[str] = set()
+        # Initialize token revocation backend
+        use_redis = use_redis or os.environ.get("USE_REDIS_AUTH", "").lower() in ("true", "1", "yes")
+        if use_redis:
+            self._revocation_backend = RedisRevocationBackend(redis_url)
+            # Fallback for if Redis fails
+            self._fallback_revocation = InMemoryRevocationBackend()
+        else:
+            self._revocation_backend = InMemoryRevocationBackend()
+            self._fallback_revocation = None
 
-        # Rate limiting tracking (in production, use Redis)
+        # Rate limiting tracking (in production, use Redis - handled by middleware)
         self._rate_limits: Dict[str, List[float]] = {}
 
     def create_token(
@@ -165,8 +264,12 @@ class AuthenticationManager:
             if claims.exp < int(time.time()):
                 raise AuthenticationError("Token expired")
 
-            # Check revocation
-            if claims.jti in self._revoked_tokens:
+            # Check revocation using backend
+            if self._revocation_backend.is_revoked(claims.jti):
+                raise AuthenticationError("Token has been revoked")
+
+            # Also check fallback if using Redis (in case Redis was down when revoked)
+            if self._fallback_revocation and self._fallback_revocation.is_revoked(claims.jti):
                 raise AuthenticationError("Token has been revoked")
 
             return claims
@@ -181,15 +284,41 @@ class AuthenticationManager:
         """
         Revoke a token (add to revocation list).
 
+        Uses Redis in production for persistence across restarts and workers.
+
         Args:
             token: Token to revoke
         """
         try:
             claims = self._decode_token(token)
-            self._revoked_tokens.add(claims.jti)
+
+            # Revoke in primary backend
+            self._revocation_backend.revoke(claims.jti, claims.exp)
+
+            # Also revoke in fallback for redundancy
+            if self._fallback_revocation:
+                self._fallback_revocation.revoke(claims.jti, claims.exp)
+
             logger.info(f"Token revoked: {claims.jti[:8]}...")
-        except Exception:
-            pass  # Token already invalid
+        except Exception as e:
+            logger.warning(f"Token revocation failed: {e}")
+
+    def revoke_all_user_tokens(self, user_id: str) -> None:
+        """
+        Revoke all tokens for a user (for logout everywhere, password change, etc.).
+
+        Note: This requires tracking user->tokens mapping in Redis.
+        For now, this is a placeholder that logs the action.
+
+        Args:
+            user_id: User identifier
+        """
+        logger.warning(f"Bulk token revocation requested for user {user_id} - "
+                      "individual token revocation recommended")
+        # In a full implementation, this would:
+        # 1. Store user_id -> [jti] mapping in Redis
+        # 2. Iterate and revoke all tokens
+        # 3. Alternatively, use token versioning (increment user's token version)
 
     def check_rate_limit(self, user_id: str) -> bool:
         """
@@ -348,12 +477,30 @@ class AuthenticationManager:
 _auth_manager: Optional[AuthenticationManager] = None
 
 
-def get_auth_manager() -> AuthenticationManager:
-    """Get the singleton authentication manager instance."""
+def get_auth_manager(use_redis: bool = None, redis_url: Optional[str] = None) -> AuthenticationManager:
+    """
+    Get the singleton authentication manager instance.
+
+    Args:
+        use_redis: Use Redis for token revocation (reads USE_REDIS_AUTH env var if not set)
+        redis_url: Redis URL (reads REDIS_URL env var if not set)
+
+    Returns:
+        AuthenticationManager instance
+    """
     global _auth_manager
     if _auth_manager is None:
-        _auth_manager = AuthenticationManager()
+        _auth_manager = AuthenticationManager(
+            use_redis=use_redis or os.environ.get("USE_REDIS_AUTH", "").lower() in ("true", "1", "yes"),
+            redis_url=redis_url
+        )
     return _auth_manager
+
+
+def reset_auth_manager() -> None:
+    """Reset the singleton instance (for testing)."""
+    global _auth_manager
+    _auth_manager = None
 
 
 # FastAPI security scheme

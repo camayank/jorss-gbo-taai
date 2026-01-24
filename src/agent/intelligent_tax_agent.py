@@ -64,6 +64,19 @@ try:
 except ImportError:
     AUDIT_AVAILABLE = False
 
+# Tax Opportunity Detection for proactive savings identification
+try:
+    from services.tax_opportunity_detector import (
+        TaxOpportunityDetector,
+        TaxpayerProfile,
+        TaxOpportunity,
+        OpportunityPriority,
+        create_profile_from_tax_return
+    )
+    OPPORTUNITY_DETECTOR_AVAILABLE = True
+except ImportError:
+    OPPORTUNITY_DETECTOR_AVAILABLE = False
+
 
 class ExtractionConfidence(Enum):
     """Confidence level for extracted information."""
@@ -167,6 +180,11 @@ class IntelligentTaxAgent:
 
         # Audit logger for compliance tracking
         self._audit_logger = get_audit_logger() if AUDIT_AVAILABLE else None
+
+        # Tax opportunity detector for proactive savings identification
+        self._opportunity_detector = TaxOpportunityDetector(api_key=api_key) if OPPORTUNITY_DETECTOR_AVAILABLE else None
+        self._detected_opportunities = []
+        self._opportunities_last_checked = None
 
         self._setup_system_prompt()
         self._initialize_tax_return()
@@ -870,6 +888,128 @@ Let's start with the basics. What's your first name?"""
                 f"• Effective Tax Rate: {self.context.running_effective_rate:.1f}%"
             )
 
+    def detect_tax_opportunities(self) -> List[Dict[str, Any]]:
+        """
+        Proactively detect tax-saving opportunities based on current data.
+
+        This is the 10x feature - AI-powered opportunity detection that identifies
+        missed deductions, eligible credits, and tax-saving strategies.
+
+        Returns a list of opportunities with estimated savings.
+        """
+        if not OPPORTUNITY_DETECTOR_AVAILABLE or not self._opportunity_detector:
+            return []
+
+        if not self.tax_return:
+            return []
+
+        try:
+            # Create profile from current tax return data
+            profile = create_profile_from_tax_return(self.tax_return)
+
+            # Detect opportunities
+            opportunities = self._opportunity_detector.detect_opportunities(profile)
+
+            # Store for later reference
+            self._detected_opportunities = opportunities
+            self._opportunities_last_checked = datetime.now().isoformat()
+
+            # Convert to dict format for API response
+            return [
+                {
+                    "id": opp.id,
+                    "title": opp.title,
+                    "description": opp.description,
+                    "category": opp.category.value,
+                    "priority": opp.priority.value,
+                    "estimated_savings": float(opp.estimated_savings) if opp.estimated_savings else None,
+                    "savings_range": {
+                        "min": float(opp.savings_range[0]),
+                        "max": float(opp.savings_range[1])
+                    } if opp.savings_range else None,
+                    "action_required": opp.action_required,
+                    "irs_reference": opp.irs_reference,
+                    "deadline": opp.deadline,
+                    "confidence": opp.confidence,
+                    "follow_up_questions": opp.follow_up_questions
+                }
+                for opp in opportunities
+            ]
+
+        except Exception as e:
+            logger.error(f"Error detecting tax opportunities: {e}")
+            return []
+
+    def get_opportunity_summary(self) -> Dict[str, Any]:
+        """Get summary of detected opportunities with total potential savings."""
+        if not self._detected_opportunities:
+            self.detect_tax_opportunities()
+
+        if not self._detected_opportunities:
+            return {
+                "total_opportunities": 0,
+                "estimated_total_savings": 0,
+                "high_priority_count": 0,
+                "message": "Add more information to identify tax-saving opportunities."
+            }
+
+        if OPPORTUNITY_DETECTOR_AVAILABLE and self._opportunity_detector:
+            return self._opportunity_detector.get_opportunity_summary(self._detected_opportunities)
+
+        return {"total_opportunities": len(self._detected_opportunities)}
+
+    def get_opportunities_for_chat(self, limit: int = 5) -> str:
+        """
+        Get formatted opportunities string for display in chat.
+
+        This is called during conversation to proactively show savings.
+        """
+        if not self._detected_opportunities:
+            self.detect_tax_opportunities()
+
+        if not self._detected_opportunities:
+            return ""
+
+        if OPPORTUNITY_DETECTOR_AVAILABLE and self._opportunity_detector:
+            return self._opportunity_detector.format_opportunities_for_chat(
+                self._detected_opportunities, limit=limit
+            )
+
+        return ""
+
+    def should_show_opportunities(self) -> bool:
+        """
+        Determine if we should proactively show opportunities.
+
+        Triggers when:
+        - We have income data
+        - We haven't shown recently
+        - Significant data was just added
+        """
+        # Need at least some income to analyze
+        if not self.tax_return or not self.tax_return.income:
+            return False
+
+        total_income = 0
+        if self.tax_return.income.w2_forms:
+            total_income = sum(w2.wages for w2 in self.tax_return.income.w2_forms)
+
+        total_income += self.tax_return.income.business_income + self.tax_return.income.other_income
+
+        # Need meaningful income
+        if total_income < 10000:
+            return False
+
+        # Check if we recently showed opportunities
+        if self._opportunities_last_checked:
+            from datetime import datetime, timedelta
+            last_check = datetime.fromisoformat(self._opportunities_last_checked)
+            # Don't show more often than every 3 messages
+            if len(self.context.extraction_history) % 3 != 0:
+                return False
+
+        return True
+
     def _analyze_document(self, image_data: str) -> DocumentIntelligence:
         """
         Analyze uploaded tax document using OCR and AI.
@@ -1104,7 +1244,16 @@ Keep responses conversational, friendly, and professional. Always acknowledge wh
                 temperature=0.6,  # Reduced from 0.7 for more consistent responses
                 max_tokens=500
             )
-            return response.choices[0].message.content
+
+            response_text = response.choices[0].message.content
+
+            # Proactively detect and show tax-saving opportunities
+            if self.should_show_opportunities():
+                opportunities_text = self.get_opportunities_for_chat(limit=3)
+                if opportunities_text:
+                    response_text += f"\n\n---\n\n{opportunities_text}"
+
+            return response_text
         except Exception as e:
             return f"I understand. Let me make sure I have this right... (Error: {str(e)[:50]})"
 

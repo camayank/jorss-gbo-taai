@@ -36,6 +36,17 @@ from database.advisory_models import (
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+# Tax Opportunity Detection
+try:
+    from services.tax_opportunity_detector import (
+        TaxOpportunityDetector,
+        TaxpayerProfile,
+        create_profile_from_tax_return,
+    )
+    OPPORTUNITY_DETECTOR_AVAILABLE = True
+except ImportError:
+    OPPORTUNITY_DETECTOR_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 # Create router
@@ -546,3 +557,125 @@ async def generate_sample_report(background_tasks: BackgroundTasks):
     )
 
     return await generate_report(request, background_tasks, tax_return=tax_return)
+
+
+# ============================================================================
+# TAX OPPORTUNITY DETECTION ENDPOINTS
+# ============================================================================
+
+class TaxOpportunityRequest(BaseModel):
+    """Request for tax opportunity detection."""
+    session_id: str = Field(..., description="Tax session ID")
+    include_ai_analysis: bool = Field(default=True, description="Include AI-powered analysis")
+
+
+class TaxOpportunityItem(BaseModel):
+    """A single tax-saving opportunity."""
+    id: str
+    title: str
+    description: str
+    category: str
+    priority: str  # high, medium, low
+    estimated_savings: Optional[float] = None
+    savings_range: Optional[dict] = None  # {min, max}
+    action_required: str
+    irs_reference: Optional[str] = None
+    deadline: Optional[str] = None
+    confidence: float
+    follow_up_questions: List[str] = []
+
+
+class TaxOpportunitiesResponse(BaseModel):
+    """Response with detected tax opportunities."""
+    session_id: str
+    total_opportunities: int
+    estimated_total_savings: float
+    savings_range: Optional[dict] = None  # {min, max}
+    high_priority_count: int
+    opportunities: List[TaxOpportunityItem]
+    by_category: dict = {}  # category -> count
+    generated_at: str
+
+
+@router.post("/opportunities", response_model=TaxOpportunitiesResponse)
+async def detect_tax_opportunities(request: TaxOpportunityRequest):
+    """
+    Detect tax-saving opportunities for a session.
+
+    Uses AI-powered analysis to identify:
+    - Missed deductions
+    - Eligible credits
+    - Retirement contribution opportunities
+    - Business optimization strategies
+    - Timing opportunities
+
+    Returns prioritized list with estimated savings.
+    """
+    if not OPPORTUNITY_DETECTOR_AVAILABLE:
+        raise HTTPException(
+            status_code=501,
+            detail="Tax opportunity detection not available"
+        )
+
+    logger.info(f"Detecting tax opportunities for session {request.session_id}")
+
+    # Get tax return from session
+    tax_return = _get_tax_return_from_session(request.session_id)
+
+    try:
+        # Create profile from tax return
+        profile = create_profile_from_tax_return(tax_return)
+
+        # Detect opportunities
+        detector = TaxOpportunityDetector()
+        opportunities = detector.detect_opportunities(profile)
+
+        # Get summary
+        summary = detector.get_opportunity_summary(opportunities)
+
+        # Convert to response format
+        opp_items = []
+        for opp in opportunities:
+            opp_items.append(TaxOpportunityItem(
+                id=opp.id,
+                title=opp.title,
+                description=opp.description,
+                category=opp.category.value,
+                priority=opp.priority.value,
+                estimated_savings=float(opp.estimated_savings) if opp.estimated_savings else None,
+                savings_range={
+                    "min": float(opp.savings_range[0]),
+                    "max": float(opp.savings_range[1])
+                } if opp.savings_range else None,
+                action_required=opp.action_required,
+                irs_reference=opp.irs_reference,
+                deadline=opp.deadline,
+                confidence=opp.confidence,
+                follow_up_questions=opp.follow_up_questions or []
+            ))
+
+        return TaxOpportunitiesResponse(
+            session_id=request.session_id,
+            total_opportunities=summary["total_opportunities"],
+            estimated_total_savings=summary["estimated_total_savings"],
+            savings_range=summary.get("savings_range"),
+            high_priority_count=summary["high_priority_count"],
+            opportunities=opp_items,
+            by_category={k: len(v) for k, v in summary.get("by_category", {}).items()},
+            generated_at=datetime.now().isoformat()
+        )
+
+    except Exception as e:
+        logger.error(f"Error detecting opportunities: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/opportunities/{session_id}", response_model=TaxOpportunitiesResponse)
+async def get_tax_opportunities(session_id: str):
+    """
+    Get tax opportunities for a session (GET version).
+
+    Same as POST but uses path parameter.
+    """
+    request = TaxOpportunityRequest(session_id=session_id)
+    return await detect_tax_opportunities(request)
