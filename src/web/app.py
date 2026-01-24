@@ -1291,6 +1291,28 @@ def system_hub(request: Request):
     return templates.TemplateResponse("system_hub.html", {"request": request})
 
 
+@app.get("/workflow", response_class=HTMLResponse)
+@app.get("/workflow-hub", response_class=HTMLResponse)
+def workflow_hub(request: Request):
+    """
+    Platform Workflow Hub - User Journey Visualization.
+
+    Shows complete workflows for each user type:
+    - Prospect Journey: Landing → Filing → Advisory → CPA Connect
+    - CPA Journey: Onboarding → Dashboard → Client Management → Billing
+    - Admin Journey: Platform Configuration → Monitoring → Support
+
+    Includes:
+    - Visual flow diagrams for each journey
+    - Feature cards and capability highlights
+    - API endpoint references
+    - Quick navigation links
+
+    Access: http://127.0.0.1:8000/workflow
+    """
+    return templates.TemplateResponse("workflow_hub.html", {"request": request})
+
+
 if _ENABLE_TEST_ROUTES:
     @app.get("/test-hub", response_class=HTMLResponse)
     @app.get("/testing-hub", response_class=HTMLResponse)
