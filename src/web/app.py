@@ -1118,6 +1118,19 @@ def cpa_dashboard(request: Request):
     return templates.TemplateResponse("cpa_dashboard.html", {"request": request})
 
 
+@app.get("/cpa/settings/payments", response_class=HTMLResponse)
+def cpa_payment_settings(request: Request):
+    """
+    CPA Payment Settings - Stripe Connect and payment configuration.
+
+    Allows CPAs to:
+    - Connect their Stripe account for client payments
+    - Configure payment preferences
+    - View payment history
+    """
+    return templates.TemplateResponse("cpa_payment_settings.html", {"request": request})
+
+
 @app.get("/client", response_class=HTMLResponse)
 def client_portal(request: Request):
     """

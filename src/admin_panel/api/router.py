@@ -95,6 +95,13 @@ try:
 except ImportError as e:
     logger.warning(f"RBAC routes not available: {e}")
 
+try:
+    from .platform_billing_routes import router as platform_billing_router
+    admin_router.include_router(platform_billing_router, prefix="/superadmin")
+    logger.info("Platform billing routes enabled")
+except ImportError as e:
+    logger.warning(f"Platform billing routes not available: {e}")
+
 
 # =============================================================================
 # HEALTH CHECK
@@ -118,6 +125,7 @@ async def admin_health_check():
             "alerts": "active",
             "superadmin": "active",
             "rbac": "active",
+            "platform_billing": "active",
         },
     }
 

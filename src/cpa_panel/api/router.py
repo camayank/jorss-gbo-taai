@@ -174,6 +174,14 @@ try:
 except ImportError as e:
     logger.warning(f"Notification routes not available: {e}")
 
+# NEW: Payment Settings routes - Stripe Connect integration for CPAs
+try:
+    from .payment_settings_routes import router as payment_settings_router
+    cpa_router.include_router(payment_settings_router)
+    logger.info("Payment settings routes enabled")
+except ImportError as e:
+    logger.warning(f"Payment settings routes not available: {e}")
+
 # Include core domain routers
 cpa_router.include_router(workflow_router)
 cpa_router.include_router(analysis_router)
@@ -217,6 +225,7 @@ async def cpa_health_check():
             "lead_magnet": "active (smart tax advisory lead magnet flow)",
             "client_portal": "active (B2C client dashboard)",
             "notifications": "active (in-app notifications and reminders)",
+            "payment_settings": "active (Stripe Connect for client payments)",
         },
     }
 
@@ -441,6 +450,19 @@ async def get_route_documentation():
                     "GET /reminders - Get follow-up reminders",
                     "POST /reminders/{id}/complete - Complete reminder",
                     "POST /reminders/{id}/snooze - Snooze reminder",
+                ],
+            },
+            "payment_settings": {
+                "description": "Stripe Connect integration for CPAs to collect client payments",
+                "endpoints": [
+                    "GET /payment-settings - Get payment settings and Stripe status",
+                    "PUT /payment-settings - Update payment preferences",
+                    "GET /payment-settings/stripe/connect-url - Get OAuth URL to connect Stripe",
+                    "GET /payment-settings/stripe/callback - OAuth callback handler",
+                    "POST /payment-settings/stripe/disconnect - Disconnect Stripe account",
+                    "GET /payment-settings/stripe/account-status - Get Stripe account status",
+                    "POST /payment-settings/create-payment-intent - Create payment for client",
+                    "GET /payment-settings/payment-history - Get payment history",
                 ],
             },
         },
