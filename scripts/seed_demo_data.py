@@ -88,7 +88,8 @@ SAMPLE_LEADS = [
         "complexity": "moderate",
         "lead_score": 85,
         "lead_temperature": "hot",
-        "savings_range": "$2,400 - $4,200",
+        "savings_range_low": 2400.0,
+        "savings_range_high": 4200.0,
         "engaged": False,
     },
     {
@@ -100,7 +101,8 @@ SAMPLE_LEADS = [
         "complexity": "simple",
         "lead_score": 72,
         "lead_temperature": "warm",
-        "savings_range": "$1,200 - $2,100",
+        "savings_range_low": 1200.0,
+        "savings_range_high": 2100.0,
         "engaged": False,
     },
     {
@@ -112,7 +114,8 @@ SAMPLE_LEADS = [
         "complexity": "complex",
         "lead_score": 92,
         "lead_temperature": "hot",
-        "savings_range": "$5,800 - $9,200",
+        "savings_range_low": 5800.0,
+        "savings_range_high": 9200.0,
         "engaged": True,
     },
     {
@@ -124,7 +127,8 @@ SAMPLE_LEADS = [
         "complexity": "simple",
         "lead_score": 65,
         "lead_temperature": "warm",
-        "savings_range": "$800 - $1,500",
+        "savings_range_low": 800.0,
+        "savings_range_high": 1500.0,
         "engaged": False,
     },
     {
@@ -136,7 +140,8 @@ SAMPLE_LEADS = [
         "complexity": "moderate",
         "lead_score": 78,
         "lead_temperature": "warm",
-        "savings_range": "$3,200 - $4,800",
+        "savings_range_low": 3200.0,
+        "savings_range_high": 4800.0,
         "engaged": True,
     },
     {
@@ -148,7 +153,8 @@ SAMPLE_LEADS = [
         "complexity": "highly_complex",
         "lead_score": 95,
         "lead_temperature": "hot",
-        "savings_range": "$12,000 - $18,500",
+        "savings_range_low": 12000.0,
+        "savings_range_high": 18500.0,
         "engaged": False,
     },
     {
@@ -160,7 +166,8 @@ SAMPLE_LEADS = [
         "complexity": "simple",
         "lead_score": 45,
         "lead_temperature": "cold",
-        "savings_range": "$300 - $600",
+        "savings_range_low": 300.0,
+        "savings_range_high": 600.0,
         "engaged": False,
     },
     {
@@ -172,7 +179,8 @@ SAMPLE_LEADS = [
         "complexity": "moderate",
         "lead_score": 70,
         "lead_temperature": "warm",
-        "savings_range": "$2,100 - $3,400",
+        "savings_range_low": 2100.0,
+        "savings_range_high": 3400.0,
         "engaged": False,
     },
 ]
@@ -185,6 +193,12 @@ SAMPLE_ACTIVITIES = [
 ]
 
 
+def table_exists(cursor, table_name: str) -> bool:
+    """Check if a table exists in the database."""
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+    return cursor.fetchone() is not None
+
+
 def clean_demo_data(conn):
     """Remove existing demo data."""
     cursor = conn.cursor()
@@ -192,34 +206,45 @@ def clean_demo_data(conn):
     print("Cleaning existing demo data...")
 
     # Delete demo leads
-    cursor.execute("DELETE FROM lead_magnet_leads WHERE cpa_id = ?", (DEMO_CPA["cpa_id"],))
-    print(f"  Deleted {cursor.rowcount} demo leads")
+    if table_exists(cursor, "lead_magnet_leads"):
+        cursor.execute("DELETE FROM lead_magnet_leads WHERE cpa_id = ?", (DEMO_CPA["cpa_id"],))
+        print(f"  Deleted {cursor.rowcount} demo leads")
 
-    # Delete demo activities
-    cursor.execute("""
-        DELETE FROM lead_activities
-        WHERE lead_id IN (
-            SELECT lead_id FROM lead_magnet_leads WHERE cpa_id = ?
-        )
-    """, (DEMO_CPA["cpa_id"],))
+    # Delete demo activities (if table exists)
+    if table_exists(cursor, "lead_activities"):
+        cursor.execute("""
+            DELETE FROM lead_activities
+            WHERE lead_id IN (
+                SELECT lead_id FROM lead_magnet_leads WHERE cpa_id = ?
+            )
+        """, (DEMO_CPA["cpa_id"],))
+        print(f"  Deleted demo activities")
 
     # Delete demo CPA profile
-    cursor.execute("DELETE FROM cpa_profiles WHERE cpa_id = ?", (DEMO_CPA["cpa_id"],))
-    print(f"  Deleted demo CPA profile")
+    if table_exists(cursor, "cpa_profiles"):
+        cursor.execute("DELETE FROM cpa_profiles WHERE cpa_id = ?", (DEMO_CPA["cpa_id"],))
+        print(f"  Deleted demo CPA profile")
 
-    # Delete demo tenant
-    cursor.execute("DELETE FROM tenants WHERE tenant_id = ?", (DEMO_TENANT["tenant_id"],))
-    print(f"  Deleted demo tenant")
+    # Delete demo tenant (if table exists)
+    if table_exists(cursor, "tenants"):
+        cursor.execute("DELETE FROM tenants WHERE tenant_id = ?", (DEMO_TENANT["tenant_id"],))
+        print(f"  Deleted demo tenant")
 
     conn.commit()
     print("Demo data cleaned.\n")
 
 
 def create_demo_tenant(conn):
-    """Create demo tenant."""
+    """Create demo tenant (if tenants table exists)."""
     cursor = conn.cursor()
 
     print("Creating demo tenant...")
+
+    # Check if tenants table exists
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='tenants'")
+    if not cursor.fetchone():
+        print("  Tenants table not found, skipping tenant creation")
+        return
 
     try:
         cursor.execute("""
@@ -246,13 +271,20 @@ def create_demo_cpa(conn):
 
     print("Creating demo CPA profile...")
 
+    # Check if CPA already exists
+    cursor.execute("SELECT cpa_id FROM cpa_profiles WHERE cpa_slug = ?", (DEMO_CPA["cpa_slug"],))
+    if cursor.fetchone():
+        print(f"  CPA already exists, skipping")
+        print(f"  CPA Slug: {DEMO_CPA['cpa_slug']}")
+        print(f"  Lead Magnet URL: /lead-magnet?cpa={DEMO_CPA['cpa_slug']}")
+        return
+
     try:
         cursor.execute("""
             INSERT INTO cpa_profiles (
                 cpa_id, cpa_slug, first_name, last_name, credentials,
-                firm_name, email, phone, booking_link, bio, specialties,
-                tenant_id, primary_color, secondary_color, accent_color
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                firm_name, email, phone, booking_link, bio, specialties_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             DEMO_CPA["cpa_id"],
             DEMO_CPA["cpa_slug"],
@@ -265,16 +297,12 @@ def create_demo_cpa(conn):
             DEMO_CPA["booking_link"],
             DEMO_CPA["bio"],
             DEMO_CPA["specialties"],
-            DEMO_CPA["tenant_id"],
-            DEMO_CPA["primary_color"],
-            DEMO_CPA["secondary_color"],
-            DEMO_CPA["accent_color"],
         ))
         print(f"  Created CPA: {DEMO_CPA['first_name']} {DEMO_CPA['last_name']}")
         print(f"  CPA Slug: {DEMO_CPA['cpa_slug']}")
         print(f"  Lead Magnet URL: /lead-magnet?cpa={DEMO_CPA['cpa_slug']}")
-    except sqlite3.IntegrityError:
-        print(f"  CPA already exists, skipping")
+    except sqlite3.IntegrityError as e:
+        print(f"  Error creating CPA: {e}")
 
     conn.commit()
 
@@ -296,10 +324,11 @@ def create_demo_leads(conn):
         try:
             cursor.execute("""
                 INSERT INTO lead_magnet_leads (
-                    lead_id, session_id, cpa_id, tenant_id,
+                    lead_id, session_id, cpa_id,
                     first_name, email, phone,
                     filing_status, income_range, complexity,
-                    lead_score, lead_temperature, savings_range,
+                    lead_score, lead_temperature,
+                    savings_range_low, savings_range_high,
                     engaged, engaged_at, converted,
                     created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -307,7 +336,6 @@ def create_demo_leads(conn):
                 lead_id,
                 session_id,
                 DEMO_CPA["cpa_id"],
-                DEMO_TENANT["tenant_id"],
                 lead_data["first_name"],
                 lead_data["email"],
                 lead_data["phone"],
@@ -316,29 +344,31 @@ def create_demo_leads(conn):
                 lead_data["complexity"],
                 lead_data["lead_score"],
                 lead_data["lead_temperature"],
-                lead_data["savings_range"],
+                lead_data["savings_range_low"],
+                lead_data["savings_range_high"],
                 lead_data["engaged"],
                 created_at.isoformat() if lead_data["engaged"] else None,
                 False,
                 created_at.isoformat(),
             ))
 
-            # Create activities for this lead
-            for activity_type, description in SAMPLE_ACTIVITIES:
-                activity_id = f"act-{uuid.uuid4().hex[:12]}"
-                cursor.execute("""
-                    INSERT INTO lead_activities (
-                        activity_id, lead_id, activity_type, actor,
-                        description, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?)
-                """, (
-                    activity_id,
-                    lead_id,
-                    activity_type,
-                    "system",
-                    description,
-                    created_at.isoformat(),
-                ))
+            # Create activities for this lead (if table exists)
+            if table_exists(cursor, "lead_activities"):
+                for activity_type, description in SAMPLE_ACTIVITIES:
+                    activity_id = f"act-{uuid.uuid4().hex[:12]}"
+                    cursor.execute("""
+                        INSERT INTO lead_activities (
+                            activity_id, lead_id, activity_type, actor,
+                            description, created_at
+                        ) VALUES (?, ?, ?, ?, ?, ?)
+                    """, (
+                        activity_id,
+                        lead_id,
+                        activity_type,
+                        "system",
+                        description,
+                        created_at.isoformat(),
+                    ))
 
             print(f"  Created lead: {lead_data['first_name']} ({lead_data['lead_temperature']}, score: {lead_data['lead_score']})")
 
