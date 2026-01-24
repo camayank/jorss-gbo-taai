@@ -5297,72 +5297,13 @@ def _get_scenario_service():
 # The modular router is registered at startup. Keeping this code commented
 # for reference during the transition period.
 #
-# To re-enable legacy routes (not recommended), set _USE_LEGACY_SCENARIO_ROUTES = True
 # =============================================================================
-_USE_LEGACY_SCENARIO_ROUTES = False
-
-if _USE_LEGACY_SCENARIO_ROUTES:
-    # @app.post("/api/scenarios")
-    async def create_scenario_legacy(request_body: CreateScenarioRequest, request: Request):
-    """
-    Create a new tax scenario.
-
-    Creates a scenario with specified modifications to compare against
-    the base return. Use this for custom what-if analysis.
-    """
-    from domain import ScenarioType
-
-    service = _get_scenario_service()
-
-    # Convert string type to enum
-    try:
-        scenario_type = ScenarioType(request_body.scenario_type)
-    except ValueError:
-        scenario_type = ScenarioType.WHAT_IF
-
-    # Convert modifications to dict format expected by service
-    modifications = [
-        {
-            "field_path": mod.field_path,
-            "new_value": mod.new_value,
-            "description": mod.description,
-        }
-        for mod in request_body.modifications
-    ]
-
-    try:
-        scenario = service.create_scenario(
-            return_id=request_body.return_id,
-            name=request_body.name,
-            scenario_type=scenario_type,
-            modifications=modifications,
-            description=request_body.description,
-        )
-
-        return JSONResponse({
-            "success": True,
-            "scenario_id": str(scenario.scenario_id),
-            "name": scenario.name,
-            "type": scenario.scenario_type.value,
-            "status": scenario.status.value,
-            "modifications_count": len(scenario.modifications),
-            "created_at": scenario.created_at.isoformat(),
-        })
-
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error creating scenario: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
+# SCENARIO ROUTES - Migrated to web/routers/scenarios.py
 # =============================================================================
-# SCENARIO ROUTES - REMOVED (Migrated to web/routers/scenarios.py)
-# =============================================================================
-# The following scenario routes have been migrated to the modular router at:
-#   src/web/routers/scenarios.py (included via app.include_router at line ~402)
+# All scenario routes are now handled by the modular router at:
+#   src/web/routers/scenarios.py (included via app.include_router)
 #
-# Routes handled by the router:
+# Routes:
 #   GET  /api/scenarios
 #   GET  /api/scenarios/{scenario_id}
 #   POST /api/scenarios/{scenario_id}/calculate
