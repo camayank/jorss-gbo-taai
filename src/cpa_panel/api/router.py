@@ -166,6 +166,14 @@ try:
 except ImportError as e:
     logger.warning(f"Client portal routes not available: {e}")
 
+# NEW: Notification routes - In-app notifications and reminders
+try:
+    from .notification_routes import notification_router
+    cpa_router.include_router(notification_router)
+    logger.info("Notification routes enabled")
+except ImportError as e:
+    logger.warning(f"Notification routes not available: {e}")
+
 # Include core domain routers
 cpa_router.include_router(workflow_router)
 cpa_router.include_router(analysis_router)
@@ -208,6 +216,7 @@ async def cpa_health_check():
             "lead_generation": "active (prospect lead capture)",
             "lead_magnet": "active (smart tax advisory lead magnet flow)",
             "client_portal": "active (B2C client dashboard)",
+            "notifications": "active (in-app notifications and reminders)",
         },
     }
 
@@ -418,6 +427,20 @@ async def get_route_documentation():
                     "GET /client/profile - Client profile",
                     "PUT /client/profile - Update profile",
                     "GET /client/notifications - Notifications",
+                ],
+            },
+            "notifications": {
+                "description": "In-app notifications and follow-up reminders",
+                "endpoints": [
+                    "GET /notifications - List notifications",
+                    "POST /notifications/mark-read - Mark notifications as read",
+                    "POST /notifications/mark-all-read - Mark all as read",
+                    "GET /notifications/preferences - Get notification preferences",
+                    "PUT /notifications/preferences - Update preferences",
+                    "GET /notifications/stats - Notification statistics",
+                    "GET /reminders - Get follow-up reminders",
+                    "POST /reminders/{id}/complete - Complete reminder",
+                    "POST /reminders/{id}/snooze - Snooze reminder",
                 ],
             },
         },

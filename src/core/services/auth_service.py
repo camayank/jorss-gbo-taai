@@ -35,13 +35,72 @@ USE_DATABASE = os.environ.get("AUTH_USE_DATABASE", "false").lower() == "true"
 # CONFIGURATION
 # =============================================================================
 
+# Environment detection
+_ENVIRONMENT = os.environ.get("APP_ENVIRONMENT", "development")
+_IS_PRODUCTION = _ENVIRONMENT in ("production", "prod", "staging")
+
+
+def _get_password_salt() -> str:
+    """
+    Get password salt from environment.
+
+    SECURITY: In production, PASSWORD_SALT must be set.
+    """
+    salt = os.environ.get("PASSWORD_SALT")
+
+    if not salt:
+        if _IS_PRODUCTION:
+            raise RuntimeError(
+                "CRITICAL SECURITY ERROR: PASSWORD_SALT environment variable is required in production. "
+                "Generate with: python -c \"import secrets; print(secrets.token_hex(16))\""
+            )
+        # Development fallback
+        import warnings
+        warnings.warn(
+            "PASSWORD_SALT not set - using insecure development default.",
+            UserWarning
+        )
+        return "DEV-SALT-INSECURE-" + str(os.getpid())
+
+    if len(salt) < 16:
+        raise ValueError("PASSWORD_SALT must be at least 16 characters")
+
+    return salt
+
+
+def _get_auth_secret() -> str:
+    """
+    Get auth secret from environment.
+
+    SECURITY: In production, AUTH_SECRET_KEY must be set.
+    """
+    secret = os.environ.get("AUTH_SECRET_KEY")
+
+    if not secret:
+        if _IS_PRODUCTION:
+            raise RuntimeError(
+                "CRITICAL SECURITY ERROR: AUTH_SECRET_KEY environment variable is required in production. "
+                "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        import warnings
+        warnings.warn(
+            "AUTH_SECRET_KEY not set - using insecure development default.",
+            UserWarning
+        )
+        return "DEV-AUTH-SECRET-INSECURE-" + str(os.getpid())
+
+    if len(secret) < 32:
+        raise ValueError("AUTH_SECRET_KEY must be at least 32 characters")
+
+    return secret
+
+
 class AuthConfig:
     """Authentication configuration."""
-    # JWT Settings
-    JWT_SECRET_KEY: str = "your-secret-key-change-in-production"  # In prod: from env
+    # JWT Settings - now loaded from environment
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+    REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.environ.get("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
     # Magic Link Settings
     MAGIC_LINK_EXPIRE_MINUTES: int = 15
@@ -53,6 +112,16 @@ class AuthConfig:
     # Rate Limiting
     MAX_LOGIN_ATTEMPTS: int = 5
     LOCKOUT_DURATION_MINUTES: int = 15
+
+    @classmethod
+    def get_jwt_secret(cls) -> str:
+        """Get JWT secret key (validates on first access in production)."""
+        return _get_auth_secret()
+
+    @classmethod
+    def get_password_salt(cls) -> str:
+        """Get password salt (validates on first access in production)."""
+        return _get_password_salt()
 
 
 # =============================================================================
@@ -237,9 +306,14 @@ class CoreAuthService:
     # =========================================================================
 
     def _hash_password(self, password: str) -> str:
-        """Hash a password using SHA-256 (use bcrypt in production)."""
-        # In production: use bcrypt.hashpw(password.encode(), bcrypt.gensalt())
-        salt = "fixed-salt-for-dev"  # In production: use random salt
+        """
+        Hash a password using SHA-256 with secure salt.
+
+        Note: For production systems handling real user data,
+        consider upgrading to bcrypt for password hashing:
+        bcrypt.hashpw(password.encode(), bcrypt.gensalt(self.config.BCRYPT_ROUNDS))
+        """
+        salt = AuthConfig.get_password_salt()
         return hashlib.sha256(f"{password}{salt}".encode()).hexdigest()
 
     def _verify_password(self, password: str, password_hash: str) -> bool:

@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engagement Letter | {{ cpa.firm_name or cpa.display_name }}</title>
+    {% if cpa.favicon_url %}
+    <link rel="icon" href="{{ cpa.favicon_url }}">
+    {% endif %}
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: {{ cpa.primary_color or '#2563eb' }};
+            --secondary-color: {{ cpa.secondary_color or '#1d4ed8' }};
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --bg-light: #f9fafb;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.7;
+            color: var(--text-dark);
+            background: #f5f7fa;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        .letter-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .cpa-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .cpa-logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+        }
+
+        .cpa-info h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .cpa-info p {
+            color: var(--text-muted);
+        }
+
+        .letter-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .letter-subtitle {
+            color: var(--text-muted);
+        }
+
+        /* Letter Content */
+        .letter-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+        }
+
+        .letter-date {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+        }
+
+        .letter-section {
+            margin-bottom: 24px;
+        }
+
+        .letter-section h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--primary-color);
+        }
+
+        .letter-section p {
+            margin-bottom: 12px;
+        }
+
+        .letter-section ul {
+            margin-left: 24px;
+            margin-bottom: 12px;
+        }
+
+        .letter-section li {
+            margin-bottom: 8px;
+        }
+
+        /* Signature Section */
+        .signature-section {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 24px;
+            margin-top: 40px;
+        }
+
+        .signature-line {
+            display: flex;
+            align-items: flex-end;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .signature-block {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .signature-name {
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .signature-title {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* Acknowledgment */
+        .acknowledgment-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .acknowledgment-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding: 16px;
+            background: var(--bg-light);
+            border-radius: 10px;
+        }
+
+        .checkbox-group input {
+            width: 20px;
+            height: 20px;
+            margin-top: 2px;
+            accent-color: var(--primary-color);
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .acknowledge-button {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 16px 30px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+        }
+
+        .acknowledge-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+        }
+
+        .acknowledge-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            color: var(--primary-color);
+        }
+
+        /* Loading */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-card {
+            background: var(--white);
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Print Styles */
+        @media print {
+            .acknowledgment-card {
+                display: none;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 20px;
+            }
+
+            .letter-card {
+                padding: 24px;
+            }
+
+            .letter-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="letter-header">
+            <div class="cpa-brand">
+                {% if cpa.logo_url %}
+                <img src="{{ cpa.logo_url }}" alt="{{ cpa.firm_name }}" class="cpa-logo">
+                {% endif %}
+                <div class="cpa-info">
+                    <h1>{{ cpa.display_name }}</h1>
+                    {% if cpa.firm_name %}
+                    <p>{{ cpa.firm_name }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            <h2 class="letter-title">Engagement Letter</h2>
+            <p class="letter-subtitle">Tax Advisory Services Agreement</p>
+        </div>
+
+        <!-- Letter Content -->
+        <div class="letter-card">
+            <div class="letter-date">
+                Effective Date: {{ now().strftime('%B %d, %Y') if now else 'Today' }}
+            </div>
+
+            <div class="letter-section">
+                <h2>1. Scope of Services</h2>
+                <p>
+                    This engagement letter outlines the terms under which {{ cpa.display_name }}
+                    {% if cpa.firm_name %} of {{ cpa.firm_name }}{% endif %} ("we," "us," or "our")
+                    will provide tax advisory services to you ("Client").
+                </p>
+                <p>Our services under this engagement include:</p>
+                <ul>
+                    <li>Review and analysis of your tax situation based on the information you provide</li>
+                    <li>Identification of potential tax-saving opportunities and strategies</li>
+                    <li>Preparation of a personalized tax insights report</li>
+                    <li>Initial consultation to discuss findings and recommendations</li>
+                </ul>
+                <p>
+                    Additional services such as tax return preparation, tax planning implementation,
+                    or representation before the IRS require a separate engagement agreement.
+                </p>
+            </div>
+
+            <div class="letter-section">
+                <h2>2. Client Responsibilities</h2>
+                <p>You agree to:</p>
+                <ul>
+                    <li>Provide complete and accurate information necessary for our analysis</li>
+                    <li>Respond timely to our requests for additional information</li>
+                    <li>Inform us of any changes to your financial situation that may affect our advice</li>
+                    <li>Make all final decisions regarding tax positions and strategies</li>
+                    <li>Maintain all original documents and records</li>
+                </ul>
+            </div>
+
+            <div class="letter-section">
+                <h2>3. Confidentiality</h2>
+                <p>
+                    We will maintain the confidentiality of all information you provide to us,
+                    except as required by law or professional standards. Your information will
+                    only be used for the purposes of providing the agreed-upon services.
+                </p>
+            </div>
+
+            <div class="letter-section">
+                <h2>4. Limitations of Services</h2>
+                <p>
+                    Our analysis and recommendations are based on current tax laws and regulations,
+                    which are subject to change. We cannot guarantee the acceptance of any tax
+                    position by the IRS or any other taxing authority. You are responsible for
+                    evaluating and implementing any tax strategies we recommend.
+                </p>
+            </div>
+
+            <div class="letter-section">
+                <h2>5. Professional Standards</h2>
+                <p>
+                    Our services will be performed in accordance with applicable professional
+                    standards, including those set forth by the American Institute of Certified
+                    Public Accountants (AICPA) and applicable state boards of accountancy.
+                </p>
+            </div>
+
+            <div class="letter-section">
+                <h2>6. Fees</h2>
+                <p>
+                    The initial tax insights analysis provided through our online platform is
+                    complimentary. Any additional services will be quoted separately and agreed
+                    upon before work commences. You will receive a fee quote before any billable
+                    services are performed.
+                </p>
+            </div>
+
+            <div class="letter-section">
+                <h2>7. Limitation of Liability</h2>
+                <p>
+                    Our liability for any claim arising from this engagement shall be limited to
+                    the total fees paid for the specific services giving rise to the claim. We
+                    shall not be liable for any indirect, consequential, or incidental damages.
+                </p>
+            </div>
+
+            <div class="letter-section">
+                <h2>8. Term and Termination</h2>
+                <p>
+                    Either party may terminate this engagement at any time with written notice.
+                    Upon termination, you agree to pay for all services rendered through the
+                    termination date.
+                </p>
+            </div>
+
+            <!-- Signature Section -->
+            <div class="signature-section">
+                <div class="signature-line">
+                    <div class="signature-block">
+                        <p>{{ cpa.firm_name or cpa.display_name }}</p>
+                        <div style="border-bottom: 1px solid #333; height: 40px;"></div>
+                        <div class="signature-name">{{ cpa.display_name }}</div>
+                        <div class="signature-title">
+                            {% if cpa.credentials %}{{ cpa.credentials|join(', ') }}{% else %}CPA{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Acknowledgment -->
+        <div class="acknowledgment-card">
+            <h3 class="acknowledgment-title">Acknowledge Engagement Letter</h3>
+
+            <form id="acknowledgmentForm">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="confirmRead" required>
+                    <label for="confirmRead">
+                        I have read and understood the terms of this engagement letter, including the
+                        scope of services, limitations, and my responsibilities as a client.
+                    </label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="confirmAgree" required>
+                    <label for="confirmAgree">
+                        I agree to the terms outlined in this engagement letter and authorize
+                        {{ cpa.display_name }} to provide the described tax advisory services.
+                    </label>
+                </div>
+
+                <button type="submit" class="acknowledge-button" id="acknowledgeBtn" disabled>
+                    I Acknowledge & Accept
+                </button>
+            </form>
+
+            <a href="/lead-magnet/report?session={{ session_id }}" class="back-link">
+                ← Return to Report
+            </a>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-card">
+            <div class="spinner"></div>
+            <div>Processing acknowledgment...</div>
+        </div>
+    </div>
+
+    <script>
+        const sessionId = '{{ session_id }}';
+        const leadId = '{{ lead_id }}';
+
+        // Enable button when both checkboxes are checked
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        const acknowledgeBtn = document.getElementById('acknowledgeBtn');
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', () => {
+                const allChecked = Array.from(checkboxes).every(c => c.checked);
+                acknowledgeBtn.disabled = !allChecked;
+            });
+        });
+
+        // Form submission
+        document.getElementById('acknowledgmentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            document.getElementById('loadingOverlay').classList.add('show');
+            acknowledgeBtn.disabled = true;
+
+            try {
+                const response = await fetch(`/api/cpa/lead-magnet/leads/${leadId}/acknowledge-engagement`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ acknowledged: true })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to acknowledge engagement letter');
+                }
+
+                const result = await response.json();
+
+                // Store acknowledgment
+                sessionStorage.setItem('engagement_letter_acknowledged', 'true');
+
+                // Redirect based on whether Tier 2 is now unlocked
+                if (result.tier_2_unlocked) {
+                    window.location.href = `/lead-magnet/analysis?session=${sessionId}`;
+                } else {
+                    // CPA hasn't engaged yet, show waiting message
+                    alert('Thank you for acknowledging the engagement letter. Your full analysis will be available once the CPA reviews your case.');
+                    window.location.href = `/lead-magnet/report?session=${sessionId}`;
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loadingOverlay').classList.remove('show');
+                acknowledgeBtn.disabled = false;
+                alert('Something went wrong. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html>

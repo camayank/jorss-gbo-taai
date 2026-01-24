@@ -1,13 +1,27 @@
 """Application settings using Pydantic Settings.
 
 Centralized configuration for the tax platform.
+
+SECURITY: Production requires the following environment variables:
+- APP_SECRET_KEY: Main application secret (min 32 chars)
+- JWT_SECRET: JWT signing key (min 32 chars)
+- AUTH_SECRET_KEY: Auth service secret (min 32 chars)
+- PASSWORD_SALT: Password hashing salt (min 16 chars)
+- ENCRYPTION_MASTER_KEY: PII encryption key (min 32 chars)
+
+Generate secrets with: python -c "import secrets; print(secrets.token_hex(32))"
 """
 
+import os
+import sys
+import logging
 from functools import lru_cache
 from typing import List, Optional
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class RedisSettings(BaseSettings):
@@ -137,15 +151,7 @@ class Settings(BaseSettings):
         description="Enable API rate limiting"
     )
 
-    def validate_production_secrets(self) -> bool:
-        """Validate that production has proper secrets configured."""
-        if self.environment == "production":
-            if "INSECURE" in self.secret_key or self.secret_key == "change-me-in-production":
-                raise ValueError(
-                    "CRITICAL: APP_SECRET_KEY must be set in production. "
-                    "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
-                )
-        return True
+    # CORS
     cors_origins: list = Field(
         default=["http://localhost:3000", "http://localhost:8000"],
         description="Allowed CORS origins"
@@ -172,6 +178,138 @@ class Settings(BaseSettings):
     def resilience(self) -> ResilienceSettings:
         return ResilienceSettings()
 
+    @property
+    def is_production(self) -> bool:
+        """Check if running in production environment."""
+        return self.environment in ("production", "prod", "staging")
+
+    def validate_production_security(self) -> List[str]:
+        """
+        Validate all security requirements for production.
+
+        Returns:
+            List of validation errors (empty if valid)
+        """
+        errors = []
+
+        if not self.is_production:
+            return errors
+
+        # Check APP_SECRET_KEY
+        if "INSECURE" in self.secret_key or self.secret_key == "change-me-in-production":
+            errors.append(
+                "APP_SECRET_KEY: Must be set in production. "
+                "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        elif len(self.secret_key) < 32:
+            errors.append("APP_SECRET_KEY: Must be at least 32 characters")
+
+        # Check JWT_SECRET
+        jwt_secret = os.environ.get("JWT_SECRET")
+        if not jwt_secret:
+            errors.append(
+                "JWT_SECRET: Required in production. "
+                "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        elif len(jwt_secret) < 32:
+            errors.append("JWT_SECRET: Must be at least 32 characters")
+
+        # Check AUTH_SECRET_KEY
+        auth_secret = os.environ.get("AUTH_SECRET_KEY")
+        if not auth_secret:
+            errors.append(
+                "AUTH_SECRET_KEY: Required in production. "
+                "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        elif len(auth_secret) < 32:
+            errors.append("AUTH_SECRET_KEY: Must be at least 32 characters")
+
+        # Check PASSWORD_SALT
+        password_salt = os.environ.get("PASSWORD_SALT")
+        if not password_salt:
+            errors.append(
+                "PASSWORD_SALT: Required in production. "
+                "Generate with: python -c \"import secrets; print(secrets.token_hex(16))\""
+            )
+        elif len(password_salt) < 16:
+            errors.append("PASSWORD_SALT: Must be at least 16 characters")
+
+        # Check ENCRYPTION_MASTER_KEY
+        encryption_key = os.environ.get("ENCRYPTION_MASTER_KEY")
+        if not encryption_key:
+            errors.append(
+                "ENCRYPTION_MASTER_KEY: Required in production for PII encryption. "
+                "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        elif len(encryption_key) < 32:
+            errors.append("ENCRYPTION_MASTER_KEY: Must be at least 32 characters")
+
+        # Check HTTPS enforcement
+        if not self.enforce_https:
+            errors.append(
+                "APP_ENFORCE_HTTPS: Should be True in production for security"
+            )
+
+        return errors
+
+
+# =============================================================================
+# STARTUP VALIDATION
+# =============================================================================
+
+class StartupSecurityError(Exception):
+    """Raised when security validation fails at startup."""
+    pass
+
+
+def validate_startup_security(settings: Settings, exit_on_failure: bool = True) -> bool:
+    """
+    Validate security settings at application startup.
+
+    This function should be called early in the application startup process.
+    In production, it will fail fast if critical security settings are missing.
+
+    Args:
+        settings: Application settings instance
+        exit_on_failure: If True, exit the process on failure (default)
+
+    Returns:
+        True if validation passes
+
+    Raises:
+        StartupSecurityError: If validation fails and exit_on_failure is False
+    """
+    errors = settings.validate_production_security()
+
+    if not errors:
+        if settings.is_production:
+            logger.info("Production security validation PASSED")
+        return True
+
+    # Format error message
+    error_msg = (
+        "\n" + "=" * 60 + "\n"
+        "CRITICAL SECURITY CONFIGURATION ERROR\n"
+        "=" * 60 + "\n\n"
+        "The following security settings are missing or invalid:\n\n"
+    )
+    for i, err in enumerate(errors, 1):
+        error_msg += f"  {i}. {err}\n\n"
+
+    error_msg += (
+        "=" * 60 + "\n"
+        "APPLICATION CANNOT START IN PRODUCTION WITHOUT THESE SETTINGS\n"
+        "=" * 60 + "\n"
+    )
+
+    logger.critical(error_msg)
+
+    if exit_on_failure:
+        print(error_msg, file=sys.stderr)
+        sys.exit(1)
+    else:
+        raise StartupSecurityError(error_msg)
+
 
 @lru_cache
 def get_settings() -> Settings:
@@ -182,3 +320,21 @@ def get_settings() -> Settings:
         Settings: Cached settings loaded from environment.
     """
     return Settings()
+
+
+def get_validated_settings(exit_on_failure: bool = True) -> Settings:
+    """
+    Get settings with security validation.
+
+    This is the recommended way to get settings in production code.
+    Call this once at application startup.
+
+    Args:
+        exit_on_failure: If True, exit process on validation failure
+
+    Returns:
+        Validated Settings instance
+    """
+    settings = get_settings()
+    validate_startup_security(settings, exit_on_failure)
+    return settings

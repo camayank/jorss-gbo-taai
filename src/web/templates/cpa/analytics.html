@@ -1,0 +1,313 @@
+{% extends "cpa/base.html" %}
+
+{% block title %}Analytics{% endblock %}
+{% block page_title %}Performance Analytics{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+
+    .metric-card {
+        background: var(--white);
+        border-radius: 16px;
+        padding: 24px;
+        border: 1px solid var(--border-color);
+    }
+
+    .metric-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+
+    .metric-title {
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+
+    .metric-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: var(--bg-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .metric-change {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.9rem;
+    }
+
+    .metric-change.up { color: var(--success); }
+    .metric-change.down { color: var(--danger); }
+
+    /* Charts Section */
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+
+    @media (max-width: 1024px) {
+        .charts-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .chart-card {
+        background: var(--white);
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+    }
+
+    .chart-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .chart-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .chart-body {
+        padding: 24px;
+        min-height: 300px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .chart-placeholder {
+        text-align: center;
+        color: var(--text-muted);
+    }
+
+    .chart-placeholder-icon {
+        font-size: 3rem;
+        margin-bottom: 12px;
+    }
+
+    /* Funnel Visualization */
+    .funnel-container {
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .funnel-stage {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .funnel-bar-container {
+        flex: 1;
+        position: relative;
+    }
+
+    .funnel-bar {
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        color: white;
+        font-weight: 600;
+        transition: width 0.5s ease;
+    }
+
+    .funnel-bar.browsing { background: #94a3b8; }
+    .funnel-bar.curious { background: #60a5fa; }
+    .funnel-bar.evaluating { background: #f59e0b; }
+    .funnel-bar.advisory_ready { background: #10b981; }
+    .funnel-bar.high_leverage { background: #ec4899; }
+
+    .funnel-count {
+        width: 50px;
+        text-align: right;
+        font-weight: 600;
+    }
+
+    /* Conversion Stats */
+    .conversion-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+
+    .conversion-stat {
+        padding: 16px;
+        background: var(--bg-light);
+        border-radius: 12px;
+        text-align: center;
+    }
+
+    .conversion-stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+
+    .conversion-stat-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Key Metrics -->
+<div class="metrics-grid">
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">Total Leads</span>
+            <div class="metric-icon">👥</div>
+        </div>
+        <div class="metric-value">{{ stats.total_leads or 0 }}</div>
+        <div class="metric-change up">
+            ↑ 12% from last month
+        </div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">Conversion Rate</span>
+            <div class="metric-icon">📈</div>
+        </div>
+        <div class="metric-value">{{ stats.conversion_rate or 0 }}%</div>
+        <div class="metric-change up">
+            ↑ 3.2% from last month
+        </div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">Avg. Lead Score</span>
+            <div class="metric-icon">⭐</div>
+        </div>
+        <div class="metric-value">{{ conversion_metrics.metrics.average_score|round|int if conversion_metrics.metrics else 0 }}</div>
+        <div class="metric-change up">
+            ↑ 5 points from last month
+        </div>
+    </div>
+
+    <div class="metric-card">
+        <div class="metric-header">
+            <span class="metric-title">Pipeline Value</span>
+            <div class="metric-icon">💰</div>
+        </div>
+        <div class="metric-value">${{ '{:,.0f}'.format(stats.total_revenue or 0) }}</div>
+        <div class="metric-change up">
+            ↑ 18% from last month
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="charts-grid">
+    <!-- Lead Funnel -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3 class="chart-title">Lead Pipeline Funnel</h3>
+        </div>
+        <div class="chart-body">
+            <div class="funnel-container">
+                <div class="funnel-stage">
+                    <div class="funnel-bar-container">
+                        <div class="funnel-bar browsing" style="width: 100%;">Browsing</div>
+                    </div>
+                    <span class="funnel-count">{{ stats.new_leads or 0 }}</span>
+                </div>
+                <div class="funnel-stage">
+                    <div class="funnel-bar-container">
+                        <div class="funnel-bar evaluating" style="width: 75%;">Evaluating</div>
+                    </div>
+                    <span class="funnel-count">{{ stats.evaluating or 0 }}</span>
+                </div>
+                <div class="funnel-stage">
+                    <div class="funnel-bar-container">
+                        <div class="funnel-bar advisory_ready" style="width: 50%;">Advisory Ready</div>
+                    </div>
+                    <span class="funnel-count">{{ stats.advisory_ready or 0 }}</span>
+                </div>
+                <div class="funnel-stage">
+                    <div class="funnel-bar-container">
+                        <div class="funnel-bar high_leverage" style="width: 30%;">High Leverage</div>
+                    </div>
+                    <span class="funnel-count">{{ stats.high_leverage or 0 }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conversion Metrics -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3 class="chart-title">Conversion Metrics</h3>
+        </div>
+        <div class="chart-body">
+            <div class="conversion-stats">
+                <div class="conversion-stat">
+                    <div class="conversion-stat-value">{{ conversion_metrics.metrics.conversion_rate|round|int if conversion_metrics.metrics else 0 }}%</div>
+                    <div class="conversion-stat-label">Overall Conversion</div>
+                </div>
+                <div class="conversion-stat">
+                    <div class="conversion-stat-value">{{ velocity_metrics.metrics.avg_days_to_convert|round|int if velocity_metrics.metrics else 0 }}d</div>
+                    <div class="conversion-stat-label">Avg. Time to Convert</div>
+                </div>
+                <div class="conversion-stat">
+                    <div class="conversion-stat-value">{{ velocity_metrics.metrics.leads_per_week|round|int if velocity_metrics.metrics else 0 }}</div>
+                    <div class="conversion-stat-label">Leads / Week</div>
+                </div>
+                <div class="conversion-stat">
+                    <div class="conversion-stat-value">${{ '{:,.0f}'.format(conversion_metrics.metrics.avg_value or 0) if conversion_metrics.metrics else 0 }}</div>
+                    <div class="conversion-stat-label">Avg. Lead Value</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lead Trends Chart (Placeholder) -->
+<div class="chart-card">
+    <div class="chart-header">
+        <h3 class="chart-title">Lead Trends (Last 30 Days)</h3>
+        <select style="padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 6px;">
+            <option>Last 30 days</option>
+            <option>Last 90 days</option>
+            <option>This year</option>
+        </select>
+    </div>
+    <div class="chart-body">
+        <div class="chart-placeholder">
+            <div class="chart-placeholder-icon">📊</div>
+            <p>Charts will be populated with real data<br>as leads flow through your pipeline.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

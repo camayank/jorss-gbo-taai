@@ -15,10 +15,22 @@ from .letter_generator import (
 )
 from .esign_hooks import ESignWebhookHandler, ESignProvider
 
+# PDF generation (optional - requires reportlab)
+try:
+    from .pdf_generator import EngagementLetterPDFGenerator, get_pdf_generator
+    PDF_AVAILABLE = True
+except ImportError:
+    PDF_AVAILABLE = False
+    EngagementLetterPDFGenerator = None
+    get_pdf_generator = None
+
 __all__ = [
     "EngagementLetterGenerator",
     "EngagementLetterType",
     "EngagementLetter",
     "ESignWebhookHandler",
     "ESignProvider",
+    "EngagementLetterPDFGenerator",
+    "get_pdf_generator",
+    "PDF_AVAILABLE",
 ]

@@ -1,0 +1,135 @@
+# =============================================================================
+# Jorss-Gbo CPA Lead Platform - Docker Compose
+# =============================================================================
+# Development and testing environment setup
+#
+# Usage:
+#   docker-compose up              # Start all services
+#   docker-compose up -d           # Start in background
+#   docker-compose logs -f app     # Follow app logs
+#   docker-compose down            # Stop all services
+#   docker-compose down -v         # Stop and remove volumes
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # Main Application
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      target: development
+    container_name: jorss-gbo-app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app/src:cached
+      - ./database:/app/database:cached
+      - app-data:/app/data
+      - app-logs:/app/logs
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_PATH=/app/database/jorss_gbo.db
+      - LOG_LEVEL=INFO
+      # Secrets - use .env file or set these
+      - APP_SECRET_KEY=${APP_SECRET_KEY:-development-secret-key-change-me-32chars}
+      - JWT_SECRET=${JWT_SECRET:-development-jwt-secret-change-me-32chars}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-development-encryption-key-32chars}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - jorss-network
+
+  # ---------------------------------------------------------------------------
+  # Redis (Optional - for production caching/sessions)
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: jorss-gbo-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - jorss-network
+    profiles:
+      - with-redis
+
+  # ---------------------------------------------------------------------------
+  # Nginx (Optional - for production reverse proxy)
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: jorss-gbo-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - jorss-network
+    profiles:
+      - production
+
+  # ---------------------------------------------------------------------------
+  # Background Worker (Optional - for async tasks)
+  # ---------------------------------------------------------------------------
+  worker:
+    build:
+      context: .
+      target: production
+    container_name: jorss-gbo-worker
+    volumes:
+      - app-data:/app/data
+      - app-logs:/app/logs
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_PATH=/app/database/jorss_gbo.db
+      - APP_SECRET_KEY=${APP_SECRET_KEY:-development-secret-key-change-me-32chars}
+      - JWT_SECRET=${JWT_SECRET:-development-jwt-secret-change-me-32chars}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-development-encryption-key-32chars}
+      - REDIS_URL=redis://redis:6379
+    command: ["python", "-m", "celery", "-A", "tasks.celery_app", "worker", "--loglevel=info"]
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - jorss-network
+    profiles:
+      - with-workers
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  jorss-network:
+    driver: bridge
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  app-data:
+    driver: local
+  app-logs:
+    driver: local
+  redis-data:
+    driver: local

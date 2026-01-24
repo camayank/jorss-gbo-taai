@@ -20,9 +20,34 @@ from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 
 logger = logging.getLogger(__name__)
 
-# Configuration (should be from environment in production)
-JWT_SECRET = os.getenv("JWT_SECRET", "your-super-secret-key-change-in-production")
+# Configuration - secure defaults
 JWT_ALGORITHM = "HS256"
+
+
+def _get_jwt_secret() -> str:
+    """Get JWT secret with production enforcement."""
+    secret = os.environ.get("JWT_SECRET")
+    is_production = os.environ.get("ENVIRONMENT", "development").lower() == "production"
+
+    if not secret:
+        if is_production:
+            raise RuntimeError(
+                "CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required in production. "
+                "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+            )
+        logger.warning(
+            "JWT_SECRET not set - using insecure development default. "
+            "Set JWT_SECRET environment variable for production."
+        )
+        return "development-only-insecure-secret-key-32ch"
+
+    if len(secret) < 32:
+        raise ValueError("JWT_SECRET must be at least 32 characters for security")
+
+    return secret
+
+
+JWT_SECRET = _get_jwt_secret()
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 

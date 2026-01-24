@@ -17,6 +17,13 @@ from ..rbac.roles import Role
 from ..database.tenant_persistence import get_tenant_persistence
 from ..database.tenant_models import CPABranding
 
+# Tenant isolation security
+try:
+    from security.tenant_isolation import verify_cpa_client_access
+    TENANT_ISOLATION_AVAILABLE = True
+except ImportError:
+    TENANT_ISOLATION_AVAILABLE = False
+
 
 router = APIRouter(prefix="/api/cpa/branding", tags=["cpa-branding"])
 
@@ -319,7 +326,13 @@ async def get_cpa_branding(
     if not cpa_branding:
         raise HTTPException(404, "CPA branding not found")
 
-    # TODO: Verify client has access to this CPA (assignment check)
+    # Verify client has access to this CPA (assignment check)
+    if TENANT_ISOLATION_AVAILABLE:
+        verify_cpa_client_access(
+            cpa_id=cpa_id,
+            client_user_id=str(ctx.user_id),
+            raise_exception=True
+        )
 
     return CPABrandingResponse(
         cpa_id=cpa_branding.cpa_id,

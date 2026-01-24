@@ -101,7 +101,19 @@ if DB_AVAILABLE:
 _chat_sessions: Dict[str, Dict[str, Any]] = {}
 
 # Session limits to prevent abuse
-MAX_CONVERSATION_TURNS = 100
+MAX_CONVERSATION_TURNS = 50  # Reduced from 100 to prevent memory bloat
+
+# Conversation history management
+try:
+    from web.helpers.conversation_history import (
+        prune_conversation_history,
+        get_optimized_context,
+        SLIDING_WINDOW_SIZE,
+    )
+    HISTORY_MANAGEMENT_AVAILABLE = True
+except ImportError:
+    HISTORY_MANAGEMENT_AVAILABLE = False
+    SLIDING_WINDOW_SIZE = 15
 
 # Rate limiting - track requests per session
 _rate_limit_tracker: Dict[str, List[float]] = {}
@@ -373,8 +385,20 @@ async def process_chat_message(request: ChatMessageRequest):
             logger.error(f"[{request_id}] Agent initialization failed: {e}")
             return _create_fallback_response(request.user_message)
 
-        # Restore conversation history to agent's messages
+        # Restore conversation history to agent's messages (with pruning/optimization)
         conversation_history = get_session_attr(unified_session, "conversation_history", [])
+
+        # Apply sliding window and optional summarization to prevent memory bloat
+        if HISTORY_MANAGEMENT_AVAILABLE and len(conversation_history) > SLIDING_WINDOW_SIZE * 2:
+            extracted_data = get_session_attr(unified_session, "extracted_data", {})
+            optimized_history = get_optimized_context(
+                conversation_history,
+                extracted_data,
+                max_turns=SLIDING_WINDOW_SIZE
+            )
+            logger.debug(f"[{request_id}] Optimized history: {len(conversation_history)} -> {len(optimized_history)} messages")
+            conversation_history = optimized_history
+
         for msg in conversation_history:
             if isinstance(msg, dict):
                 agent.messages.append({
@@ -484,7 +508,20 @@ async def process_chat_message(request: ChatMessageRequest):
         progress_update = _calculate_progress(current_phase, extracted_data)
 
         # Save updated session (database or in-memory)
+        # Prune history before saving to prevent storage bloat
         try:
+            session_history = get_session_attr(unified_session, "conversation_history", [])
+
+            # Apply pruning if history is getting long
+            if HISTORY_MANAGEMENT_AVAILABLE and len(session_history) > SLIDING_WINDOW_SIZE * 3:
+                pruned_history = prune_conversation_history(session_history, max_turns=SLIDING_WINDOW_SIZE * 2)
+                if isinstance(unified_session, dict):
+                    unified_session["conversation_history"] = pruned_history
+                else:
+                    unified_session.conversation_history = pruned_history
+                session_history = pruned_history
+                logger.info(f"[{request_id}] Pruned stored history to {len(pruned_history)} messages")
+
             if persistence and not use_memory_fallback:
                 persistence.save_unified_session(unified_session)
                 logger.info(f"[{request_id}] Session {request.session_id} saved to database")
@@ -493,7 +530,7 @@ async def process_chat_message(request: ChatMessageRequest):
                 _chat_sessions[request.session_id] = {
                     "metadata": metadata,
                     "extracted_data": extracted_data,
-                    "conversation_history": get_session_attr(unified_session, "conversation_history", [])
+                    "conversation_history": session_history
                 }
                 logger.info(f"[{request_id}] Session {request.session_id} saved to in-memory storage")
         except Exception as e:

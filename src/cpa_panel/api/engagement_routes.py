@@ -15,6 +15,7 @@ NOT in scope:
 """
 
 from fastapi import APIRouter, HTTPException, Request, Header
+from fastapi.responses import Response
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 import logging
@@ -25,6 +26,7 @@ from ..engagement import (
     EngagementLetter,
     ESignWebhookHandler,
     ESignProvider,
+    PDF_AVAILABLE,
 )
 from ..engagement.esign_hooks import get_esign_handler
 from .common import format_success_response, format_error_response, get_tenant_id
@@ -285,3 +287,76 @@ async def get_services_for_tier(
         "letter_type": letter_type,
         "services": services,
     })
+
+
+@router.get("/letters/{letter_id}/pdf")
+async def download_letter_pdf(
+    request: Request,
+    letter_id: str,
+) -> Response:
+    """
+    Download engagement letter as PDF.
+
+    Generates a professional PDF document suitable for printing or e-signing.
+    """
+    if not PDF_AVAILABLE:
+        raise HTTPException(
+            status_code=501,
+            detail="PDF generation is not available. Install reportlab with: pip install reportlab"
+        )
+
+    tenant_id = get_tenant_id(request)
+
+    letter = _letters.get(letter_id)
+    if not letter:
+        raise HTTPException(status_code=404, detail="Letter not found")
+
+    if letter.tenant_id != tenant_id:
+        raise HTTPException(status_code=404, detail="Letter not found")
+
+    try:
+        from ..engagement import get_pdf_generator
+
+        pdf_generator = get_pdf_generator()
+
+        # Build letter content dict
+        letter_content = {
+            "letter_type": letter.letter_type.value,
+            "cpa_firm_name": letter.cpa_firm_name,
+            "cpa_name": letter.cpa_name,
+            "cpa_credentials": letter.cpa_credentials,
+            "firm_address": "",  # Not stored in EngagementLetter
+            "client_name": letter.client_name,
+            "client_address": "",  # Not stored in EngagementLetter
+            "tax_year": letter.tax_year,
+            "complexity_tier": letter.complexity_tier,
+            "services": letter.services_description.split("; "),
+            "fee_amount": letter.fee_amount,
+            "fee_description": letter.fee_description,
+            "generated_at": letter.generated_at.isoformat(),
+        }
+
+        # Get branding from request headers (optional)
+        branding = {
+            "primary_color": request.headers.get("X-Primary-Color", "#1e40af"),
+        }
+
+        pdf_bytes = pdf_generator.generate_pdf(letter_content, branding)
+
+        # Create filename
+        filename = f"engagement_letter_{letter.client_name.replace(' ', '_')}_{letter.tax_year}.pdf"
+
+        logger.info(f"Generated PDF for letter {letter_id}")
+
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Length": str(len(pdf_bytes)),
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to generate PDF for letter {letter_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate PDF")

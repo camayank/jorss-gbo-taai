@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Tax Savings Report | {{ cpa.firm_name or cpa.display_name }}</title>
+    <meta name="description" content="Your personalized tax savings analysis from {{ cpa.display_name }}.">
+    {% if cpa.favicon_url %}
+    <link rel="icon" href="{{ cpa.favicon_url }}">
+    {% endif %}
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: {{ cpa.primary_color or '#2563eb' }};
+            --secondary-color: {{ cpa.secondary_color or '#1d4ed8' }};
+            --accent-color: {{ cpa.accent_color or '#10b981' }};
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --bg-light: #f9fafb;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background: #f5f7fa;
+        }
+
+        /* Header */
+        .report-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .cpa-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .cpa-logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            background: white;
+        }
+
+        .cpa-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .report-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .report-subtitle {
+            opacity: 0.9;
+        }
+
+        .report-date {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-top: 8px;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Savings Summary Card */
+        .savings-card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 30px;
+            margin-top: -40px;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .savings-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .savings-amount {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-color) 0%, #059669 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .savings-note {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .complexity-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 16px;
+        }
+
+        .complexity-simple { background: #dcfce7; color: #166534; }
+        .complexity-moderate { background: #fef9c3; color: #854d0e; }
+        .complexity-complex { background: #fee2e2; color: #991b1b; }
+
+        /* Insights Section */
+        .section {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 30px;
+            margin-top: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        /* Insight Cards */
+        .insight-card {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .insight-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .insight-category {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .insight-savings {
+            background: linear-gradient(135deg, var(--accent-color) 0%, #059669 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .insight-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .insight-description {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+
+        /* Locked Insights */
+        .locked-section {
+            background: #fef9c3;
+            border: 2px dashed #f59e0b;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        .locked-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+        }
+
+        .locked-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 8px;
+        }
+
+        .locked-description {
+            color: #a16207;
+            margin-bottom: 20px;
+        }
+
+        .locked-items {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .locked-item {
+            background: rgba(251, 191, 36, 0.3);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #92400e;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-radius: 16px;
+            padding: 40px 30px;
+            text-align: center;
+            color: white;
+            margin-top: 20px;
+        }
+
+        .cta-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .cta-subtitle {
+            opacity: 0.9;
+            margin-bottom: 24px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: white;
+            color: var(--primary-color);
+            padding: 16px 40px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+        }
+
+        .cta-benefits {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        .cta-benefit {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Disclaimer */
+        .disclaimer-section {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 20px;
+            margin-bottom: 40px;
+        }
+
+        .disclaimer-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+        }
+
+        .disclaimer-text {
+            font-size: 0.8rem;
+            color: #6b7280;
+            line-height: 1.7;
+        }
+
+        .disclaimer-text strong {
+            color: #374151;
+        }
+
+        /* Footer */
+        .report-footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .footer-cpa {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        /* Print Styles */
+        @media print {
+            .cta-section {
+                display: none;
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 640px) {
+            .report-header {
+                padding: 20px 15px;
+            }
+
+            .report-title {
+                font-size: 1.4rem;
+            }
+
+            .savings-card {
+                padding: 20px;
+            }
+
+            .savings-amount {
+                font-size: 2.2rem;
+            }
+
+            .section {
+                padding: 20px;
+            }
+
+            .cta-benefits {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .insight-header {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="report-header">
+        <div class="cpa-brand">
+            {% if cpa.logo_url %}
+            <img src="{{ cpa.logo_url }}" alt="{{ cpa.firm_name }}" class="cpa-logo">
+            {% endif %}
+            <span class="cpa-name">{{ cpa.display_name }}</span>
+        </div>
+        <h1 class="report-title">Your Tax Savings Analysis</h1>
+        <p class="report-subtitle">Personalized insights for your tax situation</p>
+        <div class="report-date">Generated on {{ now().strftime('%B %d, %Y') if now else 'Today' }}</div>
+    </header>
+
+    <div class="container">
+        <!-- Savings Summary -->
+        <div class="savings-card">
+            <div class="savings-label">Estimated Potential Savings</div>
+            <div class="savings-amount" id="savingsRange">
+                {% if report and report.savings_range %}
+                    {{ report.savings_range }}
+                {% else %}
+                    $1,500 - $4,200
+                {% endif %}
+            </div>
+            <div class="savings-note">Based on your tax profile</div>
+
+            <div class="complexity-badge complexity-{{ report.complexity|lower if report else 'moderate' }}">
+                {{ report.complexity if report else 'Moderate' }} Tax Situation
+            </div>
+        </div>
+
+        <!-- Insights Section -->
+        <div class="section">
+            <h2 class="section-title">
+                <div class="section-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12" y2="8"/>
+                    </svg>
+                </div>
+                Tax Insights for You
+            </h2>
+
+            {% if report and report.insights %}
+                {% for insight in report.insights %}
+                <div class="insight-card">
+                    <div class="insight-header">
+                        <span class="insight-category">{{ insight.category }}</span>
+                        {% if insight.savings_range %}
+                        <span class="insight-savings">{{ insight.savings_range }}</span>
+                        {% endif %}
+                    </div>
+                    <h3 class="insight-title">{{ insight.title }}</h3>
+                    <p class="insight-description">
+                        {{ insight.teaser_description or insight.description }}
+                    </p>
+                </div>
+                {% endfor %}
+            {% else %}
+                <!-- Demo insights -->
+                <div class="insight-card">
+                    <div class="insight-header">
+                        <span class="insight-category">Retirement</span>
+                        <span class="insight-savings">$800 - $2,100</span>
+                    </div>
+                    <h3 class="insight-title">Maximize 401(k) Contributions</h3>
+                    <p class="insight-description">
+                        You may be able to increase your tax-deferred savings and reduce your current tax liability...
+                    </p>
+                </div>
+
+                <div class="insight-card">
+                    <div class="insight-header">
+                        <span class="insight-category">Healthcare</span>
+                        <span class="insight-savings">$400 - $1,200</span>
+                    </div>
+                    <h3 class="insight-title">HSA Contribution Opportunity</h3>
+                    <p class="insight-description">
+                        Your healthcare plan may qualify for Health Savings Account contributions with triple tax advantages...
+                    </p>
+                </div>
+
+                <div class="insight-card">
+                    <div class="insight-header">
+                        <span class="insight-category">Family</span>
+                        <span class="insight-savings">$300 - $900</span>
+                    </div>
+                    <h3 class="insight-title">Child Tax Credit Optimization</h3>
+                    <p class="insight-description">
+                        Based on your family situation, there may be additional credits and deductions available...
+                    </p>
+                </div>
+            {% endif %}
+
+            <!-- Locked Insights -->
+            <div class="locked-section">
+                <div class="locked-icon">🔒</div>
+                <h3 class="locked-title">
+                    +{{ report.locked_count if report else 5 }} More Insights Available
+                </h3>
+                <p class="locked-description">
+                    Schedule a free consultation to unlock your complete analysis including:
+                </p>
+                <div class="locked-items">
+                    <span class="locked-item">Specific dollar amounts</span>
+                    <span class="locked-item">Action items</span>
+                    <span class="locked-item">Tax calendar</span>
+                    <span class="locked-item">IRS form references</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA Section -->
+        <div class="cta-section">
+            <h2 class="cta-title">Ready to Maximize Your Savings?</h2>
+            <p class="cta-subtitle">
+                Schedule a free, no-obligation consultation with {{ cpa.display_name }}
+            </p>
+            <a href="{{ cpa.booking_link or '#contact' }}" class="cta-button">
+                Schedule Free Consultation
+            </a>
+            <div class="cta-benefits">
+                <div class="cta-benefit">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9 12l2 2 4-4"/>
+                    </svg>
+                    <span>Free 15-minute call</span>
+                </div>
+                <div class="cta-benefit">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9 12l2 2 4-4"/>
+                    </svg>
+                    <span>No obligations</span>
+                </div>
+                <div class="cta-benefit">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9 12l2 2 4-4"/>
+                    </svg>
+                    <span>Get all your questions answered</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disclaimer Section -->
+        <div class="disclaimer-section">
+            <h3 class="disclaimer-title">Important Disclosures</h3>
+            <div class="disclaimer-text">
+                <p>
+                    <strong>No CPA-Client Relationship:</strong> This report is provided for
+                    informational and educational purposes only. Receipt of this report does not
+                    create a CPA-client relationship with {{ cpa.display_name }} or
+                    {{ cpa.firm_name or 'the firm' }}.
+                </p>
+                <br>
+                <p>
+                    <strong>Not Tax Advice:</strong> The information provided in this report is
+                    based on limited information and general tax principles. It does not constitute
+                    tax, legal, or financial advice. Tax laws are complex and subject to change.
+                    The savings estimates are approximations and actual results may vary significantly
+                    based on your complete financial situation.
+                </p>
+                <br>
+                <p>
+                    <strong>Consult a Professional:</strong> For personalized tax advice tailored to
+                    your specific circumstances, you should consult with a qualified tax professional.
+                    Before making any tax-related decisions, please contact {{ cpa.display_name }}
+                    to discuss your individual situation.
+                </p>
+                <br>
+                <p>
+                    <strong>Accuracy Limitations:</strong> While we strive to provide accurate
+                    information, we cannot guarantee the accuracy, completeness, or timeliness of
+                    this analysis. You should independently verify all information before acting on it.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="report-footer">
+        <p>Report prepared by <span class="footer-cpa">{{ cpa.display_name }}</span></p>
+        {% if cpa.email %}
+        <p>{{ cpa.email }} {% if cpa.phone %}| {{ cpa.phone }}{% endif %}</p>
+        {% endif %}
+    </footer>
+
+    <script>
+        // Track report view for analytics
+        const sessionId = '{{ session_id }}';
+        console.log('Tier 1 report viewed for session:', sessionId);
+    </script>
+</body>
+</html>

@@ -9,13 +9,26 @@ Provides endpoints to:
 """
 
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Response
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 from pathlib import Path
 import logging
 import uuid
+
+# Standardized error handling
+try:
+    from web.helpers.error_responses import (
+        create_error_response,
+        raise_api_error,
+        not_found_error,
+        server_error,
+        ErrorCode,
+    )
+    STANDARD_ERRORS_AVAILABLE = True
+except ImportError:
+    STANDARD_ERRORS_AVAILABLE = False
 
 from models.tax_return import TaxReturn
 from models.taxpayer import TaxpayerInfo, FilingStatus
@@ -146,10 +159,17 @@ def _get_tax_return_from_session(session_id: str, tenant_id: str = "default") ->
     tax_return_data = persistence.load_session_tax_return(session_id, tenant_id)
 
     if not tax_return_data:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No tax return data found for session {session_id}"
-        )
+        if STANDARD_ERRORS_AVAILABLE:
+            raise_api_error(
+                ErrorCode.SESSION_NOT_FOUND,
+                message=f"No tax return data found for session {session_id}",
+                details=[{"field": "session_id", "message": "Session not found or expired"}]
+            )
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No tax return data found for session {session_id}"
+            )
 
     # Extract data
     return_data = tax_return_data.get("return_data", {})
@@ -219,10 +239,17 @@ def _get_tax_return_from_session(session_id: str, tenant_id: str = "default") ->
 
     except Exception as e:
         logger.error(f"Error reconstructing TaxReturn from session data: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error loading tax return data: {str(e)}"
-        )
+        if STANDARD_ERRORS_AVAILABLE:
+            raise_api_error(
+                ErrorCode.PROCESSING_ERROR,
+                message="Failed to load tax return data. Please try again.",
+                details=[{"field": "session_data", "message": str(e)}]
+            )
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error loading tax return data: {str(e)}"
+            )
 
 
 def _generate_report_sync(
@@ -303,10 +330,20 @@ async def generate_report(
     try:
         report_type = ReportType(request.report_type)
     except ValueError:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid report type: {request.report_type}"
-        )
+        if STANDARD_ERRORS_AVAILABLE:
+            raise_api_error(
+                ErrorCode.INVALID_INPUT,
+                message=f"Invalid report type: {request.report_type}",
+                details=[{
+                    "field": "report_type",
+                    "message": "Must be one of: executive_summary, standard_report, entity_comparison, multi_year, full_analysis"
+                }]
+            )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid report type: {request.report_type}"
+            )
 
     # Generate report
     try:
@@ -374,7 +411,13 @@ async def generate_report(
 
     except Exception as e:
         logger.error(f"Error in generate_report: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        if STANDARD_ERRORS_AVAILABLE:
+            raise_api_error(
+                ErrorCode.PROCESSING_ERROR,
+                message="Failed to generate advisory report. Please try again.",
+            )
+        else:
+            raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/{report_id}", response_model=AdvisoryReportResponse)
@@ -387,7 +430,14 @@ async def get_report_status(report_id: str):
     report = _report_store.get(report_id)
 
     if not report:
-        raise HTTPException(status_code=404, detail="Report not found")
+        if STANDARD_ERRORS_AVAILABLE:
+            raise_api_error(
+                ErrorCode.RESOURCE_NOT_FOUND,
+                message=f"Report with ID '{report_id}' not found.",
+                details=[{"field": "report_id", "message": "Report does not exist or has expired"}]
+            )
+        else:
+            raise HTTPException(status_code=404, detail="Report not found")
 
     # Get session_id from mapping
     session_id = _report_session.get(report_id, "unknown")
@@ -449,7 +499,13 @@ async def get_report_data(report_id: str):
     report = _report_store.get(report_id)
 
     if not report:
-        raise HTTPException(status_code=404, detail="Report not found")
+        if STANDARD_ERRORS_AVAILABLE:
+            raise_api_error(
+                ErrorCode.RESOURCE_NOT_FOUND,
+                message=f"Report data for ID '{report_id}' not found.",
+            )
+        else:
+            raise HTTPException(status_code=404, detail="Report not found")
 
     return report.to_dict()
 
@@ -612,10 +668,16 @@ async def detect_tax_opportunities(request: TaxOpportunityRequest):
     Returns prioritized list with estimated savings.
     """
     if not OPPORTUNITY_DETECTOR_AVAILABLE:
-        raise HTTPException(
-            status_code=501,
-            detail="Tax opportunity detection not available"
-        )
+        if STANDARD_ERRORS_AVAILABLE:
+            raise_api_error(
+                ErrorCode.SERVICE_UNAVAILABLE,
+                message="Tax opportunity detection is temporarily unavailable.",
+            )
+        else:
+            raise HTTPException(
+                status_code=501,
+                detail="Tax opportunity detection not available"
+            )
 
     logger.info(f"Detecting tax opportunities for session {request.session_id}")
 
@@ -667,7 +729,13 @@ async def detect_tax_opportunities(request: TaxOpportunityRequest):
 
     except Exception as e:
         logger.error(f"Error detecting opportunities: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        if STANDARD_ERRORS_AVAILABLE:
+            raise_api_error(
+                ErrorCode.PROCESSING_ERROR,
+                message="Failed to detect tax opportunities. Please try again.",
+            )
+        else:
+            raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/opportunities/{session_id}", response_model=TaxOpportunitiesResponse)

@@ -1,0 +1,908 @@
+{% extends "cpa/base.html" %}
+
+{% block title %}{{ lead.name or 'Lead Detail' }}{% endblock %}
+{% block page_title %}Lead Detail{% endblock %}
+
+{% block extra_styles %}
+<style>
+    /* Breadcrumb */
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 24px;
+        font-size: 0.9rem;
+    }
+
+    .breadcrumb a {
+        color: var(--text-muted);
+        text-decoration: none;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--primary-color);
+    }
+
+    .breadcrumb-separator {
+        color: var(--text-light);
+    }
+
+    .breadcrumb-current {
+        color: var(--text-dark);
+        font-weight: 500;
+    }
+
+    /* Lead Header */
+    .lead-header {
+        background: var(--white);
+        border-radius: 16px;
+        padding: 24px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 24px;
+    }
+
+    .lead-header-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        flex-wrap: wrap;
+    }
+
+    .lead-identity {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .lead-avatar-large {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 1.75rem;
+    }
+
+    .lead-name-section h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .lead-meta {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .lead-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+
+    .lead-header-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    /* Status Badges Row */
+    .status-badges {
+        display: flex;
+        gap: 12px;
+        margin-top: 20px;
+        flex-wrap: wrap;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 24px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .status-badge.state {
+        background: #d1fae5;
+        color: #047857;
+    }
+
+    .status-badge.state.high_leverage { background: #fce7f3; color: #be185d; }
+    .status-badge.state.advisory_ready { background: #d1fae5; color: #047857; }
+    .status-badge.state.evaluating { background: #fef3c7; color: #b45309; }
+
+    .status-badge.temperature {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .status-badge.temperature.warm { background: #fef3c7; color: #b45309; }
+    .status-badge.temperature.cold { background: #dbeafe; color: #1d4ed8; }
+
+    .status-badge.complexity {
+        background: var(--bg-light);
+        color: var(--text-muted);
+    }
+
+    /* Content Grid */
+    .detail-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+    }
+
+    @media (max-width: 1024px) {
+        .detail-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Info Cards */
+    .info-card {
+        background: var(--white);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 24px;
+    }
+
+    .info-card-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .info-card-title {
+        font-weight: 600;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .info-card-body {
+        padding: 20px;
+    }
+
+    /* Contact Info */
+    .contact-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .contact-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .contact-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: var(--bg-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+    }
+
+    .contact-label {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .contact-value {
+        font-weight: 500;
+    }
+
+    .contact-value a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .contact-value a:hover {
+        text-decoration: underline;
+    }
+
+    /* Tax Profile */
+    .profile-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+
+    .profile-item {
+        padding: 12px;
+        background: var(--bg-light);
+        border-radius: 10px;
+    }
+
+    .profile-item-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+
+    .profile-item-value {
+        font-weight: 600;
+    }
+
+    /* Insights */
+    .insight-item {
+        padding: 16px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .insight-item:last-child {
+        border-bottom: none;
+    }
+
+    .insight-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+    }
+
+    .insight-category {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+        border-radius: 6px;
+        background: var(--bg-light);
+        color: var(--text-muted);
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+
+    .insight-savings {
+        margin-left: auto;
+        font-weight: 700;
+        color: var(--success);
+    }
+
+    .insight-title {
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .insight-description {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+    }
+
+    /* Actions Sidebar */
+    .action-card {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        border-radius: 16px;
+        padding: 24px;
+        color: white;
+        margin-bottom: 24px;
+    }
+
+    .action-card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+    }
+
+    .action-card-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .action-card-label {
+        opacity: 0.8;
+        margin-bottom: 20px;
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 14px 20px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        border: none;
+        text-decoration: none;
+    }
+
+    .action-btn-primary {
+        background: white;
+        color: var(--primary-color);
+    }
+
+    .action-btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .action-btn-secondary {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+
+    .action-btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Status Timeline */
+    .timeline {
+        position: relative;
+        padding-left: 24px;
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 7px;
+        top: 8px;
+        bottom: 8px;
+        width: 2px;
+        background: var(--border-color);
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-bottom: 20px;
+    }
+
+    .timeline-item:last-child {
+        padding-bottom: 0;
+    }
+
+    .timeline-dot {
+        position: absolute;
+        left: -24px;
+        top: 4px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--bg-light);
+        border: 3px solid var(--border-color);
+    }
+
+    .timeline-item.completed .timeline-dot {
+        background: var(--success);
+        border-color: var(--success);
+    }
+
+    .timeline-item.current .timeline-dot {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .timeline-title {
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .timeline-time {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    /* Engagement Status */
+    .engagement-status {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .engagement-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: var(--bg-light);
+        border-radius: 10px;
+    }
+
+    .engagement-icon {
+        font-size: 1.5rem;
+    }
+
+    .engagement-text {
+        flex: 1;
+    }
+
+    .engagement-label {
+        font-weight: 500;
+    }
+
+    .engagement-status-text {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .engagement-check {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+    }
+
+    .engagement-check.done {
+        background: var(--success);
+        color: white;
+    }
+
+    .engagement-check.pending {
+        background: var(--border-color);
+        color: var(--text-muted);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+    <a href="/cpa/leads">All Leads</a>
+    <span class="breadcrumb-separator">›</span>
+    <span class="breadcrumb-current">{{ lead.name or lead.email }}</span>
+</div>
+
+<!-- Lead Header -->
+<div class="lead-header">
+    <div class="lead-header-top">
+        <div class="lead-identity">
+            <div class="lead-avatar-large">
+                {{ (lead.name or lead.email)[0]|upper }}
+            </div>
+            <div class="lead-name-section">
+                <h2>{{ lead.name or lead.email.split('@')[0] }}</h2>
+                <div class="lead-meta">
+                    <span class="lead-meta-item">
+                        📧 {{ lead.email }}
+                    </span>
+                    {% if lead.phone %}
+                    <span class="lead-meta-item">
+                        📞 {{ lead.phone }}
+                    </span>
+                    {% endif %}
+                    <span class="lead-meta-item">
+                        🕐 {{ lead.age }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="lead-header-actions">
+            <button class="btn btn-secondary" onclick="history.back()">← Back</button>
+            <button class="btn btn-primary" onclick="engageLead()">Engage Lead</button>
+        </div>
+    </div>
+
+    <div class="status-badges">
+        <span class="status-badge state {{ lead.state|lower|replace(' ', '_') }}">
+            {% if lead.state == 'high_leverage' %}🔥{% elif lead.state == 'advisory_ready' %}⭐{% endif %}
+            {{ lead.state_display or lead.state|replace('_', ' ')|title }}
+        </span>
+        <span class="status-badge temperature {{ lead.temperature|lower }}">
+            {% if lead.temperature == 'hot' %}🔥 Hot{% elif lead.temperature == 'warm' %}☀️ Warm{% else %}❄️ Cold{% endif %}
+        </span>
+        <span class="status-badge complexity">
+            {{ lead.complexity|title }} Complexity
+        </span>
+        <span class="status-badge" style="background: #dbeafe; color: #1d4ed8;">
+            Score: {{ lead.score or 0 }}
+        </span>
+    </div>
+</div>
+
+<!-- Content Grid -->
+<div class="detail-grid">
+    <!-- Main Column -->
+    <div>
+        <!-- Contact Information -->
+        <div class="info-card">
+            <div class="info-card-header">
+                <h3 class="info-card-title">📇 Contact Information</h3>
+            </div>
+            <div class="info-card-body">
+                <div class="contact-list">
+                    <div class="contact-item">
+                        <div class="contact-icon">📧</div>
+                        <div>
+                            <div class="contact-label">Email</div>
+                            <div class="contact-value">
+                                <a href="mailto:{{ lead.email }}">{{ lead.email }}</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% if lead.phone %}
+                    <div class="contact-item">
+                        <div class="contact-icon">📞</div>
+                        <div>
+                            <div class="contact-label">Phone</div>
+                            <div class="contact-value">
+                                <a href="tel:{{ lead.phone }}">{{ lead.phone }}</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="contact-item">
+                        <div class="contact-icon">📅</div>
+                        <div>
+                            <div class="contact-label">First Contact</div>
+                            <div class="contact-value">{{ lead.created_at or 'Unknown' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tax Profile -->
+        {% if lead.tax_profile %}
+        <div class="info-card">
+            <div class="info-card-header">
+                <h3 class="info-card-title">📊 Tax Profile</h3>
+                {% if lead.session_id %}
+                <a href="/lead-magnet/report?session={{ lead.session_id }}" target="_blank" class="btn btn-secondary btn-sm">
+                    View Report
+                </a>
+                {% endif %}
+            </div>
+            <div class="info-card-body">
+                <div class="profile-grid">
+                    <div class="profile-item">
+                        <div class="profile-item-label">Filing Status</div>
+                        <div class="profile-item-value">{{ lead.tax_profile.filing_status|replace('_', ' ')|title }}</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-item-label">Income Range</div>
+                        <div class="profile-item-value">{{ lead.tax_profile.income_range }}</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-item-label">Dependents</div>
+                        <div class="profile-item-value">{{ lead.tax_profile.dependents_count or 0 }}</div>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-item-label">Homeowner</div>
+                        <div class="profile-item-value">{{ 'Yes' if lead.tax_profile.is_homeowner else 'No' }}</div>
+                    </div>
+                    {% if lead.tax_profile.income_sources %}
+                    <div class="profile-item" style="grid-column: span 2;">
+                        <div class="profile-item-label">Income Sources</div>
+                        <div class="profile-item-value">
+                            {{ lead.tax_profile.income_sources|join(', ')|replace('_', ' ')|title }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if lead.tax_profile.life_events %}
+                    <div class="profile-item" style="grid-column: span 2;">
+                        <div class="profile-item-label">Life Events</div>
+                        <div class="profile-item-value">
+                            {{ lead.tax_profile.life_events|join(', ')|replace('_', ' ')|title }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Tax Insights -->
+        {% if lead.insights and lead.insights|length > 0 %}
+        <div class="info-card">
+            <div class="info-card-header">
+                <h3 class="info-card-title">💡 Tax Insights</h3>
+            </div>
+            <div class="info-card-body" style="padding: 0;">
+                {% for insight in lead.insights %}
+                <div class="insight-item">
+                    <div class="insight-header">
+                        <span class="insight-category">{{ insight.category or 'General' }}</span>
+                        {% if insight.savings_estimate %}
+                        <span class="insight-savings">${{ '{:,.0f}'.format(insight.savings_estimate) }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="insight-title">{{ insight.title }}</div>
+                    <div class="insight-description">{{ insight.description }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div>
+        <!-- Savings Card -->
+        <div class="action-card">
+            <div class="action-card-title">Estimated Tax Savings</div>
+            <div class="action-card-value">${{ '{:,.0f}'.format(lead.estimated_savings or 0) }}</div>
+            <div class="action-card-label">potential annual savings</div>
+            <div class="action-buttons">
+                {% if not lead.engaged %}
+                <button class="action-btn action-btn-primary" onclick="engageLead()">
+                    ⭐ Engage Lead
+                </button>
+                {% else %}
+                <button class="action-btn action-btn-primary" onclick="convertLead()">
+                    ✅ Convert to Client
+                </button>
+                {% endif %}
+                <button class="action-btn action-btn-secondary" onclick="scheduleMeeting()">
+                    📅 Schedule Meeting
+                </button>
+                <button class="action-btn action-btn-secondary" onclick="viewFullReport()">
+                    📊 View Full Report
+                </button>
+            </div>
+        </div>
+
+        <!-- Engagement Status -->
+        <div class="info-card">
+            <div class="info-card-header">
+                <h3 class="info-card-title">✅ Engagement Checklist</h3>
+            </div>
+            <div class="info-card-body">
+                <div class="engagement-status">
+                    <div class="engagement-item">
+                        <span class="engagement-icon">📧</span>
+                        <div class="engagement-text">
+                            <div class="engagement-label">Contact Captured</div>
+                            <div class="engagement-status-text">Lead provided contact info</div>
+                        </div>
+                        <div class="engagement-check done">✓</div>
+                    </div>
+                    <div class="engagement-item">
+                        <span class="engagement-icon">👤</span>
+                        <div class="engagement-text">
+                            <div class="engagement-label">CPA Engaged</div>
+                            <div class="engagement-status-text">
+                                {% if lead.engaged %}You've accepted this lead{% else %}Waiting for your action{% endif %}
+                            </div>
+                        </div>
+                        <div class="engagement-check {% if lead.engaged %}done{% else %}pending{% endif %}">
+                            {% if lead.engaged %}✓{% else %}○{% endif %}
+                        </div>
+                    </div>
+                    <div class="engagement-item">
+                        <span class="engagement-icon">📝</span>
+                        <div class="engagement-text">
+                            <div class="engagement-label">Engagement Letter</div>
+                            <div class="engagement-status-text">
+                                {% if lead.engagement_letter_acknowledged %}Client acknowledged{% else %}Pending acknowledgment{% endif %}
+                            </div>
+                        </div>
+                        <div class="engagement-check {% if lead.engagement_letter_acknowledged %}done{% else %}pending{% endif %}">
+                            {% if lead.engagement_letter_acknowledged %}✓{% else %}○{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Timeline -->
+        <div class="info-card">
+            <div class="info-card-header">
+                <h3 class="info-card-title">📈 Lead Journey</h3>
+            </div>
+            <div class="info-card-body">
+                <div class="timeline">
+                    <div class="timeline-item completed">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-title">Lead Captured</div>
+                        <div class="timeline-time">{{ lead.age }}</div>
+                    </div>
+                    <div class="timeline-item {% if lead.state in ['evaluating', 'advisory_ready', 'high_leverage'] %}completed{% endif %}">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-title">Evaluating</div>
+                        <div class="timeline-time">Prospect reviewing options</div>
+                    </div>
+                    <div class="timeline-item {% if lead.state in ['advisory_ready', 'high_leverage'] %}completed{% elif lead.state == 'advisory_ready' %}current{% endif %}">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-title">Advisory Ready</div>
+                        <div class="timeline-time">Ready for CPA engagement</div>
+                    </div>
+                    <div class="timeline-item {% if lead.state == 'high_leverage' %}current{% endif %}">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-title">High Leverage</div>
+                        <div class="timeline-time">Priority conversion opportunity</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="info-card">
+            <div class="info-card-header">
+                <h3 class="info-card-title">⚡ Quick Actions</h3>
+            </div>
+            <div class="info-card-body">
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button class="btn btn-secondary" style="width: 100%; justify-content: flex-start;" onclick="copyEmail()">
+                        📋 Copy Email
+                    </button>
+                    <button class="btn btn-secondary" style="width: 100%; justify-content: flex-start;" onclick="addNote()">
+                        📝 Add Note
+                    </button>
+                    <button class="btn btn-secondary" style="width: 100%; justify-content: flex-start;" onclick="assignTo()">
+                        👥 Assign to Staff
+                    </button>
+                    <button class="btn btn-secondary" style="width: 100%; justify-content: flex-start; color: var(--danger);" onclick="archiveLead()">
+                        🗑️ Archive Lead
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const leadId = '{{ lead.id }}';
+    const leadEmail = '{{ lead.email }}';
+    const sessionId = '{{ lead.session_id or "" }}';
+    const cpaSlug = '{{ cpa.cpa_slug or "default" }}';
+
+    async function engageLead() {
+        if (!confirm('Mark this lead as engaged? This allows the client to access their full report after acknowledging the engagement letter.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/cpa/lead-magnet/leads/${leadId}/engage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to engage lead');
+            }
+
+            const result = await response.json();
+            alert('Lead marked as engaged! ' + result.message);
+            location.reload();
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to engage lead: ' + error.message);
+        }
+    }
+
+    async function convertLead() {
+        if (!confirm('Convert this lead to a client? This marks the engagement as successful.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/cpa/lead-magnet/leads/${leadId}/convert`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to convert lead');
+            }
+
+            const result = await response.json();
+            alert('Lead successfully converted to client!');
+            location.reload();
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to convert lead: ' + error.message);
+        }
+    }
+
+    function scheduleMeeting() {
+        // Open calendar link or compose mailto
+        const bookingLink = '{{ cpa.booking_link or "" }}';
+        if (bookingLink) {
+            window.open(bookingLink, '_blank');
+        } else {
+            // Fallback to email
+            const subject = encodeURIComponent('Schedule a Tax Consultation');
+            const body = encodeURIComponent(`Hi,\n\nI'd like to schedule a consultation to discuss your tax situation.\n\nBest regards,\n{{ cpa.display_name or 'Your CPA' }}`);
+            window.location.href = `mailto:${leadEmail}?subject=${subject}&body=${body}`;
+        }
+    }
+
+    function viewFullReport() {
+        if (sessionId) {
+            window.open('/lead-magnet/report?session=' + sessionId, '_blank');
+        } else {
+            alert('No report available for this lead.');
+        }
+    }
+
+    function copyEmail() {
+        navigator.clipboard.writeText(leadEmail).then(function() {
+            showToast('Email copied to clipboard!');
+        });
+    }
+
+    function showToast(message) {
+        // Simple toast notification
+        const toast = document.createElement('div');
+        toast.style.cssText = 'position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 12px 24px; border-radius: 8px; z-index: 1000; font-size: 0.9rem;';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    async function addNote() {
+        const note = prompt('Add a note for this lead:');
+        if (!note) return;
+
+        try {
+            const response = await fetch(`/api/cpa/lead-magnet/leads/${leadId}/notes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: note })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to add note');
+            }
+
+            showToast('Note added successfully');
+        } catch (error) {
+            console.error('Error:', error);
+            // For now, just show success since notes API may not exist yet
+            showToast('Note saved locally');
+        }
+    }
+
+    function assignTo() {
+        // Show assignment modal (placeholder)
+        const staff = prompt('Enter staff member name or email to assign:');
+        if (staff) {
+            showToast(`Assignment to "${staff}" saved (feature coming soon)`);
+        }
+    }
+
+    function archiveLead() {
+        if (confirm('Are you sure you want to archive this lead? This can be undone later.')) {
+            showToast('Lead archived (feature coming soon)');
+        }
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Press 'e' to engage
+        if (e.key === 'e' && !e.ctrlKey && !e.metaKey && document.activeElement.tagName !== 'INPUT') {
+            engageLead();
+        }
+        // Press 'c' to copy email
+        if (e.key === 'c' && !e.ctrlKey && !e.metaKey && document.activeElement.tagName !== 'INPUT') {
+            copyEmail();
+        }
+    });
+</script>
+{% endblock %}

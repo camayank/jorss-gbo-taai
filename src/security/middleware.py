@@ -563,3 +563,107 @@ def configure_security_middleware(
         )
 
     logger.info("Security middleware configured")
+
+
+# =============================================================================
+# ENDPOINT-SPECIFIC RATE LIMITING
+# =============================================================================
+
+class EndpointRateLimiter:
+    """
+    Endpoint-specific rate limiter for fine-grained control.
+
+    Use this for endpoints that need stricter limits than the global rate limit.
+
+    Example:
+        estimates_limiter = EndpointRateLimiter(max_requests=10, window_seconds=60)
+
+        @router.post("/quick-estimate")
+        async def quick_estimate(request: Request):
+            await estimates_limiter.check(request)
+            # ... endpoint logic
+    """
+
+    def __init__(
+        self,
+        max_requests: int,
+        window_seconds: int = 60,
+        key_func: Optional[Callable[[Request], str]] = None,
+        use_redis: bool = False,
+        redis_url: Optional[str] = None,
+    ):
+        """
+        Initialize endpoint rate limiter.
+
+        Args:
+            max_requests: Maximum requests allowed in window
+            window_seconds: Time window in seconds
+            key_func: Function to extract rate limit key from request (default: client IP)
+            use_redis: Use Redis for distributed rate limiting
+            redis_url: Redis URL (defaults to REDIS_URL env var)
+        """
+        self.max_requests = max_requests
+        self.window_seconds = window_seconds
+        self.key_func = key_func or self._default_key_func
+
+        # Initialize backend
+        if use_redis or os.environ.get("USE_REDIS_RATE_LIMIT", "").lower() in ("true", "1", "yes"):
+            self._backend = RedisRateLimitBackend(redis_url)
+        else:
+            self._backend = InMemoryRateLimitBackend()
+
+    def _default_key_func(self, request: Request) -> str:
+        """Default key function: use client IP."""
+        forwarded = request.headers.get("X-Forwarded-For")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+
+        real_ip = request.headers.get("X-Real-IP")
+        if real_ip:
+            return real_ip
+
+        return request.client.host if request.client else "unknown"
+
+    async def check(self, request: Request) -> None:
+        """
+        Check rate limit and raise HTTPException if exceeded.
+
+        Raises:
+            HTTPException: 429 if rate limit exceeded
+        """
+        key = self.key_func(request)
+        requests_per_minute = int(self.max_requests * (60 / self.window_seconds))
+
+        allowed = self._backend.check_rate_limit(
+            client_ip=key,
+            requests_per_minute=requests_per_minute,
+            burst_size=self.max_requests,
+        )
+
+        if not allowed:
+            logger.warning(f"Endpoint rate limit exceeded for key: {key}")
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "error_code": "RATE_LIMIT_EXCEEDED",
+                    "message": f"Too many requests. Limit: {self.max_requests} per {self.window_seconds} seconds.",
+                    "retry_after": self.window_seconds,
+                },
+                headers={"Retry-After": str(self.window_seconds)},
+            )
+
+
+# Pre-configured rate limiters for common use cases
+from fastapi import HTTPException
+
+# Lead estimates: 10 per minute
+ESTIMATES_RATE_LIMITER = EndpointRateLimiter(max_requests=10, window_seconds=60)
+
+# Contact capture: 5 per minute
+CONTACT_RATE_LIMITER = EndpointRateLimiter(max_requests=5, window_seconds=60)
+
+# Signal processing: 30 per minute
+SIGNALS_RATE_LIMITER = EndpointRateLimiter(max_requests=30, window_seconds=60)
+
+# API-heavy operations: 100 per minute
+API_RATE_LIMITER = EndpointRateLimiter(max_requests=100, window_seconds=60)

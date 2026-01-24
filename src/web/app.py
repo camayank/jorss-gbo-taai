@@ -404,6 +404,30 @@ try:
 except ImportError as e:
     logger.warning(f"Scenarios API not available: {e}")
 
+# Register Lead Magnet Pages (HTML Templates)
+try:
+    from web.lead_magnet_pages import lead_magnet_pages_router
+    app.include_router(lead_magnet_pages_router)
+    logger.info("Lead Magnet Pages enabled at /lead-magnet")
+except ImportError as e:
+    logger.warning(f"Lead Magnet Pages not available: {e}")
+
+# Register CPA Dashboard Pages (HTML Templates)
+try:
+    from web.cpa_dashboard_pages import cpa_dashboard_router
+    app.include_router(cpa_dashboard_router)
+    logger.info("CPA Dashboard Pages enabled at /cpa")
+except ImportError as e:
+    logger.warning(f"CPA Dashboard Pages not available: {e}")
+
+# Register Health Check and Monitoring Routes
+try:
+    from web.routers.health import router as health_router
+    app.include_router(health_router)
+    logger.info("Health check endpoints enabled at /health")
+except ImportError as e:
+    logger.warning(f"Health check routes not available: {e}")
+
 
 # =============================================================================
 # ERROR HANDLING SYSTEM
@@ -494,28 +518,162 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
     )
 
 
+def _is_api_request(request: Request) -> bool:
+    """Check if request expects JSON (API) or HTML (browser)."""
+    accept = request.headers.get("accept", "")
+    content_type = request.headers.get("content-type", "")
+    path = request.url.path
+
+    # API paths always return JSON
+    if path.startswith("/api/") or path.startswith("/health"):
+        return True
+
+    # Check Accept header
+    if "application/json" in accept:
+        return True
+
+    # Check if it's a JSON POST
+    if "application/json" in content_type:
+        return True
+
+    return False
+
+
+def _create_html_error_page(status_code: int, message: str, detail: str = "") -> str:
+    """Create a simple branded HTML error page."""
+    titles = {
+        400: "Bad Request",
+        403: "Access Denied",
+        404: "Page Not Found",
+        500: "Server Error",
+        502: "Bad Gateway",
+        503: "Service Unavailable",
+    }
+    title = titles.get(status_code, f"Error {status_code}")
+
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>{title} - Jorss-Gbo</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }}
+            .error-container {{
+                background: white;
+                border-radius: 16px;
+                padding: 48px;
+                max-width: 500px;
+                text-align: center;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            }}
+            .error-code {{
+                font-size: 72px;
+                font-weight: 700;
+                color: #1e40af;
+                line-height: 1;
+                margin-bottom: 16px;
+            }}
+            .error-title {{
+                font-size: 24px;
+                font-weight: 600;
+                color: #1f2937;
+                margin-bottom: 12px;
+            }}
+            .error-message {{
+                color: #6b7280;
+                margin-bottom: 32px;
+                line-height: 1.6;
+            }}
+            .btn {{
+                display: inline-block;
+                padding: 12px 24px;
+                background: #1e40af;
+                color: white;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: 500;
+                transition: background 0.2s;
+            }}
+            .btn:hover {{ background: #1d4ed8; }}
+            .btn-secondary {{
+                background: #f3f4f6;
+                color: #374151;
+                margin-left: 12px;
+            }}
+            .btn-secondary:hover {{ background: #e5e7eb; }}
+        </style>
+    </head>
+    <body>
+        <div class="error-container">
+            <div class="error-code">{status_code}</div>
+            <h1 class="error-title">{title}</h1>
+            <p class="error-message">{message or 'Something went wrong.'}</p>
+            <a href="/" class="btn">Go Home</a>
+            <a href="javascript:history.back()" class="btn btn-secondary">Go Back</a>
+        </div>
+    </body>
+    </html>
+    """
+
+
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    """Handle HTTP exceptions with consistent format."""
-    return create_error_response(
-        code=ErrorCode.INTERNAL_ERROR,
-        message=str(exc.detail),
-        status_code=exc.status_code,
-        user_message=str(exc.detail)
-    )
+    """Handle HTTP exceptions with format based on request type."""
+    # API requests get JSON
+    if _is_api_request(request):
+        return create_error_response(
+            code=ErrorCode.INTERNAL_ERROR,
+            message=str(exc.detail),
+            status_code=exc.status_code,
+            user_message=str(exc.detail)
+        )
+
+    # Browser requests get HTML error pages
+    messages = {
+        400: "The request could not be understood. Please check your input and try again.",
+        403: "You don't have permission to access this resource.",
+        404: "The page you're looking for doesn't exist or has been moved.",
+        500: "Something went wrong on our end. Please try again later.",
+        502: "We're having trouble connecting to our services. Please try again.",
+        503: "The service is temporarily unavailable. Please try again in a few minutes.",
+    }
+    message = messages.get(exc.status_code, str(exc.detail))
+    html = _create_html_error_page(exc.status_code, message, str(exc.detail))
+    return HTMLResponse(content=html, status_code=exc.status_code)
 
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     """Catch-all handler for unexpected exceptions."""
     logger.error(f"Unexpected error: {exc}\n{traceback.format_exc()}")
-    return create_error_response(
-        code=ErrorCode.INTERNAL_ERROR,
-        message="An unexpected error occurred",
-        status_code=500,
-        details={"type": type(exc).__name__},
-        user_message="Something went wrong. Please try again. If the problem persists, contact support."
+
+    # API requests get JSON
+    if _is_api_request(request):
+        return create_error_response(
+            code=ErrorCode.INTERNAL_ERROR,
+            message="An unexpected error occurred",
+            status_code=500,
+            details={"type": type(exc).__name__},
+            user_message="Something went wrong. Please try again. If the problem persists, contact support."
+        )
+
+    # Browser requests get HTML error page
+    html = _create_html_error_page(
+        500,
+        "Something went wrong on our end. Our team has been notified. Please try again later."
     )
+    return HTMLResponse(content=html, status_code=500)
 
 
 # =============================================================================

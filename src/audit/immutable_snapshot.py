@@ -30,8 +30,33 @@ import os
 # Default database path
 DEFAULT_DB_PATH = Path(__file__).parent.parent.parent / "data" / "tax_returns.db"
 
-# Secret key for HMAC (in production, load from secure environment)
-_SECRET_KEY = os.environ.get("SNAPSHOT_SECRET_KEY", "tax-snapshot-default-key-change-in-production")
+# Secret key for HMAC - production enforced
+def _get_snapshot_secret() -> str:
+    """Get snapshot signing key with production enforcement."""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    secret = os.environ.get("SNAPSHOT_SECRET_KEY")
+    is_production = os.environ.get("ENVIRONMENT", "development").lower() == "production"
+
+    if not secret:
+        if is_production:
+            raise RuntimeError(
+                "CRITICAL SECURITY ERROR: SNAPSHOT_SECRET_KEY environment variable is required in production. "
+                "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+            )
+        logger.warning(
+            "SNAPSHOT_SECRET_KEY not set - using insecure development default."
+        )
+        return "development-only-snapshot-secret-key"
+
+    if len(secret) < 32:
+        raise ValueError("SNAPSHOT_SECRET_KEY must be at least 32 characters")
+
+    return secret
+
+
+_SECRET_KEY = _get_snapshot_secret()
 
 
 @dataclass(frozen=True)

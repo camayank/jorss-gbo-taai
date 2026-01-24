@@ -1171,12 +1171,49 @@
       text-align: center;
       margin-top: 4px;
     }
+
+    /* Skip to content link for keyboard navigation */
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      background: var(--primary);
+      color: white;
+      padding: 8px 16px;
+      z-index: 1000;
+      text-decoration: none;
+      border-radius: 0 0 4px 0;
+    }
+
+    .skip-link:focus {
+      top: 0;
+    }
+
+    /* Focus visible styles for accessibility */
+    *:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    /* Reduced motion preference */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
   </style>
+  <!-- Loading States Manager for accessible loading indicators -->
+  <script src="/static/js/loading-states.js" defer></script>
 </head>
 <body>
-  <div class="bg-animated"></div>
+  <!-- Skip link for keyboard navigation -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
 
-  <div class="header">
+  <div class="bg-animated" aria-hidden="true"></div>
+
+  <header class="header" role="banner">
     <div class="logo">✨ Premium Tax Advisory</div>
     <div class="header-right">
       <button class="clear-chat-btn" onclick="clearConversation()" title="Start new conversation" aria-label="Start new conversation">
@@ -1187,7 +1224,7 @@
         <span id="connectionText">Connected</span>
       </div>
     </div>
-  </div>
+  </header>
 
   <!-- Data Collection Consent Modal -->
   <div class="consent-modal" id="consentModal" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
@@ -1232,7 +1269,7 @@
     </div>
   </div>
 
-  <div class="main">
+  <main class="main" id="main-content" role="main">
     <div class="chat-panel">
       <!-- Privacy & AI Disclaimer Notice -->
       <div class="ai-disclaimer-banner" role="alert" aria-label="Important notices about AI assistance and privacy">
@@ -1331,10 +1368,10 @@
           <div style="font-size: 14px; margin-bottom: 4px;">Drop documents here</div>
           <div style="font-size: 12px; color: var(--text-secondary);">or click to browse</div>
         </div>
-        <input type="file" id="fileInput" style="display: none" onchange="handleFileSelect(event)" accept=".pdf,.jpg,.jpeg,.png" multiple>
+        <input type="file" id="fileInput" style="display: none" onchange="handleFileSelect(event)" accept=".pdf,.jpg,.jpeg,.png" multiple aria-label="Upload tax documents">
       </div>
     </div>
-  </div>
+  </main>
 
   <script>
     let sessionId = null;

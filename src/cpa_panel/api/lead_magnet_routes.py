@@ -23,6 +23,8 @@ from ..services.lead_magnet_service import (
     TaxComplexity,
 )
 from ..services.report_templates import get_report_template_service
+from ..services.activity_service import get_activity_service, ActivityType, ActivityActor
+from ..services.nurture_service import get_nurture_service, NurtureSequenceType
 
 logger = logging.getLogger(__name__)
 
@@ -340,6 +342,8 @@ async def capture_contact(session_id: str, request: CaptureContactRequest):
     2. Lead score is calculated
     3. Tier 1 report is generated
     4. Lead appears in CPA dashboard
+    5. Activity is logged for audit trail
+    6. Lead is enrolled in nurture sequence
     """
     try:
         service = get_lead_magnet_service()
@@ -351,9 +355,31 @@ async def capture_contact(session_id: str, request: CaptureContactRequest):
             phone=request.phone,
         )
 
+        lead_id = result["lead_id"]
+
+        # Log activity: Lead created
+        try:
+            activity_service = get_activity_service()
+            activity_service.log_lead_created(lead_id, session_id)
+            activity_service.log_contact_captured(lead_id, request.email, request.first_name)
+        except Exception as activity_error:
+            logger.warning(f"Failed to log activity for lead {lead_id}: {activity_error}")
+
+        # Enroll lead in nurture sequence
+        try:
+            nurture_service = get_nurture_service()
+            cpa_email = result.get("cpa_email", "demo@example.com")
+            nurture_service.enroll_lead(
+                lead_id=lead_id,
+                cpa_email=cpa_email,
+                sequence_type=NurtureSequenceType.INITIAL_WELCOME,
+            )
+        except Exception as nurture_error:
+            logger.warning(f"Failed to enroll lead {lead_id} in nurture: {nurture_error}")
+
         return CaptureContactResponse(
             session_id=session_id,
-            lead_id=result["lead_id"],
+            lead_id=lead_id,
             report_ready=True,
             redirect_url=f"/api/cpa/lead-magnet/{session_id}/report",
         )
@@ -642,6 +668,27 @@ async def engage_lead(lead_id: str, request: Optional[EngageLeadRequest] = None)
         if not result:
             raise HTTPException(status_code=404, detail="Lead not found")
 
+        # Log activity: CPA engaged lead
+        try:
+            activity_service = get_activity_service()
+            # TODO: Get actual CPA info from auth context
+            activity_service.log_engagement(
+                lead_id=lead_id,
+                cpa_id="cpa-default",
+                cpa_name="CPA",
+            )
+
+            # If notes were added, log that too
+            if request and request.notes:
+                activity_service.log_cpa_note(
+                    lead_id=lead_id,
+                    cpa_id="cpa-default",
+                    cpa_name="CPA",
+                    note_content=request.notes,
+                )
+        except Exception as activity_error:
+            logger.warning(f"Failed to log activity for lead {lead_id}: {activity_error}")
+
         # Check if Tier 2 is fully unlocked
         tier_2_unlocked = result.can_access_tier_two()
 
@@ -740,6 +787,21 @@ async def convert_lead(lead_id: str):
         service = get_lead_magnet_service()
 
         result = service.convert_lead(lead_id)
+
+        # Log activity: Lead converted
+        try:
+            activity_service = get_activity_service()
+            activity_service.log_conversion(
+                lead_id=lead_id,
+                cpa_id="cpa-default",
+                cpa_name="CPA",
+            )
+
+            # Complete nurture sequence (lead converted)
+            nurture_service = get_nurture_service()
+            # Note: Would need to look up enrollment_id in production
+        except Exception as activity_error:
+            logger.warning(f"Failed to log conversion for lead {lead_id}: {activity_error}")
 
         # Generate client token for dashboard access
         # In production: use JWT with proper signing

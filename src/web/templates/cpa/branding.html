@@ -1,0 +1,474 @@
+{% extends "cpa/base.html" %}
+
+{% block title %}Branding{% endblock %}
+{% block page_title %}Lead Magnet Branding{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .branding-grid {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: 32px;
+    }
+
+    @media (max-width: 1200px) {
+        .branding-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Form Cards */
+    .form-card {
+        background: var(--white);
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 24px;
+    }
+
+    .form-card-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .form-card-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .form-card-body {
+        padding: 24px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        font-size: 0.95rem;
+        transition: all 0.15s ease;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-help {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 6px;
+    }
+
+    /* Color Picker */
+    .color-picker-group {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .color-picker-item {
+        flex: 1;
+        min-width: 140px;
+    }
+
+    .color-input-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .color-preview {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        border: 2px solid var(--border-color);
+        cursor: pointer;
+    }
+
+    .color-input {
+        opacity: 0;
+        position: absolute;
+        width: 48px;
+        height: 48px;
+        cursor: pointer;
+    }
+
+    .color-hex {
+        flex: 1;
+        padding: 10px 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-family: monospace;
+        font-size: 0.9rem;
+    }
+
+    /* Logo Upload */
+    .logo-upload {
+        border: 2px dashed var(--border-color);
+        border-radius: 12px;
+        padding: 32px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .logo-upload:hover {
+        border-color: var(--primary-color);
+        background: var(--bg-light);
+    }
+
+    .logo-upload-icon {
+        font-size: 2.5rem;
+        margin-bottom: 12px;
+    }
+
+    .logo-upload-text {
+        color: var(--text-muted);
+        margin-bottom: 8px;
+    }
+
+    .logo-upload-hint {
+        font-size: 0.8rem;
+        color: var(--text-light);
+    }
+
+    .logo-preview {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+        background: var(--bg-light);
+        border-radius: 12px;
+    }
+
+    .logo-preview img {
+        width: 80px;
+        height: 80px;
+        border-radius: 12px;
+        object-fit: cover;
+    }
+
+    .logo-preview-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    /* Preview Card */
+    .preview-card {
+        background: var(--white);
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+        position: sticky;
+        top: 88px;
+    }
+
+    .preview-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .preview-title {
+        font-weight: 600;
+    }
+
+    .preview-body {
+        padding: 0;
+    }
+
+    .preview-iframe {
+        width: 100%;
+        height: 500px;
+        border: none;
+    }
+
+    /* Link Share */
+    .link-share {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .link-input {
+        flex: 1;
+        padding: 12px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        font-size: 0.9rem;
+        background: var(--bg-light);
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="branding-grid">
+    <!-- Branding Forms -->
+    <div>
+        <!-- Lead Magnet Link -->
+        <div class="form-card">
+            <div class="form-card-header">
+                <h3 class="form-card-title">Your Lead Magnet Link</h3>
+            </div>
+            <div class="form-card-body">
+                <div class="form-group">
+                    <label class="form-label">Shareable Link</label>
+                    <div class="link-share">
+                        <input type="text" class="link-input" id="leadMagnetLink" readonly
+                               value="{{ request.url.scheme }}://{{ request.url.netloc }}/lead-magnet?cpa={{ cpa.cpa_slug or 'default' }}">
+                        <button class="btn btn-primary" onclick="copyLink()">Copy Link</button>
+                    </div>
+                    <p class="form-help">Share this link on your website, email, or social media to capture leads</p>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">CPA Slug</label>
+                    <input type="text" class="form-input" name="cpa_slug"
+                           value="{{ cpa.cpa_slug or '' }}"
+                           placeholder="john-smith-cpa" style="max-width: 300px;">
+                    <p class="form-help">This creates your unique URL: /lead-magnet?cpa=your-slug</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Brand Colors -->
+        <div class="form-card">
+            <div class="form-card-header">
+                <h3 class="form-card-title">Brand Colors</h3>
+            </div>
+            <div class="form-card-body">
+                <div class="color-picker-group">
+                    <div class="color-picker-item">
+                        <label class="form-label">Primary Color</label>
+                        <div class="color-input-wrapper">
+                            <div style="position: relative;">
+                                <input type="color" class="color-input" id="primaryColor"
+                                       value="{{ cpa.primary_color or '#2563eb' }}"
+                                       onchange="updateColorPreview('primary', this.value)">
+                                <div class="color-preview" id="primaryPreview"
+                                     style="background: {{ cpa.primary_color or '#2563eb' }}"
+                                     onclick="document.getElementById('primaryColor').click()"></div>
+                            </div>
+                            <input type="text" class="color-hex" id="primaryHex"
+                                   value="{{ cpa.primary_color or '#2563eb' }}"
+                                   onchange="updateColorFromHex('primary', this.value)">
+                        </div>
+                    </div>
+
+                    <div class="color-picker-item">
+                        <label class="form-label">Secondary Color</label>
+                        <div class="color-input-wrapper">
+                            <div style="position: relative;">
+                                <input type="color" class="color-input" id="secondaryColor"
+                                       value="{{ cpa.secondary_color or '#1d4ed8' }}"
+                                       onchange="updateColorPreview('secondary', this.value)">
+                                <div class="color-preview" id="secondaryPreview"
+                                     style="background: {{ cpa.secondary_color or '#1d4ed8' }}"
+                                     onclick="document.getElementById('secondaryColor').click()"></div>
+                            </div>
+                            <input type="text" class="color-hex" id="secondaryHex"
+                                   value="{{ cpa.secondary_color or '#1d4ed8' }}"
+                                   onchange="updateColorFromHex('secondary', this.value)">
+                        </div>
+                    </div>
+
+                    <div class="color-picker-item">
+                        <label class="form-label">Accent Color</label>
+                        <div class="color-input-wrapper">
+                            <div style="position: relative;">
+                                <input type="color" class="color-input" id="accentColor"
+                                       value="{{ cpa.accent_color or '#10b981' }}"
+                                       onchange="updateColorPreview('accent', this.value)">
+                                <div class="color-preview" id="accentPreview"
+                                     style="background: {{ cpa.accent_color or '#10b981' }}"
+                                     onclick="document.getElementById('accentColor').click()"></div>
+                            </div>
+                            <input type="text" class="color-hex" id="accentHex"
+                                   value="{{ cpa.accent_color or '#10b981' }}"
+                                   onchange="updateColorFromHex('accent', this.value)">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="resetColors()">Reset to Default</button>
+                    <button type="button" class="btn btn-primary" onclick="saveColors()">Save Colors</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logo & Images -->
+        <div class="form-card">
+            <div class="form-card-header">
+                <h3 class="form-card-title">Logo & Images</h3>
+            </div>
+            <div class="form-card-body">
+                <div class="form-group">
+                    <label class="form-label">Firm Logo</label>
+                    {% if cpa.logo_url %}
+                    <div class="logo-preview">
+                        <img src="{{ cpa.logo_url }}" alt="Logo">
+                        <div>
+                            <p style="font-weight: 500; margin-bottom: 8px;">Current Logo</p>
+                            <div class="logo-preview-actions">
+                                <button class="btn btn-secondary btn-sm" onclick="changeLogo()">Change</button>
+                                <button class="btn btn-secondary btn-sm" onclick="removeLogo()">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="logo-upload" onclick="document.getElementById('logoInput').click()">
+                        <input type="file" id="logoInput" hidden accept="image/*" onchange="uploadLogo(this)">
+                        <div class="logo-upload-icon">🖼️</div>
+                        <p class="logo-upload-text">Click to upload your logo</p>
+                        <p class="logo-upload-hint">PNG, JPG, or WebP • Max 5MB • Recommended: 200x200px</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Favicon</label>
+                    <input type="text" class="form-input" name="favicon_url"
+                           value="{{ cpa.favicon_url or '' }}"
+                           placeholder="https://example.com/favicon.ico">
+                    <p class="form-help">Browser tab icon (32x32px recommended)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Welcome Message -->
+        <div class="form-card">
+            <div class="form-card-header">
+                <h3 class="form-card-title">Welcome Message</h3>
+            </div>
+            <div class="form-card-body">
+                <div class="form-group">
+                    <label class="form-label">Headline</label>
+                    <input type="text" class="form-input" name="headline"
+                           value="{{ cpa.headline or '' }}"
+                           placeholder="Discover Your Tax Savings Potential">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Tagline</label>
+                    <input type="text" class="form-input" name="tagline"
+                           value="{{ cpa.tagline or '' }}"
+                           placeholder="Get a free personalized tax analysis in under 5 minutes">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Welcome Message</label>
+                    <textarea class="form-input" name="welcome_message" rows="3"
+                              placeholder="Welcome! I'm here to help you maximize your tax savings...">{{ cpa.welcome_message or '' }}</textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveBranding()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Preview -->
+    <div>
+        <div class="preview-card">
+            <div class="preview-header">
+                <span class="preview-title">Live Preview</span>
+                <a href="/lead-magnet?cpa={{ cpa.cpa_slug or 'default' }}" target="_blank" class="btn btn-secondary btn-sm">
+                    Open in New Tab ↗
+                </a>
+            </div>
+            <div class="preview-body">
+                <iframe src="/lead-magnet?cpa={{ cpa.cpa_slug or 'default' }}" class="preview-iframe" id="previewFrame"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function copyLink() {
+        const linkInput = document.getElementById('leadMagnetLink');
+        navigator.clipboard.writeText(linkInput.value).then(function() {
+            alert('Link copied to clipboard!');
+        });
+    }
+
+    function updateColorPreview(type, value) {
+        document.getElementById(type + 'Preview').style.background = value;
+        document.getElementById(type + 'Hex').value = value;
+        refreshPreview();
+    }
+
+    function updateColorFromHex(type, value) {
+        if (/^#[0-9A-F]{6}$/i.test(value)) {
+            document.getElementById(type + 'Color').value = value;
+            document.getElementById(type + 'Preview').style.background = value;
+            refreshPreview();
+        }
+    }
+
+    function resetColors() {
+        updateColorPreview('primary', '#2563eb');
+        updateColorPreview('secondary', '#1d4ed8');
+        updateColorPreview('accent', '#10b981');
+    }
+
+    function saveColors() {
+        // TODO: Implement API call
+        alert('Colors saved! (API integration pending)');
+    }
+
+    function saveBranding() {
+        // TODO: Implement API call
+        alert('Branding saved! (API integration pending)');
+    }
+
+    function refreshPreview() {
+        const iframe = document.getElementById('previewFrame');
+        iframe.src = iframe.src;
+    }
+
+    function changeLogo() {
+        document.getElementById('logoInput').click();
+    }
+
+    function uploadLogo(input) {
+        if (input.files && input.files[0]) {
+            // TODO: Implement file upload
+            alert('Logo upload (API integration pending)');
+        }
+    }
+
+    function removeLogo() {
+        if (confirm('Remove your logo?')) {
+            // TODO: Implement logo removal
+            alert('Logo removed (API integration pending)');
+        }
+    }
+</script>
+{% endblock %}

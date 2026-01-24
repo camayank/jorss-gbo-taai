@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Tax Analysis | {{ cpa.firm_name or cpa.display_name }}</title>
+    <meta name="description" content="Your comprehensive tax savings analysis from {{ cpa.display_name }}.">
+    {% if cpa.favicon_url %}
+    <link rel="icon" href="{{ cpa.favicon_url }}">
+    {% endif %}
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: {{ cpa.primary_color or '#2563eb' }};
+            --secondary-color: {{ cpa.secondary_color or '#1d4ed8' }};
+            --accent-color: {{ cpa.accent_color or '#10b981' }};
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --bg-light: #f9fafb;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background: #f5f7fa;
+        }
+
+        /* Header */
+        .report-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 30px 20px;
+        }
+
+        .header-content {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .cpa-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .cpa-logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            background: white;
+        }
+
+        .cpa-info h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .cpa-info p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .tier-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tier-badge svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Section Styles */
+        .section {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .section-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        /* Savings Summary */
+        .savings-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            text-align: center;
+        }
+
+        .savings-item {
+            padding: 24px 16px;
+            background: var(--bg-light);
+            border-radius: 12px;
+        }
+
+        .savings-item-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .savings-item-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+
+        .savings-item-value.primary {
+            background: linear-gradient(135deg, var(--accent-color) 0%, #059669 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Full Insights */
+        .insight-card {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 16px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .insight-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .insight-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .insight-category {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .insight-priority {
+            font-size: 0.75rem;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .priority-high {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .priority-medium {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+
+        .priority-low {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .insight-savings {
+            background: linear-gradient(135deg, var(--accent-color) 0%, #059669 100%);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .insight-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .insight-description {
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .insight-details {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            min-width: 120px;
+            font-size: 0.9rem;
+        }
+
+        .detail-value {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Action Items */
+        .action-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 20px;
+            background: var(--bg-light);
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+
+        .action-number {
+            width: 32px;
+            height: 32px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .action-content {
+            flex: 1;
+        }
+
+        .action-title {
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .action-description {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .action-meta {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .action-deadline {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.85rem;
+            color: #dc2626;
+        }
+
+        .action-form {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.85rem;
+            color: var(--primary-color);
+        }
+
+        /* Tax Calendar */
+        .calendar-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: var(--bg-light);
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+
+        .calendar-date {
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .calendar-month {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .calendar-day {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .calendar-content {
+            flex: 1;
+        }
+
+        .calendar-title {
+            font-weight: 600;
+        }
+
+        .calendar-description {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Disclaimer Section */
+        .disclaimer-section {
+            background: #fffbeb;
+            border: 1px solid #f59e0b;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .disclaimer-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .disclaimer-icon {
+            width: 40px;
+            height: 40px;
+            background: #f59e0b;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        .disclaimer-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #92400e;
+        }
+
+        .disclaimer-content {
+            color: #78350f;
+            font-size: 0.9rem;
+        }
+
+        .disclaimer-content h4 {
+            font-weight: 600;
+            margin-top: 16px;
+            margin-bottom: 8px;
+        }
+
+        .disclaimer-content p {
+            margin-bottom: 12px;
+        }
+
+        .disclaimer-content ul {
+            margin-left: 20px;
+            margin-bottom: 12px;
+        }
+
+        .disclaimer-content li {
+            margin-bottom: 4px;
+        }
+
+        /* CPA Contact */
+        .cpa-contact {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .cpa-contact h2 {
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+        }
+
+        .cpa-contact p {
+            opacity: 0.9;
+            margin-bottom: 24px;
+        }
+
+        .cpa-contact-info {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .contact-item a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .contact-item a:hover {
+            text-decoration: underline;
+        }
+
+        /* Footer */
+        .report-footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        /* Print Styles */
+        @media print {
+            .cpa-contact {
+                display: none;
+            }
+
+            .section {
+                break-inside: avoid;
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .savings-summary {
+                grid-template-columns: 1fr;
+            }
+
+            .insight-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .action-meta {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .cpa-contact-info {
+                flex-direction: column;
+                gap: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="report-header">
+        <div class="header-content">
+            <div class="cpa-brand">
+                {% if cpa.logo_url %}
+                <img src="{{ cpa.logo_url }}" alt="{{ cpa.firm_name }}" class="cpa-logo">
+                {% endif %}
+                <div class="cpa-info">
+                    <h1>{{ cpa.display_name }}</h1>
+                    {% if cpa.firm_name %}
+                    <p>{{ cpa.firm_name }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="tier-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Full Analysis
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Savings Summary -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v12M8 10l4-4 4 4"/>
+                    </svg>
+                </div>
+                <h2 class="section-title">Your Tax Savings Summary</h2>
+            </div>
+
+            <div class="savings-summary">
+                <div class="savings-item">
+                    <div class="savings-item-label">Total Potential Savings</div>
+                    <div class="savings-item-value primary">
+                        {{ report.total_savings if report else '$4,250' }}
+                    </div>
+                </div>
+                <div class="savings-item">
+                    <div class="savings-item-label">Insights Identified</div>
+                    <div class="savings-item-value">
+                        {{ report.all_insights|length if report and report.all_insights else '8' }}
+                    </div>
+                </div>
+                <div class="savings-item">
+                    <div class="savings-item-label">Action Items</div>
+                    <div class="savings-item-value">
+                        {{ report.action_items|length if report and report.action_items else '5' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Complete Insights -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                </div>
+                <h2 class="section-title">Complete Tax Insights</h2>
+            </div>
+
+            {% if report and report.all_insights %}
+                {% for insight in report.all_insights %}
+                <div class="insight-card">
+                    <div class="insight-header">
+                        <div class="insight-meta">
+                            <span class="insight-category">{{ insight.category }}</span>
+                            <span class="insight-priority priority-{{ insight.priority|lower if insight.priority else 'medium' }}">
+                                {{ insight.priority or 'Medium' }} Priority
+                            </span>
+                        </div>
+                        <span class="insight-savings">{{ insight.savings_amount or insight.savings_range }}</span>
+                    </div>
+                    <h3 class="insight-title">{{ insight.title }}</h3>
+                    <p class="insight-description">{{ insight.full_description or insight.description }}</p>
+
+                    <div class="insight-details">
+                        {% if insight.irs_reference %}
+                        <div class="detail-item">
+                            <span class="detail-label">IRS Reference:</span>
+                            <span class="detail-value">{{ insight.irs_reference }}</span>
+                        </div>
+                        {% endif %}
+                        {% if insight.form_reference %}
+                        <div class="detail-item">
+                            <span class="detail-label">Form Required:</span>
+                            <span class="detail-value">{{ insight.form_reference }}</span>
+                        </div>
+                        {% endif %}
+                        {% if insight.deadline %}
+                        <div class="detail-item">
+                            <span class="detail-label">Deadline:</span>
+                            <span class="detail-value">{{ insight.deadline }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <!-- Demo insights for template preview -->
+                <div class="insight-card">
+                    <div class="insight-header">
+                        <div class="insight-meta">
+                            <span class="insight-category">Retirement</span>
+                            <span class="insight-priority priority-high">High Priority</span>
+                        </div>
+                        <span class="insight-savings">$1,850</span>
+                    </div>
+                    <h3 class="insight-title">Maximize 401(k) Contributions</h3>
+                    <p class="insight-description">
+                        Based on your income, you can contribute up to $22,500 to your 401(k) in 2024.
+                        This reduces your taxable income dollar-for-dollar.
+                    </p>
+                    <div class="insight-details">
+                        <div class="detail-item">
+                            <span class="detail-label">IRS Reference:</span>
+                            <span class="detail-value">IRC Section 402(g)</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Deadline:</span>
+                            <span class="detail-value">December 31, 2024</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="insight-card">
+                    <div class="insight-header">
+                        <div class="insight-meta">
+                            <span class="insight-category">Healthcare</span>
+                            <span class="insight-priority priority-medium">Medium Priority</span>
+                        </div>
+                        <span class="insight-savings">$1,100</span>
+                    </div>
+                    <h3 class="insight-title">HSA Contribution Opportunity</h3>
+                    <p class="insight-description">
+                        With a high-deductible health plan, you can contribute up to $4,150 (individual)
+                        or $8,300 (family) to an HSA with triple tax advantages.
+                    </p>
+                    <div class="insight-details">
+                        <div class="detail-item">
+                            <span class="detail-label">IRS Reference:</span>
+                            <span class="detail-value">IRC Section 223</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Form Required:</span>
+                            <span class="detail-value">Form 8889</span>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Action Items -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                </div>
+                <h2 class="section-title">Your Action Items</h2>
+            </div>
+
+            {% if report and report.action_items %}
+                {% for item in report.action_items %}
+                <div class="action-item">
+                    <div class="action-number">{{ loop.index }}</div>
+                    <div class="action-content">
+                        <div class="action-title">{{ item.title }}</div>
+                        <div class="action-description">{{ item.description }}</div>
+                        <div class="action-meta">
+                            {% if item.deadline %}
+                            <div class="action-deadline">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                {{ item.deadline }}
+                            </div>
+                            {% endif %}
+                            {% if item.form %}
+                            <div class="action-form">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                </svg>
+                                {{ item.form }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <!-- Demo action items -->
+                <div class="action-item">
+                    <div class="action-number">1</div>
+                    <div class="action-content">
+                        <div class="action-title">Increase 401(k) contribution</div>
+                        <div class="action-description">
+                            Contact your HR department to increase your 401(k) contribution to the maximum allowed.
+                        </div>
+                        <div class="action-meta">
+                            <div class="action-deadline">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                Before Dec 31, 2024
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-item">
+                    <div class="action-number">2</div>
+                    <div class="action-content">
+                        <div class="action-title">Open/fund HSA account</div>
+                        <div class="action-description">
+                            If you have an HDHP, open an HSA and contribute the maximum for triple tax savings.
+                        </div>
+                        <div class="action-meta">
+                            <div class="action-deadline">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                Before Apr 15, 2025
+                            </div>
+                            <div class="action-form">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                </svg>
+                                Form 8889
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Tax Calendar -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                </div>
+                <h2 class="section-title">Important Tax Dates</h2>
+            </div>
+
+            {% if report and report.tax_calendar %}
+                {% for date in report.tax_calendar %}
+                <div class="calendar-item">
+                    <div class="calendar-date">
+                        <div class="calendar-month">{{ date.month }}</div>
+                        <div class="calendar-day">{{ date.day }}</div>
+                    </div>
+                    <div class="calendar-content">
+                        <div class="calendar-title">{{ date.title }}</div>
+                        <div class="calendar-description">{{ date.description }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <!-- Demo calendar -->
+                <div class="calendar-item">
+                    <div class="calendar-date">
+                        <div class="calendar-month">Jan</div>
+                        <div class="calendar-day">15</div>
+                    </div>
+                    <div class="calendar-content">
+                        <div class="calendar-title">Q4 Estimated Tax Payment Due</div>
+                        <div class="calendar-description">If you have self-employment income</div>
+                    </div>
+                </div>
+
+                <div class="calendar-item">
+                    <div class="calendar-date">
+                        <div class="calendar-month">Jan</div>
+                        <div class="calendar-day">31</div>
+                    </div>
+                    <div class="calendar-content">
+                        <div class="calendar-title">W-2s and 1099s Due</div>
+                        <div class="calendar-description">Employers must send W-2s; businesses send 1099s</div>
+                    </div>
+                </div>
+
+                <div class="calendar-item">
+                    <div class="calendar-date">
+                        <div class="calendar-month">Apr</div>
+                        <div class="calendar-day">15</div>
+                    </div>
+                    <div class="calendar-content">
+                        <div class="calendar-title">Tax Filing Deadline</div>
+                        <div class="calendar-description">File return or extension; IRA/HSA contribution deadline</div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Comprehensive Disclaimer Section -->
+        <div class="disclaimer-section">
+            <div class="disclaimer-header">
+                <div class="disclaimer-icon">⚠️</div>
+                <h2 class="disclaimer-title">Important Disclosures & Limitations</h2>
+            </div>
+
+            <div class="disclaimer-content">
+                <h4>1. Not Tax, Legal, or Financial Advice</h4>
+                <p>
+                    This analysis is provided for informational and educational purposes only. It does
+                    not constitute tax, legal, or financial advice. The information presented is based
+                    on current tax laws and regulations, which are subject to change. You should consult
+                    with {{ cpa.display_name }} or another qualified professional before making any
+                    tax-related decisions.
+                </p>
+
+                <h4>2. Estimates and Projections</h4>
+                <p>
+                    All savings estimates are approximations based on the limited information provided.
+                    Actual tax savings may vary significantly based on your complete financial situation,
+                    changes in tax law, and other factors not considered in this analysis. These estimates
+                    should not be relied upon for financial planning purposes without professional verification.
+                </p>
+
+                <h4>3. CPA-Client Relationship</h4>
+                <p>
+                    While you have acknowledged the engagement letter, a full CPA-client relationship
+                    requires formal engagement for specific services. This analysis is a preliminary
+                    assessment. Comprehensive tax planning requires a complete review of your:
+                </p>
+                <ul>
+                    <li>Prior year tax returns</li>
+                    <li>Current year income documentation</li>
+                    <li>Investment and retirement account statements</li>
+                    <li>Business financial records (if applicable)</li>
+                    <li>All other relevant financial documents</li>
+                </ul>
+
+                <h4>4. Accuracy and Completeness</h4>
+                <p>
+                    This analysis is based solely on the information you provided through our online
+                    questionnaire. The accuracy of the insights and recommendations depends on the
+                    accuracy and completeness of your responses. Material omissions or inaccuracies
+                    in your provided information may result in significantly different recommendations.
+                </p>
+
+                <h4>5. No Guarantee of Results</h4>
+                <p>
+                    {{ cpa.firm_name or cpa.display_name }} makes no guarantee that you will achieve
+                    the estimated tax savings. Tax outcomes depend on many factors including IRS
+                    interpretations, audit results, and proper implementation of tax strategies.
+                </p>
+
+                <h4>6. Confidentiality</h4>
+                <p>
+                    Your information is treated as confidential and is protected in accordance with
+                    professional standards and our Privacy Policy. However, we may be required to
+                    disclose information in response to legal process or regulatory requirements.
+                </p>
+
+                <h4>7. Limitation of Liability</h4>
+                <p>
+                    {{ cpa.firm_name or cpa.display_name }}'s liability for any errors or omissions
+                    in this analysis is limited to the fees paid for services rendered. We are not
+                    liable for any indirect, consequential, or incidental damages arising from the
+                    use of this analysis.
+                </p>
+            </div>
+        </div>
+
+        <!-- CPA Contact -->
+        <div class="cpa-contact">
+            <h2>Questions About Your Analysis?</h2>
+            <p>{{ cpa.display_name }} is here to help you implement these strategies</p>
+
+            <div class="cpa-contact-info">
+                {% if cpa.email %}
+                <div class="contact-item">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                        <polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                    <a href="mailto:{{ cpa.email }}">{{ cpa.email }}</a>
+                </div>
+                {% endif %}
+                {% if cpa.phone %}
+                <div class="contact-item">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
+                    </svg>
+                    <a href="tel:{{ cpa.phone }}">{{ cpa.phone }}</a>
+                </div>
+                {% endif %}
+                {% if cpa.booking_link %}
+                <div class="contact-item">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <a href="{{ cpa.booking_link }}">Schedule a Call</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="report-footer">
+        <p>
+            This report was prepared for you by <strong>{{ cpa.display_name }}</strong>
+            {% if cpa.firm_name %} of {{ cpa.firm_name }}{% endif %}
+        </p>
+        <p>Report ID: {{ session_id }} | Generated: {{ now().strftime('%B %d, %Y at %I:%M %p') if now else 'Today' }}</p>
+        <p style="margin-top: 12px; color: #9ca3af;">
+            &copy; {{ now().year if now else '2024' }} {{ cpa.firm_name or cpa.display_name }}. All rights reserved.
+        </p>
+    </footer>
+
+    <script>
+        // Print button functionality (if needed)
+        function printReport() {
+            window.print();
+        }
+
+        // Track report view
+        const sessionId = '{{ session_id }}';
+        console.log('Tier 2 full analysis viewed for session:', sessionId);
+    </script>
+</body>
+</html>

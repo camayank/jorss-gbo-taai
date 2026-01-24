@@ -54,15 +54,15 @@ class DatabaseSettings(BaseSettings):
         description="Path to SQLite database file"
     )
 
-    # Connection pool settings
+    # Connection pool settings (production-optimized defaults)
     pool_size: int = Field(
-        default=10,
+        default=20,  # Increased from 10 for production workloads
         ge=1,
         le=100,
         description="Number of connections to keep in the pool"
     )
     max_overflow: int = Field(
-        default=20,
+        default=30,  # Increased from 20 for burst handling
         ge=0,
         le=100,
         description="Max connections above pool_size"
@@ -80,6 +80,12 @@ class DatabaseSettings(BaseSettings):
     pool_pre_ping: bool = Field(
         default=True,
         description="Test connections before using them"
+    )
+
+    # Environment detection for automatic pool sizing
+    environment: str = Field(
+        default="development",
+        description="Environment: development, staging, production"
     )
 
     # SSL settings (PostgreSQL production)

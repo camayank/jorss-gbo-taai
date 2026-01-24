@@ -10,6 +10,8 @@ Tables:
 - lead_transitions: State transition history
 
 All data is scoped by tenant_id for multi-tenant isolation.
+
+SECURITY: PII fields (email, phone, ssn) are encrypted at rest.
 """
 
 import sqlite3
@@ -20,7 +22,17 @@ from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 import logging
 
+from .encrypted_fields import (
+    encrypt_email, decrypt_email,
+    encrypt_phone, decrypt_phone,
+    encrypt_ssn, decrypt_ssn,
+    mask_email, mask_phone, mask_ssn
+)
+
 logger = logging.getLogger(__name__)
+
+# PII fields that should be encrypted in metadata
+PII_FIELDS = {'email', 'phone', 'ssn', 'social_security_number'}
 
 # Use same database path as main persistence
 DEFAULT_DB_PATH = Path(__file__).parent.parent.parent / "data" / "tax_returns.db"
@@ -69,6 +81,8 @@ class LeadStatePersistence:
     - Lead records with current state
     - Signal history
     - State transitions
+
+    SECURITY: PII fields are encrypted before storage.
     """
 
     def __init__(self, db_path: Optional[Path] = None):
@@ -80,6 +94,95 @@ class LeadStatePersistence:
         """
         self.db_path = db_path or DEFAULT_DB_PATH
         self._ensure_tables_exist()
+
+    def _encrypt_metadata(self, metadata: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
+        """
+        Encrypt PII fields in metadata before storage.
+
+        Args:
+            metadata: Lead metadata dictionary
+            tenant_id: Tenant ID for key binding
+
+        Returns:
+            Copy of metadata with PII fields encrypted
+        """
+        if not metadata:
+            return metadata
+
+        encrypted = metadata.copy()
+
+        # Encrypt email
+        if 'email' in encrypted and encrypted['email']:
+            original_email = encrypted['email']
+            encrypted['email'] = encrypt_email(original_email, tenant_id)
+            encrypted['email_masked'] = mask_email(original_email)
+
+        # Encrypt phone
+        if 'phone' in encrypted and encrypted['phone']:
+            original_phone = encrypted['phone']
+            encrypted['phone'] = encrypt_phone(original_phone, tenant_id)
+            encrypted['phone_masked'] = mask_phone(original_phone)
+
+        # Encrypt SSN (multiple possible field names)
+        for ssn_field in ['ssn', 'social_security_number']:
+            if ssn_field in encrypted and encrypted[ssn_field]:
+                original_ssn = encrypted[ssn_field]
+                encrypted[ssn_field] = encrypt_ssn(original_ssn, tenant_id)
+                encrypted['ssn_masked'] = mask_ssn(original_ssn)
+
+        # Mark as encrypted for migration tracking
+        encrypted['_pii_encrypted'] = True
+
+        return encrypted
+
+    def _decrypt_metadata(self, metadata: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
+        """
+        Decrypt PII fields in metadata after retrieval.
+
+        Args:
+            metadata: Encrypted metadata dictionary
+            tenant_id: Tenant ID for key binding
+
+        Returns:
+            Copy of metadata with PII fields decrypted
+        """
+        if not metadata:
+            return metadata
+
+        # Check if encryption was applied
+        if not metadata.get('_pii_encrypted'):
+            # Legacy unencrypted data - return as-is
+            return metadata
+
+        decrypted = metadata.copy()
+
+        try:
+            # Decrypt email
+            if 'email' in decrypted and decrypted['email']:
+                decrypted['email'] = decrypt_email(decrypted['email'], tenant_id)
+
+            # Decrypt phone
+            if 'phone' in decrypted and decrypted['phone']:
+                decrypted['phone'] = decrypt_phone(decrypted['phone'], tenant_id)
+
+            # Decrypt SSN
+            for ssn_field in ['ssn', 'social_security_number']:
+                if ssn_field in decrypted and decrypted[ssn_field]:
+                    decrypted[ssn_field] = decrypt_ssn(decrypted[ssn_field], tenant_id)
+
+        except Exception as e:
+            logger.error(f"Failed to decrypt lead metadata: {e}")
+            # Return with masked values for safety
+            if 'email_masked' in decrypted:
+                decrypted['email'] = decrypted['email_masked']
+            if 'phone_masked' in decrypted:
+                decrypted['phone'] = decrypted['phone_masked']
+            if 'ssn_masked' in decrypted:
+                for ssn_field in ['ssn', 'social_security_number']:
+                    if ssn_field in decrypted:
+                        decrypted[ssn_field] = decrypted.get('ssn_masked', '***-**-****')
+
+        return decrypted
 
     def _ensure_tables_exist(self):
         """Create tables if they don't exist."""
@@ -171,18 +274,23 @@ class LeadStatePersistence:
         """
         Save or update a lead record.
 
+        SECURITY: PII fields in metadata are encrypted before storage.
+
         Args:
             lead_id: Unique lead identifier
             session_id: Associated session identifier
             tenant_id: Tenant identifier for isolation
             current_state: Current lead state name
-            metadata: Additional metadata
+            metadata: Additional metadata (email, phone, ssn will be encrypted)
 
         Returns:
-            Saved LeadDbRecord
+            Saved LeadDbRecord (with original unencrypted metadata for caller)
         """
         now = datetime.utcnow().isoformat()
-        metadata = metadata or {}
+        original_metadata = metadata or {}
+
+        # Encrypt PII before storage
+        encrypted_metadata = self._encrypt_metadata(original_metadata, tenant_id)
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -208,7 +316,7 @@ class LeadStatePersistence:
                     tenant_id,
                     current_state,
                     now,
-                    json.dumps(metadata, default=str),
+                    json.dumps(encrypted_metadata, default=str),
                     lead_id
                 ))
             else:
@@ -226,11 +334,12 @@ class LeadStatePersistence:
                     current_state,
                     now,
                     now,
-                    json.dumps(metadata, default=str)
+                    json.dumps(encrypted_metadata, default=str)
                 ))
 
             conn.commit()
 
+        # Return with original unencrypted metadata for caller convenience
         return LeadDbRecord(
             lead_id=lead_id,
             session_id=session_id,
@@ -238,20 +347,24 @@ class LeadStatePersistence:
             current_state=current_state,
             created_at=created_at,
             updated_at=now,
-            metadata=metadata
+            metadata=original_metadata
         )
 
     def load_lead(
         self,
         lead_id: str,
-        tenant_id: Optional[str] = None
+        tenant_id: Optional[str] = None,
+        decrypt_pii: bool = True
     ) -> Optional[LeadDbRecord]:
         """
         Load a lead by ID.
 
+        SECURITY: PII fields are decrypted after retrieval.
+
         Args:
             lead_id: Lead identifier
             tenant_id: Optional tenant filter for security
+            decrypt_pii: Whether to decrypt PII fields (default True)
 
         Returns:
             LeadDbRecord or None if not found
@@ -280,14 +393,23 @@ class LeadStatePersistence:
             if not row:
                 return None
 
+            lead_tenant_id = row[2]
+            raw_metadata = json.loads(row[6]) if row[6] else {}
+
+            # Decrypt PII fields if requested
+            if decrypt_pii:
+                metadata = self._decrypt_metadata(raw_metadata, lead_tenant_id)
+            else:
+                metadata = raw_metadata
+
             return LeadDbRecord(
                 lead_id=row[0],
                 session_id=row[1],
-                tenant_id=row[2],
+                tenant_id=lead_tenant_id,
                 current_state=row[3],
                 created_at=row[4],
                 updated_at=row[5],
-                metadata=json.loads(row[6]) if row[6] else {}
+                metadata=metadata
             )
 
     def delete_lead(self, lead_id: str) -> bool:
@@ -320,9 +442,21 @@ class LeadStatePersistence:
         self,
         tenant_id: str = "default",
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
+        decrypt_pii: bool = True
     ) -> List[LeadDbRecord]:
-        """List all leads for a tenant."""
+        """
+        List all leads for a tenant.
+
+        Args:
+            tenant_id: Tenant identifier
+            limit: Maximum number of leads to return
+            offset: Pagination offset
+            decrypt_pii: Whether to decrypt PII fields (default True)
+
+        Returns:
+            List of LeadDbRecord
+        """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
@@ -337,6 +471,13 @@ class LeadStatePersistence:
 
             leads = []
             for row in cursor.fetchall():
+                raw_metadata = json.loads(row[6]) if row[6] else {}
+
+                if decrypt_pii:
+                    metadata = self._decrypt_metadata(raw_metadata, tenant_id)
+                else:
+                    metadata = raw_metadata
+
                 leads.append(LeadDbRecord(
                     lead_id=row[0],
                     session_id=row[1],
@@ -344,7 +485,7 @@ class LeadStatePersistence:
                     current_state=row[3],
                     created_at=row[4],
                     updated_at=row[5],
-                    metadata=json.loads(row[6]) if row[6] else {}
+                    metadata=metadata
                 ))
             return leads
 
@@ -353,9 +494,22 @@ class LeadStatePersistence:
         state: str,
         tenant_id: str = "default",
         limit: int = 100,
-        offset: int = 0
+        offset: int = 0,
+        decrypt_pii: bool = True
     ) -> List[LeadDbRecord]:
-        """List leads by state for a tenant."""
+        """
+        List leads by state for a tenant.
+
+        Args:
+            state: Lead state filter (BROWSING, CURIOUS, etc.)
+            tenant_id: Tenant identifier
+            limit: Maximum number of leads to return
+            offset: Pagination offset
+            decrypt_pii: Whether to decrypt PII fields (default True)
+
+        Returns:
+            List of LeadDbRecord
+        """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
@@ -370,6 +524,13 @@ class LeadStatePersistence:
 
             leads = []
             for row in cursor.fetchall():
+                raw_metadata = json.loads(row[6]) if row[6] else {}
+
+                if decrypt_pii:
+                    metadata = self._decrypt_metadata(raw_metadata, tenant_id)
+                else:
+                    metadata = raw_metadata
+
                 leads.append(LeadDbRecord(
                     lead_id=row[0],
                     session_id=row[1],
@@ -377,7 +538,7 @@ class LeadStatePersistence:
                     current_state=row[3],
                     created_at=row[4],
                     updated_at=row[5],
-                    metadata=json.loads(row[6]) if row[6] else {}
+                    metadata=metadata
                 ))
             return leads
 

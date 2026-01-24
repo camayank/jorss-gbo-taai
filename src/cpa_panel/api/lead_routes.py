@@ -3,6 +3,9 @@ CPA Panel Lead State Routes
 
 Endpoints for lead state management and signal processing.
 Implements the Lead State Engine for CPA lead qualification.
+
+SECURITY: All lead endpoints validate tenant access to prevent
+cross-tenant data leakage.
 """
 
 from fastapi import APIRouter, Request, HTTPException
@@ -11,6 +14,16 @@ from typing import Optional, List
 import logging
 
 from .common import get_tenant_id, get_lead_state_engine, log_and_raise_http_error
+from security.tenant_isolation import (
+    verify_lead_access,
+    verify_tenant_access,
+    TenantAccessLevel,
+)
+from security.middleware import (
+    SIGNALS_RATE_LIMITER,
+    CONTACT_RATE_LIMITER,
+    ESTIMATES_RATE_LIMITER,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +50,23 @@ async def get_lead(lead_id: str, request: Request):
     """
     Get lead details by ID.
 
+    SECURITY: Validates tenant access before returning lead data.
     Returns current state, visibility, and signal history.
     """
+    tenant_id = get_tenant_id(request)
+
+    # Get user ID from auth context for audit logging
+    auth_context = getattr(request.state, "auth", None)
+    user_id = auth_context.user_id if auth_context else None
+
+    # SECURITY: Verify lead belongs to requesting tenant
+    verify_lead_access(
+        lead_id=lead_id,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        required_level=TenantAccessLevel.READ,
+    )
+
     try:
         engine = get_engine()
         lead = engine.get_lead(lead_id)
@@ -106,6 +134,7 @@ async def process_signal(lead_id: str, request: Request):
     """
     Process a behavioral signal for a lead.
 
+    SECURITY: Rate limited to 30 signals/minute per client.
     This is the primary endpoint for recording prospect behavior
     and triggering state transitions.
 
@@ -114,6 +143,9 @@ async def process_signal(lead_id: str, request: Request):
         - session_id: Session identifier (required for new leads)
         - metadata: Optional signal metadata
     """
+    # Rate limiting: 30 signals per minute
+    await SIGNALS_RATE_LIMITER.check(request)
+
     from cpa_panel.lead_state import TransitionError
 
     try:

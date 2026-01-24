@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Tax Savings Estimate | {{ cpa.firm_name or cpa.display_name }}</title>
+    <meta name="description" content="See your potential tax savings and get your personalized analysis.">
+    {% if cpa.favicon_url %}
+    <link rel="icon" href="{{ cpa.favicon_url }}">
+    {% endif %}
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: {{ cpa.primary_color or '#2563eb' }};
+            --secondary-color: {{ cpa.secondary_color or '#1d4ed8' }};
+            --accent-color: {{ cpa.accent_color or '#10b981' }};
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --bg-light: #f9fafb;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 650px;
+            margin: 0 auto;
+        }
+
+        /* Results Card */
+        .results-card {
+            background: var(--white);
+            border-radius: 24px;
+            padding: 50px 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .cpa-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .cpa-logo {
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+        }
+
+        .cpa-info {
+            text-align: left;
+        }
+
+        .cpa-name {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .cpa-firm {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Success Icon */
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--accent-color) 0%, #059669 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            animation: scaleIn 0.5s ease;
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .success-icon svg {
+            width: 40px;
+            height: 40px;
+            color: white;
+        }
+
+        /* Savings Display */
+        .savings-section {
+            margin-bottom: 30px;
+        }
+
+        .savings-label {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .savings-amount {
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-color) 0%, #059669 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            animation: fadeIn 0.5s ease 0.2s both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .savings-note {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* Complexity Badge */
+        .complexity-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+        }
+
+        .complexity-low {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .complexity-moderate {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+
+        .complexity-high {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Insights Preview */
+        .insights-preview {
+            background: var(--bg-light);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .insights-title {
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .insights-count {
+            background: var(--primary-color);
+            color: white;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .insight-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .insight-item:last-child {
+            border-bottom: none;
+        }
+
+        .insight-icon {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .insight-content {
+            flex: 1;
+        }
+
+        .insight-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .insight-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Locked Insights Teaser */
+        .locked-insights {
+            background: #fef3c7;
+            border: 2px dashed #f59e0b;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .locked-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .locked-title {
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 6px;
+        }
+
+        .locked-desc {
+            font-size: 0.9rem;
+            color: #a16207;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            margin-bottom: 20px;
+        }
+
+        .cta-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 18px 40px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(37, 99, 235, 0.45);
+        }
+
+        .cta-subtext {
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Trust Indicators */
+        .trust-indicators {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .trust-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .trust-item svg {
+            width: 16px;
+            height: 16px;
+            color: var(--accent-color);
+        }
+
+        /* Disclaimer */
+        .disclaimer {
+            margin-top: 24px;
+            padding: 14px 18px;
+            background: #f3f4f6;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-align: left;
+            border-left: 3px solid #d1d5db;
+        }
+
+        .disclaimer strong {
+            color: #374151;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 640px) {
+            .results-card {
+                padding: 30px 20px;
+            }
+
+            .savings-amount {
+                font-size: 2.5rem;
+            }
+
+            .cpa-header {
+                flex-direction: column;
+            }
+
+            .cpa-info {
+                text-align: center;
+            }
+
+            .trust-indicators {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="results-card">
+            <!-- CPA Header -->
+            <div class="cpa-header">
+                {% if cpa.logo_url %}
+                <img src="{{ cpa.logo_url }}" alt="{{ cpa.firm_name }}" class="cpa-logo">
+                {% endif %}
+                <div class="cpa-info">
+                    <div class="cpa-name">{{ cpa.display_name }}</div>
+                    {% if cpa.firm_name %}
+                    <div class="cpa-firm">{{ cpa.firm_name }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Success Icon -->
+            <div class="success-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+            </div>
+
+            <!-- Savings Display -->
+            <div class="savings-section">
+                <div class="savings-label">Your Estimated Tax Savings</div>
+                <div class="savings-amount" id="savingsAmount">$1,500 - $4,200</div>
+                <div class="savings-note">Based on your tax profile</div>
+            </div>
+
+            <!-- Complexity Badge -->
+            <div class="complexity-badge complexity-moderate" id="complexityBadge">
+                Moderate Complexity
+            </div>
+
+            <!-- Insights Preview -->
+            <div class="insights-preview">
+                <div class="insights-title">
+                    Tax Insights Found
+                    <span class="insights-count" id="insightsCount">3</span>
+                </div>
+
+                <div id="insightsList">
+                    <div class="insight-item">
+                        <div class="insight-icon">💰</div>
+                        <div class="insight-content">
+                            <div class="insight-title">Retirement Savings Opportunity</div>
+                            <div class="insight-desc">Maximize tax-deferred contributions...</div>
+                        </div>
+                    </div>
+
+                    <div class="insight-item">
+                        <div class="insight-icon">🏠</div>
+                        <div class="insight-content">
+                            <div class="insight-title">Home-Related Deductions</div>
+                            <div class="insight-desc">Mortgage interest and property tax...</div>
+                        </div>
+                    </div>
+
+                    <div class="insight-item">
+                        <div class="insight-icon">👶</div>
+                        <div class="insight-content">
+                            <div class="insight-title">Family Tax Credits</div>
+                            <div class="insight-desc">Child tax credit optimization...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Locked Insights Teaser -->
+            <div class="locked-insights">
+                <div class="locked-icon">🔒</div>
+                <div class="locked-title">+5 More Insights Available</div>
+                <div class="locked-desc">
+                    Enter your contact info to unlock your complete personalized analysis
+                </div>
+            </div>
+
+            <!-- CTA Section -->
+            <div class="cta-section">
+                <div class="cta-title">Get Your Full Tax Analysis</div>
+                <button onclick="proceedToContact()" class="cta-button">
+                    Unlock My Full Report
+                </button>
+                <div class="cta-subtext">
+                    Free. Takes 30 seconds. No obligations.
+                </div>
+            </div>
+
+            <!-- Trust Indicators -->
+            <div class="trust-indicators">
+                <div class="trust-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    <span>256-bit Encryption</span>
+                </div>
+                <div class="trust-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0110 0v4"/>
+                    </svg>
+                    <span>Data Never Sold</span>
+                </div>
+                <div class="trust-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9 12l2 2 4-4"/>
+                    </svg>
+                    <span>Licensed CPA</span>
+                </div>
+            </div>
+
+            <!-- Disclaimer -->
+            <div class="disclaimer">
+                <strong>Important Disclosure:</strong> This savings estimate is based on the limited
+                information provided and general tax principles. Actual savings may vary significantly
+                based on your complete financial situation. This estimate does not constitute tax advice.
+                For personalized advice tailored to your circumstances, please consult with
+                {{ cpa.display_name }} or a qualified tax professional. No CPA-client relationship is
+                established until you sign an engagement letter.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get session data
+        const sessionId = '{{ session_id }}' || sessionStorage.getItem('assessment_session_id');
+        const complexity = sessionStorage.getItem('tax_complexity') || 'moderate';
+        const insightsPreview = parseInt(sessionStorage.getItem('insights_preview')) || 3;
+
+        // Update complexity badge
+        function updateComplexityBadge() {
+            const badge = document.getElementById('complexityBadge');
+            const complexityMap = {
+                'simple': { text: 'Simple Return', class: 'complexity-low' },
+                'moderate': { text: 'Moderate Complexity', class: 'complexity-moderate' },
+                'complex': { text: 'Complex Situation', class: 'complexity-high' }
+            };
+
+            const config = complexityMap[complexity.toLowerCase()] || complexityMap['moderate'];
+            badge.textContent = config.text;
+            badge.className = `complexity-badge ${config.class}`;
+        }
+
+        // Update savings estimate based on complexity
+        function updateSavingsEstimate() {
+            const savingsElement = document.getElementById('savingsAmount');
+            const savingsMap = {
+                'simple': '$500 - $1,500',
+                'moderate': '$1,500 - $4,200',
+                'complex': '$3,500 - $12,000+'
+            };
+
+            savingsElement.textContent = savingsMap[complexity.toLowerCase()] || savingsMap['moderate'];
+        }
+
+        // Update insights count
+        function updateInsightsCount() {
+            const countElement = document.getElementById('insightsCount');
+            countElement.textContent = insightsPreview;
+        }
+
+        // Navigate to contact capture
+        function proceedToContact() {
+            window.location.href = `/lead-magnet/contact?session=${sessionId}`;
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!sessionId) {
+                // No session, redirect to landing
+                window.location.href = '/lead-magnet/';
+                return;
+            }
+
+            updateComplexityBadge();
+            updateSavingsEstimate();
+            updateInsightsCount();
+        });
+    </script>
+</body>
+</html>

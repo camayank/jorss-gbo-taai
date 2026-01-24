@@ -17,11 +17,56 @@ from .roles import Role
 # CONFIGURATION
 # =============================================================================
 
-# Secret key for JWT signing (should be in environment variable in production)
-JWT_SECRET = os.environ.get("JWT_SECRET", "ca4cpa-development-secret-change-in-production")
 JWT_ALGORITHM = "HS256"
 JWT_ACCESS_TOKEN_EXPIRE_HOURS = 8
 JWT_REFRESH_TOKEN_EXPIRE_DAYS = 7
+
+# Environment detection
+_ENVIRONMENT = os.environ.get("APP_ENVIRONMENT", "development")
+_IS_PRODUCTION = _ENVIRONMENT in ("production", "prod", "staging")
+
+
+def _get_jwt_secret() -> str:
+    """
+    Get JWT secret from environment.
+
+    SECURITY: In production, JWT_SECRET must be set.
+    In development, a warning is logged if using default.
+    """
+    secret = os.environ.get("JWT_SECRET")
+
+    if not secret:
+        if _IS_PRODUCTION:
+            raise RuntimeError(
+                "CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required in production. "
+                "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        # Development fallback - logged for visibility
+        import warnings
+        warnings.warn(
+            "JWT_SECRET not set - using insecure development default. "
+            "Set JWT_SECRET environment variable for production.",
+            UserWarning
+        )
+        return "DEV-ONLY-INSECURE-SECRET-" + str(os.getpid())
+
+    # Validate secret strength
+    if len(secret) < 32:
+        raise ValueError("JWT_SECRET must be at least 32 characters for security")
+
+    return secret
+
+
+# Lazy initialization to allow startup validation
+_jwt_secret_cache: str = None
+
+
+def get_jwt_secret() -> str:
+    """Get the JWT secret (cached after first call)."""
+    global _jwt_secret_cache
+    if _jwt_secret_cache is None:
+        _jwt_secret_cache = _get_jwt_secret()
+    return _jwt_secret_cache
 
 
 # =============================================================================
@@ -76,7 +121,7 @@ def create_access_token(
     if firm_name:
         payload["firm_name"] = firm_name
 
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
 
 
 def create_refresh_token(
@@ -101,7 +146,7 @@ def create_refresh_token(
         "type": "refresh",
     }
 
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
 
 
 # =============================================================================
@@ -121,7 +166,7 @@ def decode_token(token: str) -> Dict[str, Any]:
     Raises:
         jwt.InvalidTokenError: If token is invalid or expired
     """
-    return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    return jwt.decode(token, get_jwt_secret(), algorithms=[JWT_ALGORITHM])
 
 
 def decode_token_safe(token: str) -> Optional[Dict[str, Any]]:

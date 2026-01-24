@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Tax Estimate | {{ cpa.firm_name or cpa.display_name }}</title>
+    <meta name="description" content="Answer 3 quick questions to get your personalized tax savings estimate.">
+    {% if cpa.favicon_url %}
+    <link rel="icon" href="{{ cpa.favicon_url }}">
+    {% endif %}
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: {{ cpa.primary_color or '#2563eb' }};
+            --secondary-color: {{ cpa.secondary_color or '#1d4ed8' }};
+            --accent-color: {{ cpa.accent_color or '#10b981' }};
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --bg-light: #f9fafb;
+            --white: #ffffff;
+            --error: #dc2626;
+            --success: #16a34a;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            height: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: var(--white);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            color: var(--white);
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Form Card */
+        .form-card {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .cpa-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .cpa-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+        }
+
+        .cpa-name {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        /* Question Steps */
+        .question-step {
+            display: none;
+        }
+
+        .question-step.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .question-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: var(--primary-color);
+            color: var(--white);
+            border-radius: 50%;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .question-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-dark);
+        }
+
+        .question-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            font-size: 0.95rem;
+        }
+
+        /* Option Cards */
+        .options-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .option-card {
+            position: relative;
+            background: var(--bg-light);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 16px 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .option-card:hover {
+            border-color: var(--primary-color);
+            background: #eff6ff;
+        }
+
+        .option-card.selected {
+            border-color: var(--primary-color);
+            background: #eff6ff;
+        }
+
+        .option-card input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .option-icon {
+            font-size: 1.5rem;
+        }
+
+        .option-content {
+            flex: 1;
+        }
+
+        .option-label {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .option-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .option-checkmark {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #d1d5db;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+        }
+
+        .option-card.selected .option-checkmark {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .option-card.selected .option-checkmark::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--white);
+            border-radius: 50%;
+        }
+
+        /* Multi-select for checkboxes */
+        .options-grid.multi-select .option-checkmark {
+            border-radius: 4px;
+        }
+
+        .options-grid.multi-select .option-card.selected .option-checkmark::after {
+            content: '✓';
+            color: var(--white);
+            font-size: 14px;
+            font-weight: bold;
+            background: none;
+        }
+
+        /* Buttons */
+        .button-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px 24px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--white);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text-dark);
+            border: 1px solid #e5e7eb;
+        }
+
+        .btn-secondary:hover {
+            background: #f3f4f6;
+        }
+
+        /* Loading State */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-card {
+            background: var(--white);
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Disclaimer */
+        .disclaimer {
+            margin-top: 24px;
+            padding: 12px 16px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            color: #6b7280;
+            border-left: 3px solid #d1d5db;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 640px) {
+            .form-card {
+                padding: 24px;
+            }
+
+            .question-title {
+                font-size: 1.25rem;
+            }
+
+            .button-row {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Progress -->
+        <div class="progress-text">
+            <span>Step <span id="currentStep">1</span> of 3</span>
+            <span id="stepLabel">Filing Status</span>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 33%"></div>
+        </div>
+
+        <!-- Form Card -->
+        <div class="form-card">
+            <!-- CPA Header -->
+            <div class="cpa-header">
+                {% if cpa.logo_url %}
+                <img src="{{ cpa.logo_url }}" alt="{{ cpa.firm_name }}" class="cpa-logo">
+                {% endif %}
+                <div class="cpa-name">{{ cpa.display_name }}</div>
+            </div>
+
+            <form id="estimateForm">
+                <!-- Question 1: Filing Status -->
+                <div class="question-step active" data-step="1">
+                    <div class="question-number">1</div>
+                    <h2 class="question-title">What's your filing status?</h2>
+                    <p class="question-subtitle">This helps us understand which deductions and credits apply to you.</p>
+
+                    <div class="options-grid">
+                        <label class="option-card" onclick="selectOption(this, 'filing_status', 'single')">
+                            <input type="radio" name="filing_status" value="single">
+                            <span class="option-icon">👤</span>
+                            <div class="option-content">
+                                <div class="option-label">Single</div>
+                                <div class="option-desc">Unmarried or legally separated</div>
+                            </div>
+                            <div class="option-checkmark"></div>
+                        </label>
+
+                        <label class="option-card" onclick="selectOption(this, 'filing_status', 'married_jointly')">
+                            <input type="radio" name="filing_status" value="married_jointly">
+                            <span class="option-icon">💑</span>
+                            <div class="option-content">
+                                <div class="option-label">Married Filing Jointly</div>
+                                <div class="option-desc">Filing together with spouse</div>
+                            </div>
+                            <div class="option-checkmark"></div>
+                        </label>
+
+                        <label class="option-card" onclick="selectOption(this, 'filing_status', 'married_separately')">
+                            <input type="radio" name="filing_status" value="married_separately">
+                            <span class="option-icon">👥</span>
+                            <div class="option-content">
+                                <div class="option-label">Married Filing Separately</div>
+                                <div class="option-desc">Filing separately from spouse</div>
+                            </div>
+                            <div class="option-checkmark"></div>
+                        </label>
+
+                        <label class="option-card" onclick="selectOption(this, 'filing_status', 'head_of_household')">
+                            <input type="radio" name="filing_status" value="head_of_household">
+                            <span class="option-icon">🏠</span>
+                            <div class="option-content">
+                                <div class="option-label">Head of Household</div>
+                                <div class="option-desc">Single with qualifying dependent</div>
+                            </div>
+                            <div class="option-checkmark"></div>
+                        </label>
+                    </div>
+
+                    <div class="button-row">
+                        <button type="button" class="btn btn-primary" onclick="nextStep()" id="btn-next-1" disabled>
+                            Continue
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Question 2: Income Range -->
+                <div class="question-step" data-step="2">
+                    <div class="question-number">2</div>
+                    <h2 class="question-title">What's your annual household income?</h2>
+                    <p class="question-subtitle">Approximate is fine. This determines which tax brackets and credits apply.</p>
+
+                    <div class="options-grid">
+                        <label class="option-card" onclick="selectOption(this, 'income_range', 'under_50k')">
+                            <input type="radio" name="income_range" value="under_50k">
+                            <span class="option-icon">💵</span>
+                            <div class="option-content">
+                                <div class="option-label">Under $50,000</div>
+                            </div>
+                            <div class="option-checkmark"></div>
+                        </label>
+
+                        <label class="option-card" onclick="selectOption(this, 'income_range', '50k_100k')">
+                            <input type="radio" name="income_range" value="50k_100k">
+                            <span class="option-icon">💰</span>
+                            <div class="option-content">
+                                <div class="option-label">$50,000 - $100,000</div>
+                            </div>
+                            <div class="option-checkmark"></div>
+                        </label>
+
+                        <label class="option-card" onclick="selectOption(this, 'income_range', '100k_200k')">
+                            <input type="radio" name="income_range" value="100k_200k">
+                            <span class="option-icon">💎</span>
+                            <div class="option-content">
+                                <div class="option-label">$100,000 - $200,000</div>
+                            </div>
+                            <div class="option-checkmark"></div>
+                        </label>
+
+                        <label class="option-card" onclick="selectOption(this, 'income_range', 'over_200k')">
+                            <input type="radio" name="income_range" value="over_200k">
+                            <span class="option-icon">🏆</span>
+                            <div class="option-content">
+                                <div class="option-label">Over $200,000</div>
+                            </div>
+                            <div class="option-checkmark"></div>
+                        </label>
+                    </div>
+
+                    <div class="button-row">
+                        <button type="button" class="btn btn-secondary" onclick="prevStep()">Back</button>
+                        <button type="button" class="btn btn-primary" onclick="nextStep()" id="btn-next-2" disabled>
+                            Continue
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Question 3: Key Situations (Multi-select) -->
+                <div class="question-step" data-step="3">
+                    <div class="question-number">3</div>
+                    <h2 class="question-title">Which situations apply to you?</h2>
+                    <p class="question-subtitle">Select all that apply. These unlock specific tax-saving opportunities.</p>
+
+                    <div class="options-grid multi-select">
+                        <label class="option-card" onclick="toggleOption(this, 'situations', 'homeowner')">
+                            <input type="checkbox" name="situations" value="homeowner">
+                            <span class="option-icon">🏡</span>
+                            <div class="option-content">
+                                <div class="option-label">Homeowner</div>
+                                <div class="option-desc">Mortgage interest & property taxes</div>
+                            </div>
+                            <div class="option-checkmark"></div>
+                        </label>
+
+                        <label class="option-card" onclick="toggleOption(this, 'situations', 'has_kids')">
+                            <input type="checkbox" name="situations" value="has_kids">
+                            <span class="option-icon">👶</span>
+                            <div class="option-content">
+                                <div class="option-label">Have Children</div>
+                                <div class="option-desc">Child tax credits & dependent care</div>
+                            </div>
+                            <div class="option-checkmark"></div>
+                        </label>
+
+                        <label class="option-card" onclick="toggleOption(this, 'situations', 'self_employed')">
+                            <input type="checkbox" name="situations" value="self_employed">
+                            <span class="option-icon">💼</span>
+                            <div class="option-content">
+                                <div class="option-label">Self-Employed or Business Owner</div>
+                                <div class="option-desc">Business deductions & QBI</div>
+                            </div>
+                            <div class="option-checkmark"></div>
+                        </label>
+
+                        <label class="option-card" onclick="toggleOption(this, 'situations', 'investments')">
+                            <input type="checkbox" name="situations" value="investments">
+                            <span class="option-icon">📈</span>
+                            <div class="option-content">
+                                <div class="option-label">Investments or Retirement Accounts</div>
+                                <div class="option-desc">Capital gains & retirement contributions</div>
+                            </div>
+                            <div class="option-checkmark"></div>
+                        </label>
+
+                        <label class="option-card" onclick="toggleOption(this, 'situations', 'student_loans')">
+                            <input type="checkbox" name="situations" value="student_loans">
+                            <span class="option-icon">🎓</span>
+                            <div class="option-content">
+                                <div class="option-label">Student Loans or Education Expenses</div>
+                                <div class="option-desc">Interest deduction & education credits</div>
+                            </div>
+                            <div class="option-checkmark"></div>
+                        </label>
+
+                        <label class="option-card" onclick="toggleOption(this, 'situations', 'none')">
+                            <input type="checkbox" name="situations" value="none">
+                            <span class="option-icon">➡️</span>
+                            <div class="option-content">
+                                <div class="option-label">None of These</div>
+                                <div class="option-desc">Continue to see other opportunities</div>
+                            </div>
+                            <div class="option-checkmark"></div>
+                        </label>
+                    </div>
+
+                    <div class="button-row">
+                        <button type="button" class="btn btn-secondary" onclick="prevStep()">Back</button>
+                        <button type="button" class="btn btn-primary" onclick="submitForm()" id="btn-submit">
+                            See My Savings Estimate
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Disclaimer -->
+            <div class="disclaimer">
+                <strong>Important:</strong> This estimate is for educational purposes only and does not constitute
+                tax advice. Actual savings depend on your complete financial situation. By proceeding, you agree
+                to our <a href="/privacy" target="_blank">Privacy Policy</a>.
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-card">
+            <div class="spinner"></div>
+            <div>Analyzing your tax situation...</div>
+        </div>
+    </div>
+
+    <script>
+        // Session and form state
+        const sessionId = '{{ session_id }}' || sessionStorage.getItem('assessment_session_id');
+        let currentStep = 1;
+        let formData = {
+            filing_status: null,
+            income_range: null,
+            situations: []
+        };
+
+        const stepLabels = {
+            1: 'Filing Status',
+            2: 'Income Range',
+            3: 'Your Situation'
+        };
+
+        // Option selection for radio buttons
+        function selectOption(element, field, value) {
+            // Remove selected from siblings
+            const parent = element.closest('.options-grid');
+            parent.querySelectorAll('.option-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+
+            // Select this option
+            element.classList.add('selected');
+            formData[field] = value;
+
+            // Enable next button
+            const nextBtn = document.getElementById(`btn-next-${currentStep}`);
+            if (nextBtn) nextBtn.disabled = false;
+        }
+
+        // Option toggle for checkboxes
+        function toggleOption(element, field, value) {
+            element.classList.toggle('selected');
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = element.classList.contains('selected');
+
+            // Handle "None of These" exclusivity
+            if (value === 'none' && element.classList.contains('selected')) {
+                // Unselect all others
+                const parent = element.closest('.options-grid');
+                parent.querySelectorAll('.option-card').forEach(card => {
+                    if (card !== element) {
+                        card.classList.remove('selected');
+                        card.querySelector('input').checked = false;
+                    }
+                });
+                formData[field] = ['none'];
+            } else if (value !== 'none') {
+                // Unselect "None" if selecting something else
+                const parent = element.closest('.options-grid');
+                const noneCard = parent.querySelector('input[value="none"]')?.closest('.option-card');
+                if (noneCard) {
+                    noneCard.classList.remove('selected');
+                    noneCard.querySelector('input').checked = false;
+                }
+
+                // Update form data
+                const selected = [];
+                parent.querySelectorAll('input:checked').forEach(input => {
+                    if (input.value !== 'none') selected.push(input.value);
+                });
+                formData[field] = selected;
+            }
+        }
+
+        // Navigation
+        function updateProgress() {
+            document.getElementById('currentStep').textContent = currentStep;
+            document.getElementById('stepLabel').textContent = stepLabels[currentStep];
+            document.getElementById('progressFill').style.width = `${(currentStep / 3) * 100}%`;
+        }
+
+        function showStep(step) {
+            document.querySelectorAll('.question-step').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.querySelector(`.question-step[data-step="${step}"]`).classList.add('active');
+            currentStep = step;
+            updateProgress();
+        }
+
+        function nextStep() {
+            if (currentStep < 3) {
+                showStep(currentStep + 1);
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                showStep(currentStep - 1);
+            }
+        }
+
+        // Form submission
+        async function submitForm() {
+            const loading = document.getElementById('loadingOverlay');
+            loading.classList.add('show');
+
+            try {
+                // Map form data to API format
+                const profileData = {
+                    filing_status: formData.filing_status,
+                    income_range: mapIncomeRange(formData.income_range),
+                    is_homeowner: formData.situations.includes('homeowner'),
+                    has_children_under_17: formData.situations.includes('has_kids'),
+                    has_business: formData.situations.includes('self_employed'),
+                    income_sources: buildIncomeSources(formData),
+                    has_student_loans: formData.situations.includes('student_loans'),
+                    dependents_count: formData.situations.includes('has_kids') ? 1 : 0,
+                    retirement_savings: formData.situations.includes('investments') ? 'some' : 'none',
+                    healthcare_type: 'employer',
+                    life_events: [],
+                    privacy_consent: true
+                };
+
+                // Submit to API
+                const response = await fetch(`/api/cpa/lead-magnet/${sessionId}/profile`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(profileData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to submit profile');
+                }
+
+                const result = await response.json();
+
+                // Store result in session
+                sessionStorage.setItem('tax_complexity', result.complexity);
+                sessionStorage.setItem('insights_preview', result.insights_preview);
+
+                // Redirect to savings teaser
+                window.location.href = `/lead-magnet/teaser?session=${sessionId}`;
+
+            } catch (error) {
+                console.error('Submission error:', error);
+                loading.classList.remove('show');
+                alert('Something went wrong. Please try again.');
+            }
+        }
+
+        // Helper functions
+        function mapIncomeRange(range) {
+            const mapping = {
+                'under_50k': 'under_50k',
+                '50k_100k': '75k_100k',
+                '100k_200k': '150k_200k',
+                'over_200k': '200k_500k'
+            };
+            return mapping[range] || range;
+        }
+
+        function buildIncomeSources(data) {
+            const sources = ['w2'];
+            if (data.situations.includes('self_employed')) sources.push('self_employed');
+            if (data.situations.includes('investments')) sources.push('investments');
+            return sources;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!sessionId) {
+                // No session, redirect to landing
+                window.location.href = '/lead-magnet/';
+            }
+        });
+    </script>
+</body>
+</html>

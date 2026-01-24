@@ -24,6 +24,13 @@ from sqlalchemy import event, text
 
 from config.database import DatabaseSettings, get_database_settings
 
+# Pool monitoring
+try:
+    from database.pool_monitor import init_pool_monitoring, get_pool_monitor, PoolMetrics
+    POOL_MONITORING_AVAILABLE = True
+except ImportError:
+    POOL_MONITORING_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -79,6 +86,14 @@ def create_engine(settings: Optional[DatabaseSettings] = None) -> AsyncEngine:
 
     # Register engine event listeners
     _setup_engine_events(engine, settings)
+
+    # Initialize pool monitoring (if available and using PostgreSQL)
+    if POOL_MONITORING_AVAILABLE and settings.is_postgres:
+        try:
+            init_pool_monitoring(engine)
+            logger.info("Connection pool monitoring enabled")
+        except Exception as e:
+            logger.warning(f"Failed to initialize pool monitoring: {e}")
 
     return engine
 
@@ -326,5 +341,34 @@ class DatabaseHealth:
             logger.error(f"Database health check failed: {e}")
             return {
                 "status": "unhealthy",
+                "error": str(e),
+            }
+
+    async def check_pool_health(self) -> dict:
+        """
+        Perform detailed pool health check with monitoring.
+
+        Returns:
+            dict: Pool health status with metrics and recommendations.
+        """
+        if not POOL_MONITORING_AVAILABLE:
+            return {
+                "status": "unavailable",
+                "message": "Pool monitoring not available",
+            }
+
+        if not self.settings.is_postgres:
+            return {
+                "status": "not_applicable",
+                "message": "Pool monitoring only available for PostgreSQL",
+            }
+
+        try:
+            monitor = get_pool_monitor()
+            return monitor.check_health()
+        except Exception as e:
+            logger.error(f"Pool health check failed: {e}")
+            return {
+                "status": "error",
                 "error": str(e),
             }

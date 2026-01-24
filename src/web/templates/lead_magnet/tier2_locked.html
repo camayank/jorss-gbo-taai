@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Analysis Locked | {{ cpa.firm_name or cpa.display_name }}</title>
+    {% if cpa.favicon_url %}
+    <link rel="icon" href="{{ cpa.favicon_url }}">
+    {% endif %}
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: {{ cpa.primary_color or '#2563eb' }};
+            --secondary-color: {{ cpa.secondary_color or '#1d4ed8' }};
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --bg-light: #f9fafb;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .locked-card {
+            background: var(--white);
+            border-radius: 24px;
+            padding: 50px 40px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .locked-icon {
+            width: 100px;
+            height: 100px;
+            background: #fef3c7;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 3rem;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            margin-bottom: 12px;
+        }
+
+        .description {
+            color: var(--text-muted);
+            margin-bottom: 30px;
+        }
+
+        /* Requirements */
+        .requirements {
+            background: var(--bg-light);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: left;
+            margin-bottom: 30px;
+        }
+
+        .requirements-title {
+            font-weight: 600;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .requirement-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .requirement-item:last-child {
+            border-bottom: none;
+        }
+
+        .requirement-status {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .status-complete {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-pending {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .requirement-text {
+            flex: 1;
+        }
+
+        .requirement-label {
+            font-weight: 600;
+        }
+
+        .requirement-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* CTA */
+        .cta-section {
+            margin-bottom: 20px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 16px 30px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+        }
+
+        .cta-button.secondary {
+            background: var(--bg-light);
+            color: var(--text-dark);
+            box-shadow: none;
+            border: 1px solid #e5e7eb;
+        }
+
+        .cta-button.secondary:hover {
+            background: #f3f4f6;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 16px;
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            color: var(--primary-color);
+        }
+
+        /* CPA Contact */
+        .cpa-contact {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .cpa-contact-title {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .cpa-name {
+            font-weight: 600;
+        }
+
+        @media (max-width: 640px) {
+            .locked-card {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="locked-card">
+            <div class="locked-icon">🔒</div>
+
+            <h1>Full Analysis Not Yet Available</h1>
+            <p class="description">
+                Your complete tax analysis requires both CPA engagement and
+                acknowledgment of the engagement letter.
+            </p>
+
+            <!-- Requirements Checklist -->
+            <div class="requirements">
+                <div class="requirements-title">Requirements to Unlock</div>
+
+                <div class="requirement-item">
+                    <div class="requirement-status {% if session_data and session_data.engaged %}status-complete{% else %}status-pending{% endif %}">
+                        {% if session_data and session_data.engaged %}✓{% else %}1{% endif %}
+                    </div>
+                    <div class="requirement-text">
+                        <div class="requirement-label">CPA Engagement</div>
+                        <div class="requirement-desc">
+                            {{ cpa.display_name }} reviews and accepts your case
+                        </div>
+                    </div>
+                </div>
+
+                <div class="requirement-item">
+                    <div class="requirement-status {% if session_data and session_data.engagement_letter_acknowledged %}status-complete{% else %}status-pending{% endif %}">
+                        {% if session_data and session_data.engagement_letter_acknowledged %}✓{% else %}2{% endif %}
+                    </div>
+                    <div class="requirement-text">
+                        <div class="requirement-label">Engagement Letter</div>
+                        <div class="requirement-desc">
+                            Review and acknowledge the engagement terms
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA Section -->
+            <div class="cta-section">
+                {% if not (session_data and session_data.engagement_letter_acknowledged) %}
+                <a href="/lead-magnet/engagement-letter?session={{ session_id }}&lead={{ session_data.lead_id if session_data else '' }}" class="cta-button">
+                    Review Engagement Letter
+                </a>
+                {% else %}
+                <div class="cta-button secondary" style="cursor: default;">
+                    Waiting for CPA Review
+                </div>
+                {% endif %}
+            </div>
+
+            <a href="/lead-magnet/report?session={{ session_id }}" class="back-link">
+                ← Back to Teaser Report
+            </a>
+
+            <!-- CPA Contact -->
+            <div class="cpa-contact">
+                <div class="cpa-contact-title">Questions? Contact</div>
+                <div class="cpa-name">{{ cpa.display_name }}</div>
+                {% if cpa.email %}
+                <a href="mailto:{{ cpa.email }}" style="color: var(--primary-color);">{{ cpa.email }}</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

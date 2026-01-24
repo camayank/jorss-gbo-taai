@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get Your Full Analysis | {{ cpa.firm_name or cpa.display_name }}</title>
+    <meta name="description" content="Enter your contact info to receive your personalized tax savings analysis.">
+    {% if cpa.favicon_url %}
+    <link rel="icon" href="{{ cpa.favicon_url }}">
+    {% endif %}
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: {{ cpa.primary_color or '#2563eb' }};
+            --secondary-color: {{ cpa.secondary_color or '#1d4ed8' }};
+            --accent-color: {{ cpa.accent_color or '#10b981' }};
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --bg-light: #f9fafb;
+            --white: #ffffff;
+            --error: #dc2626;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* Form Card */
+        .form-card {
+            background: var(--white);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .cpa-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .cpa-logo {
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+        }
+
+        .cpa-info {
+            flex: 1;
+        }
+
+        .cpa-name {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .cpa-firm {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Header */
+        .page-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .page-subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 30px;
+        }
+
+        /* What You'll Get */
+        .benefits-list {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .benefits-title {
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .benefit-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+        }
+
+        .benefit-check {
+            width: 20px;
+            height: 20px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .benefit-check svg {
+            width: 12px;
+            height: 12px;
+            color: white;
+        }
+
+        .benefit-text {
+            font-size: 0.95rem;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .required-star {
+            color: var(--error);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-input.error {
+            border-color: var(--error);
+        }
+
+        .form-error {
+            color: var(--error);
+            font-size: 0.85rem;
+            margin-top: 6px;
+            display: none;
+        }
+
+        .form-error.show {
+            display: block;
+        }
+
+        .form-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        /* Phone Field */
+        .phone-optional {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .optional-badge {
+            font-size: 0.75rem;
+            background: #e5e7eb;
+            color: var(--text-muted);
+            padding: 2px 8px;
+            border-radius: 8px;
+        }
+
+        /* Consent Checkbox */
+        .consent-group {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .consent-label {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .consent-checkbox {
+            width: 20px;
+            height: 20px;
+            margin-top: 2px;
+            cursor: pointer;
+            accent-color: var(--primary-color);
+        }
+
+        .consent-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .consent-text a {
+            color: var(--primary-color);
+        }
+
+        /* Submit Button */
+        .submit-button {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+        }
+
+        .submit-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+        }
+
+        .submit-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .submit-subtext {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Security Note */
+        .security-note {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .security-note svg {
+            width: 16px;
+            height: 16px;
+            color: var(--accent-color);
+        }
+
+        /* Disclaimer */
+        .disclaimer {
+            margin-top: 24px;
+            padding: 14px 18px;
+            background: #f3f4f6;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            color: #6b7280;
+            border-left: 3px solid #d1d5db;
+        }
+
+        .disclaimer strong {
+            color: #374151;
+        }
+
+        /* Loading State */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-card {
+            background: var(--white);
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 640px) {
+            .form-card {
+                padding: 24px;
+            }
+
+            .page-title {
+                font-size: 1.4rem;
+            }
+
+            .cpa-header {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-card">
+            <!-- CPA Header -->
+            <div class="cpa-header">
+                {% if cpa.logo_url %}
+                <img src="{{ cpa.logo_url }}" alt="{{ cpa.firm_name }}" class="cpa-logo">
+                {% endif %}
+                <div class="cpa-info">
+                    <div class="cpa-name">{{ cpa.display_name }}</div>
+                    {% if cpa.firm_name %}
+                    <div class="cpa-firm">{{ cpa.firm_name }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <h1 class="page-title">Almost There!</h1>
+            <p class="page-subtitle">Enter your info to receive your personalized analysis</p>
+
+            <!-- Benefits List -->
+            <div class="benefits-list">
+                <div class="benefits-title">Your Report Includes</div>
+
+                <div class="benefit-item">
+                    <div class="benefit-check">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </div>
+                    <span class="benefit-text">Personalized tax savings estimate</span>
+                </div>
+
+                <div class="benefit-item">
+                    <div class="benefit-check">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </div>
+                    <span class="benefit-text">Specific deductions for your situation</span>
+                </div>
+
+                <div class="benefit-item">
+                    <div class="benefit-check">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </div>
+                    <span class="benefit-text">Option to speak with {{ cpa.display_name }}</span>
+                </div>
+            </div>
+
+            <!-- Contact Form -->
+            <form id="contactForm" novalidate>
+                <div class="form-group">
+                    <label class="form-label" for="firstName">
+                        First Name <span class="required-star">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        id="firstName"
+                        name="first_name"
+                        class="form-input"
+                        placeholder="Enter your first name"
+                        required
+                        autocomplete="given-name"
+                    >
+                    <div class="form-error" id="firstNameError">Please enter your first name</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="email">
+                        Email Address <span class="required-star">*</span>
+                    </label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        class="form-input"
+                        placeholder="you@example.com"
+                        required
+                        autocomplete="email"
+                    >
+                    <div class="form-error" id="emailError">Please enter a valid email address</div>
+                    <div class="form-hint">Your report will be sent to this email</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label phone-optional" for="phone">
+                        Phone Number
+                        <span class="optional-badge">Optional</span>
+                    </label>
+                    <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        class="form-input"
+                        placeholder="(555) 123-4567"
+                        autocomplete="tel"
+                    >
+                    <div class="form-hint">For scheduling a consultation if you'd like</div>
+                </div>
+
+                <!-- Consent -->
+                <div class="consent-group">
+                    <label class="consent-label">
+                        <input type="checkbox" id="consent" class="consent-checkbox" required>
+                        <span class="consent-text">
+                            I agree to receive my personalized tax analysis and occasional tax tips
+                            from {{ cpa.display_name }}. I understand I can unsubscribe at any time.
+                            I've read the <a href="/privacy" target="_blank">Privacy Policy</a>.
+                        </span>
+                    </label>
+                    <div class="form-error" id="consentError" style="margin-left: 32px;">
+                        Please accept to continue
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-button" id="submitButton">
+                    Get My Free Analysis
+                </button>
+
+                <p class="submit-subtext">
+                    No payment required. No spam.
+                </p>
+            </form>
+
+            <!-- Security Note -->
+            <div class="security-note">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                <span>Your information is encrypted and secure</span>
+            </div>
+
+            <!-- Disclaimer -->
+            <div class="disclaimer">
+                <strong>Important:</strong> By submitting this form, you are requesting a free,
+                no-obligation tax savings analysis. This does not create a CPA-client relationship.
+                Your information will be handled in accordance with our
+                <a href="/privacy" target="_blank">Privacy Policy</a> and will only be used to
+                provide the requested analysis and related services. We do not sell your data.
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-card">
+            <div class="spinner"></div>
+            <div>Creating your personalized report...</div>
+        </div>
+    </div>
+
+    <script>
+        // Get session ID
+        const sessionId = '{{ session_id }}' || sessionStorage.getItem('assessment_session_id');
+
+        // Form validation
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+
+        function validatePhone(phone) {
+            if (!phone) return true; // Optional
+            const cleaned = phone.replace(/\D/g, '');
+            return cleaned.length >= 10;
+        }
+
+        function showError(fieldId, show) {
+            const input = document.getElementById(fieldId);
+            const error = document.getElementById(fieldId + 'Error');
+
+            if (show) {
+                input.classList.add('error');
+                error.classList.add('show');
+            } else {
+                input.classList.remove('error');
+                error.classList.remove('show');
+            }
+        }
+
+        // Real-time validation
+        document.getElementById('firstName').addEventListener('blur', function() {
+            showError('firstName', !this.value.trim());
+        });
+
+        document.getElementById('email').addEventListener('blur', function() {
+            showError('email', !validateEmail(this.value));
+        });
+
+        // Form submission
+        document.getElementById('contactForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Validate
+            const firstName = document.getElementById('firstName').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const consent = document.getElementById('consent').checked;
+
+            let valid = true;
+
+            if (!firstName) {
+                showError('firstName', true);
+                valid = false;
+            }
+
+            if (!validateEmail(email)) {
+                showError('email', true);
+                valid = false;
+            }
+
+            if (!consent) {
+                document.getElementById('consentError').classList.add('show');
+                valid = false;
+            } else {
+                document.getElementById('consentError').classList.remove('show');
+            }
+
+            if (!valid) return;
+
+            // Show loading
+            document.getElementById('loadingOverlay').classList.add('show');
+            document.getElementById('submitButton').disabled = true;
+
+            try {
+                // Submit to API
+                const response = await fetch(`/api/cpa/lead-magnet/${sessionId}/contact`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        first_name: firstName,
+                        email: email,
+                        phone: phone || null
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to submit contact info');
+                }
+
+                const result = await response.json();
+
+                // Store lead ID
+                sessionStorage.setItem('lead_id', result.lead_id);
+
+                // Redirect to report
+                window.location.href = `/lead-magnet/report?session=${sessionId}`;
+
+            } catch (error) {
+                console.error('Submission error:', error);
+                document.getElementById('loadingOverlay').classList.remove('show');
+                document.getElementById('submitButton').disabled = false;
+                alert('Something went wrong. Please try again.');
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!sessionId) {
+                window.location.href = '/lead-magnet/';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,649 @@
+{% extends "cpa/base.html" %}
+
+{% block title %}Leads{% endblock %}
+{% block page_title %}
+{% if filter_state %}
+    {{ filter_state|replace('_', ' ')|title }} Leads
+{% else %}
+    All Leads
+{% endif %}
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+    /* Filters Bar */
+    .filters-bar {
+        background: var(--white);
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        border: 1px solid var(--border-color);
+    }
+
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .filter-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .filter-select {
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 0.9rem;
+        background: var(--white);
+        cursor: pointer;
+        min-width: 140px;
+    }
+
+    .filter-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+    }
+
+    .search-input {
+        padding: 8px 12px 8px 36px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 0.9rem;
+        width: 240px;
+        background: var(--bg-light);
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        background: var(--white);
+    }
+
+    .search-wrapper {
+        position: relative;
+    }
+
+    .search-wrapper::before {
+        content: '🔍';
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.85rem;
+    }
+
+    .filter-actions {
+        margin-left: auto;
+        display: flex;
+        gap: 8px;
+    }
+
+    /* Leads Table */
+    .leads-table-card {
+        background: var(--white);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+    }
+
+    .leads-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .leads-table th,
+    .leads-table td {
+        padding: 14px 16px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .leads-table th {
+        font-weight: 600;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        background: var(--bg-light);
+    }
+
+    .leads-table tbody tr {
+        transition: background 0.15s ease;
+        cursor: pointer;
+    }
+
+    .leads-table tbody tr:hover {
+        background: var(--bg-light);
+    }
+
+    .leads-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* Lead Info Cell */
+    .lead-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .lead-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+
+    .lead-name {
+        font-weight: 600;
+        margin-bottom: 2px;
+    }
+
+    .lead-email {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    /* State Badge */
+    .state-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .state-badge.browsing { background: #f3f4f6; color: #6b7280; }
+    .state-badge.curious { background: #dbeafe; color: #1d4ed8; }
+    .state-badge.evaluating { background: #fef3c7; color: #b45309; }
+    .state-badge.advisory_ready { background: #d1fae5; color: #047857; }
+    .state-badge.high_leverage { background: #fce7f3; color: #be185d; }
+    .state-badge.converted { background: #ede9fe; color: #6d28d9; }
+
+    /* Temperature Badge */
+    .temp-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .temp-badge.hot { background: #fee2e2; color: #b91c1c; }
+    .temp-badge.warm { background: #fef3c7; color: #b45309; }
+    .temp-badge.cold { background: #dbeafe; color: #1d4ed8; }
+
+    /* Savings Value */
+    .savings-value {
+        font-weight: 600;
+        color: var(--success);
+    }
+
+    .savings-range {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    /* Complexity Badge */
+    .complexity-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        background: var(--bg-light);
+        color: var(--text-muted);
+    }
+
+    .complexity-badge.professional { background: #fee2e2; color: #991b1b; }
+    .complexity-badge.complex { background: #fef3c7; color: #92400e; }
+    .complexity-badge.moderate { background: #dbeafe; color: #1e40af; }
+    .complexity-badge.simple { background: #d1fae5; color: #065f46; }
+
+    /* Actions Column */
+    .actions-cell {
+        display: flex;
+        gap: 8px;
+    }
+
+    .action-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: var(--bg-light);
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        transition: all 0.15s ease;
+    }
+
+    .action-btn:hover {
+        background: var(--border-color);
+        color: var(--text-dark);
+    }
+
+    /* Pagination */
+    .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-top: 1px solid var(--border-color);
+        background: var(--bg-light);
+    }
+
+    .pagination-info {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .pagination-buttons {
+        display: flex;
+        gap: 8px;
+    }
+
+    .pagination-btn {
+        padding: 8px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--white);
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: all 0.15s ease;
+    }
+
+    .pagination-btn:hover:not(:disabled) {
+        background: var(--bg-light);
+    }
+
+    .pagination-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .pagination-btn.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 64px 24px;
+        color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+        margin-bottom: 16px;
+    }
+
+    .empty-state-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 8px;
+    }
+
+    .empty-state-text {
+        margin-bottom: 24px;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Bulk Actions */
+    .bulk-actions {
+        display: none;
+        align-items: center;
+        gap: 16px;
+        padding: 12px 20px;
+        background: var(--primary-color);
+        color: white;
+        border-radius: 12px 12px 0 0;
+    }
+
+    .bulk-actions.show {
+        display: flex;
+    }
+
+    .bulk-count {
+        font-weight: 600;
+    }
+
+    .bulk-btn {
+        padding: 6px 12px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: none;
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: background 0.15s ease;
+    }
+
+    .bulk-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    @media (max-width: 1024px) {
+        .filters-bar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-actions {
+            margin-left: 0;
+            margin-top: 12px;
+        }
+
+        .leads-table {
+            display: block;
+            overflow-x: auto;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .search-input {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Filters Bar -->
+<div class="filters-bar">
+    <div class="filter-group">
+        <label class="filter-label">State:</label>
+        <select class="filter-select" id="filterState" onchange="applyFilters()">
+            <option value="">All States</option>
+            <option value="browsing" {% if filter_state == 'browsing' %}selected{% endif %}>Browsing</option>
+            <option value="curious" {% if filter_state == 'curious' %}selected{% endif %}>Curious</option>
+            <option value="evaluating" {% if filter_state == 'evaluating' %}selected{% endif %}>Evaluating</option>
+            <option value="advisory_ready" {% if filter_state == 'advisory_ready' %}selected{% endif %}>Advisory Ready</option>
+            <option value="high_leverage" {% if filter_state == 'high_leverage' %}selected{% endif %}>High Leverage</option>
+        </select>
+    </div>
+
+    <div class="filter-group">
+        <label class="filter-label">Temperature:</label>
+        <select class="filter-select" id="filterTemp" onchange="applyFilters()">
+            <option value="">All</option>
+            <option value="hot" {% if filter_temperature == 'hot' %}selected{% endif %}>Hot</option>
+            <option value="warm" {% if filter_temperature == 'warm' %}selected{% endif %}>Warm</option>
+            <option value="cold" {% if filter_temperature == 'cold' %}selected{% endif %}>Cold</option>
+        </select>
+    </div>
+
+    <div class="search-wrapper">
+        <input type="text" class="search-input" id="searchInput" placeholder="Search leads..."
+               value="{{ search_query or '' }}" onkeyup="handleSearchKeyup(event)">
+    </div>
+
+    <div class="filter-actions">
+        <button class="btn btn-secondary btn-sm" onclick="clearFilters()">Clear Filters</button>
+        <button class="btn btn-primary btn-sm" onclick="applyFilters()">Apply</button>
+    </div>
+</div>
+
+<!-- Leads Table -->
+<div class="leads-table-card">
+    <!-- Bulk Actions (hidden by default) -->
+    <div class="bulk-actions" id="bulkActions">
+        <span class="bulk-count"><span id="selectedCount">0</span> selected</span>
+        <button class="bulk-btn" onclick="bulkAction('engage')">Engage All</button>
+        <button class="bulk-btn" onclick="bulkAction('assign')">Assign</button>
+        <button class="bulk-btn" onclick="bulkAction('export')">Export</button>
+        <button class="bulk-btn" onclick="clearSelection()" style="margin-left: auto;">Cancel</button>
+    </div>
+
+    {% if leads and leads|length > 0 %}
+    <table class="leads-table">
+        <thead>
+            <tr>
+                <th style="width: 40px;">
+                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                </th>
+                <th>Lead</th>
+                <th>State</th>
+                <th>Temperature</th>
+                <th>Est. Savings</th>
+                <th>Complexity</th>
+                <th>Age</th>
+                <th style="width: 100px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lead in leads %}
+            <tr onclick="viewLead('{{ lead.id }}')" data-lead-id="{{ lead.id }}">
+                <td onclick="event.stopPropagation();">
+                    <input type="checkbox" class="lead-checkbox" value="{{ lead.id }}" onchange="updateBulkActions()">
+                </td>
+                <td>
+                    <div class="lead-info">
+                        <div class="lead-avatar">
+                            {{ (lead.name or lead.email)[0]|upper }}
+                        </div>
+                        <div>
+                            <div class="lead-name">{{ lead.name or lead.email.split('@')[0] }}</div>
+                            <div class="lead-email">{{ lead.email }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span class="state-badge {{ lead.state|lower|replace(' ', '_') }}">
+                        {% if lead.state == 'high_leverage' %}🔥{% elif lead.state == 'advisory_ready' %}⭐{% endif %}
+                        {{ lead.state_display or lead.state|replace('_', ' ')|title }}
+                    </span>
+                </td>
+                <td>
+                    <span class="temp-badge {{ lead.temperature|lower }}">
+                        {% if lead.temperature == 'hot' %}🔥{% elif lead.temperature == 'warm' %}☀️{% else %}❄️{% endif %}
+                        {{ lead.temperature|title }}
+                    </span>
+                </td>
+                <td>
+                    <div class="savings-value">${{ '{:,.0f}'.format(lead.estimated_savings or 0) }}</div>
+                </td>
+                <td>
+                    <span class="complexity-badge {{ lead.complexity|lower }}">
+                        {{ lead.complexity|title }}
+                    </span>
+                </td>
+                <td style="color: var(--text-muted); font-size: 0.9rem;">
+                    {{ lead.age or 'Today' }}
+                </td>
+                <td onclick="event.stopPropagation();">
+                    <div class="actions-cell">
+                        <button class="action-btn" title="View Details" onclick="viewLead('{{ lead.id }}')">👁️</button>
+                        <button class="action-btn" title="Engage Lead" onclick="engageLead('{{ lead.id }}')">✉️</button>
+                        <button class="action-btn" title="More Options" onclick="showLeadMenu('{{ lead.id }}')">⋮</button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="pagination">
+        <div class="pagination-info">
+            Showing {{ ((page - 1) * 25) + 1 }} - {{ [page * 25, total_count]|min }} of {{ total_count }} leads
+        </div>
+        <div class="pagination-buttons">
+            <button class="pagination-btn" onclick="goToPage({{ page - 1 }})" {% if page <= 1 %}disabled{% endif %}>
+                ← Previous
+            </button>
+            {% for p in range(1, total_pages + 1) %}
+                {% if p <= 3 or p > total_pages - 2 or (p >= page - 1 and p <= page + 1) %}
+                <button class="pagination-btn {% if p == page %}active{% endif %}" onclick="goToPage({{ p }})">
+                    {{ p }}
+                </button>
+                {% elif p == 4 or p == total_pages - 2 %}
+                <span style="padding: 0 8px;">...</span>
+                {% endif %}
+            {% endfor %}
+            <button class="pagination-btn" onclick="goToPage({{ page + 1 }})" {% if page >= total_pages %}disabled{% endif %}>
+                Next →
+            </button>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="empty-state">
+        <div class="empty-state-icon">📭</div>
+        <div class="empty-state-title">
+            {% if filter_state or filter_temperature or search_query %}
+                No leads match your filters
+            {% else %}
+                No leads yet
+            {% endif %}
+        </div>
+        <p class="empty-state-text">
+            {% if filter_state or filter_temperature or search_query %}
+                Try adjusting your filters or search terms to find leads.
+            {% else %}
+                Share your lead magnet link to start capturing leads. They'll appear here as prospects engage with your content.
+            {% endif %}
+        </p>
+        {% if filter_state or filter_temperature or search_query %}
+        <button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+        {% else %}
+        <a href="/cpa/branding" class="btn btn-primary">Set Up Lead Magnet</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Filter handling
+    function applyFilters() {
+        const state = document.getElementById('filterState').value;
+        const temp = document.getElementById('filterTemp').value;
+        const search = document.getElementById('searchInput').value.trim();
+
+        let url = '/cpa/leads?';
+        const params = [];
+
+        if (state) params.push('state=' + encodeURIComponent(state));
+        if (temp) params.push('temperature=' + encodeURIComponent(temp));
+        if (search) params.push('search=' + encodeURIComponent(search));
+
+        window.location.href = url + params.join('&');
+    }
+
+    function clearFilters() {
+        window.location.href = '/cpa/leads';
+    }
+
+    function handleSearchKeyup(e) {
+        if (e.key === 'Enter') {
+            applyFilters();
+        }
+    }
+
+    // Lead actions
+    function viewLead(leadId) {
+        window.location.href = '/cpa/leads/' + leadId;
+    }
+
+    function engageLead(leadId) {
+        // TODO: Implement engage action
+        alert('Engage lead: ' + leadId);
+    }
+
+    function showLeadMenu(leadId) {
+        // TODO: Implement dropdown menu
+        alert('Menu for lead: ' + leadId);
+    }
+
+    // Pagination
+    function goToPage(page) {
+        const state = document.getElementById('filterState').value;
+        const temp = document.getElementById('filterTemp').value;
+        const search = document.getElementById('searchInput').value.trim();
+
+        let url = '/cpa/leads?page=' + page;
+        if (state) url += '&state=' + encodeURIComponent(state);
+        if (temp) url += '&temperature=' + encodeURIComponent(temp);
+        if (search) url += '&search=' + encodeURIComponent(search);
+
+        window.location.href = url;
+    }
+
+    // Bulk selection
+    function toggleSelectAll() {
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.lead-checkbox');
+
+        checkboxes.forEach(cb => {
+            cb.checked = selectAll.checked;
+        });
+
+        updateBulkActions();
+    }
+
+    function updateBulkActions() {
+        const checkboxes = document.querySelectorAll('.lead-checkbox:checked');
+        const bulkActions = document.getElementById('bulkActions');
+        const selectedCount = document.getElementById('selectedCount');
+
+        if (checkboxes.length > 0) {
+            bulkActions.classList.add('show');
+            selectedCount.textContent = checkboxes.length;
+        } else {
+            bulkActions.classList.remove('show');
+        }
+
+        // Update select all state
+        const allCheckboxes = document.querySelectorAll('.lead-checkbox');
+        const selectAll = document.getElementById('selectAll');
+        selectAll.checked = allCheckboxes.length > 0 && checkboxes.length === allCheckboxes.length;
+    }
+
+    function clearSelection() {
+        const checkboxes = document.querySelectorAll('.lead-checkbox');
+        checkboxes.forEach(cb => cb.checked = false);
+        document.getElementById('selectAll').checked = false;
+        updateBulkActions();
+    }
+
+    function bulkAction(action) {
+        const checkboxes = document.querySelectorAll('.lead-checkbox:checked');
+        const leadIds = Array.from(checkboxes).map(cb => cb.value);
+
+        if (leadIds.length === 0) return;
+
+        // TODO: Implement bulk actions
+        alert(action + ' ' + leadIds.length + ' leads: ' + leadIds.join(', '));
+    }
+</script>
+{% endblock %}

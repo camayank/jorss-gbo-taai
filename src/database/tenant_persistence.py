@@ -157,9 +157,13 @@ class TenantPersistence:
 
     def get_tenant(self, tenant_id: str) -> Optional[Tenant]:
         """Get tenant by ID"""
+        # Use explicit column list instead of SELECT *
+        from database.column_specs import TENANT_COLUMNS, build_select_query
+
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM tenants WHERE tenant_id = ?", (tenant_id,))
+            query = build_select_query("tenants", TENANT_COLUMNS, where_clause="tenant_id = ?")
+            cursor.execute(query, (tenant_id,))
             row = cursor.fetchone()
 
             if not row:
@@ -169,12 +173,17 @@ class TenantPersistence:
 
     def get_tenant_by_domain(self, domain: str) -> Optional[Tenant]:
         """Get tenant by custom domain"""
+        # Use explicit column list instead of SELECT *
+        from database.column_specs import TENANT_COLUMNS
+
+        column_list = ", ".join(TENANT_COLUMNS)
+
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
             # Try direct domain lookup first
-            cursor.execute("""
-                SELECT * FROM tenants
+            cursor.execute(f"""
+                SELECT {column_list} FROM tenants
                 WHERE custom_domain = ? AND custom_domain_verified = 1
             """, (domain,))
             row = cursor.fetchone()
@@ -183,8 +192,9 @@ class TenantPersistence:
                 return self._row_to_tenant(row, cursor.description)
 
             # Try domain mappings table
-            cursor.execute("""
-                SELECT t.* FROM tenants t
+            prefixed_columns = ", ".join(f"t.{c}" for c in TENANT_COLUMNS)
+            cursor.execute(f"""
+                SELECT {prefixed_columns} FROM tenants t
                 JOIN domain_mappings dm ON t.tenant_id = dm.tenant_id
                 WHERE dm.domain = ? AND dm.verified = 1
             """, (domain,))
@@ -308,10 +318,15 @@ class TenantPersistence:
         offset: int = 0
     ) -> List[Tenant]:
         """List tenants with optional filtering"""
+        # Use explicit column list instead of SELECT *
+        from database.column_specs import TENANT_COLUMNS
+
+        column_list = ", ".join(TENANT_COLUMNS)
+
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
-            query = "SELECT * FROM tenants WHERE 1=1"
+            query = f"SELECT {column_list} FROM tenants WHERE 1=1"
             params = []
 
             if status:
@@ -392,9 +407,14 @@ class TenantPersistence:
 
     def get_cpa_branding(self, cpa_id: str) -> Optional[CPABranding]:
         """Get CPA branding by CPA ID"""
+        # Use explicit column list instead of SELECT *
+        from database.column_specs import CPA_BRANDING_COLUMNS
+
+        column_list = ", ".join(CPA_BRANDING_COLUMNS)
+
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM cpa_branding WHERE cpa_id = ?", (cpa_id,))
+            cursor.execute(f"SELECT {column_list} FROM cpa_branding WHERE cpa_id = ?", (cpa_id,))
             row = cursor.fetchone()
 
             if not row:
@@ -404,9 +424,14 @@ class TenantPersistence:
 
     def get_tenant_cpas_branding(self, tenant_id: str) -> List[CPABranding]:
         """Get all CPA brandings for a tenant"""
+        # Use explicit column list instead of SELECT *
+        from database.column_specs import CPA_BRANDING_COLUMNS
+
+        column_list = ", ".join(CPA_BRANDING_COLUMNS)
+
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM cpa_branding WHERE tenant_id = ?", (tenant_id,))
+            cursor.execute(f"SELECT {column_list} FROM cpa_branding WHERE tenant_id = ?", (tenant_id,))
             rows = cursor.fetchall()
 
             return [self._row_to_cpa_branding(row, cursor.description) for row in rows]
