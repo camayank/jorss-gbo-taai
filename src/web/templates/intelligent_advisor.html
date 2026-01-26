@@ -2768,7 +2768,9 @@
       // BUSINESS & SELF-EMPLOYMENT HANDLERS
       // =====================================================================
 
-      } else if (value.startsWith('biz_')) {
+      // Flow A business TYPE handlers (industry/category - different from entity structure)
+      } else if (value === 'biz_professional' || value === 'biz_retail' ||
+                 value === 'biz_realestate' || value === 'biz_tech' || value === 'biz_service') {
         const bizType = value.replace('biz_', '');
         const bizLabels = {
           'professional': 'Professional Services',
@@ -3047,6 +3049,96 @@
         calculateLeadScore();
         startIntelligentQuestioning();
 
+      // =====================================================================
+      // CRYPTOCURRENCY HANDLERS
+      // =====================================================================
+
+      } else if (value.startsWith('crypto_')) {
+        const cryptoType = value.replace('crypto_', '');
+        const cryptoLabels = {
+          'hold': 'Yes, I hold crypto but haven\'t sold',
+          'sold': 'Yes, I sold/traded crypto',
+          'earned': 'Yes, I earned crypto',
+          'none': 'No cryptocurrency'
+        };
+        addMessage('user', cryptoLabels[cryptoType] || cryptoType);
+        extractedData.tax_profile.crypto_explored = true;
+
+        if (cryptoType !== 'none') {
+          extractedData.tax_profile.has_crypto = true;
+          extractedData.tax_profile.crypto_activity = cryptoType;
+          extractedData.lead_data.score += 10;
+
+          if (cryptoType === 'sold') {
+            extractedData.tax_profile.has_crypto_gains = true;
+            extractedData.lead_data.complexity = 'complex';
+          } else if (cryptoType === 'earned') {
+            extractedData.tax_profile.has_crypto_income = true;
+            extractedData.lead_data.complexity = 'complex';
+          }
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // =====================================================================
+      // STOCK OPTIONS & EQUITY COMPENSATION HANDLERS
+      // =====================================================================
+
+      } else if (value.startsWith('options_')) {
+        const optionType = value.replace('options_', '');
+        const optionLabels = {
+          'iso': 'Yes, I have ISOs',
+          'nso': 'Yes, I have NSOs',
+          'rsu': 'Yes, I have RSUs',
+          'espp': 'Yes, I have ESPP',
+          'none': 'No equity compensation'
+        };
+        addMessage('user', optionLabels[optionType] || optionType);
+        extractedData.tax_profile.stock_options_explored = true;
+
+        if (optionType !== 'none') {
+          extractedData.tax_profile.has_equity_compensation = true;
+          extractedData.tax_profile.equity_type = optionType;
+          extractedData.lead_data.score += 10;
+          extractedData.lead_data.complexity = 'complex';
+
+          // ISOs have special AMT implications
+          if (optionType === 'iso') {
+            extractedData.tax_profile.has_iso = true;
+            extractedData.tax_profile.may_have_amt = true;
+          }
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // =====================================================================
+      // ESTIMATED TAX PAYMENTS HANDLERS
+      // =====================================================================
+
+      } else if (value.startsWith('estimated_')) {
+        const estimatedType = value.replace('estimated_', '');
+        const estimatedLabels = {
+          'yes': 'Yes, I make regular estimated payments',
+          'sometimes': 'Sometimes, but not consistently',
+          'no': 'No, I don\'t make estimated payments',
+          'unsure': 'Not sure if I should be'
+        };
+        addMessage('user', estimatedLabels[estimatedType] || estimatedType);
+        extractedData.tax_profile.estimated_explored = true;
+        extractedData.tax_profile.makes_estimated_payments = (estimatedType === 'yes');
+        extractedData.tax_profile.estimated_payment_status = estimatedType;
+
+        // Flag potential underpayment penalty risk
+        if (estimatedType === 'no' || estimatedType === 'unsure') {
+          const profile = extractedData.tax_profile;
+          if (profile.is_self_employed || profile.has_rental_income ||
+              profile.has_crypto_gains || profile.has_investment_income) {
+            extractedData.tax_profile.possible_underpayment_penalty = true;
+          }
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
       // Run full analysis
       } else if (value === 'run_full_analysis') {
         addMessage('user', 'Run full analysis');
@@ -3206,42 +3298,27 @@
         addMessage('user', 'I want to speak with a CPA');
         requestCPAConnection();
 
+      // Consolidated status handler - redirects to main flow via startIntelligentQuestioning
       } else if (value.startsWith('status_')) {
         const status = value.replace('status_', '').replace('_', ' ');
-        addMessage('user', status.charAt(0).toUpperCase() + status.slice(1));
-        extractedData.tax_profile.filing_status = status;
-        updateStats({ filing_status: status });
+        const statusMap = {
+          'single': 'Single',
+          'married filing jointly': 'Married Filing Jointly',
+          'married_filing_jointly': 'Married Filing Jointly',
+          'head of household': 'Head of Household',
+          'married filing separately': 'Married Filing Separately',
+          'qualifying surviving spouse': 'Qualifying Surviving Spouse'
+        };
+        const displayStatus = statusMap[status] || status.charAt(0).toUpperCase() + status.slice(1);
+        addMessage('user', displayStatus);
+        extractedData.tax_profile.filing_status = displayStatus;
+        updateStats({ filing_status: displayStatus });
         updateProgress(15);
+        extractedData.lead_data.score += 10;
+        calculateLeadScore();
 
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `What's your approximate annual income?`, [
-            { label: 'Under $50K', value: 'income_0_50k' },
-            { label: '$50K - $100K', value: 'income_50_100k' },
-            { label: '$100K - $200K', value: 'income_100_200k' },
-            { label: '$200K - $500K', value: 'income_200_500k' },
-            { label: 'Over $500K', value: 'income_500k_plus' }
-          ]);
-        }, 1500);
-
-      } else if (value.startsWith('income_')) {
-        const incomeRange = value.replace('income_', '').replace('_', ' ');
-        addMessage('user', incomeRange.charAt(0).toUpperCase() + incomeRange.slice(1));
-        extractedData.income_range = incomeRange;
-        updateProgress(30);
-
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `Excellent! With your filing status and income level, I can already identify several strategic opportunities.<br><br><strong>What areas are you most interested in optimizing?</strong> (Select what matters most to you)`, [
-            { label: '🏠 Homeownership & Real Estate', value: 'focus_real_estate' },
-            { label: '📚 Education & Student Loans', value: 'focus_education' },
-            { label: '💼 Business & Self-Employment', value: 'focus_business' },
-            { label: '🏥 Healthcare & Medical', value: 'focus_healthcare' },
-            { label: '📈 Investments & Retirement', value: 'focus_investments' }
-          ]);
-        }, 1500);
+        // Use consolidated main flow instead of separate inline flow
+        startIntelligentQuestioning();
 
       } else if (value.startsWith('focus_')) {
         const focus = value.replace('focus_', '').replace('_', ' ');
@@ -3291,28 +3368,430 @@
           }
         }, 1500);
 
-      } else if (value.startsWith('homeowner_') || value.startsWith('edu_') ||
-                 value.startsWith('biz_') || value.startsWith('medical_') ||
-                 value.startsWith('inv_')) {
+      // =====================================================================
+      // FOCUS-BASED FLOW HANDLERS (with specific follow-ups)
+      // =====================================================================
 
-        const response = value.split('_').slice(1).join(' ');
-        addMessage('user', response.charAt(0).toUpperCase() + response.slice(1));
+      // Homeowner/Real Estate handlers
+      } else if (value.startsWith('homeowner_')) {
+        const homeType = value.replace('homeowner_', '');
+        const homeLabels = {
+          'yes': 'Yes, I own my home',
+          'no': 'No, I rent',
+          'rental': 'I own rental properties'
+        };
+        addMessage('user', homeLabels[homeType] || homeType);
         extractedData.details = extractedData.details || {};
         extractedData.details[value] = true;
-        updateProgress(60);
 
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `Thank you for sharing that information. I'm building a comprehensive picture of your tax situation.<br><br>Let me ask about deductions you may be eligible for. <strong>Which of these apply to you?</strong>`, [
-            { label: '🏠 Mortgage interest', value: 'deduct_mortgage' },
-            { label: '💝 Charitable donations', value: 'deduct_charity' },
-            { label: '🏥 Medical expenses', value: 'deduct_medical' },
-            { label: '📚 Education costs', value: 'deduct_education' },
-            { label: '💼 Business expenses', value: 'deduct_business' },
-            { label: 'None of these / Continue', value: 'deduct_skip' }
+          if (homeType === 'yes') {
+            // Primary residence - ask about mortgage and property tax
+            addMessage('ai', `Homeownership offers great tax benefits! Let me understand your situation better.<br><br><strong>What's your approximate annual mortgage interest?</strong>`, [
+              { label: 'Under $5,000', value: 'mortgage_under5k' },
+              { label: '$5,000 - $15,000', value: 'mortgage_5_15k' },
+              { label: '$15,000 - $30,000', value: 'mortgage_15_30k' },
+              { label: 'Over $30,000', value: 'mortgage_over30k' },
+              { label: 'No mortgage / Paid off', value: 'mortgage_none' }
+            ]);
+          } else if (homeType === 'rental') {
+            // Rental property owner - ask about rental details
+            addMessage('ai', `Rental properties can provide significant tax advantages. Let me learn more.<br><br><strong>How many rental properties do you own?</strong>`, [
+              { label: '1 property', value: 'rental_props_1' },
+              { label: '2-4 properties', value: 'rental_props_2_4' },
+              { label: '5+ properties', value: 'rental_props_5plus' }
+            ]);
+          } else {
+            // Renter - continue to next section
+            continueToDeductionsFromFocus();
+          }
+        }, 1000);
+
+      // Mortgage amount handlers
+      } else if (value.startsWith('mortgage_')) {
+        const mortgageLevel = value.replace('mortgage_', '');
+        const mortgageAmounts = {
+          'under5k': 2500, '5_15k': 10000, '15_30k': 22500, 'over30k': 40000, 'none': 0
+        };
+        const mortgageLabels = {
+          'under5k': 'Under $5,000', '5_15k': '$5,000 - $15,000',
+          '15_30k': '$15,000 - $30,000', 'over30k': 'Over $30,000', 'none': 'No mortgage'
+        };
+        addMessage('user', mortgageLabels[mortgageLevel] || mortgageLevel);
+        extractedData.tax_items.mortgage_interest = mortgageAmounts[mortgageLevel] || 0;
+
+        // Now ask about property tax
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<strong>What's your approximate annual property tax?</strong>`, [
+            { label: 'Under $3,000', value: 'proptax_under3k' },
+            { label: '$3,000 - $8,000', value: 'proptax_3_8k' },
+            { label: '$8,000 - $15,000', value: 'proptax_8_15k' },
+            { label: 'Over $15,000', value: 'proptax_over15k' },
+            { label: 'Not sure / Skip', value: 'proptax_skip' }
           ]);
-        }, 1500);
+        }, 800);
+
+      // Property tax handlers
+      } else if (value.startsWith('proptax_')) {
+        const propTaxLevel = value.replace('proptax_', '');
+        const propTaxAmounts = {
+          'under3k': 1500, '3_8k': 5500, '8_15k': 11500, 'over15k': 20000, 'skip': 0
+        };
+        if (propTaxLevel !== 'skip') {
+          const propTaxLabels = {
+            'under3k': 'Under $3,000', '3_8k': '$3,000 - $8,000',
+            '8_15k': '$8,000 - $15,000', 'over15k': 'Over $15,000'
+          };
+          addMessage('user', propTaxLabels[propTaxLevel] || propTaxLevel);
+        } else {
+          addMessage('user', 'Skip');
+        }
+        extractedData.tax_items.property_tax = propTaxAmounts[propTaxLevel] || 0;
+        continueToDeductionsFromFocus();
+
+      // Rental property count handlers
+      } else if (value.startsWith('rental_props_')) {
+        const rentalCount = value.replace('rental_props_', '');
+        const rentalLabels = { '1': '1 property', '2_4': '2-4 properties', '5plus': '5+ properties' };
+        addMessage('user', rentalLabels[rentalCount] || rentalCount);
+        extractedData.tax_profile.rental_property_count = rentalCount;
+        extractedData.tax_profile.has_rental_income = true;
+
+        // Ask about rental income
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<strong>What's your total annual rental income (before expenses)?</strong>`, [
+            { label: 'Under $20,000', value: 'rental_income_under20k' },
+            { label: '$20,000 - $50,000', value: 'rental_income_20_50k' },
+            { label: '$50,000 - $100,000', value: 'rental_income_50_100k' },
+            { label: 'Over $100,000', value: 'rental_income_over100k' }
+          ]);
+        }, 800);
+
+      // Rental income handlers
+      } else if (value.startsWith('rental_income_')) {
+        const incomeLevel = value.replace('rental_income_', '');
+        const incomeAmounts = {
+          'under20k': 15000, '20_50k': 35000, '50_100k': 75000, 'over100k': 150000
+        };
+        const incomeLabels = {
+          'under20k': 'Under $20,000', '20_50k': '$20,000 - $50,000',
+          '50_100k': '$50,000 - $100,000', 'over100k': 'Over $100,000'
+        };
+        addMessage('user', incomeLabels[incomeLevel] || incomeLevel);
+        extractedData.tax_profile.rental_income = incomeAmounts[incomeLevel] || 0;
+        continueToDeductionsFromFocus();
+
+      // Education handlers
+      } else if (value.startsWith('edu_')) {
+        const eduType = value.replace('edu_', '');
+        const eduLabels = {
+          'self': 'Yes, for myself',
+          'dependents': 'Yes, for dependents',
+          'loans': 'I have student loan interest',
+          'multiple': 'Multiple of these'
+        };
+        addMessage('user', eduLabels[eduType] || eduType);
+        extractedData.details = extractedData.details || {};
+        extractedData.details[value] = true;
+
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          if (eduType === 'loans' || eduType === 'multiple') {
+            // Ask about student loan interest
+            addMessage('ai', `Student loan interest can be deductible up to $2,500.<br><br><strong>How much student loan interest do you pay annually?</strong>`, [
+              { label: 'Under $1,000', value: 'student_loan_under1k' },
+              { label: '$1,000 - $2,500', value: 'student_loan_1_2.5k' },
+              { label: 'Over $2,500', value: 'student_loan_over2.5k' },
+              { label: 'Not sure', value: 'student_loan_unsure' }
+            ]);
+          } else if (eduType === 'dependents') {
+            // Ask about education expenses for dependents
+            addMessage('ai', `Education credits can save you up to $2,500 per student!<br><br><strong>How many dependents are in college or vocational school?</strong>`, [
+              { label: '1 student', value: 'college_students_1' },
+              { label: '2 students', value: 'college_students_2' },
+              { label: '3+ students', value: 'college_students_3plus' }
+            ]);
+          } else {
+            // Self education - ask about expenses
+            addMessage('ai', `<strong>What's your approximate annual education expense?</strong>`, [
+              { label: 'Under $5,000', value: 'edu_expense_under5k' },
+              { label: '$5,000 - $15,000', value: 'edu_expense_5_15k' },
+              { label: 'Over $15,000', value: 'edu_expense_over15k' }
+            ]);
+          }
+        }, 800);
+
+      // Student loan interest handlers
+      } else if (value.startsWith('student_loan_')) {
+        const loanLevel = value.replace('student_loan_', '');
+        const loanAmounts = { 'under1k': 500, '1_2.5k': 1750, 'over2.5k': 2500, 'unsure': 1500 };
+        const loanLabels = {
+          'under1k': 'Under $1,000', '1_2.5k': '$1,000 - $2,500',
+          'over2.5k': 'Over $2,500', 'unsure': 'Not sure'
+        };
+        addMessage('user', loanLabels[loanLevel] || loanLevel);
+        extractedData.tax_items.student_loan_interest = loanAmounts[loanLevel] || 0;
+        continueToDeductionsFromFocus();
+
+      // College students count handlers
+      } else if (value.startsWith('college_students_')) {
+        const count = value.replace('college_students_', '');
+        const countLabels = { '1': '1 student', '2': '2 students', '3plus': '3+ students' };
+        addMessage('user', countLabels[count] || count);
+        extractedData.tax_profile.college_students = count === '3plus' ? 3 : parseInt(count);
+        extractedData.tax_profile.has_college_students = true;
+        continueToDeductionsFromFocus();
+
+      // Education expense handlers
+      } else if (value.startsWith('edu_expense_')) {
+        const expLevel = value.replace('edu_expense_', '');
+        const expAmounts = { 'under5k': 3000, '5_15k': 10000, 'over15k': 20000 };
+        const expLabels = { 'under5k': 'Under $5,000', '5_15k': '$5,000 - $15,000', 'over15k': 'Over $15,000' };
+        addMessage('user', expLabels[expLevel] || expLevel);
+        extractedData.tax_items.education_expenses = expAmounts[expLevel] || 0;
+        continueToDeductionsFromFocus();
+
+      // Healthcare/Medical handlers (from focus flow)
+      } else if (value === 'medical_high' || value === 'medical_moderate' ||
+                 value === 'medical_hsa' || value === 'medical_ltc') {
+        const medLabels = {
+          'medical_high': 'Yes, over $5,000 annually',
+          'medical_moderate': 'Moderate expenses',
+          'medical_hsa': 'I have an HSA',
+          'medical_ltc': 'Long-term care expenses'
+        };
+        addMessage('user', medLabels[value] || value);
+        extractedData.details = extractedData.details || {};
+        extractedData.details[value] = true;
+
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          if (value === 'medical_hsa') {
+            // Ask about HSA contributions
+            addMessage('ai', `HSA offers triple tax benefits - contributions are deductible, growth is tax-free, and withdrawals for medical expenses are tax-free!<br><br><strong>How much do you contribute to your HSA annually?</strong>`, [
+              { label: 'Under $2,000', value: 'hsa_under2k' },
+              { label: '$2,000 - $4,000', value: 'hsa_2_4k' },
+              { label: 'Maxing out ($4,150 single / $8,300 family)', value: 'hsa_max' },
+              { label: 'Not sure', value: 'hsa_unsure' }
+            ]);
+          } else if (value === 'medical_high' || value === 'medical_ltc') {
+            // Ask about specific medical amount
+            addMessage('ai', `<strong>What's your estimated annual out-of-pocket medical expense?</strong>`, [
+              { label: '$5,000 - $10,000', value: 'medical_amt_5_10k' },
+              { label: '$10,000 - $25,000', value: 'medical_amt_10_25k' },
+              { label: '$25,000 - $50,000', value: 'medical_amt_25_50k' },
+              { label: 'Over $50,000', value: 'medical_amt_over50k' }
+            ]);
+          } else {
+            continueToDeductionsFromFocus();
+          }
+        }, 800);
+
+      // HSA contribution handlers
+      } else if (value.startsWith('hsa_')) {
+        const hsaLevel = value.replace('hsa_', '');
+        const hsaAmounts = { 'under2k': 1500, '2_4k': 3000, 'max': 4150, 'unsure': 2000 };
+        const hsaLabels = {
+          'under2k': 'Under $2,000', '2_4k': '$2,000 - $4,000',
+          'max': 'Maxing out', 'unsure': 'Not sure'
+        };
+        addMessage('user', hsaLabels[hsaLevel] || hsaLevel);
+        extractedData.tax_items.hsa_contributions = hsaAmounts[hsaLevel] || 0;
+        extractedData.tax_profile.has_hsa = true;
+        continueToDeductionsFromFocus();
+
+      // Medical amount handlers (from focus flow)
+      } else if (value.startsWith('medical_amt_')) {
+        const medLevel = value.replace('medical_amt_', '');
+        const medAmounts = { '5_10k': 7500, '10_25k': 17500, '25_50k': 37500, 'over50k': 60000 };
+        const medLabels = {
+          '5_10k': '$5,000 - $10,000', '10_25k': '$10,000 - $25,000',
+          '25_50k': '$25,000 - $50,000', 'over50k': 'Over $50,000'
+        };
+        addMessage('user', medLabels[medLevel] || medLevel);
+        extractedData.tax_items.medical = medAmounts[medLevel] || 0;
+        continueToDeductionsFromFocus();
+
+      // Investment handlers (from focus flow)
+      } else if (value.startsWith('inv_')) {
+        const invType = value.replace('inv_', '');
+        const invLabels = {
+          'traditional': '401(k) / Traditional IRA',
+          'roth': 'Roth IRA',
+          'brokerage': 'Brokerage / Taxable accounts',
+          'multiple': 'Multiple account types'
+        };
+        addMessage('user', invLabels[invType] || invType);
+        extractedData.details = extractedData.details || {};
+        extractedData.details[value] = true;
+
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          if (invType === 'brokerage' || invType === 'multiple') {
+            // Ask about capital gains/losses
+            addMessage('ai', `Taxable investment accounts have important tax implications.<br><br><strong>Did you have any capital gains or losses this year?</strong>`, [
+              { label: 'Net gains (profit)', value: 'capgains_gains' },
+              { label: 'Net losses', value: 'capgains_losses' },
+              { label: 'About break-even', value: 'capgains_even' },
+              { label: 'Haven\'t sold anything', value: 'capgains_none' }
+            ]);
+          } else if (invType === 'traditional') {
+            // Ask about 401k contributions
+            addMessage('ai', `<strong>How much are you contributing to your 401(k) or Traditional IRA this year?</strong>`, [
+              { label: 'Under $10,000', value: 'trad_contrib_under10k' },
+              { label: '$10,000 - $20,000', value: 'trad_contrib_10_20k' },
+              { label: 'Maxing out 401(k) ($23,500)', value: 'trad_contrib_max401k' },
+              { label: 'Maxing out IRA ($7,000)', value: 'trad_contrib_maxira' }
+            ]);
+          } else {
+            // Roth - ask about contributions
+            addMessage('ai', `<strong>How much are you contributing to your Roth IRA this year?</strong>`, [
+              { label: 'Under $3,000', value: 'roth_contrib_under3k' },
+              { label: '$3,000 - $7,000', value: 'roth_contrib_3_7k' },
+              { label: 'Maxing out ($7,000)', value: 'roth_contrib_max' },
+              { label: 'Using Backdoor Roth', value: 'roth_contrib_backdoor' }
+            ]);
+          }
+        }, 800);
+
+      // Capital gains handlers
+      } else if (value.startsWith('capgains_')) {
+        const cgType = value.replace('capgains_', '');
+        const cgLabels = {
+          'gains': 'Net gains (profit)', 'losses': 'Net losses',
+          'even': 'About break-even', 'none': 'Haven\'t sold anything'
+        };
+        addMessage('user', cgLabels[cgType] || cgType);
+        extractedData.tax_profile.has_capital_gains = (cgType === 'gains');
+        extractedData.tax_profile.has_capital_losses = (cgType === 'losses');
+
+        if (cgType === 'gains') {
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Approximately how much in capital gains?</strong>`, [
+              { label: 'Under $10,000', value: 'capgains_amt_under10k' },
+              { label: '$10,000 - $50,000', value: 'capgains_amt_10_50k' },
+              { label: '$50,000 - $100,000', value: 'capgains_amt_50_100k' },
+              { label: 'Over $100,000', value: 'capgains_amt_over100k' }
+            ]);
+          }, 800);
+        } else if (cgType === 'losses') {
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `Tax-loss harvesting can offset gains and up to $3,000 of ordinary income!<br><br><strong>Approximately how much in capital losses?</strong>`, [
+              { label: 'Under $3,000', value: 'caploss_amt_under3k' },
+              { label: '$3,000 - $10,000', value: 'caploss_amt_3_10k' },
+              { label: 'Over $10,000', value: 'caploss_amt_over10k' }
+            ]);
+          }, 800);
+        } else {
+          continueToDeductionsFromFocus();
+        }
+
+      // Capital gains amount handlers
+      } else if (value.startsWith('capgains_amt_')) {
+        const amt = value.replace('capgains_amt_', '');
+        const amounts = { 'under10k': 5000, '10_50k': 30000, '50_100k': 75000, 'over100k': 150000 };
+        const labels = {
+          'under10k': 'Under $10,000', '10_50k': '$10,000 - $50,000',
+          '50_100k': '$50,000 - $100,000', 'over100k': 'Over $100,000'
+        };
+        addMessage('user', labels[amt] || amt);
+        extractedData.tax_profile.capital_gains = amounts[amt] || 0;
+        continueToDeductionsFromFocus();
+
+      // Capital loss amount handlers
+      } else if (value.startsWith('caploss_amt_')) {
+        const amt = value.replace('caploss_amt_', '');
+        const amounts = { 'under3k': 1500, '3_10k': 6500, 'over10k': 15000 };
+        const labels = { 'under3k': 'Under $3,000', '3_10k': '$3,000 - $10,000', 'over10k': 'Over $10,000' };
+        addMessage('user', labels[amt] || amt);
+        extractedData.tax_profile.capital_losses = amounts[amt] || 0;
+        continueToDeductionsFromFocus();
+
+      // Traditional contribution handlers
+      } else if (value.startsWith('trad_contrib_')) {
+        const level = value.replace('trad_contrib_', '');
+        const amounts = { 'under10k': 7500, '10_20k': 15000, 'max401k': 23500, 'maxira': 7000 };
+        const labels = {
+          'under10k': 'Under $10,000', '10_20k': '$10,000 - $20,000',
+          'max401k': 'Maxing out 401(k)', 'maxira': 'Maxing out IRA'
+        };
+        addMessage('user', labels[level] || level);
+        if (level === 'max401k' || level === '10_20k' || level === 'under10k') {
+          extractedData.tax_profile.retirement_401k = amounts[level];
+          extractedData.tax_profile.has_401k = true;
+        } else {
+          extractedData.tax_profile.retirement_ira = amounts[level];
+        }
+        continueToDeductionsFromFocus();
+
+      // Roth contribution handlers
+      } else if (value.startsWith('roth_contrib_')) {
+        const level = value.replace('roth_contrib_', '');
+        const labels = {
+          'under3k': 'Under $3,000', '3_7k': '$3,000 - $7,000',
+          'max': 'Maxing out ($7,000)', 'backdoor': 'Using Backdoor Roth'
+        };
+        addMessage('user', labels[level] || level);
+        extractedData.tax_profile.has_roth = true;
+        if (level === 'backdoor') {
+          extractedData.tax_profile.uses_backdoor_roth = true;
+        }
+        continueToDeductionsFromFocus();
+
+      // Business handlers from focus flow (biz_sole, biz_llc, etc. - different from biz_professional)
+      } else if (value === 'biz_sole' || value === 'biz_llc' || value === 'biz_corp' || value === 'biz_side') {
+        const bizLabels = {
+          'biz_sole': 'Sole Proprietor / Freelancer',
+          'biz_llc': 'LLC / Partnership',
+          'biz_corp': 'S-Corp / C-Corp',
+          'biz_side': 'Side business / Gig work'
+        };
+        addMessage('user', bizLabels[value] || value);
+        extractedData.tax_profile.is_self_employed = true;
+        extractedData.details = extractedData.details || {};
+        extractedData.details[value] = true;
+
+        // Map to entity types for consistency
+        if (value === 'biz_sole') extractedData.tax_profile.entity_type = 'sole';
+        if (value === 'biz_llc') extractedData.tax_profile.entity_type = 'llc_single';
+        if (value === 'biz_corp') extractedData.tax_profile.entity_type = 'scorp';
+        if (value === 'biz_side') extractedData.tax_profile.has_side_business = true;
+
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<strong>What's your approximate annual business income (before expenses)?</strong>`, [
+            { label: 'Under $25,000', value: 'bizinc_under25k' },
+            { label: '$25,000 - $75,000', value: 'bizinc_25_75k' },
+            { label: '$75,000 - $150,000', value: 'bizinc_75_150k' },
+            { label: 'Over $150,000', value: 'bizinc_over150k' }
+          ]);
+        }, 800);
+
+      // Business income handlers
+      } else if (value.startsWith('bizinc_')) {
+        const level = value.replace('bizinc_', '');
+        const amounts = { 'under25k': 15000, '25_75k': 50000, '75_150k': 112500, 'over150k': 200000 };
+        const labels = {
+          'under25k': 'Under $25,000', '25_75k': '$25,000 - $75,000',
+          '75_150k': '$75,000 - $150,000', 'over150k': 'Over $150,000'
+        };
+        addMessage('user', labels[level] || level);
+        extractedData.tax_profile.business_income = amounts[level] || 0;
+        continueToDeductionsFromFocus();
 
       } else if (value.startsWith('deduct_')) {
         if (value === 'deduct_skip') {
@@ -3619,6 +4098,22 @@
         addMessage('user', displayText);
         await processAIResponse(value);
       }
+    }
+
+    // Helper function to continue from focus-specific questions to deductions
+    function continueToDeductionsFromFocus() {
+      updateProgress(60);
+      showTyping();
+      setTimeout(() => {
+        hideTyping();
+        addMessage('ai', `I've gathered some valuable information about your situation. Now let's explore any additional deductions you might have.<br><br><strong>Do you have any of these common deductions?</strong>`, [
+          { label: '🏠 Mortgage Interest', value: 'deduct_mortgage' },
+          { label: '💰 Charitable Donations', value: 'deduct_charity' },
+          { label: '🏥 Medical Expenses', value: 'deduct_medical' },
+          { label: '💼 Business Expenses', value: 'deduct_business' },
+          { label: '➡️ Continue to Credits', value: 'deduct_skip' }
+        ]);
+      }, 1200);
     }
 
     // Helper function to generate summary
@@ -4920,6 +5415,48 @@ If they're ready to move forward, suggest generating their comprehensive advisor
             { label: 'Deferred compensation plans', value: 'adv_deferred' },
             { label: 'Estate planning considerations', value: 'adv_estate' },
             { label: 'Just show me all tax-saving opportunities', value: 'adv_all' }
+          ]);
+          return;
+        }
+
+        // Cryptocurrency Holdings (for investors or tech workers)
+        if ((isInvestor || profile.business_type === 'tech' || isHighEarner) &&
+            !profile.crypto_explored && !wasQuestionAsked('crypto_holdings')) {
+          markQuestionAsked('crypto_holdings');
+          addMessage('ai', `Do you have any cryptocurrency holdings or transactions this year?`, [
+            { label: 'Yes, I hold crypto but haven\'t sold', value: 'crypto_hold' },
+            { label: 'Yes, I sold/traded crypto', value: 'crypto_sold' },
+            { label: 'Yes, I earned crypto (mining/staking/rewards)', value: 'crypto_earned' },
+            { label: 'No cryptocurrency', value: 'crypto_none' }
+          ]);
+          return;
+        }
+
+        // Stock Options (for employees at startups/tech)
+        if (!profile.stock_options_explored && !wasQuestionAsked('stock_options')) {
+          // Ask if they have W-2 income and haven't specified
+          if (profile.income_source === 'W-2 Employee' || !profile.is_self_employed) {
+            markQuestionAsked('stock_options');
+            addMessage('ai', `Do you receive stock options or equity compensation from your employer?`, [
+              { label: 'Yes, I have ISOs (Incentive Stock Options)', value: 'options_iso' },
+              { label: 'Yes, I have NSOs (Non-Qualified Stock Options)', value: 'options_nso' },
+              { label: 'Yes, I have RSUs (Restricted Stock Units)', value: 'options_rsu' },
+              { label: 'Yes, I have ESPP (Employee Stock Purchase Plan)', value: 'options_espp' },
+              { label: 'No equity compensation', value: 'options_none' }
+            ]);
+            return;
+          }
+        }
+
+        // Estimated Tax Payments (for self-employed or investors)
+        if ((profile.is_self_employed || isInvestor || profile.has_rental_income) &&
+            !profile.estimated_explored && !wasQuestionAsked('estimated_payments')) {
+          markQuestionAsked('estimated_payments');
+          addMessage('ai', `Do you make quarterly estimated tax payments?`, [
+            { label: 'Yes, I make regular estimated payments', value: 'estimated_yes' },
+            { label: 'Sometimes, but not consistently', value: 'estimated_sometimes' },
+            { label: 'No, I don\'t make estimated payments', value: 'estimated_no' },
+            { label: 'Not sure if I should be', value: 'estimated_unsure' }
           ]);
           return;
         }

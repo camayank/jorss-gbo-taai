@@ -150,7 +150,13 @@ try:
             "/api/webhook",
             "/api/chat",  # Uses Bearer auth
             "/api/sessions/check-active",  # Read-only
+            "/api/sessions/create-session",  # Session creation for chatbot
             "/api/validate/fields",  # Field validation
+            "/api/calculate-tax",  # Public tax calculator for chatbot
+            "/api/estimate",  # Public tax estimate for chatbot
+            "/api/leads/create",  # Lead capture from chatbot
+            "/api/advisor/",  # Intelligent advisor chatbot API
+            "/api/ai-chat/chat",  # AI chat for conversational chatbot
             "/api/v1/auth/",  # Auth endpoints only (login, register, refresh)
             "/api/v1/admin/health",  # Health check endpoints
             # Note: Other /api/v1/* endpoints require CSRF token OR Bearer auth
@@ -397,6 +403,14 @@ try:
     logger.info("AI Chat API enabled at /api/ai-chat")
 except ImportError as e:
     logger.warning(f"AI Chat API not available: {e}")
+
+# Register Intelligent Advisor API (World-Class Tax Chatbot)
+try:
+    from web.intelligent_advisor_api import router as intelligent_advisor_router
+    app.include_router(intelligent_advisor_router)
+    logger.info("Intelligent Advisor API enabled at /api/advisor")
+except ImportError as e:
+    logger.warning(f"Intelligent Advisor API not available: {e}")
 
 # Register Scenarios API (What-If Analysis) - Modular Router
 try:
@@ -3103,6 +3117,195 @@ async def get_real_time_estimate(request: Request):
         "marginal_rate": estimate.marginal_rate,
         "confidence": estimate.confidence,
         "benefits_summary": estimate.benefits_summary,
+    })
+
+
+@app.post("/api/calculate-tax")
+async def calculate_tax_advisory(request: Request):
+    """
+    Calculate tax liability for the intelligent advisor chatbot.
+
+    This endpoint provides tax calculations used by the conversational
+    tax advisor interface to show users their estimated tax and potential savings.
+    """
+    from onboarding.benefit_estimator import OnboardingBenefitEstimator
+
+    try:
+        body = await request.json()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
+
+    # Extract tax information from request
+    filing_status_input = body.get("filing_status", "Single")
+    total_income = safe_float(body.get("total_income", 0))
+    w2_income = safe_float(body.get("w2_income", 0))
+    business_income = safe_float(body.get("business_income", 0))
+    deductions = body.get("deductions", {})
+    dependents = safe_int(body.get("dependents", 0), max_val=20)
+
+    # Map filing status to internal format
+    status_map = {
+        "Single": "single",
+        "single": "single",
+        "Married Filing Jointly": "married_joint",
+        "married": "married_joint",
+        "Head of Household": "head_of_household",
+        "hoh": "head_of_household",
+        "Married Filing Separately": "married_separate",
+        "mfs": "married_separate",
+        "Qualifying Surviving Spouse": "qualifying_widow",
+        "qss": "qualifying_widow"
+    }
+    filing_status = status_map.get(filing_status_input, "single")
+
+    # Use income (prefer w2 if available, else total)
+    wages = w2_income if w2_income > 0 else total_income
+
+    # Build answers dict for estimator (using expected keys)
+    answers = {
+        "marital_status": "married" if "married" in filing_status.lower() else "single",
+        "filing_status": filing_status,
+        "num_dependents": dependents,
+        "w2_wages_1": wages,  # Use correct key format
+        "business_gross_income": business_income,
+        "mortgage_interest": safe_float(deductions.get("mortgage_interest", 0)),
+        "charitable_donations": safe_float(deductions.get("charitable", 0)),
+    }
+
+    # Calculate using benefit estimator
+    try:
+        estimator = OnboardingBenefitEstimator()
+        estimate = estimator.estimate_from_answers(answers)
+
+        # Calculate potential savings based on common deductions not claimed
+        potential_savings = 0
+        mortgage_interest = safe_float(deductions.get("mortgage_interest", 0))
+        charitable = safe_float(deductions.get("charitable", 0))
+
+        # Standard deduction thresholds (2025)
+        standard_deductions = {
+            "single": 15000,
+            "married_joint": 30000,
+            "head_of_household": 22500,
+            "married_separate": 15000,
+            "qualifying_widow": 30000
+        }
+        standard_ded = standard_deductions.get(filing_status, 15000)
+
+        # Estimate savings from itemizing if applicable
+        total_itemized = mortgage_interest + charitable
+        if total_itemized > standard_ded:
+            excess = total_itemized - standard_ded
+            potential_savings += excess * (estimate.marginal_rate / 100) if estimate.marginal_rate else excess * 0.22
+
+        # Add potential retirement contribution savings
+        if wages > 50000:
+            max_401k = 23500
+            potential_401k_savings = min(max_401k, wages * 0.15) * (estimate.marginal_rate / 100) if estimate.marginal_rate else 0
+            potential_savings += potential_401k_savings * 0.3
+
+        # Add child tax credit potential
+        if dependents > 0:
+            child_credit_per_child = 2000
+            potential_savings += min(dependents * child_credit_per_child * 0.1, 500)
+
+        return JSONResponse({
+            "total_tax": estimate.estimated_total_tax,
+            "federal_tax": estimate.estimated_federal_tax,
+            "state_tax": estimate.estimated_state_tax,
+            "effective_rate": estimate.effective_rate,
+            "marginal_rate": estimate.marginal_rate,
+            "potential_savings": round(potential_savings, 2),
+            "estimated_refund": estimate.estimated_amount if estimate.estimate_type.value == "refund" else 0,
+            "estimated_owed": estimate.estimated_amount if estimate.estimate_type.value == "owed" else 0,
+            "is_refund": estimate.estimate_type.value == "refund",
+            "confidence": estimate.confidence.value if hasattr(estimate.confidence, 'value') else str(estimate.confidence)
+        })
+
+    except Exception as e:
+        logger.error(f"Tax calculation error: {e}")
+        # Return a reasonable estimate even on error
+        # Use simple tax bracket calculation
+        taxable_income = max(0, wages - 15000)  # Assume standard deduction
+
+        # Simplified 2025 brackets for single filer
+        if taxable_income <= 11925:
+            tax = taxable_income * 0.10
+        elif taxable_income <= 48475:
+            tax = 1192.50 + (taxable_income - 11925) * 0.12
+        elif taxable_income <= 103350:
+            tax = 5578.50 + (taxable_income - 48475) * 0.22
+        elif taxable_income <= 197300:
+            tax = 17651 + (taxable_income - 103350) * 0.24
+        else:
+            tax = 40199 + (taxable_income - 197300) * 0.32
+
+        return JSONResponse({
+            "total_tax": round(tax, 2),
+            "federal_tax": round(tax, 2),
+            "state_tax": 0,
+            "effective_rate": round((tax / wages * 100) if wages > 0 else 0, 2),
+            "marginal_rate": 22,
+            "potential_savings": round(wages * 0.05, 2),  # Estimate 5% savings opportunity
+            "estimated_refund": 0,
+            "estimated_owed": round(tax, 2),
+            "is_refund": False,
+            "confidence": "low"
+        })
+
+
+@app.post("/api/leads/create")
+async def create_lead(request: Request):
+    """
+    Create a new lead from the intelligent advisor chatbot.
+
+    This endpoint captures qualified leads for CPA follow-up.
+    Leads include contact info, tax profile, and estimated savings.
+    """
+    try:
+        body = await request.json()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
+
+    # Extract lead data
+    contact = body.get("contact", {})
+    tax_profile = body.get("tax_profile", {})
+    tax_items = body.get("tax_items", {})
+    lead_score = body.get("lead_score", 0)
+    complexity = body.get("complexity", "simple")
+    estimated_savings = body.get("estimated_savings", 0)
+    session_id = body.get("session_id", "")
+    source = body.get("source", "intelligent_advisor")
+    status = body.get("status", "new")
+
+    # Create lead record (in production, save to database)
+    lead_data = {
+        "id": f"lead-{session_id[-8:]}" if session_id else f"lead-{secrets.token_hex(4)}",
+        "created_at": datetime.now().isoformat(),
+        "contact": {
+            "name": contact.get("name", ""),
+            "email": contact.get("email", ""),
+            "phone": contact.get("phone", "")
+        },
+        "tax_profile": {
+            "filing_status": tax_profile.get("filing_status", ""),
+            "total_income": tax_profile.get("total_income", 0),
+            "dependents": tax_profile.get("dependents", 0)
+        },
+        "lead_score": lead_score,
+        "complexity": complexity,
+        "estimated_savings": estimated_savings,
+        "source": source,
+        "status": status
+    }
+
+    # Log the lead for now (in production, save to database)
+    logger.info(f"New lead created: {lead_data['id']} - Score: {lead_score}, Savings: ${estimated_savings}")
+
+    return JSONResponse({
+        "success": True,
+        "lead_id": lead_data["id"],
+        "message": "Lead captured successfully"
     })
 
 

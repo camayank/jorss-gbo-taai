@@ -16,15 +16,16 @@
         }
 
         :root {
-            --primary-color: {{ cpa.primary_color or '#2563eb' }};
-            --secondary-color: {{ cpa.secondary_color or '#1d4ed8' }};
-            --accent-color: {{ cpa.accent_color or '#10b981' }};
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
-            --bg-light: #f9fafb;
+            /* Professional Navy Blue & Teal Theme */
+            --primary-color: {{ cpa.primary_color or '#1e40af' }};
+            --secondary-color: {{ cpa.secondary_color or '#1e3a8a' }};
+            --accent-color: {{ cpa.accent_color or '#059669' }};
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --bg-light: #f8fafc;
             --white: #ffffff;
             --error: #dc2626;
-            --success: #16a34a;
+            --success: #059669;
         }
 
         body {
@@ -407,6 +408,16 @@
                             <div class="option-content">
                                 <div class="option-label">Head of Household</div>
                                 <div class="option-desc">Single with qualifying dependent</div>
+                            </div>
+                            <div class="option-checkmark"></div>
+                        </label>
+
+                        <label class="option-card" onclick="selectOption(this, 'filing_status', 'qualifying_surviving_spouse')">
+                            <input type="radio" name="filing_status" value="qualifying_surviving_spouse">
+                            <span class="option-icon">🕊️</span>
+                            <div class="option-content">
+                                <div class="option-label">Qualifying Surviving Spouse</div>
+                                <div class="option-desc">Widow(er) with dependent child</div>
                             </div>
                             <div class="option-checkmark"></div>
                         </label>
