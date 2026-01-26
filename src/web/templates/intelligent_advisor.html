@@ -2689,41 +2689,109 @@
             extractedData.lead_data.score += 5;
           }
 
-          // Set default values and flags for deductions
-          if (deduction === 'mortgage') {
-            extractedData.tax_items.mortgage_interest = 15000;
-            extractedData.tax_profile.has_mortgage = true;
-          }
-          if (deduction === 'charity') {
-            extractedData.tax_items.charitable = 5000;
-            extractedData.tax_profile.has_charitable = true;
-          }
+          // Set flags for deductions - amounts will be asked in follow-ups
           if (deduction === 'retirement') {
             extractedData.tax_profile.has_retirement_contributions = true;
-            // Don't set default - we'll ask for specifics
           }
           if (deduction === 'investment_loss') {
             extractedData.tax_profile.has_investment_losses = true;
             extractedData.lead_data.score += 5;
           }
 
-          // Medical expenses need follow-up for amount
-          if (deduction === 'medical') {
+          // Mortgage - ask for amount and property tax
+          if (deduction === 'mortgage') {
+            extractedData.tax_profile.has_mortgage = true;
+            extractedData.tax_profile.owns_home = true;
+            showTyping();
             setTimeout(() => {
-              addMessage('ai', `Medical expenses can potentially be deducted if they exceed 7.5% of your income. What's your estimated annual medical expense?`, [
+              hideTyping();
+              addMessage('ai', `Great! Mortgage interest is a valuable deduction. <strong>What's your approximate annual mortgage interest?</strong>`, [
+                { label: 'Under $5,000', value: 'mortgageamt_under5k' },
+                { label: '$5,000 - $15,000', value: 'mortgageamt_5_15k' },
+                { label: '$15,000 - $30,000', value: 'mortgageamt_15_30k' },
+                { label: 'Over $30,000', value: 'mortgageamt_over30k' }
+              ]);
+            }, 800);
+            return;
+          }
+
+          // Charitable donations - ask for amount
+          if (deduction === 'charity') {
+            extractedData.tax_profile.has_charitable = true;
+            showTyping();
+            setTimeout(() => {
+              hideTyping();
+              addMessage('ai', `<strong>How much do you typically donate to charity annually?</strong>`, [
+                { label: 'Under $500', value: 'charityamt_under500' },
+                { label: '$500 - $2,500', value: 'charityamt_500_2500' },
+                { label: '$2,500 - $10,000', value: 'charityamt_2500_10k' },
+                { label: 'Over $10,000', value: 'charityamt_over10k' }
+              ]);
+            }, 800);
+            return;
+          }
+
+          // Medical expenses - ask for amount
+          if (deduction === 'medical') {
+            showTyping();
+            setTimeout(() => {
+              hideTyping();
+              addMessage('ai', `Medical expenses can potentially be deducted if they exceed 7.5% of your income. <strong>What's your estimated annual medical expense?</strong>`, [
                 { label: 'Under $5,000', value: 'medical_amount_low' },
                 { label: '$5,000 - $15,000', value: 'medical_amount_medium' },
                 { label: '$15,000 - $30,000', value: 'medical_amount_high' },
                 { label: 'Over $30,000', value: 'medical_amount_very_high' }
               ]);
             }, 800);
-            return; // Wait for medical amount before continuing
+            return;
           }
 
           extractedData.tax_profile.deductions_explored = true;
           calculateLeadScore();
           startIntelligentQuestioning();
         }
+
+      // Mortgage amount handlers
+      } else if (value.startsWith('mortgageamt_')) {
+        const amt = value.replace('mortgageamt_', '');
+        const amounts = { 'under5k': 3000, '5_15k': 10000, '15_30k': 22500, 'over30k': 40000 };
+        const labels = { 'under5k': 'Under $5,000', '5_15k': '$5,000-$15,000', '15_30k': '$15,000-$30,000', 'over30k': 'Over $30,000' };
+        addMessage('user', labels[amt] || amt);
+        extractedData.tax_items.mortgage_interest = amounts[amt] || 10000;
+
+        // Follow up with property tax question
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<strong>What's your approximate annual property tax?</strong>`, [
+            { label: 'Under $3,000', value: 'proptaxamt_under3k' },
+            { label: '$3,000 - $8,000', value: 'proptaxamt_3_8k' },
+            { label: '$8,000 - $15,000', value: 'proptaxamt_8_15k' },
+            { label: 'Over $15,000', value: 'proptaxamt_over15k' }
+          ]);
+        }, 800);
+
+      } else if (value.startsWith('proptaxamt_')) {
+        const amt = value.replace('proptaxamt_', '');
+        const amounts = { 'under3k': 2000, '3_8k': 5500, '8_15k': 11500, 'over15k': 20000 };
+        const labels = { 'under3k': 'Under $3,000', '3_8k': '$3,000-$8,000', '8_15k': '$8,000-$15,000', 'over15k': 'Over $15,000' };
+        addMessage('user', labels[amt] || amt);
+        extractedData.tax_items.property_tax = amounts[amt] || 5500;
+        // Note: SALT cap is $10,000
+        extractedData.tax_profile.deductions_explored = true;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Charitable donation amount handlers
+      } else if (value.startsWith('charityamt_')) {
+        const amt = value.replace('charityamt_', '');
+        const amounts = { 'under500': 250, '500_2500': 1500, '2500_10k': 6000, 'over10k': 15000 };
+        const labels = { 'under500': 'Under $500', '500_2500': '$500-$2,500', '2500_10k': '$2,500-$10,000', 'over10k': 'Over $10,000' };
+        addMessage('user', labels[amt] || amt);
+        extractedData.tax_items.charitable = amounts[amt] || 1500;
+        extractedData.tax_profile.deductions_explored = true;
+        calculateLeadScore();
+        startIntelligentQuestioning();
 
       // Medical expense amount handlers
       } else if (value.startsWith('medical_amount_')) {
@@ -2761,6 +2829,90 @@
         extractedData.tax_profile.primary_goal = goal;
         extractedData.tax_profile.goals_explored = true;
         extractedData.lead_data.score += 10;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // =====================================================================
+      // W-4 WITHHOLDING HANDLERS
+      // =====================================================================
+
+      } else if (value.startsWith('withhold_')) {
+        const withholdType = value.replace('withhold_', '');
+        const withholdLabels = {
+          'strategic': 'Yes, I adjust it strategically',
+          'default': 'No, I use the default settings',
+          'large_refund': 'I usually get a large refund',
+          'owe': 'I usually owe taxes',
+          'skip': 'Skip'
+        };
+        addMessage('user', withholdLabels[withholdType] || withholdType);
+        extractedData.tax_profile.withholding_explored = true;
+        extractedData.tax_profile.withholding_status = withholdType;
+
+        if (withholdType === 'large_refund') {
+          extractedData.tax_profile.may_need_w4_adjustment = true;
+          // Large refund means overwithholding - opportunity for adjustment
+        }
+        if (withholdType === 'owe') {
+          extractedData.tax_profile.may_need_w4_adjustment = true;
+          extractedData.tax_profile.possible_underpayment_penalty = true;
+        }
+        extractedData.lead_data.score += 5;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // =====================================================================
+      // PRIOR YEAR TAX SITUATION HANDLERS
+      // =====================================================================
+
+      } else if (value.startsWith('prior_')) {
+        const priorType = value.replace('prior_', '');
+        const priorLabels = {
+          'large_refund': 'Got a large refund (over $2,000)',
+          'small_refund': 'Got a small refund (under $2,000)',
+          'owed': 'Owed money to the IRS',
+          'breakeven': 'About break-even',
+          'skip': 'First time filing / Skip'
+        };
+        addMessage('user', priorLabels[priorType] || priorType);
+        extractedData.tax_profile.prior_year_explored = true;
+        extractedData.tax_profile.prior_year_result = priorType;
+
+        if (priorType === 'large_refund') {
+          extractedData.tax_profile.prior_had_large_refund = true;
+        }
+        if (priorType === 'owed') {
+          extractedData.tax_profile.prior_owed_taxes = true;
+        }
+        extractedData.lead_data.score += 5;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // =====================================================================
+      // SPOUSE INCOME HANDLERS (for MFJ)
+      // =====================================================================
+
+      } else if (value.startsWith('spouse_')) {
+        const spouseType = value.replace('spouse_', '');
+        const spouseLabels = {
+          'w2': 'Yes, W-2 employment',
+          'self_employed': 'Yes, self-employed',
+          'both': 'Yes, both W-2 and self-employed',
+          'none': 'No, spouse doesn\'t work',
+          'skip': 'Skip'
+        };
+        addMessage('user', spouseLabels[spouseType] || spouseType);
+        extractedData.tax_profile.spouse_income_explored = true;
+        extractedData.tax_profile.spouse_income_type = spouseType;
+
+        if (spouseType === 'w2' || spouseType === 'both') {
+          extractedData.tax_profile.spouse_has_w2 = true;
+        }
+        if (spouseType === 'self_employed' || spouseType === 'both') {
+          extractedData.tax_profile.spouse_is_self_employed = true;
+          extractedData.lead_data.complexity = 'complex';
+        }
+        extractedData.lead_data.score += 5;
         calculateLeadScore();
         startIntelligentQuestioning();
 
@@ -2827,6 +2979,113 @@
         if (revenueAmounts[revenueRange] >= 250000) {
           extractedData.lead_data.complexity = 'complex';
         }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // =====================================================================
+      // BUSINESS EXPENSE HANDLERS
+      // =====================================================================
+
+      } else if (value.startsWith('bizexp_')) {
+        const expType = value.replace('bizexp_', '');
+        const expLabels = {
+          'home_office': 'Home Office',
+          'vehicle': 'Vehicle / Mileage',
+          'equipment': 'Equipment & Software',
+          'marketing': 'Marketing & Advertising',
+          'skip': 'Continue without specifying'
+        };
+        addMessage('user', expLabels[expType] || expType);
+
+        if (expType !== 'skip') {
+          extractedData.tax_profile.business_expenses = extractedData.tax_profile.business_expenses || [];
+          extractedData.tax_profile.business_expenses.push(expType);
+          extractedData.lead_data.score += 5;
+
+          // Ask for amount based on expense type
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            if (expType === 'home_office') {
+              extractedData.tax_profile.has_home_office = true;
+              addMessage('ai', `<strong>What's the approximate square footage of your home office?</strong>`, [
+                { label: 'Under 100 sq ft', value: 'homeoffice_under100' },
+                { label: '100-300 sq ft', value: 'homeoffice_100_300' },
+                { label: '300-500 sq ft', value: 'homeoffice_300_500' },
+                { label: 'Over 500 sq ft', value: 'homeoffice_over500' }
+              ]);
+            } else if (expType === 'vehicle') {
+              extractedData.tax_profile.has_vehicle_expenses = true;
+              addMessage('ai', `<strong>Approximately how many business miles do you drive per year?</strong>`, [
+                { label: 'Under 5,000 miles', value: 'vehicle_under5k' },
+                { label: '5,000 - 15,000 miles', value: 'vehicle_5_15k' },
+                { label: '15,000 - 30,000 miles', value: 'vehicle_15_30k' },
+                { label: 'Over 30,000 miles', value: 'vehicle_over30k' }
+              ]);
+            } else if (expType === 'equipment') {
+              addMessage('ai', `<strong>How much did you spend on equipment & software this year?</strong>`, [
+                { label: 'Under $2,500', value: 'equipment_under2500' },
+                { label: '$2,500 - $10,000', value: 'equipment_2500_10k' },
+                { label: '$10,000 - $50,000', value: 'equipment_10_50k' },
+                { label: 'Over $50,000', value: 'equipment_over50k' }
+              ]);
+            } else if (expType === 'marketing') {
+              addMessage('ai', `<strong>How much do you spend on marketing & advertising annually?</strong>`, [
+                { label: 'Under $1,000', value: 'marketing_under1k' },
+                { label: '$1,000 - $5,000', value: 'marketing_1_5k' },
+                { label: '$5,000 - $20,000', value: 'marketing_5_20k' },
+                { label: 'Over $20,000', value: 'marketing_over20k' }
+              ]);
+            }
+          }, 800);
+        } else {
+          extractedData.tax_profile.business_expenses_explored = true;
+          calculateLeadScore();
+          startIntelligentQuestioning();
+        }
+
+      // Business expense amount handlers
+      } else if (value.startsWith('homeoffice_')) {
+        const size = value.replace('homeoffice_', '');
+        const sizeAmounts = { 'under100': 75, '100_300': 200, '300_500': 400, 'over500': 600 };
+        const sizeLabels = { 'under100': 'Under 100 sq ft', '100_300': '100-300 sq ft', '300_500': '300-500 sq ft', 'over500': 'Over 500 sq ft' };
+        addMessage('user', sizeLabels[size] || size);
+        // Simplified method: $5 per sq ft
+        extractedData.tax_items.home_office_sqft = sizeAmounts[size] || 200;
+        extractedData.tax_items.home_office_deduction = (sizeAmounts[size] || 200) * 5;
+        extractedData.tax_profile.business_expenses_explored = true;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      } else if (value.startsWith('vehicle_')) {
+        const miles = value.replace('vehicle_', '');
+        const mileAmounts = { 'under5k': 3000, '5_15k': 10000, '15_30k': 22500, 'over30k': 40000 };
+        const mileLabels = { 'under5k': 'Under 5,000 miles', '5_15k': '5,000-15,000 miles', '15_30k': '15,000-30,000 miles', 'over30k': 'Over 30,000 miles' };
+        addMessage('user', mileLabels[miles] || miles);
+        extractedData.tax_items.business_miles = mileAmounts[miles] || 10000;
+        // 2024 IRS rate: $0.67 per mile
+        extractedData.tax_items.vehicle_deduction = (mileAmounts[miles] || 10000) * 0.67;
+        extractedData.tax_profile.business_expenses_explored = true;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      } else if (value.startsWith('equipment_')) {
+        const amt = value.replace('equipment_', '');
+        const equipAmounts = { 'under2500': 1500, '2500_10k': 6000, '10_50k': 30000, 'over50k': 75000 };
+        const equipLabels = { 'under2500': 'Under $2,500', '2500_10k': '$2,500-$10,000', '10_50k': '$10,000-$50,000', 'over50k': 'Over $50,000' };
+        addMessage('user', equipLabels[amt] || amt);
+        extractedData.tax_items.equipment_expense = equipAmounts[amt] || 6000;
+        extractedData.tax_profile.business_expenses_explored = true;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      } else if (value.startsWith('marketing_')) {
+        const amt = value.replace('marketing_', '');
+        const marketAmounts = { 'under1k': 500, '1_5k': 3000, '5_20k': 12500, 'over20k': 30000 };
+        const marketLabels = { 'under1k': 'Under $1,000', '1_5k': '$1,000-$5,000', '5_20k': '$5,000-$20,000', 'over20k': 'Over $20,000' };
+        addMessage('user', marketLabels[amt] || amt);
+        extractedData.tax_items.marketing_expense = marketAmounts[amt] || 3000;
+        extractedData.tax_profile.business_expenses_explored = true;
         calculateLeadScore();
         startIntelligentQuestioning();
 
@@ -2907,6 +3166,53 @@
         } else if (rentalCount === '2_4') {
           extractedData.lead_data.score += 10;
         }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // =====================================================================
+      // CAPITAL GAINS/LOSSES HANDLERS
+      // =====================================================================
+
+      } else if (value.startsWith('capgain_')) {
+        const gainType = value.replace('capgain_', '');
+        const gainLabels = {
+          'gains': 'Yes, net gains (profit)',
+          'losses': 'Yes, net losses',
+          'even': 'About break-even',
+          'none': 'Haven\'t sold anything'
+        };
+        addMessage('user', gainLabels[gainType] || gainType);
+        extractedData.tax_profile.capital_gains_explored = true;
+
+        if (gainType === 'gains') {
+          extractedData.tax_profile.has_capital_gains = true;
+        }
+        if (gainType === 'losses') {
+          extractedData.tax_profile.has_capital_losses = true;
+        }
+        extractedData.lead_data.score += 5;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      } else if (value.startsWith('capgainamt_')) {
+        const amt = value.replace('capgainamt_', '');
+        const amounts = { 'under10k': 5000, '10_50k': 30000, '50_100k': 75000, 'over100k': 150000 };
+        const labels = { 'under10k': 'Under $10,000', '10_50k': '$10,000-$50,000', '50_100k': '$50,000-$100,000', 'over100k': 'Over $100,000' };
+        addMessage('user', labels[amt] || amt);
+        extractedData.tax_profile.capital_gains_amount = amounts[amt] || 30000;
+        extractedData.tax_profile.capital_gains_amount_explored = true;
+        extractedData.lead_data.score += 10;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      } else if (value.startsWith('caplossamt_')) {
+        const amt = value.replace('caplossamt_', '');
+        const amounts = { 'under3k': 1500, '3_10k': 6500, 'over10k': 15000 };
+        const labels = { 'under3k': 'Under $3,000', '3_10k': '$3,000-$10,000', 'over10k': 'Over $10,000' };
+        addMessage('user', labels[amt] || amt);
+        extractedData.tax_profile.capital_losses_amount = amounts[amt] || 3000;
+        extractedData.tax_profile.capital_losses_amount_explored = true;
+        extractedData.lead_data.score += 5;
         calculateLeadScore();
         startIntelligentQuestioning();
 
@@ -2999,6 +3305,101 @@
         addMessage('user', amountLabels[amount] || amount);
         extractedData.tax_profile.retirement_401k = amountValues[amount] || 15000;
         extractedData.lead_data.score += 5;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // =====================================================================
+      // HSA CONTRIBUTION HANDLERS
+      // =====================================================================
+
+      } else if (value.startsWith('hsa_')) {
+        const hsaType = value.replace('hsa_', '');
+        const hsaLabels = { 'yes': 'Yes, I contribute to an HSA', 'no': 'No HSA', 'unsure': 'Not sure' };
+        addMessage('user', hsaLabels[hsaType] || hsaType);
+        extractedData.tax_profile.hsa_explored = true;
+
+        if (hsaType === 'yes') {
+          extractedData.tax_profile.has_hsa = true;
+          extractedData.lead_data.score += 5;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      } else if (value.startsWith('hsaamt_')) {
+        const amt = value.replace('hsaamt_', '');
+        const amounts = { 'under2k': 1500, '2_4k': 3000, 'max': 4150, 'unsure': 2500 };
+        const labels = { 'under2k': 'Under $2,000', '2_4k': '$2,000-$4,000', 'max': 'Maxing out', 'unsure': 'Not sure' };
+        addMessage('user', labels[amt] || amt);
+        extractedData.tax_items.hsa_contributions = amounts[amt] || 2500;
+        extractedData.tax_profile.hsa_amount_explored = true;
+        extractedData.lead_data.score += 5;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // =====================================================================
+      // STUDENT LOAN INTEREST HANDLERS
+      // =====================================================================
+
+      } else if (value.startsWith('studentloan_')) {
+        const loanType = value.replace('studentloan_', '');
+        const loanLabels = { 'yes': 'Yes, I pay student loan interest', 'no': 'No student loans' };
+        addMessage('user', loanLabels[loanType] || loanType);
+        extractedData.tax_profile.student_loan_explored = true;
+
+        if (loanType === 'yes') {
+          extractedData.tax_profile.has_student_loans = true;
+          extractedData.lead_data.score += 5;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      } else if (value.startsWith('studentloanamt_')) {
+        const amt = value.replace('studentloanamt_', '');
+        const amounts = { 'under1k': 500, '1_2500': 1750, 'over2500': 2500 };
+        const labels = { 'under1k': 'Under $1,000', '1_2500': '$1,000-$2,500', 'over2500': 'Over $2,500' };
+        addMessage('user', labels[amt] || amt);
+        // Max deductible is $2,500
+        extractedData.tax_items.student_loan_interest = Math.min(amounts[amt] || 1750, 2500);
+        extractedData.tax_profile.student_loan_amount_explored = true;
+        extractedData.lead_data.score += 5;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // =====================================================================
+      // ENERGY CREDIT HANDLERS
+      // =====================================================================
+
+      } else if (value.startsWith('energy_')) {
+        const energyType = value.replace('energy_', '');
+        const energyLabels = {
+          'solar': 'Solar panels installed',
+          'ev': 'Electric vehicle purchased',
+          'hvac': 'Heat pump / HVAC upgrade',
+          'home_improve': 'Windows / insulation / doors',
+          'none': 'None of these'
+        };
+        addMessage('user', energyLabels[energyType] || energyType);
+        extractedData.tax_profile.energy_explored = true;
+
+        if (energyType !== 'none') {
+          extractedData.tax_profile.has_energy_credits = true;
+          extractedData.tax_profile.energy_credit_type = energyType;
+          extractedData.lead_data.score += 10;
+
+          // Solar gets significant credit (30% of cost)
+          if (energyType === 'solar') {
+            extractedData.tax_profile.has_solar_credit = true;
+            extractedData.lead_data.complexity = 'moderate';
+          }
+          // EV credit up to $7,500
+          if (energyType === 'ev') {
+            extractedData.tax_profile.has_ev_credit = true;
+          }
+          // Home improvements get smaller credits
+          if (energyType === 'hvac' || energyType === 'home_improve') {
+            extractedData.tax_profile.has_home_energy_credit = true;
+          }
+        }
         calculateLeadScore();
         startIntelligentQuestioning();
 
@@ -3583,12 +3984,20 @@
               { label: 'Not sure', value: 'hsa_unsure' }
             ]);
           } else if (value === 'medical_high' || value === 'medical_ltc') {
-            // Ask about specific medical amount
+            // Ask about specific medical amount for high expenses
             addMessage('ai', `<strong>What's your estimated annual out-of-pocket medical expense?</strong>`, [
               { label: '$5,000 - $10,000', value: 'medical_amt_5_10k' },
               { label: '$10,000 - $25,000', value: 'medical_amt_10_25k' },
               { label: '$25,000 - $50,000', value: 'medical_amt_25_50k' },
               { label: 'Over $50,000', value: 'medical_amt_over50k' }
+            ]);
+          } else if (value === 'medical_moderate') {
+            // Ask about moderate medical expenses too
+            addMessage('ai', `<strong>What's your estimated annual out-of-pocket medical expense?</strong>`, [
+              { label: 'Under $2,000', value: 'medical_amt_under2k' },
+              { label: '$2,000 - $5,000', value: 'medical_amt_2_5k' },
+              { label: '$5,000 - $10,000', value: 'medical_amt_5_10k' },
+              { label: 'Skip this', value: 'medical_amt_skip' }
             ]);
           } else {
             continueToDeductionsFromFocus();
@@ -3611,10 +4020,14 @@
       // Medical amount handlers (from focus flow)
       } else if (value.startsWith('medical_amt_')) {
         const medLevel = value.replace('medical_amt_', '');
-        const medAmounts = { '5_10k': 7500, '10_25k': 17500, '25_50k': 37500, 'over50k': 60000 };
+        const medAmounts = {
+          'under2k': 1000, '2_5k': 3500, '5_10k': 7500,
+          '10_25k': 17500, '25_50k': 37500, 'over50k': 60000, 'skip': 0
+        };
         const medLabels = {
+          'under2k': 'Under $2,000', '2_5k': '$2,000 - $5,000',
           '5_10k': '$5,000 - $10,000', '10_25k': '$10,000 - $25,000',
-          '25_50k': '$25,000 - $50,000', 'over50k': 'Over $50,000'
+          '25_50k': '$25,000 - $50,000', 'over50k': 'Over $50,000', 'skip': 'Skip'
         };
         addMessage('user', medLabels[medLevel] || medLevel);
         extractedData.tax_items.medical = medAmounts[medLevel] || 0;
@@ -5087,7 +5500,9 @@ If they're ready to move forward, suggest generating their comprehensive advisor
     // Track conversation state to prevent loops
     let questioningState = {
       askedQuestions: new Set(),
-      currentPhase: 'basics' // basics, income_details, deductions, goals, summary
+      currentPhase: 'basics', // basics, income_details, deductions, goals, summary
+      callCount: 0,
+      maxCalls: 50 // Safety limit to prevent infinite loops
     };
 
     function markQuestionAsked(questionId) {
@@ -5098,7 +5513,23 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       return questioningState.askedQuestions.has(questionId);
     }
 
+    function resetQuestioningState() {
+      questioningState.askedQuestions.clear();
+      questioningState.callCount = 0;
+      questioningState.currentPhase = 'basics';
+    }
+
     async function startIntelligentQuestioning() {
+      // Loop prevention - increment call counter
+      questioningState.callCount++;
+
+      // Safety check - if we've called this too many times, skip to summary
+      if (questioningState.callCount > questioningState.maxCalls) {
+        console.warn('startIntelligentQuestioning exceeded max calls, skipping to summary');
+        await showPreliminarySummary();
+        return;
+      }
+
       showTyping();
 
       setTimeout(async () => {
@@ -5195,6 +5626,47 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           return;
         }
 
+        // W-4 Withholding Status (for W-2 employees)
+        const isW2Employee = profile.income_source === 'W-2 Employee';
+        if (isW2Employee && !profile.withholding_explored && !wasQuestionAsked('withholding')) {
+          markQuestionAsked('withholding');
+          addMessage('ai', `Do you adjust your W-4 withholding to manage your tax refund/payment?`, [
+            { label: 'Yes, I adjust it strategically', value: 'withhold_strategic' },
+            { label: 'No, I use the default settings', value: 'withhold_default' },
+            { label: 'I usually get a large refund', value: 'withhold_large_refund' },
+            { label: 'I usually owe taxes', value: 'withhold_owe' },
+            { label: 'Not sure / Skip', value: 'withhold_skip' }
+          ]);
+          return;
+        }
+
+        // Prior Year Tax Situation
+        if (!profile.prior_year_explored && !wasQuestionAsked('prior_year')) {
+          markQuestionAsked('prior_year');
+          addMessage('ai', `How did your tax situation last year compare to your expectations?`, [
+            { label: 'Got a large refund (over $2,000)', value: 'prior_large_refund' },
+            { label: 'Got a small refund (under $2,000)', value: 'prior_small_refund' },
+            { label: 'Owed money to the IRS', value: 'prior_owed' },
+            { label: 'About break-even', value: 'prior_breakeven' },
+            { label: 'First time filing / Skip', value: 'prior_skip' }
+          ]);
+          return;
+        }
+
+        // Spouse Income (for Married Filing Jointly)
+        const isMFJ = profile.filing_status === 'Married Filing Jointly';
+        if (isMFJ && !profile.spouse_income_explored && !wasQuestionAsked('spouse_income')) {
+          markQuestionAsked('spouse_income');
+          addMessage('ai', `For joint filers, I need to understand your spouse's income situation. <strong>Does your spouse have income?</strong>`, [
+            { label: 'Yes, W-2 employment', value: 'spouse_w2' },
+            { label: 'Yes, self-employed', value: 'spouse_self_employed' },
+            { label: 'Yes, both W-2 and self-employed', value: 'spouse_both' },
+            { label: 'No, spouse doesn\'t work', value: 'spouse_none' },
+            { label: 'Skip this question', value: 'spouse_skip' }
+          ]);
+          return;
+        }
+
         // =====================================================================
         // PHASE 2: INCOME-SPECIFIC DEEP DIVE
         // =====================================================================
@@ -5238,6 +5710,19 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           return;
         }
 
+        // Business Expense Categories (for self-employed)
+        if ((isSelfEmployed || isBusinessOwner) && profile.business_revenue && !profile.business_expenses_explored && !wasQuestionAsked('business_expenses')) {
+          markQuestionAsked('business_expenses');
+          addMessage('ai', `What are your major business expense categories? (Select all that apply)`, [
+            { label: '🏠 Home Office', value: 'bizexp_home_office' },
+            { label: '🚗 Vehicle / Mileage', value: 'bizexp_vehicle' },
+            { label: '💻 Equipment & Software', value: 'bizexp_equipment' },
+            { label: '📢 Marketing & Advertising', value: 'bizexp_marketing' },
+            { label: 'Continue without specifying', value: 'bizexp_skip' }
+          ]);
+          return;
+        }
+
         // Mark business as explored after all business questions
         if ((isSelfEmployed || isBusinessOwner) && !profile.business_explored) {
           profile.business_explored = true;
@@ -5276,6 +5761,43 @@ If they're ready to move forward, suggest generating their comprehensive advisor
             { label: '1 property', value: 'rental_1' },
             { label: '2-4 properties', value: 'rental_2_4' },
             { label: '5+ properties', value: 'rental_5plus' }
+          ]);
+          return;
+        }
+
+        // Capital Gains/Losses (for stock investors)
+        if (profile.investment_type === 'stocks' || profile.investment_type === 'multiple') {
+          if (!profile.capital_gains_explored && !wasQuestionAsked('capital_gains')) {
+            markQuestionAsked('capital_gains');
+            addMessage('ai', `<strong>Did you have any capital gains or losses from selling stocks this year?</strong>`, [
+              { label: 'Yes, net gains (profit)', value: 'capgain_gains' },
+              { label: 'Yes, net losses', value: 'capgain_losses' },
+              { label: 'About break-even', value: 'capgain_even' },
+              { label: 'Haven\'t sold anything', value: 'capgain_none' }
+            ]);
+            return;
+          }
+        }
+
+        // Capital Gains Amount Follow-up
+        if (profile.has_capital_gains && !profile.capital_gains_amount_explored && !wasQuestionAsked('capital_gains_amount')) {
+          markQuestionAsked('capital_gains_amount');
+          addMessage('ai', `<strong>Approximately how much in capital gains?</strong>`, [
+            { label: 'Under $10,000', value: 'capgainamt_under10k' },
+            { label: '$10,000 - $50,000', value: 'capgainamt_10_50k' },
+            { label: '$50,000 - $100,000', value: 'capgainamt_50_100k' },
+            { label: 'Over $100,000', value: 'capgainamt_over100k' }
+          ]);
+          return;
+        }
+
+        // Capital Losses Amount Follow-up
+        if (profile.has_capital_losses && !profile.capital_losses_amount_explored && !wasQuestionAsked('capital_losses_amount')) {
+          markQuestionAsked('capital_losses_amount');
+          addMessage('ai', `Capital losses can offset gains and up to $3,000 of ordinary income! <strong>Approximately how much in losses?</strong>`, [
+            { label: 'Under $3,000', value: 'caplossamt_under3k' },
+            { label: '$3,000 - $10,000', value: 'caplossamt_3_10k' },
+            { label: 'Over $10,000', value: 'caplossamt_over10k' }
           ]);
           return;
         }
@@ -5367,6 +5889,63 @@ If they're ready to move forward, suggest generating their comprehensive advisor
             { label: '$15,000 - $23,000', value: '401k_15_23k' },
             { label: 'Maxing out ($23,500)', value: '401k_max' },
             { label: 'Not sure', value: '401k_unsure' }
+          ]);
+          return;
+        }
+
+        // HSA Contributions (for those with high-deductible health plans)
+        if (!profile.hsa_explored && !wasQuestionAsked('hsa_contributions')) {
+          markQuestionAsked('hsa_contributions');
+          addMessage('ai', `Do you have a Health Savings Account (HSA)?`, [
+            { label: 'Yes, I contribute to an HSA', value: 'hsa_yes' },
+            { label: 'No HSA', value: 'hsa_no' },
+            { label: 'Not sure', value: 'hsa_unsure' }
+          ]);
+          return;
+        }
+
+        // HSA Amount Follow-up
+        if (profile.has_hsa && !profile.hsa_amount_explored && !wasQuestionAsked('hsa_amount')) {
+          markQuestionAsked('hsa_amount');
+          addMessage('ai', `HSA contributions are tax-deductible! <strong>How much do you contribute annually?</strong>`, [
+            { label: 'Under $2,000', value: 'hsaamt_under2k' },
+            { label: '$2,000 - $4,000', value: 'hsaamt_2_4k' },
+            { label: 'Maxing out ($4,150 single / $8,300 family)', value: 'hsaamt_max' },
+            { label: 'Not sure', value: 'hsaamt_unsure' }
+          ]);
+          return;
+        }
+
+        // Student Loan Interest
+        if (!profile.student_loan_explored && !wasQuestionAsked('student_loan')) {
+          markQuestionAsked('student_loan');
+          addMessage('ai', `Do you pay student loan interest?`, [
+            { label: 'Yes, I pay student loan interest', value: 'studentloan_yes' },
+            { label: 'No student loans', value: 'studentloan_no' }
+          ]);
+          return;
+        }
+
+        // Student Loan Amount Follow-up
+        if (profile.has_student_loans && !profile.student_loan_amount_explored && !wasQuestionAsked('student_loan_amount')) {
+          markQuestionAsked('student_loan_amount');
+          addMessage('ai', `Student loan interest is deductible up to $2,500. <strong>How much interest do you pay annually?</strong>`, [
+            { label: 'Under $1,000', value: 'studentloanamt_under1k' },
+            { label: '$1,000 - $2,500', value: 'studentloanamt_1_2500' },
+            { label: 'Over $2,500', value: 'studentloanamt_over2500' }
+          ]);
+          return;
+        }
+
+        // Energy Efficiency Credits (for homeowners or those planning major purchases)
+        if ((profile.owns_home || profile.primary_goal === 'home') && !profile.energy_explored && !wasQuestionAsked('energy_credits')) {
+          markQuestionAsked('energy_credits');
+          addMessage('ai', `Have you made any energy-efficient improvements or purchases this year?`, [
+            { label: '☀️ Solar panels installed', value: 'energy_solar' },
+            { label: '🚗 Electric vehicle purchased', value: 'energy_ev' },
+            { label: '🏠 Heat pump / HVAC upgrade', value: 'energy_hvac' },
+            { label: '🪟 Windows / insulation / doors', value: 'energy_home_improve' },
+            { label: 'None of these', value: 'energy_none' }
           ]);
           return;
         }
