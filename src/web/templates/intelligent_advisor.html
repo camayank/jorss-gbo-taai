@@ -2663,6 +2663,158 @@
         extractedData.lead_data.score += 10;
         calculateLeadScore();
 
+        // For retirement income, ask about Social Security and pension
+        if (source === 'investments') {
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>What types of retirement income do you have?</strong>`, [
+              { label: 'Social Security benefits', value: 'retire_income_ss' },
+              { label: 'Pension income', value: 'retire_income_pension' },
+              { label: 'IRA/401k withdrawals', value: 'retire_income_ira' },
+              { label: 'Investment dividends/interest', value: 'retire_income_invest' },
+              { label: 'Multiple types', value: 'retire_income_multiple' }
+            ]);
+          }, 800);
+          return;
+        }
+
+        startIntelligentQuestioning();
+
+      // Retirement Income Type Handlers
+      } else if (value.startsWith('retire_income_')) {
+        const retireType = value.replace('retire_income_', '');
+        const retireLabels = { 'ss': 'Social Security', 'pension': 'Pension', 'ira': 'IRA/401k withdrawals', 'invest': 'Investment income', 'multiple': 'Multiple types' };
+        addMessage('user', retireLabels[retireType] || retireType);
+        extractedData.tax_profile.retirement_income_type = retireType;
+
+        if (retireType === 'ss' || retireType === 'multiple') {
+          extractedData.tax_profile.has_social_security = true;
+          // Ask about SS taxation
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>What's your approximate annual Social Security benefit?</strong><br><small>Up to 85% of SS may be taxable depending on total income.</small>`, [
+              { label: 'Under $20,000', value: 'ss_amt_under20k' },
+              { label: '$20,000 - $35,000', value: 'ss_amt_20_35k' },
+              { label: '$35,000 - $50,000', value: 'ss_amt_35_50k' },
+              { label: 'Over $50,000', value: 'ss_amt_over50k' }
+            ]);
+          }, 800);
+          return;
+        } else if (retireType === 'pension') {
+          extractedData.tax_profile.has_pension = true;
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>What's your approximate annual pension income?</strong>`, [
+              { label: 'Under $25,000', value: 'pension_amt_under25k' },
+              { label: '$25,000 - $50,000', value: 'pension_amt_25_50k' },
+              { label: '$50,000 - $100,000', value: 'pension_amt_50_100k' },
+              { label: 'Over $100,000', value: 'pension_amt_over100k' }
+            ]);
+          }, 800);
+          return;
+        } else if (retireType === 'ira') {
+          extractedData.tax_profile.has_ira_withdrawals = true;
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Are you 73 or older (required to take RMDs)?</strong><br><small>Required Minimum Distributions must be taken from traditional IRAs/401ks.</small>`, [
+              { label: 'Yes, I take RMDs', value: 'rmd_yes' },
+              { label: 'No, not yet 73', value: 'rmd_no' },
+              { label: 'I\'m close to RMD age', value: 'rmd_soon' }
+            ]);
+          }, 800);
+          return;
+        }
+        startIntelligentQuestioning();
+
+      // Social Security Amount Handlers
+      } else if (value.startsWith('ss_amt_')) {
+        const ssAmt = value.replace('ss_amt_', '');
+        const ssAmounts = { 'under20k': 15000, '20_35k': 27500, '35_50k': 42500, 'over50k': 60000 };
+        const ssLabels = { 'under20k': 'Under $20,000', '20_35k': '$20,000-$35,000', '35_50k': '$35,000-$50,000', 'over50k': 'Over $50,000' };
+        addMessage('user', ssLabels[ssAmt] || ssAmt);
+        extractedData.tax_profile.social_security_amount = ssAmounts[ssAmt] || 27500;
+
+        // Calculate potential SS taxation (depends on provisional income)
+        const ssAmount = ssAmounts[ssAmt] || 27500;
+        const otherIncome = extractedData.tax_profile.total_income || 50000;
+        const provisionalIncome = otherIncome + (ssAmount / 2);
+        const filingStatus = extractedData.tax_profile.filing_status;
+        const threshold1 = filingStatus === 'Married Filing Jointly' ? 32000 : 25000;
+        const threshold2 = filingStatus === 'Married Filing Jointly' ? 44000 : 34000;
+
+        let taxablePct = 0;
+        if (provisionalIncome > threshold2) {
+          taxablePct = 0.85;
+        } else if (provisionalIncome > threshold1) {
+          taxablePct = 0.50;
+        }
+        extractedData.tax_profile.ss_taxable_percentage = taxablePct;
+        extractedData.tax_profile.ss_taxable_amount = Math.round(ssAmount * taxablePct);
+
+        if (taxablePct > 0) {
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `Based on your income, approximately <strong>${Math.round(taxablePct * 100)}% of your Social Security</strong> (~$${extractedData.tax_profile.ss_taxable_amount.toLocaleString()}) may be taxable.<br><br>Would you like strategies to reduce this?`, [
+              { label: 'Yes, show me strategies', value: 'ss_strategy_yes' },
+              { label: 'No, continue with assessment', value: 'ss_strategy_no' }
+            ]);
+          }, 1000);
+          return;
+        }
+        startIntelligentQuestioning();
+
+      // SS Strategy Response Handlers
+      } else if (value === 'ss_strategy_yes' || value === 'ss_strategy_no') {
+        addMessage('user', value === 'ss_strategy_yes' ? 'Show me strategies' : 'Continue');
+        if (value === 'ss_strategy_yes') {
+          extractedData.tax_profile.wants_ss_strategies = true;
+        }
+        startIntelligentQuestioning();
+
+      // Pension Amount Handlers
+      } else if (value.startsWith('pension_amt_')) {
+        const pensionAmt = value.replace('pension_amt_', '');
+        const pensionAmounts = { 'under25k': 15000, '25_50k': 37500, '50_100k': 75000, 'over100k': 125000 };
+        addMessage('user', `$${(pensionAmounts[pensionAmt] || 37500).toLocaleString()}`);
+        extractedData.tax_profile.pension_amount = pensionAmounts[pensionAmt] || 37500;
+        startIntelligentQuestioning();
+
+      // RMD (Required Minimum Distribution) Handlers
+      } else if (value.startsWith('rmd_')) {
+        const rmdStatus = value.replace('rmd_', '');
+        const rmdLabels = { 'yes': 'Yes, I take RMDs', 'no': 'Not yet 73', 'soon': 'Close to RMD age' };
+        addMessage('user', rmdLabels[rmdStatus] || rmdStatus);
+        extractedData.tax_profile.rmd_status = rmdStatus;
+
+        if (rmdStatus === 'yes') {
+          extractedData.tax_profile.takes_rmds = true;
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>What's your approximate annual RMD amount?</strong>`, [
+              { label: 'Under $10,000', value: 'rmd_amt_under10k' },
+              { label: '$10,000 - $30,000', value: 'rmd_amt_10_30k' },
+              { label: '$30,000 - $75,000', value: 'rmd_amt_30_75k' },
+              { label: 'Over $75,000', value: 'rmd_amt_over75k' }
+            ]);
+          }, 800);
+          return;
+        } else if (rmdStatus === 'soon') {
+          extractedData.tax_profile.approaching_rmd_age = true;
+        }
+        startIntelligentQuestioning();
+
+      // RMD Amount Handlers
+      } else if (value.startsWith('rmd_amt_')) {
+        const rmdAmt = value.replace('rmd_amt_', '');
+        const rmdAmounts = { 'under10k': 7500, '10_30k': 20000, '30_75k': 52500, 'over75k': 100000 };
+        addMessage('user', `$${(rmdAmounts[rmdAmt] || 20000).toLocaleString()}`);
+        extractedData.tax_profile.rmd_amount = rmdAmounts[rmdAmt] || 20000;
         startIntelligentQuestioning();
 
       // Deduction exploration handlers
@@ -2928,18 +3080,86 @@
 
       // Flow A business TYPE handlers (industry/category - different from entity structure)
       } else if (value === 'biz_professional' || value === 'biz_retail' ||
-                 value === 'biz_realestate' || value === 'biz_tech' || value === 'biz_service') {
+                 value === 'biz_realestate' || value === 'biz_tech' || value === 'biz_service' || value === 'biz_farm') {
         const bizType = value.replace('biz_', '');
         const bizLabels = {
           'professional': 'Professional Services',
           'retail': 'Retail / E-commerce',
           'realestate': 'Real Estate',
           'tech': 'Tech / Software',
-          'service': 'Other Service Business'
+          'service': 'Other Service Business',
+          'farm': 'Farming / Agriculture'
         };
         addMessage('user', bizLabels[bizType] || bizType);
         extractedData.tax_profile.business_type = bizType;
         extractedData.lead_data.score += 5;
+
+        // Farm income uses Schedule F instead of Schedule C
+        if (bizType === 'farm') {
+          extractedData.tax_profile.uses_schedule_f = true;
+          extractedData.lead_data.complexity = 'complex';
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>What type of farming operation?</strong><br><small>Farm income is reported on Schedule F with special provisions.</small>`, [
+              { label: 'Crop production', value: 'farm_type_crops' },
+              { label: 'Livestock', value: 'farm_type_livestock' },
+              { label: 'Dairy', value: 'farm_type_dairy' },
+              { label: 'Mixed farming', value: 'farm_type_mixed' },
+              { label: 'Timber/forestry', value: 'farm_type_timber' }
+            ]);
+          }, 800);
+          return;
+        }
+
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Farm Type Handlers
+      } else if (value.startsWith('farm_type_')) {
+        const farmType = value.replace('farm_type_', '');
+        const farmLabels = { 'crops': 'Crop production', 'livestock': 'Livestock', 'dairy': 'Dairy', 'mixed': 'Mixed farming', 'timber': 'Timber/forestry' };
+        addMessage('user', farmLabels[farmType] || farmType);
+        extractedData.tax_profile.farm_type = farmType;
+
+        // Ask about farm income
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<strong>What's your approximate gross farm income for the year?</strong>`, [
+            { label: 'Under $50,000', value: 'farm_income_under50k' },
+            { label: '$50,000 - $150,000', value: 'farm_income_50_150k' },
+            { label: '$150,000 - $500,000', value: 'farm_income_150_500k' },
+            { label: 'Over $500,000', value: 'farm_income_over500k' }
+          ]);
+        }, 800);
+
+      // Farm Income Handlers
+      } else if (value.startsWith('farm_income_')) {
+        const farmIncome = value.replace('farm_income_', '');
+        const incomeAmounts = { 'under50k': 35000, '50_150k': 100000, '150_500k': 325000, 'over500k': 750000 };
+        addMessage('user', `$${(incomeAmounts[farmIncome] || 100000).toLocaleString()}`);
+        extractedData.tax_profile.farm_gross_income = incomeAmounts[farmIncome] || 100000;
+
+        // Ask about farm expenses
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<strong>What are your major farm expense categories?</strong>`, [
+            { label: 'Seeds, feed, fertilizer', value: 'farm_exp_supplies' },
+            { label: 'Equipment & machinery', value: 'farm_exp_equipment' },
+            { label: 'Labor costs', value: 'farm_exp_labor' },
+            { label: 'Land rent/lease', value: 'farm_exp_land' },
+            { label: 'All of the above', value: 'farm_exp_all' }
+          ]);
+        }, 800);
+
+      // Farm Expense Handlers
+      } else if (value.startsWith('farm_exp_')) {
+        const farmExp = value.replace('farm_exp_', '');
+        const expLabels = { 'supplies': 'Seeds/feed/fertilizer', 'equipment': 'Equipment', 'labor': 'Labor', 'land': 'Land rent', 'all': 'All categories' };
+        addMessage('user', expLabels[farmExp] || farmExp);
+        extractedData.tax_profile.farm_expense_type = farmExp;
         calculateLeadScore();
         startIntelligentQuestioning();
 
@@ -2959,6 +3179,73 @@
         if (entityType === 'scorp' || entityType === 'ccorp') {
           extractedData.lead_data.complexity = 'complex';
           extractedData.lead_data.score += 10;
+        }
+        calculateLeadScore();
+
+        // S-Corp requires reasonable salary - critical IRS requirement
+        if (entityType === 'scorp') {
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>As an S-Corp owner, do you pay yourself a W-2 salary?</strong><br><small>IRS requires S-Corp owners to take "reasonable compensation" as W-2 wages before distributions.</small>`, [
+              { label: 'Yes, I take a W-2 salary', value: 'scorp_salary_yes' },
+              { label: 'No, only distributions', value: 'scorp_salary_no' },
+              { label: 'Not sure', value: 'scorp_salary_unsure' }
+            ]);
+          }, 800);
+          return;
+        }
+        startIntelligentQuestioning();
+
+      // S-Corp Reasonable Salary Handlers
+      } else if (value.startsWith('scorp_salary_')) {
+        const salaryStatus = value.replace('scorp_salary_', '');
+        const salaryLabels = { 'yes': 'Yes, I take a W-2 salary', 'no': 'Only distributions', 'unsure': 'Not sure' };
+        addMessage('user', salaryLabels[salaryStatus] || salaryStatus);
+        extractedData.tax_profile.scorp_salary_status = salaryStatus;
+
+        if (salaryStatus === 'no') {
+          extractedData.tax_profile.scorp_compliance_risk = true;
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `⚠️ <strong>Important:</strong> IRS requires S-Corp owner-employees to receive reasonable compensation. Taking only distributions may trigger reclassification and payroll tax penalties.<br><br><strong>What's your approximate annual distributions/draws?</strong>`, [
+              { label: 'Under $50,000', value: 'scorp_dist_under50k' },
+              { label: '$50,000 - $100,000', value: 'scorp_dist_50_100k' },
+              { label: '$100,000 - $200,000', value: 'scorp_dist_100_200k' },
+              { label: 'Over $200,000', value: 'scorp_dist_over200k' }
+            ]);
+          }, 1000);
+          return;
+        } else if (salaryStatus === 'yes') {
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>What's your approximate annual W-2 salary from the S-Corp?</strong>`, [
+              { label: 'Under $50,000', value: 'scorp_w2_under50k' },
+              { label: '$50,000 - $80,000', value: 'scorp_w2_50_80k' },
+              { label: '$80,000 - $120,000', value: 'scorp_w2_80_120k' },
+              { label: '$120,000 - $160,000', value: 'scorp_w2_120_160k' },
+              { label: 'Over $160,000', value: 'scorp_w2_over160k' }
+            ]);
+          }, 800);
+          return;
+        }
+        startIntelligentQuestioning();
+
+      // S-Corp W-2 Salary Amount Handlers
+      } else if (value.startsWith('scorp_w2_') || value.startsWith('scorp_dist_')) {
+        const isW2 = value.startsWith('scorp_w2_');
+        const amt = value.replace(isW2 ? 'scorp_w2_' : 'scorp_dist_', '');
+        const amounts = { 'under50k': 35000, '50_80k': 65000, '50_100k': 75000, '80_120k': 100000, '100_200k': 150000, '120_160k': 140000, 'over160k': 200000, 'over200k': 250000 };
+        addMessage('user', `$${(amounts[amt] || 50000).toLocaleString()}`);
+
+        if (isW2) {
+          extractedData.tax_profile.scorp_w2_salary = amounts[amt] || 50000;
+        } else {
+          extractedData.tax_profile.scorp_distributions = amounts[amt] || 50000;
+          // Flag if distributions significantly exceed what salary should be
+          extractedData.tax_profile.needs_salary_review = true;
         }
         calculateLeadScore();
         startIntelligentQuestioning();
@@ -2985,6 +3272,60 @@
         if (revenueAmounts[revenueRange] >= 250000) {
           extractedData.lead_data.complexity = 'complex';
         }
+        calculateLeadScore();
+
+        // For retail/e-commerce, ask about Cost of Goods Sold (COGS)
+        const isRetail = extractedData.tax_profile.business_type === 'retail';
+        if (isRetail) {
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Do you have Cost of Goods Sold (inventory purchases)?</strong><br><small>COGS is deducted from revenue before calculating profit.</small>`, [
+              { label: 'Yes, significant inventory costs', value: 'cogs_yes_high' },
+              { label: 'Yes, moderate inventory', value: 'cogs_yes_moderate' },
+              { label: 'Minimal (mostly services/digital)', value: 'cogs_minimal' },
+              { label: 'No inventory costs', value: 'cogs_none' }
+            ]);
+          }, 800);
+          return;
+        }
+        startIntelligentQuestioning();
+
+      // COGS (Cost of Goods Sold) Handlers
+      } else if (value.startsWith('cogs_')) {
+        const cogsLevel = value.replace('cogs_', '');
+        const cogsLabels = { 'yes_high': 'Significant inventory', 'yes_moderate': 'Moderate inventory', 'minimal': 'Minimal', 'none': 'No inventory' };
+        addMessage('user', cogsLabels[cogsLevel] || cogsLevel);
+        extractedData.tax_profile.cogs_status = cogsLevel;
+
+        if (cogsLevel === 'yes_high' || cogsLevel === 'yes_moderate') {
+          extractedData.tax_profile.has_cogs = true;
+          // Ask for COGS percentage
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>What percentage of your revenue goes to inventory/COGS?</strong>`, [
+              { label: 'Under 25%', value: 'cogs_pct_under25' },
+              { label: '25-40% (typical retail)', value: 'cogs_pct_25_40' },
+              { label: '40-60% (product-heavy)', value: 'cogs_pct_40_60' },
+              { label: 'Over 60%', value: 'cogs_pct_over60' }
+            ]);
+          }, 800);
+          return;
+        }
+        startIntelligentQuestioning();
+
+      // COGS Percentage Handlers
+      } else if (value.startsWith('cogs_pct_')) {
+        const cogsPct = value.replace('cogs_pct_', '');
+        const pctAmounts = { 'under25': 0.20, '25_40': 0.325, '40_60': 0.50, 'over60': 0.70 };
+        const pctLabels = { 'under25': 'Under 25%', '25_40': '25-40%', '40_60': '40-60%', 'over60': 'Over 60%' };
+        addMessage('user', pctLabels[cogsPct] || cogsPct);
+        extractedData.tax_profile.cogs_percentage = pctAmounts[cogsPct] || 0.325;
+        // Calculate estimated COGS
+        const revenue = extractedData.tax_profile.business_revenue || 100000;
+        extractedData.tax_profile.estimated_cogs = Math.round(revenue * (pctAmounts[cogsPct] || 0.325));
+        extractedData.tax_profile.gross_profit = revenue - extractedData.tax_profile.estimated_cogs;
         calculateLeadScore();
         startIntelligentQuestioning();
 
@@ -3173,6 +3514,79 @@
           extractedData.lead_data.score += 10;
         }
         calculateLeadScore();
+
+        // Ask about rental property depreciation - critical for Schedule E
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<strong>Do you claim depreciation on your rental properties?</strong><br><small>Depreciation is a major tax benefit - typically deducting the building cost over 27.5 years.</small>`, [
+            { label: 'Yes, I claim depreciation', value: 'rental_deprec_yes' },
+            { label: 'No, I don\'t claim it', value: 'rental_deprec_no' },
+            { label: 'My CPA handles this', value: 'rental_deprec_cpa' },
+            { label: 'Not sure', value: 'rental_deprec_unsure' }
+          ]);
+        }, 800);
+
+      // Rental Property Depreciation Handlers
+      } else if (value.startsWith('rental_deprec_')) {
+        const deprecStatus = value.replace('rental_deprec_', '');
+        const deprecLabels = { 'yes': 'Yes, I claim depreciation', 'no': 'No depreciation', 'cpa': 'CPA handles it', 'unsure': 'Not sure' };
+        addMessage('user', deprecLabels[deprecStatus] || deprecStatus);
+        extractedData.tax_profile.rental_depreciation_status = deprecStatus;
+
+        if (deprecStatus === 'yes' || deprecStatus === 'cpa') {
+          extractedData.tax_profile.claims_rental_depreciation = true;
+          // Ask about property basis for depreciation recapture planning
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>What's the approximate total cost basis of your rental properties (purchase price + improvements)?</strong><br><small>Important for depreciation and future sale planning.</small>`, [
+              { label: 'Under $200,000', value: 'rental_basis_under200k' },
+              { label: '$200,000 - $500,000', value: 'rental_basis_200_500k' },
+              { label: '$500,000 - $1,000,000', value: 'rental_basis_500k_1m' },
+              { label: 'Over $1,000,000', value: 'rental_basis_over1m' }
+            ]);
+          }, 800);
+          return;
+        } else if (deprecStatus === 'no') {
+          // They may be missing out on deductions
+          extractedData.tax_profile.missing_depreciation_deduction = true;
+        }
+        startIntelligentQuestioning();
+
+      // Rental Property Basis Handlers
+      } else if (value.startsWith('rental_basis_')) {
+        const basis = value.replace('rental_basis_', '');
+        const basisAmounts = { 'under200k': 150000, '200_500k': 350000, '500k_1m': 750000, 'over1m': 1500000 };
+        const basisLabels = { 'under200k': 'Under $200,000', '200_500k': '$200,000-$500,000', '500k_1m': '$500,000-$1M', 'over1m': 'Over $1,000,000' };
+        addMessage('user', basisLabels[basis] || basis);
+        extractedData.tax_profile.rental_property_basis = basisAmounts[basis] || 350000;
+
+        // Estimate annual depreciation (building is ~80% of basis, 27.5 year life)
+        const buildingValue = (basisAmounts[basis] || 350000) * 0.80;
+        const annualDepreciation = Math.round(buildingValue / 27.5);
+        extractedData.tax_profile.estimated_annual_depreciation = annualDepreciation;
+
+        // Ask about rental expenses for complete Schedule E picture
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<strong>What are your approximate annual rental expenses?</strong><br><small>Include repairs, insurance, property management, utilities paid by you.</small>`, [
+            { label: 'Under $5,000', value: 'rental_exp_under5k' },
+            { label: '$5,000 - $15,000', value: 'rental_exp_5_15k' },
+            { label: '$15,000 - $30,000', value: 'rental_exp_15_30k' },
+            { label: 'Over $30,000', value: 'rental_exp_over30k' }
+          ]);
+        }, 800);
+
+      // Rental Expense Handlers
+      } else if (value.startsWith('rental_exp_')) {
+        const exp = value.replace('rental_exp_', '');
+        const expAmounts = { 'under5k': 3000, '5_15k': 10000, '15_30k': 22500, 'over30k': 40000 };
+        const expLabels = { 'under5k': 'Under $5,000', '5_15k': '$5,000-$15,000', '15_30k': '$15,000-$30,000', 'over30k': 'Over $30,000' };
+        addMessage('user', expLabels[exp] || exp);
+        extractedData.tax_profile.rental_expenses = expAmounts[exp] || 10000;
+        calculateLeadScore();
         startIntelligentQuestioning();
 
       // =====================================================================
@@ -3248,6 +3662,55 @@
         extractedData.tax_profile.capital_losses_amount = amounts[amt] || 3000;
         extractedData.tax_profile.capital_losses_amount_explored = true;
         extractedData.lead_data.score += 5;
+
+        // Ask about wash sales - critical for loss deduction
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<strong>Did you repurchase any of these securities within 30 days of selling at a loss?</strong><br><small>The IRS "wash sale" rule disallows losses if you buy back within 30 days.</small>`, [
+            { label: 'Yes, I repurchased some', value: 'washsale_yes' },
+            { label: 'No, did not repurchase', value: 'washsale_no' },
+            { label: 'Not sure', value: 'washsale_unsure' }
+          ]);
+        }, 800);
+
+      // Wash Sale Handlers
+      } else if (value.startsWith('washsale_')) {
+        const washStatus = value.replace('washsale_', '');
+        const washLabels = { 'yes': 'Yes, repurchased some', 'no': 'No, did not repurchase', 'unsure': 'Not sure' };
+        addMessage('user', washLabels[washStatus] || washStatus);
+        extractedData.tax_profile.washsale_status = washStatus;
+
+        if (washStatus === 'yes') {
+          extractedData.tax_profile.has_wash_sales = true;
+          // Losses may be disallowed
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Approximately what percentage of your losses were wash sales?</strong><br><small>These losses are deferred, not permanently lost - they add to your cost basis.</small>`, [
+              { label: 'Under 25% of losses', value: 'washsale_pct_under25' },
+              { label: '25-50% of losses', value: 'washsale_pct_25_50' },
+              { label: 'Over 50% of losses', value: 'washsale_pct_over50' },
+              { label: 'Not sure', value: 'washsale_pct_unsure' }
+            ]);
+          }, 800);
+          return;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Wash Sale Percentage Handlers
+      } else if (value.startsWith('washsale_pct_')) {
+        const washPct = value.replace('washsale_pct_', '');
+        const washLabels = { 'under25': 'Under 25%', '25_50': '25-50%', 'over50': 'Over 50%', 'unsure': 'Not sure' };
+        const washAmounts = { 'under25': 0.15, '25_50': 0.375, 'over50': 0.60, 'unsure': 0.25 };
+        addMessage('user', washLabels[washPct] || washPct);
+        extractedData.tax_profile.washsale_percentage = washAmounts[washPct] || 0.25;
+        // Adjust deductible losses
+        const totalLosses = extractedData.tax_profile.capital_losses_amount || 0;
+        const disallowedLosses = Math.round(totalLosses * (washAmounts[washPct] || 0.25));
+        extractedData.tax_profile.washsale_disallowed = disallowedLosses;
+        extractedData.tax_profile.deductible_losses = totalLosses - disallowedLosses;
         calculateLeadScore();
         startIntelligentQuestioning();
 
@@ -3276,6 +3739,63 @@
           extractedData.tax_profile.has_college_students = true;
         }
         extractedData.lead_data.score += 5;
+        calculateLeadScore();
+
+        // Ask about kiddie tax for children with investment income
+        const hasMinorChildren = ageGroup === 'under6' || ageGroup === '6_17' || ageGroup === 'mixed';
+        if (hasMinorChildren) {
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Do any of your children have investment income?</strong><br><small>Children's unearned income over $2,500 may be taxed at parent's rate ("kiddie tax").</small>`, [
+              { label: 'Yes, child has investment/interest income', value: 'kiddie_yes' },
+              { label: 'Yes, child has trust income', value: 'kiddie_trust' },
+              { label: 'No unearned income', value: 'kiddie_no' }
+            ]);
+          }, 800);
+          return;
+        }
+        startIntelligentQuestioning();
+
+      // Kiddie Tax Handlers
+      } else if (value.startsWith('kiddie_')) {
+        const kiddieStatus = value.replace('kiddie_', '');
+        const kiddieLabels = { 'yes': 'Child has investment income', 'trust': 'Child has trust income', 'no': 'No unearned income' };
+        addMessage('user', kiddieLabels[kiddieStatus] || kiddieStatus);
+        extractedData.tax_profile.kiddie_tax_status = kiddieStatus;
+
+        if (kiddieStatus === 'yes' || kiddieStatus === 'trust') {
+          extractedData.tax_profile.has_kiddie_tax_situation = true;
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>What's the child's approximate unearned income?</strong><br><small>First $1,250 tax-free, next $1,250 at child's rate, above $2,500 at parent's rate.</small>`, [
+              { label: 'Under $1,250 (tax-free)', value: 'kiddie_amt_under1250' },
+              { label: '$1,250 - $2,500 (child\'s rate)', value: 'kiddie_amt_1250_2500' },
+              { label: '$2,500 - $10,000 (kiddie tax applies)', value: 'kiddie_amt_2500_10k' },
+              { label: 'Over $10,000', value: 'kiddie_amt_over10k' }
+            ]);
+          }, 800);
+          return;
+        }
+        startIntelligentQuestioning();
+
+      // Kiddie Tax Amount Handlers
+      } else if (value.startsWith('kiddie_amt_')) {
+        const kiddieAmt = value.replace('kiddie_amt_', '');
+        const amtAmounts = { 'under1250': 750, '1250_2500': 1875, '2500_10k': 6000, 'over10k': 15000 };
+        const amtLabels = { 'under1250': 'Under $1,250', '1250_2500': '$1,250-$2,500', '2500_10k': '$2,500-$10,000', 'over10k': 'Over $10,000' };
+        addMessage('user', amtLabels[kiddieAmt] || kiddieAmt);
+        extractedData.tax_profile.child_unearned_income = amtAmounts[kiddieAmt] || 3000;
+
+        // Flag if kiddie tax will apply
+        if (kiddieAmt === '2500_10k' || kiddieAmt === 'over10k') {
+          extractedData.tax_profile.kiddie_tax_applies = true;
+          // Estimate additional tax at parent's rate
+          const excessIncome = (amtAmounts[kiddieAmt] || 6000) - 2500;
+          const parentRate = (extractedData.tax_profile.total_income || 100000) > 200000 ? 0.32 : 0.22;
+          extractedData.tax_profile.estimated_kiddie_tax = Math.round(excessIncome * parentRate);
+        }
         calculateLeadScore();
         startIntelligentQuestioning();
 
@@ -3508,11 +4028,112 @@
           if (cryptoType === 'sold') {
             extractedData.tax_profile.has_crypto_gains = true;
             extractedData.lead_data.complexity = 'complex';
+            // Ask detailed crypto trading questions
+            showTyping();
+            setTimeout(() => {
+              hideTyping();
+              addMessage('ai', `<strong>Approximately how many crypto transactions did you have this year?</strong><br><small>Each trade (including crypto-to-crypto swaps) is a taxable event.</small>`, [
+                { label: 'Under 10 trades', value: 'crypto_trades_under10' },
+                { label: '10-50 trades', value: 'crypto_trades_10_50' },
+                { label: '50-200 trades', value: 'crypto_trades_50_200' },
+                { label: 'Over 200 trades (active trader)', value: 'crypto_trades_over200' }
+              ]);
+            }, 800);
+            return;
           } else if (cryptoType === 'earned') {
             extractedData.tax_profile.has_crypto_income = true;
             extractedData.lead_data.complexity = 'complex';
+            // Ask about crypto income type
+            showTyping();
+            setTimeout(() => {
+              hideTyping();
+              addMessage('ai', `<strong>How did you earn cryptocurrency?</strong><br><small>Different earning methods have different tax treatments.</small>`, [
+                { label: 'Mining', value: 'crypto_earn_mining' },
+                { label: 'Staking rewards', value: 'crypto_earn_staking' },
+                { label: 'DeFi yield farming', value: 'crypto_earn_defi' },
+                { label: 'Airdrops/rewards', value: 'crypto_earn_airdrops' },
+                { label: 'Payment for services', value: 'crypto_earn_payment' }
+              ]);
+            }, 800);
+            return;
           }
         }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Crypto Trade Count Handlers
+      } else if (value.startsWith('crypto_trades_')) {
+        const tradeCount = value.replace('crypto_trades_', '');
+        const tradeLabels = { 'under10': 'Under 10 trades', '10_50': '10-50 trades', '50_200': '50-200 trades', 'over200': 'Over 200 trades' };
+        addMessage('user', tradeLabels[tradeCount] || tradeCount);
+        extractedData.tax_profile.crypto_trade_count = tradeCount;
+
+        if (tradeCount === 'over200' || tradeCount === '50_200') {
+          extractedData.tax_profile.needs_crypto_software = true;
+        }
+
+        // Ask about crypto gain/loss amount
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<strong>What's your approximate net crypto gain or loss this year?</strong>`, [
+            { label: 'Net gain under $5,000', value: 'crypto_gl_gain_under5k' },
+            { label: 'Net gain $5,000-$25,000', value: 'crypto_gl_gain_5_25k' },
+            { label: 'Net gain over $25,000', value: 'crypto_gl_gain_over25k' },
+            { label: 'Net loss under $10,000', value: 'crypto_gl_loss_under10k' },
+            { label: 'Net loss over $10,000', value: 'crypto_gl_loss_over10k' },
+            { label: 'About break-even', value: 'crypto_gl_even' }
+          ]);
+        }, 800);
+
+      // Crypto Gain/Loss Handlers
+      } else if (value.startsWith('crypto_gl_')) {
+        const glType = value.replace('crypto_gl_', '');
+        const glLabels = {
+          'gain_under5k': 'Net gain under $5,000', 'gain_5_25k': 'Net gain $5,000-$25,000', 'gain_over25k': 'Net gain over $25,000',
+          'loss_under10k': 'Net loss under $10,000', 'loss_over10k': 'Net loss over $10,000', 'even': 'About break-even'
+        };
+        const glAmounts = { 'gain_under5k': 2500, 'gain_5_25k': 15000, 'gain_over25k': 50000, 'loss_under10k': -5000, 'loss_over10k': -15000, 'even': 0 };
+        addMessage('user', glLabels[glType] || glType);
+        extractedData.tax_profile.crypto_gain_loss = glAmounts[glType] || 0;
+
+        if (glType.startsWith('loss_')) {
+          extractedData.tax_profile.has_crypto_losses = true;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Crypto Earning Type Handlers
+      } else if (value.startsWith('crypto_earn_')) {
+        const earnType = value.replace('crypto_earn_', '');
+        const earnLabels = { 'mining': 'Mining', 'staking': 'Staking rewards', 'defi': 'DeFi yield farming', 'airdrops': 'Airdrops/rewards', 'payment': 'Payment for services' };
+        addMessage('user', earnLabels[earnType] || earnType);
+        extractedData.tax_profile.crypto_earning_type = earnType;
+
+        // Mining and staking may have self-employment implications
+        if (earnType === 'mining') {
+          extractedData.tax_profile.crypto_mining_se_tax = true;
+        }
+
+        // Ask about earned crypto value
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<strong>What's the approximate fair market value of crypto you earned this year?</strong><br><small>This is taxed as ordinary income when received.</small>`, [
+            { label: 'Under $1,000', value: 'crypto_earned_under1k' },
+            { label: '$1,000 - $5,000', value: 'crypto_earned_1_5k' },
+            { label: '$5,000 - $20,000', value: 'crypto_earned_5_20k' },
+            { label: 'Over $20,000', value: 'crypto_earned_over20k' }
+          ]);
+        }, 800);
+
+      // Crypto Earned Value Handlers
+      } else if (value.startsWith('crypto_earned_')) {
+        const earnedAmt = value.replace('crypto_earned_', '');
+        const earnedAmounts = { 'under1k': 500, '1_5k': 3000, '5_20k': 12500, 'over20k': 35000 };
+        const earnedLabels = { 'under1k': 'Under $1,000', '1_5k': '$1,000-$5,000', '5_20k': '$5,000-$20,000', 'over20k': 'Over $20,000' };
+        addMessage('user', earnedLabels[earnedAmt] || earnedAmt);
+        extractedData.tax_profile.crypto_earned_value = earnedAmounts[earnedAmt] || 5000;
         calculateLeadScore();
         startIntelligentQuestioning();
 
@@ -3538,12 +4159,114 @@
           extractedData.lead_data.score += 10;
           extractedData.lead_data.complexity = 'complex';
 
-          // ISOs have special AMT implications
+          // ISOs have special AMT implications - ask detailed questions
           if (optionType === 'iso') {
             extractedData.tax_profile.has_iso = true;
             extractedData.tax_profile.may_have_amt = true;
+            showTyping();
+            setTimeout(() => {
+              hideTyping();
+              addMessage('ai', `<strong>Did you exercise any ISOs this year?</strong><br><small>ISO exercises can trigger Alternative Minimum Tax (AMT).</small>`, [
+                { label: 'Yes, I exercised ISOs', value: 'iso_exercised_yes' },
+                { label: 'No, haven\'t exercised yet', value: 'iso_exercised_no' },
+                { label: 'Planning to exercise soon', value: 'iso_exercised_planning' }
+              ]);
+            }, 800);
+            return;
+          } else if (optionType === 'nso' || optionType === 'rsu') {
+            // NSOs and RSUs - ask about vesting/exercise
+            showTyping();
+            setTimeout(() => {
+              hideTyping();
+              addMessage('ai', `<strong>What's the approximate value of ${optionType === 'nso' ? 'NSOs exercised' : 'RSUs vested'} this year?</strong><br><small>${optionType === 'nso' ? 'The bargain element is taxed as ordinary income.' : 'RSU value at vesting is taxed as ordinary income.'}</small>`, [
+                { label: 'Under $25,000', value: `${optionType}_value_under25k` },
+                { label: '$25,000 - $100,000', value: `${optionType}_value_25_100k` },
+                { label: '$100,000 - $250,000', value: `${optionType}_value_100_250k` },
+                { label: 'Over $250,000', value: `${optionType}_value_over250k` }
+              ]);
+            }, 800);
+            return;
           }
         }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // ISO Exercise Handlers (AMT triggers)
+      } else if (value.startsWith('iso_exercised_')) {
+        const exerciseStatus = value.replace('iso_exercised_', '');
+        const exerciseLabels = { 'yes': 'Yes, exercised ISOs', 'no': 'Haven\'t exercised', 'planning': 'Planning to exercise' };
+        addMessage('user', exerciseLabels[exerciseStatus] || exerciseStatus);
+        extractedData.tax_profile.iso_exercise_status = exerciseStatus;
+
+        if (exerciseStatus === 'yes') {
+          // Ask about ISO bargain element (spread) - this is the AMT preference item
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>What's the approximate "spread" (difference between FMV and exercise price)?</strong><br><small>This spread is an AMT preference item that may trigger AMT liability.</small>`, [
+              { label: 'Under $50,000 spread', value: 'iso_spread_under50k' },
+              { label: '$50,000 - $150,000 spread', value: 'iso_spread_50_150k' },
+              { label: '$150,000 - $500,000 spread', value: 'iso_spread_150_500k' },
+              { label: 'Over $500,000 spread', value: 'iso_spread_over500k' }
+            ]);
+          }, 800);
+          return;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // ISO Spread (AMT Preference Item) Handlers
+      } else if (value.startsWith('iso_spread_')) {
+        const spreadAmt = value.replace('iso_spread_', '');
+        const spreadAmounts = { 'under50k': 25000, '50_150k': 100000, '150_500k': 325000, 'over500k': 750000 };
+        const spreadLabels = { 'under50k': 'Under $50,000', '50_150k': '$50,000-$150,000', '150_500k': '$150,000-$500,000', 'over500k': 'Over $500,000' };
+        addMessage('user', spreadLabels[spreadAmt] || spreadAmt);
+        extractedData.tax_profile.iso_spread = spreadAmounts[spreadAmt] || 100000;
+
+        // Calculate potential AMT liability estimate
+        const spread = spreadAmounts[spreadAmt] || 100000;
+        const potentialAMT = Math.round(spread * 0.28); // AMT rate is 26-28%
+        extractedData.tax_profile.potential_amt_liability = potentialAMT;
+
+        if (spread >= 150000) {
+          extractedData.tax_profile.high_amt_risk = true;
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `⚠️ <strong>High AMT Risk Alert:</strong> With a $${spread.toLocaleString()} spread, you may owe significant AMT (potentially $${potentialAMT.toLocaleString()}).<br><br><strong>Did you already make estimated tax payments for AMT?</strong>`, [
+              { label: 'Yes, made AMT estimated payments', value: 'amt_estimated_yes' },
+              { label: 'No, need to plan for this', value: 'amt_estimated_no' },
+              { label: 'My CPA is handling this', value: 'amt_estimated_cpa' }
+            ]);
+          }, 1000);
+          return;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // AMT Estimated Payment Handlers
+      } else if (value.startsWith('amt_estimated_')) {
+        const amtStatus = value.replace('amt_estimated_', '');
+        const amtLabels = { 'yes': 'Yes, made AMT payments', 'no': 'Need to plan for this', 'cpa': 'CPA handling it' };
+        addMessage('user', amtLabels[amtStatus] || amtStatus);
+        extractedData.tax_profile.amt_estimated_status = amtStatus;
+        if (amtStatus === 'no') {
+          extractedData.tax_profile.needs_amt_planning = true;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // NSO/RSU Value Handlers
+      } else if (value.match(/^(nso|rsu)_value_/)) {
+        const parts = value.split('_value_');
+        const equityType = parts[0];
+        const valueAmt = parts[1];
+        const valueAmounts = { 'under25k': 15000, '25_100k': 62500, '100_250k': 175000, 'over250k': 400000 };
+        const valueLabels = { 'under25k': 'Under $25,000', '25_100k': '$25,000-$100,000', '100_250k': '$100,000-$250,000', 'over250k': 'Over $250,000' };
+        addMessage('user', valueLabels[valueAmt] || valueAmt);
+        extractedData.tax_profile[`${equityType}_value`] = valueAmounts[valueAmt] || 62500;
+        // This is ordinary income, will be on W-2
+        extractedData.tax_profile.equity_income = valueAmounts[valueAmt] || 62500;
         calculateLeadScore();
         startIntelligentQuestioning();
 
@@ -3792,7 +4515,258 @@
           extractedData.tax_profile.has_foreign_accounts = (foreignType === 'accounts' || foreignType === 'both');
           extractedData.tax_profile.may_need_fbar = true;
           extractedData.lead_data.complexity = 'complex';
+
+          // Ask detailed foreign income questions
+          if (foreignType === 'income' || foreignType === 'both') {
+            showTyping();
+            setTimeout(() => {
+              hideTyping();
+              addMessage('ai', `<strong>What type of foreign income do you have?</strong><br><small>Different types qualify for different exclusions/credits.</small>`, [
+                { label: 'Wages from foreign employer', value: 'foreign_type_wages' },
+                { label: 'Self-employment abroad', value: 'foreign_type_self' },
+                { label: 'Foreign rental property', value: 'foreign_type_rental' },
+                { label: 'Foreign investments/dividends', value: 'foreign_type_invest' },
+                { label: 'Foreign pension', value: 'foreign_type_pension' }
+              ]);
+            }, 800);
+            return;
+          } else if (foreignType === 'accounts') {
+            // Ask about FBAR threshold
+            showTyping();
+            setTimeout(() => {
+              hideTyping();
+              addMessage('ai', `<strong>What's the highest aggregate balance of all foreign accounts this year?</strong><br><small>FBAR filing required if > $10,000 at any time.</small>`, [
+                { label: 'Under $10,000', value: 'fbar_under10k' },
+                { label: '$10,000 - $50,000', value: 'fbar_10_50k' },
+                { label: '$50,000 - $200,000', value: 'fbar_50_200k' },
+                { label: 'Over $200,000', value: 'fbar_over200k' }
+              ]);
+            }, 800);
+            return;
+          }
         }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Foreign Income Type Handlers
+      } else if (value.startsWith('foreign_type_')) {
+        const incomeType = value.replace('foreign_type_', '');
+        const typeLabels = { 'wages': 'Foreign wages', 'self': 'Self-employment abroad', 'rental': 'Foreign rental', 'invest': 'Foreign investments', 'pension': 'Foreign pension' };
+        addMessage('user', typeLabels[incomeType] || incomeType);
+        extractedData.tax_profile.foreign_income_type = incomeType;
+
+        // Earned income (wages/self-employment) may qualify for FEIE
+        if (incomeType === 'wages' || incomeType === 'self') {
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Did you live outside the US for most of the year?</strong><br><small>You may qualify for the Foreign Earned Income Exclusion (up to $126,500 in 2024).</small>`, [
+              { label: 'Yes, lived abroad full year', value: 'feie_full_year' },
+              { label: 'Yes, 330+ days abroad', value: 'feie_330_days' },
+              { label: 'Partial year abroad', value: 'feie_partial' },
+              { label: 'No, worked remotely from US', value: 'feie_remote_us' }
+            ]);
+          }, 800);
+          return;
+        } else {
+          // Ask about foreign tax paid for Foreign Tax Credit
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Did you pay foreign taxes on this income?</strong><br><small>You may claim a Foreign Tax Credit to avoid double taxation.</small>`, [
+              { label: 'Yes, taxes withheld/paid', value: 'ftc_yes' },
+              { label: 'No foreign taxes paid', value: 'ftc_no' },
+              { label: 'Not sure', value: 'ftc_unsure' }
+            ]);
+          }, 800);
+          return;
+        }
+
+      // FEIE (Foreign Earned Income Exclusion) Handlers
+      } else if (value.startsWith('feie_')) {
+        const feieStatus = value.replace('feie_', '');
+        const feieLabels = { 'full_year': 'Lived abroad full year', '330_days': '330+ days abroad', 'partial': 'Partial year abroad', 'remote_us': 'Worked remotely from US' };
+        addMessage('user', feieLabels[feieStatus] || feieStatus);
+        extractedData.tax_profile.feie_status = feieStatus;
+
+        if (feieStatus === 'full_year' || feieStatus === '330_days') {
+          extractedData.tax_profile.qualifies_feie = true;
+          extractedData.tax_profile.feie_exclusion = 126500; // 2024 limit
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>What's your approximate foreign earned income?</strong><br><small>Up to $126,500 may be excluded from US taxes.</small>`, [
+              { label: 'Under $50,000', value: 'foreign_earned_under50k' },
+              { label: '$50,000 - $100,000', value: 'foreign_earned_50_100k' },
+              { label: '$100,000 - $126,500', value: 'foreign_earned_100_126k' },
+              { label: 'Over $126,500', value: 'foreign_earned_over126k' }
+            ]);
+          }, 800);
+          return;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Foreign Earned Income Amount Handlers
+      } else if (value.startsWith('foreign_earned_')) {
+        const earnedAmt = value.replace('foreign_earned_', '');
+        const earnedAmounts = { 'under50k': 35000, '50_100k': 75000, '100_126k': 113000, 'over126k': 175000 };
+        addMessage('user', `$${(earnedAmounts[earnedAmt] || 75000).toLocaleString()}`);
+        extractedData.tax_profile.foreign_earned_income = earnedAmounts[earnedAmt] || 75000;
+
+        // If over exclusion limit, ask about foreign housing deduction
+        if (earnedAmt === 'over126k') {
+          extractedData.tax_profile.excess_foreign_income = true;
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `Since your income exceeds the FEIE limit, you may also qualify for the <strong>Foreign Housing Exclusion</strong>.<br><br><strong>What's your annual housing expense abroad?</strong>`, [
+              { label: 'Under $20,000', value: 'foreign_housing_under20k' },
+              { label: '$20,000 - $40,000', value: 'foreign_housing_20_40k' },
+              { label: 'Over $40,000', value: 'foreign_housing_over40k' }
+            ]);
+          }, 800);
+          return;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Foreign Housing Handlers
+      } else if (value.startsWith('foreign_housing_')) {
+        const housingAmt = value.replace('foreign_housing_', '');
+        const housingAmounts = { 'under20k': 15000, '20_40k': 30000, 'over40k': 50000 };
+        addMessage('user', `$${(housingAmounts[housingAmt] || 30000).toLocaleString()}`);
+        extractedData.tax_profile.foreign_housing_expense = housingAmounts[housingAmt] || 30000;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Foreign Tax Credit Handlers
+      } else if (value.startsWith('ftc_')) {
+        const ftcStatus = value.replace('ftc_', '');
+        const ftcLabels = { 'yes': 'Yes, taxes withheld/paid', 'no': 'No foreign taxes', 'unsure': 'Not sure' };
+        addMessage('user', ftcLabels[ftcStatus] || ftcStatus);
+        extractedData.tax_profile.ftc_status = ftcStatus;
+
+        if (ftcStatus === 'yes') {
+          extractedData.tax_profile.has_foreign_tax_credit = true;
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Approximately how much foreign tax did you pay?</strong>`, [
+              { label: 'Under $1,000', value: 'ftc_amt_under1k' },
+              { label: '$1,000 - $5,000', value: 'ftc_amt_1_5k' },
+              { label: '$5,000 - $20,000', value: 'ftc_amt_5_20k' },
+              { label: 'Over $20,000', value: 'ftc_amt_over20k' }
+            ]);
+          }, 800);
+          return;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Foreign Tax Credit Amount Handlers
+      } else if (value.startsWith('ftc_amt_')) {
+        const ftcAmt = value.replace('ftc_amt_', '');
+        const ftcAmounts = { 'under1k': 500, '1_5k': 3000, '5_20k': 12500, 'over20k': 35000 };
+        addMessage('user', `$${(ftcAmounts[ftcAmt] || 3000).toLocaleString()}`);
+        extractedData.tax_profile.foreign_tax_paid = ftcAmounts[ftcAmt] || 3000;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // FBAR Balance Handlers
+      } else if (value.startsWith('fbar_')) {
+        const fbarAmt = value.replace('fbar_', '');
+        const fbarLabels = { 'under10k': 'Under $10,000', '10_50k': '$10,000-$50,000', '50_200k': '$50,000-$200,000', 'over200k': 'Over $200,000' };
+        addMessage('user', fbarLabels[fbarAmt] || fbarAmt);
+        extractedData.tax_profile.fbar_balance_range = fbarAmt;
+
+        if (fbarAmt !== 'under10k') {
+          extractedData.tax_profile.fbar_required = true;
+          // Check for FATCA Form 8938 requirement (higher thresholds)
+          if (fbarAmt === '50_200k' || fbarAmt === 'over200k') {
+            extractedData.tax_profile.fatca_8938_may_apply = true;
+          }
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Multi-State Filing Handlers
+      } else if (value.startsWith('multistate_')) {
+        const multiType = value.replace('multistate_', '');
+        const multiLabels = { 'no': 'Just one state', 'work': 'Worked in another state', 'moved': 'Moved to a new state', 'remote': 'Multiple states (remote)' };
+        addMessage('user', multiLabels[multiType] || multiType);
+        extractedData.tax_profile.multistate_status = multiType;
+
+        if (multiType !== 'no') {
+          extractedData.tax_profile.is_multistate_filer = true;
+          extractedData.lead_data.complexity = 'complex';
+
+          // Ask for the additional state(s)
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            if (multiType === 'moved') {
+              addMessage('ai', `<strong>When did you move?</strong><br><small>This affects your part-year resident status.</small>`, [
+                { label: 'January - March', value: 'moved_q1' },
+                { label: 'April - June', value: 'moved_q2' },
+                { label: 'July - September', value: 'moved_q3' },
+                { label: 'October - December', value: 'moved_q4' }
+              ]);
+            } else if (multiType === 'work') {
+              addMessage('ai', `<strong>How many days did you work in the other state?</strong><br><small>Many states require filing if you work there 10+ days.</small>`, [
+                { label: 'Under 10 days', value: 'workdays_under10' },
+                { label: '10-30 days', value: 'workdays_10_30' },
+                { label: '30-60 days', value: 'workdays_30_60' },
+                { label: 'Over 60 days', value: 'workdays_over60' }
+              ]);
+            } else if (multiType === 'remote') {
+              addMessage('ai', `<strong>How many states did you work from remotely?</strong>`, [
+                { label: '2 states', value: 'remote_states_2' },
+                { label: '3 states', value: 'remote_states_3' },
+                { label: '4+ states', value: 'remote_states_4plus' }
+              ]);
+            }
+          }, 800);
+          return;
+        }
+        startIntelligentQuestioning();
+
+      // Move Date Handlers
+      } else if (value.startsWith('moved_')) {
+        const moveQuarter = value.replace('moved_', '');
+        const moveLabels = { 'q1': 'January-March', 'q2': 'April-June', 'q3': 'July-September', 'q4': 'October-December' };
+        addMessage('user', moveLabels[moveQuarter] || moveQuarter);
+        extractedData.tax_profile.move_quarter = moveQuarter;
+        // Calculate approximate days in each state
+        const daysInOldState = { 'q1': 75, 'q2': 150, 'q3': 225, 'q4': 300 };
+        extractedData.tax_profile.days_in_old_state = daysInOldState[moveQuarter] || 180;
+        extractedData.tax_profile.days_in_new_state = 365 - (daysInOldState[moveQuarter] || 180);
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Work Days in Other State Handlers
+      } else if (value.startsWith('workdays_')) {
+        const workdays = value.replace('workdays_', '');
+        const workdayLabels = { 'under10': 'Under 10 days', '10_30': '10-30 days', '30_60': '30-60 days', 'over60': 'Over 60 days' };
+        const workdayAmounts = { 'under10': 5, '10_30': 20, '30_60': 45, 'over60': 90 };
+        addMessage('user', workdayLabels[workdays] || workdays);
+        extractedData.tax_profile.workdays_other_state = workdayAmounts[workdays] || 20;
+
+        // Flag if likely need to file in other state
+        if (workdays !== 'under10') {
+          extractedData.tax_profile.likely_need_nonresident_return = true;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Remote States Count Handlers
+      } else if (value.startsWith('remote_states_')) {
+        const stateCount = value.replace('remote_states_', '');
+        const countLabels = { '2': '2 states', '3': '3 states', '4plus': '4+ states' };
+        const countAmounts = { '2': 2, '3': 3, '4plus': 5 };
+        addMessage('user', countLabels[stateCount] || stateCount);
+        extractedData.tax_profile.remote_work_states = countAmounts[stateCount] || 2;
+        extractedData.tax_profile.needs_multistate_planning = true;
         calculateLeadScore();
         startIntelligentQuestioning();
 
@@ -5935,6 +6909,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
             { label: 'Retail / E-commerce', value: 'biz_retail' },
             { label: 'Real Estate', value: 'biz_realestate' },
             { label: 'Tech / Software', value: 'biz_tech' },
+            { label: 'Farming / Agriculture', value: 'biz_farm' },
             { label: 'Other Service Business', value: 'biz_service' }
           ]);
           return;
@@ -6389,7 +7364,28 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       extractedData.tax_profile.state = stateCode;
       extractedData.tax_profile.state_name = stateName;
       calculateLeadScore();
-      startIntelligentQuestioning();
+
+      // Ask about multi-state filing
+      askMultiStateQuestion();
+    }
+
+    // Multi-state filing question
+    function askMultiStateQuestion() {
+      if (!extractedData.tax_profile.multistate_explored) {
+        extractedData.tax_profile.multistate_explored = true;
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<strong>Did you work or live in any other states this year?</strong><br><small>You may need to file returns in multiple states.</small>`, [
+            { label: 'No, just one state', value: 'multistate_no' },
+            { label: 'Yes, worked in another state', value: 'multistate_work' },
+            { label: 'Yes, moved to a new state', value: 'multistate_moved' },
+            { label: 'Yes, multiple states (remote work)', value: 'multistate_remote' }
+          ]);
+        }, 800);
+      } else {
+        startIntelligentQuestioning();
+      }
     }
 
     // Show summary of collected information before running analysis
