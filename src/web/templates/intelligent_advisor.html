@@ -2815,6 +2815,12 @@
         calculateLeadScore();
         startIntelligentQuestioning();
 
+      // Medical amount skip handler
+      } else if (value === 'medical_amt_skip') {
+        addMessage('user', 'Skip medical expenses');
+        extractedData.tax_profile.medical_explored = true;
+        continueToDeductionsFromFocus();
+
       // Tax goal handlers
       } else if (value.startsWith('goal_')) {
         const goal = value.replace('goal_', '');
@@ -3203,6 +3209,35 @@
         extractedData.tax_profile.capital_gains_amount_explored = true;
         extractedData.lead_data.score += 10;
         calculateLeadScore();
+
+        // Ask about holding period (long-term vs short-term) - critical for tax rate
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<strong>Were these primarily long-term (held > 1 year) or short-term gains?</strong><br><small>Long-term gains are taxed at lower rates (0-20%).</small>`, [
+            { label: 'Mostly long-term (held > 1 year)', value: 'capgain_longterm' },
+            { label: 'Mostly short-term (held < 1 year)', value: 'capgain_shortterm' },
+            { label: 'Mix of both', value: 'capgain_mixed' },
+            { label: 'Not sure', value: 'capgain_unsure' }
+          ]);
+        }, 800);
+
+      // Capital Gains Holding Period Handlers
+      } else if (value.startsWith('capgain_longterm') || value.startsWith('capgain_shortterm') || value.startsWith('capgain_mixed') || value === 'capgain_unsure') {
+        const holdingLabels = {
+          'capgain_longterm': 'Mostly long-term (held > 1 year)',
+          'capgain_shortterm': 'Mostly short-term (held < 1 year)',
+          'capgain_mixed': 'Mix of both',
+          'capgain_unsure': 'Not sure'
+        };
+        addMessage('user', holdingLabels[value] || value);
+        extractedData.tax_profile.capital_gains_holding = value.replace('capgain_', '');
+
+        // Flag if short-term - taxed as ordinary income
+        if (value === 'capgain_shortterm') {
+          extractedData.tax_profile.has_short_term_gains = true;
+        }
+        calculateLeadScore();
         startIntelligentQuestioning();
 
       } else if (value.startsWith('caplossamt_')) {
@@ -3536,6 +3571,227 @@
               profile.has_crypto_gains || profile.has_investment_income) {
             extractedData.tax_profile.possible_underpayment_penalty = true;
           }
+          calculateLeadScore();
+          startIntelligentQuestioning();
+        } else if (estimatedType === 'yes' || estimatedType === 'sometimes') {
+          // Ask for estimated payment amounts to calculate refund/owed accurately
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>What's your approximate total estimated tax payments so far this year?</strong><br><small>This helps us calculate if you'll owe or get a refund.</small>`, [
+              { label: 'Under $5,000', value: 'estamt_under5k' },
+              { label: '$5,000 - $15,000', value: 'estamt_5_15k' },
+              { label: '$15,000 - $30,000', value: 'estamt_15_30k' },
+              { label: '$30,000 - $50,000', value: 'estamt_30_50k' },
+              { label: 'Over $50,000', value: 'estamt_over50k' },
+              { label: 'Skip - I\'ll check later', value: 'estamt_skip' }
+            ]);
+          }, 800);
+        } else {
+          calculateLeadScore();
+          startIntelligentQuestioning();
+        }
+
+      // Estimated Payment Amount Handlers
+      } else if (value.startsWith('estamt_')) {
+        const amt = value.replace('estamt_', '');
+        const amounts = { 'under5k': 2500, '5_15k': 10000, '15_30k': 22500, '30_50k': 40000, 'over50k': 75000, 'skip': 0 };
+        const labels = { 'under5k': 'Under $5,000', '5_15k': '$5,000-$15,000', '15_30k': '$15,000-$30,000', '30_50k': '$30,000-$50,000', 'over50k': 'Over $50,000', 'skip': 'Skip for now' };
+        addMessage('user', labels[amt] || amt);
+        extractedData.tax_profile.estimated_payments_amount = amounts[amt] || 0;
+        extractedData.tax_profile.estimated_amount_explored = true;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Net Business Income Handlers
+      } else if (value.startsWith('netincome_')) {
+        const amt = value.replace('netincome_', '');
+        const amounts = { 'under25k': 15000, '25_75k': 50000, '75_150k': 112500, '150_250k': 200000, 'over250k': 350000 };
+        const labels = { 'under25k': 'Under $25,000', '25_75k': '$25,000-$75,000', '75_150k': '$75,000-$150,000', '150_250k': '$150,000-$250,000', 'over250k': 'Over $250,000' };
+        addMessage('user', labels[amt] || amt);
+        extractedData.tax_profile.net_business_income = amounts[amt] || 50000;
+        extractedData.tax_profile.net_income_explored = true;
+
+        // Calculate estimated self-employment tax (15.3% on 92.35% of net income)
+        const netIncome = amounts[amt] || 50000;
+        const seTax = Math.round(netIncome * 0.9235 * 0.153);
+        extractedData.tax_profile.estimated_se_tax = seTax;
+
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // QBI Deduction Handlers
+      } else if (value.startsWith('qbi_')) {
+        const qbiStatus = value.replace('qbi_', '');
+        const qbiLabels = {
+          'yes': 'Yes, I claim QBI deduction',
+          'learn': 'No, I want to learn more',
+          'cpa': 'My CPA handles this',
+          'unsure': 'Not sure if I qualify'
+        };
+        addMessage('user', qbiLabels[qbiStatus] || qbiStatus);
+        extractedData.tax_profile.qbi_explored = true;
+        extractedData.tax_profile.qbi_status = qbiStatus;
+
+        if (qbiStatus === 'yes') {
+          extractedData.tax_profile.claims_qbi = true;
+          // Estimate QBI deduction (20% of net business income, subject to limits)
+          const netIncome = extractedData.tax_profile.net_business_income || 0;
+          const qbiDeduction = Math.min(netIncome * 0.20, 50000); // Simplified estimate
+          extractedData.tax_profile.estimated_qbi_deduction = qbiDeduction;
+        }
+
+        if (qbiStatus === 'learn') {
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>QBI Deduction Explained:</strong><br><br>The Qualified Business Income (QBI) deduction lets you deduct up to <strong>20% of your net business income</strong> from your taxes.<br><br>✅ <strong>You may qualify if:</strong><br>• You're self-employed or own a pass-through business<br>• Your income is below $${extractedData.tax_profile.filing_status === 'Married Filing Jointly' ? '364,200' : '182,100'} (full deduction)<br>• Higher incomes may still qualify for partial deduction<br><br>This is one of the biggest tax savings opportunities for business owners!`, [
+              { label: 'I\'ll look into this', value: 'qbi_noted' },
+              { label: 'My CPA can help', value: 'qbi_cpa_help' }
+            ]);
+          }, 1000);
+          return;
+        }
+
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      } else if (value === 'qbi_noted' || value === 'qbi_cpa_help') {
+        addMessage('user', value === 'qbi_noted' ? 'I\'ll look into this' : 'My CPA can help');
+        extractedData.tax_profile.qbi_interest = true;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Education Credits Handlers
+      } else if (value.startsWith('educredit_')) {
+        const creditType = value.replace('educredit_', '');
+        const creditLabels = {
+          'dependents': 'College tuition for dependents',
+          'self': 'Education for myself',
+          '529': 'I contribute to a 529 plan',
+          'none': 'No education expenses'
+        };
+        addMessage('user', creditLabels[creditType] || creditType);
+        extractedData.tax_profile.education_credits_explored = true;
+
+        if (creditType === 'dependents') {
+          extractedData.tax_profile.has_education_expenses = true;
+          extractedData.tax_profile.education_type = 'dependents';
+          // Ask about AOTC eligibility
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>How many students are you paying college tuition for?</strong><br><small>AOTC credit: up to $2,500 per student (first 4 years).</small>`, [
+              { label: '1 student', value: 'students_1' },
+              { label: '2 students', value: 'students_2' },
+              { label: '3+ students', value: 'students_3plus' }
+            ]);
+          }, 800);
+          return;
+        } else if (creditType === 'self') {
+          extractedData.tax_profile.has_education_expenses = true;
+          extractedData.tax_profile.education_type = 'self';
+          // Lifetime Learning Credit for self
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>What type of education?</strong><br><small>Lifetime Learning Credit: up to $2,000 for any level of education.</small>`, [
+              { label: 'College degree program', value: 'selfed_degree' },
+              { label: 'Graduate school', value: 'selfed_graduate' },
+              { label: 'Professional certifications', value: 'selfed_cert' },
+              { label: 'Job-related courses', value: 'selfed_courses' }
+            ]);
+          }, 800);
+          return;
+        } else if (creditType === '529') {
+          extractedData.tax_profile.has_529 = true;
+          extractedData.tax_items.has_529 = true;
+          // Ask about 529 contribution amount
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>How much did you contribute to 529 plans this year?</strong><br><small>Many states offer tax deductions for 529 contributions.</small>`, [
+              { label: 'Under $5,000', value: '529amt_under5k' },
+              { label: '$5,000 - $15,000', value: '529amt_5_15k' },
+              { label: 'Over $15,000', value: '529amt_over15k' }
+            ]);
+          }, 800);
+          return;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Education student count handlers
+      } else if (value.startsWith('students_')) {
+        const count = value.replace('students_', '');
+        const countLabels = { '1': '1 student', '2': '2 students', '3plus': '3+ students' };
+        addMessage('user', countLabels[count] || count);
+        extractedData.tax_profile.college_students = count === '3plus' ? 3 : parseInt(count);
+        // Estimate AOTC credit ($2,500 per student)
+        const numStudents = count === '3plus' ? 3 : parseInt(count);
+        extractedData.tax_profile.potential_aotc = numStudents * 2500;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Self education type handlers
+      } else if (value.startsWith('selfed_')) {
+        const edType = value.replace('selfed_', '');
+        const edLabels = { 'degree': 'College degree', 'graduate': 'Graduate school', 'cert': 'Professional certifications', 'courses': 'Job-related courses' };
+        addMessage('user', edLabels[edType] || edType);
+        extractedData.tax_profile.self_education_type = edType;
+        // Lifetime Learning Credit estimate ($2,000 max)
+        extractedData.tax_profile.potential_llc = 2000;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // 529 amount handlers
+      } else if (value.startsWith('529amt_')) {
+        const amt = value.replace('529amt_', '');
+        const amounts = { 'under5k': 2500, '5_15k': 10000, 'over15k': 20000 };
+        const labels = { 'under5k': 'Under $5,000', '5_15k': '$5,000-$15,000', 'over15k': 'Over $15,000' };
+        addMessage('user', labels[amt] || amt);
+        extractedData.tax_profile.contribution_529 = amounts[amt] || 5000;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Standard Deduction vs Itemized Handlers
+      } else if (value.startsWith('itemize_')) {
+        const itemizeChoice = value.replace('itemize_', '');
+        const itemizeLabels = {
+          'yes': 'I itemize deductions',
+          'standard': 'I take the standard deduction',
+          'cpa': 'My CPA decides',
+          'unsure': 'Not sure'
+        };
+        addMessage('user', itemizeLabels[itemizeChoice] || itemizeChoice);
+        extractedData.tax_profile.itemize_decision_explored = true;
+        extractedData.tax_profile.itemize_choice = itemizeChoice;
+
+        if (itemizeChoice === 'yes') {
+          extractedData.tax_profile.itemizes_deductions = true;
+        } else if (itemizeChoice === 'standard') {
+          extractedData.tax_profile.itemizes_deductions = false;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Foreign Income/FBAR Handlers
+      } else if (value.startsWith('foreign_')) {
+        const foreignType = value.replace('foreign_', '');
+        const foreignLabels = {
+          'income': 'Yes, I have foreign income',
+          'accounts': 'Yes, foreign bank accounts only',
+          'both': 'Both foreign income and accounts',
+          'none': 'No foreign income or accounts'
+        };
+        addMessage('user', foreignLabels[foreignType] || foreignType);
+        extractedData.tax_profile.foreign_explored = true;
+
+        if (foreignType !== 'none') {
+          extractedData.tax_profile.has_foreign_income = (foreignType === 'income' || foreignType === 'both');
+          extractedData.tax_profile.has_foreign_accounts = (foreignType === 'accounts' || foreignType === 'both');
+          extractedData.tax_profile.may_need_fbar = true;
+          extractedData.lead_data.complexity = 'complex';
         }
         calculateLeadScore();
         startIntelligentQuestioning();
@@ -5723,6 +5979,33 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           return;
         }
 
+        // Net Business Income (profit after expenses) - critical for self-employment tax
+        if ((isSelfEmployed || isBusinessOwner) && profile.business_revenue && !profile.net_income_explored && !wasQuestionAsked('net_business_income')) {
+          markQuestionAsked('net_business_income');
+          addMessage('ai', `<strong>What's your approximate NET business income (profit after expenses)?</strong><br><small>This determines your self-employment tax (15.3%).</small>`, [
+            { label: 'Under $25,000 net', value: 'netincome_under25k' },
+            { label: '$25,000 - $75,000 net', value: 'netincome_25_75k' },
+            { label: '$75,000 - $150,000 net', value: 'netincome_75_150k' },
+            { label: '$150,000 - $250,000 net', value: 'netincome_150_250k' },
+            { label: 'Over $250,000 net', value: 'netincome_over250k' }
+          ]);
+          return;
+        }
+
+        // QBI Deduction Eligibility (20% pass-through deduction)
+        const qbiThreshold = profile.filing_status === 'Married Filing Jointly' ? 364200 : 182100;
+        if ((isSelfEmployed || isBusinessOwner) && profile.net_business_income && !profile.qbi_explored && !wasQuestionAsked('qbi_eligibility')) {
+          markQuestionAsked('qbi_eligibility');
+          const mayQualify = (profile.total_income || 0) < qbiThreshold;
+          addMessage('ai', `<strong>Are you aware of the QBI (Qualified Business Income) deduction?</strong><br><small>${mayQualify ? 'You may qualify for a 20% deduction on your business income!' : 'Phase-out may apply at your income level, but partial deduction possible.'}</small>`, [
+            { label: 'Yes, I claim QBI deduction', value: 'qbi_yes' },
+            { label: 'No, what is it?', value: 'qbi_learn' },
+            { label: 'My CPA handles this', value: 'qbi_cpa' },
+            { label: 'Not sure if I qualify', value: 'qbi_unsure' }
+          ]);
+          return;
+        }
+
         // Mark business as explored after all business questions
         if ((isSelfEmployed || isBusinessOwner) && !profile.business_explored) {
           profile.business_explored = true;
@@ -5950,6 +6233,36 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           return;
         }
 
+        // Education Credits (AOTC, Lifetime Learning, 529)
+        const hasCollegeAgeKids = profile.dependent_ages === 'college' || profile.dependent_ages === 'mixed';
+        if ((hasCollegeAgeKids || profile.dependents > 0) && !profile.education_credits_explored && !wasQuestionAsked('education_credits')) {
+          markQuestionAsked('education_credits');
+          addMessage('ai', `<strong>Are you paying for higher education expenses?</strong><br><small>Education credits can save up to $2,500 per student!</small>`, [
+            { label: 'Yes, college tuition for dependents', value: 'educredit_dependents' },
+            { label: 'Yes, for myself (taking classes)', value: 'educredit_self' },
+            { label: 'I contribute to a 529 plan', value: 'educredit_529' },
+            { label: 'No education expenses', value: 'educredit_none' }
+          ]);
+          return;
+        }
+
+        // Standard Deduction vs Itemized Decision
+        const hasItemizableDeductions = profile.has_mortgage || profile.has_charitable || profile.has_medical || (items.property_tax > 0);
+        const standardDeduction = profile.filing_status === 'Married Filing Jointly' ? 29200 :
+                                  profile.filing_status === 'Head of Household' ? 21900 : 14600;
+        if (hasItemizableDeductions && !profile.itemize_decision_explored && !wasQuestionAsked('itemize_decision')) {
+          markQuestionAsked('itemize_decision');
+          const estimatedItemized = (items.mortgage_interest || 0) + Math.min((items.property_tax || 0), 10000) + (items.charitable || 0) + (items.medical || 0);
+          const shouldItemize = estimatedItemized > standardDeduction;
+          addMessage('ai', `<strong>Based on your deductions, do you typically itemize or take the standard deduction?</strong><br><small>2025 standard deduction: $${standardDeduction.toLocaleString()} for ${profile.filing_status || 'your filing status'}${shouldItemize ? '<br>Your itemized deductions may exceed this!' : ''}</small>`, [
+            { label: 'I itemize deductions', value: 'itemize_yes' },
+            { label: 'I take the standard deduction', value: 'itemize_standard' },
+            { label: 'My CPA decides', value: 'itemize_cpa' },
+            { label: 'Not sure', value: 'itemize_unsure' }
+          ]);
+          return;
+        }
+
         // =====================================================================
         // PHASE 5: TAX GOALS & LIFE EVENTS
         // =====================================================================
@@ -6025,6 +6338,18 @@ If they're ready to move forward, suggest generating their comprehensive advisor
             ]);
             return;
           }
+        }
+
+        // Foreign Income / FBAR Requirements (for high earners and investors)
+        if ((isHighEarner || isInvestor) && !profile.foreign_explored && !wasQuestionAsked('foreign_income')) {
+          markQuestionAsked('foreign_income');
+          addMessage('ai', `<strong>Do you have any foreign income or foreign bank accounts?</strong><br><small>Foreign accounts over $10,000 require FBAR reporting.</small>`, [
+            { label: 'Yes, I have foreign income', value: 'foreign_income' },
+            { label: 'Yes, foreign bank accounts only', value: 'foreign_accounts' },
+            { label: 'Both foreign income and accounts', value: 'foreign_both' },
+            { label: 'No foreign income or accounts', value: 'foreign_none' }
+          ]);
+          return;
         }
 
         // Estimated Tax Payments (for self-employed or investors)
