@@ -8,17 +8,34 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --primary: #6366f1;
-      --primary-light: #818cf8;
-      --primary-dark: #4f46e5;
-      --accent: #10b981;
-      --bg: #0f172a;
-      --surface: #1e293b;
-      --surface-light: #334155;
-      --text: #f1f5f9;
-      --text-secondary: #94a3b8;
-      --border: #334155;
-      --gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+      /* Professional Tax Platform Theme - Clean & Trustworthy */
+      --primary: #1a365d;           /* Navy blue - trust, professionalism */
+      --primary-light: #2c5282;     /* Lighter navy */
+      --primary-dark: #0d2137;      /* Darker navy */
+      --accent: #2b6cb0;            /* Professional blue */
+      --accent-light: #4299e1;      /* Lighter blue */
+      --accent-gold: #c69214;       /* Muted gold for premium */
+      --error: #c53030;             /* Professional red */
+      --error-light: #fc8181;
+      --warning: #c69214;           /* Muted amber */
+      --success: #276749;           /* Professional green - money/savings */
+      --success-light: #38a169;
+      --bg: #f7fafc;                /* Light gray background */
+      --surface: #ffffff;           /* White cards */
+      --surface-light: #edf2f7;     /* Light gray surfaces */
+      --surface-elevated: #e2e8f0;  /* Elevated surface */
+      --text: #1a202c;              /* Dark text */
+      --text-secondary: #4a5568;    /* Secondary text */
+      --text-muted: #718096;        /* Muted text */
+      --border: #e2e8f0;            /* Light borders */
+      --border-light: #cbd5e0;      /* Slightly darker borders */
+      --gradient: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+      --gradient-gold: linear-gradient(135deg, #c69214 0%, #975a16 100%);
+      --gradient-premium: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-glow: 0 0 40px rgba(26, 54, 93, 0.1);
     }
 
     body {
@@ -31,7 +48,7 @@
       overflow-x: hidden;
     }
 
-    /* Animated Background */
+    /* Professional Light Background */
     .bg-animated {
       position: fixed;
       top: 0;
@@ -39,26 +56,20 @@
       width: 100%;
       height: 100%;
       z-index: 0;
-      opacity: 0.03;
-      background:
-        radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 40% 20%, rgba(236, 72, 153, 0.3) 0%, transparent 50%);
-      animation: pulse 15s ease-in-out infinite;
+      background: linear-gradient(180deg, #f7fafc 0%, #edf2f7 100%);
     }
 
     @keyframes pulse {
-      0%, 100% { opacity: 0.03; }
-      50% { opacity: 0.06; }
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.5; }
     }
 
     /* Header */
     .header {
       position: relative;
       z-index: 10;
-      padding: 16px 32px;
-      background: rgba(30, 41, 59, 0.8);
-      backdrop-filter: blur(20px) saturate(180%);
+      padding: 20px 40px;
+      background: #1a365d;
       border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
@@ -66,30 +77,39 @@
     }
 
     .logo {
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 700;
-      background: var(--gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-subtitle {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      font-weight: 400;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-top: 2px;
     }
 
     .status-pill {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      border-radius: 20px;
+      gap: 10px;
+      padding: 10px 20px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 24px;
       font-size: 13px;
-      color: var(--accent);
+      color: #ffffff;
+      font-weight: 600;
+      letter-spacing: 0.3px;
     }
 
     .status-dot {
       width: 8px;
       height: 8px;
-      background: var(--accent);
+      background: #38a169;
       border-radius: 50%;
       animation: pulse-dot 2s ease-in-out infinite;
     }
@@ -117,12 +137,11 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      background: rgba(30, 41, 59, 0.6);
-      backdrop-filter: blur(40px) saturate(180%);
+      background: #ffffff;
       border: 1px solid var(--border);
-      border-radius: 24px;
+      border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      box-shadow: var(--shadow-lg);
     }
 
     .messages {
@@ -136,7 +155,7 @@
 
     /* Custom Scrollbar */
     .messages::-webkit-scrollbar {
-      width: 8px;
+      width: 6px;
     }
 
     .messages::-webkit-scrollbar-track {
@@ -144,12 +163,12 @@
     }
 
     .messages::-webkit-scrollbar-thumb {
-      background: var(--surface-light);
-      border-radius: 4px;
+      background: var(--border);
+      border-radius: 3px;
     }
 
     .messages::-webkit-scrollbar-thumb:hover {
-      background: var(--border);
+      background: var(--accent);
     }
 
     /* Message Styles */
@@ -178,104 +197,151 @@
     .avatar {
       width: 44px;
       height: 44px;
-      border-radius: 50%;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 22px;
       flex-shrink: 0;
-      background: var(--gradient);
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+      background: #1a365d;
+      box-shadow: var(--shadow-sm);
     }
 
     .message.user .avatar {
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid var(--primary);
+      background: #2c5282;
+      box-shadow: var(--shadow-sm);
     }
 
     .bubble {
-      max-width: 70%;
-      padding: 20px 24px;
-      border-radius: 20px;
+      max-width: 75%;
+      padding: 18px 24px;
+      border-radius: 16px;
       font-size: 15px;
       line-height: 1.7;
+      letter-spacing: 0.1px;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+
+    /* Ensure strategy content doesn't truncate */
+    .bubble div,
+    .bubble p,
+    .bubble span {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
 
     .message.ai .bubble {
-      background: rgba(99, 102, 241, 0.1);
-      border: 1px solid rgba(99, 102, 241, 0.3);
+      background: #f7fafc;
+      border: 1px solid var(--border);
+      color: var(--text);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .message.ai .bubble strong {
+      color: #1a365d;
     }
 
     .message.user .bubble {
-      background: var(--gradient);
+      background: #1a365d;
       color: white;
+      border: none;
+      box-shadow: var(--shadow-md);
     }
 
     /* Quick Actions */
     .quick-actions {
       display: flex;
-      gap: 8px;
+      gap: 10px;
       flex-wrap: wrap;
-      margin-top: 16px;
+      margin-top: 20px;
     }
 
     .quick-action {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border);
-      padding: 10px 18px;
-      border-radius: 12px;
+      background: #ffffff;
+      border: 2px solid #1a365d;
+      padding: 12px 22px;
+      border-radius: 8px;
       font-size: 14px;
-      color: var(--text);
+      color: #1a365d;
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.2s ease;
       position: relative;
       z-index: 10;
       user-select: none;
+      font-weight: 600;
+      letter-spacing: 0.2px;
     }
 
     .quick-action:hover {
-      background: rgba(99, 102, 241, 0.2);
-      border-color: var(--primary);
+      background: #1a365d;
+      color: #ffffff;
       transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
     }
 
     .quick-action:active {
       transform: translateY(0);
-      background: rgba(99, 102, 241, 0.3);
     }
 
     .quick-action:disabled {
-      opacity: 0.5;
+      opacity: 0.4;
       cursor: not-allowed;
       pointer-events: none;
     }
 
+    .quick-action.primary {
+      background: #1a365d;
+      border: none;
+      color: white;
+    }
+
+    .quick-action.primary:hover {
+      background: #2c5282;
+      box-shadow: var(--shadow-md);
+    }
+
     /* Insight Cards */
     .insight-card {
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      border-radius: 16px;
-      padding: 20px;
-      margin-top: 16px;
+      background: #f0fff4;
+      border: 1px solid #c6f6d5;
+      border-left: 4px solid #276749;
+      border-radius: 8px;
+      padding: 24px;
+      margin-top: 20px;
+      box-shadow: var(--shadow-sm);
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .insight-card * {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
 
     .insight-header {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-      font-weight: 600;
-      color: var(--accent);
+      gap: 14px;
+      margin-bottom: 14px;
+      font-weight: 700;
+      color: #276749;
+      font-size: 16px;
+    }
+
+    .insight-card .savings-amount {
+      font-size: 28px;
+      font-weight: 800;
+      color: #276749;
     }
 
     /* Input Area */
     .input-area {
       padding: 24px 32px;
-      background: rgba(15, 23, 42, 0.9);
-      backdrop-filter: blur(20px);
+      background: #ffffff;
       border-top: 1px solid var(--border);
       display: flex;
-      gap: 12px;
+      gap: 16px;
       align-items: flex-end;
     }
 
@@ -289,17 +355,17 @@
     .input-box {
       display: flex;
       gap: 12px;
-      background: var(--surface);
-      padding: 14px 20px;
-      border-radius: 20px;
-      border: 2px solid transparent;
-      transition: all 0.3s;
+      background: #f7fafc;
+      padding: 16px 22px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      transition: all 0.2s;
     }
 
     .input-box:focus-within {
-      background: var(--surface-light);
-      border-color: var(--primary);
-      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+      background: #ffffff;
+      border-color: #1a365d;
+      box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
     }
 
     #userInput {
@@ -313,10 +379,11 @@
       min-height: 24px;
       max-height: 120px;
       font-family: inherit;
+      line-height: 1.5;
     }
 
     #userInput::placeholder {
-      color: var(--text-secondary);
+      color: var(--text-muted);
     }
 
     .action-btns {
@@ -325,13 +392,13 @@
     }
 
     .icon-btn {
-      background: rgba(255, 255, 255, 0.05);
-      border: none;
+      background: #ffffff;
+      border: 1px solid var(--border);
       color: var(--text-secondary);
       cursor: pointer;
       font-size: 20px;
-      width: 36px;
-      height: 36px;
+      width: 44px;
+      height: 44px;
       border-radius: 10px;
       display: flex;
       align-items: center;
@@ -340,26 +407,29 @@
     }
 
     .icon-btn:hover {
-      background: rgba(99, 102, 241, 0.2);
-      color: var(--primary-light);
+      background: #f7fafc;
+      border-color: #1a365d;
+      color: #1a365d;
     }
 
     .send-btn {
-      background: var(--gradient);
+      background: #1a365d;
       color: white;
       border: none;
-      padding: 14px 28px;
-      border-radius: 16px;
+      padding: 16px 32px;
+      border-radius: 10px;
       font-size: 15px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+      transition: all 0.2s;
+      box-shadow: var(--shadow-md);
+      letter-spacing: 0.3px;
     }
 
     .send-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(99, 102, 241, 0.5);
+      background: #2c5282;
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-lg);
     }
 
     .send-btn:active {
@@ -367,7 +437,7 @@
     }
 
     .send-btn:disabled {
-      opacity: 0.5;
+      opacity: 0.4;
       cursor: not-allowed;
       transform: none;
     }
@@ -381,19 +451,20 @@
     }
 
     .panel-card {
-      background: rgba(30, 41, 59, 0.6);
-      backdrop-filter: blur(40px) saturate(180%);
+      background: #ffffff;
       border: 1px solid var(--border);
-      border-radius: 20px;
+      border-radius: 12px;
       padding: 24px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      box-shadow: var(--shadow-md);
     }
 
     .panel-header {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 700;
-      margin-bottom: 16px;
-      color: var(--text);
+      margin-bottom: 20px;
+      color: #1a365d;
+      text-transform: uppercase;
+      letter-spacing: 1px;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -401,16 +472,16 @@
 
     .progress-bar {
       height: 8px;
-      background: rgba(255, 255, 255, 0.1);
+      background: #e2e8f0;
       border-radius: 4px;
       overflow: hidden;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
 
     .progress-fill {
       height: 100%;
-      background: var(--gradient);
-      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      background: linear-gradient(90deg, #1a365d 0%, #2c5282 100%);
+      transition: width 0.5s ease;
     }
 
     .stats-grid {
@@ -423,8 +494,8 @@
       display: flex;
       justify-content: space-between;
       padding: 12px;
-      background: rgba(255, 255, 255, 0.03);
-      border-radius: 10px;
+      background: #f7fafc;
+      border-radius: 8px;
       font-size: 14px;
     }
 
@@ -435,6 +506,401 @@
     .stat-value {
       color: var(--text);
       font-weight: 600;
+    }
+
+    /* ============================================
+       PROGRESS STEPPER - Visual Journey Tracker
+       ============================================ */
+    .journey-stepper {
+      display: flex;
+      justify-content: space-between;
+      padding: 20px 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+
+    .journey-stepper::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 60px;
+      right: 60px;
+      height: 2px;
+      background: var(--border);
+      transform: translateY(-50%);
+      z-index: 0;
+    }
+
+    .journey-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .journey-step.active .step-icon {
+      background: #1a365d;
+      border-color: #1a365d;
+      box-shadow: 0 2px 8px rgba(26, 54, 93, 0.25);
+    }
+
+    .journey-step.completed .step-icon {
+      background: #276749;
+      border-color: #276749;
+    }
+
+    .step-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+    }
+
+    .journey-step.active .step-label {
+      color: #1a365d;
+      font-weight: 600;
+    }
+
+    .journey-step.completed .step-label {
+      color: #276749;
+    }
+
+    /* ============================================
+       ERROR & STATUS STATES
+       ============================================ */
+    .error-banner {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 16px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .error-banner .error-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .error-banner .error-content {
+      flex: 1;
+    }
+
+    .error-banner .error-title {
+      font-weight: 600;
+      color: var(--error-light);
+      margin-bottom: 4px;
+    }
+
+    .error-banner .error-message {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .error-banner .retry-btn {
+      background: var(--error);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: all 0.2s;
+    }
+
+    .error-banner .retry-btn:hover {
+      background: #dc2626;
+    }
+
+    .warning-banner {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 16px 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--accent-gold);
+    }
+
+    .success-banner {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 16px 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--accent-light);
+    }
+
+    /* ============================================
+       LOADING STATES
+       ============================================ */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .loading-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      margin-top: 20px;
+      font-size: 16px;
+      color: var(--text-secondary);
+    }
+
+    .loading-subtext {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Skeleton loading for content */
+    .skeleton {
+      background: linear-gradient(90deg, var(--surface-light) 25%, var(--surface-elevated) 50%, var(--surface-light) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 8px;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .skeleton-text {
+      height: 16px;
+      margin: 8px 0;
+    }
+
+    .skeleton-title {
+      height: 24px;
+      width: 60%;
+      margin-bottom: 16px;
+    }
+
+    .skeleton-card {
+      height: 100px;
+      margin: 12px 0;
+    }
+
+    /* ============================================
+       HELP TOOLTIPS
+       ============================================ */
+    .help-tooltip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      background: var(--surface-light);
+      border-radius: 50%;
+      font-size: 11px;
+      color: var(--text-muted);
+      cursor: help;
+      margin-left: 6px;
+    }
+
+    .help-tooltip::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface-elevated);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      white-space: nowrap;
+      max-width: 250px;
+      white-space: normal;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s;
+      z-index: 100;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .help-tooltip:hover::after {
+      opacity: 1;
+      visibility: visible;
+      bottom: calc(100% + 8px);
+    }
+
+    /* ============================================
+       DATA SUMMARY CARDS
+       ============================================ */
+    .data-summary {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+
+    .data-summary-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .data-summary-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .data-summary-edit {
+      font-size: 12px;
+      color: var(--accent-light);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .data-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .data-summary-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .data-summary-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .data-summary-value {
+      font-size: 14px;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .data-summary-value.highlight {
+      color: var(--accent-light);
+    }
+
+    /* ============================================
+       CONFIDENCE INDICATOR
+       ============================================ */
+    .confidence-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .confidence-badge.high {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--accent-light);
+    }
+
+    .confidence-badge.medium {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--accent-gold);
+    }
+
+    .confidence-badge.low {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--error-light);
+    }
+
+    .confidence-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* ============================================
+       OFFLINE INDICATOR
+       ============================================ */
+    .offline-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--error);
+      color: white;
+      padding: 10px 20px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 9999;
+      transform: translateY(-100%);
+      transition: transform 0.3s ease;
+    }
+
+    .offline-banner.active {
+      transform: translateY(0);
     }
 
     /* Typing Indicator */
@@ -479,17 +945,17 @@
       text-align: center;
       cursor: pointer;
       transition: all 0.3s;
-      background: rgba(255, 255, 255, 0.02);
+      background: var(--surface);
     }
 
     .upload-zone:hover {
       border-color: var(--primary);
-      background: rgba(99, 102, 241, 0.05);
+      background: rgba(30, 64, 175, 0.05);
     }
 
     .upload-zone.dragover {
       border-color: var(--accent);
-      background: rgba(16, 185, 129, 0.1);
+      background: rgba(5, 150, 105, 0.1);
     }
 
     /* AI Disclaimer Banner */
@@ -610,8 +1076,8 @@
 
     .clear-chat-btn {
       padding: 8px 16px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: var(--surface-light);
+      border: 1px solid var(--border);
       border-radius: 8px;
       color: var(--text-secondary);
       font-size: 13px;
@@ -620,7 +1086,7 @@
     }
 
     .clear-chat-btn:hover {
-      background: rgba(255, 255, 255, 0.15);
+      background: var(--border);
       color: var(--text);
     }
 
@@ -656,8 +1122,8 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(8px);
+      background: rgba(26, 54, 93, 0.6);
+      backdrop-filter: blur(4px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -670,19 +1136,19 @@
     }
 
     .consent-content {
-      background: var(--surface);
-      border-radius: 16px;
+      background: #ffffff;
+      border-radius: 12px;
       max-width: 560px;
       width: 100%;
       padding: 32px;
       border: 1px solid var(--border);
-      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.15);
     }
 
     .consent-content h2 {
       font-size: 24px;
       margin-bottom: 20px;
-      color: var(--text);
+      color: #1a365d;
     }
 
     .consent-body {
@@ -699,7 +1165,7 @@
       display: flex;
       gap: 12px;
       padding: 12px;
-      background: rgba(99, 102, 241, 0.08);
+      background: #ebf8ff;
       border-radius: 8px;
       margin-bottom: 12px;
       font-size: 14px;
@@ -708,8 +1174,8 @@
     }
 
     .consent-item.warning {
-      background: rgba(245, 158, 11, 0.1);
-      border-left: 3px solid #f59e0b;
+      background: #fffbeb;
+      border-left: 3px solid #c69214;
     }
 
     .consent-icon {
@@ -721,13 +1187,14 @@
       display: flex;
       gap: 12px;
       padding: 16px;
-      background: var(--surface-light);
+      background: #f7fafc;
       border-radius: 8px;
       margin-top: 20px;
       cursor: pointer;
       font-size: 14px;
       color: var(--text-secondary);
       line-height: 1.5;
+      border: 1px solid var(--border);
     }
 
     .consent-checkbox input {
@@ -735,7 +1202,7 @@
       height: 20px;
       flex-shrink: 0;
       cursor: pointer;
-      accent-color: var(--primary);
+      accent-color: #1a365d;
     }
 
     .consent-actions {
@@ -747,7 +1214,7 @@
     }
 
     .consent-link {
-      color: var(--primary);
+      color: #2b6cb0;
       text-decoration: none;
       font-size: 14px;
     }
@@ -758,7 +1225,7 @@
 
     .consent-btn {
       padding: 14px 32px;
-      background: var(--primary);
+      background: #1a365d;
       color: white;
       border: none;
       border-radius: 8px;
@@ -769,13 +1236,19 @@
     }
 
     .consent-btn:disabled {
-      background: var(--surface-light);
-      color: var(--text-secondary);
+      background: #cbd5e0;
+      color: #718096;
       cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .consent-btn:not(:disabled) {
+      background: #1a365d;
+      cursor: pointer;
     }
 
     .consent-btn:not(:disabled):hover {
-      background: var(--primary-dark);
+      background: #2c5282;
       transform: translateY(-1px);
     }
 
@@ -798,8 +1271,8 @@
       top: 8px;
       right: 8px;
       padding: 4px 8px;
-      background: rgba(255, 255, 255, 0.1);
-      border: none;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
       border-radius: 4px;
       color: var(--text-secondary);
       font-size: 12px;
@@ -817,7 +1290,7 @@
     }
 
     .copy-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: var(--border);
     }
 
     /* Improved Typing Indicator Accessibility */
@@ -1211,10 +1684,25 @@
   <!-- Skip link for keyboard navigation -->
   <a href="#main-content" class="skip-link">Skip to main content</a>
 
+  <!-- Offline Detection Banner -->
+  <div class="offline-banner" id="offlineBanner" role="alert" aria-live="assertive">
+    ⚠️ You're offline. Your messages will be sent when connection is restored.
+  </div>
+
+  <!-- Loading Overlay for Heavy Operations -->
+  <div class="loading-overlay" id="loadingOverlay" role="alert" aria-live="polite">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingText">Analyzing your tax situation...</div>
+    <div class="loading-subtext" id="loadingSubtext">This may take a few moments</div>
+  </div>
+
   <div class="bg-animated" aria-hidden="true"></div>
 
   <header class="header" role="banner">
-    <div class="logo">✨ Premium Tax Advisory</div>
+    <div>
+      <div class="logo">JORSS-GBO Tax Advisory</div>
+      <div class="logo-subtitle">AI-Powered Wealth Strategy</div>
+    </div>
     <div class="header-right">
       <button class="clear-chat-btn" onclick="clearConversation()" title="Start new conversation" aria-label="Start new conversation">
         🔄 New Chat
@@ -1253,8 +1741,8 @@
           <span><strong>IRS Circular 230 Notice:</strong> This AI provides general guidance only, NOT professional tax advice. It cannot represent you before the IRS. For complex tax situations, always consult a licensed CPA, EA, or tax attorney.</span>
         </div>
 
-        <label class="consent-checkbox">
-          <input type="checkbox" id="dataConsent" required>
+        <label class="consent-checkbox" onclick="document.getElementById('acceptConsentBtn').disabled = !document.getElementById('dataConsent').checked;">
+          <input type="checkbox" id="dataConsent" required onchange="document.getElementById('acceptConsentBtn').disabled = !this.checked;">
           <span>I understand and consent to the collection of my tax information for advisory purposes. I acknowledge this is NOT professional tax advice.</span>
         </label>
       </div>
@@ -1262,7 +1750,7 @@
       <div class="consent-actions">
         <a href="/privacy" target="_blank" class="consent-link">Privacy Policy</a>
         <a href="/terms" target="_blank" class="consent-link">Terms of Service</a>
-        <button class="consent-btn" id="acceptConsentBtn" onclick="acceptConsent()" disabled>
+        <button class="consent-btn" id="acceptConsentBtn" disabled onclick="if(document.getElementById('dataConsent').checked){sessionStorage.setItem('tax_data_consent','true');document.getElementById('consentModal').classList.add('hidden');if(typeof initializeSession==='function')initializeSession();}">
           ✓ Accept & Continue
         </button>
       </div>
@@ -1283,29 +1771,48 @@
         </div>
       </div>
 
+      <!-- Journey Progress Stepper -->
+      <div class="journey-stepper" id="journeyStepper" role="navigation" aria-label="Tax advisory progress">
+        <div class="journey-step active" data-step="1" id="step-1">
+          <div class="step-icon">📋</div>
+          <div class="step-label">Profile</div>
+        </div>
+        <div class="journey-step" data-step="2" id="step-2">
+          <div class="step-icon">💰</div>
+          <div class="step-label">Income</div>
+        </div>
+        <div class="journey-step" data-step="3" id="step-3">
+          <div class="step-icon">🎯</div>
+          <div class="step-label">Analysis</div>
+        </div>
+        <div class="journey-step" data-step="4" id="step-4">
+          <div class="step-icon">📊</div>
+          <div class="step-label">Report</div>
+        </div>
+      </div>
+
       <div class="messages" id="messages" role="log" aria-live="polite" aria-label="Conversation with AI tax advisor">
-        <!-- Static initial message for immediate display -->
+        <!-- Premium initial message -->
         <div class="message ai" role="article" aria-label="AI assistant message">
-          <div class="avatar" aria-hidden="true">🤖</div>
+          <div class="avatar" aria-hidden="true">💼</div>
           <div class="bubble">
-            <strong>Welcome! I'm your AI-powered tax advisory specialist.</strong><br><br>
-            I help individuals like you identify tax-saving opportunities and connect you with our CPA team for personalized guidance. On average, our clients discover <strong>$3,000-$15,000 in overlooked deductions</strong> and tax-saving strategies.<br><br>
+            <div style="margin-bottom: 16px;">
+              <span style="font-size: 24px; font-weight: 700; color: var(--accent-light);">Welcome to Your Tax Advisory Session</span>
+            </div>
+            I'm your AI-powered tax strategist, trained on thousands of tax scenarios to help you <strong>maximize savings</strong> and <strong>minimize liability</strong>.<br><br>
             <div class="insight-card" style="margin: 16px 0;">
-              <strong>🎯 What I'll do for you:</strong><br>
-              • Analyze your complete tax situation (5 minutes)<br>
-              • Calculate your actual tax liability for 2025<br>
-              • Identify every deduction & credit you qualify for<br>
-              • Estimate your potential tax savings<br>
-              • Generate a comprehensive advisory report<br>
-              • Connect you with a CPA for personalized strategy
+              <div class="insight-header">
+                <span>📊</span>
+                <span>Average Client Savings</span>
+              </div>
+              <div class="savings-amount">$4,200 - $12,500</div>
+              <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">per year through strategic tax planning</div>
             </div>
-            <div class="confidence-indicator" style="background: rgba(59, 130, 246, 0.1); padding: 8px 12px; border-radius: 6px; font-size: 12px; color: var(--text-secondary); margin: 12px 0;">
-              ℹ️ <em>This is general guidance. Accuracy improves as you provide more information.</em>
-            </div>
-            <strong>Before we dive in, may I have your name?</strong> (This helps me personalize your report)
-            <div class="quick-actions" id="initialQuickActions" style="margin-top: 16px;" role="group" aria-label="Quick response options">
-              <button class="quick-action" data-action="enter_name" aria-label="Enter my name to personalize the report">✍️ Enter my name</button>
-              <button class="quick-action" data-action="skip_name" aria-label="Skip entering name for now">⏭️ Skip for now</button>
+            <strong>How would you like to begin?</strong>
+            <div class="quick-actions" id="initialQuickActions" style="margin-top: 20px;" role="group" aria-label="Quick response options">
+              <button class="quick-action primary" data-action="no_manual" aria-label="Start guided analysis">Start Guided Analysis →</button>
+              <button class="quick-action" data-action="yes_upload" aria-label="Upload tax documents">Upload Documents</button>
+              <button class="quick-action" data-action="what_docs" aria-label="Learn more about the process">Learn More</button>
             </div>
           </div>
         </div>
@@ -1511,8 +2018,7 @@
       showToast('Welcome! Your data will be handled securely.', 'success');
     }
 
-    // Enable/disable accept button based on checkbox
-    document.addEventListener('DOMContentLoaded', function() {
+    function setupConsentHandlers() {
       const checkbox = document.getElementById('dataConsent');
       const acceptBtn = document.getElementById('acceptConsentBtn');
 
@@ -1520,8 +2026,10 @@
         checkbox.addEventListener('change', function() {
           acceptBtn.disabled = !this.checked;
         });
+
+        acceptBtn.addEventListener('click', acceptConsent);
       }
-    });
+    }
 
     // ============ CONNECTION STATUS ============
     function updateConnectionStatus(online) {
@@ -1544,11 +2052,13 @@
     // Monitor connection status
     window.addEventListener('online', () => {
       updateConnectionStatus(true);
+      hideOfflineBanner();
       showToast('Connection restored!', 'success');
     });
 
     window.addEventListener('offline', () => {
       updateConnectionStatus(false);
+      showOfflineBanner();
     });
 
     // Periodic health check
@@ -1573,6 +2083,135 @@
           }
         }
       }, 30000); // Every 30 seconds
+    }
+
+    // ============ JOURNEY STEPPER MANAGEMENT ============
+    let currentJourneyStep = 1;
+    const journeySteps = {
+      1: { name: 'Profile', icon: '📋' },
+      2: { name: 'Income', icon: '💰' },
+      3: { name: 'Analysis', icon: '🎯' },
+      4: { name: 'Report', icon: '📊' }
+    };
+
+    function updateJourneyStep(stepNumber) {
+      if (stepNumber < 1 || stepNumber > 4) return;
+
+      currentJourneyStep = stepNumber;
+
+      // Update all step indicators
+      for (let i = 1; i <= 4; i++) {
+        const stepEl = document.getElementById(`step-${i}`);
+        if (!stepEl) continue;
+
+        const stepIconEl = stepEl.querySelector('.step-icon');
+        stepEl.classList.remove('active', 'completed');
+
+        if (i < stepNumber) {
+          // Completed steps show checkmark
+          stepEl.classList.add('completed');
+          stepIconEl.textContent = '✓';
+        } else if (i === stepNumber) {
+          // Active step
+          stepEl.classList.add('active');
+          stepIconEl.textContent = journeySteps[i].icon;
+        } else {
+          // Future steps show original icon
+          stepIconEl.textContent = journeySteps[i].icon;
+        }
+      }
+    }
+
+    function advanceJourneyBasedOnData() {
+      // Determine step based on extracted data
+      if (extractedData.lead_data.ready_for_cpa || taxCalculations) {
+        updateJourneyStep(4);
+      } else if (extractedData.tax_profile.total_income && extractedData.tax_profile.filing_status) {
+        updateJourneyStep(3);
+      } else if (extractedData.tax_profile.filing_status) {
+        updateJourneyStep(2);
+      } else {
+        updateJourneyStep(1);
+      }
+    }
+
+    // ============ LOADING OVERLAY MANAGEMENT ============
+    function showLoadingOverlay(text = 'Analyzing your tax situation...', subtext = 'This may take a few moments') {
+      const overlay = document.getElementById('loadingOverlay');
+      const textEl = document.getElementById('loadingText');
+      const subtextEl = document.getElementById('loadingSubtext');
+
+      if (overlay) {
+        textEl.textContent = text;
+        subtextEl.textContent = subtext;
+        overlay.classList.add('active');
+      }
+    }
+
+    function hideLoadingOverlay() {
+      const overlay = document.getElementById('loadingOverlay');
+      if (overlay) {
+        overlay.classList.remove('active');
+      }
+    }
+
+    // ============ OFFLINE BANNER MANAGEMENT ============
+    function showOfflineBanner() {
+      const banner = document.getElementById('offlineBanner');
+      if (banner) {
+        banner.classList.add('active');
+      }
+    }
+
+    function hideOfflineBanner() {
+      const banner = document.getElementById('offlineBanner');
+      if (banner) {
+        banner.classList.remove('active');
+      }
+    }
+
+    // ============ ERROR BANNER IN MESSAGES ============
+    function showErrorBanner(title, message, retryAction = null) {
+      const messages = document.getElementById('messages');
+      if (!messages) return;
+
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'error-banner';
+      errorDiv.id = 'currentErrorBanner';
+      errorDiv.innerHTML = `
+        <span class="error-icon">⚠️</span>
+        <div class="error-content">
+          <div class="error-title">${title}</div>
+          <div class="error-message">${message}</div>
+          ${retryAction ? `<button class="retry-btn" onclick="${retryAction}">Try Again</button>` : ''}
+        </div>
+      `;
+
+      messages.appendChild(errorDiv);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function clearErrorBanner() {
+      const errorBanner = document.getElementById('currentErrorBanner');
+      if (errorBanner) {
+        errorBanner.remove();
+      }
+    }
+
+    // ============ SUCCESS BANNER ============
+    function showSuccessBanner(message) {
+      const messages = document.getElementById('messages');
+      if (!messages) return;
+
+      const successDiv = document.createElement('div');
+      successDiv.className = 'success-banner';
+      successDiv.innerHTML = `<span>✅</span> <span>${message}</span>`;
+
+      messages.appendChild(successDiv);
+      messages.scrollTop = messages.scrollHeight;
+
+      // Auto-remove after 5 seconds
+      setTimeout(() => successDiv.remove(), 5000);
     }
 
     // ============ CLEAR CONVERSATION ============
@@ -1619,10 +2258,23 @@
     async function sendInitialGreeting() {
       console.log('sendInitialGreeting called');
 
-      // Enhanced greeting with value proposition
-      addMessage('ai', `<strong>Welcome! I'm your AI-powered tax advisory specialist.</strong><br><br>I help individuals like you identify tax-saving opportunities and connect you with our CPA team for personalized guidance. On average, our clients discover <strong>$3,000-$15,000 in overlooked deductions</strong> and tax-saving strategies.<br><br><div class="insight-card" style="margin: 16px 0;"><strong>🎯 What I'll do for you:</strong><br>• Analyze your complete tax situation (5 minutes)<br>• Calculate your actual tax liability for 2025<br>• Identify every deduction & credit you qualify for<br>• Estimate your potential tax savings<br>• Generate a comprehensive advisory report<br>• Connect you with a CPA for personalized strategy<br></div><strong>Before we dive in, may I have your name?</strong> (This helps me personalize your report)`, [
-        { label: '✍️ Enter my name', value: 'enter_name' },
-        { label: '⏭️ Skip for now', value: 'skip_name' }
+      // Premium tax advisory greeting
+      addMessage('ai', `<div style="margin-bottom: 16px;">
+        <span style="font-size: 24px; font-weight: 700; color: var(--accent-light);">Welcome to Your Tax Advisory Session</span>
+      </div>
+      I'm your AI-powered tax strategist, trained on thousands of tax scenarios to help you <strong>maximize savings</strong> and <strong>minimize liability</strong>.<br><br>
+      <div class="insight-card" style="margin: 16px 0;">
+        <div class="insight-header">
+          <span>📊</span>
+          <span>Average Client Savings</span>
+        </div>
+        <div class="savings-amount">$4,200 - $12,500</div>
+        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">per year through strategic tax planning</div>
+      </div>
+      <strong>How would you like to begin?</strong>`, [
+        { label: "Start Guided Analysis →", value: 'no_manual', primary: true },
+        { label: "Upload Documents", value: 'yes_upload' },
+        { label: "Learn More", value: 'what_docs' }
       ]);
       console.log('Initial greeting added');
     }
@@ -1701,13 +2353,13 @@
       const avatar = document.createElement('div');
       avatar.className = 'avatar';
       avatar.setAttribute('aria-hidden', 'true');
-      avatar.textContent = type === 'ai' ? '🤖' : '👤';
+      avatar.textContent = type === 'ai' ? '💼' : '👤';
 
       const bubble = document.createElement('div');
       bubble.className = 'bubble';
 
-      // Add confidence indicator for AI messages (unless explicitly disabled)
-      if (type === 'ai' && options.showConfidence !== false) {
+      // Only add confidence indicator when explicitly requested (not on every message)
+      if (type === 'ai' && options.showConfidence === true) {
         const includeIRS = options.includeIRS || false;
         text += getConfidenceDisclaimer(includeIRS);
       }
@@ -1748,7 +2400,7 @@
 
         quickActions.forEach((action, index) => {
           const btn = document.createElement('button');
-          btn.className = 'quick-action';
+          btn.className = action.primary ? 'quick-action primary' : 'quick-action';
           btn.textContent = action.label;
           btn.setAttribute('aria-label', action.label.replace(/[^\w\s]/g, '').trim());
           btn.onclick = () => handleQuickAction(action.value);
@@ -1776,7 +2428,7 @@
       typing.setAttribute('aria-live', 'polite');
       typing.setAttribute('aria-label', 'AI assistant is typing a response');
       typing.innerHTML = `
-        <div class="avatar" aria-hidden="true">🤖</div>
+        <div class="avatar" aria-hidden="true">💼</div>
         <div class="bubble">
           <div class="typing-indicator" role="img" aria-label="Typing">
             <span></span>
@@ -1877,11 +2529,12 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `Absolutely! I'm here to listen and understand your unique situation.<br><br>Let's start with the basics so I can provide the most relevant guidance. <strong>What's your current filing status?</strong>`, [
-            { label: 'Single', value: 'status_single' },
-            { label: 'Married Filing Jointly', value: 'status_married' },
-            { label: 'Head of Household', value: 'status_hoh' },
-            { label: 'Other', value: 'status_other' }
+          addMessage('ai', `What's your filing status?`, [
+            { label: 'Single', value: 'filing_single' },
+            { label: 'Married Filing Jointly', value: 'filing_married' },
+            { label: 'Head of Household', value: 'filing_hoh' },
+            { label: 'Married Filing Separately', value: 'filing_mfs' },
+            { label: 'Qualifying Surviving Spouse', value: 'filing_qss' }
           ]);
         }, 1500);
 
@@ -1906,7 +2559,8 @@
           'single': 'Single',
           'married': 'Married Filing Jointly',
           'hoh': 'Head of Household',
-          'mfs': 'Married Filing Separately'
+          'mfs': 'Married Filing Separately',
+          'qss': 'Qualifying Surviving Spouse'
         };
         const statusText = statusMap[status] || status;
 
@@ -1969,9 +2623,578 @@
 
         startIntelligentQuestioning();
 
+      // State selection handlers
+      } else if (value.startsWith('state_')) {
+        const stateCode = value.replace('state_', '');
+        const stateLabels = {
+          'CA': 'California',
+          'NY': 'New York',
+          'TX': 'Texas',
+          'FL': 'Florida',
+          'other': 'Other state'
+        };
+        const stateText = stateLabels[stateCode] || stateCode;
+
+        addMessage('user', stateText);
+        // Use 'OTHER' for other states so the flow continues (not empty string)
+        extractedData.tax_profile.state = stateCode === 'other' ? 'OTHER' : stateCode;
+        extractedData.lead_data.score += 5;
+        calculateLeadScore();
+
+        startIntelligentQuestioning();
+
+      // Income source handlers
+      } else if (value.startsWith('source_')) {
+        const source = value.replace('source_', '');
+        const sourceLabels = {
+          'w2': 'W-2 Employee',
+          'self_employed': 'Self-Employed / 1099',
+          'business': 'Business Owner',
+          'investments': 'Investments / Retirement',
+          'multiple': 'Multiple sources'
+        };
+        const sourceText = sourceLabels[source] || source;
+
+        addMessage('user', sourceText);
+        extractedData.tax_profile.income_source = sourceText;
+        if (source === 'self_employed' || source === 'business') {
+          extractedData.tax_profile.is_self_employed = true;
+        }
+        extractedData.lead_data.score += 10;
+        calculateLeadScore();
+
+        startIntelligentQuestioning();
+
+      // Deduction exploration handlers
+      } else if (value.startsWith('deduction_')) {
+        const deduction = value.replace('deduction_', '');
+        if (deduction === 'none') {
+          addMessage('user', 'None of these apply');
+          extractedData.tax_profile.deductions_explored = true;
+          calculateLeadScore();
+          startIntelligentQuestioning();
+        } else {
+          const deductionLabels = {
+            'mortgage': 'Own a home',
+            'charity': 'Make charitable donations',
+            'medical': 'Have high medical expenses',
+            'retirement': 'Contribute to retirement'
+          };
+          addMessage('user', deductionLabels[deduction] || deduction);
+
+          // Prevent duplicate deductions
+          extractedData.deductions = extractedData.deductions || [];
+          if (!extractedData.deductions.includes(deduction)) {
+            extractedData.deductions.push(deduction);
+            extractedData.lead_data.score += 5;
+          }
+
+          // Set default values and flags for deductions
+          if (deduction === 'mortgage') {
+            extractedData.tax_items.mortgage_interest = 15000;
+            extractedData.tax_profile.has_mortgage = true;
+          }
+          if (deduction === 'charity') {
+            extractedData.tax_items.charitable = 5000;
+            extractedData.tax_profile.has_charitable = true;
+          }
+          if (deduction === 'retirement') {
+            extractedData.tax_profile.has_retirement_contributions = true;
+            // Don't set default - we'll ask for specifics
+          }
+          if (deduction === 'investment_loss') {
+            extractedData.tax_profile.has_investment_losses = true;
+            extractedData.lead_data.score += 5;
+          }
+
+          // Medical expenses need follow-up for amount
+          if (deduction === 'medical') {
+            setTimeout(() => {
+              addMessage('ai', `Medical expenses can potentially be deducted if they exceed 7.5% of your income. What's your estimated annual medical expense?`, [
+                { label: 'Under $5,000', value: 'medical_amount_low' },
+                { label: '$5,000 - $15,000', value: 'medical_amount_medium' },
+                { label: '$15,000 - $30,000', value: 'medical_amount_high' },
+                { label: 'Over $30,000', value: 'medical_amount_very_high' }
+              ]);
+            }, 800);
+            return; // Wait for medical amount before continuing
+          }
+
+          extractedData.tax_profile.deductions_explored = true;
+          calculateLeadScore();
+          startIntelligentQuestioning();
+        }
+
+      // Medical expense amount handlers
+      } else if (value.startsWith('medical_amount_')) {
+        const medicalLevel = value.replace('medical_amount_', '');
+        const medicalAmounts = {
+          'low': 2500,
+          'medium': 10000,
+          'high': 22500,
+          'very_high': 40000
+        };
+        const medicalLabels = {
+          'low': 'Under $5,000',
+          'medium': '$5,000 - $15,000',
+          'high': '$15,000 - $30,000',
+          'very_high': 'Over $30,000'
+        };
+        const amount = medicalAmounts[medicalLevel] || 10000;
+        addMessage('user', medicalLabels[medicalLevel] || `$${amount.toLocaleString()}`);
+        extractedData.tax_items.medical = amount;
+        extractedData.tax_profile.deductions_explored = true;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Tax goal handlers
+      } else if (value.startsWith('goal_')) {
+        const goal = value.replace('goal_', '');
+        const goalLabels = {
+          'reduce_taxes': 'Reduce my current tax bill',
+          'retirement': 'Maximize retirement savings',
+          'life_event': 'Plan for a major life event',
+          'wealth': 'Build long-term wealth tax-efficiently',
+          'optimize': 'General tax optimization'
+        };
+        addMessage('user', goalLabels[goal] || goal);
+        extractedData.tax_profile.primary_goal = goal;
+        extractedData.tax_profile.goals_explored = true;
+        extractedData.lead_data.score += 10;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // =====================================================================
+      // BUSINESS & SELF-EMPLOYMENT HANDLERS
+      // =====================================================================
+
+      } else if (value.startsWith('biz_')) {
+        const bizType = value.replace('biz_', '');
+        const bizLabels = {
+          'professional': 'Professional Services',
+          'retail': 'Retail / E-commerce',
+          'realestate': 'Real Estate',
+          'tech': 'Tech / Software',
+          'service': 'Other Service Business'
+        };
+        addMessage('user', bizLabels[bizType] || bizType);
+        extractedData.tax_profile.business_type = bizType;
+        extractedData.lead_data.score += 5;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      } else if (value.startsWith('entity_')) {
+        const entityType = value.replace('entity_', '');
+        const entityLabels = {
+          'sole': 'Sole Proprietorship',
+          'llc_single': 'Single-Member LLC',
+          'llc_multi': 'Multi-Member LLC / Partnership',
+          'scorp': 'S-Corporation',
+          'ccorp': 'C-Corporation'
+        };
+        addMessage('user', entityLabels[entityType] || entityType);
+        extractedData.tax_profile.entity_type = entityType;
+        extractedData.lead_data.score += 5;
+        // S-Corp or C-Corp indicates more sophisticated tax planning
+        if (entityType === 'scorp' || entityType === 'ccorp') {
+          extractedData.lead_data.complexity = 'complex';
+          extractedData.lead_data.score += 10;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      } else if (value.startsWith('revenue_')) {
+        const revenueRange = value.replace('revenue_', '');
+        const revenueLabels = {
+          'under50k': 'Under $50,000',
+          '50_100k': '$50,000 - $100,000',
+          '100_250k': '$100,000 - $250,000',
+          '250_500k': '$250,000 - $500,000',
+          'over500k': 'Over $500,000'
+        };
+        const revenueAmounts = {
+          'under50k': 35000,
+          '50_100k': 75000,
+          '100_250k': 175000,
+          '250_500k': 375000,
+          'over500k': 750000
+        };
+        addMessage('user', revenueLabels[revenueRange] || revenueRange);
+        extractedData.tax_profile.business_revenue = revenueAmounts[revenueRange] || 100000;
+        extractedData.lead_data.score += 10;
+        if (revenueAmounts[revenueRange] >= 250000) {
+          extractedData.lead_data.complexity = 'complex';
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // =====================================================================
+      // MULTIPLE INCOME SOURCES HANDLERS
+      // =====================================================================
+
+      } else if (value.startsWith('multi_')) {
+        const multiType = value.replace('multi_', '');
+        const multiLabels = {
+          'w2_biz': 'W-2 Employment + Side Business',
+          'w2_invest': 'W-2 Employment + Investments',
+          'self_rental': 'Self-Employment + Rental Income',
+          'retire_work': 'Retirement Income + Part-time Work',
+          'other': 'Other combination'
+        };
+        addMessage('user', multiLabels[multiType] || multiType);
+        extractedData.tax_profile.income_sources_detailed = multiType;
+        extractedData.lead_data.complexity = 'moderate';
+        extractedData.lead_data.score += 10;
+
+        // Set flags based on selection
+        if (multiType === 'w2_biz' || multiType === 'self_rental') {
+          extractedData.tax_profile.is_self_employed = true;
+        }
+        if (multiType === 'self_rental') {
+          extractedData.tax_profile.has_rental_income = true;
+        }
+        if (multiType === 'w2_invest') {
+          extractedData.tax_profile.has_investment_income = true;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // =====================================================================
+      // INVESTMENT INCOME HANDLERS
+      // =====================================================================
+
+      } else if (value.startsWith('invest_')) {
+        const investType = value.replace('invest_', '');
+        const investLabels = {
+          'stocks': 'Stock dividends & capital gains',
+          'rental': 'Rental property income',
+          'interest': 'Interest income',
+          'k1': 'Partnership/K-1 income',
+          'multiple': 'Multiple investment types'
+        };
+        addMessage('user', investLabels[investType] || investType);
+        extractedData.tax_profile.investment_type = investType;
+        extractedData.tax_profile.investment_explored = true;
+        extractedData.tax_profile.has_investment_income = true;
+
+        if (investType === 'rental') {
+          extractedData.tax_profile.has_rental_income = true;
+        }
+        if (investType === 'k1') {
+          extractedData.lead_data.complexity = 'complex';
+          extractedData.lead_data.score += 15;
+        }
+        extractedData.lead_data.score += 10;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      } else if (value.startsWith('rental_')) {
+        const rentalCount = value.replace('rental_', '');
+        const rentalLabels = {
+          '1': '1 property',
+          '2_4': '2-4 properties',
+          '5plus': '5+ properties'
+        };
+        addMessage('user', rentalLabels[rentalCount] || rentalCount);
+        extractedData.tax_profile.rental_property_count = rentalCount;
+        extractedData.tax_profile.rental_explored = true;
+
+        if (rentalCount === '5plus') {
+          extractedData.lead_data.complexity = 'complex';
+          extractedData.lead_data.score += 20;
+        } else if (rentalCount === '2_4') {
+          extractedData.lead_data.score += 10;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // =====================================================================
+      // DEPENDENT & FAMILY HANDLERS
+      // =====================================================================
+
+      } else if (value.startsWith('dep_age_')) {
+        const ageGroup = value.replace('dep_age_', '');
+        const ageLabels = {
+          'under6': 'All under 6 years old',
+          '6_17': 'Children 6-17 years old',
+          'college': 'College students (18-24)',
+          'adult': 'Adult dependents / elderly parents',
+          'mixed': 'Mix of ages'
+        };
+        addMessage('user', ageLabels[ageGroup] || ageGroup);
+        extractedData.tax_profile.dependent_ages = ageGroup;
+        extractedData.tax_profile.dependent_ages_explored = true;
+
+        // Set flags for credit eligibility
+        if (ageGroup === 'under6' || ageGroup === 'mixed') {
+          extractedData.tax_profile.has_young_children = true;
+        }
+        if (ageGroup === 'college') {
+          extractedData.tax_profile.has_college_students = true;
+        }
+        extractedData.lead_data.score += 5;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      } else if (value.startsWith('childcare_')) {
+        const childcareLevel = value.replace('childcare_', '');
+        const childcareLabels = {
+          'high': 'Yes, over $5,000/year',
+          'low': 'Yes, under $5,000/year',
+          'none': 'No childcare expenses'
+        };
+        const childcareAmounts = { 'high': 8000, 'low': 3000, 'none': 0 };
+        addMessage('user', childcareLabels[childcareLevel] || childcareLevel);
+        extractedData.tax_items.childcare = childcareAmounts[childcareLevel] || 0;
+        extractedData.tax_profile.childcare_explored = true;
+        extractedData.lead_data.score += 5;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // =====================================================================
+      // RETIREMENT CONTRIBUTION HANDLERS
+      // =====================================================================
+
+      } else if (value.startsWith('retire_')) {
+        const retireType = value.replace('retire_', '');
+        const retireLabels = {
+          '401k': '401(k) through employer',
+          'trad_ira': 'Traditional IRA',
+          'roth_ira': 'Roth IRA',
+          'both': '401(k) and IRA',
+          'sep': 'SEP-IRA or Solo 401(k)'
+        };
+        addMessage('user', retireLabels[retireType] || retireType);
+        extractedData.tax_profile.retirement_type = retireType;
+        extractedData.tax_profile.retirement_detailed = true;
+
+        if (retireType === '401k' || retireType === 'both') {
+          extractedData.tax_profile.has_401k = true;
+        }
+        if (retireType === 'sep') {
+          extractedData.lead_data.score += 10; // Self-employed retirement
+        }
+        extractedData.lead_data.score += 5;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      } else if (value.startsWith('401k_')) {
+        const amount = value.replace('401k_', '');
+        const amountLabels = {
+          'under10k': 'Less than $10,000',
+          '10_15k': '$10,000 - $15,000',
+          '15_23k': '$15,000 - $23,000',
+          'max': 'Maxing out ($23,500)',
+          'unsure': 'Not sure'
+        };
+        const amountValues = {
+          'under10k': 7500,
+          '10_15k': 12500,
+          '15_23k': 19000,
+          'max': 23500,
+          'unsure': 15000
+        };
+        addMessage('user', amountLabels[amount] || amount);
+        extractedData.tax_profile.retirement_401k = amountValues[amount] || 15000;
+        extractedData.lead_data.score += 5;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // =====================================================================
+      // LIFE EVENT HANDLERS
+      // =====================================================================
+
+      } else if (value.startsWith('event_')) {
+        const eventType = value.replace('event_', '');
+        const eventLabels = {
+          'marriage': 'Getting married',
+          'baby': 'Having a baby',
+          'home': 'Buying a home',
+          'business': 'Starting a business',
+          'retirement': 'Retiring soon',
+          'sale': 'Selling a home or major asset'
+        };
+        addMessage('user', eventLabels[eventType] || eventType);
+        extractedData.tax_profile.life_event_type = eventType;
+        extractedData.lead_data.score += 10;
+
+        // Increase complexity for certain events
+        if (eventType === 'business' || eventType === 'sale') {
+          extractedData.lead_data.complexity = 'complex';
+          extractedData.lead_data.score += 10;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // =====================================================================
+      // ADVANCED STRATEGIES HANDLERS (HIGH EARNERS)
+      // =====================================================================
+
+      } else if (value.startsWith('adv_')) {
+        const advType = value.replace('adv_', '');
+        const advLabels = {
+          'backdoor': 'Backdoor Roth IRA strategies',
+          'charitable': 'Charitable giving optimization',
+          'deferred': 'Deferred compensation plans',
+          'estate': 'Estate planning considerations',
+          'all': 'Show all tax-saving opportunities'
+        };
+        addMessage('user', advLabels[advType] || advType);
+        extractedData.tax_profile.advanced_interest = advType;
+        extractedData.tax_profile.advanced_explored = true;
+        extractedData.lead_data.complexity = 'complex';
+        extractedData.lead_data.score += 15;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Run full analysis
+      } else if (value === 'run_full_analysis') {
+        addMessage('user', 'Run full analysis');
+        performTaxCalculation();
+
+      // Edit profile
+      } else if (value === 'edit_profile') {
+        addMessage('user', 'I want to edit my information');
+        // Reset the flags to allow re-asking questions
+        extractedData.tax_profile.deductions_explored = false;
+        extractedData.tax_profile.goals_explored = false;
+        addMessage('ai', 'No problem! What would you like to change?', [
+          { label: 'Change filing status', value: 'edit_filing' },
+          { label: 'Change income', value: 'edit_income' },
+          { label: 'Change state', value: 'edit_state' },
+          { label: 'Continue with analysis', value: 'run_full_analysis', primary: true }
+        ]);
+
+      } else if (value === 'edit_filing') {
+        extractedData.tax_profile.filing_status = null;
+        startIntelligentQuestioning();
+
+      } else if (value === 'edit_income') {
+        extractedData.tax_profile.total_income = null;
+        startIntelligentQuestioning();
+
+      } else if (value === 'edit_state') {
+        extractedData.tax_profile.state = null;
+        startIntelligentQuestioning();
+
       } else if (value === 'analyze_deductions') {
-        addMessage('user', 'Yes, help me find all my deductions');
+        addMessage('user', 'Yes, find more savings');
         analyzeDeductions();
+
+      } else if (value === 'show_all_strategies') {
+        addMessage('user', 'Show me all strategies');
+        showAllStrategies();
+
+      } else if (value === 'explore_strategies') {
+        addMessage('user', 'Yes, show me the strategies');
+        currentStrategyIndex = 0;
+        showNextStrategy();
+
+      } else if (value === 'quick_summary') {
+        addMessage('user', 'Skip to summary');
+        showStrategySummary();
+
+      } else if (value === 'next_strategy') {
+        currentStrategyIndex++;
+        showNextStrategy();
+
+      } else if (value === 'previous_strategy') {
+        currentStrategyIndex = Math.max(0, currentStrategyIndex - 1);
+        showNextStrategy();
+
+      } else if (value === 'finish_strategies') {
+        addMessage('user', 'I\'ve reviewed all strategies');
+        showStrategySummary();
+
+      // Deduction selection handlers
+      } else if (value.startsWith('has_')) {
+        const deductionType = value.replace('has_', '');
+        const deductionLabels = {
+          'mortgage': 'Mortgage interest',
+          'charity': 'Charitable donations',
+          'medical': 'Medical expenses',
+          'education': 'Education expenses',
+          'business': 'Business expenses',
+          'retirement': 'Retirement contributions'
+        };
+        const label = deductionLabels[deductionType] || deductionType;
+        addMessage('user', label);
+
+        extractedData.deductions = extractedData.deductions || [];
+        extractedData.deductions.push(deductionType);
+        extractedData.lead_data.score += 5;
+        calculateLeadScore();
+
+        // Ask for amount
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `Approximately how much in ${label.toLowerCase()} for 2025?`, [
+            { label: 'Under $5,000', value: `amount_${deductionType}_low` },
+            { label: '$5,000 - $15,000', value: `amount_${deductionType}_mid` },
+            { label: 'Over $15,000', value: `amount_${deductionType}_high` },
+            { label: 'Skip this', value: 'deduction_next' }
+          ]);
+        }, 800);
+
+      } else if (value.startsWith('amount_')) {
+        // Handle deduction amount selection
+        const parts = value.split('_');
+        const level = parts[parts.length - 1];
+        const amountMap = { 'low': '$2,500', 'mid': '$10,000', 'high': '$20,000+' };
+        addMessage('user', amountMap[level] || 'Estimated');
+
+        // Continue to next deduction or credits
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          askNextDeductionOrCredits();
+        }, 800);
+
+      } else if (value === 'deduction_next') {
+        addMessage('user', 'Skip');
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          askNextDeductionOrCredits();
+        }, 500);
+
+      } else if (value === 'deductions_done') {
+        addMessage('user', 'Continue');
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          // Move to credits or generate report
+          addMessage('ai', `Got it! Now let's check for tax credits you might qualify for.`, [
+            { label: 'Child Tax Credit', value: 'credit_child' },
+            { label: 'Education Credits', value: 'credit_education' },
+            { label: 'Energy Credits', value: 'credit_energy' },
+            { label: 'Skip to report →', value: 'generate_report' }
+          ]);
+        }, 800);
+
+      // CPA scheduling handlers
+      } else if (value === 'schedule_time') {
+        addMessage('user', 'Schedule a consultation');
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `Great! Our CPA team will reach out within 24 hours to schedule at your convenience.<br><br>In the meantime, would you like your detailed tax report?`, [
+            { label: 'Yes, generate my report →', value: 'generate_report' },
+            { label: "I'll wait for the CPA call", value: 'finish_satisfied' }
+          ]);
+        }, 1000);
+
+      } else if (value === 'email_only') {
+        addMessage('user', 'Just email me');
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `Perfect! We'll send your tax analysis summary to your email.<br><br>Would you also like your full advisory report?`, [
+            { label: 'Yes, generate full report →', value: 'generate_report' },
+            { label: "Email summary is enough", value: 'finish_satisfied' }
+          ]);
+        }, 1000);
 
       } else if (value === 'generate_report_early') {
         addMessage('user', 'Generate my full report');
@@ -1993,11 +3216,12 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `Thank you! I've noted that you're filing as <strong>${status}</strong>.<br><br>Now, to provide you with strategic tax guidance, <strong>what's your approximate total annual income?</strong> (This helps me identify opportunities and potential savings specific to your situation)`, [
-            { label: 'Under $50,000', value: 'income_under50k' },
-            { label: '$50,000 - $100,000', value: 'income_50_100k' },
-            { label: '$100,000 - $200,000', value: 'income_100_200k' },
-            { label: 'Over $200,000', value: 'income_over200k' }
+          addMessage('ai', `What's your approximate annual income?`, [
+            { label: 'Under $50K', value: 'income_0_50k' },
+            { label: '$50K - $100K', value: 'income_50_100k' },
+            { label: '$100K - $200K', value: 'income_100_200k' },
+            { label: '$200K - $500K', value: 'income_200_500k' },
+            { label: 'Over $500K', value: 'income_500k_plus' }
           ]);
         }, 1500);
 
@@ -2254,18 +3478,19 @@
 
           // Determine next logical step based on what's missing
           if (!extractedData.filing_status) {
-            addMessage('ai', `Perfect! Let's continue. First, <strong>what's your filing status?</strong>`, [
-              { label: 'Single', value: 'status_single' },
-              { label: 'Married Filing Jointly', value: 'status_married' },
-              { label: 'Head of Household', value: 'status_hoh' },
-              { label: 'Other', value: 'status_other' }
+            addMessage('ai', `What's your filing status?`, [
+              { label: 'Single', value: 'filing_single' },
+              { label: 'Married Filing Jointly', value: 'filing_married' },
+              { label: 'Head of Household', value: 'filing_hoh' },
+              { label: 'Married Filing Separately', value: 'filing_mfs' },
+              { label: 'Qualifying Surviving Spouse', value: 'filing_qss' }
             ]);
           } else if (!extractedData.income_range) {
-            addMessage('ai', `Great! Now, <strong>what's your approximate annual income?</strong>`, [
-              { label: 'Under $50,000', value: 'income_under50k' },
-              { label: '$50,000 - $100,000', value: 'income_50_100k' },
-              { label: '$100,000 - $200,000', value: 'income_100_200k' },
-              { label: 'Over $200,000', value: 'income_over200k' }
+            addMessage('ai', `What's your approximate annual income?`, [
+              { label: 'Under $50K', value: 'income_0_50k' },
+              { label: '$50K - $100K', value: 'income_50_100k' },
+              { label: '$100K - $200K', value: 'income_100_200k' },
+              { label: '$200K+', value: 'income_200_500k' }
             ]);
           } else if (!extractedData.focus_area) {
             addMessage('ai', `Excellent! <strong>What areas are you most interested in optimizing?</strong>`, [
@@ -2340,6 +3565,10 @@
           hideTyping();
           addMessage('ai', `Thanks for your patience! I'm ready to continue now. What would you like to discuss?`, generateSmartQuickActions());
         }, 3000);
+
+      } else if (value === 'retry_analysis') {
+        addMessage('user', 'Retry the analysis');
+        performTaxCalculation();
 
       } else if (value === 'reset_conversation') {
         addMessage('user', 'Let\'s start over');
@@ -3090,46 +4319,289 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       extractedData.lead_data.ready_for_cpa = score >= 60;
 
       updateProgress(Math.min(score, 95)); // Cap at 95% until report generated
+
+      // Update journey stepper based on current data
+      advanceJourneyBasedOnData();
     }
 
     // ===================================================================
-    // REAL TAX CALCULATIONS
+    // INTELLIGENT ADVISOR API INTEGRATION
     // ===================================================================
 
-    async function calculateTaxLiability() {
+    // Store strategies from API
+    let taxStrategies = [];
+    let currentStrategyIndex = 0;
+
+    // Step-by-step strategy exploration
+    function showNextStrategy() {
+      if (!taxStrategies || taxStrategies.length === 0) {
+        addMessage('ai', 'No strategies available. Let me run the analysis first.');
+        performTaxCalculation();
+        return;
+      }
+
+      const strategy = taxStrategies[currentStrategyIndex];
+      const isLast = currentStrategyIndex === taxStrategies.length - 1;
+      const isFirst = currentStrategyIndex === 0;
+
+      const priorityColors = {
+        'high': '#276749',
+        'medium': '#c69214',
+        'low': '#4a5568'
+      };
+      const priorityColor = priorityColors[strategy.priority] || '#4a5568';
+
+      addMessage('ai', `
+        <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 13px; color: #718096;">Strategy ${currentStrategyIndex + 1} of ${taxStrategies.length}</span>
+          <span style="background: ${priorityColor}; color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase;">${strategy.priority} priority</span>
+        </div>
+
+        <div style="font-size: 18px; font-weight: 700; color: #1a365d; margin-bottom: 8px;">
+          ${strategy.title}
+        </div>
+
+        <div class="insight-card" style="margin: 16px 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="color: #718096; font-size: 13px;">Estimated Annual Savings</span>
+            <span style="font-size: 24px; font-weight: 800; color: #276749;">$${Math.round(strategy.estimated_savings).toLocaleString()}</span>
+          </div>
+        </div>
+
+        <div style="font-size: 14px; color: #4a5568; line-height: 1.7; margin-bottom: 16px;">
+          ${strategy.detailed_explanation || strategy.summary}
+        </div>
+
+        ${strategy.action_steps && strategy.action_steps.length > 0 ? `
+          <div style="background: #ebf8ff; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+            <div style="font-weight: 600; color: #1a365d; margin-bottom: 10px;">Action Steps:</div>
+            <ol style="margin: 0; padding-left: 20px; color: #4a5568; font-size: 14px; line-height: 1.8;">
+              ${strategy.action_steps.map(step => `<li>${step}</li>`).join('')}
+            </ol>
+          </div>
+        ` : ''}
+
+        ${strategy.irs_reference ? `
+          <div style="font-size: 12px; color: #718096; font-style: italic;">
+            Reference: ${strategy.irs_reference}
+          </div>
+        ` : ''}
+      `, getStrategyNavigationButtons(isFirst, isLast));
+    }
+
+    function getStrategyNavigationButtons(isFirst, isLast) {
+      const buttons = [];
+
+      if (!isFirst) {
+        buttons.push({ label: '← Previous', value: 'previous_strategy' });
+      }
+
+      if (!isLast) {
+        buttons.push({ label: 'Next Strategy →', value: 'next_strategy', primary: true });
+      } else {
+        buttons.push({ label: 'View Summary', value: 'finish_strategies', primary: true });
+      }
+
+      return buttons;
+    }
+
+    function showStrategySummary() {
+      const totalSavings = taxStrategies.reduce((sum, s) => sum + (s.estimated_savings || 0), 0);
+      const highPriority = taxStrategies.filter(s => s.priority === 'high');
+
+      let strategyList = taxStrategies.map((s, i) => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: ${i % 2 === 0 ? '#f7fafc' : '#ffffff'}; border-bottom: 1px solid #e2e8f0;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="width: 24px; height: 24px; background: #1a365d; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">${i + 1}</span>
+            <span style="font-size: 14px; color: #1a202c;">${s.title}</span>
+          </div>
+          <span style="font-weight: 700; color: #276749;">$${Math.round(s.estimated_savings).toLocaleString()}</span>
+        </div>
+      `).join('');
+
+      addMessage('ai', `
+        <div style="margin-bottom: 20px;">
+          <span style="font-size: 18px; font-weight: 700; color: #1a365d;">Your Tax Optimization Summary</span>
+        </div>
+
+        <div class="insight-card" style="margin-bottom: 20px;">
+          <div style="text-align: center;">
+            <div style="font-size: 13px; color: #718096; margin-bottom: 8px;">Total Potential Savings</div>
+            <div style="font-size: 32px; font-weight: 800; color: #276749;">$${Math.round(totalSavings).toLocaleString()}</div>
+            <div style="font-size: 13px; color: #4a5568; margin-top: 8px;">${taxStrategies.length} strategies • ${highPriority.length} high priority</div>
+          </div>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+          <div style="background: #1a365d; color: white; padding: 12px 16px; font-weight: 600; font-size: 14px;">
+            Strategy Breakdown
+          </div>
+          ${strategyList}
+        </div>
+
+        <div style="font-size: 14px; color: #4a5568; line-height: 1.6; margin-bottom: 16px;">
+          I recommend starting with the high-priority strategies first. Would you like a comprehensive report you can share with a tax professional?
+        </div>
+      `, [
+        { label: 'Generate Full Report', value: 'generate_report', primary: true },
+        { label: 'Review strategies again', value: 'explore_strategies' },
+        { label: 'Connect with CPA', value: 'request_cpa_early' }
+      ]);
+
+      // Update lead score and progress
+      extractedData.lead_data.estimated_savings = totalSavings;
+      calculateLeadScore();
+      updateProgress(85);
+    }
+
+    async function getIntelligentAnalysis() {
+      // Debug: Log current state
+      console.log('getIntelligentAnalysis called with:', {
+        filing_status: extractedData.tax_profile.filing_status,
+        total_income: extractedData.tax_profile.total_income,
+        dependents: extractedData.tax_profile.dependents
+      });
+
       if (!extractedData.tax_profile.total_income || !extractedData.tax_profile.filing_status) {
+        console.warn('Missing required data:', {
+          has_income: !!extractedData.tax_profile.total_income,
+          has_filing_status: !!extractedData.tax_profile.filing_status
+        });
         return null;
       }
 
+      // Map filing status to API format
+      const statusMap = {
+        'Single': 'single',
+        'Married Filing Jointly': 'married_joint',
+        'Head of Household': 'head_of_household',
+        'Married Filing Separately': 'married_separate',
+        'Qualifying Surviving Spouse': 'qualifying_widow'
+      };
+
+      // Validate the filing status mapping
+      const apiFilingStatus = statusMap[extractedData.tax_profile.filing_status];
+      if (!apiFilingStatus) {
+        console.error('Invalid filing status:', extractedData.tax_profile.filing_status);
+        // Try to recover by using the value directly if it looks like an API value
+        const directValues = ['single', 'married_joint', 'married_separate', 'head_of_household', 'qualifying_widow'];
+        if (!directValues.includes(extractedData.tax_profile.filing_status.toLowerCase())) {
+          return null;
+        }
+      }
+
+      // Clear any existing error banners
+      clearErrorBanner();
+
+      // Ensure we have a session ID
+      if (!sessionId) {
+        sessionId = 'advisor-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem('tax_session_id', sessionId);
+        console.log('Created new session ID:', sessionId);
+      }
+
       try {
-        const response = await fetch('/api/calculate-tax', {
+        // Build profile for API
+        const profile = {
+          filing_status: apiFilingStatus || statusMap[extractedData.tax_profile.filing_status] || 'single',
+          total_income: extractedData.tax_profile.total_income,
+          w2_income: extractedData.tax_profile.w2_income || extractedData.tax_profile.total_income,
+          business_income: extractedData.tax_profile.business_income || 0,
+          investment_income: extractedData.tax_profile.investment_income || 0,
+          rental_income: extractedData.tax_profile.rental_income || 0,
+          dependents: extractedData.tax_profile.dependents || 0,
+          state: extractedData.tax_profile.state || '',
+          mortgage_interest: extractedData.tax_items.mortgage_interest || 0,
+          charitable_donations: extractedData.tax_items.charitable || 0,
+          is_self_employed: extractedData.tax_profile.business_income > 0
+        };
+
+        console.log('Sending to API:', profile);
+
+        const response = await fetchWithRetry('/api/advisor/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            filing_status: extractedData.tax_profile.filing_status,
-            total_income: extractedData.tax_profile.total_income,
-            w2_income: extractedData.tax_profile.w2_income || 0,
-            business_income: extractedData.tax_profile.business_income || 0,
-            deductions: extractedData.tax_items,
-            dependents: extractedData.tax_profile.dependents || 0,
-            tax_year: 2025
+            session_id: sessionId,
+            message: 'Analyze my tax situation',
+            profile: profile
           })
-        });
+        }, 3); // 3 retries with exponential backoff
 
         if (response.ok) {
-          taxCalculations = await response.json();
-          extractedData.lead_data.estimated_savings = taxCalculations.potential_savings || 0;
-          return taxCalculations;
+          const data = await response.json();
+          taxCalculations = data.tax_calculation;
+          taxStrategies = data.strategies || [];
+          extractedData.lead_data.estimated_savings = taxStrategies.reduce((sum, s) => sum + s.estimated_savings, 0);
+          extractedData.lead_data.score = data.lead_score || extractedData.lead_data.score;
+
+          // Update journey step
+          advanceJourneyBasedOnData();
+
+          return {
+            calculation: data.tax_calculation,
+            strategies: data.strategies,
+            insights: data.key_insights,
+            totalSavings: taxStrategies.reduce((sum, s) => sum + s.estimated_savings, 0),
+            complexity: data.complexity
+          };
+        } else {
+          // Handle non-OK response
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Server error: ${response.status}`);
         }
       } catch (error) {
-        console.error('Tax calculation error:', error);
+        console.error('Intelligent analysis error:', error);
+
+        // Show error banner with retry option
+        if (!navigator.onLine) {
+          showErrorBanner(
+            'Connection Lost',
+            'Please check your internet connection and try again.',
+            'performTaxCalculation()'
+          );
+        } else if (error.message.includes('429')) {
+          showErrorBanner(
+            'Service Busy',
+            'Our servers are handling high traffic. Please wait a moment and try again.',
+            'performTaxCalculation()'
+          );
+        } else {
+          showErrorBanner(
+            'Analysis Error',
+            'We encountered an issue analyzing your data. Please try again.',
+            'performTaxCalculation()'
+          );
+        }
+      }
+      return null;
+    }
+
+    async function calculateTaxLiability() {
+      const analysis = await getIntelligentAnalysis();
+      if (analysis) {
+        return analysis.calculation;
       }
       return null;
     }
 
     // ===================================================================
-    // INTELLIGENT QUESTIONING ENGINE
+    // INTELLIGENT QUESTIONING ENGINE - Comprehensive Tax Discovery
     // ===================================================================
+
+    // Track conversation state to prevent loops
+    let questioningState = {
+      askedQuestions: new Set(),
+      currentPhase: 'basics' // basics, income_details, deductions, goals, summary
+    };
+
+    function markQuestionAsked(questionId) {
+      questioningState.askedQuestions.add(questionId);
+    }
+
+    function wasQuestionAsked(questionId) {
+      return questioningState.askedQuestions.has(questionId);
+    }
 
     async function startIntelligentQuestioning() {
       showTyping();
@@ -3137,16 +4609,74 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       setTimeout(async () => {
         hideTyping();
 
-        // Ask the most important question based on what we don't know
-        if (!extractedData.tax_profile.filing_status) {
-          addMessage('ai', `<strong>Let's start with the basics.</strong><br><br>What's your tax filing status for 2025?`, [
+        const profile = extractedData.tax_profile;
+        const isHighEarner = (profile.total_income || 0) >= 200000;
+        const isVeryHighEarner = (profile.total_income || 0) >= 500000;
+        const isSelfEmployed = profile.is_self_employed || profile.income_source === 'Self-Employed / 1099';
+        const isBusinessOwner = profile.income_source === 'Business Owner';
+        const isInvestor = profile.income_source === 'Investments / Retirement';
+        const hasMultipleSources = profile.income_source === 'Multiple sources';
+
+        // =====================================================================
+        // PHASE 1: BASIC INFORMATION
+        // =====================================================================
+
+        // Step 1: Filing Status
+        if (!profile.filing_status) {
+          markQuestionAsked('filing_status');
+          addMessage('ai', `Let's start with the basics. What's your filing status for 2025?`, [
             { label: 'Single', value: 'filing_single' },
             { label: 'Married Filing Jointly', value: 'filing_married' },
             { label: 'Head of Household', value: 'filing_hoh' },
             { label: 'Married Filing Separately', value: 'filing_mfs' }
           ]);
-        } else if (!extractedData.tax_profile.total_income) {
-          addMessage('ai', `<strong>Now, tell me about your income.</strong><br><br>What's your approximate total annual income for 2025? (Include all sources: wages, business, investments, etc.)`, [
+          return;
+        }
+
+        // Step 2: State of Residence
+        if (!profile.state) {
+          markQuestionAsked('state');
+          addMessage('ai', `Which state do you live in? This affects your state tax calculation.`, [
+            { label: 'California', value: 'state_CA' },
+            { label: 'New York', value: 'state_NY' },
+            { label: 'Texas (no income tax)', value: 'state_TX' },
+            { label: 'Florida (no income tax)', value: 'state_FL' },
+            { label: 'Other state', value: 'state_other' }
+          ]);
+          return;
+        }
+
+        // Step 2b: Other State - ask which one
+        if (profile.state === 'OTHER' && !profile.state_name && !wasQuestionAsked('state_name')) {
+          markQuestionAsked('state_name');
+          addMessage('ai', `Which state do you reside in?<br><br>
+            <select id="stateSelect" style="width: 100%; padding: 12px; margin: 8px 0; border: 2px solid var(--border); border-radius: 8px; font-size: 15px; background: white;">
+              <option value="">Select your state...</option>
+              <option value="AL">Alabama</option><option value="AK">Alaska</option><option value="AZ">Arizona</option>
+              <option value="AR">Arkansas</option><option value="CO">Colorado</option><option value="CT">Connecticut</option>
+              <option value="DE">Delaware</option><option value="DC">District of Columbia</option><option value="GA">Georgia</option>
+              <option value="HI">Hawaii</option><option value="ID">Idaho</option><option value="IL">Illinois</option>
+              <option value="IN">Indiana</option><option value="IA">Iowa</option><option value="KS">Kansas</option>
+              <option value="KY">Kentucky</option><option value="LA">Louisiana</option><option value="ME">Maine</option>
+              <option value="MD">Maryland</option><option value="MA">Massachusetts</option><option value="MI">Michigan</option>
+              <option value="MN">Minnesota</option><option value="MS">Mississippi</option><option value="MO">Missouri</option>
+              <option value="MT">Montana</option><option value="NE">Nebraska</option><option value="NV">Nevada</option>
+              <option value="NH">New Hampshire</option><option value="NJ">New Jersey</option><option value="NM">New Mexico</option>
+              <option value="NC">North Carolina</option><option value="ND">North Dakota</option><option value="OH">Ohio</option>
+              <option value="OK">Oklahoma</option><option value="OR">Oregon</option><option value="PA">Pennsylvania</option>
+              <option value="RI">Rhode Island</option><option value="SC">South Carolina</option><option value="SD">South Dakota</option>
+              <option value="TN">Tennessee</option><option value="UT">Utah</option><option value="VT">Vermont</option>
+              <option value="VA">Virginia</option><option value="WA">Washington</option><option value="WV">West Virginia</option>
+              <option value="WI">Wisconsin</option><option value="WY">Wyoming</option>
+            </select>
+            <button onclick="selectOtherState()" style="padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 8px;">Continue →</button>`);
+          return;
+        }
+
+        // Step 3: Income Range
+        if (!profile.total_income) {
+          markQuestionAsked('income');
+          addMessage('ai', `What's your approximate total household income for 2025?`, [
             { label: '$0 - $50,000', value: 'income_0_50k' },
             { label: '$50,000 - $100,000', value: 'income_50_100k' },
             { label: '$100,000 - $200,000', value: 'income_100_200k' },
@@ -3154,48 +4684,600 @@ If they're ready to move forward, suggest generating their comprehensive advisor
             { label: 'Over $500,000', value: 'income_500k_plus' },
             { label: 'I\'ll type the exact amount', value: 'income_custom' }
           ]);
-        } else if (!extractedData.tax_profile.dependents && extractedData.tax_profile.dependents !== 0) {
-          addMessage('ai', `<strong>Do you have any dependents?</strong> (Children under 17, or other qualifying dependents)`, [
+          return;
+        }
+
+        // Step 4: Primary Income Source
+        if (!profile.income_source) {
+          markQuestionAsked('income_source');
+          addMessage('ai', `What's your primary source of income?`, [
+            { label: 'W-2 Employee', value: 'source_w2' },
+            { label: 'Self-Employed / 1099', value: 'source_self_employed' },
+            { label: 'Business Owner', value: 'source_business' },
+            { label: 'Investments / Retirement', value: 'source_investments' },
+            { label: 'Multiple sources', value: 'source_multiple' }
+          ]);
+          return;
+        }
+
+        // =====================================================================
+        // PHASE 2: INCOME-SPECIFIC DEEP DIVE
+        // =====================================================================
+
+        // Business Owner / Self-Employed Follow-up
+        if ((isSelfEmployed || isBusinessOwner) && !profile.business_explored && !wasQuestionAsked('business_type')) {
+          markQuestionAsked('business_type');
+          addMessage('ai', `Great! Understanding your business helps me find more deductions. What type of business do you operate?`, [
+            { label: 'Professional Services (consulting, legal, medical)', value: 'biz_professional' },
+            { label: 'Retail / E-commerce', value: 'biz_retail' },
+            { label: 'Real Estate', value: 'biz_realestate' },
+            { label: 'Tech / Software', value: 'biz_tech' },
+            { label: 'Other Service Business', value: 'biz_service' }
+          ]);
+          return;
+        }
+
+        // Business Entity Type
+        if ((isSelfEmployed || isBusinessOwner) && profile.business_type && !profile.entity_type && !wasQuestionAsked('entity_type')) {
+          markQuestionAsked('entity_type');
+          addMessage('ai', `What's your business structure? This significantly impacts your tax strategy.`, [
+            { label: 'Sole Proprietorship', value: 'entity_sole' },
+            { label: 'Single-Member LLC', value: 'entity_llc_single' },
+            { label: 'Multi-Member LLC / Partnership', value: 'entity_llc_multi' },
+            { label: 'S-Corporation', value: 'entity_scorp' },
+            { label: 'C-Corporation', value: 'entity_ccorp' }
+          ]);
+          return;
+        }
+
+        // Business Revenue (for business owners)
+        if ((isSelfEmployed || isBusinessOwner) && profile.entity_type && !profile.business_revenue && !wasQuestionAsked('business_revenue')) {
+          markQuestionAsked('business_revenue');
+          addMessage('ai', `What's your approximate annual business revenue?`, [
+            { label: 'Under $50,000', value: 'revenue_under50k' },
+            { label: '$50,000 - $100,000', value: 'revenue_50_100k' },
+            { label: '$100,000 - $250,000', value: 'revenue_100_250k' },
+            { label: '$250,000 - $500,000', value: 'revenue_250_500k' },
+            { label: 'Over $500,000', value: 'revenue_over500k' }
+          ]);
+          return;
+        }
+
+        // Mark business as explored after all business questions
+        if ((isSelfEmployed || isBusinessOwner) && !profile.business_explored) {
+          profile.business_explored = true;
+        }
+
+        // Multiple Income Sources Breakdown
+        if (hasMultipleSources && !profile.income_sources_detailed && !wasQuestionAsked('multiple_sources')) {
+          markQuestionAsked('multiple_sources');
+          addMessage('ai', `You mentioned multiple income sources. Which of these apply? (Select your primary sources)`, [
+            { label: 'W-2 Employment + Side Business', value: 'multi_w2_biz' },
+            { label: 'W-2 Employment + Investments', value: 'multi_w2_invest' },
+            { label: 'Self-Employment + Rental Income', value: 'multi_self_rental' },
+            { label: 'Retirement Income + Part-time Work', value: 'multi_retire_work' },
+            { label: 'Other combination', value: 'multi_other' }
+          ]);
+          return;
+        }
+
+        // Investment Income Follow-up for Investors or High Earners
+        if ((isInvestor || isVeryHighEarner) && !profile.investment_explored && !wasQuestionAsked('investment_type')) {
+          markQuestionAsked('investment_type');
+          addMessage('ai', `${isVeryHighEarner ? 'At your income level, investment strategy is crucial. ' : ''}What types of investment income do you have?`, [
+            { label: 'Stock dividends & capital gains', value: 'invest_stocks' },
+            { label: 'Rental property income', value: 'invest_rental' },
+            { label: 'Interest income (bonds, savings)', value: 'invest_interest' },
+            { label: 'Partnership/K-1 income', value: 'invest_k1' },
+            { label: 'Multiple types', value: 'invest_multiple' }
+          ]);
+          return;
+        }
+
+        // Rental Property Follow-up
+        if (profile.has_rental_income && !profile.rental_explored && !wasQuestionAsked('rental_count')) {
+          markQuestionAsked('rental_count');
+          addMessage('ai', `How many rental properties do you own?`, [
+            { label: '1 property', value: 'rental_1' },
+            { label: '2-4 properties', value: 'rental_2_4' },
+            { label: '5+ properties', value: 'rental_5plus' }
+          ]);
+          return;
+        }
+
+        // =====================================================================
+        // PHASE 3: DEPENDENTS & FAMILY
+        // =====================================================================
+
+        // Dependents
+        if (profile.dependents == null) {
+          markQuestionAsked('dependents');
+          addMessage('ai', `Do you have any dependents (children under 17, elderly parents, etc.)?`, [
             { label: 'No dependents', value: 'dependents_0' },
             { label: '1 dependent', value: 'dependents_1' },
             { label: '2 dependents', value: 'dependents_2' },
-            { label: '3+ dependents', value: 'dependents_3plus' }
+            { label: '3 or more', value: 'dependents_3plus' }
           ]);
-        } else {
-          // We have basics, calculate tax and show results
-          await performTaxCalculation();
+          return;
         }
-      }, 1500);
+
+        // Dependent Ages (if has children)
+        if (profile.dependents > 0 && !profile.dependent_ages_explored && !wasQuestionAsked('dependent_ages')) {
+          markQuestionAsked('dependent_ages');
+          addMessage('ai', `What are the ages of your dependents? (Select the category that best fits)`, [
+            { label: 'All under 6 years old', value: 'dep_age_under6' },
+            { label: 'Children 6-17 years old', value: 'dep_age_6_17' },
+            { label: 'College students (18-24)', value: 'dep_age_college' },
+            { label: 'Adult dependents / elderly parents', value: 'dep_age_adult' },
+            { label: 'Mix of ages', value: 'dep_age_mixed' }
+          ]);
+          return;
+        }
+
+        // Childcare Expenses (if young children)
+        if (profile.dependents > 0 && profile.has_young_children && !profile.childcare_explored && !wasQuestionAsked('childcare')) {
+          markQuestionAsked('childcare');
+          addMessage('ai', `Do you pay for childcare or daycare expenses?`, [
+            { label: 'Yes, over $5,000/year', value: 'childcare_high' },
+            { label: 'Yes, under $5,000/year', value: 'childcare_low' },
+            { label: 'No childcare expenses', value: 'childcare_none' }
+          ]);
+          return;
+        }
+
+        // =====================================================================
+        // PHASE 4: DEDUCTIONS & TAX ITEMS
+        // =====================================================================
+
+        // Major Deductions
+        if (!profile.deductions_explored) {
+          markQuestionAsked('deductions');
+          const deductionOptions = [
+            { label: 'Own a home (mortgage interest)', value: 'deduction_mortgage' },
+            { label: 'Make charitable donations', value: 'deduction_charity' },
+            { label: 'Have high medical expenses', value: 'deduction_medical' },
+            { label: 'Contribute to retirement (401k/IRA)', value: 'deduction_retirement' }
+          ];
+
+          // Add high-income specific option
+          if (isHighEarner) {
+            deductionOptions.push({ label: 'Have investment losses to harvest', value: 'deduction_investment_loss' });
+          }
+
+          deductionOptions.push({ label: 'None of these / Continue', value: 'deduction_none' });
+
+          addMessage('ai', `Which of these tax situations apply to you?`, deductionOptions);
+          return;
+        }
+
+        // Retirement Contribution Details (if they selected retirement)
+        if (profile.has_retirement_contributions && !profile.retirement_detailed && !wasQuestionAsked('retirement_type')) {
+          markQuestionAsked('retirement_type');
+          addMessage('ai', `What retirement accounts do you contribute to?`, [
+            { label: '401(k) through employer', value: 'retire_401k' },
+            { label: 'Traditional IRA', value: 'retire_trad_ira' },
+            { label: 'Roth IRA', value: 'retire_roth_ira' },
+            { label: '401(k) and IRA', value: 'retire_both' },
+            { label: 'SEP-IRA or Solo 401(k) (self-employed)', value: 'retire_sep' }
+          ]);
+          return;
+        }
+
+        // 401k Contribution Amount
+        if (profile.has_401k && !profile.retirement_401k && !wasQuestionAsked('401k_amount')) {
+          markQuestionAsked('401k_amount');
+          addMessage('ai', `How much are you contributing to your 401(k) this year?`, [
+            { label: 'Less than $10,000', value: '401k_under10k' },
+            { label: '$10,000 - $15,000', value: '401k_10_15k' },
+            { label: '$15,000 - $23,000', value: '401k_15_23k' },
+            { label: 'Maxing out ($23,500)', value: '401k_max' },
+            { label: 'Not sure', value: '401k_unsure' }
+          ]);
+          return;
+        }
+
+        // =====================================================================
+        // PHASE 5: TAX GOALS & LIFE EVENTS
+        // =====================================================================
+
+        // Tax Goals
+        if (!profile.goals_explored) {
+          markQuestionAsked('goals');
+          addMessage('ai', `What's your primary tax goal this year?`, [
+            { label: 'Reduce my current tax bill', value: 'goal_reduce_taxes' },
+            { label: 'Maximize retirement savings', value: 'goal_retirement' },
+            { label: 'Plan for a major life event', value: 'goal_life_event' },
+            { label: 'Build long-term wealth tax-efficiently', value: 'goal_wealth' },
+            { label: 'General tax optimization', value: 'goal_optimize' }
+          ]);
+          return;
+        }
+
+        // Life Event Details
+        if (profile.primary_goal === 'life_event' && !profile.life_event_type && !wasQuestionAsked('life_event_type')) {
+          markQuestionAsked('life_event_type');
+          addMessage('ai', `What type of life event are you planning for?`, [
+            { label: 'Getting married', value: 'event_marriage' },
+            { label: 'Having a baby', value: 'event_baby' },
+            { label: 'Buying a home', value: 'event_home' },
+            { label: 'Starting a business', value: 'event_business' },
+            { label: 'Retiring soon', value: 'event_retirement' },
+            { label: 'Selling a home or major asset', value: 'event_sale' }
+          ]);
+          return;
+        }
+
+        // =====================================================================
+        // PHASE 6: HIGH-INCOME SPECIFIC QUESTIONS
+        // =====================================================================
+
+        // High Earner Advanced Strategies
+        if (isVeryHighEarner && !profile.advanced_explored && !wasQuestionAsked('advanced_strategies')) {
+          markQuestionAsked('advanced_strategies');
+          addMessage('ai', `At your income level, there are advanced strategies worth exploring. Do any of these interest you?`, [
+            { label: 'Backdoor Roth IRA strategies', value: 'adv_backdoor' },
+            { label: 'Charitable giving optimization (DAF)', value: 'adv_charitable' },
+            { label: 'Deferred compensation plans', value: 'adv_deferred' },
+            { label: 'Estate planning considerations', value: 'adv_estate' },
+            { label: 'Just show me all tax-saving opportunities', value: 'adv_all' }
+          ]);
+          return;
+        }
+
+        // =====================================================================
+        // COMPLETE - Show Summary
+        // =====================================================================
+
+        await showPreliminarySummary();
+
+      }, 1000);
+    }
+
+    // Handler for selecting state from dropdown
+    function selectOtherState() {
+      const select = document.getElementById('stateSelect');
+      const stateCode = select ? select.value : '';
+
+      if (!stateCode) {
+        showToast('Please select your state', 'warning');
+        return;
+      }
+
+      const stateName = select.options[select.selectedIndex].text;
+      addMessage('user', stateName);
+      extractedData.tax_profile.state = stateCode;
+      extractedData.tax_profile.state_name = stateName;
+      calculateLeadScore();
+      startIntelligentQuestioning();
+    }
+
+    // Show summary of collected information before running analysis
+    async function showPreliminarySummary() {
+      const profile = extractedData.tax_profile;
+      const items = extractedData.tax_items;
+
+      const filingLabel = {
+        'Single': 'Single',
+        'Married Filing Jointly': 'Married Filing Jointly',
+        'Head of Household': 'Head of Household',
+        'Married Filing Separately': 'Married Filing Separately',
+        'Qualifying Surviving Spouse': 'Qualifying Surviving Spouse'
+      }[profile.filing_status] || profile.filing_status;
+
+      // Build state display
+      const stateDisplay = profile.state_name || profile.state || 'Not specified';
+
+      // Build income complexity indicator
+      const isHighEarner = (profile.total_income || 0) >= 200000;
+      const isVeryHighEarner = (profile.total_income || 0) >= 500000;
+      const complexityIndicator = extractedData.lead_data.complexity === 'complex' ? '🔷 Complex' :
+                                   extractedData.lead_data.complexity === 'moderate' ? '🔶 Moderate' : '🟢 Standard';
+
+      // Build additional details section
+      let additionalDetails = '';
+
+      // Business details
+      if (profile.is_self_employed || profile.income_source === 'Business Owner') {
+        const entityLabels = {
+          'sole': 'Sole Proprietorship', 'llc_single': 'Single-Member LLC',
+          'llc_multi': 'Partnership/Multi-Member LLC', 'scorp': 'S-Corporation', 'ccorp': 'C-Corporation'
+        };
+        const bizTypeLabels = {
+          'professional': 'Professional Services', 'retail': 'Retail/E-commerce',
+          'realestate': 'Real Estate', 'tech': 'Tech/Software', 'service': 'Service Business'
+        };
+
+        additionalDetails += `
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+            <div style="font-weight: 600; color: #1a365d; margin-bottom: 10px;">Business Details</div>
+            ${profile.business_type ? `<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span style="color: #4a5568;">Business Type:</span>
+              <strong>${bizTypeLabels[profile.business_type] || profile.business_type}</strong>
+            </div>` : ''}
+            ${profile.entity_type ? `<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span style="color: #4a5568;">Entity Structure:</span>
+              <strong>${entityLabels[profile.entity_type] || profile.entity_type}</strong>
+            </div>` : ''}
+            ${profile.business_revenue ? `<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span style="color: #4a5568;">Business Revenue:</span>
+              <strong>$${profile.business_revenue.toLocaleString()}</strong>
+            </div>` : ''}
+          </div>
+        `;
+      }
+
+      // Investment details
+      if (profile.has_investment_income || profile.has_rental_income) {
+        const investLabels = {
+          'stocks': 'Stocks & Dividends', 'rental': 'Rental Property',
+          'interest': 'Interest Income', 'k1': 'Partnership/K-1', 'multiple': 'Multiple Types'
+        };
+
+        additionalDetails += `
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+            <div style="font-weight: 600; color: #1a365d; margin-bottom: 10px;">Investment Profile</div>
+            ${profile.investment_type ? `<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span style="color: #4a5568;">Investment Type:</span>
+              <strong>${investLabels[profile.investment_type] || profile.investment_type}</strong>
+            </div>` : ''}
+            ${profile.rental_property_count ? `<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span style="color: #4a5568;">Rental Properties:</span>
+              <strong>${profile.rental_property_count === '5plus' ? '5+' : profile.rental_property_count === '2_4' ? '2-4' : '1'}</strong>
+            </div>` : ''}
+          </div>
+        `;
+      }
+
+      // Tax items collected
+      const taxItemsList = [];
+      if (items.mortgage_interest) taxItemsList.push(`Mortgage Interest: $${items.mortgage_interest.toLocaleString()}`);
+      if (items.charitable) taxItemsList.push(`Charitable Donations: $${items.charitable.toLocaleString()}`);
+      if (items.medical) taxItemsList.push(`Medical Expenses: $${items.medical.toLocaleString()}`);
+      if (profile.retirement_401k) taxItemsList.push(`401(k) Contributions: $${profile.retirement_401k.toLocaleString()}`);
+      if (items.childcare) taxItemsList.push(`Childcare Expenses: $${items.childcare.toLocaleString()}`);
+
+      if (taxItemsList.length > 0) {
+        additionalDetails += `
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+            <div style="font-weight: 600; color: #1a365d; margin-bottom: 10px;">Deductions & Credits</div>
+            ${taxItemsList.map(item => `<div style="color: #4a5568; font-size: 13px; margin-bottom: 4px;">• ${item}</div>`).join('')}
+          </div>
+        `;
+      }
+
+      // Life event
+      if (profile.life_event_type) {
+        const eventLabels = {
+          'marriage': 'Getting married', 'baby': 'Having a baby', 'home': 'Buying a home',
+          'business': 'Starting a business', 'retirement': 'Retiring soon', 'sale': 'Selling major asset'
+        };
+        additionalDetails += `
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #4a5568;">Life Event:</span>
+              <strong>${eventLabels[profile.life_event_type] || profile.life_event_type}</strong>
+            </div>
+          </div>
+        `;
+      }
+
+      addMessage('ai', `
+        <div style="margin-bottom: 16px;">
+          <strong style="font-size: 18px; color: #1a365d;">Your Tax Profile Summary</strong>
+          <div style="margin-top: 8px; display: inline-block; background: #ebf8ff; color: #2b6cb0; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">
+            ${complexityIndicator} Tax Situation
+          </div>
+        </div>
+
+        <div style="background: #f7fafc; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+          <div style="display: grid; gap: 10px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #4a5568;">Filing Status:</span>
+              <strong>${filingLabel}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #4a5568;">State:</span>
+              <strong>${stateDisplay}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #4a5568;">Total Income:</span>
+              <strong style="${isVeryHighEarner ? 'color: #276749;' : ''}">$${(profile.total_income || 0).toLocaleString()}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #4a5568;">Income Source:</span>
+              <strong>${profile.income_source || 'Not specified'}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #4a5568;">Dependents:</span>
+              <strong>${profile.dependents || 0}${profile.has_young_children ? ' (includes young children)' : profile.has_college_students ? ' (includes college students)' : ''}</strong>
+            </div>
+            ${profile.primary_goal ? `<div style="display: flex; justify-content: space-between;">
+              <span style="color: #4a5568;">Primary Goal:</span>
+              <strong>${profile.primary_goal === 'reduce_taxes' ? 'Reduce Tax Bill' :
+                        profile.primary_goal === 'retirement' ? 'Maximize Retirement' :
+                        profile.primary_goal === 'wealth' ? 'Build Wealth' :
+                        profile.primary_goal === 'life_event' ? 'Life Event Planning' : 'Tax Optimization'}</strong>
+            </div>` : ''}
+          </div>
+
+          ${additionalDetails}
+        </div>
+
+        <div style="font-size: 14px; color: #4a5568; line-height: 1.6;">
+          ${isVeryHighEarner ? '<strong>High-income analysis:</strong> I\'ll identify advanced strategies including Backdoor Roth, tax-loss harvesting, and deferred compensation options.<br><br>' : ''}
+          ${profile.is_self_employed ? '<strong>Business owner analysis:</strong> I\'ll evaluate entity structure optimization, QBI deduction, and self-employment tax strategies.<br><br>' : ''}
+          Ready to run your personalized tax analysis and identify savings opportunities.
+        </div>
+      `, [
+        { label: 'Run Full Analysis →', value: 'run_full_analysis', primary: true },
+        { label: 'Edit my information', value: 'edit_profile' }
+      ]);
     }
 
     async function performTaxCalculation() {
-      addMessage('ai', `<strong>Excellent! I now have enough information to calculate your tax liability.</strong><br><br>⏳ Analyzing your tax situation...`);
+      // Show loading overlay for better UX
+      showLoadingOverlay('Analyzing Your Tax Situation', 'Running 30+ optimization strategies...');
 
-      const calc = await calculateTaxLiability();
+      const analysis = await getIntelligentAnalysis();
 
-      setTimeout(() => {
-        if (calc && calc.total_tax !== undefined) {
-          const savings = calc.potential_savings || 0;
-          const effectiveRate = ((calc.total_tax / extractedData.tax_profile.total_income) * 100).toFixed(2);
+      // Hide loading overlay
+      hideLoadingOverlay();
 
-          addMessage('ai', `<div class="insight-card"><strong style="font-size: 20px;">📊 Your 2025 Tax Analysis</strong><br><br><div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin: 16px 0;"><div style="background: rgba(255,255,255,0.05); padding: 16px; border-radius: 8px;"><div style="font-size: 12px; color: var(--text-secondary);">Estimated Tax Liability</div><div style="font-size: 24px; font-weight: 700; color: #f59e0b;">$${Math.round(calc.total_tax).toLocaleString()}</div></div><div style="background: rgba(16,185,129,0.1); padding: 16px; border-radius: 8px;"><div style="font-size: 12px; color: var(--text-secondary);">Potential Savings</div><div style="font-size: 24px; font-weight: 700; color: #10b981;">$${Math.round(savings).toLocaleString()}</div></div></div><div style="margin: 16px 0;"><strong>Effective Tax Rate:</strong> ${effectiveRate}%<br><strong>Filing Status:</strong> ${extractedData.tax_profile.filing_status}<br><strong>Total Income:</strong> $${extractedData.tax_profile.total_income.toLocaleString()}</div></div><br><strong>Want to maximize your savings?</strong> Let me analyze deductions and credits you may be missing.`, [
-            { label: '✅ Yes, find all my deductions', value: 'analyze_deductions' },
-            { label: '📊 Generate full report now', value: 'generate_report_early' },
-            { label: '🤝 Connect me with a CPA', value: 'request_cpa_early' }
-          ]);
+      // Clear any previous error banners
+      clearErrorBanner();
 
-          // Update lead score and send to CPA dashboard
-          extractedData.lead_data.estimated_savings = savings;
-          calculateLeadScore();
+      if (analysis && analysis.calculation) {
+        const calc = analysis.calculation;
+        const strategies = analysis.strategies || [];
+        const totalSavings = analysis.totalSavings || 0;
 
-          if (extractedData.lead_data.score >= 60) {
-            sendLeadToCPA();
-          }
-        } else {
-          addMessage('ai', `I need a bit more information to calculate your exact tax liability. <strong>What's your specific total income for 2025?</strong> (You can type the amount)`);
-          document.getElementById('userInput').focus();
+        // Store for later use
+        taxCalculations = calc;
+        taxStrategies = strategies;
+
+        // Phase 1: Show initial tax breakdown
+        addMessage('ai', `
+          <div style="margin-bottom: 20px;">
+            <span style="font-size: 18px; font-weight: 700; color: #1a365d;">Tax Analysis Complete</span>
+          </div>
+
+          <div style="background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+            <div style="font-size: 13px; color: #4a5568; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px;">Your 2025 Tax Summary</div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+              <div>
+                <div style="font-size: 12px; color: #718096;">Federal Tax</div>
+                <div style="font-size: 22px; font-weight: 700; color: #1a365d;">$${Math.round(calc.federal_tax).toLocaleString()}</div>
+              </div>
+              <div>
+                <div style="font-size: 12px; color: #718096;">State Tax</div>
+                <div style="font-size: 22px; font-weight: 700; color: #1a365d;">$${Math.round(calc.state_tax).toLocaleString()}</div>
+              </div>
+            </div>
+
+            <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-size: 12px; color: #718096;">Total Tax Liability</div>
+                <div style="font-size: 26px; font-weight: 800; color: #1a365d;">$${Math.round(calc.total_tax).toLocaleString()}</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 12px; color: #718096;">Effective Rate</div>
+                <div style="font-size: 20px; font-weight: 700; color: #2c5282;">${calc.effective_rate}%</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="font-size: 14px; color: #4a5568; line-height: 1.6;">
+            Based on your profile, I've identified <strong>${strategies.length} tax optimization strategies</strong> that could potentially save you <strong style="color: #276749;">$${Math.round(totalSavings).toLocaleString()}</strong>.
+          </div>
+
+          <div style="margin-top: 16px; font-size: 14px; color: #4a5568;">
+            Would you like me to walk you through each strategy in detail?
+          </div>
+        `, [
+          { label: 'Yes, show me the strategies', value: 'explore_strategies', primary: true },
+          { label: 'Skip to summary', value: 'quick_summary' }
+        ]);
+
+        // Update lead score and progress
+        extractedData.lead_data.estimated_savings = totalSavings;
+        calculateLeadScore();
+        updateProgress(75);
+
+        if (extractedData.lead_data.score >= 60) {
+          sendLeadToCPA();
         }
-      }, 2000);
+      } else {
+        // Debug: Show what data we have
+        console.error('Analysis failed. Current data:', {
+          filing_status: extractedData.tax_profile.filing_status,
+          total_income: extractedData.tax_profile.total_income,
+          dependents: extractedData.tax_profile.dependents
+        });
+
+        // Provide helpful error message based on what's missing
+        let missingFields = [];
+        if (!extractedData.tax_profile.filing_status) missingFields.push('filing status');
+        if (!extractedData.tax_profile.total_income) missingFields.push('income');
+
+        if (missingFields.length > 0) {
+          addMessage('ai', `I need your ${missingFields.join(' and ')} to complete the analysis. Could you provide that information?`, [
+            { label: 'Single', value: 'filing_single' },
+            { label: 'Married Filing Jointly', value: 'filing_married' },
+            { label: '$50K - $100K', value: 'income_50_100k' },
+            { label: '$100K - $200K', value: 'income_100_200k' }
+          ]);
+        } else {
+          // We have the data but API failed - show error and retry option
+          addMessage('ai', `I encountered an issue analyzing your data. Let me try again.`, [
+            { label: 'Retry Analysis', value: 'retry_analysis', primary: true },
+            { label: 'Start Over', value: 'reset_conversation' }
+          ]);
+        }
+        document.getElementById('userInput').focus();
+      }
+    }
+
+    // Show all strategies in detail
+    function showAllStrategies() {
+      if (!taxStrategies || taxStrategies.length === 0) {
+        addMessage('ai', `I haven't analyzed your strategies yet. Let me calculate your tax situation first.`);
+        performTaxCalculation();
+        return;
+      }
+
+      let strategyHTML = `
+        <div style="margin-bottom: 20px;">
+          <span style="font-size: 20px; font-weight: 700; color: var(--accent-light);">Your Personalized Tax Strategies</span>
+          <div style="font-size: 14px; color: var(--text-secondary); margin-top: 8px;">
+            ${taxStrategies.length} strategies • Total potential savings: $${taxStrategies.reduce((sum, s) => sum + s.estimated_savings, 0).toLocaleString()}
+          </div>
+        </div>
+      `;
+
+      taxStrategies.forEach((strategy, index) => {
+        const priorityColors = {
+          'high': '#10b981',
+          'medium': '#f59e0b',
+          'low': '#64748b'
+        };
+        const priorityColor = priorityColors[strategy.priority] || '#64748b';
+
+        strategyHTML += `
+          <div class="insight-card" style="margin: 16px 0; padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+              <div>
+                <span style="background: ${priorityColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; margin-right: 8px;">${strategy.priority}</span>
+                <span style="background: var(--surface-light); color: var(--text-secondary); padding: 2px 8px; border-radius: 4px; font-size: 11px;">${strategy.category}</span>
+              </div>
+              <div class="savings-amount" style="font-size: 20px;">$${Math.round(strategy.estimated_savings).toLocaleString()}</div>
+            </div>
+            <div style="font-size: 16px; font-weight: 600; color: var(--accent-light); margin-bottom: 8px;">${strategy.title}</div>
+            <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">${strategy.summary}</div>
+            <details style="cursor: pointer;">
+              <summary style="color: var(--accent-light); font-weight: 500;">View Details & Action Steps</summary>
+              <div style="padding: 12px 0; font-size: 13px; color: var(--text-secondary); white-space: pre-line;">${strategy.detailed_explanation}</div>
+              <div style="margin-top: 12px;">
+                <strong style="font-size: 13px;">Action Steps:</strong>
+                <ul style="margin: 8px 0 0 20px; font-size: 13px; color: var(--text-secondary);">
+                  ${strategy.action_steps.map(step => `<li style="margin: 4px 0;">${step}</li>`).join('')}
+                </ul>
+              </div>
+              ${strategy.irs_reference ? `<div style="margin-top: 12px; font-size: 12px; color: var(--text-muted);">📚 Reference: ${strategy.irs_reference}</div>` : ''}
+            </details>
+          </div>
+        `;
+      });
+
+      strategyHTML += `<div style="margin-top: 20px;"><strong>Ready to implement these strategies?</strong></div>`;
+
+      addMessage('ai', strategyHTML, [
+        { label: 'Generate My Report →', value: 'generate_report', primary: true },
+        { label: 'Connect with CPA', value: 'request_cpa_early' },
+        { label: 'Ask a Question', value: 'ask_question' }
+      ]);
+
+      updateProgress(85);
     }
 
     // ===================================================================
@@ -3257,38 +5339,57 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       startIntelligentQuestioning();
     }
 
+    // Helper to continue deduction flow or move to credits
+    function askNextDeductionOrCredits() {
+      const deductions = extractedData.deductions || [];
+
+      // If user has selected deductions, offer to continue or move to credits
+      if (deductions.length > 0) {
+        addMessage('ai', `Any other deductions?`, [
+          { label: 'Mortgage', value: 'has_mortgage' },
+          { label: 'Charity', value: 'has_charity' },
+          { label: 'Medical', value: 'has_medical' },
+          { label: 'Done, continue →', value: 'deductions_done' }
+        ]);
+      } else {
+        // Move to credits
+        addMessage('ai', `Any tax credits you might qualify for?`, [
+          { label: 'Child Tax Credit', value: 'credit_child' },
+          { label: 'Education Credit', value: 'credit_education' },
+          { label: 'Skip to report →', value: 'generate_report' }
+        ]);
+      }
+    }
+
     async function analyzeDeductions() {
       showTyping();
       setTimeout(() => {
         hideTyping();
-        addMessage('ai', `<strong>Let's identify every deduction you qualify for.</strong><br><br>I'll ask about common deductions. Select all that apply to you:`, [
-          { label: '🏠 Mortgage interest', value: 'has_mortgage' },
-          { label: '💝 Charitable donations', value: 'has_charity' },
-          { label: '🏥 Medical expenses', value: 'has_medical' },
-          { label: '📚 Education expenses', value: 'has_education' },
-          { label: '💼 Business expenses', value: 'has_business' },
-          { label: '🏦 Retirement contributions', value: 'has_retirement' },
-          { label: '✅ None of these / Continue', value: 'deductions_done' }
+        addMessage('ai', `Which deductions apply to you?`, [
+          { label: 'Mortgage', value: 'has_mortgage' },
+          { label: 'Charity', value: 'has_charity' },
+          { label: 'Medical', value: 'has_medical' },
+          { label: 'Business', value: 'has_business' },
+          { label: 'Retirement', value: 'has_retirement' },
+          { label: 'None / Skip →', value: 'deductions_done' }
         ]);
-      }, 1000);
+      }, 800);
     }
 
     async function requestCPAConnection() {
       showTyping();
-
-      // Send lead to CPA
       await sendLeadToCPA();
 
       setTimeout(() => {
         hideTyping();
-        const firstName = extractedData.contact.name ? extractedData.contact.name.split(' ')[0] : 'there';
+        const savings = Math.round(extractedData.lead_data.estimated_savings || 0).toLocaleString();
 
-        addMessage('ai', `<div class="insight-card"><strong style="font-size: 20px;">🤝 Connecting You with a CPA</strong><br><br>Excellent decision, ${firstName}! Based on your tax profile:<br><br>• <strong>Complexity Level:</strong> ${extractedData.lead_data.complexity.charAt(0).toUpperCase() + extractedData.lead_data.complexity.slice(1)}<br>• <strong>Estimated Savings Opportunity:</strong> $${Math.round(extractedData.lead_data.estimated_savings).toLocaleString()}<br>• <strong>Priority Status:</strong> ${extractedData.lead_data.score >= 80 ? 'High Priority' : 'Standard'}<br><br>I've notified our CPA team. They'll review your information and reach out within 24 hours.</div><br><strong>Would you like to schedule a specific time?</strong>`, [
-          { label: '📅 Schedule consultation', value: 'schedule_time' },
-          { label: '📧 Just email me', value: 'email_only' },
-          { label: '📊 Generate my report first', value: 'generate_report' }
+        addMessage('ai', `I've notified our CPA team about your <strong>$${savings}</strong> savings opportunity. They'll reach out within 24 hours.<br><br>What would you like to do next?`, [
+          { label: 'Schedule a call', value: 'schedule_time' },
+          { label: 'Just email me', value: 'email_only' },
+          { label: 'Get my report first', value: 'generate_report' }
         ]);
-      }, 2000);
+      }, 1500);
     }
 
     // Make functions globally accessible
@@ -3342,6 +5443,9 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           handleQuickAction(action);
         }
       });
+
+      // Setup consent modal handlers
+      setupConsentHandlers();
 
       // Check consent before initializing session
       if (checkConsent()) {
