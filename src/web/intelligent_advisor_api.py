@@ -28,6 +28,21 @@ import threading
 
 logger = logging.getLogger(__name__)
 
+# Import rate limiter and logo handler
+try:
+    from utils.rate_limiter import pdf_rate_limiter, global_pdf_limiter, RateLimitExceeded
+    RATE_LIMITER_AVAILABLE = True
+except ImportError:
+    RATE_LIMITER_AVAILABLE = False
+    logger.warning("Rate limiter not available")
+
+try:
+    from utils.logo_handler import LogoHandler, logo_handler
+    LOGO_HANDLER_AVAILABLE = True
+except ImportError:
+    LOGO_HANDLER_AVAILABLE = False
+    logger.warning("Logo handler not available")
+
 # Import session persistence for database-backed storage
 try:
     from database.session_persistence import get_session_persistence, SessionPersistence
@@ -2347,6 +2362,22 @@ async def get_session_pdf(
     import tempfile
     from pathlib import Path
 
+    # Apply rate limiting
+    if RATE_LIMITER_AVAILABLE:
+        if not pdf_rate_limiter.is_allowed(session_id):
+            remaining = pdf_rate_limiter.get_remaining(session_id)
+            reset_time = pdf_rate_limiter.get_reset_time(session_id)
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "error": "Rate limit exceeded",
+                    "message": "Too many PDF generation requests. Please wait before trying again.",
+                    "remaining": remaining,
+                    "retry_after": int(reset_time) + 1,
+                }
+            )
+        pdf_rate_limiter.record_request(session_id)
+
     # Get session data
     session = chat_engine.sessions.get(session_id)
 
@@ -2756,6 +2787,159 @@ async def get_universal_report_pdf(
     except Exception as e:
         logger.error(f"Universal report PDF failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
+# LOGO UPLOAD ENDPOINTS
+# =============================================================================
+
+@router.post("/branding/upload-logo")
+async def upload_logo(
+    cpa_id: str = Form(...),
+    file: UploadFile = File(...),
+):
+    """
+    Upload a logo for CPA branding.
+
+    This endpoint allows CPAs to upload their firm logo for use in
+    branded PDF reports and HTML reports.
+
+    Form Data:
+        - cpa_id: CPA identifier (e.g., "john-smith-cpa")
+        - file: Logo image file (PNG, JPG, GIF, WebP, SVG)
+
+    Limits:
+        - Maximum file size: 5MB
+        - Maximum dimensions: 2000x2000 pixels
+        - Minimum dimensions: 50x50 pixels
+    """
+    if not LOGO_HANDLER_AVAILABLE:
+        raise HTTPException(
+            status_code=503,
+            detail="Logo upload service not available"
+        )
+
+    # Validate CPA ID
+    if not cpa_id or len(cpa_id) < 3:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid CPA ID. Must be at least 3 characters."
+        )
+
+    # Read file content
+    content = await file.read()
+
+    # Upload logo
+    success, logo_path, error = logo_handler.upload_logo(
+        file_content=content,
+        filename=file.filename,
+        cpa_id=cpa_id,
+        content_type=file.content_type,
+    )
+
+    if not success:
+        raise HTTPException(status_code=400, detail=error)
+
+    return {
+        "success": True,
+        "message": "Logo uploaded successfully",
+        "cpa_id": cpa_id,
+        "logo_path": logo_path,
+        "logo_url": f"/api/advisor/branding/logo/{cpa_id}",
+    }
+
+
+@router.get("/branding/logo/{cpa_id}")
+async def get_logo(cpa_id: str):
+    """
+    Get the logo for a CPA.
+
+    Returns the logo image file for the specified CPA.
+    """
+    if not LOGO_HANDLER_AVAILABLE:
+        raise HTTPException(
+            status_code=503,
+            detail="Logo service not available"
+        )
+
+    logo_path = logo_handler.get_logo_path(cpa_id)
+
+    if not logo_path:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No logo found for CPA: {cpa_id}"
+        )
+
+    from pathlib import Path
+
+    # Determine content type
+    ext = Path(logo_path).suffix.lower()
+    content_types = {
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.svg': 'image/svg+xml',
+    }
+    content_type = content_types.get(ext, 'application/octet-stream')
+
+    return FileResponse(
+        path=logo_path,
+        media_type=content_type,
+        filename=f"logo_{cpa_id}{ext}"
+    )
+
+
+@router.delete("/branding/logo/{cpa_id}")
+async def delete_logo(cpa_id: str):
+    """
+    Delete the logo for a CPA.
+    """
+    if not LOGO_HANDLER_AVAILABLE:
+        raise HTTPException(
+            status_code=503,
+            detail="Logo service not available"
+        )
+
+    success = logo_handler.delete_logo(cpa_id)
+
+    if not success:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No logo found for CPA: {cpa_id}"
+        )
+
+    return {
+        "success": True,
+        "message": f"Logo deleted for CPA: {cpa_id}"
+    }
+
+
+@router.get("/rate-limit/status")
+async def get_rate_limit_status(session_id: str):
+    """
+    Get rate limit status for a session.
+
+    Returns the current rate limit status including remaining requests
+    and time until reset.
+    """
+    if not RATE_LIMITER_AVAILABLE:
+        return {
+            "rate_limiting": False,
+            "message": "Rate limiting not enabled"
+        }
+
+    return {
+        "rate_limiting": True,
+        "session_id": session_id,
+        "pdf_generation": {
+            "remaining": pdf_rate_limiter.get_remaining(session_id),
+            "reset_in_seconds": int(pdf_rate_limiter.get_reset_time(session_id)),
+            "limit": pdf_rate_limiter.config.max_requests,
+            "window_seconds": pdf_rate_limiter.config.window_seconds,
+        }
+    }
 
 
 # Register the router
