@@ -161,6 +161,8 @@ try:
             "/api/sessions/",  # Session save/restore for intelligent advisor
             "/api/v1/auth/",  # Auth endpoints only (login, register, refresh)
             "/api/v1/admin/health",  # Health check endpoints
+            "/api/cpa/lead-magnet/",  # Lead magnet funnel - public API
+            "/api/lead-magnet/",  # Lead magnet - public API
             # Note: Other /api/v1/* endpoints require CSRF token OR Bearer auth
         }
     )
