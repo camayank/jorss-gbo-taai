@@ -210,7 +210,7 @@
             <span class="metric-title">Avg. Lead Score</span>
             <div class="metric-icon">⭐</div>
         </div>
-        <div class="metric-value">{{ conversion_metrics.metrics.average_score|round|int if conversion_metrics.metrics else 0 }}</div>
+        <div class="metric-value">{% if conversion_metrics and conversion_metrics.metrics and conversion_metrics.metrics.average_score %}{{ conversion_metrics.metrics.average_score|round|int }}{% else %}0{% endif %}</div>
         <div class="metric-change up">
             ↑ 5 points from last month
         </div>
@@ -273,19 +273,19 @@
         <div class="chart-body">
             <div class="conversion-stats">
                 <div class="conversion-stat">
-                    <div class="conversion-stat-value">{{ conversion_metrics.metrics.conversion_rate|round|int if conversion_metrics.metrics else 0 }}%</div>
+                    <div class="conversion-stat-value">{% if conversion_metrics and conversion_metrics.metrics and conversion_metrics.metrics.conversion_rate %}{{ conversion_metrics.metrics.conversion_rate|round|int }}{% else %}0{% endif %}%</div>
                     <div class="conversion-stat-label">Overall Conversion</div>
                 </div>
                 <div class="conversion-stat">
-                    <div class="conversion-stat-value">{{ velocity_metrics.metrics.avg_days_to_convert|round|int if velocity_metrics.metrics else 0 }}d</div>
+                    <div class="conversion-stat-value">{% if velocity_metrics and velocity_metrics.metrics and velocity_metrics.metrics.avg_days_to_convert %}{{ velocity_metrics.metrics.avg_days_to_convert|round|int }}{% else %}0{% endif %}d</div>
                     <div class="conversion-stat-label">Avg. Time to Convert</div>
                 </div>
                 <div class="conversion-stat">
-                    <div class="conversion-stat-value">{{ velocity_metrics.metrics.leads_per_week|round|int if velocity_metrics.metrics else 0 }}</div>
+                    <div class="conversion-stat-value">{% if velocity_metrics and velocity_metrics.metrics and velocity_metrics.metrics.leads_per_week %}{{ velocity_metrics.metrics.leads_per_week|round|int }}{% else %}0{% endif %}</div>
                     <div class="conversion-stat-label">Leads / Week</div>
                 </div>
                 <div class="conversion-stat">
-                    <div class="conversion-stat-value">${{ '{:,.0f}'.format(conversion_metrics.metrics.avg_value or 0) if conversion_metrics.metrics else 0 }}</div>
+                    <div class="conversion-stat-value">${{ '{:,.0f}'.format(conversion_metrics.metrics.avg_value|default(0) if conversion_metrics and conversion_metrics.metrics else 0) }}</div>
                     <div class="conversion-stat-label">Avg. Lead Value</div>
                 </div>
             </div>
