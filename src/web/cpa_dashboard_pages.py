@@ -673,12 +673,15 @@ async def cpa_profile_page(
 ):
     """CPA Profile - Edit personal profile. Requires authentication."""
     cpa_profile = await get_cpa_profile_from_context(request)
+    cpa_id = get_cpa_id_from_user(current_user) or cpa_profile.get("cpa_id", "default")
+    stats = await get_dashboard_stats(cpa_id)
 
     return templates.TemplateResponse(
         "cpa/profile.html",
         {
             "request": request,
             "cpa": cpa_profile,
+            "stats": stats,
             "current_user": current_user,
             "active_page": "profile",
         }
@@ -692,12 +695,15 @@ async def cpa_branding_page(
 ):
     """CPA Branding - Edit lead magnet branding. Requires authentication."""
     cpa_profile = await get_cpa_profile_from_context(request)
+    cpa_id = get_cpa_id_from_user(current_user) or cpa_profile.get("cpa_id", "default")
+    stats = await get_dashboard_stats(cpa_id)
 
     return templates.TemplateResponse(
         "cpa/branding.html",
         {
             "request": request,
             "cpa": cpa_profile,
+            "stats": stats,
             "current_user": current_user,
             "active_page": "branding",
         }

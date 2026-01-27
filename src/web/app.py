@@ -1094,6 +1094,7 @@ def index(request: Request):
 
 
 @app.get("/file", response_class=HTMLResponse)
+@app.get("/intelligent-advisor", response_class=HTMLResponse)
 def intelligent_tax_advisor(request: Request):
     """
     Intelligent Conversational Tax Advisory Platform
@@ -1263,6 +1264,63 @@ def client_portal(request: Request):
     """
     logger.info("Client accessing platform - redirecting to /file")
     return RedirectResponse(url="/file", status_code=302)
+
+
+# =============================================================================
+# REDIRECT ROUTES - Handle legacy and linked routes
+# =============================================================================
+
+@app.get("/logout")
+def logout_redirect(request: Request):
+    """Logout and redirect to home page."""
+    response = RedirectResponse(url="/", status_code=302)
+    # Clear any session cookies
+    response.delete_cookie("tax_session_id")
+    response.delete_cookie("cpa_id")
+    return response
+
+
+@app.get("/scenarios", response_class=HTMLResponse)
+def scenarios_redirect(request: Request, session_id: str = None):
+    """Redirect to intelligent advisor for scenario analysis."""
+    if session_id:
+        return RedirectResponse(url=f"/intelligent-advisor?session_id={session_id}", status_code=302)
+    return RedirectResponse(url="/intelligent-advisor", status_code=302)
+
+
+@app.get("/projections", response_class=HTMLResponse)
+def projections_redirect(request: Request, session_id: str = None):
+    """Redirect to intelligent advisor for tax projections."""
+    if session_id:
+        return RedirectResponse(url=f"/intelligent-advisor?session_id={session_id}", status_code=302)
+    return RedirectResponse(url="/intelligent-advisor", status_code=302)
+
+
+@app.get("/settings", response_class=HTMLResponse)
+def settings_redirect(request: Request):
+    """Redirect to appropriate settings page."""
+    # Check if user has CPA cookie
+    if request.cookies.get("cpa_id"):
+        return RedirectResponse(url="/cpa/settings", status_code=302)
+    return RedirectResponse(url="/cpa/settings", status_code=302)
+
+
+@app.get("/documents", response_class=HTMLResponse)
+def documents_redirect(request: Request):
+    """Redirect to file page for document management."""
+    return RedirectResponse(url="/file", status_code=302)
+
+
+@app.get("/returns", response_class=HTMLResponse)
+def returns_redirect(request: Request):
+    """Redirect to file page for tax returns."""
+    return RedirectResponse(url="/file", status_code=302)
+
+
+@app.get("/clients", response_class=HTMLResponse)
+def clients_redirect(request: Request):
+    """Redirect to CPA clients page."""
+    return RedirectResponse(url="/cpa/clients", status_code=302)
 
 
 @app.get("/advisory-report-preview", response_class=HTMLResponse)
