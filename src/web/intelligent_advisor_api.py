@@ -24,8 +24,17 @@ from enum import Enum
 import logging
 import uuid
 import json
+import threading
 
 logger = logging.getLogger(__name__)
+
+# Import session persistence for database-backed storage
+try:
+    from database.session_persistence import get_session_persistence, SessionPersistence
+    SESSION_PERSISTENCE_AVAILABLE = True
+except ImportError:
+    SESSION_PERSISTENCE_AVAILABLE = False
+    logger.warning("Session persistence not available - using in-memory only")
 
 router = APIRouter(prefix="/api/advisor", tags=["Intelligent Advisor"])
 
@@ -280,14 +289,121 @@ class FullAnalysisResponse(BaseModel):
 class IntelligentChatEngine:
     """
     The brain of the chatbot - orchestrates all backend services.
+
+    Now with database-backed persistence! Sessions are:
+    1. Cached in memory for fast access
+    2. Persisted to SQLite database for durability
+    3. Automatically loaded from database if not in memory
     """
 
     def __init__(self):
+        # In-memory cache for fast access
         self.sessions: Dict[str, Dict[str, Any]] = {}
+        # Lock for thread-safe operations
+        self._lock = threading.Lock()
+        # Database persistence layer
+        self._persistence: Optional[SessionPersistence] = None
+        if SESSION_PERSISTENCE_AVAILABLE:
+            try:
+                self._persistence = get_session_persistence()
+                logger.info("Intelligent Advisor: Database persistence enabled")
+            except Exception as e:
+                logger.warning(f"Could not initialize persistence: {e}")
+
+    def _serialize_session_for_db(self, session: Dict[str, Any]) -> Dict[str, Any]:
+        """Serialize session data for database storage."""
+        # Create a copy to avoid modifying the original
+        data = {}
+        for key, value in session.items():
+            if key == "calculations" and value is not None:
+                # Convert TaxCalculationResult to dict
+                data[key] = value.dict() if hasattr(value, 'dict') else value
+            elif key == "strategies" and value:
+                # Convert StrategyRecommendation list to dicts
+                data[key] = [s.dict() if hasattr(s, 'dict') else s for s in value]
+            elif key == "created_at" and isinstance(value, datetime):
+                data[key] = value.isoformat()
+            else:
+                data[key] = value
+        return data
+
+    def _deserialize_session_from_db(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Deserialize session data from database storage."""
+        session = dict(data)
+        # Convert datetime string back to datetime
+        if "created_at" in session and isinstance(session["created_at"], str):
+            try:
+                session["created_at"] = datetime.fromisoformat(session["created_at"])
+            except (ValueError, TypeError):
+                session["created_at"] = datetime.now()
+        return session
+
+    def _save_session_to_db(self, session_id: str, session: Dict[str, Any]) -> None:
+        """Save session to database asynchronously."""
+        if not self._persistence:
+            return
+
+        try:
+            serialized = self._serialize_session_for_db(session)
+            self._persistence.save_session(
+                session_id=session_id,
+                tenant_id="default",
+                session_type="intelligent_advisor",
+                data=serialized,
+                metadata={
+                    "lead_score": session.get("lead_score", 0),
+                    "state": session.get("state", "greeting"),
+                    "has_calculation": session.get("calculations") is not None
+                }
+            )
+            logger.debug(f"Session {session_id} saved to database")
+        except Exception as e:
+            logger.warning(f"Failed to save session {session_id} to database: {e}")
+
+    def _load_session_from_db(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Load session from database."""
+        if not self._persistence:
+            return None
+
+        try:
+            record = self._persistence.load_session(session_id)
+            if record and record.data:
+                session = self._deserialize_session_from_db(record.data)
+                logger.info(f"Session {session_id} loaded from database")
+                return session
+        except Exception as e:
+            logger.warning(f"Failed to load session {session_id} from database: {e}")
+
+        return None
 
     def get_or_create_session(self, session_id: str) -> Dict[str, Any]:
-        if session_id not in self.sessions:
-            self.sessions[session_id] = {
+        """
+        Get existing session or create new one.
+
+        1. Check in-memory cache first (fast path)
+        2. Try loading from database if not in memory
+        3. Create new session if not found anywhere
+        4. Save new sessions to database
+        """
+        with self._lock:
+            # Fast path: check in-memory cache
+            if session_id in self.sessions:
+                # Touch the session in DB to extend expiry
+                if self._persistence:
+                    try:
+                        self._persistence.touch_session(session_id)
+                    except Exception:
+                        pass
+                return self.sessions[session_id]
+
+            # Try loading from database
+            loaded_session = self._load_session_from_db(session_id)
+            if loaded_session:
+                self.sessions[session_id] = loaded_session
+                return loaded_session
+
+            # Create new session
+            new_session = {
                 "id": session_id,
                 "created_at": datetime.now(),
                 "profile": {},
@@ -297,7 +413,80 @@ class IntelligentChatEngine:
                 "strategies": [],
                 "lead_score": 0
             }
-        return self.sessions[session_id]
+            self.sessions[session_id] = new_session
+
+            # Save to database
+            self._save_session_to_db(session_id, new_session)
+
+            return new_session
+
+    def update_session(self, session_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Update session with new data and persist to database.
+
+        Args:
+            session_id: Session identifier
+            updates: Dictionary of updates to apply
+
+        Returns:
+            Updated session
+        """
+        session = self.get_or_create_session(session_id)
+
+        with self._lock:
+            # Apply updates
+            for key, value in updates.items():
+                if key == "profile" and isinstance(value, dict):
+                    # Merge profile updates
+                    session["profile"].update(value)
+                else:
+                    session[key] = value
+
+            # Save to database
+            self._save_session_to_db(session_id, session)
+
+        return session
+
+    def delete_session(self, session_id: str) -> bool:
+        """
+        Delete a session from both memory and database.
+
+        Args:
+            session_id: Session identifier
+
+        Returns:
+            True if session was deleted
+        """
+        with self._lock:
+            # Remove from memory
+            removed = self.sessions.pop(session_id, None) is not None
+
+            # Remove from database
+            if self._persistence:
+                try:
+                    self._persistence.delete_session(session_id)
+                except Exception as e:
+                    logger.warning(f"Failed to delete session {session_id} from database: {e}")
+
+            return removed
+
+    def get_session_count(self) -> Dict[str, int]:
+        """Get count of sessions in memory and database."""
+        memory_count = len(self.sessions)
+        db_count = 0
+
+        if self._persistence:
+            try:
+                # Count sessions by listing them
+                sessions = self._persistence.list_sessions("default")
+                db_count = len([s for s in sessions if s.session_type == "intelligent_advisor"])
+            except Exception:
+                pass
+
+        return {
+            "in_memory": memory_count,
+            "in_database": db_count
+        }
 
     def calculate_profile_completeness(self, profile: Dict[str, Any]) -> float:
         """Calculate how complete the user's profile is."""
@@ -1461,8 +1650,26 @@ chat_engine = IntelligentChatEngine()
 
 @router.get("/health")
 async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy", "service": "intelligent-advisor"}
+    """Health check endpoint with session persistence status."""
+    session_counts = chat_engine.get_session_count()
+    return {
+        "status": "healthy",
+        "service": "intelligent-advisor",
+        "persistence_enabled": chat_engine._persistence is not None,
+        "sessions": session_counts
+    }
+
+
+@router.get("/sessions/stats")
+async def get_session_stats():
+    """Get statistics about active sessions."""
+    session_counts = chat_engine.get_session_count()
+    return {
+        "in_memory_sessions": session_counts["in_memory"],
+        "database_sessions": session_counts["in_database"],
+        "persistence_enabled": chat_engine._persistence is not None,
+        "persistence_type": "SQLite" if chat_engine._persistence else "In-memory only"
+    }
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -1478,10 +1685,10 @@ async def intelligent_chat(request: ChatRequest):
     """
     session = chat_engine.get_or_create_session(request.session_id)
 
-    # Update profile with any new data
+    # Update profile with any new data and persist
     if request.profile:
         profile_dict = request.profile.dict(exclude_none=True)
-        session["profile"].update(profile_dict)
+        session = chat_engine.update_session(request.session_id, {"profile": profile_dict})
 
     profile = session["profile"]
 
@@ -1514,11 +1721,16 @@ async def intelligent_chat(request: ChatRequest):
     # If we have enough data, calculate taxes
     if profile.get("total_income") and profile.get("filing_status"):
         tax_calculation = await chat_engine.get_tax_calculation(profile)
-        session["calculations"] = tax_calculation
 
         # Get strategies
         strategies = await chat_engine.get_tax_strategies(profile, tax_calculation)
-        session["strategies"] = strategies
+
+        # Update session with calculations and strategies, and persist to database
+        chat_engine.update_session(request.session_id, {
+            "calculations": tax_calculation,
+            "strategies": strategies,
+            "lead_score": chat_engine.calculate_lead_score(profile)
+        })
 
         total_savings = sum(s.estimated_savings for s in strategies)
         total_potential_savings = total_savings
@@ -1794,23 +2006,32 @@ class SessionReportRequest(BaseModel):
 
 @router.post("/report")
 async def get_session_report(request: SessionReportRequest):
-    """Get report data for a session (used by report preview page)."""
-    session = chat_engine.sessions.get(request.session_id)
+    """Get report data for a session (used by report preview page).
 
-    if not session:
-        # Session doesn't exist - create a minimal response
-        raise HTTPException(status_code=404, detail="Session not found")
+    Now with database persistence! Will load session from database
+    if not found in memory.
+    """
+    # Use get_or_create_session which checks memory, then database
+    session = chat_engine.get_or_create_session(request.session_id)
+
+    # Check if session has meaningful data (not just newly created)
+    if not session.get("profile"):
+        raise HTTPException(status_code=404, detail="Session not found or has no data")
 
     calculation = session.get("calculations")
     strategies = session.get("strategies", [])
     profile = session.get("profile", {})
 
-    # If no calculation exists, generate one from the profile
-    if not calculation and profile:
+    # If no calculation exists, generate one from the profile and persist
+    if not calculation and profile and profile.get("total_income") and profile.get("filing_status"):
         calculation = await chat_engine.get_tax_calculation(profile)
         strategies = await chat_engine.get_tax_strategies(profile, calculation)
-        session["calculations"] = calculation
-        session["strategies"] = strategies
+
+        # Persist the generated calculation to database
+        chat_engine.update_session(request.session_id, {
+            "calculations": calculation,
+            "strategies": strategies
+        })
 
     if not calculation:
         raise HTTPException(

@@ -157,10 +157,12 @@ try:
             "/api/leads/create",  # Lead capture from chatbot
             "/api/advisor/",  # Intelligent advisor chatbot API
             "/api/ai-chat/chat",  # AI chat for conversational chatbot
+            "/api/ai-chat/upload",  # Document upload for chatbot
             "/api/ai-chat/analyze-document",  # Document analysis for chatbot
             "/api/sessions/",  # Session save/restore for intelligent advisor
             "/api/v1/auth/",  # Auth endpoints only (login, register, refresh)
             "/api/v1/admin/health",  # Health check endpoints
+            "/api/v1/advisory-reports/",  # Advisory report generation for chatbot
             "/api/cpa/lead-magnet/",  # Lead magnet funnel - public API
             "/api/lead-magnet/",  # Lead magnet - public API
             # Note: Other /api/v1/* endpoints require CSRF token OR Bearer auth

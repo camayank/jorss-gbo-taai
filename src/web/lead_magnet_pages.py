@@ -86,7 +86,14 @@ async def get_session_data(session_id: str) -> Optional[dict]:
     try:
         service = get_lead_magnet_service()
         session = service.get_session(session_id)
-        return session
+        if session:
+            # Convert LeadMagnetSession object to dict for template use
+            session_dict = session.to_dict()
+            # Add cpa_slug for page routing
+            if session.cpa_profile:
+                session_dict["cpa_slug"] = session.cpa_profile.cpa_slug
+            return session_dict
+        return None
     except Exception as e:
         logger.warning(f"Failed to load session {session_id}: {e}")
         return None
