@@ -249,6 +249,23 @@
       box-shadow: var(--shadow-md);
     }
 
+    /* User message content - ensure all text is white */
+    .message.user .bubble strong,
+    .message.user .bubble b,
+    .message.user .bubble em,
+    .message.user .bubble code {
+      color: white;
+    }
+
+    .message.user .bubble a {
+      color: #93c5fd;
+      text-decoration: underline;
+    }
+
+    .message.user .bubble a:hover {
+      color: #bfdbfe;
+    }
+
     /* Quick Actions */
     .quick-actions {
       display: flex;
@@ -1390,6 +1407,8 @@
 
     .message.user .message-time {
       text-align: right;
+      color: rgba(255, 255, 255, 0.7);
+      opacity: 1;
     }
 
     /* Copy Button */
@@ -1418,6 +1437,17 @@
 
     .copy-btn:hover {
       background: var(--border);
+    }
+
+    /* Copy button on user messages (blue background) */
+    .message.user .copy-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.3);
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .message.user .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
     }
 
     /* Improved Typing Indicator Accessibility */
