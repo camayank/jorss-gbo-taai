@@ -60,6 +60,7 @@ class CPABrandingResponse(BaseModel):
     display_name: Optional[str]
     tagline: Optional[str]
     accent_color: Optional[str]
+    firm_logo_url: Optional[str]
     profile_photo_url: Optional[str]
     signature_image_url: Optional[str]
     direct_email: Optional[str]
@@ -107,6 +108,7 @@ async def get_my_branding(ctx: AuthContext = Depends(require_cpa_role)):
             display_name=None,
             tagline=None,
             accent_color=None,
+            firm_logo_url=None,
             profile_photo_url=None,
             signature_image_url=None,
             direct_email=None,
@@ -125,6 +127,7 @@ async def get_my_branding(ctx: AuthContext = Depends(require_cpa_role)):
         display_name=cpa_branding.display_name,
         tagline=cpa_branding.tagline,
         accent_color=cpa_branding.accent_color,
+        firm_logo_url=getattr(cpa_branding, 'firm_logo_url', None),
         profile_photo_url=cpa_branding.profile_photo_url,
         signature_image_url=cpa_branding.signature_image_url,
         direct_email=cpa_branding.direct_email,
@@ -308,6 +311,92 @@ async def upload_signature(
     }
 
 
+@router.post("/my-branding/firm-logo")
+async def upload_firm_logo(
+    file: UploadFile = File(...),
+    ctx: AuthContext = Depends(require_cpa_role)
+):
+    """
+    Upload firm logo for reports and branding.
+
+    **CPA Only** (Staff, Partner)
+
+    Uploads and sets firm logo for PDF reports and client portal.
+    Supported formats: JPEG, PNG, WebP, SVG
+    Max size: 5MB
+    """
+    # Validate file type
+    allowed_types = {"image/jpeg", "image/png", "image/webp", "image/svg+xml"}
+    if file.content_type not in allowed_types:
+        raise HTTPException(400, "Invalid file type. Use JPEG, PNG, WebP, or SVG")
+
+    # Validate file size (max 5MB)
+    content = await file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(400, "File too large. Max 5MB")
+
+    # Save file
+    from pathlib import Path
+    upload_dir = Path("./uploads/firm_logos")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    # Generate safe filename
+    ext = file.filename.split('.')[-1] if '.' in file.filename else 'png'
+    filename = f"{ctx.user_id}_{uuid4().hex[:8]}.{ext}"
+    file_path = upload_dir / filename
+
+    with open(file_path, "wb") as f:
+        f.write(content)
+
+    # Update CPA branding
+    persistence = get_tenant_persistence()
+    cpa_branding = persistence.get_cpa_branding(str(ctx.user_id))
+
+    if not cpa_branding:
+        cpa_branding = CPABranding(
+            cpa_id=str(ctx.user_id),
+            tenant_id=ctx.tenant_id or "default",
+        )
+
+    cpa_branding.firm_logo_url = f"/uploads/firm_logos/{filename}"
+    cpa_branding.updated_at = datetime.now()
+
+    persistence.save_cpa_branding(cpa_branding)
+
+    return {
+        "message": "Firm logo uploaded",
+        "url": cpa_branding.firm_logo_url,
+        "cpa_id": str(ctx.user_id)
+    }
+
+
+@router.delete("/my-branding/firm-logo")
+async def delete_firm_logo(ctx: AuthContext = Depends(require_cpa_role)):
+    """
+    Delete firm logo.
+
+    **CPA Only** (Staff, Partner)
+    """
+    persistence = get_tenant_persistence()
+    cpa_branding = persistence.get_cpa_branding(str(ctx.user_id))
+
+    if not cpa_branding or not getattr(cpa_branding, 'firm_logo_url', None):
+        raise HTTPException(404, "No firm logo found")
+
+    # Delete the file
+    from pathlib import Path
+    logo_path = Path("." + cpa_branding.firm_logo_url)
+    if logo_path.exists():
+        logo_path.unlink()
+
+    # Update branding
+    cpa_branding.firm_logo_url = None
+    cpa_branding.updated_at = datetime.now()
+    persistence.save_cpa_branding(cpa_branding)
+
+    return {"message": "Firm logo deleted"}
+
+
 @router.get("/{cpa_id}", response_model=CPABrandingResponse)
 async def get_cpa_branding(
     cpa_id: str,
@@ -340,6 +429,7 @@ async def get_cpa_branding(
         display_name=cpa_branding.display_name,
         tagline=cpa_branding.tagline,
         accent_color=cpa_branding.accent_color,
+        firm_logo_url=getattr(cpa_branding, 'firm_logo_url', None),
         profile_photo_url=cpa_branding.profile_photo_url,
         signature_image_url=cpa_branding.signature_image_url,
         direct_email=cpa_branding.direct_email,

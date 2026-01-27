@@ -366,6 +366,7 @@ class CPABranding:
     accent_color: Optional[str] = None  # Can customize accent only
 
     # Assets
+    firm_logo_url: Optional[str] = None  # Firm/CPA logo for reports
     profile_photo_url: Optional[str] = None
     signature_image_url: Optional[str] = None
 
@@ -395,6 +396,7 @@ class CPABranding:
             'display_name': self.display_name,
             'tagline': self.tagline,
             'accent_color': self.accent_color,
+            'firm_logo_url': self.firm_logo_url,
             'profile_photo_url': self.profile_photo_url,
             'signature_image_url': self.signature_image_url,
             'direct_email': self.direct_email,

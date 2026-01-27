@@ -43,6 +43,17 @@ except ImportError:
     LOGO_HANDLER_AVAILABLE = False
     logger.warning("Logo handler not available")
 
+try:
+    from utils.cpa_branding_helper import (
+        get_cpa_branding_for_report,
+        create_pdf_brand_config,
+        get_cpa_branding_for_html_report
+    )
+    CPA_BRANDING_HELPER_AVAILABLE = True
+except ImportError:
+    CPA_BRANDING_HELPER_AVAILABLE = False
+    logger.warning("CPA branding helper not available")
+
 # Import session persistence for database-backed storage
 try:
     from database.session_persistence import get_session_persistence, SessionPersistence
@@ -2334,6 +2345,7 @@ async def get_session_pdf(
     session_id: str,
     include_charts: bool = True,
     include_toc: bool = True,
+    cpa_id: Optional[str] = None,  # CPA profile ID to load branding from
     firm_name: Optional[str] = None,
     advisor_name: Optional[str] = None,
     advisor_credentials: Optional[str] = None,  # Comma-separated
@@ -2351,7 +2363,8 @@ async def get_session_pdf(
     Query Parameters:
         - include_charts: Include visualizations (default: True)
         - include_toc: Include table of contents (default: True)
-        - firm_name: CPA firm name for branding
+        - cpa_id: CPA profile ID to load branding from (overrides manual params)
+        - firm_name: CPA firm name for branding (used if cpa_id not provided)
         - advisor_name: Advisor name for branding
         - advisor_credentials: Comma-separated credentials (e.g., "CPA,CFP,MST")
         - contact_email: Contact email for footer
@@ -2423,9 +2436,17 @@ async def get_session_pdf(
             years_ahead=3
         )
 
-        # Build brand config if any branding parameters provided
+        # Build brand config - try CPA profile first, then manual parameters
         brand_config = None
-        if any([firm_name, advisor_name, contact_email, contact_phone, primary_color]):
+
+        # Option 1: Load from CPA profile (preferred)
+        if cpa_id and CPA_BRANDING_HELPER_AVAILABLE:
+            brand_config = create_pdf_brand_config(cpa_id)
+            if brand_config:
+                logger.info(f"Using CPA branding from profile: {cpa_id}")
+
+        # Option 2: Use manual parameters
+        if not brand_config and any([firm_name, advisor_name, contact_email, contact_phone, primary_color]):
             credentials_list = []
             if advisor_credentials:
                 credentials_list = [c.strip() for c in advisor_credentials.split(",")]
