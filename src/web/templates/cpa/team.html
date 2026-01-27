@@ -1,0 +1,244 @@
+{% extends "cpa/base.html" %}
+
+{% block title %}Team{% endblock %}
+{% block page_title %}Team Management{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .team-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .team-stats {
+        display: flex;
+        gap: 24px;
+    }
+
+    .team-stat {
+        text-align: center;
+    }
+
+    .team-stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+
+    .team-stat-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .team-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .team-table th {
+        text-align: left;
+        padding: 12px 16px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .team-table td {
+        padding: 16px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .team-table tr:hover {
+        background: var(--bg-light);
+    }
+
+    .member-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .member-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+    }
+
+    .member-name {
+        font-weight: 500;
+    }
+
+    .member-email {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .status-badge.active {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-badge.pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .status-badge.inactive {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .role-badge {
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        background: var(--bg-light);
+        color: var(--text-dark);
+    }
+
+    .action-btn {
+        padding: 6px 12px;
+        border: 1px solid var(--border-color);
+        background: white;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .action-btn:hover {
+        background: var(--bg-light);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+        margin-bottom: 16px;
+    }
+
+    .invite-form {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .invite-form input {
+        flex: 1;
+        padding: 10px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 0.9rem;
+    }
+
+    .invite-form input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="team-header">
+    <div class="team-stats">
+        <div class="team-stat">
+            <div class="team-stat-value">{{ team_members|length }}</div>
+            <div class="team-stat-label">Team Members</div>
+        </div>
+        <div class="team-stat">
+            <div class="team-stat-value">{{ team_members|selectattr('status', 'equalto', 'active')|list|length }}</div>
+            <div class="team-stat-label">Active</div>
+        </div>
+    </div>
+    <button class="btn btn-primary" onclick="document.getElementById('inviteEmail').focus()">
+        <span>+</span> Invite Member
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body" style="padding: 0;">
+        {% if team_members %}
+        <table class="team-table">
+            <thead>
+                <tr>
+                    <th>Member</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in team_members %}
+                <tr>
+                    <td>
+                        <div class="member-info">
+                            <div class="member-avatar">{{ member.name[0] }}</div>
+                            <div>
+                                <div class="member-name">{{ member.name }}</div>
+                                <div class="member-email">{{ member.email }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="role-badge">{{ member.role }}</span>
+                    </td>
+                    <td>
+                        <span class="status-badge {{ member.status }}">
+                            {% if member.status == 'active' %}✓{% elif member.status == 'pending' %}⏳{% else %}✗{% endif %}
+                            {{ member.status|capitalize }}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="action-btn">Edit</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">👥</div>
+            <h3>No team members yet</h3>
+            <p>Invite your first team member to start collaborating</p>
+        </div>
+        {% endif %}
+
+        <div class="invite-form" style="padding: 24px;">
+            <input type="email" id="inviteEmail" placeholder="Enter email address to invite...">
+            <select style="padding: 10px 16px; border: 1px solid var(--border-color); border-radius: 8px;">
+                <option value="staff">Staff</option>
+                <option value="admin">Admin</option>
+            </select>
+            <button class="btn btn-primary">Send Invite</button>
+        </div>
+    </div>
+</div>
+{% endblock %}

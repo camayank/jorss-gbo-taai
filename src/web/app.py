@@ -1420,8 +1420,8 @@ def filing_results(request: Request, session_id: str = None):
         session_id = request.cookies.get('tax_session_id')
 
     if not session_id:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail="No session found. Please complete your tax return first.")
+        # Redirect to lead magnet if no session exists
+        return RedirectResponse(url="/lead-magnet/", status_code=302)
 
     # Load session and tax return data
     persistence = get_session_persistence()

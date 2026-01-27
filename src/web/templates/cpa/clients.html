@@ -1,0 +1,228 @@
+{% extends "cpa/base.html" %}
+
+{% block title %}Clients{% endblock %}
+{% block page_title %}Client Management{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .clients-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .clients-stats {
+        display: flex;
+        gap: 24px;
+    }
+
+    .client-stat {
+        text-align: center;
+    }
+
+    .client-stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+
+    .client-stat-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .clients-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .client-card {
+        background: var(--white);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        padding: 20px;
+        transition: all 0.15s ease;
+    }
+
+    .client-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transform: translateY(-2px);
+    }
+
+    .client-card-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .client-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 1.2rem;
+    }
+
+    .client-name {
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .client-email {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .client-details {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .client-detail {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+    }
+
+    .client-actions {
+        display: flex;
+        gap: 8px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .client-actions .btn {
+        flex: 1;
+        font-size: 0.85rem;
+        padding: 8px 12px;
+    }
+
+    .status-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .status-indicator.active {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+        color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+        margin-bottom: 16px;
+    }
+
+    .empty-state h3 {
+        font-size: 1.25rem;
+        color: var(--text-dark);
+        margin-bottom: 8px;
+    }
+
+    .search-bar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 10px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 0.9rem;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="clients-header">
+    <div class="clients-stats">
+        <div class="client-stat">
+            <div class="client-stat-value">{{ clients|length }}</div>
+            <div class="client-stat-label">Total Clients</div>
+        </div>
+        <div class="client-stat">
+            <div class="client-stat-value">{{ clients|selectattr('status', 'equalto', 'active')|list|length }}</div>
+            <div class="client-stat-label">Active</div>
+        </div>
+    </div>
+    <a href="/cpa/leads" class="btn btn-primary">
+        <span>👥</span> View Lead Pipeline
+    </a>
+</div>
+
+<div class="search-bar">
+    <input type="text" class="search-input" placeholder="Search clients by name or email...">
+    <button class="btn btn-secondary">Search</button>
+</div>
+
+{% if clients %}
+<div class="clients-grid">
+    {% for client in clients %}
+    <div class="client-card">
+        <div class="client-card-header">
+            <div class="client-avatar">{{ client.name[0] if client.name else 'C' }}</div>
+            <div>
+                <div class="client-name">{{ client.name or 'Client' }}</div>
+                <div class="client-email">{{ client.email }}</div>
+            </div>
+        </div>
+        <div class="client-details">
+            {% if client.phone %}
+            <div class="client-detail">
+                <span>📞</span> {{ client.phone }}
+            </div>
+            {% endif %}
+            <div class="client-detail">
+                <span>📅</span> Client since {{ client.created_at[:10] if client.created_at else 'N/A' }}
+            </div>
+            <div class="client-detail">
+                <span class="status-indicator active">✓ Active</span>
+            </div>
+        </div>
+        <div class="client-actions">
+            <a href="/cpa/leads/{{ client.id }}" class="btn btn-secondary">View Details</a>
+            <button class="btn btn-primary">Contact</button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="empty-state">
+        <div class="empty-state-icon">👥</div>
+        <h3>No clients yet</h3>
+        <p>Clients appear here when leads convert through your pipeline.</p>
+        <a href="/cpa/leads" class="btn btn-primary" style="margin-top: 16px;">View Lead Pipeline</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,245 @@
+{% extends "cpa/base.html" %}
+
+{% block title %}Settings{% endblock %}
+{% block page_title %}Account Settings{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .settings-grid {
+        display: grid;
+        grid-template-columns: 250px 1fr;
+        gap: 24px;
+    }
+
+    @media (max-width: 768px) {
+        .settings-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .settings-nav {
+        background: var(--white);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+        height: fit-content;
+    }
+
+    .settings-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 20px;
+        color: var(--text-muted);
+        text-decoration: none;
+        border-bottom: 1px solid var(--border-color);
+        transition: all 0.15s ease;
+    }
+
+    .settings-nav-item:last-child {
+        border-bottom: none;
+    }
+
+    .settings-nav-item:hover {
+        background: var(--bg-light);
+        color: var(--text-dark);
+    }
+
+    .settings-nav-item.active {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .settings-section {
+        background: var(--white);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+
+    .settings-section-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .settings-section-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 4px;
+    }
+
+    .settings-section-desc {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+    }
+
+    .settings-section-body {
+        padding: 24px;
+    }
+
+    .setting-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .setting-row:last-child {
+        border-bottom: none;
+    }
+
+    .setting-info h4 {
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .setting-info p {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .toggle-switch {
+        position: relative;
+        width: 50px;
+        height: 26px;
+    }
+
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: var(--border-color);
+        transition: 0.3s;
+        border-radius: 26px;
+    }
+
+    .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 20px;
+        width: 20px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+    }
+
+    input:checked + .toggle-slider {
+        background-color: var(--primary-color);
+    }
+
+    input:checked + .toggle-slider:before {
+        transform: translateX(24px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-grid">
+    <nav class="settings-nav">
+        <a href="#notifications" class="settings-nav-item active">
+            <span>🔔</span> Notifications
+        </a>
+        <a href="#security" class="settings-nav-item">
+            <span>🔒</span> Security
+        </a>
+        <a href="#integrations" class="settings-nav-item">
+            <span>🔗</span> Integrations
+        </a>
+        <a href="/cpa/billing" class="settings-nav-item">
+            <span>💳</span> Billing
+        </a>
+    </nav>
+
+    <div class="settings-content">
+        <section class="settings-section" id="notifications">
+            <div class="settings-section-header">
+                <h3 class="settings-section-title">Notification Preferences</h3>
+                <p class="settings-section-desc">Manage how you receive notifications about leads and activity</p>
+            </div>
+            <div class="settings-section-body">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h4>New Lead Alerts</h4>
+                        <p>Get notified when a new lead enters your pipeline</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h4>Hot Lead Alerts</h4>
+                        <p>Immediate notification when a lead becomes advisory-ready</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h4>Weekly Summary</h4>
+                        <p>Receive a weekly digest of your pipeline activity</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h4>Email Notifications</h4>
+                        <p>Send notifications to your email address</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <section class="settings-section" id="security" style="margin-top: 24px;">
+            <div class="settings-section-header">
+                <h3 class="settings-section-title">Security Settings</h3>
+                <p class="settings-section-desc">Manage your account security and authentication</p>
+            </div>
+            <div class="settings-section-body">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h4>Two-Factor Authentication</h4>
+                        <p>Add an extra layer of security to your account</p>
+                    </div>
+                    <button class="btn btn-secondary btn-sm">Enable</button>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h4>Change Password</h4>
+                        <p>Update your account password</p>
+                    </div>
+                    <button class="btn btn-secondary btn-sm">Update</button>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <h4>Active Sessions</h4>
+                        <p>View and manage your active login sessions</p>
+                    </div>
+                    <button class="btn btn-secondary btn-sm">View</button>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

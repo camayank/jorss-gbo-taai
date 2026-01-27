@@ -702,3 +702,124 @@ async def cpa_branding_page(
             "active_page": "branding",
         }
     )
+
+
+@cpa_dashboard_router.get("/settings", response_class=HTMLResponse)
+async def cpa_settings_page(
+    request: Request,
+    current_user: dict = Depends(require_cpa_auth)
+):
+    """CPA Settings - Account and notification settings. Requires authentication."""
+    cpa_profile = await get_cpa_profile_from_context(request)
+    stats = await get_dashboard_stats(get_cpa_id_from_user(current_user))
+
+    return templates.TemplateResponse(
+        "cpa/settings.html",
+        {
+            "request": request,
+            "cpa": cpa_profile,
+            "stats": stats,
+            "current_user": current_user,
+            "active_page": "settings",
+        }
+    )
+
+
+@cpa_dashboard_router.get("/team", response_class=HTMLResponse)
+async def cpa_team_page(
+    request: Request,
+    current_user: dict = Depends(require_cpa_auth)
+):
+    """CPA Team - Team member management. Requires authentication."""
+    cpa_profile = await get_cpa_profile_from_context(request)
+    stats = await get_dashboard_stats(get_cpa_id_from_user(current_user))
+
+    # Mock team members for now
+    team_members = [
+        {"id": "1", "name": "Demo User", "email": "demo@example.com", "role": "Admin", "status": "active"},
+    ]
+
+    return templates.TemplateResponse(
+        "cpa/team.html",
+        {
+            "request": request,
+            "cpa": cpa_profile,
+            "stats": stats,
+            "team_members": team_members,
+            "current_user": current_user,
+            "active_page": "team",
+        }
+    )
+
+
+@cpa_dashboard_router.get("/clients", response_class=HTMLResponse)
+async def cpa_clients_page(
+    request: Request,
+    current_user: dict = Depends(require_cpa_auth)
+):
+    """CPA Clients - Client management. Requires authentication."""
+    cpa_profile = await get_cpa_profile_from_context(request)
+    stats = await get_dashboard_stats(get_cpa_id_from_user(current_user))
+
+    # Get converted leads as clients
+    clients = []
+    try:
+        from cpa_panel.services.lead_magnet_service import get_lead_magnet_service
+        service = get_lead_magnet_service()
+        cpa_id = get_cpa_id_from_user(current_user)
+        leads_result = service.list_leads(cpa_id=cpa_id, state="converted", limit=50)
+        for lead in leads_result.get("leads", []):
+            clients.append({
+                "id": lead.get("lead_id"),
+                "name": f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() or "Client",
+                "email": lead.get("email", ""),
+                "phone": lead.get("phone"),
+                "status": "active",
+                "created_at": lead.get("created_at"),
+            })
+    except Exception as e:
+        logger.warning(f"Failed to load clients: {e}")
+
+    return templates.TemplateResponse(
+        "cpa/clients.html",
+        {
+            "request": request,
+            "cpa": cpa_profile,
+            "stats": stats,
+            "clients": clients,
+            "current_user": current_user,
+            "active_page": "clients",
+        }
+    )
+
+
+@cpa_dashboard_router.get("/billing", response_class=HTMLResponse)
+async def cpa_billing_page(
+    request: Request,
+    current_user: dict = Depends(require_cpa_auth)
+):
+    """CPA Billing - Subscription and payment management. Requires authentication."""
+    cpa_profile = await get_cpa_profile_from_context(request)
+    stats = await get_dashboard_stats(get_cpa_id_from_user(current_user))
+
+    # Mock billing data
+    billing = {
+        "plan": "Professional",
+        "status": "active",
+        "next_billing": "February 1, 2026",
+        "amount": 99.00,
+        "leads_this_month": stats.get("total_leads", 0),
+        "leads_limit": 100,
+    }
+
+    return templates.TemplateResponse(
+        "cpa/billing.html",
+        {
+            "request": request,
+            "cpa": cpa_profile,
+            "stats": stats,
+            "billing": billing,
+            "current_user": current_user,
+            "active_page": "billing",
+        }
+    )
