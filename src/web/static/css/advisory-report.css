@@ -1,0 +1,1190 @@
+/**
+ * Advisory Report Styles
+ * Shared CSS for advisory report templates
+ *
+ * Templates using this file:
+ * - advisory_report_preview.html
+ * - advisory_report_widget.html
+ * - tier1_report.html (lead magnet)
+ */
+
+/* ============================================================================
+   CSS CUSTOM PROPERTIES (Variables)
+   ============================================================================ */
+
+:root {
+    /* Primary Colors - Navy Blue Theme */
+    --primary: #1a365d;
+    --primary-light: #2c5282;
+    --primary-dark: #0d2137;
+
+    /* Advisory-specific aliases (for backward compatibility) */
+    --advisory-primary: #1a365d;
+    --advisory-primary-light: #2c5282;
+
+    /* Success Colors - Professional Green */
+    --success: #276749;
+    --success-light: #38a169;
+    --advisory-success: #276749;
+    --advisory-success-hover: #38a169;
+
+    /* Warning Colors - Muted Gold */
+    --warning: #c69214;
+    --warning-light: #d69e2e;
+    --warning-lighter: #fef9c3;
+    --warning-hover: #92400e;
+
+    /* Danger/Error Colors */
+    --danger: #c53030;
+    --danger-light: #e53e3e;
+
+    /* Info Colors */
+    --info: #3b82f6;
+    --info-light: #60a5fa;
+
+    /* Neutral Colors */
+    --bg: #f7fafc;
+    --surface: #ffffff;
+    --surface-light: #edf2f7;
+    --border: #e2e8f0;
+    --border-light: #f0f4f8;
+
+    /* Advisory Background Aliases */
+    --advisory-bg-secondary: #edf2f7;
+    --advisory-bg-tertiary: #cbd5e0;
+
+    /* Text Colors */
+    --text: #1a202c;
+    --text-primary: #1a202c;
+    --text-secondary: #4a5568;
+    --text-muted: #718096;
+    --text-inverse: #ffffff;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --advisory-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+
+    /* Border Radius */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --radius-xl: 12px;
+    --radius-full: 9999px;
+
+    /* Typography */
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-size-xs: 12px;
+    --font-size-sm: 13px;
+    --font-size-base: 14px;
+    --font-size-lg: 16px;
+    --font-size-xl: 20px;
+    --font-size-2xl: 24px;
+    --font-size-3xl: 28px;
+}
+
+/* ============================================================================
+   BASE STYLES
+   ============================================================================ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: var(--font-size-base);
+}
+
+/* ============================================================================
+   LAYOUT
+   ============================================================================ */
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+}
+
+.advisory-report-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+}
+
+/* ============================================================================
+   HEADER
+   ============================================================================ */
+
+.header,
+.advisory-report-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: var(--text-inverse);
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-xl);
+    margin-bottom: var(--spacing-lg);
+}
+
+.header h1,
+.advisory-report-title {
+    color: var(--text-inverse);
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    margin-bottom: var(--spacing-sm);
+}
+
+.header .subtitle,
+.advisory-report-subtitle {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: var(--font-size-lg);
+}
+
+/* ============================================================================
+   METRICS GRID
+   ============================================================================ */
+
+.metrics-grid,
+.advisory-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+@media (max-width: 768px) {
+    .metrics-grid,
+    .advisory-metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .metrics-grid,
+    .advisory-metrics-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.metric-card,
+.advisory-metric-card {
+    background: var(--surface);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    transition: all 0.2s ease;
+}
+
+.metric-card:hover,
+.advisory-metric-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.metric-card .label,
+.advisory-metric-label {
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--spacing-sm);
+}
+
+.metric-card .value,
+.advisory-metric-value {
+    color: var(--primary);
+    font-size: 26px;
+    font-weight: 700;
+}
+
+.metric-card .subvalue,
+.advisory-metric-sublabel {
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    margin-top: 6px;
+}
+
+.metric-card.savings {
+    border-left: 4px solid var(--success);
+}
+
+.metric-card.savings .value,
+.advisory-metric-value.savings {
+    color: var(--success);
+}
+
+/* ============================================================================
+   BUTTONS
+   ============================================================================ */
+
+.btn,
+.advisory-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+}
+
+.btn-primary,
+.advisory-btn-primary {
+    background: var(--primary);
+    color: var(--text-inverse);
+}
+
+.btn-primary:hover,
+.advisory-btn-primary:hover {
+    background: var(--primary-light);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-secondary,
+.advisory-btn-secondary {
+    background: var(--surface);
+    color: var(--primary);
+    border: 2px solid var(--primary);
+}
+
+.btn-secondary:hover,
+.advisory-btn-secondary:hover {
+    background: var(--bg);
+}
+
+.btn-success {
+    background: var(--success);
+    color: var(--text-inverse);
+}
+
+.btn-success:hover {
+    background: var(--success-light);
+}
+
+.action-buttons,
+.advisory-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: var(--spacing-lg);
+    flex-wrap: wrap;
+}
+
+/* ============================================================================
+   SECTIONS
+   ============================================================================ */
+
+.section,
+.advisory-section {
+    background: var(--surface);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+}
+
+.section h2,
+.advisory-section-title {
+    color: var(--primary);
+    font-size: var(--font-size-xl);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.section h3,
+.advisory-section-header {
+    color: var(--text-secondary);
+    font-size: var(--font-size-lg);
+    margin-top: 20px;
+    margin-bottom: 12px;
+}
+
+.advisory-section-toggle {
+    cursor: pointer;
+    user-select: none;
+}
+
+.advisory-section-content {
+    padding-top: var(--spacing-md);
+}
+
+/* ============================================================================
+   TABLES
+   ============================================================================ */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+}
+
+table th {
+    background: var(--primary);
+    color: var(--text-inverse);
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+}
+
+table th:last-child {
+    text-align: right;
+}
+
+table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: var(--font-size-base);
+}
+
+table td:last-child {
+    text-align: right;
+}
+
+table tr:hover {
+    background: var(--bg);
+}
+
+table tr:last-child td {
+    border-bottom: none;
+}
+
+.amount {
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.savings-amount {
+    font-weight: 600;
+    color: var(--success);
+}
+
+/* ============================================================================
+   RECOMMENDATIONS
+   ============================================================================ */
+
+.recommendation,
+.advisory-recommendation-item {
+    background: var(--bg);
+    padding: 20px;
+    border-radius: var(--radius-md);
+    margin: 15px 0;
+    border-left: 4px solid var(--primary);
+}
+
+.recommendation h4,
+.advisory-recommendation-title {
+    color: var(--primary);
+    margin-bottom: 10px;
+    font-size: var(--font-size-lg);
+}
+
+.recommendation .savings,
+.advisory-recommendation-savings {
+    color: var(--success);
+    font-weight: 700;
+    font-size: 18px;
+    margin: 10px 0;
+}
+
+.recommendation .action {
+    background: var(--surface);
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    margin-top: 12px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+}
+
+.advisory-recommendation-rank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--primary);
+    color: var(--text-inverse);
+    border-radius: 50%;
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    margin-right: var(--spacing-sm);
+}
+
+.advisory-recommendations-preview {
+    margin-top: var(--spacing-md);
+}
+
+/* ============================================================================
+   SAVINGS VISUALIZATION
+   ============================================================================ */
+
+.savings-visualization {
+    background: var(--surface);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    margin-bottom: var(--spacing-lg);
+}
+
+.savings-visualization h3 {
+    color: var(--primary);
+    font-size: var(--font-size-2xl);
+    margin-bottom: 20px;
+}
+
+.savings-bar-item {
+    margin-bottom: 20px;
+}
+
+.savings-bar-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-sm);
+    font-size: var(--font-size-base);
+}
+
+.savings-bar-amount {
+    font-weight: 600;
+    color: var(--success);
+}
+
+.savings-bar-track {
+    background: var(--advisory-bg-tertiary);
+    height: 32px;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.savings-bar-fill {
+    background: linear-gradient(90deg, var(--success), var(--success-light));
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 12px;
+    color: var(--text-inverse);
+    font-weight: 600;
+    transition: width 0.8s ease;
+    min-width: 60px;
+}
+
+/* ============================================================================
+   CONFIDENCE BAR
+   ============================================================================ */
+
+.confidence-bar {
+    background: var(--advisory-bg-tertiary);
+    height: 30px;
+    border-radius: 15px;
+    overflow: hidden;
+    margin: 15px 0;
+}
+
+.confidence-fill {
+    background: linear-gradient(90deg, var(--success), var(--success-light));
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-inverse);
+    font-weight: 600;
+    transition: width 0.5s ease;
+    min-width: 50px;
+}
+
+/* ============================================================================
+   ACTION LIST
+   ============================================================================ */
+
+.action-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.action-list li {
+    padding: 15px;
+    margin: 10px 0;
+    background: var(--advisory-bg-secondary);
+    border-radius: var(--radius-sm);
+    border-left: 4px solid var(--primary);
+}
+
+.action-list li strong {
+    color: var(--primary);
+    display: block;
+    margin-bottom: 5px;
+}
+
+/* ============================================================================
+   PRIORITY BADGES
+   ============================================================================ */
+
+.priority-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.priority-immediate {
+    background: var(--danger);
+    color: var(--text-inverse);
+}
+
+.priority-current-year {
+    background: var(--warning);
+    color: var(--text-primary);
+}
+
+.priority-long-term {
+    background: var(--info);
+    color: var(--text-inverse);
+}
+
+/* ============================================================================
+   LOADING STATES
+   ============================================================================ */
+
+.loading,
+.advisory-loading {
+    padding: 20px;
+    text-align: center;
+}
+
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--advisory-bg-secondary) 0%,
+        var(--advisory-bg-tertiary) 50%,
+        var(--advisory-bg-secondary) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: var(--radius-md);
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.skeleton-header {
+    height: 80px;
+    margin-bottom: 30px;
+    border-radius: var(--radius-lg);
+}
+
+.skeleton-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.skeleton-metric-card {
+    height: 120px;
+    border-radius: var(--radius-lg);
+}
+
+.skeleton-section {
+    height: 300px;
+    margin-bottom: 20px;
+    border-radius: var(--radius-lg);
+}
+
+.spinner,
+.advisory-loading-spinner {
+    border: 4px solid var(--advisory-bg-tertiary);
+    border-top: 4px solid var(--primary);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ============================================================================
+   DISCLAIMER
+   ============================================================================ */
+
+.disclaimer {
+    background: var(--warning-lighter);
+    border: 1px solid var(--warning);
+    padding: 20px;
+    border-radius: var(--radius-md);
+    margin-top: 30px;
+}
+
+.disclaimer h4 {
+    color: var(--warning-hover);
+    margin-bottom: 10px;
+    font-size: var(--font-size-lg);
+}
+
+.disclaimer p {
+    color: var(--warning-hover);
+    font-size: var(--font-size-base);
+    line-height: 1.5;
+}
+
+/* ============================================================================
+   NOTIFICATIONS
+   ============================================================================ */
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 16px 24px;
+    color: var(--text-inverse);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 10000;
+    animation: slideInRight 0.3s ease;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    max-width: 400px;
+}
+
+.notification-success {
+    background: var(--success);
+}
+
+.notification-error {
+    background: var(--danger);
+}
+
+.notification-info {
+    background: var(--primary);
+}
+
+.notification-warning {
+    background: var(--warning);
+    color: var(--text-primary);
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================================================
+   ADVISORY PREVIEW WIDGET
+   ============================================================================ */
+
+.advisory-preview {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.advisory-preview-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: var(--text-inverse);
+    padding: var(--spacing-lg);
+}
+
+.advisory-preview-title {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    margin-bottom: var(--spacing-xs);
+}
+
+.advisory-preview-subtitle {
+    font-size: var(--font-size-sm);
+    opacity: 0.8;
+}
+
+.advisory-detailed-view,
+.advisory-full-report {
+    padding: var(--spacing-lg);
+}
+
+.advisory-report-body {
+    padding: var(--spacing-lg);
+}
+
+/* ============================================================================
+   SAVINGS CARD (Lead Magnet)
+   ============================================================================ */
+
+.savings-card {
+    background: linear-gradient(135deg, var(--success) 0%, var(--success-light) 100%);
+    color: var(--text-inverse);
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.savings-card .savings-label {
+    font-size: var(--font-size-lg);
+    opacity: 0.9;
+    margin-bottom: var(--spacing-sm);
+}
+
+.savings-card .savings-amount {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--text-inverse);
+}
+
+.savings-card .savings-note {
+    font-size: var(--font-size-sm);
+    opacity: 0.8;
+    margin-top: var(--spacing-sm);
+}
+
+.complexity-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.2);
+    margin-top: var(--spacing-md);
+}
+
+/* ============================================================================
+   REPORT HEADER (Lead Magnet)
+   ============================================================================ */
+
+.report-header {
+    text-align: center;
+    padding: var(--spacing-xl);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: var(--spacing-lg);
+}
+
+.cpa-brand {
+    margin-bottom: var(--spacing-md);
+}
+
+.cpa-logo {
+    max-height: 60px;
+    width: auto;
+}
+
+.cpa-name {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.report-title {
+    font-size: var(--font-size-2xl);
+    color: var(--text);
+    margin-bottom: var(--spacing-sm);
+}
+
+.report-subtitle {
+    color: var(--text-muted);
+    font-size: var(--font-size-base);
+}
+
+.report-date {
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-sm);
+}
+
+/* ============================================================================
+   INSIGHT CARDS (Lead Magnet)
+   ============================================================================ */
+
+.insight-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+}
+
+.insight-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-sm);
+}
+
+.insight-category {
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+.insight-savings {
+    color: var(--success);
+    font-weight: 700;
+    font-size: var(--font-size-lg);
+}
+
+.insight-title {
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: var(--spacing-sm);
+}
+
+.insight-description {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+}
+
+/* ============================================================================
+   LOCKED SECTION (Lead Magnet Teaser)
+   ============================================================================ */
+
+.locked-section {
+    background: linear-gradient(135deg, var(--bg) 0%, var(--surface-light) 100%);
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    text-align: center;
+    margin: var(--spacing-lg) 0;
+}
+
+.locked-icon {
+    font-size: 48px;
+    margin-bottom: var(--spacing-md);
+}
+
+.locked-title {
+    font-size: var(--font-size-xl);
+    color: var(--text);
+    margin-bottom: var(--spacing-sm);
+}
+
+.locked-description {
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-lg);
+}
+
+.locked-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    justify-content: center;
+    margin-top: var(--spacing-md);
+}
+
+.locked-item {
+    background: var(--surface);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+
+/* ============================================================================
+   CTA SECTION (Lead Magnet)
+   ============================================================================ */
+
+.cta-section {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: var(--text-inverse);
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    margin: var(--spacing-lg) 0;
+}
+
+.cta-title {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    margin-bottom: var(--spacing-sm);
+}
+
+.cta-subtitle {
+    font-size: var(--font-size-lg);
+    opacity: 0.9;
+    margin-bottom: var(--spacing-lg);
+}
+
+.cta-button {
+    display: inline-block;
+    background: var(--text-inverse);
+    color: var(--primary);
+    padding: 16px 32px;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.cta-button:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.cta-benefits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    justify-content: center;
+    margin-top: var(--spacing-lg);
+}
+
+.cta-benefit {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    opacity: 0.9;
+}
+
+/* ============================================================================
+   FOOTER
+   ============================================================================ */
+
+.report-footer {
+    text-align: center;
+    padding: var(--spacing-lg);
+    border-top: 1px solid var(--border);
+    margin-top: var(--spacing-lg);
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.footer-cpa {
+    font-weight: 600;
+    color: var(--primary);
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+    /* Hide interactive elements */
+    .action-buttons,
+    .cta-section,
+    .notification,
+    .advisory-actions,
+    .btn,
+    .advisory-btn,
+    [role="button"],
+    button {
+        display: none !important;
+    }
+
+    /* Optimize for print */
+    body {
+        background: white !important;
+        color: black !important;
+        font-size: 12pt;
+    }
+
+    .container,
+    .advisory-report-container {
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+
+    .header,
+    .advisory-report-header {
+        background: white !important;
+        color: black !important;
+        border: 2px solid #333;
+        page-break-after: avoid;
+    }
+
+    .header h1,
+    .advisory-report-title {
+        color: black !important;
+    }
+
+    .section,
+    .advisory-section,
+    .metric-card,
+    .advisory-metric-card {
+        page-break-inside: avoid;
+        box-shadow: none !important;
+        border: 1px solid #ddd;
+    }
+
+    table {
+        page-break-inside: avoid;
+    }
+
+    table th {
+        background: #333 !important;
+        color: white !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .recommendation,
+    .advisory-recommendation-item {
+        page-break-inside: avoid;
+        border-left-color: #333 !important;
+    }
+
+    .disclaimer {
+        page-break-inside: avoid;
+        background: #fff9c4 !important;
+        border-color: #f9a825 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .savings-bar-fill,
+    .confidence-fill {
+        background: #4caf50 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Force color printing for key elements */
+    .savings-amount,
+    .advisory-recommendation-savings {
+        color: #2e7d32 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .amount {
+        color: #1a365d !important;
+    }
+
+    /* Page breaks */
+    .section:nth-child(3n) {
+        page-break-after: always;
+    }
+}
+
+/* ============================================================================
+   RESPONSIVE STYLES
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    .container,
+    .advisory-report-container {
+        padding: var(--spacing-md);
+    }
+
+    .header,
+    .advisory-report-header {
+        padding: var(--spacing-lg);
+    }
+
+    .header h1,
+    .advisory-report-title {
+        font-size: var(--font-size-2xl);
+    }
+
+    .savings-card .savings-amount {
+        font-size: 36px;
+    }
+
+    .action-buttons,
+    .advisory-actions {
+        flex-direction: column;
+    }
+
+    .btn,
+    .advisory-btn {
+        width: 100%;
+    }
+
+    .cta-benefits {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .header h1,
+    .advisory-report-title {
+        font-size: var(--font-size-xl);
+    }
+
+    .section,
+    .advisory-section {
+        padding: var(--spacing-md);
+    }
+
+    table {
+        font-size: var(--font-size-sm);
+    }
+
+    table th,
+    table td {
+        padding: var(--spacing-sm);
+    }
+
+    .notification {
+        left: var(--spacing-md);
+        right: var(--spacing-md);
+        max-width: none;
+    }
+}

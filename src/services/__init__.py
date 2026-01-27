@@ -36,14 +36,30 @@ def get_advisory_service():
     return AdvisoryService()
 
 def get_validation_service():
-    """Get ValidationService instance."""
+    """Get ValidationService instance for input/output validation.
+
+    ValidationService provides 11 validation rules:
+    - RequiredFieldRule: Ensures required fields are present
+    - SSNFormatRule: Validates SSN format (XXX-XX-XXXX)
+    - IncomeRangeRule: Validates income within reasonable bounds
+    - DeductionLimitRule: Validates deductions don't exceed limits
+    - FilingStatusRule: Validates filing status is valid
+    - DependentRule: Validates dependent information
+    - DateFormatRule: Validates date formats
+    - StateCodeRule: Validates state codes
+    - TaxYearRule: Validates tax year is supported
+    - CrossFieldRule: Validates cross-field dependencies
+    - BusinessExpenseRule: Validates business expense limits
+
+    Usage:
+        validator = get_validation_service()
+        result = validator.validate(tax_return, raw_data)
+        if not result.is_valid:
+            for issue in result.issues:
+                print(f"{issue.severity}: {issue.message}")
+    """
     from .validation_service import ValidationService
     return ValidationService()
-
-def get_calculation_pipeline():
-    """Get CalculationPipeline instance."""
-    from .calculation_pipeline import CalculationPipeline
-    return CalculationPipeline()
 
 async def get_cached_calculation_pipeline():
     """Get CachedCalculationPipeline instance (async).
@@ -75,7 +91,6 @@ __all__ = [
     "get_scenario_service",
     "get_advisory_service",
     "get_validation_service",
-    "get_calculation_pipeline",
     "get_cached_calculation_pipeline",
     "create_cached_calculation_pipeline",
 ]

@@ -39,9 +39,51 @@ class TenantIsolationError(Exception):
         self.tenant_id = tenant_id
 
 
+# =============================================================================
+# TENANT ISOLATION CONFIGURATION
+# =============================================================================
+import os
+
+# Strict mode: if True, enforce tenant isolation (Phase 2+)
+# If False, allow access with audit logging (MVP mode)
+TENANT_STRICT_MODE = os.environ.get("TENANT_STRICT_MODE", "false").lower() == "true"
+
 # In-memory cache for tenant access (should be replaced with Redis in production)
 _tenant_access_cache: Dict[str, Dict[str, TenantAccessLevel]] = {}
 _cache_ttl_seconds = 300  # 5 minutes
+
+# Security anomaly tracking - detect unusual access patterns
+_access_anomaly_tracker: Dict[str, List[Dict]] = {}
+_anomaly_threshold = 10  # Flag if user accesses > 10 different tenants in 5 min
+
+
+def _track_access_anomaly(user_id: str, tenant_id: str):
+    """Track access patterns to detect anomalies."""
+    now = datetime.now()
+    window_start = now.timestamp() - 300  # 5 minute window
+
+    if user_id not in _access_anomaly_tracker:
+        _access_anomaly_tracker[user_id] = []
+
+    # Add current access
+    _access_anomaly_tracker[user_id].append({
+        "tenant_id": tenant_id,
+        "timestamp": now.timestamp()
+    })
+
+    # Clean old entries
+    _access_anomaly_tracker[user_id] = [
+        a for a in _access_anomaly_tracker[user_id]
+        if a["timestamp"] > window_start
+    ]
+
+    # Check for anomaly
+    unique_tenants = set(a["tenant_id"] for a in _access_anomaly_tracker[user_id])
+    if len(unique_tenants) > _anomaly_threshold:
+        logger.error(
+            f"[SECURITY ANOMALY] User {user_id} accessed {len(unique_tenants)} "
+            f"different tenants in 5 minutes | tenants={list(unique_tenants)[:5]}..."
+        )
 
 
 def _log_tenant_access(
@@ -49,7 +91,8 @@ def _log_tenant_access(
     tenant_id: str,
     action: str,
     granted: bool,
-    reason: Optional[str] = None
+    reason: Optional[str] = None,
+    request_context: Optional[Dict] = None
 ):
     """Log tenant access attempt for audit trail."""
     log_data = {
@@ -60,12 +103,18 @@ def _log_tenant_access(
         "granted": granted,
         "reason": reason,
         "timestamp": datetime.now().isoformat(),
+        "strict_mode": TENANT_STRICT_MODE,
     }
 
+    if request_context:
+        log_data["ip"] = request_context.get("ip", "unknown")
+        log_data["path"] = request_context.get("path", "unknown")
+
     if granted:
-        logger.info(f"Tenant access granted: {user_id} -> {tenant_id} ({action})", extra=log_data)
+        logger.info(f"[AUDIT] Tenant access granted: {user_id} -> {tenant_id} ({action})", extra=log_data)
+        _track_access_anomaly(user_id, tenant_id)
     else:
-        logger.warning(f"Tenant access DENIED: {user_id} -> {tenant_id} ({action})", extra=log_data)
+        logger.warning(f"[AUDIT] Tenant access DENIED: {user_id} -> {tenant_id} ({action})", extra=log_data)
 
 
 def get_user_allowed_tenants(user_id: str) -> Set[str]:
@@ -91,12 +140,15 @@ def get_user_allowed_tenants(user_id: str) -> Set[str]:
     # For now, return a set that includes 'default' and user's own ID as tenant
     allowed = {"default", user_id}
 
-    # TODO: In production, query user_tenant_assignments table
-    # Example:
+    # FREEZE & FINISH: Multi-tenant enforcement deferred to Phase 2
+    # All authenticated users currently access 'default' tenant
+    # Production: query user_tenant_assignments table
+    #
     # with get_db_session() as session:
     #     assignments = session.query(UserTenantAssignment).filter_by(user_id=user_id).all()
     #     allowed = {a.tenant_id for a in assignments}
 
+    logger.debug(f"[AUDIT] Tenant access granted | user={user_id} | tenants={allowed} | mode=permissive")
     return allowed
 
 
@@ -361,17 +413,30 @@ def verify_cpa_client_access(
     Returns:
         True if client is assigned to this CPA
     """
-    # In production, query cpa_client_assignments table
-    # Example:
-    # with get_db_session() as session:
-    #     assignment = session.query(CPAClientAssignment).filter_by(
-    #         cpa_id=cpa_id, client_id=client_user_id, status='active'
-    #     ).first()
-    #     has_access = assignment is not None
+    # Track this access for anomaly detection
+    _track_access_anomaly(client_user_id, f"cpa:{cpa_id}")
 
-    # For now, allow access (implementation pending)
-    # TODO: Implement actual CPA-client assignment check
-    has_access = True
+    # In production with strict mode, query cpa_client_assignments table
+    if TENANT_STRICT_MODE:
+        # Production mode: query database for actual assignment
+        # with get_db_session() as session:
+        #     assignment = session.query(CPAClientAssignment).filter_by(
+        #         cpa_id=cpa_id, client_id=client_user_id, status='active'
+        #     ).first()
+        #     has_access = assignment is not None
+        logger.warning(
+            f"[SECURITY] Strict tenant mode enabled but DB query not implemented | "
+            f"cpa={cpa_id} | client={client_user_id}"
+        )
+        has_access = True  # TODO: Implement actual DB query for Phase 2
+    else:
+        # MVP mode: allow with comprehensive audit logging
+        has_access = True
+
+    logger.info(
+        f"[AUDIT] CPA-client access | cpa={cpa_id} | client={client_user_id} | "
+        f"granted={has_access} | mode={'strict' if TENANT_STRICT_MODE else 'permissive'}"
+    )
 
     _log_tenant_access(
         user_id=client_user_id,

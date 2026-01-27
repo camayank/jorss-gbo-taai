@@ -317,15 +317,23 @@ class SmartOnboardingService:
                 finally:
                     os.unlink(temp_path)
             else:
-                # Fallback: create mock result for testing
-                logger.warning("No suitable OCR method found, using mock")
+                # FREEZE & FINISH: No OCR method available - return clear error
+                logger.warning("No suitable OCR method available for document processing")
                 from services.ocr.ocr_engine import OCRResult
                 return OCRResult(
-                    raw_text="Mock OCR text for testing",
+                    raw_text="",
                     blocks=[],
-                    confidence=50.0,
+                    confidence=0.0,
                     page_count=1,
-                    metadata={}
+                    metadata={
+                        "error": "ocr_unavailable",
+                        "message": "Document processing is temporarily unavailable. Please try uploading a clearer image or enter information manually.",
+                        "suggestions": [
+                            "Ensure the document is well-lit and in focus",
+                            "Try uploading a PDF instead of an image",
+                            "Make sure text is clearly visible"
+                        ]
+                    }
                 )
         except Exception as e:
             logger.error(f"OCR processing error: {e}")

@@ -61,6 +61,14 @@ class TaxProfileInput(BaseModel):
     spouse_age: Optional[int] = None
     state: Optional[str] = None
 
+    # Capital gains and investment income
+    capital_gains_long: Optional[float] = None  # Long-term capital gains (>1 year, preferential rates)
+    capital_gains_short: Optional[float] = None  # Short-term capital gains (<=1 year, ordinary rates)
+    capital_gains: Optional[float] = None  # Alias for long-term (backward compatibility)
+    dividend_income: Optional[float] = None  # Total dividend income
+    qualified_dividends: Optional[float] = None  # Qualified dividends (preferential rates)
+    interest_income: Optional[float] = None  # Interest income (taxable)
+
     # Deductions
     mortgage_interest: Optional[float] = None
     property_taxes: Optional[float] = None
@@ -80,6 +88,28 @@ class TaxProfileInput(BaseModel):
     vehicle_miles: Optional[float] = None
     health_insurance_premiums: Optional[float] = None  # SE health insurance deduction
     w2_wages_paid: Optional[float] = None  # W-2 wages paid to employees (for QBI limitation)
+
+    # K-1 Income (Schedule E Part II/III)
+    k1_ordinary_income: Optional[float] = None  # K-1 Box 1: Ordinary business income
+    k1_rental_income: Optional[float] = None  # K-1 Box 2: Rental real estate income
+    k1_interest_income: Optional[float] = None  # K-1 Box 5: Interest income
+    k1_dividends: Optional[float] = None  # K-1 Box 6: Dividends
+    k1_capital_gains: Optional[float] = None  # K-1 Box 8-10: Capital gains
+    k1_section_179: Optional[float] = None  # K-1 Box 12: Section 179 deduction
+    k1_guaranteed_payments: Optional[float] = None  # K-1 Box 4: Guaranteed payments
+    k1_is_passive: Optional[bool] = True  # Is K-1 income passive (affects PAL rules)
+    k1_w2_wages: Optional[float] = None  # W-2 wages for QBI limitation
+    k1_ubia: Optional[float] = None  # UBIA of qualified property for QBI
+    k1_is_sstb: Optional[bool] = False  # Is Specified Service Trade or Business
+
+    # Enhanced Rental Property (Schedule E Part I)
+    rental_gross_income: Optional[float] = None  # Total rental income (before expenses)
+    rental_expenses: Optional[float] = None  # Total rental expenses
+    rental_depreciation: Optional[float] = None  # Depreciation (line 18)
+    rental_mortgage_interest: Optional[float] = None  # Mortgage interest on rental
+    rental_property_taxes: Optional[float] = None  # Property taxes on rental
+    rental_is_active_participant: Optional[bool] = True  # Active participation for $25k PAL allowance
+    rental_is_real_estate_professional: Optional[bool] = False  # Real estate professional status
 
     # Education
     student_loan_interest: Optional[float] = None  # Up to $2,500 deduction
@@ -137,6 +167,27 @@ class TaxCalculationResult(BaseModel):
     qbi_deduction: Optional[float] = 0.0  # Section 199A QBI deduction (20% pass-through)
     itemized_breakdown: Optional[Dict[str, float]] = None  # medical, salt, mortgage, charitable
 
+    # Capital gains breakdown
+    short_term_gains: Optional[float] = 0.0  # Short-term capital gains (taxed as ordinary)
+    long_term_gains: Optional[float] = 0.0  # Long-term capital gains (preferential rates)
+    capital_gains_tax: Optional[float] = 0.0  # Tax on preferential income (0/15/20%)
+    capital_loss_deduction: Optional[float] = 0.0  # Loss used against ordinary income (max $3k)
+    net_investment_income: Optional[float] = 0.0  # NII used for NIIT calculation
+
+    # K-1 and Pass-through breakdown
+    k1_ordinary_income_taxable: Optional[float] = 0.0  # K-1 ordinary income in taxable income
+    k1_qbi_eligible: Optional[float] = 0.0  # K-1 income eligible for 20% QBI deduction
+    guaranteed_payments: Optional[float] = 0.0  # Guaranteed payments (subject to SE tax)
+    passive_loss_allowed: Optional[float] = 0.0  # Passive loss allowed this year
+    passive_loss_suspended: Optional[float] = 0.0  # Suspended passive loss (carryforward)
+    passive_loss_carryforward: Optional[float] = 0.0  # Total suspended losses from prior years
+
+    # Rental income breakdown
+    rental_net_income: Optional[float] = 0.0  # Net rental income/loss (Schedule E)
+    rental_depreciation_claimed: Optional[float] = 0.0  # Depreciation deduction taken
+    rental_loss_allowed: Optional[float] = 0.0  # Allowed loss (PAL $25k special allowance)
+    rental_pal_phase_out: Optional[float] = 0.0  # PAL allowance reduction (AGI > $100k)
+
     # Tax bracket info
     tax_bracket_detail: Optional[str] = None  # e.g., "22% bracket"
 
@@ -161,9 +212,15 @@ class ChatResponse(BaseModel):
     lead_score: int = 0
     complexity: str = "simple"
 
+    # Urgency (from CPAIntelligenceService)
+    urgency_level: str = "PLANNING"  # CRITICAL, HIGH, MODERATE, PLANNING
+    urgency_message: str = ""
+    days_to_deadline: int = 365
+
     # Insights
     key_insights: Optional[List[str]] = []
     warnings: Optional[List[str]] = []
+    total_potential_savings: float = 0.0
 
 
 class FullAnalysisRequest(BaseModel):
@@ -205,6 +262,12 @@ class FullAnalysisResponse(BaseModel):
     # Confidence and complexity
     confidence: str
     complexity: str
+
+    # Urgency (from CPAIntelligenceService)
+    urgency_level: str = "PLANNING"
+    urgency_message: str = ""
+    days_to_deadline: int = 365
+    lead_score: int = 0
 
     # Report ready flag
     report_ready: bool = True
@@ -299,62 +362,82 @@ class IntelligentChatEngine:
         return "simple"
 
     async def get_tax_calculation(self, profile: Dict[str, Any]) -> TaxCalculationResult:
-        """Get comprehensive tax calculation from backend."""
+        """
+        Get comprehensive tax calculation using validated, cached pipeline.
+
+        Uses the centralized calculation_helper which provides:
+        - 11 validation rules (IRS limits, format checks, consistency)
+        - Calculation caching for repeat requests
+        - Graceful fallback if pipeline unavailable
+        """
         try:
-            from calculator.tax_calculator import TaxCalculator
-            from core.models.tax_return import TaxReturn, Taxpayer, Income, Deductions
+            from web.calculation_helper import calculate_taxes
 
-            calculator = TaxCalculator()
+            # Use centralized calculation with validation and caching
+            session_id = profile.get("session_id")
+            result = await calculate_taxes(
+                tax_data=profile,
+                session_id=session_id,
+                use_cache=True,
+                validate=True,  # Enable validation
+                is_profile_format=True
+            )
 
-            # Build tax return from profile
-            filing_status = profile.get("filing_status", "single")
-            income = profile.get("total_income", 0) or 0
+            if result.success and result.breakdown:
+                breakdown = result.breakdown
+                income = profile.get("total_income", 0) or profile.get("w2_income", 0) or 0
 
-            # Map filing status
-            status_map = {
-                "single": "single",
-                "married_joint": "married_filing_jointly",
-                "married_separate": "married_filing_separately",
-                "head_of_household": "head_of_household",
-                "qualifying_widow": "qualifying_widow"
-            }
+                # Log cache hit for monitoring
+                if result.cache_hit:
+                    logger.info(f"Tax calculation cache HIT for session {session_id}")
 
-            tax_return = TaxReturn(
-                tax_year=2025,
-                taxpayer=Taxpayer(filing_status=status_map.get(filing_status, "single")),
-                income=Income(
-                    w2_wages=profile.get("w2_income", income),
-                    self_employment=profile.get("business_income", 0) or 0,
-                    rental=profile.get("rental_income", 0) or 0,
-                    interest=profile.get("investment_income", 0) or 0
-                ),
-                deductions=Deductions(
-                    mortgage_interest=profile.get("mortgage_interest", 0) or 0,
-                    property_taxes=profile.get("property_taxes", 0) or 0,
-                    state_local_taxes=profile.get("state_income_tax", 0) or 0,
-                    charitable=profile.get("charitable_donations", 0) or 0,
-                    medical=profile.get("medical_expenses", 0) or 0
+                # Log validation warnings
+                for warning in result.warnings:
+                    logger.info(f"Validation warning: {warning}")
+
+                return TaxCalculationResult(
+                    gross_income=income,
+                    adjustments=breakdown.get("above_the_line_deductions", breakdown.get("adjustments_to_income", 0)),
+                    agi=breakdown.get("adjusted_gross_income", breakdown.get("agi", income)),
+                    deductions=breakdown.get("total_deductions", breakdown.get("deduction_amount", 15000)),
+                    deduction_type=breakdown.get("deduction_type", "standard"),
+                    taxable_income=breakdown.get("taxable_income", max(0, income - 15000)),
+                    federal_tax=breakdown.get("total_federal_tax", breakdown.get("federal_tax", 0)),
+                    state_tax=breakdown.get("total_state_tax", breakdown.get("state_tax", 0)),
+                    self_employment_tax=breakdown.get("self_employment_tax", breakdown.get("se_tax", 0)),
+                    total_tax=breakdown.get("total_tax", 0),
+                    effective_rate=breakdown.get("effective_tax_rate", breakdown.get("effective_rate", 0)),
+                    marginal_rate=breakdown.get("marginal_bracket", breakdown.get("marginal_tax_rate", 22)),
+                    refund_or_owed=breakdown.get("refund_or_owed", 0),
+                    is_refund=breakdown.get("refund_or_owed", 0) > 0,
+                    # Capital gains breakdown
+                    short_term_gains=breakdown.get("net_short_term_gain_loss", 0),
+                    long_term_gains=breakdown.get("net_long_term_gain_loss", 0),
+                    capital_gains_tax=breakdown.get("preferential_income_tax", 0),
+                    capital_loss_deduction=breakdown.get("capital_loss_deduction", 0),
+                    net_investment_income=breakdown.get("net_investment_income", 0),
+                    niit_tax=breakdown.get("net_investment_income_tax", 0),
+                    amt_tax=breakdown.get("alternative_minimum_tax", 0),
+                    qbi_deduction=breakdown.get("qbi_deduction", 0),
+                    # K-1 and pass-through breakdown
+                    k1_ordinary_income_taxable=breakdown.get("k1_ordinary_income", 0),
+                    k1_qbi_eligible=breakdown.get("schedule_e_qbi", 0),
+                    guaranteed_payments=breakdown.get("guaranteed_payments", 0),
+                    passive_loss_allowed=breakdown.get("form_8582_passive_loss_allowed", 0),
+                    passive_loss_suspended=breakdown.get("form_8582_suspended_loss", 0),
+                    # Rental breakdown
+                    rental_net_income=breakdown.get("schedule_e_rental_income", 0),
+                    rental_depreciation_claimed=breakdown.get("rental_depreciation", 0),
+                    rental_loss_allowed=breakdown.get("form_8582_rental_allowance", 0),
                 )
-            )
+            else:
+                # Pipeline failed or returned errors, use fallback
+                logger.warning(f"Pipeline calculation failed: {result.errors}")
+                return self._fallback_calculation(profile)
 
-            result = calculator.calculate_complete_return(tax_return)
-
-            return TaxCalculationResult(
-                gross_income=income,
-                adjustments=0,
-                agi=result.get("agi", income),
-                deductions=result.get("deductions", 15000),
-                deduction_type=result.get("deduction_type", "standard"),
-                taxable_income=result.get("taxable_income", max(0, income - 15000)),
-                federal_tax=result.get("federal_tax", 0),
-                state_tax=result.get("state_tax", 0),
-                self_employment_tax=result.get("se_tax", 0),
-                total_tax=result.get("total_tax", 0),
-                effective_rate=result.get("effective_rate", 0),
-                marginal_rate=result.get("marginal_rate", 22),
-                refund_or_owed=result.get("refund_or_owed", 0),
-                is_refund=result.get("refund_or_owed", 0) > 0
-            )
+        except ImportError as e:
+            logger.warning(f"calculation_helper not available: {e}")
+            return self._fallback_calculation(profile)
         except Exception as e:
             logger.warning(f"Using fallback calculation: {e}")
             return self._fallback_calculation(profile)
@@ -876,6 +959,26 @@ class IntelligentChatEngine:
         if ctc > 0:
             tax_notices.append(f"Child Tax Credit applied: ${ctc:,.0f}")
 
+        # Calculate capital gains info
+        short_term_gains = profile.get("capital_gains_short", 0) or 0
+        long_term_gains = profile.get("capital_gains_long", 0) or profile.get("capital_gains", 0) or 0
+        # Preferential rate on LTCG (simplified 15% rate)
+        capital_gains_tax = long_term_gains * 0.15 if long_term_gains > 0 else 0
+        # Net investment income for NIIT
+        net_investment_income = (
+            (profile.get("interest_income", 0) or 0) +
+            (profile.get("dividend_income", 0) or 0) +
+            short_term_gains + long_term_gains +
+            (profile.get("rental_income", 0) or 0)
+        )
+
+        # Calculate K-1 and rental info for fallback
+        k1_ordinary = (profile.get("k1_ordinary_income", 0) or 0)
+        k1_qbi = k1_ordinary if not profile.get("k1_is_sstb", False) else 0
+        rental_net = (profile.get("rental_gross_income", 0) or 0) - (profile.get("rental_expenses", 0) or 0)
+        if rental_net == 0:
+            rental_net = profile.get("rental_income", 0) or 0
+
         return TaxCalculationResult(
             gross_income=round(income, 2),
             adjustments=round(adjustments, 2),
@@ -898,7 +1001,23 @@ class IntelligentChatEngine:
             qbi_deduction=round(qbi_deduction, 2),
             itemized_breakdown=itemized_breakdown if deduction_type == "itemized" else None,
             tax_bracket_detail=f"{marginal_rate}% bracket",
-            tax_notices=tax_notices
+            tax_notices=tax_notices,
+            # Capital gains breakdown
+            short_term_gains=round(short_term_gains, 2),
+            long_term_gains=round(long_term_gains, 2),
+            capital_gains_tax=round(capital_gains_tax, 2),
+            capital_loss_deduction=0.0,
+            net_investment_income=round(net_investment_income, 2),
+            # K-1 and pass-through breakdown
+            k1_ordinary_income_taxable=round(k1_ordinary, 2),
+            k1_qbi_eligible=round(k1_qbi, 2),
+            guaranteed_payments=round(profile.get("k1_guaranteed_payments", 0) or 0, 2),
+            passive_loss_allowed=0.0,  # Would need full PAL calc
+            passive_loss_suspended=0.0,
+            # Rental breakdown
+            rental_net_income=round(rental_net, 2),
+            rental_depreciation_claimed=round(profile.get("rental_depreciation", 0) or 0, 2),
+            rental_loss_allowed=0.0,  # Would need PAL calc
         )
 
     async def get_tax_strategies(self, profile: Dict[str, Any], calculation: TaxCalculationResult) -> List[StrategyRecommendation]:
@@ -1232,37 +1351,62 @@ Phase-out begins at $200,000 (single) or $400,000 (MFJ).""",
                 irs_reference="IRS Schedule 8812"
             ))
 
-        # 8. Tax-Loss Harvesting - Show for high earners or those with investment income
+        # 8. Tax-Loss Harvesting - Show when user has capital gains or high income
         investment_income = profile.get("investment_income", 0) or 0
-        if investment_income > 0 or total_income > 200000:
-            # Estimate potential savings based on income level
-            estimated_harvesting_potential = min(10000, total_income * 0.02) if total_income > 200000 else 3000
-            savings = min(3000, estimated_harvesting_potential) * marginal_rate  # Max $3K deductible against ordinary income
+        short_term_gains = profile.get("capital_gains_short", 0) or calculation.short_term_gains or 0
+        long_term_gains = profile.get("capital_gains_long", 0) or profile.get("capital_gains", 0) or calculation.long_term_gains or 0
+        total_cap_gains = short_term_gains + long_term_gains
+
+        if total_cap_gains > 0 or investment_income > 0 or total_income > 200000:
+            # Calculate potential savings from harvesting
+            if total_cap_gains > 0:
+                # Can offset gains directly + $3k ordinary income
+                potential_offset = total_cap_gains
+                # ST gains save at ordinary rate, LT at preferential
+                savings = (short_term_gains * marginal_rate) + (long_term_gains * 0.15)
+                savings += min(3000, max(0, 10000 - total_cap_gains)) * marginal_rate  # Extra ordinary income offset
+            else:
+                # No gains yet - estimate based on income level
+                estimated_harvesting_potential = min(10000, total_income * 0.02) if total_income > 200000 else 3000
+                potential_offset = estimated_harvesting_potential
+                savings = min(3000, estimated_harvesting_potential) * marginal_rate
+
+            # Check for NIIT exposure (adds 3.8% value to harvesting)
+            niit_threshold = 200000 if filing_status == "single" else 250000
+            has_niit_exposure = calculation.niit_tax > 0 or total_income > niit_threshold
+            if has_niit_exposure and total_cap_gains > 0:
+                savings += total_cap_gains * 0.038  # NIIT savings
+
+            gain_detail = f"You have ${total_cap_gains:,.0f} in capital gains " if total_cap_gains > 0 else "Even without current gains, "
+            niit_note = f"\n\n**NIIT Alert**: With NIIT exposure, harvesting saves an additional 3.8% on investment income!" if has_niit_exposure else ""
 
             strategies.append(StrategyRecommendation(
                 id="investment-tlh",
                 category="Investment",
                 title="Tax-Loss Harvesting",
-                summary=f"Harvest investment losses to offset up to ${estimated_harvesting_potential:,.0f} in gains plus $3,000 against income.",
-                detailed_explanation=f"""Tax-loss harvesting is essential for high-income investors:
+                summary=f"Harvest losses to offset ${potential_offset:,.0f} in gains, saving ${savings:,.0f} in taxes.",
+                detailed_explanation=f"""{gain_detail}making tax-loss harvesting valuable:
 
 1. **Offset Capital Gains**: Sell investments at a loss to offset gains dollar-for-dollar
-2. **Ordinary Income Deduction**: Deduct up to $3,000 of excess losses against your {calculation.marginal_rate}% income
-3. **Carry Forward**: Unused losses carry forward indefinitely
+   - Short-term gains (taxed at {calculation.marginal_rate}%): ${short_term_gains:,.0f}
+   - Long-term gains (taxed at 15-20%): ${long_term_gains:,.0f}
+2. **Ordinary Income Deduction**: Deduct up to $3,000 of excess losses against your ordinary income
+3. **Carry Forward**: Unused losses carry forward indefinitely{niit_note}
 
-At your income level (${total_income:,.0f}), strategic tax-loss harvesting could save ${savings:,.0f}+ annually.
-Consider year-end and throughout the year when markets dip.""",
+Estimated tax savings: **${savings:,.0f}**""",
                 estimated_savings=round(savings, 2),
-                confidence="high" if investment_income > 0 else "medium",
-                priority="high" if total_income > 300000 else "medium",
+                confidence="high" if total_cap_gains > 0 else "medium",
+                priority="high" if total_cap_gains > 10000 or has_niit_exposure else "medium",
                 action_steps=[
                     "Review your brokerage accounts for unrealized losses",
                     "Identify positions down 10%+ that you can harvest",
+                    f"Target losses of ${potential_offset:,.0f}+ to offset your gains",
                     "Sell losing positions before year-end (or anytime markets dip)",
                     "Wait 31+ days before repurchasing same security (wash sale rule)",
-                    "Consider similar (not identical) replacement investments"
+                    "Consider similar (not identical) replacement investments immediately"
                 ],
-                irs_reference="IRS Publication 550"
+                irs_reference="IRS Publication 550",
+                deadline="December 31, 2025" if total_cap_gains > 0 else None
             ))
 
         # Sort by estimated savings
@@ -1346,6 +1490,16 @@ async def intelligent_chat(request: ChatRequest):
     lead_score = chat_engine.calculate_lead_score(profile)
     complexity = chat_engine.determine_complexity(profile)
 
+    # Get urgency info from CPAIntelligenceService
+    urgency_level = "PLANNING"
+    urgency_message = "Perfect timing for tax planning!"
+    days_to_deadline = 365
+    try:
+        from services.cpa_intelligence_service import calculate_urgency_level
+        urgency_level, urgency_message, days_to_deadline = calculate_urgency_level()
+    except Exception as e:
+        logger.debug(f"Urgency calculation skipped: {e}")
+
     # Determine response type and content
     response_type = "question"
     response_text = ""
@@ -1355,6 +1509,7 @@ async def intelligent_chat(request: ChatRequest):
     quick_actions = []
     key_insights = []
     warnings = []
+    total_potential_savings = 0.0
 
     # If we have enough data, calculate taxes
     if profile.get("total_income") and profile.get("filing_status"):
@@ -1366,6 +1521,7 @@ async def intelligent_chat(request: ChatRequest):
         session["strategies"] = strategies
 
         total_savings = sum(s.estimated_savings for s in strategies)
+        total_potential_savings = total_savings
 
         response_type = "calculation"
         response_text = f"""Based on your {profile.get('filing_status', 'single').replace('_', ' ')} filing status and ${profile.get('total_income', 0):,.0f} income, here's your tax analysis:
@@ -1424,6 +1580,12 @@ Would you like me to explain your top strategies, or generate your full advisory
                 {"label": "Over $500,000", "value": "income_500k_plus"}
             ]
 
+    # Add urgency warning if critical
+    if urgency_level == "CRITICAL":
+        warnings.append(f"⚠️ {urgency_message}")
+    elif urgency_level == "HIGH":
+        key_insights.insert(0, f"📅 {urgency_message}")
+
     return ChatResponse(
         session_id=request.session_id,
         response=response_text,
@@ -1435,8 +1597,12 @@ Would you like me to explain your top strategies, or generate your full advisory
         profile_completeness=completeness,
         lead_score=lead_score,
         complexity=complexity,
+        urgency_level=urgency_level,
+        urgency_message=urgency_message,
+        days_to_deadline=days_to_deadline,
         key_insights=key_insights,
-        warnings=warnings
+        warnings=warnings,
+        total_potential_savings=total_potential_savings
     )
 
 
@@ -1508,6 +1674,18 @@ async def full_analysis(request: FullAnalysisRequest):
             "refundable": True
         })
 
+    # Get urgency info
+    urgency_level = "PLANNING"
+    urgency_message = "Perfect timing for tax planning!"
+    days_to_deadline = 365
+    try:
+        from services.cpa_intelligence_service import calculate_urgency_level
+        urgency_level, urgency_message, days_to_deadline = calculate_urgency_level()
+    except Exception:
+        pass
+
+    lead_score = chat_engine.calculate_lead_score(profile)
+
     return FullAnalysisResponse(
         session_id=request.session_id,
         current_tax=calculation,
@@ -1525,6 +1703,10 @@ async def full_analysis(request: FullAnalysisRequest):
         eligible_credits=credits,
         confidence="high" if chat_engine.calculate_profile_completeness(profile) > 0.7 else "medium",
         complexity=chat_engine.determine_complexity(profile),
+        urgency_level=urgency_level,
+        urgency_message=urgency_message,
+        days_to_deadline=days_to_deadline,
+        lead_score=lead_score,
         report_ready=True
     )
 

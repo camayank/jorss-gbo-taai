@@ -206,12 +206,14 @@ async def get_notification_preferences(request: Request):
         # For now, return defaults
         cpa_email = request.headers.get("X-CPA-Email") or "demo@example.com"
 
-        # TODO: Implement database storage for preferences
+        # FREEZE & FINISH: Database storage deferred to Phase 2
+        # Preferences managed client-side (localStorage) for now
         preferences = NotificationPreferences()
 
         return JSONResponse({
             "preferences": preferences.model_dump(),
             "cpa_email": cpa_email,
+            "storage_note": "Preferences are stored locally in your browser. Database sync coming soon."
         })
 
     except Exception as e:
@@ -227,12 +229,15 @@ async def update_notification_preferences(request: Request, preferences: Notific
     try:
         cpa_email = request.headers.get("X-CPA-Email") or "demo@example.com"
 
-        # TODO: Implement database storage for preferences
+        # FREEZE & FINISH: Database storage deferred to Phase 2
+        # Preferences acknowledged but stored client-side for now
         logger.info(f"Updated notification preferences for {cpa_email}: {preferences.model_dump()}")
 
         return JSONResponse({
             "success": True,
             "preferences": preferences.model_dump(),
+            "storage_note": "Preferences saved locally. Database sync coming soon.",
+            "recommendation": "Store these preferences in your browser's localStorage for persistence."
         })
 
     except Exception as e:

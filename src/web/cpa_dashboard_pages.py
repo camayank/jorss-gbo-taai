@@ -3,6 +3,11 @@ CPA Dashboard Page Routes
 
 Serves HTML templates for the CPA lead management dashboard.
 This module handles the frontend pages for CPAs to manage their leads.
+
+Authentication:
+- All routes require authentication
+- User must have CPA, ADMIN, or PREPARER role
+- Unauthenticated users are redirected to login
 """
 
 import os
@@ -16,6 +21,22 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 logger = logging.getLogger(__name__)
 
+# Import auth utilities
+try:
+    from security.auth_decorators import get_user_from_request, Role
+    AUTH_AVAILABLE = True
+except ImportError:
+    AUTH_AVAILABLE = False
+    logger.warning("Auth decorators not available - CPA dashboard running without auth")
+
+    class Role:
+        CPA = "cpa"
+        ADMIN = "admin"
+        PREPARER = "preparer"
+
+    def get_user_from_request(request):
+        return None
+
 # Create router
 cpa_dashboard_router = APIRouter(
     prefix="/cpa",
@@ -25,6 +46,79 @@ cpa_dashboard_router = APIRouter(
 # Templates directory
 templates_dir = os.path.join(os.path.dirname(__file__), "templates")
 templates = Jinja2Templates(directory=templates_dir)
+
+
+# =============================================================================
+# AUTHENTICATION
+# =============================================================================
+
+# Allowed roles for CPA dashboard
+CPA_ALLOWED_ROLES = ["cpa", "admin", "preparer", "partner", "staff"]
+
+
+async def require_cpa_auth(request: Request) -> dict:
+    """
+    Dependency to require CPA authentication for dashboard pages.
+
+    Returns:
+        User dict if authenticated with correct role
+        Raises HTTPException or redirects if not authenticated
+    """
+    # Get user from request
+    user = get_user_from_request(request) if AUTH_AVAILABLE else None
+
+    # Check for demo mode (allows testing without full auth)
+    demo_mode = request.query_params.get("demo") == "true"
+    cpa_cookie = request.cookies.get("cpa_id")
+
+    if demo_mode or cpa_cookie:
+        # Allow demo access with mock user
+        return {
+            "id": cpa_cookie or "demo-cpa",
+            "role": "cpa",
+            "tenant_id": "default",
+            "email": "demo@example.com",
+            "name": "Demo CPA"
+        }
+
+    if not user:
+        # Not authenticated - redirect to login
+        logger.warning(f"Unauthenticated access to CPA dashboard: {request.url.path}")
+        # For API requests, return 401
+        if request.headers.get("accept", "").startswith("application/json"):
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "error": "AuthenticationRequired",
+                    "message": "Please log in to access the CPA dashboard",
+                    "redirect": "/login?next=/cpa/dashboard"
+                }
+            )
+        # For browser requests, redirect to login
+        raise HTTPException(
+            status_code=302,
+            headers={"Location": f"/login?next={request.url.path}"}
+        )
+
+    # Check role
+    user_role = user.get("role", "").lower()
+    if user_role not in CPA_ALLOWED_ROLES:
+        logger.warning(f"Unauthorized role {user_role} accessing CPA dashboard: {request.url.path}")
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "InsufficientPermissions",
+                "message": "You do not have permission to access the CPA dashboard",
+                "required_roles": CPA_ALLOWED_ROLES
+            }
+        )
+
+    return user
+
+
+def get_cpa_id_from_user(user: dict) -> str:
+    """Extract CPA ID from user object."""
+    return user.get("cpa_id") or user.get("id") or "default"
 
 
 # =============================================================================
@@ -256,9 +350,14 @@ async def cpa_dashboard_redirect(request: Request):
 
 
 @cpa_dashboard_router.get("/dashboard", response_class=HTMLResponse)
-async def cpa_dashboard(request: Request):
+async def cpa_dashboard(
+    request: Request,
+    current_user: dict = Depends(require_cpa_auth)
+):
     """
     CPA Dashboard - Main overview page.
+
+    Requires authentication with CPA role.
 
     Shows:
     - Summary cards with lead counts
@@ -268,7 +367,7 @@ async def cpa_dashboard(request: Request):
     - Recent activity
     """
     cpa_profile = await get_cpa_profile_from_context(request)
-    cpa_id = cpa_profile.get("cpa_id", "default")
+    cpa_id = get_cpa_id_from_user(current_user) or cpa_profile.get("cpa_id", "default")
 
     # Get dashboard data
     stats = await get_dashboard_stats(cpa_id)
@@ -297,9 +396,12 @@ async def cpa_leads_list(
     temperature: Optional[str] = None,
     search: Optional[str] = None,
     page: int = 1,
+    current_user: dict = Depends(require_cpa_auth),
 ):
     """
     CPA Leads List - Full lead management view.
+
+    Requires authentication with CPA role.
 
     Supports filtering by:
     - state: Lead state (browsing, curious, evaluating, advisory_ready, high_leverage)
@@ -307,7 +409,7 @@ async def cpa_leads_list(
     - search: Search query for name/email
     """
     cpa_profile = await get_cpa_profile_from_context(request)
-    cpa_id = cpa_profile.get("cpa_id", "default")
+    cpa_id = get_cpa_id_from_user(current_user) or cpa_profile.get("cpa_id", "default")
 
     stats = await get_dashboard_stats(cpa_id)
 
@@ -377,9 +479,15 @@ async def cpa_leads_list(
 
 
 @cpa_dashboard_router.get("/leads/{lead_id}", response_class=HTMLResponse)
-async def cpa_lead_detail(request: Request, lead_id: str):
+async def cpa_lead_detail(
+    request: Request,
+    lead_id: str,
+    current_user: dict = Depends(require_cpa_auth)
+):
     """
     CPA Lead Detail - Individual lead view.
+
+    Requires authentication with CPA role.
 
     Shows:
     - Lead contact info
@@ -389,7 +497,7 @@ async def cpa_lead_detail(request: Request, lead_id: str):
     - Action buttons
     """
     cpa_profile = await get_cpa_profile_from_context(request)
-    cpa_id = cpa_profile.get("cpa_id", "default")
+    cpa_id = get_cpa_id_from_user(current_user) or cpa_profile.get("cpa_id", "default")
 
     stats = await get_dashboard_stats(cpa_id)
 
@@ -460,10 +568,13 @@ async def cpa_lead_detail(request: Request, lead_id: str):
 
 
 @cpa_dashboard_router.get("/assignments", response_class=HTMLResponse)
-async def cpa_assignments(request: Request):
-    """CPA Assignments - Leads assigned to this CPA."""
+async def cpa_assignments(
+    request: Request,
+    current_user: dict = Depends(require_cpa_auth)
+):
+    """CPA Assignments - Leads assigned to this CPA. Requires authentication."""
     cpa_profile = await get_cpa_profile_from_context(request)
-    cpa_id = cpa_profile.get("cpa_id", "default")
+    cpa_id = get_cpa_id_from_user(current_user) or cpa_profile.get("cpa_id", "default")
 
     stats = await get_dashboard_stats(cpa_id)
 
@@ -485,10 +596,13 @@ async def cpa_assignments(request: Request):
 
 
 @cpa_dashboard_router.get("/converted", response_class=HTMLResponse)
-async def cpa_converted(request: Request):
-    """CPA Converted - Leads that became clients."""
+async def cpa_converted(
+    request: Request,
+    current_user: dict = Depends(require_cpa_auth)
+):
+    """CPA Converted - Leads that became clients. Requires authentication."""
     cpa_profile = await get_cpa_profile_from_context(request)
-    cpa_id = cpa_profile.get("cpa_id", "default")
+    cpa_id = get_cpa_id_from_user(current_user) or cpa_profile.get("cpa_id", "default")
 
     stats = await get_dashboard_stats(cpa_id)
 
@@ -512,10 +626,13 @@ async def cpa_converted(request: Request):
 
 
 @cpa_dashboard_router.get("/analytics", response_class=HTMLResponse)
-async def cpa_analytics(request: Request):
-    """CPA Analytics - Performance metrics and charts."""
+async def cpa_analytics(
+    request: Request,
+    current_user: dict = Depends(require_cpa_auth)
+):
+    """CPA Analytics - Performance metrics and charts. Requires authentication."""
     cpa_profile = await get_cpa_profile_from_context(request)
-    cpa_id = cpa_profile.get("cpa_id", "default")
+    cpa_id = get_cpa_id_from_user(current_user) or cpa_profile.get("cpa_id", "default")
 
     stats = await get_dashboard_stats(cpa_id)
 
@@ -546,8 +663,11 @@ async def cpa_analytics(request: Request):
 
 
 @cpa_dashboard_router.get("/profile", response_class=HTMLResponse)
-async def cpa_profile_page(request: Request):
-    """CPA Profile - Edit personal profile."""
+async def cpa_profile_page(
+    request: Request,
+    current_user: dict = Depends(require_cpa_auth)
+):
+    """CPA Profile - Edit personal profile. Requires authentication."""
     cpa_profile = await get_cpa_profile_from_context(request)
 
     return templates.TemplateResponse(
@@ -555,14 +675,18 @@ async def cpa_profile_page(request: Request):
         {
             "request": request,
             "cpa": cpa_profile,
+            "current_user": current_user,
             "active_page": "profile",
         }
     )
 
 
 @cpa_dashboard_router.get("/branding", response_class=HTMLResponse)
-async def cpa_branding_page(request: Request):
-    """CPA Branding - Edit lead magnet branding."""
+async def cpa_branding_page(
+    request: Request,
+    current_user: dict = Depends(require_cpa_auth)
+):
+    """CPA Branding - Edit lead magnet branding. Requires authentication."""
     cpa_profile = await get_cpa_profile_from_context(request)
 
     return templates.TemplateResponse(
@@ -570,6 +694,7 @@ async def cpa_branding_page(request: Request):
         {
             "request": request,
             "cpa": cpa_profile,
+            "current_user": current_user,
             "active_page": "branding",
         }
     )

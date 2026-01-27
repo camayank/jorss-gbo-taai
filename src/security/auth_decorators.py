@@ -56,18 +56,28 @@ def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True
             # Get user from session/JWT
             user = get_user_from_request(request)
 
+            # FREEZE & FINISH: Auth enforcement deferred to Phase 2
+            # Comprehensive logging for security audit trail
+            client_ip = request.client.host if request.client else "unknown"
+            user_agent = request.headers.get("user-agent", "unknown")[:100]
+
             if not user:
-                logger.warning(f"Unauthenticated access to {request.url.path}")
-                # TODO: Uncomment after migration complete
-                # raise HTTPException(401, "Authentication required")
+                logger.warning(
+                    f"[AUDIT] Unauthenticated access | path={request.url.path} | "
+                    f"method={request.method} | ip={client_ip} | ua={user_agent}"
+                )
+                # Phase 2: raise HTTPException(401, "Authentication required")
 
             # Check role authorization
             if user and roles:
                 user_role = user.get("role")
+                user_id = user.get("id", "unknown")
                 if user_role not in [r.value for r in roles]:
-                    logger.warning(f"Unauthorized access: user role {user_role} not in {roles}")
-                    # TODO: Uncomment after migration complete
-                    # raise HTTPException(403, "Insufficient permissions")
+                    logger.warning(
+                        f"[AUDIT] Role mismatch | user={user_id} | role={user_role} | "
+                        f"required={[r.value for r in roles]} | path={request.url.path} | ip={client_ip}"
+                    )
+                    # Phase 2: raise HTTPException(403, "Insufficient permissions")
 
             # Check tenant isolation
             if user and require_tenant:
@@ -75,9 +85,11 @@ def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True
                 session_id = extract_session_id(request, kwargs)
                 if session_id:
                     if not check_tenant_access(user, session_id):
-                        logger.error(f"Tenant isolation violation: user {user.get('id')} accessing session {session_id}")
-                        # TODO: Uncomment after migration complete
-                        # raise HTTPException(403, "Access denied: wrong tenant")
+                        logger.error(
+                            f"[AUDIT] Tenant violation | user={user.get('id')} | "
+                            f"session={session_id} | path={request.url.path} | ip={client_ip}"
+                        )
+                        # Phase 2: raise HTTPException(403, "Access denied: wrong tenant")
 
             # Call original function
             return await func(request, *args, **kwargs)
@@ -104,19 +116,27 @@ def require_session_owner(session_param: str = "session_id"):
         async def wrapper(request: Request, *args, **kwargs):
             user = get_user_from_request(request)
 
+            # FREEZE & FINISH: Auth enforcement deferred to Phase 2
+            # Comprehensive logging for security audit trail
+            client_ip = request.client.host if request.client else "unknown"
+
             if not user:
-                logger.warning(f"Unauthenticated access to {request.url.path}")
-                # TODO: Uncomment after migration
-                # raise HTTPException(401, "Authentication required")
+                logger.warning(
+                    f"[AUDIT] Unauthenticated session access | path={request.url.path} | "
+                    f"method={request.method} | ip={client_ip}"
+                )
+                # Phase 2: raise HTTPException(401, "Authentication required")
                 return await func(request, *args, **kwargs)
 
             # Get session_id from kwargs
             session_id = kwargs.get(session_param)
 
             if session_id and not check_session_ownership(user, session_id):
-                logger.error(f"Session ownership violation: user {user.get('id')} accessing session {session_id}")
-                # TODO: Uncomment after migration
-                # raise HTTPException(403, "Access denied: not your session")
+                logger.error(
+                    f"[AUDIT] Session ownership violation | user={user.get('id')} | "
+                    f"session={session_id} | path={request.url.path} | ip={client_ip}"
+                )
+                # Phase 2: raise HTTPException(403, "Access denied: not your session")
 
             return await func(request, *args, **kwargs)
 
@@ -253,6 +273,51 @@ def check_session_ownership(user: dict, session_id: str) -> bool:
     return user.get("id") == session_owner
 
 
+# =============================================================================
+# RATE LIMITING IMPLEMENTATION
+# =============================================================================
+
+# Global rate limiter instance (initialized lazily)
+_rate_limiter: Optional[dict] = None
+_rate_limit_lock = None
+
+def _get_rate_limiter():
+    """Get or create rate limiter backend."""
+    global _rate_limiter, _rate_limit_lock
+    import threading
+    import time
+    import os
+
+    if _rate_limit_lock is None:
+        _rate_limit_lock = threading.Lock()
+
+    with _rate_limit_lock:
+        if _rate_limiter is None:
+            # Try Redis first for production
+            redis_url = os.environ.get("REDIS_URL")
+            if redis_url:
+                try:
+                    from security.middleware import RedisRateLimitBackend
+                    _rate_limiter = {
+                        "backend": RedisRateLimitBackend(redis_url),
+                        "type": "redis"
+                    }
+                    logger.info("[SECURITY] Rate limiting enabled with Redis backend")
+                except Exception as e:
+                    logger.warning(f"[SECURITY] Redis rate limiter failed, using in-memory: {e}")
+
+            # Fall back to in-memory
+            if _rate_limiter is None:
+                from security.middleware import InMemoryRateLimitBackend
+                _rate_limiter = {
+                    "backend": InMemoryRateLimitBackend(),
+                    "type": "memory"
+                }
+                logger.info("[SECURITY] Rate limiting enabled with in-memory backend")
+
+    return _rate_limiter
+
+
 def is_rate_limited(user_id: str, requests_per_minute: int) -> bool:
     """
     Check if user has exceeded rate limit.
@@ -266,9 +331,30 @@ def is_rate_limited(user_id: str, requests_per_minute: int) -> bool:
     Returns:
         True if rate limited, False otherwise
     """
-    # TODO: Implement with Redis or in-memory cache
-    # For now, always allow (backward compatibility)
-    return False
+    try:
+        limiter = _get_rate_limiter()
+        burst_size = min(requests_per_minute, 20)  # Allow burst up to 20 or rpm
+
+        # check_rate_limit returns True if allowed, False if limited
+        allowed = limiter["backend"].check_rate_limit(
+            client_ip=user_id,
+            requests_per_minute=requests_per_minute,
+            burst_size=burst_size
+        )
+
+        if not allowed:
+            logger.warning(
+                f"[SECURITY] Rate limit exceeded | user={user_id} | "
+                f"limit={requests_per_minute}/min | backend={limiter['type']}"
+            )
+            return True  # Is rate limited
+
+        return False  # Not rate limited
+
+    except Exception as e:
+        # Log error but don't block requests on rate limiter failure
+        logger.error(f"[SECURITY] Rate limiter error: {e}")
+        return False  # Fail open to avoid blocking legitimate requests
 
 
 # ============================================================================

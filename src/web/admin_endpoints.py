@@ -66,15 +66,46 @@ async def get_system_status():
     Get overall system status.
 
     Returns health, performance, and error rate information.
+    Uses real metrics from the health monitoring system.
     """
     try:
-        # TODO: Get actual metrics from monitoring system
+        # Get real metrics from health router
+        from web.routers.health import get_request_metrics, get_calculation_metrics, _start_time
+
+        request_metrics = get_request_metrics()
+        calc_metrics = get_calculation_metrics()
+
+        # Calculate uptime
+        uptime = (datetime.now() - _start_time).total_seconds()
+
+        # Get total requests and calculate error rate
+        total_requests = request_metrics.get("total_requests", 0)
+        validation_errors = calc_metrics.get("validation_errors", 0)
+        total_calcs = calc_metrics.get("total_calculations", 1)  # Avoid division by zero
+        error_rate = validation_errors / total_calcs if total_calcs > 0 else 0.0
+
+        # Determine overall status
+        status = "healthy"
+        if error_rate > 0.1:  # >10% error rate
+            status = "degraded"
+        if error_rate > 0.5:  # >50% error rate
+            status = "unhealthy"
+
         return SystemStatus(
-            status="healthy",
+            status=status,
             timestamp=datetime.now().isoformat(),
-            uptime_seconds=3600.0,  # Placeholder
-            total_requests=10000,    # Placeholder
-            error_rate=0.02          # 2% error rate
+            uptime_seconds=round(uptime, 1),
+            total_requests=total_requests,
+            error_rate=round(error_rate, 4)
+        )
+    except ImportError:
+        # Fallback if health router not available
+        return SystemStatus(
+            status="unknown",
+            timestamp=datetime.now().isoformat(),
+            uptime_seconds=0.0,
+            total_requests=0,
+            error_rate=0.0
         )
     except Exception as e:
         logger.error(f"Failed to get system status: {str(e)}")

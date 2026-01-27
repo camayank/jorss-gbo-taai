@@ -318,7 +318,8 @@ async def add_team_member(
             "invited_by": user.user_id,
         })
 
-        # TODO: Send invitation email
+        # FREEZE & FINISH: Email service deferred to Phase 2
+        # Invitation link is returned in response for manual sharing
         logger.info(f"Invitation created for {email_lower}: /invite?token={inv_token}")
 
     await session.commit()
@@ -633,7 +634,8 @@ async def send_invitation(
     })
     await session.commit()
 
-    # TODO: Send invitation email via email service
+    # FREEZE & FINISH: Email service deferred to Phase 2
+    # Invitation link returned in response for manual sharing
     logger.info(f"Invitation sent to {email_lower} by {user.email}: /invite?token={inv_token}")
 
     # Get inviter name
@@ -800,7 +802,8 @@ async def resend_invitation(
     })
     await session.commit()
 
-    # TODO: Send invitation email via email service
+    # FREEZE & FINISH: Email service deferred to Phase 2
+    # Share the link manually with the invitee
     logger.info(f"Invitation resent to {row[1]} by {user.email}: /invite?token={new_token}")
 
     return {

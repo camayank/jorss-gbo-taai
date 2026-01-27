@@ -375,14 +375,20 @@ async def assign_clients(
     await session.commit()
     logger.info(f"Assigned {assigned_count} clients to {request.user_id} by {user.email}")
 
-    # TODO: Send notification if request.notify is True
+    # FREEZE & FINISH: Email notifications deferred to Phase 2
+    # Manual notification recommended for now
+    notification_msg = None
+    if request.notify:
+        notification_msg = "Email notifications coming soon. Please notify the assignee manually."
+        logger.info(f"Notification requested but email service not available - manual notification needed for {request.user_id}")
 
     return {
         "status": "success",
         "assigned_count": assigned_count,
         "assigned_to": request.user_id,
         "assigned_name": f"{target_user[1]} {target_user[2]}",
-        "notification_sent": request.notify,
+        "notification_sent": False,
+        "notification_note": notification_msg or "No notification requested",
     }
 
 

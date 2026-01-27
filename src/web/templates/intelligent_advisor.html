@@ -582,6 +582,133 @@
       color: #276749;
     }
 
+    /* Phase Indicator */
+    .phase-indicator {
+      text-align: center;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, rgba(26, 54, 93, 0.05) 0%, rgba(44, 82, 130, 0.05) 100%);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .phase-label {
+      display: inline-block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a365d;
+      padding: 6px 16px;
+      background: rgba(26, 54, 93, 0.1);
+      border-radius: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .phase-label.completed {
+      background: rgba(39, 103, 73, 0.1);
+      color: #276749;
+    }
+
+    /* Resume Banner */
+    .resume-banner {
+      background: linear-gradient(135deg, rgba(26, 54, 93, 0.95) 0%, rgba(44, 82, 130, 0.95) 100%);
+      color: white;
+      padding: 16px 24px;
+      animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+      from { transform: translateY(-100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(0); opacity: 1; }
+      to { transform: translateY(-100%); opacity: 0; }
+    }
+
+    .resume-content {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .resume-icon {
+      font-size: 32px;
+      flex-shrink: 0;
+    }
+
+    .resume-text {
+      flex: 1;
+    }
+
+    .resume-text strong {
+      display: block;
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    .resume-text span {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .resume-actions {
+      display: flex;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .resume-btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .resume-btn.primary {
+      background: white;
+      color: #1a365d;
+    }
+
+    .resume-btn.primary:hover {
+      background: #f0f4f8;
+      transform: translateY(-1px);
+    }
+
+    .resume-btn.secondary {
+      background: transparent;
+      color: white;
+      border: 2px solid rgba(255,255,255,0.5);
+    }
+
+    .resume-btn.secondary:hover {
+      border-color: white;
+      background: rgba(255,255,255,0.1);
+    }
+
+    /* Save Indicator */
+    .save-indicator {
+      font-size: 12px;
+      text-align: center;
+      margin-top: 8px;
+      transition: opacity 0.3s ease;
+    }
+
+    @media (max-width: 768px) {
+      .resume-content {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .resume-actions {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
     /* ============================================
        ERROR & STATUS STATES
        ============================================ */
@@ -1790,6 +1917,10 @@
           <div class="step-label">Report</div>
         </div>
       </div>
+      <!-- Current Phase Label -->
+      <div class="phase-indicator" id="phaseIndicator">
+        <span class="phase-label" id="currentPhaseLabel">Getting Started</span>
+      </div>
 
       <div class="messages" id="messages" role="log" aria-live="polite" aria-label="Conversation with AI tax advisor">
         <!-- Premium initial message -->
@@ -2335,6 +2466,11 @@
       console.log('Type:', type);
       console.log('Text preview:', text.substring(0, 50));
       console.log('Quick actions count:', quickActions.length);
+
+      // Mark session as having unsaved changes when user sends a message
+      if (type === 'user' && typeof markUnsaved === 'function') {
+        markUnsaved();
+      }
 
       const messages = document.getElementById('messages');
       console.log('Messages container found:', !!messages);
@@ -5971,6 +6107,7 @@
         if (data.extracted_data) {
           extractedData = { ...extractedData, ...data.extracted_data };
           console.log('Updated extracted data:', extractedData);
+          markUnsaved(); // Trigger auto-save
         }
 
         // Show AI response with any suggested quick actions
@@ -5980,9 +6117,16 @@
         addMessage('ai', aiResponse, quickActions);
 
         // Update side panel with AI insights
-        if (data.completion_percentage !== undefined) {
+        // Check for progress_update from backend (preferred)
+        if (data.progress_update) {
+          updateProgressIndicator(data.progress_update);
+        } else if (data.completion_percentage !== undefined) {
           updateProgress(data.completion_percentage);
         }
+
+        // Also update phase based on local extracted data
+        updatePhaseFromData();
+
         if (data.insights && data.insights.length > 0) {
           updateInsights(data.insights);
         }
@@ -6183,7 +6327,333 @@ If they're ready to move forward, suggest generating their comprehensive advisor
     function updateProgress(percentage) {
       document.getElementById('progressFill').style.width = percentage + '%';
       document.getElementById('progressText').textContent = `${Math.round(percentage)}% Complete`;
+
+      // Auto-update journey stepper based on percentage
+      const stepNumber = percentage < 25 ? 1 : percentage < 50 ? 2 : percentage < 75 ? 3 : 4;
+      updateActiveStep(stepNumber);
     }
+
+    // Phase mapping from backend to UI
+    const PHASE_MAPPING = {
+      'personal_info': { step: 1, label: 'Profile Setup', icon: '📋' },
+      'income': { step: 2, label: 'Income Review', icon: '💰' },
+      'deductions': { step: 3, label: 'Deductions & Credits', icon: '🎯' },
+      'review': { step: 4, label: 'Final Review', icon: '📊' },
+      'ready_to_file': { step: 4, label: 'Ready to File!', icon: '✅' }
+    };
+
+    // Update progress indicator with full progress data from backend
+    function updateProgressIndicator(progressUpdate) {
+      if (!progressUpdate) return;
+
+      // Update percentage bar
+      const percentage = (progressUpdate.current_step / progressUpdate.total_steps) * 100;
+      document.getElementById('progressFill').style.width = percentage + '%';
+      document.getElementById('progressText').textContent = `${Math.round(percentage)}% Complete`;
+
+      // Update phase label
+      updatePhaseLabel(progressUpdate.phase_name);
+
+      // Map backend steps (0-4) to UI steps (1-4)
+      const uiStep = Math.min(Math.max(progressUpdate.current_step + 1, 1), 4);
+      updateActiveStep(uiStep);
+    }
+
+    // Update the journey stepper to show active/completed steps
+    function updateActiveStep(stepNumber) {
+      const steps = document.querySelectorAll('.journey-step');
+      steps.forEach((step, index) => {
+        const stepNum = index + 1;
+        step.classList.remove('active', 'completed');
+
+        if (stepNum === stepNumber) {
+          step.classList.add('active');
+        } else if (stepNum < stepNumber) {
+          step.classList.add('completed');
+        }
+      });
+    }
+
+    // Update the phase label text
+    function updatePhaseLabel(phaseName) {
+      const label = document.getElementById('currentPhaseLabel');
+      if (label && phaseName) {
+        label.textContent = phaseName;
+
+        // Add completed class if we're at the end
+        if (phaseName.toLowerCase().includes('ready') || phaseName.toLowerCase().includes('complete')) {
+          label.classList.add('completed');
+        } else {
+          label.classList.remove('completed');
+        }
+      }
+    }
+
+    // Update phase based on extracted data (for local tracking)
+    function updatePhaseFromData() {
+      let phase = 'personal_info';
+
+      if (extractedData.first_name || extractedData.filing_status) {
+        phase = 'income';
+        if (extractedData.income_explored || extractedData.w2_wages || extractedData.has_w2) {
+          phase = 'deductions';
+          if (extractedData.deductions_explored || extractedData.itemize_choice) {
+            phase = 'review';
+            if (extractedData.review_confirmed) {
+              phase = 'ready_to_file';
+            }
+          }
+        }
+      }
+
+      const phaseInfo = PHASE_MAPPING[phase];
+      if (phaseInfo) {
+        updatePhaseLabel(phaseInfo.label);
+        updateActiveStep(phaseInfo.step);
+      }
+    }
+
+    // ============================================
+    // AUTO-SAVE & SESSION RESTORE
+    // ============================================
+
+    let autoSaveTimer = null;
+    let lastSaveTime = null;
+    let hasUnsavedChanges = false;
+    const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
+
+    // Save session progress to server
+    async function saveSessionProgress() {
+      if (!sessionId || sessionId.startsWith('temp-')) {
+        console.log('Skipping save - no valid session ID');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/sessions/${sessionId}/save`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            extracted_data: extractedData,
+            conversation_history: conversationHistory.slice(-30), // Last 30 messages
+            current_phase: getCurrentPhase(),
+            completion_percentage: getCompletionPercentage()
+          })
+        });
+
+        if (response.ok) {
+          lastSaveTime = new Date();
+          hasUnsavedChanges = false;
+          updateSaveIndicator('saved');
+          console.log('Session saved at:', lastSaveTime.toISOString());
+        } else {
+          console.warn('Save failed:', response.status);
+          updateSaveIndicator('error');
+        }
+      } catch (error) {
+        console.error('Auto-save error:', error);
+        updateSaveIndicator('error');
+      }
+    }
+
+    // Get current phase for saving
+    function getCurrentPhase() {
+      if (extractedData.review_confirmed) return 'ready_to_file';
+      if (extractedData.deductions_explored || extractedData.itemize_choice) return 'review';
+      if (extractedData.income_explored || extractedData.w2_wages) return 'deductions';
+      if (extractedData.first_name || extractedData.filing_status) return 'income';
+      return 'personal_info';
+    }
+
+    // Get completion percentage for saving
+    function getCompletionPercentage() {
+      const progressFill = document.getElementById('progressFill');
+      if (progressFill) {
+        const width = progressFill.style.width;
+        return parseFloat(width) || 0;
+      }
+      return 0;
+    }
+
+    // Update save indicator in UI
+    function updateSaveIndicator(status) {
+      let indicator = document.getElementById('saveIndicator');
+      if (!indicator) {
+        // Create indicator if it doesn't exist
+        indicator = document.createElement('div');
+        indicator.id = 'saveIndicator';
+        indicator.className = 'save-indicator';
+        const progressText = document.getElementById('progressText');
+        if (progressText && progressText.parentNode) {
+          progressText.parentNode.insertBefore(indicator, progressText.nextSibling);
+        }
+      }
+
+      if (status === 'saved') {
+        indicator.innerHTML = '<span style="color: #276749;">✓ Saved</span>';
+        indicator.style.opacity = '1';
+        setTimeout(() => { indicator.style.opacity = '0.5'; }, 2000);
+      } else if (status === 'saving') {
+        indicator.innerHTML = '<span style="color: #718096;">Saving...</span>';
+        indicator.style.opacity = '1';
+      } else if (status === 'error') {
+        indicator.innerHTML = '<span style="color: #c53030;">Save failed</span>';
+        indicator.style.opacity = '1';
+      }
+    }
+
+    // Start auto-save timer
+    function startAutoSave() {
+      if (autoSaveTimer) clearInterval(autoSaveTimer);
+      autoSaveTimer = setInterval(() => {
+        if (hasUnsavedChanges && sessionId) {
+          updateSaveIndicator('saving');
+          saveSessionProgress();
+        }
+      }, AUTO_SAVE_INTERVAL);
+      console.log('Auto-save started');
+    }
+
+    // Stop auto-save timer
+    function stopAutoSave() {
+      if (autoSaveTimer) {
+        clearInterval(autoSaveTimer);
+        autoSaveTimer = null;
+      }
+    }
+
+    // Mark session as having unsaved changes
+    function markUnsaved() {
+      hasUnsavedChanges = true;
+    }
+
+    // Check for existing session and offer to restore
+    async function checkForExistingSession() {
+      const savedSessionId = sessionStorage.getItem('tax_session_id');
+      if (!savedSessionId || savedSessionId.startsWith('temp-')) {
+        return null;
+      }
+
+      try {
+        const response = await fetch(`/api/sessions/${savedSessionId}/restore`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && (data.extracted_data && Object.keys(data.extracted_data).length > 0)) {
+            return data;
+          }
+        }
+      } catch (error) {
+        console.log('No existing session to restore');
+      }
+      return null;
+    }
+
+    // Show resume banner
+    function showResumeBanner(sessionData) {
+      const banner = document.createElement('div');
+      banner.id = 'resumeBanner';
+      banner.className = 'resume-banner';
+      banner.innerHTML = `
+        <div class="resume-content">
+          <div class="resume-icon">📋</div>
+          <div class="resume-text">
+            <strong>Welcome back!</strong>
+            <span>You have a saved session (${Math.round(sessionData.completion_percentage || 0)}% complete). Would you like to continue?</span>
+          </div>
+          <div class="resume-actions">
+            <button class="resume-btn primary" onclick="restoreSession()">Continue</button>
+            <button class="resume-btn secondary" onclick="dismissResumeBanner()">Start Fresh</button>
+          </div>
+        </div>
+      `;
+
+      // Add to page
+      const container = document.querySelector('.chat-container');
+      if (container) {
+        container.insertBefore(banner, container.firstChild);
+      }
+
+      // Store session data for restoration
+      window._pendingRestore = sessionData;
+    }
+
+    // Restore session from saved data
+    function restoreSession() {
+      const sessionData = window._pendingRestore;
+      if (!sessionData) return;
+
+      // Restore extracted data
+      if (sessionData.extracted_data) {
+        extractedData = { ...extractedData, ...sessionData.extracted_data };
+      }
+
+      // Restore conversation history
+      if (sessionData.conversation_history && sessionData.conversation_history.length > 0) {
+        conversationHistory = sessionData.conversation_history;
+
+        // Restore messages to UI
+        const messagesContainer = document.getElementById('messages');
+        if (messagesContainer) {
+          // Clear initial message
+          messagesContainer.innerHTML = '';
+
+          // Add restored messages
+          conversationHistory.forEach(msg => {
+            if (msg.role === 'user') {
+              addMessage('user', msg.content, []);
+            } else if (msg.role === 'assistant' || msg.role === 'ai') {
+              addMessage('ai', msg.content, []);
+            }
+          });
+        }
+      }
+
+      // Restore progress
+      if (sessionData.completion_percentage) {
+        updateProgress(sessionData.completion_percentage);
+      }
+
+      // Update phase
+      updatePhaseFromData();
+
+      // Dismiss banner
+      dismissResumeBanner();
+
+      // Add welcome back message
+      addMessage('ai', `Welcome back! I've restored your previous session. You were ${Math.round(sessionData.completion_percentage || 0)}% complete. Let's continue where you left off.`, [
+        { label: 'Continue', value: 'continue_flow' },
+        { label: 'Review my info', value: 'review_data' }
+      ]);
+
+      console.log('Session restored:', sessionId);
+    }
+
+    // Dismiss resume banner and start fresh
+    function dismissResumeBanner() {
+      const banner = document.getElementById('resumeBanner');
+      if (banner) {
+        banner.style.animation = 'slideUp 0.3s ease forwards';
+        setTimeout(() => banner.remove(), 300);
+      }
+      window._pendingRestore = null;
+    }
+
+    // Save before page unload
+    window.addEventListener('beforeunload', (event) => {
+      if (hasUnsavedChanges && sessionId && !sessionId.startsWith('temp-')) {
+        // Attempt sync save
+        navigator.sendBeacon(`/api/sessions/${sessionId}/save`, JSON.stringify({
+          extracted_data: extractedData,
+          conversation_history: conversationHistory.slice(-30),
+          current_phase: getCurrentPhase(),
+          completion_percentage: getCompletionPercentage()
+        }));
+      }
+    });
+
+    // Expose functions globally
+    window.restoreSession = restoreSession;
+    window.dismissResumeBanner = dismissResumeBanner;
 
     function updateInsights(insights) {
       const container = document.getElementById('insights');
@@ -6250,10 +6720,15 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
         if (data.extracted_data) {
           extractedData = { ...extractedData, ...data.extracted_data };
+          markUnsaved(); // Trigger auto-save
         }
 
+        // Update progress
         updateProgress(data.completion_percentage || 0);
         updateStats(data.extracted_summary || {});
+
+        // Update phase based on new extracted data
+        updatePhaseFromData();
 
       } catch (error) {
         hideTyping();
@@ -7886,7 +8361,18 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
       // Check consent before initializing session
       if (checkConsent()) {
-        initializeSession();
+        // Check for existing session first
+        checkForExistingSession().then(sessionData => {
+          if (sessionData) {
+            // Found existing session - show resume banner
+            sessionId = sessionData.session_id;
+            showResumeBanner(sessionData);
+          }
+          // Initialize session (will use existing or create new)
+          initializeSession();
+          // Start auto-save
+          startAutoSave();
+        });
       }
 
       setTimeout(() => {

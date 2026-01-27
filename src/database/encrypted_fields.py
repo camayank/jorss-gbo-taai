@@ -393,13 +393,14 @@ def encrypt_lead_pii(lead_data: dict, tenant_id: str) -> dict:
     return encrypted
 
 
-def decrypt_lead_pii(encrypted_data: dict, tenant_id: str) -> dict:
+def decrypt_lead_pii(encrypted_data: dict, tenant_id: str, audit_context: Optional[dict] = None) -> dict:
     """
     Decrypt all PII fields in a lead record.
 
     Args:
         encrypted_data: Dictionary with encrypted lead data
         tenant_id: Tenant ID for key binding
+        audit_context: Optional dict with user_id, reason for audit logging
 
     Returns:
         Copy of data with PII fields decrypted
@@ -412,12 +413,171 @@ def decrypt_lead_pii(encrypted_data: dict, tenant_id: str) -> dict:
         "ssn": decrypt_ssn,
     }
 
+    decrypted_fields = []
     for field, decrypt_fn in pii_fields.items():
         if field in decrypted and decrypted[field]:
             try:
                 decrypted[field] = decrypt_fn(decrypted[field], tenant_id)
+                decrypted_fields.append(field)
             except Exception as e:
                 logger.error(f"Failed to decrypt {field}: {e}")
                 decrypted[field] = None
 
+    # Audit log PII access
+    if decrypted_fields:
+        _log_pii_access(
+            action="decrypt",
+            fields=decrypted_fields,
+            tenant_id=tenant_id,
+            context=audit_context
+        )
+
     return decrypted
+
+
+# =============================================================================
+# PII ACCESS AUDIT LOGGING
+# =============================================================================
+
+_pii_access_log: list = []  # In-memory buffer for batch writes
+
+
+def _log_pii_access(
+    action: str,
+    fields: list,
+    tenant_id: str,
+    context: Optional[dict] = None
+):
+    """
+    Log PII field access for security audit trail.
+
+    This creates an immutable record of who accessed what PII and when.
+    """
+    from datetime import datetime
+
+    log_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "action": action,
+        "fields": fields,
+        "tenant_id": tenant_id,
+        "user_id": context.get("user_id") if context else None,
+        "reason": context.get("reason") if context else None,
+        "ip": context.get("ip") if context else None,
+    }
+
+    # Log to security logger
+    if "ssn" in fields:
+        # SSN access is HIGH severity
+        logger.warning(f"[PII AUDIT] SSN accessed | {log_entry}")
+    else:
+        logger.info(f"[PII AUDIT] PII accessed | {log_entry}")
+
+    # Buffer for potential async write to audit table
+    _pii_access_log.append(log_entry)
+    if len(_pii_access_log) > 100:
+        _pii_access_log.pop(0)  # Maintain buffer size
+
+
+# =============================================================================
+# PII VALIDATION & ENFORCEMENT
+# =============================================================================
+
+# Patterns that indicate unencrypted PII
+_EMAIL_PATTERN = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+_PHONE_PATTERN = r'^\+?[\d\s\-\(\)]{7,}$'
+_SSN_PATTERN = r'^\d{3}-?\d{2}-?\d{4}$'
+
+
+def is_encrypted(value: str) -> bool:
+    """
+    Check if a value appears to be encrypted.
+
+    Returns True if value looks like our encrypted format (v1:...:...:...)
+    """
+    if not value or not isinstance(value, str):
+        return True  # Empty/None is acceptable
+
+    # Check for our encryption format
+    if value.startswith("v1:") or value.startswith("fallback:"):
+        return True
+
+    return False
+
+
+def validate_pii_encryption(data: dict, raise_exception: bool = True) -> Tuple[bool, list]:
+    """
+    Validate that PII fields in a dictionary are encrypted.
+
+    This function should be called BEFORE storing data to ensure
+    PII is not written in plaintext.
+
+    Args:
+        data: Dictionary to validate
+        raise_exception: If True, raise exception on unencrypted PII
+
+    Returns:
+        Tuple of (is_valid, list of unencrypted_fields)
+
+    Raises:
+        ValueError: If raise_exception=True and unencrypted PII found
+    """
+    import re
+
+    unencrypted_fields = []
+
+    pii_patterns = {
+        "email": _EMAIL_PATTERN,
+        "phone": _PHONE_PATTERN,
+        "ssn": _SSN_PATTERN,
+        "social_security_number": _SSN_PATTERN,
+    }
+
+    for field, pattern in pii_patterns.items():
+        value = data.get(field)
+        if value and isinstance(value, str):
+            # Check if it looks like plaintext PII
+            if re.match(pattern, value) and not is_encrypted(value):
+                unencrypted_fields.append(field)
+                logger.error(
+                    f"[SECURITY] Unencrypted PII detected | field={field} | "
+                    f"pattern_matched=True | encrypted=False"
+                )
+
+    if unencrypted_fields:
+        if raise_exception:
+            raise ValueError(
+                f"SECURITY VIOLATION: Unencrypted PII detected in fields: {unencrypted_fields}. "
+                f"Use encrypt_lead_pii() before storing data."
+            )
+        return False, unencrypted_fields
+
+    return True, []
+
+
+def enforce_pii_encryption(func):
+    """
+    Decorator to enforce PII encryption on functions that store data.
+
+    Usage:
+        @enforce_pii_encryption
+        def save_lead(lead_data: dict):
+            # lead_data will be validated before saving
+            ...
+    """
+    from functools import wraps
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # Check positional args for dict-like data
+        for arg in args:
+            if isinstance(arg, dict):
+                validate_pii_encryption(arg, raise_exception=True)
+
+        # Check keyword args
+        for key, value in kwargs.items():
+            if isinstance(value, dict):
+                validate_pii_encryption(value, raise_exception=True)
+
+        return func(*args, **kwargs)
+
+    return wrapper

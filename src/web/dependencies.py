@@ -4,18 +4,24 @@ FastAPI Dependency Injection for Async Services.
 Provides dependency injection for:
 - AsyncTaxReturnService
 - AsyncCalculationPipeline
+- ValidationService
 - IUnitOfWork
 - Cache layer
 
 Usage in endpoints:
     @app.post("/api/calculate")
     async def calculate(
-        service: AsyncTaxReturnService = Depends(get_async_tax_return_service)
+        service: AsyncTaxReturnService = Depends(get_async_tax_return_service),
+        validator: ValidationService = Depends(get_validation_service_dep)
     ):
+        # Validate input
+        validation_result = validator.validate(tax_return, raw_data)
+        if not validation_result.is_valid:
+            raise HTTPException(400, detail=validation_result.to_dict())
         ...
 """
 
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 from functools import lru_cache
 
 from fastapi import Depends
@@ -24,6 +30,7 @@ from database.unit_of_work import UnitOfWork, get_unit_of_work
 from domain.repositories import IUnitOfWork
 from services.async_tax_return_service import AsyncTaxReturnService
 from services.async_calculation_pipeline import AsyncCalculationPipeline, create_async_pipeline
+from services.validation_service import ValidationService
 from calculator.engine import FederalTaxEngine
 from calculator.state.state_tax_engine import StateTaxEngine
 
@@ -39,6 +46,38 @@ def get_federal_engine() -> FederalTaxEngine:
 def get_state_engine() -> StateTaxEngine:
     """Get singleton state tax engine."""
     return StateTaxEngine()
+
+
+# ValidationService singleton
+@lru_cache(maxsize=1)
+def get_validation_service_dep() -> ValidationService:
+    """
+    Get singleton ValidationService for input validation.
+
+    ValidationService provides 11 validation rules:
+    - RequiredFieldRule: Ensures required fields are present
+    - SSNFormatRule: Validates SSN format (XXX-XX-XXXX)
+    - IncomeRangeRule: Validates income within reasonable bounds
+    - DeductionLimitRule: Validates deductions don't exceed limits
+    - FilingStatusRule: Validates filing status is valid
+    - DependentRule: Validates dependent information
+    - DateFormatRule: Validates date formats
+    - StateCodeRule: Validates state codes
+    - TaxYearRule: Validates tax year is supported
+    - CrossFieldRule: Validates cross-field dependencies
+    - BusinessExpenseRule: Validates business expense limits
+
+    Usage in endpoints:
+        @app.post("/api/calculate")
+        async def calculate(
+            data: TaxInput,
+            validator: ValidationService = Depends(get_validation_service_dep)
+        ):
+            result = validator.validate_dict(data.model_dump())
+            if not result.is_valid:
+                raise HTTPException(400, detail=result.to_dict())
+    """
+    return ValidationService()
 
 
 # Unit of Work dependency
@@ -153,23 +192,31 @@ except ImportError:
 
 # Combined dependencies for common endpoint patterns
 class ServiceBundle:
-    """Bundle of commonly used services."""
+    """Bundle of commonly used services for calculation endpoints."""
 
     def __init__(
         self,
         tax_return_service: AsyncTaxReturnService,
         pipeline: AsyncCalculationPipeline,
+        validator: ValidationService,
     ):
         self.tax_return_service = tax_return_service
         self.pipeline = pipeline
+        self.validator = validator
+
+    def validate(self, tax_return, raw_data: dict) -> "ValidationResult":
+        """Validate tax return data using the bundled validator."""
+        return self.validator.validate(tax_return, raw_data)
 
 
 async def get_service_bundle(
     service: AsyncTaxReturnService = Depends(get_async_tax_return_service),
     pipeline: AsyncCalculationPipeline = Depends(get_default_pipeline),
+    validator: ValidationService = Depends(get_validation_service_dep),
 ) -> ServiceBundle:
-    """Get bundle of commonly used services."""
+    """Get bundle of commonly used services including validation."""
     return ServiceBundle(
         tax_return_service=service,
         pipeline=pipeline,
+        validator=validator,
     )

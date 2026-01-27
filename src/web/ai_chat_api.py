@@ -228,6 +228,15 @@ class UploadResponse(BaseModel):
     extracted_entities: List[ExtractedEntity] = Field(default_factory=list)
 
 
+class AnalyzeDocumentResponse(BaseModel):
+    """Document analysis response for intelligent advisor"""
+    ai_response: str
+    quick_actions: List[QuickAction] = Field(default_factory=list)
+    extracted_data: Dict[str, Any] = Field(default_factory=dict)
+    completion_percentage: int = Field(default=0, ge=0, le=100)
+    extracted_summary: Dict[str, Any] = Field(default_factory=dict)
+
+
 # ============================================================================
 # Endpoints - IMPROVED
 # ============================================================================
@@ -820,6 +829,347 @@ async def upload_document(
                 QuickAction(label="Type manually", value="type_manual")
             ]
         )
+
+
+@router.post("/analyze-document", response_model=AnalyzeDocumentResponse)
+async def analyze_document(
+    file: UploadFile = File(...),
+    session_id: str = Form(...)
+):
+    """
+    Analyze uploaded document for intelligent advisor.
+
+    Returns structured response with:
+    - ai_response: Conversational message about the document
+    - extracted_data: Tax data extracted from document
+    - completion_percentage: Updated progress
+    - extracted_summary: Summary for UI stats display
+    - quick_actions: Suggested next actions
+    """
+    request_id = f"ANALYZE-{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+
+    try:
+        logger.info(f"[{request_id}] Document analysis started", extra={
+            "session_id": session_id,
+            "filename": file.filename,
+            "content_type": file.content_type
+        })
+
+        # Validate file type
+        allowed_types = [
+            "application/pdf",
+            "image/png",
+            "image/jpeg",
+            "image/jpg",
+            "image/heic"
+        ]
+
+        if file.content_type not in allowed_types:
+            logger.warning(f"[{request_id}] Invalid file type: {file.content_type}")
+            return AnalyzeDocumentResponse(
+                ai_response=f"I can't read that file type ({file.content_type}). Please upload a PDF or image (PNG, JPG) of your tax document.",
+                quick_actions=[
+                    QuickAction(label="Try another file", value="upload_retry"),
+                    QuickAction(label="Enter manually", value="type_manual")
+                ],
+                extracted_data={},
+                completion_percentage=0,
+                extracted_summary={}
+            )
+
+        # Read file with size limit (50MB)
+        MAX_FILE_SIZE = 50 * 1024 * 1024
+        contents = await file.read()
+
+        if len(contents) > MAX_FILE_SIZE:
+            logger.warning(f"[{request_id}] File too large: {len(contents)} bytes")
+            return AnalyzeDocumentResponse(
+                ai_response="That file is too large (max 50MB). Please upload a smaller file or compress it first.",
+                quick_actions=[
+                    QuickAction(label="Try smaller file", value="upload_retry")
+                ],
+                extracted_data={},
+                completion_percentage=0,
+                extracted_summary={}
+            )
+
+        # Process document with OCR
+        extracted_data = {}
+        document_type = "unknown"
+        ocr_confidence = 0.0
+
+        try:
+            from services.ocr import DocumentProcessor
+            doc_processor = DocumentProcessor()
+
+            result = doc_processor.process_bytes(
+                data=contents,
+                mime_type=file.content_type or "application/pdf",
+                original_filename=file.filename,
+                document_type=None,  # Auto-detect
+                tax_year=None  # Auto-detect
+            )
+
+            # Extract data from result
+            for field in result.extracted_fields:
+                field_name = getattr(field, 'field_name', getattr(field, 'name', str(field)))
+                field_value = getattr(field, 'value', getattr(field, 'normalized_value', None))
+                if field_value is not None:
+                    # Sanitize string values
+                    if isinstance(field_value, str):
+                        extracted_data[field_name] = sanitize_string(field_value)
+                    else:
+                        extracted_data[field_name] = field_value
+
+            document_type = result.document_type or "unknown"
+            ocr_confidence = getattr(result, 'ocr_confidence', 0.85)
+
+            logger.info(f"[{request_id}] OCR complete", extra={
+                "document_type": document_type,
+                "fields_extracted": len(extracted_data),
+                "confidence": ocr_confidence
+            })
+
+        except ImportError:
+            logger.error(f"[{request_id}] OCR service not available")
+            return AnalyzeDocumentResponse(
+                ai_response="Document processing is temporarily unavailable. Please enter your information manually.",
+                quick_actions=[
+                    QuickAction(label="Enter W-2 info", value="income_wages"),
+                    QuickAction(label="Enter 1099 info", value="income_1099")
+                ],
+                extracted_data={},
+                completion_percentage=0,
+                extracted_summary={}
+            )
+
+        except Exception as ocr_error:
+            logger.error(f"[{request_id}] OCR failed: {str(ocr_error)}", exc_info=True)
+            return AnalyzeDocumentResponse(
+                ai_response="I had trouble reading that document. The image might be blurry or the format unclear. Could you try a clearer photo or enter the information manually?",
+                quick_actions=[
+                    QuickAction(label="Try another photo", value="upload_retry"),
+                    QuickAction(label="Enter manually", value="type_manual")
+                ],
+                extracted_data={},
+                completion_percentage=0,
+                extracted_summary={}
+            )
+
+        # Generate AI response based on document type
+        ai_response = _generate_analyze_response(document_type, extracted_data, ocr_confidence)
+
+        # Calculate completion percentage based on extracted data
+        completion_percentage = _calculate_completion_percentage(extracted_data)
+
+        # Generate summary for stats display
+        extracted_summary = _generate_extracted_summary(document_type, extracted_data)
+
+        # Generate quick actions based on what was extracted
+        quick_actions = _generate_post_upload_actions(document_type, extracted_data)
+
+        # Update session with extracted data
+        try:
+            if persistence:
+                session = persistence.load_unified_session(session_id)
+                if session:
+                    if hasattr(session, 'extracted_data'):
+                        session.extracted_data.update(extracted_data)
+                    persistence.save_unified_session(session)
+            elif session_id in _chat_sessions:
+                _chat_sessions[session_id].setdefault("extracted_data", {}).update(extracted_data)
+        except Exception as save_error:
+            logger.warning(f"[{request_id}] Failed to save to session: {save_error}")
+
+        logger.info(f"[{request_id}] Document analysis complete", extra={
+            "document_type": document_type,
+            "fields": len(extracted_data),
+            "completion": completion_percentage
+        })
+
+        return AnalyzeDocumentResponse(
+            ai_response=ai_response,
+            quick_actions=quick_actions,
+            extracted_data=extracted_data,
+            completion_percentage=completion_percentage,
+            extracted_summary=extracted_summary
+        )
+
+    except Exception as e:
+        logger.error(f"[{request_id}] Document analysis error: {str(e)}", exc_info=True)
+        return AnalyzeDocumentResponse(
+            ai_response="Something went wrong while analyzing your document. Please try again or enter the information manually.",
+            quick_actions=[
+                QuickAction(label="Try again", value="upload_retry"),
+                QuickAction(label="Enter manually", value="type_manual")
+            ],
+            extracted_data={},
+            completion_percentage=0,
+            extracted_summary={}
+        )
+
+
+def _generate_analyze_response(document_type: str, extracted_data: Dict[str, Any], confidence: float) -> str:
+    """Generate conversational AI response for document analysis"""
+    confidence_phrase = "clearly" if confidence > 0.9 else "I think I" if confidence > 0.7 else "I'm having some trouble but I"
+
+    if document_type == "w2":
+        employer = extracted_data.get("employer_name", extracted_data.get("employer", "your employer"))
+        wages = extracted_data.get("w2_wages", extracted_data.get("wages", 0))
+        withheld = extracted_data.get("federal_withheld", extracted_data.get("federal_tax_withheld", 0))
+
+        try:
+            wages_fmt = f"${float(wages):,.2f}" if wages else "your wages"
+            withheld_fmt = f"${float(withheld):,.2f}" if withheld else "federal tax withheld"
+        except (ValueError, TypeError):
+            wages_fmt = str(wages) if wages else "your wages"
+            withheld_fmt = str(withheld) if withheld else "federal tax withheld"
+
+        return f"I {confidence_phrase} read your W-2 from {employer}. You earned {wages_fmt} with {withheld_fmt} in federal taxes withheld. Does this look correct?"
+
+    elif document_type in ["1099-int", "1099_int"]:
+        interest = extracted_data.get("interest_income", extracted_data.get("interest", 0))
+        payer = extracted_data.get("payer_name", "your bank")
+        try:
+            interest_fmt = f"${float(interest):,.2f}" if interest else "interest income"
+        except (ValueError, TypeError):
+            interest_fmt = str(interest)
+        return f"I found a 1099-INT from {payer} showing {interest_fmt} in interest income. Is this accurate?"
+
+    elif document_type in ["1099-div", "1099_div"]:
+        dividends = extracted_data.get("dividends", extracted_data.get("ordinary_dividends", 0))
+        try:
+            div_fmt = f"${float(dividends):,.2f}" if dividends else "dividend income"
+        except (ValueError, TypeError):
+            div_fmt = str(dividends)
+        return f"I read your 1099-DIV showing {div_fmt} in dividends. Does this match your records?"
+
+    elif document_type in ["1099-nec", "1099_nec", "1099-misc", "1099_misc"]:
+        income = extracted_data.get("nonemployee_compensation", extracted_data.get("misc_income", 0))
+        try:
+            income_fmt = f"${float(income):,.2f}" if income else "self-employment income"
+        except (ValueError, TypeError):
+            income_fmt = str(income)
+        return f"I found {income_fmt} in self-employment/contractor income. This will be reported on Schedule C. Is this correct?"
+
+    elif document_type in ["1098", "1098-e"]:
+        interest = extracted_data.get("mortgage_interest", extracted_data.get("student_loan_interest", 0))
+        try:
+            interest_fmt = f"${float(interest):,.2f}" if interest else "deductible interest"
+        except (ValueError, TypeError):
+            interest_fmt = str(interest)
+        return f"Great news! I found {interest_fmt} in deductible interest. This can help reduce your taxes!"
+
+    else:
+        field_count = len(extracted_data)
+        if field_count > 0:
+            return f"I extracted {field_count} fields from your document. Please review the information below to make sure it's correct."
+        else:
+            return "I had trouble reading this document. Could you try uploading a clearer image, or enter the information manually?"
+
+
+def _calculate_completion_percentage(extracted_data: Dict[str, Any]) -> int:
+    """Calculate tax return completion percentage based on extracted data"""
+    # Weight different data categories
+    weights = {
+        'personal': 20,  # name, ssn, filing_status
+        'income': 40,    # wages, 1099s
+        'deductions': 25, # mortgage, charity, etc.
+        'other': 15      # dependents, bank info
+    }
+
+    score = 0
+
+    # Personal info (20%)
+    personal_fields = ['first_name', 'last_name', 'ssn', 'filing_status', 'address']
+    personal_found = sum(1 for f in personal_fields if extracted_data.get(f))
+    score += (personal_found / len(personal_fields)) * weights['personal']
+
+    # Income (40%)
+    income_fields = ['w2_wages', 'wages', 'interest_income', 'dividend_income',
+                     'business_income', '1099_income', 'federal_withheld']
+    income_found = sum(1 for f in income_fields if extracted_data.get(f))
+    if income_found > 0:
+        score += min((income_found / 3) * weights['income'], weights['income'])
+
+    # Deductions (25%)
+    deduction_fields = ['mortgage_interest', 'property_tax', 'charitable_contributions',
+                        'medical_expenses', 'state_tax', 'student_loan_interest']
+    deduction_found = sum(1 for f in deduction_fields if extracted_data.get(f))
+    if deduction_found > 0:
+        score += min((deduction_found / 2) * weights['deductions'], weights['deductions'])
+
+    # Other (15%)
+    other_fields = ['dependents', 'bank_account', 'employer_name', 'payer_name']
+    other_found = sum(1 for f in other_fields if extracted_data.get(f))
+    if other_found > 0:
+        score += min((other_found / 2) * weights['other'], weights['other'])
+
+    return min(int(score), 95)  # Cap at 95% - final review always needed
+
+
+def _generate_extracted_summary(document_type: str, extracted_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Generate summary statistics for UI display"""
+    summary = {
+        "document_type": document_type.upper().replace("_", "-"),
+        "fields_extracted": len(extracted_data),
+        "key_values": {}
+    }
+
+    # Add key financial values to summary
+    key_fields = [
+        ("w2_wages", "Wages"),
+        ("wages", "Wages"),
+        ("federal_withheld", "Fed Withheld"),
+        ("interest_income", "Interest"),
+        ("dividend_income", "Dividends"),
+        ("mortgage_interest", "Mortgage Int"),
+        ("business_income", "Business Income"),
+        ("employer_name", "Employer"),
+    ]
+
+    for field, label in key_fields:
+        if field in extracted_data and extracted_data[field]:
+            value = extracted_data[field]
+            try:
+                if isinstance(value, (int, float)) or (isinstance(value, str) and value.replace('.', '').replace(',', '').isdigit()):
+                    summary["key_values"][label] = f"${float(str(value).replace(',', '')):,.2f}"
+                else:
+                    summary["key_values"][label] = str(value)
+            except (ValueError, TypeError):
+                summary["key_values"][label] = str(value)
+
+    return summary
+
+
+def _generate_post_upload_actions(document_type: str, extracted_data: Dict[str, Any]) -> List[QuickAction]:
+    """Generate quick actions after document upload"""
+    actions = [
+        QuickAction(label="✓ Looks correct", value="confirm_document")
+    ]
+
+    if document_type == "w2":
+        actions.extend([
+            QuickAction(label="Upload another W-2", value="upload_w2"),
+            QuickAction(label="Add 1099 income", value="income_1099")
+        ])
+    elif "1099" in document_type:
+        actions.extend([
+            QuickAction(label="Upload another 1099", value="upload_1099"),
+            QuickAction(label="Done with income", value="income_complete")
+        ])
+    elif "1098" in document_type:
+        actions.extend([
+            QuickAction(label="More deductions", value="deductions_more"),
+            QuickAction(label="Done with deductions", value="deductions_complete")
+        ])
+    else:
+        actions.extend([
+            QuickAction(label="Upload another doc", value="upload_more"),
+            QuickAction(label="Continue", value="continue_flow")
+        ])
+
+    return actions[:4]  # Limit to 4 actions
 
 
 # ============================================================================

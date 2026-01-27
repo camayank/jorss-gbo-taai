@@ -420,6 +420,179 @@ class CreateSessionRequest(BaseModel):
     tax_year: Optional[int] = 2025
 
 
+class SaveSessionRequest(BaseModel):
+    """Request to save session progress"""
+    extracted_data: Dict[str, Any] = Field(default_factory=dict)
+    conversation_history: List[Dict[str, Any]] = Field(default_factory=list)
+    current_phase: Optional[str] = None
+    completion_percentage: Optional[float] = None
+
+
+class RestoreSessionResponse(BaseModel):
+    """Response with full session data for restoration"""
+    success: bool
+    session_id: str
+    extracted_data: Dict[str, Any] = Field(default_factory=dict)
+    conversation_history: List[Dict[str, Any]] = Field(default_factory=list)
+    current_phase: Optional[str] = None
+    completion_percentage: float = 0.0
+    workflow_type: str = "guided"
+    tax_year: int = 2025
+    last_saved: Optional[str] = None
+
+
+# =============================================================================
+# Session Save & Restore (for Intelligent Advisor)
+# =============================================================================
+
+@router.post("/{session_id}/save")
+async def save_session_progress(
+    session_id: str,
+    request: SaveSessionRequest
+):
+    """
+    Save session progress (extracted data, conversation history).
+
+    Called by frontend to persist user progress during tax advisory flow.
+    No auth required - uses session_id for identification (anonymous allowed).
+    """
+    try:
+        persistence = get_session_persistence()
+
+        # Load existing session or create new
+        session = persistence.load_unified_session(session_id)
+
+        if session:
+            # Update existing session
+            if hasattr(session, 'extracted_data'):
+                session.extracted_data.update(request.extracted_data)
+            if hasattr(session, 'conversation_history') and request.conversation_history:
+                # Merge conversation history (keep last 30 messages)
+                session.conversation_history = request.conversation_history[-30:]
+            if hasattr(session, 'metadata'):
+                session.metadata['current_phase'] = request.current_phase
+                session.metadata['completion_percentage'] = request.completion_percentage
+                session.metadata['last_saved'] = datetime.now().isoformat()
+
+            persistence.save_unified_session(session)
+        else:
+            # Create new session with data
+            session_data = {
+                "extracted_data": request.extracted_data,
+                "conversation_history": request.conversation_history[-30:],
+                "current_phase": request.current_phase,
+                "last_saved": datetime.now().isoformat(),
+                "tax_year": 2025,
+                "completeness_score": request.completion_percentage or 0.0
+            }
+            persistence.save_session(
+                session_id=session_id,
+                tenant_id="default",
+                session_type="intelligent_advisor",
+                data=session_data,
+                metadata={"current_phase": request.current_phase},
+                user_id=None,
+                is_anonymous=True,
+                workflow_type="guided"
+            )
+
+        logger.info(f"Saved session progress: {session_id}")
+
+        return {
+            "success": True,
+            "session_id": session_id,
+            "saved_at": datetime.now().isoformat(),
+            "message": "Progress saved successfully"
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to save session {session_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "SaveFailed", "message": str(e)}
+        )
+
+
+@router.get("/{session_id}/restore", response_model=RestoreSessionResponse)
+async def restore_session(session_id: str):
+    """
+    Restore full session data for resumption.
+
+    Returns extracted_data, conversation_history, and progress.
+    No auth required - uses session_id (anonymous allowed).
+    """
+    try:
+        persistence = get_session_persistence()
+        session = persistence.load_unified_session(session_id)
+
+        if not session:
+            # Try loading from simple session storage
+            session_record = persistence.load_session(session_id)
+            if session_record:
+                # SessionRecord is a dataclass with .data and .metadata attributes
+                data = session_record.data or {}
+                metadata = session_record.metadata or {}
+                return RestoreSessionResponse(
+                    success=True,
+                    session_id=session_id,
+                    extracted_data=data.get("extracted_data", {}),
+                    conversation_history=data.get("conversation_history", []),
+                    current_phase=data.get("current_phase") or metadata.get("current_phase"),
+                    completion_percentage=data.get("completeness_score", 0.0),
+                    workflow_type=data.get("workflow_type", "guided"),
+                    tax_year=data.get("tax_year", 2025),
+                    last_saved=data.get("last_saved")
+                )
+
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"error": "SessionNotFound", "message": f"Session {session_id} not found"}
+            )
+
+        # Extract data from unified session
+        extracted_data = getattr(session, 'extracted_data', {}) or {}
+        conversation_history = []
+
+        if hasattr(session, 'conversation_history'):
+            for msg in session.conversation_history:
+                if hasattr(msg, 'role'):
+                    conversation_history.append({
+                        "role": msg.role,
+                        "content": msg.content,
+                        "timestamp": getattr(msg, 'timestamp', None)
+                    })
+                elif isinstance(msg, dict):
+                    conversation_history.append(msg)
+
+        metadata = getattr(session, 'metadata', {}) or {}
+
+        # Touch session to extend expiry
+        persistence.touch_session(session_id)
+
+        logger.info(f"Restored session: {session_id}")
+
+        return RestoreSessionResponse(
+            success=True,
+            session_id=session_id,
+            extracted_data=extracted_data,
+            conversation_history=conversation_history,
+            current_phase=metadata.get("current_phase"),
+            completion_percentage=metadata.get("completion_percentage", getattr(session, 'completeness_score', 0.0)),
+            workflow_type=getattr(session, 'workflow_type', WorkflowType.GUIDED).value if hasattr(session, 'workflow_type') else "guided",
+            tax_year=getattr(session, 'tax_year', 2025),
+            last_saved=metadata.get("last_saved")
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to restore session {session_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "RestoreFailed", "message": str(e)}
+        )
+
+
 @router.post("/create-session")
 async def create_filing_session(request: CreateSessionRequest = CreateSessionRequest()):
     """

@@ -40,6 +40,14 @@ from database.persistence import (
     load_tax_return,
 )
 
+# Import validation service for comprehensive validation
+try:
+    from services.validation_service import ValidationService, ValidationSeverity
+    VALIDATION_SERVICE_AVAILABLE = True
+except ImportError:
+    VALIDATION_SERVICE_AVAILABLE = False
+    ValidationService = None
+
 
 logger = get_logger(__name__)
 
@@ -208,6 +216,21 @@ class TaxReturnService:
                 changed_fields[key] = value
             existing[key] = value
 
+        # Invalidate calculation cache when data changes
+        if changed_fields:
+            try:
+                from web.calculation_helper import invalidate_cache
+                import asyncio
+                # Run async invalidation
+                loop = asyncio.new_event_loop()
+                try:
+                    loop.run_until_complete(invalidate_cache(return_id))
+                    self._logger.info(f"Invalidated cache for return {return_id}")
+                finally:
+                    loop.close()
+            except Exception as e:
+                self._logger.debug(f"Cache invalidation skipped: {e}")
+
         # Recalculate if requested
         if recalculate:
             calc_result = self.calculate(return_id, session_id, existing)
@@ -284,12 +307,39 @@ class TaxReturnService:
 
             calc_logger.start_calculation(tax_year, filing_status)
 
-            # Validate inputs
-            validation_errors = self._validate_inputs(tax_return)
-            if validation_errors:
-                for error in validation_errors:
-                    calc_logger.log_validation_error(error["field"], error["message"])
-                warnings.extend([f"{e['field']}: {e['message']}" for e in validation_errors])
+            # Comprehensive validation using ValidationService
+            if VALIDATION_SERVICE_AVAILABLE:
+                validator = ValidationService()
+                validation_result = validator.validate(tax_return, tax_return_data)
+
+                # Process validation issues
+                for issue in validation_result.issues:
+                    calc_logger.log_validation_error(issue.field_path, issue.message)
+                    if issue.severity == ValidationSeverity.ERROR:
+                        errors.append(f"{issue.field_path}: {issue.message}")
+                    else:
+                        warnings.append(f"{issue.field_path}: {issue.message}")
+
+                # Log validation summary
+                logger.info(
+                    f"Validation: {validation_result.error_count} errors, "
+                    f"{validation_result.warning_count} warnings"
+                )
+
+                # Stop on errors for formal returns (not advisor estimates)
+                if not validation_result.is_valid and tax_return_data.get("strict_validation", False):
+                    return CalculationResult(
+                        success=False,
+                        errors=errors,
+                        warnings=warnings
+                    )
+            else:
+                # Fallback to basic validation
+                validation_errors = self._validate_inputs(tax_return)
+                if validation_errors:
+                    for error in validation_errors:
+                        calc_logger.log_validation_error(error["field"], error["message"])
+                    warnings.extend([f"{e['field']}: {e['message']}" for e in validation_errors])
 
             # Calculate federal taxes
             step_start = calc_logger.log_step("federal_calculation")

@@ -6,17 +6,21 @@ Provides:
 2. /health/live - Simple liveness probe (for k8s)
 3. /health/ready - Readiness probe (for k8s)
 4. /metrics - Basic application metrics
+5. /metrics/requests - Request counts per endpoint
+6. /metrics/calculations - Calculation pipeline metrics
 """
 
 import os
 import time
 import sqlite3
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Any, Optional
 from pathlib import Path
+from collections import defaultdict
+import threading
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Response, Request
 from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
@@ -26,8 +30,110 @@ router = APIRouter(tags=["Health"])
 # Application start time for uptime calculation
 _start_time = datetime.utcnow()
 
-# Simple request counter (for basic metrics)
-_request_counts: Dict[str, int] = {}
+# Thread-safe request metrics tracking
+_metrics_lock = threading.Lock()
+_request_counts: Dict[str, int] = defaultdict(int)
+_request_latencies: Dict[str, list] = defaultdict(list)  # Store last 100 latencies per endpoint
+_calculation_metrics: Dict[str, Any] = {
+    "total_calculations": 0,
+    "cache_hits": 0,
+    "cache_misses": 0,
+    "validation_errors": 0,
+    "validation_warnings": 0,
+    "average_calculation_ms": 0.0,
+    "calculations_by_filing_status": defaultdict(int),
+}
+
+
+def record_request(endpoint: str, latency_ms: float = 0.0):
+    """
+    Record a request to an endpoint for metrics tracking.
+
+    Call this from middleware or directly in endpoints:
+        from web.routers.health import record_request
+        record_request("/api/calculate", latency_ms=150.5)
+
+    Args:
+        endpoint: The endpoint path (e.g., "/api/calculate")
+        latency_ms: Request latency in milliseconds
+    """
+    with _metrics_lock:
+        _request_counts[endpoint] += 1
+        if latency_ms > 0:
+            # Keep only last 100 latencies per endpoint
+            latencies = _request_latencies[endpoint]
+            latencies.append(latency_ms)
+            if len(latencies) > 100:
+                _request_latencies[endpoint] = latencies[-100:]
+
+
+def record_calculation(cache_hit: bool = False, validation_errors: int = 0,
+                       validation_warnings: int = 0, latency_ms: float = 0.0,
+                       filing_status: str = "unknown"):
+    """
+    Record calculation metrics.
+
+    Call this after a tax calculation completes:
+        from web.routers.health import record_calculation
+        record_calculation(cache_hit=True, latency_ms=50.0, filing_status="married_joint")
+
+    Args:
+        cache_hit: Whether the calculation was served from cache
+        validation_errors: Number of validation errors encountered
+        validation_warnings: Number of validation warnings encountered
+        latency_ms: Calculation time in milliseconds
+        filing_status: The filing status used in the calculation
+    """
+    with _metrics_lock:
+        _calculation_metrics["total_calculations"] += 1
+        if cache_hit:
+            _calculation_metrics["cache_hits"] += 1
+        else:
+            _calculation_metrics["cache_misses"] += 1
+        _calculation_metrics["validation_errors"] += validation_errors
+        _calculation_metrics["validation_warnings"] += validation_warnings
+        _calculation_metrics["calculations_by_filing_status"][filing_status] += 1
+
+        # Update running average
+        total = _calculation_metrics["total_calculations"]
+        current_avg = _calculation_metrics["average_calculation_ms"]
+        _calculation_metrics["average_calculation_ms"] = (
+            (current_avg * (total - 1) + latency_ms) / total
+        )
+
+
+def get_request_metrics() -> Dict[str, Any]:
+    """Get current request metrics (thread-safe)."""
+    with _metrics_lock:
+        # Calculate average latencies
+        avg_latencies = {}
+        for endpoint, latencies in _request_latencies.items():
+            if latencies:
+                avg_latencies[endpoint] = round(sum(latencies) / len(latencies), 2)
+
+        return {
+            "request_counts": dict(_request_counts),
+            "average_latencies_ms": avg_latencies,
+            "total_requests": sum(_request_counts.values()),
+        }
+
+
+def get_calculation_metrics() -> Dict[str, Any]:
+    """Get current calculation metrics (thread-safe)."""
+    with _metrics_lock:
+        metrics = dict(_calculation_metrics)
+        metrics["calculations_by_filing_status"] = dict(
+            _calculation_metrics["calculations_by_filing_status"]
+        )
+        # Calculate cache hit rate
+        total = metrics["total_calculations"]
+        if total > 0:
+            metrics["cache_hit_rate"] = round(
+                metrics["cache_hits"] / total * 100, 2
+            )
+        else:
+            metrics["cache_hit_rate"] = 0.0
+        return metrics
 
 
 def _get_db_path() -> str:
@@ -255,6 +361,10 @@ async def basic_metrics() -> JSONResponse:
     # Get database metrics
     db_check = await _check_database()
 
+    # Get request and calculation metrics
+    request_metrics = get_request_metrics()
+    calc_metrics = get_calculation_metrics()
+
     metrics = {
         "uptime_seconds": round(uptime_seconds, 0),
         "environment": os.environ.get("ENVIRONMENT", "development"),
@@ -263,9 +373,53 @@ async def basic_metrics() -> JSONResponse:
             "lead_count": db_check.get("lead_count", 0),
             "tables": db_check.get("tables", 0),
         },
+        "requests": {
+            "total": request_metrics["total_requests"],
+            "top_endpoints": dict(
+                sorted(request_metrics["request_counts"].items(),
+                       key=lambda x: x[1], reverse=True)[:10]
+            ),
+        },
+        "calculations": {
+            "total": calc_metrics["total_calculations"],
+            "cache_hit_rate": calc_metrics["cache_hit_rate"],
+            "average_ms": round(calc_metrics["average_calculation_ms"], 2),
+        },
         "collected_at": datetime.utcnow().isoformat() + "Z",
     }
 
+    return JSONResponse(content=metrics)
+
+
+@router.get("/metrics/requests")
+async def request_metrics() -> JSONResponse:
+    """
+    Detailed request metrics per endpoint.
+
+    Returns:
+    - Request counts per endpoint
+    - Average latencies per endpoint
+    - Total request count
+    """
+    metrics = get_request_metrics()
+    metrics["collected_at"] = datetime.utcnow().isoformat() + "Z"
+    return JSONResponse(content=metrics)
+
+
+@router.get("/metrics/calculations")
+async def calculation_metrics() -> JSONResponse:
+    """
+    Detailed calculation pipeline metrics.
+
+    Returns:
+    - Total calculations performed
+    - Cache hit/miss counts and rate
+    - Validation error/warning counts
+    - Average calculation time
+    - Breakdown by filing status
+    """
+    metrics = get_calculation_metrics()
+    metrics["collected_at"] = datetime.utcnow().isoformat() + "Z"
     return JSONResponse(content=metrics)
 
 

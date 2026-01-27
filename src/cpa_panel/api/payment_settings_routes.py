@@ -531,19 +531,16 @@ async def create_payment_intent(
     #     }
     # )
 
-    # For development, return mock response
-    payment_intent_id = f"pi_demo_{uuid4().hex[:16]}"
-    client_secret = f"{payment_intent_id}_secret_{uuid4().hex[:12]}"
-
+    # FREEZE & FINISH: Payment processing deferred to Phase 2
+    # Return clear message that payments are handled outside the platform
     return {
-        "payment_intent_id": payment_intent_id,
-        "client_secret": client_secret,
-        "amount": request.amount,
+        "success": False,
+        "feature_status": "coming_soon",
+        "message": "Online payment processing is coming soon.",
+        "instructions": "Please contact your CPA directly for payment arrangements.",
+        "amount_requested": request.amount,
         "currency": request.currency,
-        "platform_fee": round(platform_fee / 100, 2),
-        "net_amount": round((amount_cents - platform_fee) / 100, 2),
-        "stripe_account_id": stripe_account_id,
-        "status": "requires_payment_method",
+        "help_text": "Your CPA can provide invoice details and accepted payment methods."
     }
 
 

@@ -100,9 +100,25 @@ class SessionPersistence:
                     expires_at TEXT NOT NULL,
                     data_json TEXT NOT NULL DEFAULT '{}',
                     metadata_json TEXT NOT NULL DEFAULT '{}',
-                    agent_state_blob BLOB
+                    agent_state_blob BLOB,
+                    user_id TEXT,
+                    is_anonymous INTEGER DEFAULT 1,
+                    workflow_type TEXT,
+                    return_id TEXT
                 )
             """)
+
+            # Add missing columns to existing tables (migration for existing DBs)
+            for column, coldef in [
+                ("user_id", "TEXT"),
+                ("is_anonymous", "INTEGER DEFAULT 1"),
+                ("workflow_type", "TEXT"),
+                ("return_id", "TEXT")
+            ]:
+                try:
+                    cursor.execute(f"ALTER TABLE session_states ADD COLUMN {column} {coldef}")
+                except sqlite3.OperationalError:
+                    pass  # Column already exists
 
             # Document processing results table (replaces _DOCUMENTS)
             cursor.execute("""

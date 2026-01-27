@@ -258,32 +258,19 @@ async def get_firm_details(
     user: TenantContext = Depends(get_current_user),
 ):
     """Get detailed information about a specific firm."""
-    # TODO: Implement actual query
-    return FirmDetails(
-        firm_id=firm_id,
-        name="Demo Tax Practice",
-        legal_name="Demo Tax Practice LLC",
-        ein="12-3456789",
-        email="contact@demotax.com",
-        phone="555-0100",
-        address="123 Main St, San Francisco, CA 94105",
-        subscription_tier="professional",
-        subscription_status="active",
-        billing_cycle="monthly",
-        current_period_end=datetime.utcnow(),
-        team_members=5,
-        max_team_members=10,
-        clients=156,
-        max_clients=500,
-        usage_this_month={
-            "returns": 47,
-            "scenarios": 234,
-            "documents": 312,
-        },
-        health_score=94,
-        compliance_score=96,
-        created_at=datetime.utcnow(),
-        onboarded_at=datetime.utcnow(),
+    # FREEZE & FINISH: Firm details query deferred to Phase 2
+    # Return clear message that details are unavailable
+    from fastapi import HTTPException
+
+    raise HTTPException(
+        status_code=501,
+        detail={
+            "error_code": "FEATURE_NOT_AVAILABLE",
+            "message": "Firm details are not yet available in this version.",
+            "firm_id": firm_id,
+            "suggestion": "Use direct database access for firm information.",
+            "phase": "Coming in Phase 2"
+        }
     )
 
 
@@ -300,18 +287,24 @@ async def impersonate_firm(
     Creates a temporary session with firm admin access.
     All actions are logged with the original admin ID.
     """
-    # TODO: Implement impersonation
-    # - Log impersonation start with reason
-    # - Create temporary token with firm context
-    # - Set flag indicating impersonation mode
+    # FREEZE & FINISH: Impersonation deferred to Phase 2
+    # Log the attempt for audit purposes
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"[AUDIT] Impersonation attempted | admin={user.user_id} | firm={firm_id} | reason={reason}")
 
-    return {
-        "status": "success",
-        "impersonation_token": "imp_token_xxx",
-        "firm_name": "Demo Tax Practice",
-        "expires_in": 3600,
-        "note": "All actions will be logged under your admin account",
-    }
+    from fastapi import HTTPException
+    raise HTTPException(
+        status_code=501,
+        detail={
+            "error_code": "FEATURE_NOT_AVAILABLE",
+            "message": "Support mode impersonation is not yet available.",
+            "firm_id": firm_id,
+            "suggestion": "For support access, use direct database queries with appropriate logging.",
+            "logged": True,
+            "phase": "Coming in Phase 2"
+        }
+    )
 
 
 # =============================================================================

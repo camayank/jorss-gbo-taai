@@ -428,19 +428,31 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                 return True
             return False
 
-        # No Origin or Referer - could be same-origin request from some clients
-        # Be cautious: only allow if this looks like an API client (has specific headers)
-        user_agent = request.headers.get("User-Agent", "")
+        # No Origin or Referer - require Bearer authentication for CSRF bypass
+        # This prevents CSRF attacks while allowing legitimate API clients
+        auth_header = request.headers.get("Authorization", "")
         content_type = request.headers.get("Content-Type", "")
 
-        # Allow programmatic API clients (curl, postman, python-requests, etc.)
-        api_clients = ["curl", "postman", "python-requests", "httpie", "insomnia"]
-        if any(client in user_agent.lower() for client in api_clients):
+        # SECURITY FIX: Only bypass CSRF if Bearer token is present
+        # Bearer tokens prove the request is from a legitimate API client
+        if auth_header.startswith("Bearer ") and len(auth_header) > 10:
+            # Has Bearer token - API client with authentication
+            logger.debug("[CSRF] Bypassing CSRF check for authenticated API request")
             return True
 
-        # Allow requests with application/json content type (typical for API calls)
-        if "application/json" in content_type:
+        # For JSON requests without Bearer token, require a valid API key header
+        api_key = request.headers.get("X-API-Key", "")
+        if "application/json" in content_type and api_key:
+            logger.debug("[CSRF] Bypassing CSRF check for API key authenticated request")
             return True
+
+        # Log suspicious requests without proper authentication
+        user_agent = request.headers.get("User-Agent", "")
+        if "application/json" in content_type:
+            logger.warning(
+                f"[CSRF] JSON request without authentication | "
+                f"path={request.url.path} | ua={user_agent[:50]}"
+            )
 
         # Otherwise, require Origin or Referer
         return False

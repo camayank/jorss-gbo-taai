@@ -12,7 +12,7 @@ This improved version includes:
 To use: Replace express_lane_api.py with this file
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel, Field, validator
 from typing import Dict, List, Optional, Any
 from decimal import Decimal, InvalidOperation
@@ -334,56 +334,17 @@ async def import_prior_year(request: PriorYearImportRequest):
             "fields_requested": len(request.fields_to_import)
         })
 
-        # TODO: Fetch from database with proper error handling
-        # try:
-        #     prior_return = db.get_tax_return(user_id, request.prior_year)
-        #     if not prior_return:
-        #         return {"success": False, "imported_fields": {},
-        #                 "warnings": ["No prior year data found"]}
-        # except DatabaseError as e:
-        #     logger.error(f"Database error: {str(e)}")
-        #     raise HTTPException(500, "Failed to access prior year data")
-
-        # Mock data (sanitized)
-        prior_return_data = {
-            "taxpayer_name": {
-                "first_name": sanitize_string("John"),
-                "last_name": sanitize_string("Doe")
-            },
-            "address": sanitize_string("123 Main St, Anytown, CA 90210"),
-            "occupation": sanitize_string("Software Engineer"),
-            "dependents": [],  # Simplified for demo
-        }
-
-        # Filter and validate requested fields
-        imported_fields = {}
-        not_found_fields = []
-
-        for field in request.fields_to_import:
-            if field in prior_return_data:
-                imported_fields[field] = prior_return_data[field]
-            else:
-                not_found_fields.append(field)
-                logger.warning(f"[{request_id}] Field not found in prior year: {field}")
-
-        # Generate warnings
-        warnings = []
-        if request.prior_year < datetime.now().year - 1:
-            warnings.append(f"Data from {request.prior_year} may be outdated. Please verify all information.")
-
-        if not_found_fields:
-            warnings.append(f"Some fields were not found: {', '.join(not_found_fields)}")
-
-        logger.info(f"[{request_id}] Prior year import completed", extra={
-            "fields_imported": len(imported_fields),
-            "fields_not_found": len(not_found_fields)
-        })
+        # FREEZE & FINISH: Prior year import is deferred to Phase 2
+        # Return clear "coming soon" message instead of mock data
+        logger.info(f"[{request_id}] Prior year import requested - feature not yet available")
 
         return {
-            "success": True,
-            "imported_fields": imported_fields,
+            "success": False,
+            "imported_fields": {},
             "prior_year": request.prior_year,
-            "warnings": warnings
+            "feature_status": "coming_soon",
+            "message": "Prior year import is coming soon. Please enter your information manually for now.",
+            "help_text": "You can speed up data entry by having your prior year return handy for reference."
         }
 
     except HTTPException:

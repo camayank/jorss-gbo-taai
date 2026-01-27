@@ -65,18 +65,50 @@ _app_start_time = datetime.now()
 
 
 def check_database() -> DependencyStatus:
-    """Check database connection."""
+    """Check database connection with actual SQLite query."""
+    import sqlite3
+    import time
+    from pathlib import Path
+
     try:
-        # TODO: Implement actual database check
-        # Example: db.execute("SELECT 1")
+        # Get database path
+        db_path = Path(__file__).parent.parent / "database" / "jorss_gbo.db"
+
+        if not db_path.exists():
+            return DependencyStatus(
+                name="database",
+                status="degraded",
+                message=f"Database file not found at {db_path}"
+            )
+
+        # Perform actual connectivity check
+        start = time.time()
+        conn = sqlite3.connect(str(db_path), timeout=5.0)
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1")
+        cursor.fetchone()
+
+        # Get table count for additional info
+        cursor.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
+        table_count = cursor.fetchone()[0]
+        conn.close()
+
+        response_time = (time.time() - start) * 1000
 
         return DependencyStatus(
             name="database",
             status="up",
-            response_time_ms=5.2,
-            message="PostgreSQL connection OK"
+            response_time_ms=round(response_time, 2),
+            message=f"SQLite OK ({table_count} tables)"
         )
 
+    except sqlite3.Error as e:
+        logger.error(f"Database health check failed: {str(e)}")
+        return DependencyStatus(
+            name="database",
+            status="down",
+            message=f"SQLite error: {str(e)}"
+        )
     except Exception as e:
         logger.error(f"Database health check failed: {str(e)}")
         return DependencyStatus(

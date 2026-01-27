@@ -104,6 +104,14 @@ class AuditEventType(Enum):
     SECURITY_SUSPICIOUS_ACTIVITY = "security.suspicious"
     SECURITY_RATE_LIMIT_EXCEEDED = "security.rate_limit"
 
+    # PII Access (MANDATORY - required for compliance)
+    PII_ACCESS_READ = "pii.access.read"
+    PII_ACCESS_DECRYPT = "pii.access.decrypt"
+    PII_ACCESS_EXPORT = "pii.access.export"
+    PII_MODIFICATION = "pii.modification"
+    PII_DELETION = "pii.deletion"
+    PII_UNENCRYPTED_DETECTED = "pii.unencrypted_detected"
+
 
 class AuditSeverity(Enum):
     """Severity levels for audit events"""
@@ -926,5 +934,176 @@ def export_session_audit_report(session_id: str) -> Dict:
         "timeline": events,
         "first_event": events[-1] if events else None,
         "last_event": events[0] if events else None,
+        "generated_at": datetime.now().isoformat(),
+    }
+
+
+# =============================================================================
+# MANDATORY PII ACCESS AUDIT (Compliance Requirement)
+# =============================================================================
+
+def audit_pii_access(
+    action: str,
+    pii_fields: List[str],
+    resource_type: str,
+    resource_id: str,
+    user_id: str,
+    tenant_id: str,
+    reason: str = None,
+    ip_address: str = None,
+    user_agent: str = None,
+):
+    """
+    MANDATORY: Audit all PII field access.
+
+    This function MUST be called whenever PII fields are:
+    - Read (decrypted for display)
+    - Exported (included in reports/downloads)
+    - Modified (updated or deleted)
+
+    This is required for GDPR/CCPA/SOC2 compliance.
+
+    Args:
+        action: Type of access (read, decrypt, export, modify, delete)
+        pii_fields: List of PII fields accessed (email, phone, ssn, etc.)
+        resource_type: Type of resource (lead, user, tax_return)
+        resource_id: ID of the resource
+        user_id: User performing the access
+        tenant_id: Tenant context
+        reason: Business reason for access (required for SSN)
+        ip_address: Client IP address
+        user_agent: Client user agent
+    """
+    logger = get_audit_logger()
+
+    # Determine event type and severity
+    event_type_map = {
+        "read": AuditEventType.PII_ACCESS_READ,
+        "decrypt": AuditEventType.PII_ACCESS_DECRYPT,
+        "export": AuditEventType.PII_ACCESS_EXPORT,
+        "modify": AuditEventType.PII_MODIFICATION,
+        "delete": AuditEventType.PII_DELETION,
+    }
+
+    # SSN access is always HIGH severity
+    has_ssn = "ssn" in pii_fields or "social_security_number" in pii_fields
+    severity = AuditSeverity.WARNING if has_ssn else AuditSeverity.INFO
+
+    # SSN access requires a reason
+    if has_ssn and not reason:
+        import logging
+        logging.getLogger(__name__).warning(
+            f"[COMPLIANCE WARNING] SSN accessed without reason | "
+            f"user={user_id} | resource={resource_type}:{resource_id}"
+        )
+
+    logger.log(
+        event_type=event_type_map.get(action, AuditEventType.PII_ACCESS_READ),
+        action=f"pii_{action}",
+        resource_type=resource_type,
+        resource_id=resource_id,
+        user_id=user_id,
+        tenant_id=tenant_id,
+        ip_address=ip_address,
+        user_agent=user_agent,
+        details={
+            "pii_fields": pii_fields,
+            "reason": reason,
+            "ssn_accessed": has_ssn,
+        },
+        severity=severity
+    )
+
+
+def audit_pii_unencrypted_detection(
+    resource_type: str,
+    resource_id: str,
+    unencrypted_fields: List[str],
+    tenant_id: str = None,
+):
+    """
+    CRITICAL: Log detection of unencrypted PII.
+
+    This function is called when the PII validation system detects
+    plaintext PII that should have been encrypted.
+    """
+    logger = get_audit_logger()
+
+    import logging
+    logging.getLogger(__name__).critical(
+        f"[SECURITY VIOLATION] Unencrypted PII detected | "
+        f"resource={resource_type}:{resource_id} | fields={unencrypted_fields}"
+    )
+
+    logger.log(
+        event_type=AuditEventType.PII_UNENCRYPTED_DETECTED,
+        action="unencrypted_pii_detected",
+        resource_type=resource_type,
+        resource_id=resource_id,
+        tenant_id=tenant_id,
+        details={
+            "unencrypted_fields": unencrypted_fields,
+            "violation_type": "plaintext_pii_storage",
+        },
+        success=False,
+        severity=AuditSeverity.CRITICAL
+    )
+
+
+def get_pii_access_report(
+    user_id: str = None,
+    tenant_id: str = None,
+    days: int = 30
+) -> Dict:
+    """
+    Generate a PII access report for compliance review.
+
+    Returns summary of all PII access within the specified period.
+    """
+    logger = get_audit_logger()
+    from datetime import timedelta
+
+    start_date = datetime.now() - timedelta(days=days)
+
+    # Query all PII events
+    all_events = []
+    for event_type in [
+        AuditEventType.PII_ACCESS_READ,
+        AuditEventType.PII_ACCESS_DECRYPT,
+        AuditEventType.PII_ACCESS_EXPORT,
+        AuditEventType.PII_MODIFICATION,
+        AuditEventType.PII_DELETION,
+        AuditEventType.PII_UNENCRYPTED_DETECTED,
+    ]:
+        events = logger.query(
+            user_id=user_id,
+            tenant_id=tenant_id,
+            event_type=event_type,
+            start_date=start_date,
+            limit=10000
+        )
+        all_events.extend(events)
+
+    # Analyze
+    ssn_accesses = [e for e in all_events if e.get("details", {}).get("ssn_accessed")]
+    violations = [e for e in all_events if e.get("event_type") == "pii.unencrypted_detected"]
+    unique_users = set(e.get("user_id") for e in all_events if e.get("user_id"))
+
+    return {
+        "period_start": start_date.isoformat(),
+        "period_end": datetime.now().isoformat(),
+        "total_pii_accesses": len(all_events),
+        "ssn_accesses": len(ssn_accesses),
+        "security_violations": len(violations),
+        "unique_users": len(unique_users),
+        "users": list(unique_users),
+        "events_by_type": {
+            "read": len([e for e in all_events if "read" in e.get("event_type", "")]),
+            "decrypt": len([e for e in all_events if "decrypt" in e.get("event_type", "")]),
+            "export": len([e for e in all_events if "export" in e.get("event_type", "")]),
+            "modify": len([e for e in all_events if "modification" in e.get("event_type", "")]),
+            "delete": len([e for e in all_events if "deletion" in e.get("event_type", "")]),
+        },
+        "violations_detail": violations,
         "generated_at": datetime.now().isoformat(),
     }
