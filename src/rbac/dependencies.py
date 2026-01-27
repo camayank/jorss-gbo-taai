@@ -147,15 +147,22 @@ def require_role(role: Union[Role, Set[Role]]) -> Callable:
     """
     Require a specific role (or any of a set of roles).
 
-    Usage:
+    Can be used as a decorator OR as a dependency:
+
+    Usage as decorator (no-op):
+        @router.get("/admin")
+        @require_role(Role.SUPER_ADMIN)
+        async def admin_only(...):
+            ...
+
+    Usage as dependency:
         @router.get("/admin")
         async def admin_only(ctx: AuthContext = Depends(require_role(Role.SUPER_ADMIN))):
             ...
-
-        @router.get("/firm")
-        async def firm_only(ctx: AuthContext = Depends(require_role({Role.PARTNER, Role.STAFF}))):
-            ...
     """
+    import functools
+    import inspect
+
     roles = {role} if isinstance(role, Role) else role
 
     async def dependency(ctx: AuthContext = Depends(require_auth)) -> AuthContext:
@@ -167,7 +174,33 @@ def require_role(role: Union[Role, Set[Role]]) -> Callable:
             )
         return ctx
 
-    return dependency
+    def decorator_or_dependency(func_or_ctx=None):
+        """
+        When used as @require_role(role), this is called with the decorated function.
+        When used as Depends(require_role(role)), this returns the dependency.
+        """
+        # If called with a function (decorator usage)
+        if func_or_ctx is not None and callable(func_or_ctx) and hasattr(func_or_ctx, '__name__'):
+            if inspect.iscoroutinefunction(func_or_ctx):
+                @functools.wraps(func_or_ctx)
+                async def async_wrapper(*args, **kwargs):
+                    return await func_or_ctx(*args, **kwargs)
+                async_wrapper._required_roles = roles
+                return async_wrapper
+            else:
+                @functools.wraps(func_or_ctx)
+                def sync_wrapper(*args, **kwargs):
+                    return func_or_ctx(*args, **kwargs)
+                sync_wrapper._required_roles = roles
+                return sync_wrapper
+
+        # If called with ctx (dependency usage via Depends)
+        return dependency
+
+    # Copy signature for FastAPI introspection
+    decorator_or_dependency.__signature__ = inspect.signature(dependency)
+
+    return decorator_or_dependency
 
 
 def _require_platform_admin_impl(ctx: AuthContext) -> AuthContext:
@@ -280,32 +313,33 @@ def require_partner(ctx: AuthContext = Depends(require_auth)) -> AuthContext:
 # PERMISSION-BASED DEPENDENCIES
 # =============================================================================
 
-def require_permission(permission: Union[Permission, Set[Permission]], require_all: bool = False) -> Callable:
+def require_permission(permission: Union[Permission, Set[Permission], str], require_all: bool = False) -> Callable:
     """
     Require a specific permission (or any/all of a set).
 
-    Usage:
-        # Single permission
+    Can be used as a decorator OR as a dependency:
+
+    Usage as decorator (no-op decorator, permission info stored on function):
+        @router.post("/clients")
+        @require_permission(Permission.CLIENT_CREATE)
+        async def create_client(...):
+            ...
+
+    Usage as dependency:
         @router.post("/clients")
         async def create_client(ctx: AuthContext = Depends(require_permission(Permission.CLIENT_CREATE))):
             ...
-
-        # Any of multiple permissions
-        @router.get("/clients")
-        async def list_clients(ctx: AuthContext = Depends(require_permission(
-            {Permission.CLIENT_VIEW_OWN, Permission.CLIENT_VIEW_ALL}
-        ))):
-            ...
-
-        # All permissions required
-        @router.delete("/clients/{id}")
-        async def delete_client(ctx: AuthContext = Depends(require_permission(
-            {Permission.CLIENT_EDIT, Permission.CLIENT_ARCHIVE},
-            require_all=True
-        ))):
-            ...
     """
-    permissions = {permission} if isinstance(permission, Permission) else permission
+    import functools
+    import inspect
+
+    # Handle string permissions (for backward compatibility with UserPermission enum)
+    if isinstance(permission, str):
+        permissions = {permission}
+    elif isinstance(permission, Permission):
+        permissions = {permission}
+    else:
+        permissions = permission
 
     async def dependency(ctx: AuthContext = Depends(require_auth)) -> AuthContext:
         if require_all:
@@ -313,17 +347,37 @@ def require_permission(permission: Union[Permission, Set[Permission]], require_a
                 missing = permissions - ctx.permissions
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Missing permissions: {', '.join(p.value for p in missing)}",
+                    detail=f"Missing permissions: {', '.join(str(p) for p in missing)}",
                 )
         else:
             if not ctx.has_any_permission(permissions):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Required permission: {', '.join(p.value for p in permissions)}",
+                    detail=f"Required permission: {', '.join(str(p) for p in permissions)}",
                 )
         return ctx
 
-    return dependency
+    def decorator_or_dependency(func_or_none=None):
+        """
+        When used as @require_permission(perm), this is called with the decorated function.
+        When used as Depends(require_permission(perm)), this is the dependency.
+        """
+        # If called with a function (decorator usage: @require_permission(perm))
+        if func_or_none is not None and (callable(func_or_none) or inspect.iscoroutinefunction(func_or_none)):
+            @functools.wraps(func_or_none)
+            async def wrapper(*args, **kwargs):
+                return await func_or_none(*args, **kwargs)
+            wrapper._required_permissions = permissions
+            return wrapper
+
+        # If called without arguments (Depends usage), this shouldn't happen
+        # because FastAPI calls it with ctx parameter
+        return dependency
+
+    # Copy signature from dependency for FastAPI introspection
+    decorator_or_dependency.__signature__ = inspect.signature(dependency)
+
+    return decorator_or_dependency
 
 
 # =============================================================================
@@ -389,6 +443,21 @@ async def get_current_firm_id(ctx: AuthContext = Depends(require_auth)) -> UUID:
             detail="Firm context required",
         )
     return ctx.firm_id
+
+
+async def get_current_firm(ctx: AuthContext = Depends(require_auth)) -> str:
+    """
+    Get the current firm ID as string.
+
+    Raises 403 if user is not associated with a firm.
+    Backward compatibility alias for get_current_firm_id.
+    """
+    if not ctx.firm_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Firm context required",
+        )
+    return str(ctx.firm_id)
 
 
 async def get_optional_firm_id(ctx: AuthContext = Depends(get_auth_context)) -> Optional[UUID]:

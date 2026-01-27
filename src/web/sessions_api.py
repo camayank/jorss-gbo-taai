@@ -623,8 +623,17 @@ async def create_filing_session(request: CreateSessionRequest = CreateSessionReq
             "data": {}  # Empty data dict for now
         }
 
-        # Save session
-        persistence.save_session(session_id, session_data)
+        # Save session with correct parameters
+        persistence.save_session(
+            session_id=session_id,
+            tenant_id="default",
+            session_type="intelligent_advisor",
+            data=session_data,
+            metadata={"created_via": "create-session-api"},
+            user_id=None,
+            is_anonymous=True,
+            workflow_type=session_data.get("workflow_type", "guided")
+        )
 
         logger.info(f"Created new filing session: {session_id}")
 

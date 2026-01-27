@@ -19,6 +19,8 @@ from rbac import (
     require_role,
     require_permission,
     require_platform_admin,
+    get_current_firm,
+    get_current_firm_id,
 )
 
 # Backward compatibility aliases
@@ -33,6 +35,8 @@ __all__ = [
     "TenantContext",  # Deprecated alias
     "get_auth_context",
     "get_current_user",  # Deprecated alias
+    "get_current_firm",
+    "get_current_firm_id",
     "require_auth",
     "require_role",
     "require_permission",

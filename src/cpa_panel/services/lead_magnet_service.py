@@ -1788,6 +1788,23 @@ class LeadMagnetService:
 
         return leads
 
+    def list_leads(
+        self,
+        cpa_id: Optional[str] = None,
+        temperature: Optional[str] = None,
+        engaged: Optional[bool] = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> List[Dict[str, Any]]:
+        """Alias for get_leads() for backward compatibility."""
+        return self.get_leads(
+            cpa_id=cpa_id,
+            temperature=temperature,
+            engaged=engaged,
+            limit=limit,
+            offset=offset
+        )
+
     def get_lead_statistics(self, cpa_id: Optional[str] = None) -> Dict[str, Any]:
         """Get aggregate statistics for leads."""
         stats = {

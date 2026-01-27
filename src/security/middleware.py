@@ -570,7 +570,16 @@ def configure_security_middleware(
         app.add_middleware(
             CSRFMiddleware,
             secret_key=secret_key,
-            exempt_paths={"/api/health", "/api/webhook", "/api/chat", "/api/ai-chat/"},
+            exempt_paths={
+                "/api/health",
+                "/api/webhook",
+                "/api/chat",
+                "/api/ai-chat/",
+                "/api/cpa/lead-magnet/",  # Lead magnet funnel - public API
+                "/api/lead-magnet/",       # Lead magnet - public API
+                "/api/advisor/",           # AI advisor - public API
+                "/api/sessions/",          # Session management - public API
+            },
             allowed_origins=cors_origins or ["http://localhost:3000", "http://localhost:8000"],
         )
 

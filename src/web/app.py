@@ -1114,6 +1114,21 @@ def intelligent_tax_advisor(request: Request):
     return templates.TemplateResponse("intelligent_advisor.html", {"request": request})
 
 
+@app.get("/landing", response_class=HTMLResponse)
+def landing_page(request: Request):
+    """
+    Smart Landing Page - Unified entry point for tax filing.
+
+    Shows:
+    - Clean CTA to start filing
+    - Resume banner for returning users
+    - Trust badges and value proposition
+    """
+    from src.config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("landing.html", {"request": request, "branding": branding})
+
+
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request):
     """CPA Workspace Dashboard - Multi-client management (legacy)."""

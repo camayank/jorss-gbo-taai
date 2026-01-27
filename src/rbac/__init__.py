@@ -38,6 +38,8 @@ from .dependencies import (
     require_permission,
     require_platform_admin,
     require_firm_access,
+    get_current_firm,
+    get_current_firm_id,
 )
 
 __all__ = [
@@ -65,4 +67,6 @@ __all__ = [
     "require_permission",
     "require_platform_admin",
     "require_firm_access",
+    "get_current_firm",
+    "get_current_firm_id",
 ]

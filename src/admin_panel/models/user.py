@@ -227,3 +227,17 @@ class UserPermission(str, PyEnum):
     UPDATE_PAYMENT = "firm_manage_billing"
     CHANGE_PLAN = "firm_manage_billing"
     UPDATE_BRANDING = "firm_manage_branding"
+
+    # API Key Management
+    MANAGE_API_KEYS = "firm_manage_api_keys"
+
+    # Audit & Compliance
+    VIEW_AUDIT_LOGS = "firm_view_audit"
+
+
+# =============================================================================
+# ROLE_PERMISSIONS COMPATIBILITY EXPORT
+# =============================================================================
+
+# Re-export ROLE_PERMISSIONS from rbac for backward compatibility
+from rbac.permissions import ROLE_PERMISSIONS

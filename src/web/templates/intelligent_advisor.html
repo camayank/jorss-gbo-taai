@@ -1877,7 +1877,7 @@
       <div class="consent-actions">
         <a href="/privacy" target="_blank" class="consent-link">Privacy Policy</a>
         <a href="/terms" target="_blank" class="consent-link">Terms of Service</a>
-        <button class="consent-btn" id="acceptConsentBtn" disabled onclick="if(document.getElementById('dataConsent').checked){sessionStorage.setItem('tax_data_consent','true');document.getElementById('consentModal').classList.add('hidden');if(typeof initializeSession==='function')initializeSession();}">
+        <button class="consent-btn" id="acceptConsentBtn" disabled onclick="acceptConsent();">
           ✓ Accept & Continue
         </button>
       </div>
