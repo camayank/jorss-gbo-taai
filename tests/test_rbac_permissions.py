@@ -21,7 +21,6 @@ from src.rbac.enhanced_permissions import (
     PermissionAction,
     get_permissions_for_role,
     has_permission,
-    check_permission_match
 )
 from src.rbac.roles import Role
 from src.rbac.dependencies import AuthContext
