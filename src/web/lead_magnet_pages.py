@@ -459,3 +459,109 @@ async def engagement_letter(
             "session_data": session_data,
         }
     )
+
+
+# =============================================================================
+# UNIVERSAL REPORT (DYNAMIC VISUALIZATION REPORT)
+# =============================================================================
+
+@lead_magnet_pages_router.get("/universal-report", response_class=HTMLResponse)
+async def universal_report_page(
+    request: Request,
+    session: Optional[str] = None,
+    cpa: Optional[str] = None,
+    tier: int = 1
+):
+    """
+    Universal Report page - dynamic report with visualizations.
+
+    Uses the Universal Report Engine for:
+    - Savings gauge/meter
+    - Charts and graphs
+    - CPA branding
+    - Tiered content (1=teaser, 2=full, 3=complete)
+
+    URL: /lead-magnet/universal-report?session=xxx&cpa=john-smith&tier=2
+    """
+    if not session:
+        return templates.TemplateResponse(
+            "lead_magnet/landing.html",
+            {
+                "request": request,
+                "cpa": await get_cpa_profile_for_page(cpa),
+                "error": "No session specified.",
+            }
+        )
+
+    session_data = await get_session_data(session)
+    if not session_data:
+        return templates.TemplateResponse(
+            "lead_magnet/landing.html",
+            {
+                "request": request,
+                "cpa": await get_cpa_profile_for_page(cpa),
+                "error": "Session expired. Please start over.",
+            }
+        )
+
+    if not cpa and session_data.get("cpa_slug"):
+        cpa = session_data["cpa_slug"]
+
+    cpa_profile = await get_cpa_profile_for_page(cpa)
+
+    try:
+        from universal_report import UniversalReportEngine
+
+        # Convert CPA profile to theme format
+        theme_profile = {
+            "firm_name": cpa_profile.get("firm_name", "Tax Advisory"),
+            "advisor_name": cpa_profile.get("display_name"),
+            "credentials": cpa_profile.get("credentials", []),
+            "primary_color": cpa_profile.get("primary_color", "#2563eb"),
+            "secondary_color": cpa_profile.get("secondary_color", "#1d4ed8"),
+            "accent_color": cpa_profile.get("accent_color", "#10b981"),
+            "logo_url": cpa_profile.get("logo_url"),
+            "contact_email": cpa_profile.get("email"),
+            "contact_phone": cpa_profile.get("phone"),
+        }
+
+        # Generate universal report HTML
+        engine = UniversalReportEngine()
+        html_content = engine.generate_html_report(
+            source_type='lead_magnet',
+            source_id=session,
+            source_data=session_data,
+            cpa_profile=theme_profile,
+            tier_level=tier,
+        )
+
+        # Return the generated HTML directly
+        return HTMLResponse(content=html_content, media_type="text/html")
+
+    except ImportError as e:
+        logger.warning(f"Universal report engine not available: {e}")
+        # Fallback to template-based report
+        return templates.TemplateResponse(
+            "lead_magnet/tier1_report.html",
+            {
+                "request": request,
+                "cpa": cpa_profile,
+                "session_id": session,
+                "session_data": session_data,
+                "report": None,
+                "error": "Enhanced report temporarily unavailable.",
+            }
+        )
+    except Exception as e:
+        logger.error(f"Universal report generation failed: {e}")
+        return templates.TemplateResponse(
+            "lead_magnet/tier1_report.html",
+            {
+                "request": request,
+                "cpa": cpa_profile,
+                "session_id": session,
+                "session_data": session_data,
+                "report": None,
+                "error": f"Report generation failed: {str(e)}",
+            }
+        )

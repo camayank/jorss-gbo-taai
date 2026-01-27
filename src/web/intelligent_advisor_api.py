@@ -36,7 +36,198 @@ except ImportError:
     SESSION_PERSISTENCE_AVAILABLE = False
     logger.warning("Session persistence not available - using in-memory only")
 
+# Import for PDF generation
+try:
+    from fastapi.responses import FileResponse
+    from advisory.report_generator import AdvisoryReportGenerator, ReportType
+    from models.tax_return import TaxReturn, TaxpayerInfo, Income, Deductions, TaxCredits
+    from models.taxpayer import FilingStatus as TaxFilingStatus
+    PDF_GENERATION_AVAILABLE = True
+except ImportError as e:
+    PDF_GENERATION_AVAILABLE = False
+    logger.warning(f"PDF generation dependencies not available: {e}")
+
 router = APIRouter(prefix="/api/advisor", tags=["Intelligent Advisor"])
+
+
+# =============================================================================
+# PROFILE TO TAX RETURN CONVERSION
+# =============================================================================
+
+def convert_profile_to_tax_return(profile: Dict[str, Any], session_id: str = None) -> Dict[str, Any]:
+    """
+    Convert intelligent advisor profile format to advisory API return_data format.
+
+    Args:
+        profile: Chatbot profile with flat structure
+        session_id: Optional session ID for naming
+
+    Returns:
+        Dictionary in return_data format expected by advisory API
+    """
+    # Map filing status from chatbot format to tax return format
+    # Uses enum names from models/taxpayer.py FilingStatus
+    filing_status_map = {
+        "single": "SINGLE",
+        "married_joint": "MARRIED_JOINT",
+        "married_separate": "MARRIED_SEPARATE",
+        "head_of_household": "HEAD_OF_HOUSEHOLD",
+        "qualifying_widow": "QUALIFYING_WIDOW"
+    }
+
+    filing_status = profile.get("filing_status", "single")
+    tax_filing_status = filing_status_map.get(filing_status, "SINGLE")
+
+    # Calculate income breakdown
+    total_income = profile.get("total_income", 0) or 0
+    w2_income = profile.get("w2_income", 0) or 0
+    business_income = profile.get("business_income", 0) or 0
+    investment_income = profile.get("investment_income", 0) or 0
+    rental_income = profile.get("rental_income", 0) or 0
+
+    # If only total_income provided, assume it's W-2
+    if total_income > 0 and w2_income == 0 and business_income == 0:
+        w2_income = total_income - investment_income - rental_income
+
+    # Calculate deductions
+    mortgage_interest = profile.get("mortgage_interest", 0) or 0
+    property_taxes = profile.get("property_taxes", 0) or 0
+    state_income_tax = profile.get("state_income_tax", 0) or 0
+    charitable = profile.get("charitable_donations", 0) or 0
+
+    # SALT cap at $10,000
+    salt = min(property_taxes + state_income_tax, 10000)
+    total_itemized = mortgage_interest + salt + charitable
+
+    # Determine if itemizing makes sense
+    standard_deductions = {
+        "SINGLE": 15000,
+        "MARRIED_FILING_JOINTLY": 30000,
+        "HEAD_OF_HOUSEHOLD": 22500,
+        "MARRIED_FILING_SEPARATELY": 15000,
+        "QUALIFYING_WIDOW": 30000
+    }
+    standard_ded = standard_deductions.get(tax_filing_status, 15000)
+    use_standard = total_itemized < standard_ded
+
+    # Calculate credits
+    dependents = profile.get("dependents", 0) or 0
+    child_tax_credit = dependents * 2000  # $2000 per child
+
+    # Estimate withholding (rough estimate: 20% of W-2)
+    federal_withholding = profile.get("federal_withholding", 0) or (w2_income * 0.20)
+
+    return {
+        "taxpayer": {
+            "first_name": profile.get("first_name", "Tax"),
+            "last_name": profile.get("last_name", "Client"),
+            "ssn": profile.get("ssn", "000-00-0000"),
+            "filing_status": tax_filing_status,
+            "state": profile.get("state", ""),
+            "dependents": dependents
+        },
+        "income": {
+            "w2_wages": float(w2_income),
+            "federal_withholding": float(federal_withholding),
+            "self_employment_income": float(business_income),
+            "self_employment_expenses": float(profile.get("business_expenses", 0) or 0),
+            "investment_income": float(investment_income),
+            "capital_gains": float(profile.get("capital_gains_long", 0) or profile.get("capital_gains", 0) or 0),
+            "rental_income": float(rental_income),
+            "dividend_income": float(profile.get("dividend_income", 0) or 0),
+            "interest_income": float(profile.get("interest_income", 0) or 0)
+        },
+        "deductions": {
+            "use_standard_deduction": use_standard,
+            "itemized_deductions": float(total_itemized),
+            "state_local_taxes": float(salt),
+            "mortgage_interest": float(mortgage_interest),
+            "charitable_contributions": float(charitable),
+            "medical_expenses": float(profile.get("medical_expenses", 0) or 0)
+        },
+        "credits": {
+            "child_tax_credit": float(child_tax_credit),
+            "education_credits": 0.0,
+            "retirement_savers_credit": 0.0
+        },
+        "retirement": {
+            "traditional_401k": float(profile.get("retirement_401k", 0) or 0),
+            "traditional_ira": float(profile.get("retirement_ira", 0) or 0),
+            "hsa_contributions": float(profile.get("hsa_contributions", 0) or 0)
+        }
+    }
+
+
+def build_tax_return_from_profile(profile: Dict[str, Any]) -> "TaxReturn":
+    """
+    Build a TaxReturn object from chatbot profile for PDF generation.
+
+    Args:
+        profile: Chatbot profile dictionary
+
+    Returns:
+        TaxReturn object ready for report generation
+    """
+    if not PDF_GENERATION_AVAILABLE:
+        raise ImportError("PDF generation dependencies not available")
+
+    return_data = convert_profile_to_tax_return(profile)
+
+    # Map filing status - uses enum names from models/taxpayer.py
+    filing_status_map = {
+        "SINGLE": TaxFilingStatus.SINGLE,
+        "MARRIED_JOINT": TaxFilingStatus.MARRIED_JOINT,
+        "MARRIED_SEPARATE": TaxFilingStatus.MARRIED_SEPARATE,
+        "HEAD_OF_HOUSEHOLD": TaxFilingStatus.HEAD_OF_HOUSEHOLD,
+        "QUALIFYING_WIDOW": TaxFilingStatus.QUALIFYING_WIDOW
+    }
+
+    taxpayer_data = return_data["taxpayer"]
+    income_data = return_data["income"]
+    deductions_data = return_data["deductions"]
+    credits_data = return_data["credits"]
+
+    filing_status = filing_status_map.get(
+        taxpayer_data["filing_status"],
+        TaxFilingStatus.SINGLE
+    )
+
+    taxpayer = TaxpayerInfo(
+        first_name=taxpayer_data.get("first_name", "Tax"),
+        last_name=taxpayer_data.get("last_name", "Client"),
+        ssn=taxpayer_data.get("ssn", "000-00-0000"),
+        filing_status=filing_status,
+    )
+
+    income = Income(
+        w2_wages=income_data.get("w2_wages", 0),
+        federal_withholding=income_data.get("federal_withholding", 0),
+        self_employment_income=income_data.get("self_employment_income", 0),
+        self_employment_expenses=income_data.get("self_employment_expenses", 0),
+        investment_income=income_data.get("investment_income", 0),
+        capital_gains=income_data.get("capital_gains", 0),
+        rental_income=income_data.get("rental_income", 0),
+    )
+
+    deductions = Deductions(
+        use_standard_deduction=deductions_data.get("use_standard_deduction", True),
+        itemized_deductions=deductions_data.get("itemized_deductions", 0),
+        state_local_taxes=deductions_data.get("state_local_taxes", 0),
+        mortgage_interest=deductions_data.get("mortgage_interest", 0),
+        charitable_contributions=deductions_data.get("charitable_contributions", 0),
+    )
+
+    credits = TaxCredits(
+        child_tax_credit=credits_data.get("child_tax_credit", 0),
+    )
+
+    return TaxReturn(
+        tax_year=2025,
+        taxpayer=taxpayer,
+        income=income,
+        deductions=deductions,
+        credits=credits,
+    )
 
 
 # =============================================================================
@@ -424,6 +615,9 @@ class IntelligentChatEngine:
         """
         Update session with new data and persist to database.
 
+        Also saves tax return data in the format expected by the advisory API
+        for PDF generation support.
+
         Args:
             session_id: Session identifier
             updates: Dictionary of updates to apply
@@ -445,7 +639,41 @@ class IntelligentChatEngine:
             # Save to database
             self._save_session_to_db(session_id, session)
 
+            # Also save tax return data for PDF generation compatibility
+            profile = session.get("profile", {})
+            if profile.get("filing_status") and profile.get("total_income"):
+                self._save_tax_return_for_advisory(session_id, profile)
+
         return session
+
+    def _save_tax_return_for_advisory(self, session_id: str, profile: Dict[str, Any]) -> None:
+        """
+        Save tax return data in the format expected by the advisory API.
+
+        This enables PDF generation from chatbot sessions.
+
+        Args:
+            session_id: Session identifier
+            profile: Chatbot profile data
+        """
+        if not self._persistence:
+            return
+
+        try:
+            # Convert profile to tax return format
+            return_data = convert_profile_to_tax_return(profile, session_id)
+
+            # Save to session_tax_returns table
+            self._persistence.save_session_tax_return(
+                session_id=session_id,
+                tenant_id="default",
+                tax_year=2025,
+                return_data=return_data,
+                calculated_results=None  # Will be calculated when report is generated
+            )
+            logger.debug(f"Tax return data saved for session {session_id} (PDF generation enabled)")
+        except Exception as e:
+            logger.warning(f"Failed to save tax return data for {session_id}: {e}")
 
     def delete_session(self, session_id: str) -> bool:
         """
@@ -2080,6 +2308,454 @@ Tax laws are subject to change, and individual circumstances may vary."""
         },
         "download_url": f"/api/advisor/report/{request.session_id}/pdf"
     }
+
+
+# =============================================================================
+# PDF GENERATION ENDPOINTS
+# =============================================================================
+
+@router.get("/report/{session_id}/pdf")
+async def get_session_pdf(
+    session_id: str,
+    include_charts: bool = True,
+    include_toc: bool = True,
+    firm_name: Optional[str] = None,
+    advisor_name: Optional[str] = None,
+    advisor_credentials: Optional[str] = None,  # Comma-separated
+    contact_email: Optional[str] = None,
+    contact_phone: Optional[str] = None,
+    primary_color: Optional[str] = None,
+    watermark: Optional[str] = None,
+):
+    """
+    Generate and download PDF report for a session.
+
+    This endpoint generates a professional tax advisory PDF from the
+    chatbot session data with optional CPA branding and visualizations.
+
+    Query Parameters:
+        - include_charts: Include visualizations (default: True)
+        - include_toc: Include table of contents (default: True)
+        - firm_name: CPA firm name for branding
+        - advisor_name: Advisor name for branding
+        - advisor_credentials: Comma-separated credentials (e.g., "CPA,CFP,MST")
+        - contact_email: Contact email for footer
+        - contact_phone: Contact phone for footer
+        - primary_color: Primary brand color (hex, e.g., "#2c5aa0")
+        - watermark: Watermark text (e.g., "DRAFT")
+    """
+    import tempfile
+    from pathlib import Path
+
+    # Get session data
+    session = chat_engine.sessions.get(session_id)
+
+    if not session:
+        # Try loading from database
+        session = chat_engine.get_or_create_session(session_id)
+        if not session.get("profile"):
+            raise HTTPException(status_code=404, detail="Session not found or has no data")
+
+    profile = session.get("profile", {})
+
+    if not profile.get("filing_status") or not profile.get("total_income"):
+        raise HTTPException(
+            status_code=400,
+            detail="Insufficient data for PDF generation. Please complete the tax analysis first."
+        )
+
+    # Check if PDF generation is available
+    if not PDF_GENERATION_AVAILABLE:
+        # Fallback: redirect to advisory API
+        raise HTTPException(
+            status_code=503,
+            detail="PDF generation service temporarily unavailable. Please try the advisory reports API."
+        )
+
+    try:
+        # Import PDF exporter with branding support
+        from export.advisory_pdf_exporter import (
+            export_advisory_report_to_pdf,
+            CPABrandConfig
+        )
+
+        # Build TaxReturn from profile
+        tax_return = build_tax_return_from_profile(profile)
+
+        # Generate report using the advisory report generator
+        generator = AdvisoryReportGenerator()
+        report = generator.generate_report(
+            tax_return=tax_return,
+            report_type=ReportType.FULL_ANALYSIS,
+            include_entity_comparison=profile.get("is_self_employed", False),
+            include_multi_year=True,
+            years_ahead=3
+        )
+
+        # Build brand config if any branding parameters provided
+        brand_config = None
+        if any([firm_name, advisor_name, contact_email, contact_phone, primary_color]):
+            credentials_list = []
+            if advisor_credentials:
+                credentials_list = [c.strip() for c in advisor_credentials.split(",")]
+
+            brand_config = CPABrandConfig(
+                firm_name=firm_name or "Tax Advisory Services",
+                advisor_name=advisor_name,
+                advisor_credentials=credentials_list,
+                contact_email=contact_email,
+                contact_phone=contact_phone,
+                primary_color=primary_color or "#2c5aa0",
+            )
+
+        # Generate PDF using the exporter
+        output_dir = Path("/tmp/advisor_reports")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        pdf_path = str(output_dir / f"report_{session_id}.pdf")
+
+        export_advisory_report_to_pdf(
+            report=report,
+            output_path=pdf_path,
+            watermark=watermark,
+            include_charts=include_charts,
+            include_toc=include_toc,
+            brand_config=brand_config,
+        )
+
+        # Return PDF file
+        return FileResponse(
+            path=pdf_path,
+            media_type="application/pdf",
+            filename=f"tax_advisory_report_{session_id}.pdf"
+        )
+
+    except Exception as e:
+        logger.error(f"PDF generation failed for session {session_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate PDF: {str(e)}"
+        )
+
+
+@router.post("/report/{session_id}/generate-pdf")
+async def generate_session_pdf(session_id: str):
+    """
+    Generate PDF via the advisory reports API.
+
+    This endpoint uses the main advisory reports system for PDF generation,
+    which provides more features like background generation and storage.
+    """
+    # Get session and ensure it has data
+    session = chat_engine.get_or_create_session(session_id)
+    profile = session.get("profile", {})
+
+    if not profile.get("filing_status") or not profile.get("total_income"):
+        raise HTTPException(
+            status_code=400,
+            detail="Insufficient data. Please complete the tax analysis first."
+        )
+
+    # Ensure tax return data is saved for advisory API
+    chat_engine._save_tax_return_for_advisory(session_id, profile)
+
+    # Generate report via advisory API
+    try:
+        from web.advisory_api import (
+            _report_store, _pdf_store, _session_reports, _report_session,
+            _get_tax_return_from_session, _generate_report_sync, _generate_pdf_async
+        )
+        from advisory.report_generator import ReportType
+
+        # Get tax return
+        tax_return = _get_tax_return_from_session(session_id)
+
+        # Generate report
+        report = _generate_report_sync(
+            tax_return=tax_return,
+            report_type=ReportType.FULL_ANALYSIS,
+            include_entity_comparison=profile.get("is_self_employed", False),
+            include_multi_year=True,
+            years_ahead=3
+        )
+
+        # Store report
+        _report_store[report.report_id] = report
+        if session_id not in _session_reports:
+            _session_reports[session_id] = []
+        _session_reports[session_id].append(report.report_id)
+        _report_session[report.report_id] = session_id
+
+        # Generate PDF (this function runs synchronously despite the name)
+        _generate_pdf_async(report.report_id, report, watermark=None)
+        pdf_available = report.report_id in _pdf_store
+
+        return {
+            "success": True,
+            "report_id": report.report_id,
+            "session_id": session_id,
+            "pdf_available": pdf_available,
+            "pdf_url": f"/api/v1/advisory-reports/{report.report_id}/pdf",
+            "taxpayer_name": report.taxpayer_name,
+            "potential_savings": float(report.potential_savings),
+            "recommendations_count": report.top_recommendations_count
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to generate PDF for session {session_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate report: {str(e)}"
+        )
+
+
+# =============================================================================
+# UNIVERSAL REPORT ENDPOINTS
+# =============================================================================
+
+class UniversalReportRequest(BaseModel):
+    """Request for universal report generation."""
+    session_id: str
+    cpa_profile: Optional[Dict[str, Any]] = None
+    output_format: str = "html"  # "html", "pdf", "both"
+    tier_level: int = 2  # 1=teaser, 2=full, 3=complete
+
+
+@router.post("/universal-report")
+async def generate_universal_report(request: UniversalReportRequest):
+    """
+    Generate a universal report with dynamic visualizations.
+
+    Features:
+    - Savings gauge/meter
+    - Charts and graphs
+    - CPA branding/white-label support
+    - Multiple output formats
+    """
+    try:
+        from universal_report import UniversalReportEngine
+
+        # Get session data
+        session = chat_engine.get_or_create_session(request.session_id)
+        profile = session.get("profile", {})
+
+        if not profile.get("filing_status"):
+            raise HTTPException(
+                status_code=400,
+                detail="Insufficient data. Please complete the tax analysis first."
+            )
+
+        # Ensure calculations exist
+        calculation = session.get("calculations")
+        strategies = session.get("strategies", [])
+
+        if not calculation and profile.get("total_income"):
+            calculation = await chat_engine.get_tax_calculation(profile)
+            strategies = await chat_engine.get_tax_strategies(profile, calculation)
+            chat_engine.update_session(request.session_id, {
+                "calculations": calculation,
+                "strategies": strategies
+            })
+
+        # Prepare session data for report engine
+        session_data = {
+            "profile": profile,
+            "calculations": calculation.dict() if hasattr(calculation, 'dict') else calculation,
+            "strategies": [s.dict() if hasattr(s, 'dict') else s for s in strategies],
+            "lead_score": session.get("lead_score", 0),
+            "complexity": chat_engine.determine_complexity(profile),
+            "key_insights": session.get("key_insights", []),
+            "warnings": session.get("warnings", []),
+        }
+
+        # Generate report
+        engine = UniversalReportEngine()
+        output = engine.generate_report(
+            source_type='chatbot',
+            source_id=request.session_id,
+            source_data=session_data,
+            cpa_profile=request.cpa_profile,
+            output_format=request.output_format,
+            tier_level=request.tier_level,
+        )
+
+        return {
+            "success": True,
+            "report_id": output.report_id,
+            "session_id": request.session_id,
+            "html_content": output.html_content if request.output_format in ('html', 'both') else None,
+            "pdf_available": output.pdf_bytes is not None,
+            "taxpayer_name": output.taxpayer_name,
+            "tax_year": output.tax_year,
+            "potential_savings": output.potential_savings,
+            "recommendation_count": output.recommendation_count,
+            "total_sections": output.total_sections,
+        }
+
+    except ImportError as e:
+        logger.error(f"Universal report module not available: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Universal report generation not available"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Universal report generation failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate report: {str(e)}"
+        )
+
+
+@router.get("/universal-report/{session_id}/html")
+async def get_universal_report_html(
+    session_id: str,
+    cpa: Optional[str] = None,
+    tier: int = 2
+):
+    """
+    Get HTML universal report for a session.
+
+    Query params:
+    - cpa: CPA profile identifier for branding
+    - tier: Report tier level (1=teaser, 2=full, 3=complete)
+    """
+    try:
+        from universal_report import UniversalReportEngine
+
+        # Get session
+        session = chat_engine.get_or_create_session(session_id)
+        profile = session.get("profile", {})
+
+        if not profile.get("filing_status"):
+            raise HTTPException(status_code=404, detail="Session not found or has no data")
+
+        # Get CPA profile if specified
+        cpa_profile = None
+        if cpa:
+            # TODO: Load CPA profile from database
+            cpa_profile = {"firm_name": cpa, "preset": "professional"}
+
+        # Ensure calculations
+        calculation = session.get("calculations")
+        strategies = session.get("strategies", [])
+
+        if not calculation and profile.get("total_income"):
+            calculation = await chat_engine.get_tax_calculation(profile)
+            strategies = await chat_engine.get_tax_strategies(profile, calculation)
+
+        session_data = {
+            "profile": profile,
+            "calculations": calculation.dict() if hasattr(calculation, 'dict') else calculation,
+            "strategies": [s.dict() if hasattr(s, 'dict') else s for s in strategies],
+            "lead_score": session.get("lead_score", 0),
+            "complexity": chat_engine.determine_complexity(profile),
+        }
+
+        engine = UniversalReportEngine()
+        html = engine.generate_html_report(
+            source_type='chatbot',
+            source_id=session_id,
+            source_data=session_data,
+            cpa_profile=cpa_profile,
+            tier_level=tier,
+        )
+
+        from fastapi.responses import HTMLResponse
+        return HTMLResponse(content=html, media_type="text/html")
+
+    except ImportError as e:
+        logger.error(f"Universal report module not available: {e}")
+        raise HTTPException(status_code=503, detail="Universal report not available")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Universal report HTML failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/universal-report/{session_id}/pdf")
+async def get_universal_report_pdf(
+    session_id: str,
+    cpa: Optional[str] = None,
+    tier: int = 2
+):
+    """
+    Get PDF universal report for a session.
+
+    Query params:
+    - cpa: CPA profile identifier for branding
+    - tier: Report tier level (1=teaser, 2=full, 3=complete)
+    """
+    import tempfile
+    from pathlib import Path
+
+    try:
+        from universal_report import UniversalReportEngine
+
+        # Get session
+        session = chat_engine.get_or_create_session(session_id)
+        profile = session.get("profile", {})
+
+        if not profile.get("filing_status"):
+            raise HTTPException(status_code=404, detail="Session not found or has no data")
+
+        # Get CPA profile if specified
+        cpa_profile = None
+        if cpa:
+            cpa_profile = {"firm_name": cpa, "preset": "professional"}
+
+        # Ensure calculations
+        calculation = session.get("calculations")
+        strategies = session.get("strategies", [])
+
+        if not calculation and profile.get("total_income"):
+            calculation = await chat_engine.get_tax_calculation(profile)
+            strategies = await chat_engine.get_tax_strategies(profile, calculation)
+
+        session_data = {
+            "profile": profile,
+            "calculations": calculation.dict() if hasattr(calculation, 'dict') else calculation,
+            "strategies": [s.dict() if hasattr(s, 'dict') else s for s in strategies],
+            "lead_score": session.get("lead_score", 0),
+            "complexity": chat_engine.determine_complexity(profile),
+        }
+
+        engine = UniversalReportEngine()
+        output = engine.generate_report(
+            source_type='chatbot',
+            source_id=session_id,
+            source_data=session_data,
+            cpa_profile=cpa_profile,
+            output_format='pdf',
+            tier_level=tier,
+        )
+
+        if output.pdf_bytes:
+            # Save to temp file and return
+            output_dir = Path("/tmp/universal_reports")
+            output_dir.mkdir(parents=True, exist_ok=True)
+            pdf_path = output_dir / f"universal_report_{session_id}.pdf"
+            pdf_path.write_bytes(output.pdf_bytes)
+
+            return FileResponse(
+                path=str(pdf_path),
+                media_type="application/pdf",
+                filename=f"tax_report_{session_id}.pdf"
+            )
+        else:
+            raise HTTPException(status_code=500, detail="PDF generation failed")
+
+    except ImportError as e:
+        logger.error(f"Universal report module not available: {e}")
+        raise HTTPException(status_code=503, detail="Universal report not available")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Universal report PDF failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # Register the router
