@@ -1,0 +1,717 @@
+{% from 'macros/icons.html' import icon %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Refund Management - Platform Admin</title>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --info: #3b82f6;
+      --purple: #8b5cf6;
+      --sidebar-width: 260px;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --transition: 150ms ease;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--gray-900);
+      color: var(--gray-100);
+      min-height: 100vh;
+    }
+
+    .app-layout { display: flex; min-height: 100vh; }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
+      display: flex; flex-direction: column;
+      position: fixed; height: 100vh; z-index: 100;
+    }
+
+    .sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+
+    .sidebar-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+
+    .logo-icon {
+      width: 36px; height: 36px; background: var(--primary);
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .logo-text { font-size: 18px; font-weight: 700; color: white; }
+    .logo-badge { font-size: 10px; padding: 2px 6px; background: var(--error); border-radius: 4px; margin-left: 4px; }
+
+    .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+    .nav-section { margin-bottom: 24px; }
+    .nav-section-title { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.4); text-transform: uppercase; padding: 0 12px; margin-bottom: 8px; }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 12px; border-radius: var(--radius-md);
+      color: rgba(255,255,255,0.7); text-decoration: none;
+      font-size: 14px; transition: var(--transition); margin-bottom: 2px;
+    }
+
+    .nav-item:hover { background: rgba(255,255,255,0.1); color: white; }
+    .nav-item.active { background: rgba(99, 102, 241, 0.3); color: white; }
+    .nav-icon { width: 20px; height: 20px; opacity: 0.8; }
+
+    .main-content { flex: 1; margin-left: var(--sidebar-width); background: var(--gray-900); }
+
+    .content-header {
+      padding: 24px 32px; border-bottom: 1px solid var(--gray-800);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    .page-title { font-size: 24px; font-weight: 700; }
+    .page-subtitle { font-size: 14px; color: var(--gray-400); margin-top: 4px; }
+
+    .header-actions { display: flex; gap: 12px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 16px; border-radius: var(--radius-md);
+      font-size: 14px; font-weight: 500; cursor: pointer;
+      transition: var(--transition); border: none;
+    }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-secondary { background: var(--gray-700); color: var(--gray-100); }
+    .btn-secondary:hover { background: var(--gray-600); }
+    .btn-success { background: var(--success); color: white; }
+    .btn-success:hover { background: #059669; }
+    .btn-danger { background: var(--error); color: white; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-sm { padding: 6px 12px; font-size: 13px; }
+
+    .content-body { padding: 32px; }
+
+    /* Stats */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr);
+      gap: 16px; margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--gray-800); border-radius: var(--radius-lg);
+      padding: 20px; border: 1px solid var(--gray-700);
+    }
+
+    .stat-label { font-size: 12px; color: var(--gray-400); margin-bottom: 4px; }
+    .stat-value { font-size: 24px; font-weight: 700; }
+    .stat-sub { font-size: 12px; margin-top: 4px; }
+    .stat-sub.positive { color: var(--success); }
+    .stat-sub.negative { color: var(--error); }
+
+    /* Tabs */
+    .tabs {
+      display: flex; gap: 4px; margin-bottom: 24px;
+      border-bottom: 1px solid var(--gray-700);
+    }
+
+    .tab {
+      padding: 12px 20px; font-size: 14px; font-weight: 500;
+      color: var(--gray-400); background: transparent;
+      border: none; cursor: pointer; position: relative;
+      transition: var(--transition);
+    }
+
+    .tab:hover { color: var(--gray-200); }
+    .tab.active { color: var(--primary-light); }
+
+    .tab.active::after {
+      content: ''; position: absolute;
+      bottom: -1px; left: 0; right: 0;
+      height: 2px; background: var(--primary);
+    }
+
+    .tab-badge {
+      padding: 2px 8px; border-radius: 10px;
+      font-size: 11px; font-weight: 600; margin-left: 8px;
+    }
+
+    .tab-badge.pending { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+    .tab-badge.approved { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+
+    /* Filters */
+    .filters-bar { display: flex; gap: 12px; margin-bottom: 24px; }
+
+    .search-input {
+      flex: 1; min-width: 250px;
+      padding: 10px 14px 10px 40px;
+      border: 1px solid var(--gray-600); border-radius: var(--radius-md);
+      background: var(--gray-800); color: var(--gray-100); font-size: 14px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%239ca3af' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: 12px center;
+    }
+
+    .search-input:focus { outline: none; border-color: var(--primary); }
+
+    .filter-select {
+      padding: 10px 14px; border: 1px solid var(--gray-600);
+      border-radius: var(--radius-md); background: var(--gray-800);
+      color: var(--gray-100); font-size: 14px; min-width: 150px;
+    }
+
+    /* Refunds Table */
+    .refunds-table-container {
+      background: var(--gray-800); border-radius: var(--radius-lg);
+      border: 1px solid var(--gray-700); overflow: hidden;
+    }
+
+    .refunds-table { width: 100%; border-collapse: collapse; }
+
+    .refunds-table th,
+    .refunds-table td {
+      padding: 14px 16px; text-align: left;
+      border-bottom: 1px solid var(--gray-700);
+    }
+
+    .refunds-table th {
+      background: var(--gray-800); font-size: 12px;
+      font-weight: 600; color: var(--gray-400);
+      text-transform: uppercase;
+    }
+
+    .refunds-table tr:hover { background: rgba(99, 102, 241, 0.05); }
+    .refunds-table td { font-size: 14px; }
+
+    .refund-id {
+      font-family: monospace; font-size: 12px;
+      color: var(--gray-400);
+    }
+
+    .firm-cell { display: flex; align-items: center; gap: 12px; }
+
+    .firm-avatar {
+      width: 36px; height: 36px; border-radius: var(--radius-md);
+      background: var(--primary); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 600;
+    }
+
+    .firm-info { display: flex; flex-direction: column; }
+    .firm-name { font-weight: 500; }
+    .firm-email { font-size: 12px; color: var(--gray-500); }
+
+    .amount { font-weight: 600; font-family: monospace; }
+
+    .reason-cell {
+      max-width: 200px; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+      color: var(--gray-400); font-size: 13px;
+    }
+
+    .status-badge {
+      padding: 4px 10px; border-radius: var(--radius-sm);
+      font-size: 12px; font-weight: 500;
+    }
+
+    .status-badge.pending { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+    .status-badge.approved { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+    .status-badge.rejected { background: rgba(239, 68, 68, 0.2); color: var(--error); }
+    .status-badge.processed { background: rgba(59, 130, 246, 0.2); color: var(--info); }
+
+    .date-cell { font-size: 13px; color: var(--gray-400); }
+
+    .actions-cell { display: flex; gap: 8px; }
+
+    /* Pagination */
+    .pagination {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 20px; border-top: 1px solid var(--gray-700);
+    }
+
+    .pagination-info { font-size: 13px; color: var(--gray-400); }
+
+    .pagination-controls { display: flex; gap: 8px; }
+
+    .page-btn {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-md); border: 1px solid var(--gray-600);
+      background: var(--gray-800); color: var(--gray-300);
+      font-size: 13px; cursor: pointer; transition: var(--transition);
+    }
+
+    .page-btn:hover:not(:disabled) { background: var(--gray-700); }
+    .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .page-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none; align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-overlay.active { display: flex; }
+
+    .modal {
+      background: var(--gray-800); border-radius: var(--radius-lg);
+      width: 100%; max-width: 550px; max-height: 90vh;
+      overflow: hidden; border: 1px solid var(--gray-700);
+    }
+
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 20px 24px; border-bottom: 1px solid var(--gray-700);
+    }
+
+    .modal-title { font-size: 18px; font-weight: 600; }
+
+    .modal-close {
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-md); border: none;
+      background: transparent; color: var(--gray-400);
+      cursor: pointer; transition: var(--transition);
+    }
+
+    .modal-close:hover { background: var(--gray-700); color: white; }
+
+    .modal-body { padding: 24px; max-height: 60vh; overflow-y: auto; }
+
+    .modal-footer {
+      padding: 16px 24px; border-top: 1px solid var(--gray-700);
+      display: flex; justify-content: flex-end; gap: 12px;
+    }
+
+    .detail-row {
+      display: flex; justify-content: space-between;
+      padding: 12px 0; border-bottom: 1px solid var(--gray-700);
+    }
+
+    .detail-row:last-child { border-bottom: none; }
+
+    .detail-label { font-size: 13px; color: var(--gray-500); }
+    .detail-value { font-size: 14px; font-weight: 500; text-align: right; }
+
+    .reason-box {
+      background: var(--gray-700); border-radius: var(--radius-md);
+      padding: 12px 16px; margin-top: 16px;
+    }
+
+    .reason-label { font-size: 12px; color: var(--gray-500); margin-bottom: 8px; }
+    .reason-text { font-size: 14px; line-height: 1.5; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 13px; font-weight: 500; color: var(--gray-300); margin-bottom: 8px; }
+
+    .form-textarea {
+      width: 100%; padding: 12px 14px;
+      border: 1px solid var(--gray-600); border-radius: var(--radius-md);
+      background: var(--gray-700); color: var(--gray-100);
+      font-size: 14px; min-height: 100px; resize: vertical;
+      font-family: inherit;
+    }
+
+    .form-textarea:focus { outline: none; border-color: var(--primary); }
+
+    .warning-box {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 16px; background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: var(--radius-md); margin-top: 16px;
+    }
+
+    .warning-box svg { color: var(--error); flex-shrink: 0; margin-top: 2px; }
+    .warning-text { font-size: 13px; color: var(--gray-300); }
+
+    @media (max-width: 1200px) {
+      .stats-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main-content { margin-left: 0; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="/admin" class="sidebar-logo">
+          <div class="logo-icon">
+            <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          </div>
+          <span class="logo-text">TaxFlow<span class="logo-badge">ADMIN</span></span>
+        </a>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Overview</div>
+          <a href="/admin" class="nav-item">
+            <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Dashboard
+          </a>
+          <a href="/admin/tenants" class="nav-item">
+            <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            Firms
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Business</div>
+          <a href="/admin/billing" class="nav-item">
+            <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+            Billing
+          </a>
+          <a href="/admin/refunds" class="nav-item active">
+            <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+            Refunds
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="/admin/audit-logs" class="nav-item">
+            <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+            Audit Logs
+          </a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="content-header">
+        <div>
+          <h1 class="page-title">Refund Management</h1>
+          <p class="page-subtitle">Process and track subscription refund requests</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Export Report
+          </button>
+        </div>
+      </header>
+
+      <div class="content-body">
+        <!-- Stats -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Pending Requests</div>
+            <div class="stat-value" style="color: var(--warning);">8</div>
+            <div class="stat-sub">Awaiting review</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Approved (MTD)</div>
+            <div class="stat-value" style="color: var(--success);">23</div>
+            <div class="stat-sub positive">$4,567.00 refunded</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Rejected (MTD)</div>
+            <div class="stat-value">5</div>
+            <div class="stat-sub">Policy violations</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Avg Processing</div>
+            <div class="stat-value">1.2d</div>
+            <div class="stat-sub positive">-0.3d from last month</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Refund Rate</div>
+            <div class="stat-value">2.1%</div>
+            <div class="stat-sub negative">+0.2% from last month</div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+          <button class="tab active">
+            Pending
+            <span class="tab-badge pending">8</span>
+          </button>
+          <button class="tab">Approved</button>
+          <button class="tab">Rejected</button>
+          <button class="tab">All Requests</button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-bar">
+          <input type="text" class="search-input" placeholder="Search by firm, email, or refund ID...">
+          <select class="filter-select">
+            <option value="">All Amounts</option>
+            <option value="0-100">$0 - $100</option>
+            <option value="100-500">$100 - $500</option>
+            <option value="500+">$500+</option>
+          </select>
+          <select class="filter-select">
+            <option value="">All Reasons</option>
+            <option value="unused">Unused Service</option>
+            <option value="downgrade">Downgrade</option>
+            <option value="cancellation">Cancellation</option>
+            <option value="billing_error">Billing Error</option>
+          </select>
+        </div>
+
+        <!-- Refunds Table -->
+        <div class="refunds-table-container">
+          <table class="refunds-table">
+            <thead>
+              <tr>
+                <th>Request ID</th>
+                <th>Firm</th>
+                <th>Amount</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Requested</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="refund-id">REF-2026-0142</span></td>
+                <td>
+                  <div class="firm-cell">
+                    <div class="firm-avatar">JA</div>
+                    <div class="firm-info">
+                      <span class="firm-name">Johnson & Associates</span>
+                      <span class="firm-email">billing@johnsonassoc.com</span>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="amount">$299.00</span></td>
+                <td><span class="reason-cell">Downgrade from Professional to Starter plan</span></td>
+                <td><span class="status-badge pending">Pending</span></td>
+                <td><span class="date-cell">Jan 28, 2026</span></td>
+                <td>
+                  <div class="actions-cell">
+                    <button class="btn btn-success btn-sm" onclick="approveRefund('REF-2026-0142')">Approve</button>
+                    <button class="btn btn-secondary btn-sm" onclick="viewRefund('REF-2026-0142')">Review</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="refund-id">REF-2026-0141</span></td>
+                <td>
+                  <div class="firm-cell">
+                    <div class="firm-avatar">SM</div>
+                    <div class="firm-info">
+                      <span class="firm-name">Smith & Miller Tax</span>
+                      <span class="firm-email">admin@smtax.com</span>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="amount">$149.00</span></td>
+                <td><span class="reason-cell">Service not used during billing period</span></td>
+                <td><span class="status-badge pending">Pending</span></td>
+                <td><span class="date-cell">Jan 27, 2026</span></td>
+                <td>
+                  <div class="actions-cell">
+                    <button class="btn btn-success btn-sm" onclick="approveRefund('REF-2026-0141')">Approve</button>
+                    <button class="btn btn-secondary btn-sm" onclick="viewRefund('REF-2026-0141')">Review</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="refund-id">REF-2026-0140</span></td>
+                <td>
+                  <div class="firm-cell">
+                    <div class="firm-avatar">CP</div>
+                    <div class="firm-info">
+                      <span class="firm-name">Chen & Partners</span>
+                      <span class="firm-email">finance@chenpartners.com</span>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="amount">$599.00</span></td>
+                <td><span class="reason-cell">Account cancellation - business closure</span></td>
+                <td><span class="status-badge pending">Pending</span></td>
+                <td><span class="date-cell">Jan 26, 2026</span></td>
+                <td>
+                  <div class="actions-cell">
+                    <button class="btn btn-success btn-sm" onclick="approveRefund('REF-2026-0140')">Approve</button>
+                    <button class="btn btn-secondary btn-sm" onclick="viewRefund('REF-2026-0140')">Review</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="refund-id">REF-2026-0139</span></td>
+                <td>
+                  <div class="firm-cell">
+                    <div class="firm-avatar">MT</div>
+                    <div class="firm-info">
+                      <span class="firm-name">Martinez Tax Services</span>
+                      <span class="firm-email">maria@martineztax.com</span>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="amount">$49.00</span></td>
+                <td><span class="reason-cell">Duplicate charge - billing error</span></td>
+                <td><span class="status-badge pending">Pending</span></td>
+                <td><span class="date-cell">Jan 25, 2026</span></td>
+                <td>
+                  <div class="actions-cell">
+                    <button class="btn btn-success btn-sm" onclick="approveRefund('REF-2026-0139')">Approve</button>
+                    <button class="btn btn-secondary btn-sm" onclick="viewRefund('REF-2026-0139')">Review</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Pagination -->
+          <div class="pagination">
+            <span class="pagination-info">Showing 1-4 of 8 pending requests</span>
+            <div class="pagination-controls">
+              <button class="page-btn" disabled>
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+              </button>
+              <button class="page-btn active">1</button>
+              <button class="page-btn">2</button>
+              <button class="page-btn">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Review Modal -->
+  <div class="modal-overlay" id="reviewModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Review Refund Request</h3>
+        <button class="modal-close" onclick="closeModal()">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-row">
+          <span class="detail-label">Request ID</span>
+          <span class="detail-value" id="modalRefundId">REF-2026-0142</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Firm</span>
+          <span class="detail-value">Johnson & Associates CPA</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Subscription</span>
+          <span class="detail-value">Professional Plan - Monthly</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Refund Amount</span>
+          <span class="detail-value" style="color: var(--success); font-size: 18px;">$299.00</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Original Payment</span>
+          <span class="detail-value">Jan 15, 2026 via Stripe</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Request Date</span>
+          <span class="detail-value">Jan 28, 2026</span>
+        </div>
+
+        <div class="reason-box">
+          <div class="reason-label">Customer's Reason</div>
+          <div class="reason-text">We are downgrading from Professional to Starter plan as we no longer need the advanced features. Requesting a prorated refund for the remaining billing period.</div>
+        </div>
+
+        <div class="form-group" style="margin-top: 20px;">
+          <label class="form-label">Internal Notes (Optional)</label>
+          <textarea class="form-textarea" placeholder="Add any notes about this refund decision..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" onclick="rejectRefund()">Reject</button>
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-success" onclick="processApproval()">Approve & Process</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reject Modal -->
+  <div class="modal-overlay" id="rejectModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Reject Refund Request</h3>
+        <button class="modal-close" onclick="closeModal()">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Rejection Reason</label>
+          <textarea class="form-textarea" placeholder="Explain why this refund is being rejected..." required></textarea>
+        </div>
+
+        <div class="warning-box">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+          <div class="warning-text">The customer will be notified of this rejection via email. Ensure the reason is clear and professional.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmReject()">Confirm Rejection</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function viewRefund(id) {
+      document.getElementById('modalRefundId').textContent = id;
+      document.getElementById('reviewModal').classList.add('active');
+    }
+
+    function approveRefund(id) {
+      if (confirm('Approve refund ' + id + '? This will process the refund immediately.')) {
+        alert('Refund approved and processing...');
+      }
+    }
+
+    function rejectRefund() {
+      document.getElementById('reviewModal').classList.remove('active');
+      document.getElementById('rejectModal').classList.add('active');
+    }
+
+    function processApproval() {
+      alert('Refund approved and processing via Stripe...');
+      closeModal();
+    }
+
+    function confirmReject() {
+      alert('Refund rejected. Customer will be notified.');
+      closeModal();
+    }
+
+    function closeModal() {
+      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeModal();
+      });
+    });
+  </script>
+</body>
+</html>
