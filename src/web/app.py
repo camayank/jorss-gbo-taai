@@ -478,13 +478,15 @@ except ImportError as e:
 # =============================================================================
 
 # Register Pages Router (HTML UI pages)
-try:
-    from web.routers.pages import router as pages_router, set_templates
-    # Templates will be set after templates are initialized
-    app.include_router(pages_router)
-    logger.info("Pages router enabled")
-except ImportError as e:
-    logger.warning(f"Pages router not available: {e}")
+# DISABLED: pages.py routes duplicate app.py routes and lack proper context (branding, etc.)
+# All page routes are defined directly in app.py with full functionality
+# try:
+#     from web.routers.pages import router as pages_router, set_templates
+#     app.include_router(pages_router)
+#     logger.info("Pages router enabled")
+# except ImportError as e:
+#     logger.warning(f"Pages router not available: {e}")
+logger.info("Pages router disabled - using app.py routes")
 
 # Register Documents Router (Document upload/management)
 try:
