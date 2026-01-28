@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Manage your tax documents securely">
+    <title>Document Library | JORSS-GBO Tax Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/core/variables.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--color-gray-50);
+            min-height: 100vh;
+            color: var(--color-gray-900);
+        }
+
+        /* Header */
+        .page-header {
+            background: white;
+            border-bottom: 1px solid var(--color-gray-200);
+            padding: var(--space-4) var(--space-6);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: var(--space-4);
+        }
+
+        .page-title {
+            font-size: var(--text-2xl);
+            font-weight: var(--font-bold);
+            color: var(--color-gray-900);
+        }
+
+        .page-subtitle {
+            font-size: var(--text-sm);
+            color: var(--color-gray-500);
+            margin-top: var(--space-1);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: var(--space-3);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-4);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            border: none;
+            text-decoration: none;
+        }
+
+        .btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--color-gray-700);
+            border: 1px solid var(--color-gray-300);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-gray-50);
+        }
+
+        /* Main content */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--space-6);
+        }
+
+        /* Stats bar */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: var(--space-4);
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .stat-icon.blue {
+            background: var(--color-primary-100);
+            color: var(--color-primary-600);
+        }
+
+        .stat-icon.green {
+            background: var(--color-success-100);
+            color: var(--color-success-600);
+        }
+
+        .stat-icon.yellow {
+            background: var(--color-warning-100);
+            color: var(--color-warning-600);
+        }
+
+        .stat-icon.purple {
+            background: var(--color-purple-100);
+            color: var(--color-purple-600);
+        }
+
+        .stat-value {
+            font-size: var(--text-2xl);
+            font-weight: var(--font-bold);
+            color: var(--color-gray-900);
+        }
+
+        .stat-label {
+            font-size: var(--text-sm);
+            color: var(--color-gray-500);
+        }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: var(--space-4);
+            margin-bottom: var(--space-4);
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: var(--space-2) var(--space-4);
+            padding-left: 40px;
+            border: 1px solid var(--color-gray-300);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-sm);
+            background: white;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--color-primary-500);
+            box-shadow: 0 0 0 3px var(--color-primary-100);
+        }
+
+        .search-box svg {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            color: var(--color-gray-400);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: var(--space-2);
+        }
+
+        .filter-select {
+            padding: var(--space-2) var(--space-3);
+            border: 1px solid var(--color-gray-300);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-sm);
+            background: white;
+            color: var(--color-gray-700);
+            cursor: pointer;
+        }
+
+        .view-toggle {
+            display: flex;
+            background: var(--color-gray-100);
+            border-radius: var(--radius-lg);
+            padding: var(--space-1);
+        }
+
+        .view-btn {
+            padding: var(--space-2);
+            border: none;
+            background: transparent;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            color: var(--color-gray-500);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .view-btn.active {
+            background: white;
+            color: var(--color-primary-600);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .view-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Document Grid */
+        .document-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: var(--space-4);
+        }
+
+        .document-card {
+            background: white;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--color-gray-200);
+            overflow: hidden;
+            transition: all var(--transition-fast);
+        }
+
+        .document-card:hover {
+            border-color: var(--color-primary-300);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .document-preview {
+            height: 160px;
+            background: var(--color-gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .document-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .document-type-icon {
+            width: 64px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .document-type-icon svg {
+            width: 48px;
+            height: 48px;
+        }
+
+        .document-type-icon.pdf { color: var(--color-error-500); }
+        .document-type-icon.image { color: var(--color-success-500); }
+        .document-type-icon.doc { color: var(--color-primary-500); }
+        .document-type-icon.spreadsheet { color: var(--color-success-600); }
+
+        .document-status {
+            position: absolute;
+            top: var(--space-2);
+            right: var(--space-2);
+            padding: var(--space-1) var(--space-2);
+            border-radius: var(--radius-full);
+            font-size: var(--text-xs);
+            font-weight: var(--font-medium);
+        }
+
+        .document-status.processing {
+            background: var(--color-warning-100);
+            color: var(--color-warning-700);
+        }
+
+        .document-status.verified {
+            background: var(--color-success-100);
+            color: var(--color-success-700);
+        }
+
+        .document-status.needs-review {
+            background: var(--color-error-100);
+            color: var(--color-error-700);
+        }
+
+        .document-info {
+            padding: var(--space-4);
+        }
+
+        .document-name {
+            font-weight: var(--font-semibold);
+            color: var(--color-gray-900);
+            margin-bottom: var(--space-1);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .document-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: var(--text-xs);
+            color: var(--color-gray-500);
+        }
+
+        .document-category {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-1);
+            padding: var(--space-1) var(--space-2);
+            background: var(--color-gray-100);
+            border-radius: var(--radius-full);
+            font-size: var(--text-xs);
+            color: var(--color-gray-600);
+            margin-top: var(--space-2);
+        }
+
+        .document-actions {
+            display: flex;
+            gap: var(--space-2);
+            padding: var(--space-3) var(--space-4);
+            border-top: 1px solid var(--color-gray-100);
+        }
+
+        .doc-action-btn {
+            flex: 1;
+            padding: var(--space-2);
+            border: none;
+            background: transparent;
+            border-radius: var(--radius-md);
+            font-size: var(--text-xs);
+            color: var(--color-gray-600);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-1);
+            transition: all var(--transition-fast);
+        }
+
+        .doc-action-btn:hover {
+            background: var(--color-gray-100);
+            color: var(--color-primary-600);
+        }
+
+        .doc-action-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Document List View */
+        .document-list {
+            display: none;
+            background: white;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--color-gray-200);
+            overflow: hidden;
+        }
+
+        .document-list.active {
+            display: block;
+        }
+
+        .document-grid.hidden {
+            display: none;
+        }
+
+        .list-header {
+            display: grid;
+            grid-template-columns: 40px 1fr 120px 100px 100px 120px;
+            gap: var(--space-4);
+            padding: var(--space-3) var(--space-4);
+            background: var(--color-gray-50);
+            border-bottom: 1px solid var(--color-gray-200);
+            font-size: var(--text-xs);
+            font-weight: var(--font-semibold);
+            color: var(--color-gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .list-row {
+            display: grid;
+            grid-template-columns: 40px 1fr 120px 100px 100px 120px;
+            gap: var(--space-4);
+            padding: var(--space-3) var(--space-4);
+            border-bottom: 1px solid var(--color-gray-100);
+            align-items: center;
+            transition: background var(--transition-fast);
+        }
+
+        .list-row:hover {
+            background: var(--color-gray-50);
+        }
+
+        .list-row:last-child {
+            border-bottom: none;
+        }
+
+        .list-checkbox {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--color-primary-600);
+        }
+
+        .list-file-info {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+
+        .list-file-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .list-file-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .list-file-name {
+            font-weight: var(--font-medium);
+            color: var(--color-gray-900);
+        }
+
+        .list-file-date {
+            font-size: var(--text-xs);
+            color: var(--color-gray-500);
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed var(--color-gray-300);
+            border-radius: var(--radius-xl);
+            padding: var(--space-8);
+            text-align: center;
+            background: white;
+            transition: all var(--transition-fast);
+            cursor: pointer;
+            margin-bottom: var(--space-6);
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: var(--color-primary-500);
+            background: var(--color-primary-50);
+        }
+
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto var(--space-4);
+            background: var(--color-primary-100);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-primary-600);
+        }
+
+        .upload-icon svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .upload-title {
+            font-size: var(--text-lg);
+            font-weight: var(--font-semibold);
+            color: var(--color-gray-900);
+            margin-bottom: var(--space-2);
+        }
+
+        .upload-subtitle {
+            font-size: var(--text-sm);
+            color: var(--color-gray-500);
+            margin-bottom: var(--space-4);
+        }
+
+        .upload-formats {
+            font-size: var(--text-xs);
+            color: var(--color-gray-400);
+        }
+
+        .upload-input {
+            display: none;
+        }
+
+        /* Upload Progress Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: var(--space-4);
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: var(--radius-2xl);
+            width: 100%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: var(--shadow-2xl);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-4) var(--space-6);
+            border-bottom: 1px solid var(--color-gray-200);
+        }
+
+        .modal-title {
+            font-size: var(--text-lg);
+            font-weight: var(--font-semibold);
+            color: var(--color-gray-900);
+        }
+
+        .modal-close {
+            padding: var(--space-2);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            color: var(--color-gray-400);
+            border-radius: var(--radius-md);
+        }
+
+        .modal-close:hover {
+            background: var(--color-gray-100);
+            color: var(--color-gray-600);
+        }
+
+        .modal-close svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .modal-body {
+            padding: var(--space-6);
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .upload-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            padding: var(--space-3);
+            background: var(--color-gray-50);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--space-3);
+        }
+
+        .upload-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .upload-item-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border-radius: var(--radius-md);
+        }
+
+        .upload-item-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .upload-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .upload-item-name {
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            color: var(--color-gray-900);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .upload-item-size {
+            font-size: var(--text-xs);
+            color: var(--color-gray-500);
+        }
+
+        .upload-progress {
+            height: 4px;
+            background: var(--color-gray-200);
+            border-radius: var(--radius-full);
+            margin-top: var(--space-2);
+            overflow: hidden;
+        }
+
+        .upload-progress-bar {
+            height: 100%;
+            background: var(--color-primary-500);
+            border-radius: var(--radius-full);
+            transition: width 0.3s ease;
+        }
+
+        .upload-item-status {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-item-status.success { color: var(--color-success-500); }
+        .upload-item-status.error { color: var(--color-error-500); }
+        .upload-item-status.pending { color: var(--color-gray-400); }
+
+        .modal-footer {
+            padding: var(--space-4) var(--space-6);
+            border-top: 1px solid var(--color-gray-200);
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--space-3);
+        }
+
+        /* Category Selection Modal */
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-3);
+        }
+
+        .category-option {
+            padding: var(--space-4);
+            border: 2px solid var(--color-gray-200);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            text-align: center;
+        }
+
+        .category-option:hover {
+            border-color: var(--color-primary-300);
+            background: var(--color-primary-50);
+        }
+
+        .category-option.selected {
+            border-color: var(--color-primary-500);
+            background: var(--color-primary-50);
+        }
+
+        .category-option-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto var(--space-2);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .category-option-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .category-option-name {
+            font-weight: var(--font-medium);
+            color: var(--color-gray-900);
+            font-size: var(--text-sm);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: var(--space-12);
+        }
+
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto var(--space-4);
+            background: var(--color-gray-100);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-gray-400);
+        }
+
+        .empty-icon svg {
+            width: 40px;
+            height: 40px;
+        }
+
+        .empty-title {
+            font-size: var(--text-lg);
+            font-weight: var(--font-semibold);
+            color: var(--color-gray-900);
+            margin-bottom: var(--space-2);
+        }
+
+        .empty-subtitle {
+            font-size: var(--text-sm);
+            color: var(--color-gray-500);
+            margin-bottom: var(--space-6);
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .stats-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .toolbar {
+                flex-direction: column;
+            }
+
+            .search-box {
+                max-width: none;
+                width: 100%;
+            }
+
+            .filter-group {
+                width: 100%;
+                overflow-x: auto;
+            }
+
+            .document-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .list-header,
+            .list-row {
+                grid-template-columns: 40px 1fr 100px;
+            }
+
+            .list-header > *:nth-child(n+4),
+            .list-row > *:nth-child(n+4) {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="page-header">
+        <div class="header-content">
+            <div>
+                <h1 class="page-title">Document Library</h1>
+                <p class="page-subtitle">Securely manage your tax documents</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="openCategoryModal()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                    Request Documents
+                </button>
+                <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    Upload Documents
+                </button>
+                <input type="file" id="fileInput" class="upload-input" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-icon blue">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="stat-value" id="totalDocs">12</div>
+                    <div class="stat-label">Total Documents</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="stat-value" id="verifiedDocs">8</div>
+                    <div class="stat-label">Verified</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon yellow">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="stat-value" id="processingDocs">3</div>
+                    <div class="stat-label">Processing</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon purple">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="stat-value" id="needsReview">1</div>
+                    <div class="stat-label">Needs Review</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Zone -->
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+            </div>
+            <h3 class="upload-title">Drop files here or click to upload</h3>
+            <p class="upload-subtitle">Upload your W-2s, 1099s, receipts, and other tax documents</p>
+            <p class="upload-formats">Supported: PDF, JPG, PNG, DOC, DOCX, XLS, XLSX (Max 25MB per file)</p>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="search-box">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input type="text" id="searchInput" placeholder="Search documents...">
+            </div>
+            <div class="filter-group">
+                <select class="filter-select" id="categoryFilter">
+                    <option value="">All Categories</option>
+                    <option value="w2">W-2 Forms</option>
+                    <option value="1099">1099 Forms</option>
+                    <option value="receipts">Receipts</option>
+                    <option value="bank">Bank Statements</option>
+                    <option value="investment">Investment Docs</option>
+                    <option value="property">Property Documents</option>
+                    <option value="other">Other</option>
+                </select>
+                <select class="filter-select" id="statusFilter">
+                    <option value="">All Status</option>
+                    <option value="verified">Verified</option>
+                    <option value="processing">Processing</option>
+                    <option value="needs-review">Needs Review</option>
+                </select>
+                <select class="filter-select" id="yearFilter">
+                    <option value="2025">Tax Year 2025</option>
+                    <option value="2024">Tax Year 2024</option>
+                    <option value="2023">Tax Year 2023</option>
+                </select>
+            </div>
+            <div class="view-toggle">
+                <button class="view-btn active" id="gridViewBtn" onclick="setView('grid')">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                    </svg>
+                </button>
+                <button class="view-btn" id="listViewBtn" onclick="setView('list')">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Document Grid View -->
+        <div class="document-grid" id="documentGrid">
+            <!-- Sample documents - would be populated from API -->
+            <div class="document-card" data-category="w2" data-status="verified">
+                <div class="document-preview">
+                    <div class="document-type-icon pdf">
+                        <svg fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/>
+                            <path d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/>
+                        </svg>
+                    </div>
+                    <span class="document-status verified">Verified</span>
+                </div>
+                <div class="document-info">
+                    <h4 class="document-name">W-2_2024_Employer.pdf</h4>
+                    <div class="document-meta">
+                        <span>245 KB</span>
+                        <span>Jan 15, 2025</span>
+                    </div>
+                    <span class="document-category">W-2 Forms</span>
+                </div>
+                <div class="document-actions">
+                    <button class="doc-action-btn" onclick="viewDocument('1')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        View
+                    </button>
+                    <button class="doc-action-btn" onclick="downloadDocument('1')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Download
+                    </button>
+                    <button class="doc-action-btn" onclick="deleteDocument('1')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        Delete
+                    </button>
+                </div>
+            </div>
+
+            <div class="document-card" data-category="1099" data-status="processing">
+                <div class="document-preview">
+                    <div class="document-type-icon pdf">
+                        <svg fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/>
+                            <path d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/>
+                        </svg>
+                    </div>
+                    <span class="document-status processing">Processing</span>
+                </div>
+                <div class="document-info">
+                    <h4 class="document-name">1099-INT_BankOfAmerica.pdf</h4>
+                    <div class="document-meta">
+                        <span>180 KB</span>
+                        <span>Jan 20, 2025</span>
+                    </div>
+                    <span class="document-category">1099 Forms</span>
+                </div>
+                <div class="document-actions">
+                    <button class="doc-action-btn" onclick="viewDocument('2')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        View
+                    </button>
+                    <button class="doc-action-btn" onclick="downloadDocument('2')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Download
+                    </button>
+                    <button class="doc-action-btn" onclick="deleteDocument('2')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        Delete
+                    </button>
+                </div>
+            </div>
+
+            <div class="document-card" data-category="receipts" data-status="needs-review">
+                <div class="document-preview">
+                    <div class="document-type-icon image">
+                        <svg fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <span class="document-status needs-review">Needs Review</span>
+                </div>
+                <div class="document-info">
+                    <h4 class="document-name">office_supplies_receipt.jpg</h4>
+                    <div class="document-meta">
+                        <span>1.2 MB</span>
+                        <span>Jan 18, 2025</span>
+                    </div>
+                    <span class="document-category">Receipts</span>
+                </div>
+                <div class="document-actions">
+                    <button class="doc-action-btn" onclick="viewDocument('3')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        View
+                    </button>
+                    <button class="doc-action-btn" onclick="downloadDocument('3')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Download
+                    </button>
+                    <button class="doc-action-btn" onclick="deleteDocument('3')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document List View -->
+        <div class="document-list" id="documentList">
+            <div class="list-header">
+                <div><input type="checkbox" class="list-checkbox" id="selectAll"></div>
+                <div>Name</div>
+                <div>Category</div>
+                <div>Size</div>
+                <div>Status</div>
+                <div>Date</div>
+            </div>
+            <div class="list-row">
+                <div><input type="checkbox" class="list-checkbox"></div>
+                <div class="list-file-info">
+                    <div class="list-file-icon" style="color: var(--color-error-500);">
+                        <svg fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="list-file-name">W-2_2024_Employer.pdf</div>
+                    </div>
+                </div>
+                <div><span class="document-category">W-2 Forms</span></div>
+                <div>245 KB</div>
+                <div><span class="document-status verified">Verified</span></div>
+                <div class="list-file-date">Jan 15, 2025</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Upload Progress Modal -->
+    <div class="modal-overlay" id="uploadModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Uploading Documents</h3>
+                <button class="modal-close" onclick="closeUploadModal()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="uploadList"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeUploadModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Selection Modal -->
+    <div class="modal-overlay" id="categoryModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Select Document Category</h3>
+                <button class="modal-close" onclick="closeCategoryModal()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="category-grid">
+                    <div class="category-option" onclick="selectCategory(this, 'w2')">
+                        <div class="category-option-icon" style="background: var(--color-primary-100); color: var(--color-primary-600);">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <div class="category-option-name">W-2 Forms</div>
+                    </div>
+                    <div class="category-option" onclick="selectCategory(this, '1099')">
+                        <div class="category-option-icon" style="background: var(--color-success-100); color: var(--color-success-600);">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <div class="category-option-name">1099 Forms</div>
+                    </div>
+                    <div class="category-option" onclick="selectCategory(this, 'receipts')">
+                        <div class="category-option-icon" style="background: var(--color-warning-100); color: var(--color-warning-600);">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                        </div>
+                        <div class="category-option-name">Receipts</div>
+                    </div>
+                    <div class="category-option" onclick="selectCategory(this, 'bank')">
+                        <div class="category-option-icon" style="background: var(--color-purple-100); color: var(--color-purple-600);">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+                            </svg>
+                        </div>
+                        <div class="category-option-name">Bank Statements</div>
+                    </div>
+                    <div class="category-option" onclick="selectCategory(this, 'investment')">
+                        <div class="category-option-icon" style="background: var(--color-pink-100); color: var(--color-pink-600);">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                            </svg>
+                        </div>
+                        <div class="category-option-name">Investment Docs</div>
+                    </div>
+                    <div class="category-option" onclick="selectCategory(this, 'property')">
+                        <div class="category-option-icon" style="background: var(--color-gray-100); color: var(--color-gray-600);">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                            </svg>
+                        </div>
+                        <div class="category-option-name">Property Docs</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCategoryModal()">Cancel</button>
+                <button class="btn btn-primary" id="confirmCategoryBtn" disabled>Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // View toggle
+        function setView(view) {
+            const gridBtn = document.getElementById('gridViewBtn');
+            const listBtn = document.getElementById('listViewBtn');
+            const grid = document.getElementById('documentGrid');
+            const list = document.getElementById('documentList');
+
+            if (view === 'grid') {
+                gridBtn.classList.add('active');
+                listBtn.classList.remove('active');
+                grid.classList.remove('hidden');
+                list.classList.remove('active');
+            } else {
+                listBtn.classList.add('active');
+                gridBtn.classList.remove('active');
+                grid.classList.add('hidden');
+                list.classList.add('active');
+            }
+        }
+
+        // Drag and drop
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, () => {
+                uploadZone.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, () => {
+                uploadZone.classList.remove('dragover');
+            }, false);
+        });
+
+        uploadZone.addEventListener('drop', handleDrop, false);
+        fileInput.addEventListener('change', handleFiles, false);
+
+        function handleDrop(e) {
+            const files = e.dataTransfer.files;
+            handleFiles({ target: { files } });
+        }
+
+        function handleFiles(e) {
+            const files = Array.from(e.target.files);
+            if (files.length > 0) {
+                showUploadModal(files);
+            }
+        }
+
+        // Upload modal
+        function showUploadModal(files) {
+            const modal = document.getElementById('uploadModal');
+            const uploadList = document.getElementById('uploadList');
+            uploadList.innerHTML = '';
+
+            files.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'upload-item';
+                item.innerHTML = `
+                    <div class="upload-item-icon" style="color: ${getFileColor(file.name)}">
+                        ${getFileIcon(file.name)}
+                    </div>
+                    <div class="upload-item-info">
+                        <div class="upload-item-name">${file.name}</div>
+                        <div class="upload-item-size">${formatFileSize(file.size)}</div>
+                        <div class="upload-progress">
+                            <div class="upload-progress-bar" id="progress-${index}" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="upload-item-status pending" id="status-${index}">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                `;
+                uploadList.appendChild(item);
+            });
+
+            modal.classList.add('show');
+
+            // Simulate upload progress
+            files.forEach((file, index) => {
+                simulateUpload(index);
+            });
+        }
+
+        function simulateUpload(index) {
+            let progress = 0;
+            const progressBar = document.getElementById(`progress-${index}`);
+            const status = document.getElementById(`status-${index}`);
+
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    status.className = 'upload-item-status success';
+                    status.innerHTML = `
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    `;
+                }
+                progressBar.style.width = progress + '%';
+            }, 200);
+        }
+
+        function closeUploadModal() {
+            document.getElementById('uploadModal').classList.remove('show');
+            fileInput.value = '';
+        }
+
+        // Category modal
+        function openCategoryModal() {
+            document.getElementById('categoryModal').classList.add('show');
+        }
+
+        function closeCategoryModal() {
+            document.getElementById('categoryModal').classList.remove('show');
+            document.querySelectorAll('.category-option').forEach(opt => opt.classList.remove('selected'));
+            document.getElementById('confirmCategoryBtn').disabled = true;
+        }
+
+        function selectCategory(element, category) {
+            document.querySelectorAll('.category-option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+            document.getElementById('confirmCategoryBtn').disabled = false;
+        }
+
+        // Utility functions
+        function getFileColor(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const colors = {
+                'pdf': 'var(--color-error-500)',
+                'jpg': 'var(--color-success-500)',
+                'jpeg': 'var(--color-success-500)',
+                'png': 'var(--color-success-500)',
+                'doc': 'var(--color-primary-500)',
+                'docx': 'var(--color-primary-500)',
+                'xls': 'var(--color-success-600)',
+                'xlsx': 'var(--color-success-600)'
+            };
+            return colors[ext] || 'var(--color-gray-500)';
+        }
+
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) {
+                return `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`;
+            }
+            return `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/></svg>`;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Document actions
+        function viewDocument(id) {
+            window.location.href = `/documents/view/${id}`;
+        }
+
+        function downloadDocument(id) {
+            window.location.href = `/api/v1/documents/${id}/download`;
+        }
+
+        function deleteDocument(id) {
+            if (confirm('Are you sure you want to delete this document?')) {
+                // API call to delete
+                console.log('Deleting document:', id);
+            }
+        }
+
+        // Search and filter
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            document.querySelectorAll('.document-card').forEach(card => {
+                const name = card.querySelector('.document-name').textContent.toLowerCase();
+                card.style.display = name.includes(query) ? '' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>

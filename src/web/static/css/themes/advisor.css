@@ -28,7 +28,7 @@
   --color-accent-700: #115e59;
 
   /* Body */
-  --body-bg: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
+  --body-bg: linear-gradient(135deg, var(--color-primary-800, #1e3a8a) 0%, var(--color-gray-950, #030712) 100%);
   --body-text: #ffffff;
 
   /* Cards - Semi-transparent */
@@ -45,7 +45,7 @@
 /* Advisor-specific body styling */
 .theme-advisor body,
 [data-theme="advisor"] body {
-  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
+  background: linear-gradient(135deg, var(--color-primary-800, #1e3a8a) 0%, var(--color-gray-950, #030712) 100%);
   min-height: 100vh;
 }
 

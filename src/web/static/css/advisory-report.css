@@ -2,6 +2,8 @@
  * Advisory Report Styles
  * Shared CSS for advisory report templates
  *
+ * DEPENDENCY: Requires /static/css/core/variables.css to be loaded first
+ *
  * Templates using this file:
  * - advisory_report_preview.html
  * - advisory_report_widget.html
@@ -9,86 +11,90 @@
  */
 
 /* ============================================================================
-   CSS CUSTOM PROPERTIES (Variables)
+   CSS CUSTOM PROPERTIES - Mapped to Core Design System
+   ============================================================================
+
+   These variables map to the core design system for consistency.
+   Legacy names are preserved for backward compatibility.
    ============================================================================ */
 
 :root {
-    /* Primary Colors - Navy Blue Theme */
-    --primary: #1a365d;
-    --primary-light: #2c5282;
-    --primary-dark: #0d2137;
+    /* Primary Colors - Using Advisor Theme (Navy Blue) */
+    --primary: var(--color-primary-800, #1e40af);
+    --primary-light: var(--color-primary-700, #1d4ed8);
+    --primary-dark: var(--color-primary-900, #1e3a8a);
 
     /* Advisory-specific aliases (for backward compatibility) */
-    --advisory-primary: #1a365d;
-    --advisory-primary-light: #2c5282;
+    --advisory-primary: var(--primary);
+    --advisory-primary-light: var(--primary-light);
 
-    /* Success Colors - Professional Green */
-    --success: #276749;
-    --success-light: #38a169;
-    --advisory-success: #276749;
-    --advisory-success-hover: #38a169;
+    /* Success Colors - Using Core Success */
+    --success: var(--color-success-600, #059669);
+    --success-light: var(--color-success-500, #10b981);
+    --advisory-success: var(--success);
+    --advisory-success-hover: var(--success-light);
 
-    /* Warning Colors - Muted Gold */
-    --warning: #c69214;
-    --warning-light: #d69e2e;
-    --warning-lighter: #fef9c3;
-    --warning-hover: #92400e;
+    /* Warning Colors - Using Core Warning */
+    --warning: var(--color-warning-600, #d97706);
+    --warning-light: var(--color-warning-500, #f59e0b);
+    --warning-lighter: var(--color-warning-50, #fffbeb);
+    --warning-hover: var(--color-warning-700, #b45309);
 
-    /* Danger/Error Colors */
-    --danger: #c53030;
-    --danger-light: #e53e3e;
+    /* Danger/Error Colors - Using Core Error */
+    --danger: var(--color-error-600, #dc2626);
+    --danger-light: var(--color-error-500, #ef4444);
 
-    /* Info Colors */
-    --info: #3b82f6;
-    --info-light: #60a5fa;
+    /* Info Colors - Using Core Info */
+    --info: var(--color-info-500, #3b82f6);
+    --info-light: var(--color-info-400, #60a5fa);
 
-    /* Neutral Colors */
-    --bg: #f7fafc;
+    /* Neutral Colors - Using Core Grays */
+    --bg: var(--color-gray-50, #f9fafb);
     --surface: #ffffff;
-    --surface-light: #edf2f7;
-    --border: #e2e8f0;
-    --border-light: #f0f4f8;
+    --surface-light: var(--color-gray-100, #f3f4f6);
+    --border: var(--color-gray-200, #e5e7eb);
+    --border-light: var(--color-gray-100, #f3f4f6);
 
     /* Advisory Background Aliases */
-    --advisory-bg-secondary: #edf2f7;
-    --advisory-bg-tertiary: #cbd5e0;
+    --advisory-bg-secondary: var(--color-gray-100, #f3f4f6);
+    --advisory-bg-tertiary: var(--color-gray-300, #d1d5db);
 
-    /* Text Colors */
-    --text: #1a202c;
-    --text-primary: #1a202c;
-    --text-secondary: #4a5568;
-    --text-muted: #718096;
+    /* Text Colors - Using Core Text */
+    --text: var(--color-gray-900, #111827);
+    --text-primary: var(--color-gray-900, #111827);
+    --text-secondary: var(--color-gray-600, #4b5563);
+    --text-muted: var(--color-gray-500, #6b7280);
     --text-inverse: #ffffff;
 
-    /* Shadows */
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --advisory-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    /* Shadows - Using Core Shadows */
+    --shadow-sm: var(--shadow-sm, 0 1px 3px 0 rgb(0 0 0 / 0.1));
+    --shadow-md: var(--shadow-md, 0 4px 6px -1px rgb(0 0 0 / 0.1));
+    --shadow-lg: var(--shadow-lg, 0 10px 15px -3px rgb(0 0 0 / 0.1));
+    --advisory-shadow-lg: var(--shadow-lg);
 
-    /* Spacing */
-    --spacing-xs: 4px;
-    --spacing-sm: 8px;
-    --spacing-md: 16px;
-    --spacing-lg: 24px;
-    --spacing-xl: 32px;
+    /* Spacing - Using Core Spacing */
+    --spacing-xs: var(--space-1, 0.25rem);
+    --spacing-sm: var(--space-2, 0.5rem);
+    --spacing-md: var(--space-4, 1rem);
+    --spacing-lg: var(--space-6, 1.5rem);
+    --spacing-xl: var(--space-8, 2rem);
 
-    /* Border Radius */
-    --radius-sm: 6px;
-    --radius-md: 8px;
-    --radius-lg: 10px;
-    --radius-xl: 12px;
-    --radius-full: 9999px;
+    /* Border Radius - Using Core Radius (FIXED: was conflicting) */
+    --radius-sm: var(--radius-sm, 0.125rem);
+    --radius-md: var(--radius-md, 0.375rem);
+    --radius-lg: var(--radius-lg, 0.5rem);
+    --radius-xl: var(--radius-xl, 0.75rem);
+    --radius-full: var(--radius-full, 9999px);
 
-    /* Typography */
-    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    --font-size-xs: 12px;
-    --font-size-sm: 13px;
-    --font-size-base: 14px;
-    --font-size-lg: 16px;
-    --font-size-xl: 20px;
-    --font-size-2xl: 24px;
-    --font-size-3xl: 28px;
+    /* Typography - Using Core Typography */
+    --font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+    --font-size-xs: var(--text-xs, 0.75rem);
+    --font-size-sm: var(--text-sm, 0.875rem);
+    --font-size-base: var(--text-base, 1rem);
+    --font-size-lg: var(--text-lg, 1.125rem);
+    --font-size-xl: var(--text-xl, 1.25rem);
+    --font-size-2xl: var(--text-2xl, 1.5rem);
+    --font-size-3xl: var(--text-3xl, 1.875rem);
 }
 
 /* ============================================================================

@@ -74,6 +74,20 @@
   --color-info-600: #2563eb;
   --color-info-700: #1d4ed8;
 
+  /* Purple/Violet (for QBI, special features) */
+  --color-purple-50: #faf5ff;
+  --color-purple-100: #ede9fe;
+  --color-purple-500: #8b5cf6;
+  --color-purple-600: #7c3aed;
+  --color-purple-700: #6d28d9;
+
+  /* Pink (for investment features) */
+  --color-pink-50: #fdf2f8;
+  --color-pink-100: #fce7f3;
+  --color-pink-500: #ec4899;
+  --color-pink-600: #db2777;
+  --color-pink-700: #be185d;
+
   /* =========================
      SPACING SYSTEM (8px base)
      ========================= */

@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Login to your tax preparation account">
+    <title>Login | JORSS-GBO Tax Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/core/variables.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: linear-gradient(135deg, var(--color-primary-900) 0%, var(--color-gray-900) 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-4);
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .auth-card {
+            background: white;
+            border-radius: var(--radius-2xl);
+            box-shadow: var(--shadow-2xl);
+            overflow: hidden;
+        }
+
+        .auth-header {
+            padding: var(--space-8) var(--space-8) var(--space-6);
+            text-align: center;
+        }
+
+        .auth-logo {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%);
+            border-radius: var(--radius-xl);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto var(--space-4);
+            color: white;
+            font-weight: var(--font-bold);
+            font-size: var(--text-xl);
+        }
+
+        .auth-title {
+            font-size: var(--text-2xl);
+            font-weight: var(--font-bold);
+            color: var(--color-gray-900);
+            margin-bottom: var(--space-2);
+        }
+
+        .auth-subtitle {
+            font-size: var(--text-sm);
+            color: var(--color-gray-500);
+        }
+
+        .auth-body {
+            padding: 0 var(--space-8) var(--space-8);
+        }
+
+        .form-group {
+            margin-bottom: var(--space-5);
+        }
+
+        .form-label {
+            display: block;
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            color: var(--color-gray-700);
+            margin-bottom: var(--space-2);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: var(--space-3) var(--space-4);
+            border: 1px solid var(--color-gray-300);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-base);
+            color: var(--color-gray-900);
+            background: white;
+            transition: all var(--transition-fast);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--color-primary-500);
+            box-shadow: 0 0 0 3px var(--color-primary-100);
+        }
+
+        .form-input::placeholder {
+            color: var(--color-gray-400);
+        }
+
+        .form-input.error {
+            border-color: var(--color-error-500);
+        }
+
+        .form-error {
+            font-size: var(--text-sm);
+            color: var(--color-error-600);
+            margin-top: var(--space-1);
+            display: none;
+        }
+
+        .form-error.show {
+            display: block;
+        }
+
+        .form-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-6);
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: var(--text-sm);
+            color: var(--color-gray-600);
+            cursor: pointer;
+        }
+
+        .checkbox-label input {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--color-primary-600);
+        }
+
+        .forgot-link {
+            font-size: var(--text-sm);
+            color: var(--color-primary-600);
+            text-decoration: none;
+            font-weight: var(--font-medium);
+        }
+
+        .forgot-link:hover {
+            color: var(--color-primary-700);
+            text-decoration: underline;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: var(--space-3) var(--space-6);
+            background: linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%);
+            color: white;
+            border: none;
+            border-radius: var(--radius-lg);
+            font-size: var(--text-base);
+            font-weight: var(--font-semibold);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: var(--space-6) 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--color-gray-200);
+        }
+
+        .divider span {
+            padding: 0 var(--space-4);
+            font-size: var(--text-sm);
+            color: var(--color-gray-500);
+        }
+
+        .social-login {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+        }
+
+        .btn-social {
+            width: 100%;
+            padding: var(--space-3) var(--space-4);
+            background: white;
+            border: 1px solid var(--color-gray-300);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            color: var(--color-gray-700);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            transition: all var(--transition-fast);
+        }
+
+        .btn-social:hover {
+            background: var(--color-gray-50);
+            border-color: var(--color-gray-400);
+        }
+
+        .btn-social svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .auth-footer {
+            padding: var(--space-4) var(--space-8);
+            background: var(--color-gray-50);
+            text-align: center;
+            font-size: var(--text-sm);
+            color: var(--color-gray-600);
+        }
+
+        .auth-footer a {
+            color: var(--color-primary-600);
+            text-decoration: none;
+            font-weight: var(--font-medium);
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .alert {
+            padding: var(--space-3) var(--space-4);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--space-4);
+            font-size: var(--text-sm);
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-error {
+            background: var(--color-error-50);
+            color: var(--color-error-700);
+            border: 1px solid var(--color-error-200);
+        }
+
+        .alert-success {
+            background: var(--color-success-50);
+            color: var(--color-success-700);
+            border: 1px solid var(--color-success-200);
+        }
+
+        /* Role selector for demo */
+        .role-tabs {
+            display: flex;
+            margin-bottom: var(--space-6);
+            background: var(--color-gray-100);
+            border-radius: var(--radius-lg);
+            padding: var(--space-1);
+        }
+
+        .role-tab {
+            flex: 1;
+            padding: var(--space-2) var(--space-3);
+            border: none;
+            background: transparent;
+            border-radius: var(--radius-md);
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            color: var(--color-gray-600);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .role-tab.active {
+            background: white;
+            color: var(--color-primary-600);
+            box-shadow: var(--shadow-sm);
+        }
+
+        @media (max-width: 480px) {
+            .auth-header {
+                padding: var(--space-6) var(--space-6) var(--space-4);
+            }
+
+            .auth-body {
+                padding: 0 var(--space-6) var(--space-6);
+            }
+
+            .auth-footer {
+                padding: var(--space-4) var(--space-6);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-logo">JG</div>
+                <h1 class="auth-title">Welcome back</h1>
+                <p class="auth-subtitle">Sign in to your account to continue</p>
+            </div>
+
+            <div class="auth-body">
+                <!-- Role selector tabs -->
+                <div class="role-tabs">
+                    <button type="button" class="role-tab active" data-role="client">Client</button>
+                    <button type="button" class="role-tab" data-role="cpa">CPA</button>
+                    <button type="button" class="role-tab" data-role="admin">Admin</button>
+                </div>
+
+                <!-- Alert messages -->
+                <div class="alert alert-error" id="errorAlert"></div>
+                <div class="alert alert-success" id="successAlert"></div>
+
+                <form id="loginForm" action="/api/v1/auth/login" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                    <input type="hidden" name="role" id="selectedRole" value="client">
+
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email address</label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            class="form-input"
+                            placeholder="you@example.com"
+                            required
+                            autocomplete="email"
+                        >
+                        <p class="form-error" id="emailError">Please enter a valid email address</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="password">Password</label>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            class="form-input"
+                            placeholder="Enter your password"
+                            required
+                            autocomplete="current-password"
+                            minlength="8"
+                        >
+                        <p class="form-error" id="passwordError">Password must be at least 8 characters</p>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="remember" id="remember">
+                            <span>Remember me</span>
+                        </label>
+                        <a href="/auth/forgot-password" class="forgot-link">Forgot password?</a>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="submitBtn">
+                        Sign in
+                    </button>
+                </form>
+
+                <div class="divider">
+                    <span>or continue with</span>
+                </div>
+
+                <div class="social-login">
+                    <button type="button" class="btn-social" onclick="socialLogin('google')">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                        </svg>
+                        Continue with Google
+                    </button>
+                    <button type="button" class="btn-social" onclick="socialLogin('microsoft')">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z" fill="#00A4EF"/>
+                        </svg>
+                        Continue with Microsoft
+                    </button>
+                </div>
+            </div>
+
+            <div class="auth-footer">
+                Don't have an account? <a href="/auth/register">Create one</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Role tab switching
+        document.querySelectorAll('.role-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById('selectedRole').value = this.dataset.role;
+            });
+        });
+
+        // Form validation and submission
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const email = document.getElementById('email');
+            const password = document.getElementById('password');
+            const submitBtn = document.getElementById('submitBtn');
+            const errorAlert = document.getElementById('errorAlert');
+
+            // Reset errors
+            email.classList.remove('error');
+            password.classList.remove('error');
+            document.getElementById('emailError').classList.remove('show');
+            document.getElementById('passwordError').classList.remove('show');
+            errorAlert.classList.remove('show');
+
+            // Validate
+            let isValid = true;
+
+            if (!email.value || !email.value.includes('@')) {
+                email.classList.add('error');
+                document.getElementById('emailError').classList.add('show');
+                isValid = false;
+            }
+
+            if (!password.value || password.value.length < 8) {
+                password.classList.add('error');
+                document.getElementById('passwordError').classList.add('show');
+                isValid = false;
+            }
+
+            if (!isValid) return;
+
+            // Submit
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing in...';
+
+            try {
+                const formData = new FormData(this);
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Redirect based on role
+                    const role = document.getElementById('selectedRole').value;
+                    if (role === 'admin') {
+                        window.location.href = '/admin';
+                    } else if (role === 'cpa') {
+                        window.location.href = '/cpa/dashboard';
+                    } else {
+                        window.location.href = '/app/portal';
+                    }
+                } else {
+                    errorAlert.textContent = data.detail || 'Invalid email or password. Please try again.';
+                    errorAlert.classList.add('show');
+                }
+            } catch (error) {
+                errorAlert.textContent = 'An error occurred. Please try again.';
+                errorAlert.classList.add('show');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Sign in';
+            }
+        });
+
+        // Social login
+        function socialLogin(provider) {
+            window.location.href = `/api/v1/auth/oauth/${provider}`;
+        }
+
+        // Show success message if redirected after password reset
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('reset') === 'success') {
+            const successAlert = document.getElementById('successAlert');
+            successAlert.textContent = 'Password reset successful. Please sign in with your new password.';
+            successAlert.classList.add('show');
+        }
+    </script>
+</body>
+</html>

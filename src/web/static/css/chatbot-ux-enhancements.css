@@ -1,6 +1,8 @@
 /**
  * Chatbot UX Enhancements Styles
  *
+ * DEPENDENCY: Requires /static/css/core/variables.css to be loaded first
+ *
  * Styling for:
  * - Profile editor panel
  * - Savings gauge visualization
@@ -12,33 +14,46 @@
  */
 
 /* ============================================================================
-   CSS VARIABLES (extends existing theme)
+   CSS VARIABLES - Mapped to Core Design System
+   ============================================================================
+
+   Legacy --ux-* variables mapped to core system for backward compatibility.
+   New code should use core variables directly (--color-*, --space-*, etc.)
    ============================================================================ */
 
 :root {
-  --ux-primary: #1a365d;
-  --ux-primary-light: #2c5282;
-  --ux-accent: #2563eb;
-  --ux-success: #10b981;
-  --ux-success-dark: #059669;
-  --ux-warning: #f59e0b;
-  --ux-danger: #ef4444;
-  --ux-gray-50: #f9fafb;
-  --ux-gray-100: #f3f4f6;
-  --ux-gray-200: #e5e7eb;
-  --ux-gray-300: #d1d5db;
-  --ux-gray-400: #9ca3af;
-  --ux-gray-500: #6b7280;
-  --ux-gray-600: #4b5563;
-  --ux-gray-700: #374151;
-  --ux-gray-800: #1f2937;
-  --ux-radius-sm: 6px;
-  --ux-radius-md: 10px;
-  --ux-radius-lg: 16px;
-  --ux-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --ux-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --ux-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  --ux-transition: all 0.2s ease;
+  /* Colors - Map to Core System */
+  --ux-primary: var(--color-primary-800, #1e40af);
+  --ux-primary-light: var(--color-primary-700, #1d4ed8);
+  --ux-accent: var(--color-primary-600, #2563eb);
+  --ux-success: var(--color-success-500, #10b981);
+  --ux-success-dark: var(--color-success-600, #059669);
+  --ux-warning: var(--color-warning-500, #f59e0b);
+  --ux-danger: var(--color-error-500, #ef4444);
+
+  /* Grays - Map to Core Grays */
+  --ux-gray-50: var(--color-gray-50, #f9fafb);
+  --ux-gray-100: var(--color-gray-100, #f3f4f6);
+  --ux-gray-200: var(--color-gray-200, #e5e7eb);
+  --ux-gray-300: var(--color-gray-300, #d1d5db);
+  --ux-gray-400: var(--color-gray-400, #9ca3af);
+  --ux-gray-500: var(--color-gray-500, #6b7280);
+  --ux-gray-600: var(--color-gray-600, #4b5563);
+  --ux-gray-700: var(--color-gray-700, #374151);
+  --ux-gray-800: var(--color-gray-800, #1f2937);
+
+  /* Radius - Map to Core Radius */
+  --ux-radius-sm: var(--radius-md, 0.375rem);
+  --ux-radius-md: var(--radius-lg, 0.5rem);
+  --ux-radius-lg: var(--radius-2xl, 1rem);
+
+  /* Shadows - Map to Core Shadows */
+  --ux-shadow-sm: var(--shadow-xs, 0 1px 2px 0 rgb(0 0 0 / 0.05));
+  --ux-shadow-md: var(--shadow-md, 0 4px 6px -1px rgb(0 0 0 / 0.1));
+  --ux-shadow-lg: var(--shadow-lg, 0 10px 15px -3px rgb(0 0 0 / 0.1));
+
+  /* Transitions - Map to Core Transitions */
+  --ux-transition: var(--transition-base, 200ms ease);
 }
 
 
@@ -419,7 +434,7 @@
 }
 
 .term-section.warning {
-  background: #fef3c7;
+  background: var(--color-warning-100, #fef3c7);
   padding: 16px;
   border-radius: var(--ux-radius-md);
   border-left: 4px solid var(--ux-warning);
@@ -506,7 +521,7 @@
 }
 
 .comparison-card.optimized {
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  background: linear-gradient(135deg, var(--color-success-50, #ecfdf5) 0%, var(--color-success-100, #d1fae5) 100%);
   border: 2px solid var(--ux-success);
 }
 
@@ -973,7 +988,7 @@
 }
 
 .tier-row.highlight {
-  background: #ecfdf5;
+  background: var(--color-success-50, #ecfdf5);
 }
 
 .tier-col {

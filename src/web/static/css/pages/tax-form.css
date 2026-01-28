@@ -7,12 +7,13 @@
 
 /* =========================
    TAX FORM VARIABLES
+   Using core design system colors
    ========================= */
 :root {
-  --tax-refund-green: #059669;
-  --tax-owed-red: #dc2626;
-  --tax-savings-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  --tax-primary-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  --tax-refund-green: var(--color-success-600, #059669);
+  --tax-owed-red: var(--color-error-600, #dc2626);
+  --tax-savings-gradient: linear-gradient(135deg, var(--color-success-500, #10b981) 0%, var(--color-success-600, #059669) 100%);
+  --tax-primary-gradient: linear-gradient(135deg, var(--color-primary-500, #3b82f6) 0%, var(--color-primary-600, #2563eb) 100%);
 }
 
 /* =========================

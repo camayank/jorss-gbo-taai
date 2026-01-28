@@ -1,69 +1,72 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="cpa">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#6366f1">
+  <meta name="theme-color" content="#4f46e5">
   <meta name="description" content="CPA Workspace for managing tax clients and decisions">
   <title>CPA Workspace - Tax Decision Intelligence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Core Design System -->
+  <link rel="stylesheet" href="/static/css/core/variables.css">
   <style>
     :root {
       /* =========================
-         UNIFIED DESIGN SYSTEM
+         MAPPED TO CORE DESIGN SYSTEM
+         Legacy variables for backward compatibility
          ========================= */
-      /* Primary Colors - Indigo (Unified across platform) */
-      --primary: #6366f1;
-      --primary-dark: #4f46e5;
-      --primary-hover: #4f46e5;
-      --primary-light: #eef2ff;
-      --primary-50: #eef2ff;
+      /* Primary Colors - Using Core Indigo */
+      --primary: var(--color-primary-500, #3b82f6);
+      --primary-dark: var(--color-primary-600, #2563eb);
+      --primary-hover: var(--color-primary-600, #2563eb);
+      --primary-light: var(--color-primary-50, #eff6ff);
+      --primary-50: var(--color-primary-50, #eff6ff);
 
-      /* Grayscale */
-      --gray-50: #f9fafb;
-      --gray-100: #f3f4f6;
-      --gray-200: #e5e7eb;
-      --gray-300: #d1d5db;
-      --gray-400: #9ca3af;
-      --gray-500: #6b7280;
-      --gray-600: #4b5563;
-      --gray-700: #374151;
-      --gray-800: #1f2937;
-      --gray-900: #111827;
+      /* Grayscale - Map to Core */
+      --gray-50: var(--color-gray-50, #f9fafb);
+      --gray-100: var(--color-gray-100, #f3f4f6);
+      --gray-200: var(--color-gray-200, #e5e7eb);
+      --gray-300: var(--color-gray-300, #d1d5db);
+      --gray-400: var(--color-gray-400, #9ca3af);
+      --gray-500: var(--color-gray-500, #6b7280);
+      --gray-600: var(--color-gray-600, #4b5563);
+      --gray-700: var(--color-gray-700, #374151);
+      --gray-800: var(--color-gray-800, #1f2937);
+      --gray-900: var(--color-gray-900, #111827);
 
-      /* Text Colors */
-      --text-primary: #111827;
-      --text-secondary: #1f2937;
-      --text-tertiary: #4b5563;
-      --text-hint: #6b7280;
+      /* Text Colors - Map to Core */
+      --text-primary: var(--color-gray-900, #111827);
+      --text-secondary: var(--color-gray-800, #1f2937);
+      --text-tertiary: var(--color-gray-600, #4b5563);
+      --text-hint: var(--color-gray-500, #6b7280);
 
-      /* Background Colors */
+      /* Background Colors - Map to Core */
       --bg-primary: #ffffff;
-      --bg-secondary: #f9fafb;
-      --bg-tertiary: #f3f4f6;
-      --border-light: #e5e7eb;
-      --border-default: #d1d5db;
+      --bg-secondary: var(--color-gray-50, #f9fafb);
+      --bg-tertiary: var(--color-gray-100, #f3f4f6);
+      --border-light: var(--color-gray-200, #e5e7eb);
+      --border-default: var(--color-gray-300, #d1d5db);
 
-      /* Semantic Colors */
-      --success: #10b981;
-      --success-light: #d1fae5;
-      --warning: #f59e0b;
-      --warning-light: #fef3c7;
-      --error: #ef4444;
-      --info: #3b82f6;
-      --info-light: #dbeafe;
+      /* Semantic Colors - Map to Core */
+      --success: var(--color-success-500, #10b981);
+      --success-light: var(--color-success-100, #d1fae5);
+      --warning: var(--color-warning-500, #f59e0b);
+      --warning-light: var(--color-warning-100, #fef3c7);
+      --error: var(--color-error-500, #ef4444);
+      --info: var(--color-info-500, #3b82f6);
+      --info-light: var(--color-info-100, #dbeafe);
 
-      /* Shadows */
-      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06);
-      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+      /* Shadows - Map to Core */
+      --shadow-sm: var(--shadow-xs, 0 1px 2px 0 rgb(0 0 0 / 0.05));
+      --shadow-md: var(--shadow-md, 0 4px 6px -1px rgb(0 0 0 / 0.1));
+      --shadow-lg: var(--shadow-lg, 0 10px 15px -3px rgb(0 0 0 / 0.1));
 
-      /* Border Radius */
-      --radius-sm: 6px;
-      --radius-md: 8px;
-      --radius-lg: 12px;
+      /* Border Radius - Map to Core */
+      --radius-sm: var(--radius-md, 0.375rem);
+      --radius-md: var(--radius-lg, 0.5rem);
+      --radius-lg: var(--radius-xl, 0.75rem);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {

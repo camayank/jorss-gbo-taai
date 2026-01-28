@@ -8,10 +8,11 @@
 
 /* =========================
    CPA-SPECIFIC VARIABLES
+   Using core design system colors
    ========================= */
 :root {
-  --cpa-savings-bg: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  --cpa-advisory-bg: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+  --cpa-savings-bg: linear-gradient(135deg, var(--color-purple-600, #7c3aed) 0%, var(--color-purple-500, #8b5cf6) 100%);
+  --cpa-advisory-bg: linear-gradient(135deg, var(--color-gray-800, #1f2937) 0%, var(--color-gray-700, #374151) 100%);
 }
 
 /* =========================
@@ -187,13 +188,13 @@
 }
 
 .opt-icon.qbi {
-  background: #ede9fe;
-  color: #7c3aed;
+  background: var(--color-purple-100);
+  color: var(--color-purple-600);
 }
 
 .opt-icon.investment {
-  background: #fce7f3;
-  color: #db2777;
+  background: var(--color-pink-100);
+  color: var(--color-pink-600);
 }
 
 .opt-label {

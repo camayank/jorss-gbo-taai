@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="View and manage your tax document">
+    <title>Document Viewer | JORSS-GBO Tax Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/core/variables.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--color-gray-900);
+            min-height: 100vh;
+            color: var(--color-gray-900);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .viewer-header {
+            background: var(--color-gray-800);
+            padding: var(--space-3) var(--space-4);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--color-gray-700);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-3);
+            background: transparent;
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-lg);
+            color: var(--color-gray-300);
+            font-size: var(--text-sm);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            background: var(--color-gray-700);
+            border-color: var(--color-gray-500);
+        }
+
+        .back-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--color-error-500);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .file-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .file-details h1 {
+            font-size: var(--text-base);
+            font-weight: var(--font-semibold);
+            color: white;
+        }
+
+        .file-meta {
+            font-size: var(--text-xs);
+            color: var(--color-gray-400);
+            display: flex;
+            gap: var(--space-3);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: var(--space-2);
+        }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-3);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            border: none;
+        }
+
+        .action-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .action-btn.primary {
+            background: var(--color-primary-600);
+            color: white;
+        }
+
+        .action-btn.primary:hover {
+            background: var(--color-primary-700);
+        }
+
+        .action-btn.secondary {
+            background: transparent;
+            border: 1px solid var(--color-gray-600);
+            color: var(--color-gray-300);
+        }
+
+        .action-btn.secondary:hover {
+            background: var(--color-gray-700);
+        }
+
+        /* Main Layout */
+        .viewer-main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Document Viewer Panel */
+        .document-panel {
+            flex: 1;
+            background: var(--color-gray-900);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .viewer-toolbar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: var(--space-4);
+            padding: var(--space-3);
+            background: var(--color-gray-800);
+            border-bottom: 1px solid var(--color-gray-700);
+        }
+
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .zoom-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: var(--color-gray-700);
+            border-radius: var(--radius-md);
+            color: var(--color-gray-300);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+        }
+
+        .zoom-btn:hover {
+            background: var(--color-gray-600);
+        }
+
+        .zoom-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .zoom-level {
+            font-size: var(--text-sm);
+            color: var(--color-gray-400);
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .page-controls {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .page-input {
+            width: 50px;
+            padding: var(--space-1) var(--space-2);
+            border: 1px solid var(--color-gray-600);
+            border-radius: var(--radius-md);
+            background: var(--color-gray-700);
+            color: white;
+            font-size: var(--text-sm);
+            text-align: center;
+        }
+
+        .page-total {
+            font-size: var(--text-sm);
+            color: var(--color-gray-400);
+        }
+
+        .divider {
+            width: 1px;
+            height: 24px;
+            background: var(--color-gray-600);
+        }
+
+        .toolbar-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            border-radius: var(--radius-md);
+            color: var(--color-gray-400);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+        }
+
+        .toolbar-btn:hover {
+            background: var(--color-gray-700);
+            color: var(--color-gray-200);
+        }
+
+        .toolbar-btn.active {
+            background: var(--color-primary-600);
+            color: white;
+        }
+
+        .toolbar-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Document Canvas */
+        .document-canvas {
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-6);
+        }
+
+        .document-page {
+            background: white;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .document-page img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Side Panel */
+        .side-panel {
+            width: 380px;
+            background: white;
+            border-left: 1px solid var(--color-gray-200);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--color-gray-200);
+        }
+
+        .panel-tab {
+            flex: 1;
+            padding: var(--space-3);
+            border: none;
+            background: transparent;
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            color: var(--color-gray-500);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            position: relative;
+        }
+
+        .panel-tab:hover {
+            color: var(--color-gray-700);
+            background: var(--color-gray-50);
+        }
+
+        .panel-tab.active {
+            color: var(--color-primary-600);
+        }
+
+        .panel-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--color-primary-600);
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--space-4);
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* OCR Status Section */
+        .ocr-status {
+            background: var(--color-gray-50);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+            margin-bottom: var(--space-4);
+        }
+
+        .ocr-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-3);
+        }
+
+        .ocr-title {
+            font-size: var(--text-sm);
+            font-weight: var(--font-semibold);
+            color: var(--color-gray-900);
+        }
+
+        .ocr-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-1);
+            padding: var(--space-1) var(--space-2);
+            border-radius: var(--radius-full);
+            font-size: var(--text-xs);
+            font-weight: var(--font-medium);
+        }
+
+        .ocr-badge.success {
+            background: var(--color-success-100);
+            color: var(--color-success-700);
+        }
+
+        .ocr-badge.processing {
+            background: var(--color-warning-100);
+            color: var(--color-warning-700);
+        }
+
+        .ocr-badge.error {
+            background: var(--color-error-100);
+            color: var(--color-error-700);
+        }
+
+        .ocr-badge svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .ocr-confidence {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .confidence-bar {
+            flex: 1;
+            height: 6px;
+            background: var(--color-gray-200);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: var(--color-success-500);
+            border-radius: var(--radius-full);
+        }
+
+        .confidence-text {
+            font-size: var(--text-xs);
+            color: var(--color-gray-600);
+            min-width: 35px;
+        }
+
+        /* Extracted Data */
+        .extracted-section {
+            margin-bottom: var(--space-4);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-3);
+        }
+
+        .section-title {
+            font-size: var(--text-sm);
+            font-weight: var(--font-semibold);
+            color: var(--color-gray-900);
+        }
+
+        .edit-btn {
+            font-size: var(--text-xs);
+            color: var(--color-primary-600);
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .edit-btn:hover {
+            text-decoration: underline;
+        }
+
+        .data-grid {
+            display: grid;
+            gap: var(--space-3);
+        }
+
+        .data-field {
+            background: white;
+            border: 1px solid var(--color-gray-200);
+            border-radius: var(--radius-lg);
+            padding: var(--space-3);
+        }
+
+        .field-label {
+            font-size: var(--text-xs);
+            color: var(--color-gray-500);
+            margin-bottom: var(--space-1);
+        }
+
+        .field-value {
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            color: var(--color-gray-900);
+        }
+
+        .field-value.editable {
+            cursor: pointer;
+            padding: var(--space-1);
+            margin: calc(-1 * var(--space-1));
+            border-radius: var(--radius-sm);
+            transition: background var(--transition-fast);
+        }
+
+        .field-value.editable:hover {
+            background: var(--color-primary-50);
+        }
+
+        .field-input {
+            width: 100%;
+            padding: var(--space-2);
+            border: 1px solid var(--color-primary-500);
+            border-radius: var(--radius-md);
+            font-size: var(--text-sm);
+            outline: none;
+            box-shadow: 0 0 0 3px var(--color-primary-100);
+        }
+
+        .field-confidence {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+            margin-top: var(--space-1);
+        }
+
+        .confidence-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .confidence-dot.high { background: var(--color-success-500); }
+        .confidence-dot.medium { background: var(--color-warning-500); }
+        .confidence-dot.low { background: var(--color-error-500); }
+
+        .confidence-label {
+            font-size: var(--text-xs);
+            color: var(--color-gray-500);
+        }
+
+        /* Document Info Tab */
+        .info-list {
+            display: grid;
+            gap: var(--space-3);
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-bottom: var(--space-3);
+            border-bottom: 1px solid var(--color-gray-100);
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .info-label {
+            font-size: var(--text-sm);
+            color: var(--color-gray-500);
+        }
+
+        .info-value {
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            color: var(--color-gray-900);
+            text-align: right;
+        }
+
+        /* Activity Tab */
+        .activity-timeline {
+            position: relative;
+            padding-left: var(--space-6);
+        }
+
+        .activity-timeline::before {
+            content: '';
+            position: absolute;
+            left: 11px;
+            top: 4px;
+            bottom: 4px;
+            width: 2px;
+            background: var(--color-gray-200);
+        }
+
+        .activity-item {
+            position: relative;
+            padding-bottom: var(--space-4);
+        }
+
+        .activity-item:last-child {
+            padding-bottom: 0;
+        }
+
+        .activity-dot {
+            position: absolute;
+            left: calc(-1 * var(--space-6) + 7px);
+            top: 2px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--color-primary-500);
+            border: 2px solid white;
+        }
+
+        .activity-content {
+            background: var(--color-gray-50);
+            border-radius: var(--radius-lg);
+            padding: var(--space-3);
+        }
+
+        .activity-text {
+            font-size: var(--text-sm);
+            color: var(--color-gray-900);
+            margin-bottom: var(--space-1);
+        }
+
+        .activity-time {
+            font-size: var(--text-xs);
+            color: var(--color-gray-500);
+        }
+
+        /* Actions Footer */
+        .panel-footer {
+            padding: var(--space-4);
+            border-top: 1px solid var(--color-gray-200);
+            display: flex;
+            gap: var(--space-2);
+        }
+
+        .panel-footer .action-btn {
+            flex: 1;
+        }
+
+        .panel-footer .action-btn.primary {
+            background: var(--color-success-600);
+        }
+
+        .panel-footer .action-btn.primary:hover {
+            background: var(--color-success-700);
+        }
+
+        .panel-footer .action-btn.danger {
+            background: transparent;
+            border: 1px solid var(--color-error-300);
+            color: var(--color-error-600);
+        }
+
+        .panel-footer .action-btn.danger:hover {
+            background: var(--color-error-50);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .side-panel {
+                position: fixed;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 100;
+                transform: translateX(100%);
+                transition: transform var(--transition-normal);
+            }
+
+            .side-panel.open {
+                transform: translateX(0);
+            }
+
+            .panel-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 99;
+                display: none;
+            }
+
+            .panel-overlay.show {
+                display: block;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .viewer-header {
+                flex-direction: column;
+                gap: var(--space-3);
+            }
+
+            .header-left {
+                width: 100%;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            .viewer-toolbar {
+                flex-wrap: wrap;
+                gap: var(--space-2);
+            }
+
+            .side-panel {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="viewer-header">
+        <div class="header-left">
+            <a href="/documents" class="back-btn">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Back
+            </a>
+            <div class="file-info">
+                <div class="file-icon">
+                    <svg fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/>
+                    </svg>
+                </div>
+                <div class="file-details">
+                    <h1 id="fileName">W-2_2024_Employer.pdf</h1>
+                    <div class="file-meta">
+                        <span id="fileSize">245 KB</span>
+                        <span>Uploaded Jan 15, 2025</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="action-btn secondary" onclick="printDocument()">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                </svg>
+                Print
+            </button>
+            <button class="action-btn secondary" onclick="downloadDocument()">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Download
+            </button>
+            <button class="action-btn primary" onclick="togglePanel()">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                Details
+            </button>
+        </div>
+    </header>
+
+    <main class="viewer-main">
+        <div class="document-panel">
+            <div class="viewer-toolbar">
+                <div class="zoom-controls">
+                    <button class="zoom-btn" onclick="zoomOut()">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"/>
+                        </svg>
+                    </button>
+                    <span class="zoom-level" id="zoomLevel">100%</span>
+                    <button class="zoom-btn" onclick="zoomIn()">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="page-controls">
+                    <button class="zoom-btn" onclick="prevPage()">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <input type="number" class="page-input" id="pageInput" value="1" min="1" max="3">
+                    <span class="page-total">of <span id="totalPages">3</span></span>
+                    <button class="zoom-btn" onclick="nextPage()">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="divider"></div>
+
+                <button class="toolbar-btn" onclick="rotateCW()" title="Rotate clockwise">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                </button>
+                <button class="toolbar-btn" onclick="fitToWidth()" title="Fit to width">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                    </svg>
+                </button>
+                <button class="toolbar-btn" onclick="toggleFullscreen()" title="Fullscreen">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="document-canvas" id="documentCanvas">
+                <div class="document-page" id="documentPage">
+                    <!-- Document preview would be rendered here -->
+                    <div style="width: 600px; height: 800px; background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%); display: flex; flex-direction: column; padding: 40px;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <div style="font-size: 24px; font-weight: bold; color: #1e293b;">W-2 Wage and Tax Statement</div>
+                            <div style="font-size: 14px; color: #64748b; margin-top: 8px;">Tax Year 2024</div>
+                        </div>
+                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; flex: 1;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <div style="padding: 12px; background: #f8fafc; border-radius: 4px;">
+                                    <div style="font-size: 10px; color: #64748b; margin-bottom: 4px;">1. Wages, tips, other compensation</div>
+                                    <div style="font-size: 16px; font-weight: 600; color: #1e293b;">$85,420.00</div>
+                                </div>
+                                <div style="padding: 12px; background: #f8fafc; border-radius: 4px;">
+                                    <div style="font-size: 10px; color: #64748b; margin-bottom: 4px;">2. Federal income tax withheld</div>
+                                    <div style="font-size: 16px; font-weight: 600; color: #1e293b;">$12,813.00</div>
+                                </div>
+                                <div style="padding: 12px; background: #f8fafc; border-radius: 4px;">
+                                    <div style="font-size: 10px; color: #64748b; margin-bottom: 4px;">3. Social security wages</div>
+                                    <div style="font-size: 16px; font-weight: 600; color: #1e293b;">$85,420.00</div>
+                                </div>
+                                <div style="padding: 12px; background: #f8fafc; border-radius: 4px;">
+                                    <div style="font-size: 10px; color: #64748b; margin-bottom: 4px;">4. Social security tax withheld</div>
+                                    <div style="font-size: 16px; font-weight: 600; color: #1e293b;">$5,296.04</div>
+                                </div>
+                            </div>
+                            <div style="margin-top: 24px; padding: 16px; border: 1px dashed #cbd5e1; border-radius: 4px;">
+                                <div style="font-size: 12px; color: #64748b;">Employer Information</div>
+                                <div style="font-size: 14px; font-weight: 500; color: #1e293b; margin-top: 8px;">ACME Corporation</div>
+                                <div style="font-size: 12px; color: #64748b;">EIN: 12-3456789</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-overlay" id="panelOverlay" onclick="closePanel()"></div>
+
+        <aside class="side-panel" id="sidePanel">
+            <div class="panel-tabs">
+                <button class="panel-tab active" onclick="switchTab('extracted')">Extracted Data</button>
+                <button class="panel-tab" onclick="switchTab('info')">Document Info</button>
+                <button class="panel-tab" onclick="switchTab('activity')">Activity</button>
+            </div>
+
+            <div class="panel-content">
+                <!-- Extracted Data Tab -->
+                <div class="tab-pane active" id="extractedTab">
+                    <div class="ocr-status">
+                        <div class="ocr-header">
+                            <span class="ocr-title">OCR Processing</span>
+                            <span class="ocr-badge success">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Complete
+                            </span>
+                        </div>
+                        <div class="ocr-confidence">
+                            <span style="font-size: 12px; color: var(--color-gray-600);">Confidence:</span>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: 94%"></div>
+                            </div>
+                            <span class="confidence-text">94%</span>
+                        </div>
+                    </div>
+
+                    <div class="extracted-section">
+                        <div class="section-header">
+                            <h3 class="section-title">Income Information</h3>
+                            <button class="edit-btn">Edit All</button>
+                        </div>
+                        <div class="data-grid">
+                            <div class="data-field">
+                                <div class="field-label">Box 1: Wages, Tips, Other Compensation</div>
+                                <div class="field-value editable" onclick="editField(this)">$85,420.00</div>
+                                <div class="field-confidence">
+                                    <span class="confidence-dot high"></span>
+                                    <span class="confidence-label">High confidence (98%)</span>
+                                </div>
+                            </div>
+                            <div class="data-field">
+                                <div class="field-label">Box 2: Federal Income Tax Withheld</div>
+                                <div class="field-value editable" onclick="editField(this)">$12,813.00</div>
+                                <div class="field-confidence">
+                                    <span class="confidence-dot high"></span>
+                                    <span class="confidence-label">High confidence (96%)</span>
+                                </div>
+                            </div>
+                            <div class="data-field">
+                                <div class="field-label">Box 3: Social Security Wages</div>
+                                <div class="field-value editable" onclick="editField(this)">$85,420.00</div>
+                                <div class="field-confidence">
+                                    <span class="confidence-dot high"></span>
+                                    <span class="confidence-label">High confidence (97%)</span>
+                                </div>
+                            </div>
+                            <div class="data-field">
+                                <div class="field-label">Box 4: Social Security Tax Withheld</div>
+                                <div class="field-value editable" onclick="editField(this)">$5,296.04</div>
+                                <div class="field-confidence">
+                                    <span class="confidence-dot high"></span>
+                                    <span class="confidence-label">High confidence (95%)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="extracted-section">
+                        <div class="section-header">
+                            <h3 class="section-title">Employer Information</h3>
+                            <button class="edit-btn">Edit All</button>
+                        </div>
+                        <div class="data-grid">
+                            <div class="data-field">
+                                <div class="field-label">Employer Name</div>
+                                <div class="field-value editable" onclick="editField(this)">ACME Corporation</div>
+                                <div class="field-confidence">
+                                    <span class="confidence-dot high"></span>
+                                    <span class="confidence-label">High confidence (99%)</span>
+                                </div>
+                            </div>
+                            <div class="data-field">
+                                <div class="field-label">Employer EIN</div>
+                                <div class="field-value editable" onclick="editField(this)">12-3456789</div>
+                                <div class="field-confidence">
+                                    <span class="confidence-dot medium"></span>
+                                    <span class="confidence-label">Medium confidence (82%)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Document Info Tab -->
+                <div class="tab-pane" id="infoTab">
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span class="info-label">File Name</span>
+                            <span class="info-value">W-2_2024_Employer.pdf</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">File Size</span>
+                            <span class="info-value">245 KB</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">File Type</span>
+                            <span class="info-value">PDF Document</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Pages</span>
+                            <span class="info-value">3</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Category</span>
+                            <span class="info-value">W-2 Forms</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Tax Year</span>
+                            <span class="info-value">2024</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Status</span>
+                            <span class="info-value" style="color: var(--color-success-600);">Verified</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Uploaded By</span>
+                            <span class="info-value">John Doe</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Upload Date</span>
+                            <span class="info-value">Jan 15, 2025 at 2:34 PM</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Last Modified</span>
+                            <span class="info-value">Jan 16, 2025 at 10:15 AM</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Tab -->
+                <div class="tab-pane" id="activityTab">
+                    <div class="activity-timeline">
+                        <div class="activity-item">
+                            <div class="activity-dot"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">Document verified by CPA</div>
+                                <div class="activity-time">Jan 16, 2025 at 10:15 AM</div>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-dot"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">OCR processing completed</div>
+                                <div class="activity-time">Jan 15, 2025 at 2:38 PM</div>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-dot"></div>
+                            <div class="activity-content">
+                                <div class="activity-text">Document uploaded by John Doe</div>
+                                <div class="activity-time">Jan 15, 2025 at 2:34 PM</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-footer">
+                <button class="action-btn primary">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Approve
+                </button>
+                <button class="action-btn danger">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Delete
+                </button>
+            </div>
+        </aside>
+    </main>
+
+    <script>
+        let currentZoom = 100;
+        let currentPage = 1;
+        let totalPages = 3;
+        let rotation = 0;
+
+        // Zoom controls
+        function zoomIn() {
+            if (currentZoom < 200) {
+                currentZoom += 25;
+                updateZoom();
+            }
+        }
+
+        function zoomOut() {
+            if (currentZoom > 50) {
+                currentZoom -= 25;
+                updateZoom();
+            }
+        }
+
+        function updateZoom() {
+            document.getElementById('zoomLevel').textContent = currentZoom + '%';
+            document.getElementById('documentPage').style.transform = `scale(${currentZoom / 100}) rotate(${rotation}deg)`;
+        }
+
+        // Page controls
+        function nextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                updatePage();
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                updatePage();
+            }
+        }
+
+        function updatePage() {
+            document.getElementById('pageInput').value = currentPage;
+        }
+
+        document.getElementById('pageInput').addEventListener('change', function() {
+            const page = parseInt(this.value);
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+            } else {
+                this.value = currentPage;
+            }
+        });
+
+        // Rotate
+        function rotateCW() {
+            rotation = (rotation + 90) % 360;
+            updateZoom();
+        }
+
+        // Fit to width
+        function fitToWidth() {
+            const canvas = document.getElementById('documentCanvas');
+            const page = document.getElementById('documentPage');
+            const canvasWidth = canvas.clientWidth - 48;
+            const pageWidth = 600;
+            currentZoom = Math.floor((canvasWidth / pageWidth) * 100);
+            updateZoom();
+        }
+
+        // Fullscreen
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Panel toggle
+        function togglePanel() {
+            document.getElementById('sidePanel').classList.toggle('open');
+            document.getElementById('panelOverlay').classList.toggle('show');
+        }
+
+        function closePanel() {
+            document.getElementById('sidePanel').classList.remove('open');
+            document.getElementById('panelOverlay').classList.remove('show');
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.panel-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        // Field editing
+        function editField(element) {
+            const currentValue = element.textContent;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'field-input';
+            input.value = currentValue;
+
+            element.textContent = '';
+            element.appendChild(input);
+            input.focus();
+            input.select();
+
+            input.addEventListener('blur', function() {
+                element.textContent = this.value || currentValue;
+            });
+
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    element.textContent = this.value || currentValue;
+                }
+                if (e.key === 'Escape') {
+                    element.textContent = currentValue;
+                }
+            });
+        }
+
+        // Print and download
+        function printDocument() {
+            window.print();
+        }
+
+        function downloadDocument() {
+            // API call to download
+            window.location.href = '/api/v1/documents/1/download';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if mobile
+            if (window.innerWidth <= 1024) {
+                document.getElementById('sidePanel').classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>

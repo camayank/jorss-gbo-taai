@@ -1,6 +1,6 @@
 {% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="cpa">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +8,8 @@
     {% if cpa.favicon_url %}
     <link rel="icon" href="{{ cpa.favicon_url }}">
     {% endif %}
+    <!-- Core Design System -->
+    <link rel="stylesheet" href="/static/css/core/variables.css">
     <style>
         * {
             margin: 0;
@@ -16,22 +18,31 @@
         }
 
         :root {
-            --primary-color: {{ cpa.primary_color or '#2563eb' }};
-            --primary-hover: {{ cpa.primary_color or '#2563eb' }}dd;
-            --secondary-color: {{ cpa.secondary_color or '#1d4ed8' }};
-            --accent-color: {{ cpa.accent_color or '#10b981' }};
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
-            --text-light: #9ca3af;
-            --bg-light: #f9fafb;
-            --bg-page: #f3f4f6;
+            /* CPA Branding Overrides - Dynamic from database */
+            --cpa-primary: {{ cpa.primary_color or 'var(--color-primary-600)' }};
+            --cpa-primary-hover: {{ cpa.primary_color or 'var(--color-primary-700)' }};
+            --cpa-secondary: {{ cpa.secondary_color or 'var(--color-primary-700)' }};
+            --cpa-accent: {{ cpa.accent_color or 'var(--color-success-500)' }};
+        }
+
+        /* Map legacy variables to core system for backward compatibility */
+        :root {
+            --primary-color: var(--cpa-primary);
+            --primary-hover: var(--cpa-primary-hover);
+            --secondary-color: var(--cpa-secondary);
+            --accent-color: var(--cpa-accent);
+            --text-dark: var(--color-gray-800);
+            --text-muted: var(--color-gray-500);
+            --text-light: var(--color-gray-400);
+            --bg-light: var(--color-gray-50);
+            --bg-page: var(--color-gray-100);
             --white: #ffffff;
-            --border-color: #e5e7eb;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --sidebar-width: 260px;
-            --header-height: 64px;
+            --border-color: var(--color-gray-200);
+            --success: var(--color-success-500);
+            --warning: var(--color-warning-500);
+            --danger: var(--color-error-500);
+            --sidebar-width: var(--sidebar-width, 260px);
+            --header-height: var(--header-height, 64px);
         }
 
         body {
