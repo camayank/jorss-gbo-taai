@@ -10,16 +10,19 @@ Tests what-if tax scenario functionality:
 
 Reference: ScenarioService in src/services/scenario_service.py
 
-NOTE: Tests are skipped due to CSRF protection. A proper test fixture
-with CSRF token handling is needed to run these tests.
+NOTE: These tests have mock setup issues - the mocked service is not being
+used by the actual router (which imports from different locations).
 """
 
 import pytest
-
-pytestmark = pytest.mark.skip(reason="Tests require CSRF token handling - needs fixture update")
 from unittest.mock import Mock, patch, MagicMock
 from uuid import uuid4
 from datetime import datetime
+
+from conftest import CSRF_BYPASS_HEADERS
+
+# Skip due to mock/router integration issues, not CSRF
+pytestmark = pytest.mark.skip(reason="Mock setup issues - service not properly injected into scenario router")
 
 
 class MockScenarioResult:
@@ -95,15 +98,52 @@ def mock_scenario_service():
     return service
 
 
+class CSRFTestClient:
+    """TestClient wrapper that automatically adds CSRF bypass headers."""
+
+    def __init__(self, client):
+        self._client = client
+
+    def __getattr__(self, name):
+        return getattr(self._client, name)
+
+    def request(self, *args, **kwargs):
+        headers = kwargs.get("headers") or {}
+        headers.update(CSRF_BYPASS_HEADERS)
+        kwargs["headers"] = headers
+        return self._client.request(*args, **kwargs)
+
+    def post(self, *args, **kwargs):
+        headers = kwargs.get("headers") or {}
+        headers.update(CSRF_BYPASS_HEADERS)
+        kwargs["headers"] = headers
+        return self._client.post(*args, **kwargs)
+
+    def put(self, *args, **kwargs):
+        headers = kwargs.get("headers") or {}
+        headers.update(CSRF_BYPASS_HEADERS)
+        kwargs["headers"] = headers
+        return self._client.put(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        headers = kwargs.get("headers") or {}
+        headers.update(CSRF_BYPASS_HEADERS)
+        kwargs["headers"] = headers
+        return self._client.delete(*args, **kwargs)
+
+    def get(self, *args, **kwargs):
+        return self._client.get(*args, **kwargs)
+
+
 @pytest.fixture
 def client(mock_scenario_service):
-    """Create test client with mocked service."""
+    """Create test client with mocked service and CSRF bypass."""
     # We need to patch the service getter before importing the app
     with patch('web.app._scenario_service', mock_scenario_service):
         with patch('web.app._get_scenario_service', return_value=mock_scenario_service):
             from web.app import app
             from fastapi.testclient import TestClient
-            yield TestClient(app)
+            yield CSRFTestClient(TestClient(app))
 
 
 @pytest.fixture

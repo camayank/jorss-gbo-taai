@@ -43,3 +43,56 @@ def mock_redis_client():
     client.exists = AsyncMock(return_value=False)
     client.is_connected = True
     return client
+
+
+# =============================================================================
+# CSRF BYPASS HELPERS FOR TESTING
+# =============================================================================
+
+# Default headers that bypass CSRF validation in tests
+# Uses Bearer auth from a trusted origin (localhost:8000)
+CSRF_BYPASS_HEADERS = {
+    "Authorization": "Bearer test_token_for_csrf_bypass",
+    "Origin": "http://localhost:8000",
+}
+
+
+@pytest.fixture
+def csrf_headers():
+    """
+    Provide headers that bypass CSRF protection for testing.
+
+    Usage:
+        def test_my_endpoint(csrf_headers):
+            client = TestClient(app)
+            response = client.post("/api/endpoint", headers=csrf_headers)
+    """
+    return CSRF_BYPASS_HEADERS.copy()
+
+
+@pytest.fixture
+def authenticated_client():
+    """
+    Provide a TestClient with CSRF bypass headers pre-configured.
+
+    Usage:
+        def test_my_endpoint(authenticated_client):
+            response = authenticated_client.post("/api/endpoint", json={...})
+    """
+    from fastapi.testclient import TestClient
+    from web.app import app
+
+    # Create client with default headers for CSRF bypass
+    client = TestClient(app)
+
+    # Wrap request methods to include CSRF bypass headers
+    original_request = client.request
+
+    def request_with_csrf(*args, **kwargs):
+        headers = kwargs.get("headers") or {}
+        headers.update(CSRF_BYPASS_HEADERS)
+        kwargs["headers"] = headers
+        return original_request(*args, **kwargs)
+
+    client.request = request_with_csrf
+    return client

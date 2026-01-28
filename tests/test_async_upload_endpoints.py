@@ -5,8 +5,9 @@ from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 import io
 
+from conftest import CSRF_BYPASS_HEADERS
 
-@pytest.mark.skip(reason="Requires CSRF token handling in test client")
+
 class TestAsyncUploadEndpoint:
     """Tests for POST /api/upload/async endpoint."""
 
@@ -31,7 +32,7 @@ class TestAsyncUploadEndpoint:
             file_content = b"test PDF content"
             files = {"file": ("test.pdf", io.BytesIO(file_content), "application/pdf")}
 
-            response = client.post("/api/upload/async", files=files)
+            response = client.post("/api/upload/async", files=files, headers=CSRF_BYPASS_HEADERS)
 
             assert response.status_code == 200
             data = response.json()
@@ -49,7 +50,7 @@ class TestAsyncUploadEndpoint:
         file_content = b"test text content"
         files = {"file": ("test.txt", io.BytesIO(file_content), "text/plain")}
 
-        response = client.post("/api/upload/async", files=files)
+        response = client.post("/api/upload/async", files=files, headers=CSRF_BYPASS_HEADERS)
 
         assert response.status_code == 400
         # Check error message in the response
@@ -78,7 +79,7 @@ class TestAsyncUploadEndpoint:
                 "tax_year": "2025",
             }
 
-            response = client.post("/api/upload/async", files=files, data=data)
+            response = client.post("/api/upload/async", files=files, data=data, headers=CSRF_BYPASS_HEADERS)
 
             assert response.status_code == 200
 
@@ -106,7 +107,7 @@ class TestAsyncUploadEndpoint:
             files = {"file": ("test.pdf", io.BytesIO(file_content), "application/pdf")}
             data = {"callback_url": "https://example.com/callback"}
 
-            response = client.post("/api/upload/async", files=files, data=data)
+            response = client.post("/api/upload/async", files=files, data=data, headers=CSRF_BYPASS_HEADERS)
 
             assert response.status_code == 200
 
@@ -294,7 +295,6 @@ class TestDocumentStatusEndpoint:
             assert response.status_code == 404
 
 
-@pytest.mark.skip(reason="Requires CSRF token handling in test client")
 class TestCancelUploadEndpoint:
     """Tests for POST /api/upload/cancel/{task_id} endpoint."""
 
@@ -305,7 +305,7 @@ class TestCancelUploadEndpoint:
         with patch('tasks.ocr_tasks.cancel_task', return_value=True) as mock_cancel:
             client = TestClient(app)
 
-            response = client.post("/api/upload/cancel/test-task-id")
+            response = client.post("/api/upload/cancel/test-task-id", headers=CSRF_BYPASS_HEADERS)
 
             assert response.status_code == 200
             data = response.json()
@@ -319,14 +319,13 @@ class TestCancelUploadEndpoint:
         with patch('tasks.ocr_tasks.cancel_task', return_value=False):
             client = TestClient(app)
 
-            response = client.post("/api/upload/cancel/test-task-id")
+            response = client.post("/api/upload/cancel/test-task-id", headers=CSRF_BYPASS_HEADERS)
 
             assert response.status_code == 400
             data = response.json()
             assert data["cancelled"] is False
 
 
-@pytest.mark.skip(reason="Requires CSRF token handling in test client")
 class TestAsyncUploadIntegration:
     """Integration tests for async upload workflow."""
 
@@ -349,7 +348,7 @@ class TestAsyncUploadIntegration:
             file_content = b"test PDF content"
             files = {"file": ("test.pdf", io.BytesIO(file_content), "application/pdf")}
 
-            response = client.post("/api/upload/async", files=files)
+            response = client.post("/api/upload/async", files=files, headers=CSRF_BYPASS_HEADERS)
             assert response.status_code == 200
 
             upload_data = response.json()

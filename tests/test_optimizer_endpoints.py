@@ -1,7 +1,3 @@
-import pytest
-
-pytestmark = pytest.mark.skip(reason="CSRF token handling required")
-
 """
 Tests for Tax Optimizer API endpoints.
 
@@ -24,12 +20,23 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from web.app import app
+from conftest import CSRF_BYPASS_HEADERS
+
+
+class CSRFTestClient(TestClient):
+    """TestClient that automatically adds CSRF bypass headers."""
+
+    def request(self, *args, **kwargs):
+        headers = kwargs.get("headers") or {}
+        headers.update(CSRF_BYPASS_HEADERS)
+        kwargs["headers"] = headers
+        return super().request(*args, **kwargs)
 
 
 @pytest.fixture
 def client():
-    """Create a test client for the FastAPI app."""
-    return TestClient(app)
+    """Create a test client for the FastAPI app with CSRF bypass."""
+    return CSRFTestClient(app)
 
 
 class TestEntityComparisonEndpoint:

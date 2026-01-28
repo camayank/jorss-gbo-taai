@@ -1,7 +1,3 @@
-import pytest
-
-pytestmark = pytest.mark.skip(reason="CSRF token handling required")
-
 """
 Tests for Configuration Management API.
 """
@@ -13,6 +9,9 @@ import os
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+# Import CSRF bypass headers from conftest
+from conftest import CSRF_BYPASS_HEADERS
 
 
 class TestConfigAPIRoutes:
@@ -299,7 +298,8 @@ class TestRulesAPIEndpoints:
                 "adjusted_gross_income": 100000,
                 "earned_income": 100000,
                 "wages": 100000,
-            }
+            },
+            headers=CSRF_BYPASS_HEADERS,
         )
         assert response.status_code == 200
         data = response.json()
@@ -317,7 +317,8 @@ class TestRulesAPIEndpoints:
                 "filing_status": "single",
                 "adjusted_gross_income": 250000,
                 "earned_income": 250000,
-            }
+            },
+            headers=CSRF_BYPASS_HEADERS,
         )
         assert response.status_code == 200
         data = response.json()
