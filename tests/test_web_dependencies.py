@@ -150,14 +150,17 @@ class TestServiceBundle:
         """Should initialize with services."""
         mock_service = MagicMock(spec=AsyncTaxReturnService)
         mock_pipeline = MagicMock(spec=AsyncCalculationPipeline)
+        mock_validator = MagicMock()
 
         bundle = ServiceBundle(
             tax_return_service=mock_service,
-            pipeline=mock_pipeline
+            pipeline=mock_pipeline,
+            validator=mock_validator
         )
 
         assert bundle.tax_return_service is mock_service
         assert bundle.pipeline is mock_pipeline
+        assert bundle.validator is mock_validator
 
     @pytest.mark.asyncio
     async def test_get_service_bundle(self):

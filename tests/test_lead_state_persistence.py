@@ -319,7 +319,9 @@ class TestLeadMetadata:
 
         # Reload and verify
         loaded = persistence.load_lead("lead-001")
-        assert loaded.metadata == metadata
+        # Check key metadata fields (system may add _pii_encrypted flag)
+        for key, value in metadata.items():
+            assert loaded.metadata.get(key) == value
 
     def test_update_lead_metadata(self, persistence):
         """Test updating lead metadata."""
@@ -338,4 +340,6 @@ class TestLeadMetadata:
         )
 
         loaded = persistence.load_lead("lead-001")
-        assert loaded.metadata == {"version": 2, "updated": True}
+        # Check key metadata fields (system may add _pii_encrypted flag)
+        assert loaded.metadata.get("version") == 2
+        assert loaded.metadata.get("updated") == True

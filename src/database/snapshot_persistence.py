@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 from uuid import uuid4
 
-from .migrations import run_migrations
+from .db_migrations import run_migrations
 
 # Default database path (same as other persistence modules)
 DEFAULT_DB_PATH = Path(__file__).parent.parent.parent / "data" / "tax_returns.db"

@@ -117,6 +117,41 @@ class SmartTaxOrchestrator:
         # NEW: Use get_session_persistence() for all session operations
         self.persistence = get_session_persistence()
 
+    def _get_filing_status(self, session) -> str:
+        """Get filing status from session (works with both SmartTaxSession and UnifiedFilingSession)."""
+        if hasattr(session, 'filing_status'):
+            return session.filing_status
+        return session.metadata.get("filing_status", "single")
+
+    def _get_num_dependents(self, session) -> int:
+        """Get num_dependents from session (works with both SmartTaxSession and UnifiedFilingSession)."""
+        if hasattr(session, 'num_dependents'):
+            return session.num_dependents
+        return session.metadata.get("num_dependents", 0)
+
+    def _get_estimate_history(self, session) -> list:
+        """Get estimate history from session (works with both SmartTaxSession and UnifiedFilingSession)."""
+        if hasattr(session, 'estimate_history'):
+            return session.estimate_history
+        # For UnifiedFilingSession, store estimate history in metadata
+        if "estimate_history" not in session.metadata:
+            session.metadata["estimate_history"] = []
+        return session.metadata["estimate_history"]
+
+    def _set_filing_status(self, session, value: str):
+        """Set filing status on session (works with both SmartTaxSession and UnifiedFilingSession)."""
+        if hasattr(session, 'filing_status'):
+            session.filing_status = value
+        else:
+            session.metadata["filing_status"] = value
+
+    def _set_num_dependents(self, session, value: int):
+        """Set num_dependents on session (works with both SmartTaxSession and UnifiedFilingSession)."""
+        if hasattr(session, 'num_dependents'):
+            session.num_dependents = value
+        else:
+            session.metadata["num_dependents"] = value
+
     def create_session(
         self,
         filing_status: str = "single",
@@ -224,7 +259,7 @@ class SmartTaxOrchestrator:
         inference_result = inference_engine.infer_and_validate(
             document_type=document_type,
             extracted_fields=extracted_fields,
-            filing_status=session.filing_status,
+            filing_status=self._get_filing_status(session),
         )
 
         # Add inferred fields
@@ -265,8 +300,8 @@ class SmartTaxOrchestrator:
             # Single W-2 estimate
             estimate = estimator.estimate_from_w2(
                 w2_data=extracted_fields,
-                filing_status=session.filing_status,
-                num_dependents=session.num_dependents,
+                filing_status=self._get_filing_status(session),
+                num_dependents=self._get_num_dependents(session),
             )
         else:
             # Multi-document estimate
@@ -276,13 +311,13 @@ class SmartTaxOrchestrator:
             ]
             estimate = estimator.estimate_from_multiple_documents(
                 documents=doc_list,
-                filing_status=session.filing_status,
-                num_dependents=session.num_dependents,
+                filing_status=self._get_filing_status(session),
+                num_dependents=self._get_num_dependents(session),
             )
 
         # Update session
         session.current_estimate = estimate.to_dict()
-        session.estimate_history.append({
+        self._get_estimate_history(session).append({
             "estimate": estimate.to_dict(),
             "timestamp": datetime.now().isoformat(),
             "trigger": f"document_added:{document_type}",
@@ -354,9 +389,9 @@ class SmartTaxOrchestrator:
 
         # Special handling for certain questions
         if question.get("type") == "filing_status":
-            session.filing_status = answer
+            self._set_filing_status(session, answer)
         elif question.get("type") == "dependents":
-            session.num_dependents = int(answer) if answer else 0
+            self._set_num_dependents(session, int(answer) if answer else 0)
 
         # Recalculate estimate with new data
         from recommendation.realtime_estimator import RealTimeEstimator
@@ -370,12 +405,12 @@ class SmartTaxOrchestrator:
             ]
             estimate = estimator.estimate_from_multiple_documents(
                 documents=doc_list,
-                filing_status=session.filing_status,
-                num_dependents=session.num_dependents,
+                filing_status=self._get_filing_status(session),
+                num_dependents=self._get_num_dependents(session),
             )
 
             session.current_estimate = estimate.to_dict()
-            session.estimate_history.append({
+            self._get_estimate_history(session).append({
                 "estimate": estimate.to_dict(),
                 "timestamp": datetime.now().isoformat(),
                 "trigger": f"question_answered:{question_id}",
@@ -441,8 +476,8 @@ class SmartTaxOrchestrator:
 
             estimate = estimator.estimate_from_multiple_documents(
                 documents=doc_list,
-                filing_status=session.filing_status,
-                num_dependents=session.num_dependents,
+                filing_status=self._get_filing_status(session),
+                num_dependents=self._get_num_dependents(session),
             )
 
             session.current_estimate = estimate.to_dict()
@@ -503,7 +538,7 @@ class SmartTaxOrchestrator:
                 }
                 for d in session.documents
             ],
-            "estimate_count": len(session.estimate_history),
+            "estimate_count": len(self._get_estimate_history(session)),
             "questions_answered": len(session.answered_questions),
             "questions_pending": len(session.pending_questions),
         }
@@ -575,7 +610,7 @@ class SmartTaxOrchestrator:
         questions = []
 
         # Check if filing status needs confirmation
-        if session.filing_status == "single" and session.num_dependents > 0:
+        if self._get_filing_status(session) == "single" and self._get_num_dependents(session) > 0:
             questions.append({
                 "id": "q_filing_status",
                 "type": "filing_status",

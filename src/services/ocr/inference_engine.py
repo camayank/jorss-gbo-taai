@@ -102,14 +102,21 @@ class FieldInferenceEngine:
     """
 
     # Tax year constants (2024/2025)
+    # 2024 Tax Constants
     # 2025 Tax Constants (IRS Rev. Proc. 2024-40)
     TAX_CONSTANTS = {
+        "ss_wage_base_2024": Decimal("168600"),
         "ss_wage_base_2025": Decimal("176100"),
         "ss_tax_rate": Decimal("0.062"),
         "medicare_tax_rate": Decimal("0.0145"),
         "additional_medicare_threshold_single": Decimal("200000"),
         "additional_medicare_threshold_mfj": Decimal("250000"),
         "additional_medicare_rate": Decimal("0.009"),
+        # 2024 standard deductions
+        "standard_deduction_single_2024": Decimal("14600"),
+        "standard_deduction_mfj_2024": Decimal("29200"),
+        "standard_deduction_hoh_2024": Decimal("21900"),
+        # 2025 standard deductions
         "standard_deduction_single_2025": Decimal("15750"),
         "standard_deduction_mfj_2025": Decimal("31500"),
         "standard_deduction_hoh_2025": Decimal("23850"),
