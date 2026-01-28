@@ -102,6 +102,14 @@ try:
 except ImportError as e:
     logger.warning(f"Platform billing routes not available: {e}")
 
+# NEW: Support Ticket routes - Customer support management
+try:
+    from .ticket_routes import ticket_router
+    admin_router.include_router(ticket_router, prefix="/admin")
+    logger.info("Support ticket routes enabled")
+except ImportError as e:
+    logger.warning(f"Ticket routes not available: {e}")
+
 
 # =============================================================================
 # HEALTH CHECK
@@ -126,6 +134,7 @@ async def admin_health_check():
             "superadmin": "active",
             "rbac": "active",
             "platform_billing": "active",
+            "tickets": "active (support ticket management)",
         },
     }
 

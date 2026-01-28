@@ -182,6 +182,40 @@ try:
 except ImportError as e:
     logger.warning(f"Payment settings routes not available: {e}")
 
+# NEW: Deadline Management routes - Tax deadline tracking
+try:
+    from .deadline_routes import deadline_router
+    cpa_router.include_router(deadline_router)
+    logger.info("Deadline routes enabled")
+except ImportError as e:
+    logger.warning(f"Deadline routes not available: {e}")
+
+# NEW: Task Management routes - Task tracking and workflow
+try:
+    from .task_routes import task_router
+    cpa_router.include_router(task_router)
+    logger.info("Task routes enabled")
+except ImportError as e:
+    logger.warning(f"Task routes not available: {e}")
+
+# NEW: Appointment Scheduling routes - Client appointment booking
+try:
+    from .appointment_routes import appointment_router
+    cpa_router.include_router(appointment_router)
+    logger.info("Appointment routes enabled")
+except ImportError as e:
+    logger.warning(f"Appointment routes not available: {e}")
+
+# NEW: Invoice and Payment routes - Client billing and payment collection
+try:
+    from .invoice_routes import invoice_router, payment_link_router, payments_router
+    cpa_router.include_router(invoice_router)
+    cpa_router.include_router(payment_link_router)
+    cpa_router.include_router(payments_router)
+    logger.info("Invoice and payment routes enabled")
+except ImportError as e:
+    logger.warning(f"Invoice routes not available: {e}")
+
 # Include core domain routers
 cpa_router.include_router(workflow_router)
 cpa_router.include_router(analysis_router)
@@ -226,6 +260,12 @@ async def cpa_health_check():
             "client_portal": "active (B2C client dashboard)",
             "notifications": "active (in-app notifications and reminders)",
             "payment_settings": "active (Stripe Connect for client payments)",
+            "deadlines": "active (tax deadline management)",
+            "tasks": "active (task management and workflow)",
+            "appointments": "active (client appointment scheduling)",
+            "invoices": "active (client invoicing)",
+            "payment_links": "active (payment link generation)",
+            "payments": "active (payment tracking and analytics)",
         },
     }
 
@@ -463,6 +503,82 @@ async def get_route_documentation():
                     "GET /payment-settings/stripe/account-status - Get Stripe account status",
                     "POST /payment-settings/create-payment-intent - Create payment for client",
                     "GET /payment-settings/payment-history - Get payment history",
+                ],
+            },
+            "deadlines": {
+                "description": "Tax deadline tracking and management",
+                "endpoints": [
+                    "POST /deadlines - Create deadline",
+                    "GET /deadlines - List deadlines with filters",
+                    "GET /deadlines/{id} - Get deadline details",
+                    "PUT /deadlines/{id} - Update deadline",
+                    "DELETE /deadlines/{id} - Delete deadline",
+                    "POST /deadlines/{id}/complete - Mark as completed",
+                    "POST /deadlines/{id}/extension - Request extension",
+                    "GET /deadlines/upcoming - Get upcoming deadlines",
+                    "GET /deadlines/overdue - Get overdue deadlines",
+                    "GET /deadlines/calendar/{year}/{month} - Calendar view",
+                    "POST /deadlines/generate-standard - Generate standard tax deadlines",
+                    "GET /deadlines/reminders/pending - Get pending reminders",
+                    "POST /deadlines/{id}/reminders/{type}/sent - Mark reminder sent",
+                    "GET /deadlines/alerts - Get deadline alerts",
+                    "POST /deadlines/alerts/{id}/acknowledge - Acknowledge alert",
+                    "GET /deadlines/summary - Dashboard metrics",
+                ],
+            },
+            "tasks": {
+                "description": "Task management and workflow tracking",
+                "endpoints": [
+                    "POST /tasks - Create task",
+                    "GET /tasks - List tasks with filters",
+                    "GET /tasks/{id} - Get task details",
+                    "PUT /tasks/{id} - Update task",
+                    "DELETE /tasks/{id} - Delete task",
+                    "POST /tasks/from-template - Create from template",
+                    "GET /tasks/templates - List task templates",
+                    "POST /tasks/{id}/assign - Assign to user",
+                    "POST /tasks/{id}/reassign - Reassign task",
+                    "POST /tasks/{id}/unassign - Unassign task",
+                    "POST /tasks/{id}/start - Start working on task",
+                    "POST /tasks/{id}/complete - Complete task",
+                    "POST /tasks/{id}/block - Block task",
+                    "POST /tasks/{id}/unblock - Unblock task",
+                    "POST /tasks/{id}/comments - Add comment",
+                    "GET /tasks/{id}/comments - Get comments",
+                    "POST /tasks/{id}/checklist - Update checklist",
+                    "GET /tasks/my-tasks - Get my tasks",
+                    "GET /tasks/unassigned - Get unassigned tasks",
+                    "GET /tasks/overdue - Get overdue tasks",
+                    "GET /tasks/kanban - Kanban board view",
+                    "GET /tasks/workload - Team workload analytics",
+                    "GET /tasks/categories - List task categories",
+                ],
+            },
+            "appointments": {
+                "description": "Client appointment scheduling and availability",
+                "endpoints": [
+                    "POST /appointments/availability - Set CPA availability",
+                    "GET /appointments/availability/{cpa_id} - Get availability",
+                    "POST /appointments/availability/{cpa_id}/block-date - Block date",
+                    "DELETE /appointments/availability/{cpa_id}/block-date - Unblock date",
+                    "GET /appointments/slots - Get available time slots",
+                    "POST /appointments - Book appointment",
+                    "GET /appointments - List appointments",
+                    "GET /appointments/{id} - Get appointment details",
+                    "PUT /appointments/{id} - Update appointment",
+                    "POST /appointments/{id}/confirm - Confirm appointment",
+                    "POST /appointments/{id}/cancel - Cancel appointment",
+                    "POST /appointments/{id}/reschedule - Reschedule appointment",
+                    "POST /appointments/{id}/complete - Mark as completed",
+                    "POST /appointments/{id}/no-show - Mark as no-show",
+                    "GET /appointments/upcoming - Get upcoming appointments",
+                    "GET /appointments/today - Get today's appointments",
+                    "GET /appointments/client/{client_id} - Client appointments",
+                    "GET /appointments/reminders/pending - Get pending reminders",
+                    "POST /appointments/{id}/reminders/{type}/sent - Mark reminder sent",
+                    "GET /appointments/summary - Appointment analytics",
+                    "GET /appointments/types - List appointment types",
+                    "GET /appointments/statuses - List statuses",
                 ],
             },
         },

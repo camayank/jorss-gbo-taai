@@ -274,37 +274,290 @@ async def get_firm_details(
     )
 
 
+class ImpersonateRequest(BaseModel):
+    """Request to impersonate a firm."""
+    reason: str = Field(..., min_length=10, description="Reason for impersonation (required)")
+    reason_category: str = Field("support_request", description="Category: support_request, bug_investigation, feature_demo, configuration_help, billing_issue, security_audit, other")
+    ticket_id: Optional[str] = Field(None, description="Associated support ticket ID")
+    duration_minutes: int = Field(30, ge=5, le=120, description="Session duration in minutes")
+
+
 @router.post("/firms/{firm_id}/impersonate")
 @require_platform_admin
 async def impersonate_firm(
     firm_id: str,
+    request: ImpersonateRequest,
     user: TenantContext = Depends(get_current_user),
-    reason: str = Query(..., description="Reason for impersonation (logged)"),
+    session: AsyncSession = Depends(get_async_session),
 ):
     """
     Enter support mode for a firm.
 
     Creates a temporary session with firm admin access.
     All actions are logged with the original admin ID.
-    """
-    # FREEZE & FINISH: Impersonation deferred to Phase 2
-    # Log the attempt for audit purposes
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"[AUDIT] Impersonation attempted | admin={user.user_id} | firm={firm_id} | reason={reason}")
 
-    from fastapi import HTTPException
-    raise HTTPException(
-        status_code=501,
-        detail={
-            "error_code": "FEATURE_NOT_AVAILABLE",
-            "message": "Support mode impersonation is not yet available.",
-            "firm_id": firm_id,
-            "suggestion": "For support access, use direct database queries with appropriate logging.",
-            "logged": True,
-            "phase": "Coming in Phase 2"
-        }
+    Returns a token that can be used to access the firm's data.
+    The session expires after the specified duration.
+    """
+    from uuid import UUID as PyUUID
+    from ..support import (
+        impersonation_service,
+        ImpersonationReason,
     )
+
+    # Look up firm details
+    firm_query = text("""
+        SELECT firm_id, name FROM firms WHERE firm_id = :firm_id
+    """)
+    result = await session.execute(firm_query, {"firm_id": firm_id})
+    firm_row = result.fetchone()
+
+    if not firm_row:
+        raise HTTPException(404, "Firm not found")
+
+    firm_uuid = PyUUID(str(firm_row[0]))
+    firm_name = firm_row[1] or "Unknown Firm"
+
+    # Map reason category to enum
+    reason_mapping = {
+        "support_request": ImpersonationReason.SUPPORT_REQUEST,
+        "bug_investigation": ImpersonationReason.BUG_INVESTIGATION,
+        "feature_demo": ImpersonationReason.FEATURE_DEMO,
+        "configuration_help": ImpersonationReason.CONFIGURATION_HELP,
+        "billing_issue": ImpersonationReason.BILLING_ISSUE,
+        "security_audit": ImpersonationReason.SECURITY_AUDIT,
+        "other": ImpersonationReason.OTHER,
+    }
+    reason_enum = reason_mapping.get(request.reason_category, ImpersonationReason.OTHER)
+
+    # Start impersonation session
+    imp_session = impersonation_service.start_firm_impersonation(
+        admin_id=PyUUID(str(user.user_id)),
+        admin_email=user.email or "admin@platform.com",
+        admin_name=f"{user.first_name or ''} {user.last_name or ''}".strip() or "Platform Admin",
+        firm_id=firm_uuid,
+        firm_name=firm_name,
+        reason=reason_enum,
+        reason_detail=request.reason,
+        ticket_id=request.ticket_id,
+        duration_seconds=request.duration_minutes * 60,
+    )
+
+    logger.info(
+        f"[AUDIT] Impersonation started | admin={user.user_id} | email={user.email} | "
+        f"firm={firm_id} ({firm_name}) | reason={request.reason} | ticket={request.ticket_id}"
+    )
+
+    return {
+        "success": True,
+        "session": {
+            "id": str(imp_session.id),
+            "token": imp_session.session_token,
+            "firm_id": str(imp_session.firm_id),
+            "firm_name": imp_session.firm_name,
+            "expires_at": imp_session.expires_at.isoformat(),
+            "expires_in_seconds": imp_session.remaining_seconds,
+        },
+        "instructions": {
+            "usage": "Include the token in the X-Impersonation-Token header for API requests",
+            "note": "All actions will be logged under your admin account",
+            "end_session": f"POST /superadmin/impersonation/{imp_session.id}/end",
+        },
+    }
+
+
+@router.get("/impersonation/active")
+@require_platform_admin
+async def get_active_impersonations(
+    user: TenantContext = Depends(get_current_user),
+):
+    """Get all currently active impersonation sessions."""
+    from ..support import impersonation_service
+
+    sessions = impersonation_service.get_active_sessions()
+    return {
+        "success": True,
+        "sessions": [s.to_dict() for s in sessions],
+        "total": len(sessions),
+    }
+
+
+@router.get("/impersonation/{session_id}")
+@require_platform_admin
+async def get_impersonation_session(
+    session_id: str,
+    user: TenantContext = Depends(get_current_user),
+):
+    """Get details of an impersonation session."""
+    from uuid import UUID as PyUUID
+    from ..support import impersonation_service
+
+    session = impersonation_service.get_session(PyUUID(session_id))
+    if not session:
+        raise HTTPException(404, "Impersonation session not found")
+
+    actions = impersonation_service.get_session_actions(PyUUID(session_id), limit=20)
+
+    return {
+        "success": True,
+        "session": session.to_dict(),
+        "recent_actions": [a.to_dict() for a in actions],
+    }
+
+
+@router.post("/impersonation/{session_id}/end")
+@require_platform_admin
+async def end_impersonation_session(
+    session_id: str,
+    user: TenantContext = Depends(get_current_user),
+    reason: str = Query("Session ended by admin", description="Reason for ending"),
+):
+    """End an impersonation session."""
+    from uuid import UUID as PyUUID
+    from ..support import impersonation_service
+
+    session = impersonation_service.end_session(
+        PyUUID(session_id),
+        user.email or "admin",
+        reason,
+    )
+
+    if not session:
+        raise HTTPException(404, "Impersonation session not found")
+
+    logger.info(
+        f"[AUDIT] Impersonation ended | admin={user.user_id} | session={session_id} | "
+        f"duration={session.duration_seconds}s | actions={session.actions_count}"
+    )
+
+    return {
+        "success": True,
+        "session": session.to_dict(),
+        "summary": {
+            "duration_seconds": session.duration_seconds,
+            "actions_count": session.actions_count,
+        },
+    }
+
+
+@router.post("/impersonation/{session_id}/extend")
+@require_platform_admin
+async def extend_impersonation_session(
+    session_id: str,
+    user: TenantContext = Depends(get_current_user),
+    additional_minutes: int = Query(30, ge=5, le=60, description="Additional minutes"),
+):
+    """Extend an active impersonation session."""
+    from uuid import UUID as PyUUID
+    from ..support import impersonation_service
+
+    session = impersonation_service.extend_session(
+        PyUUID(session_id),
+        additional_minutes * 60,
+    )
+
+    if not session:
+        raise HTTPException(404, "Impersonation session not found or not active")
+
+    logger.info(
+        f"[AUDIT] Impersonation extended | admin={user.user_id} | session={session_id} | "
+        f"new_expiry={session.expires_at.isoformat()}"
+    )
+
+    return {
+        "success": True,
+        "session": session.to_dict(),
+        "new_expires_at": session.expires_at.isoformat(),
+        "remaining_seconds": session.remaining_seconds,
+    }
+
+
+@router.post("/impersonation/{session_id}/revoke")
+@require_platform_admin
+async def revoke_impersonation_session(
+    session_id: str,
+    user: TenantContext = Depends(get_current_user),
+):
+    """
+    Revoke an impersonation session.
+
+    Used when suspicious activity is detected or for security reasons.
+    """
+    from uuid import UUID as PyUUID
+    from ..support import impersonation_service
+
+    session = impersonation_service.revoke_session(
+        PyUUID(session_id),
+        user.email or "admin",
+    )
+
+    if not session:
+        raise HTTPException(404, "Impersonation session not found")
+
+    logger.warning(
+        f"[AUDIT] Impersonation REVOKED | revoked_by={user.user_id} | session={session_id} | "
+        f"original_admin={session.admin_email}"
+    )
+
+    return {
+        "success": True,
+        "session": session.to_dict(),
+        "message": "Session revoked successfully",
+    }
+
+
+@router.get("/impersonation/history")
+@require_platform_admin
+async def get_impersonation_history(
+    user: TenantContext = Depends(get_current_user),
+    admin_id: Optional[str] = Query(None, description="Filter by admin"),
+    firm_id: Optional[str] = Query(None, description="Filter by firm"),
+    start_date: Optional[str] = Query(None, description="Start date ISO format"),
+    end_date: Optional[str] = Query(None, description="End date ISO format"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    """Get impersonation session history for audit purposes."""
+    from uuid import UUID as PyUUID
+    from ..support import impersonation_service
+
+    admin_uuid = PyUUID(admin_id) if admin_id else None
+    firm_uuid = PyUUID(firm_id) if firm_id else None
+    start_dt = datetime.fromisoformat(start_date) if start_date else None
+    end_dt = datetime.fromisoformat(end_date) if end_date else None
+
+    sessions = impersonation_service.get_session_history(
+        admin_id=admin_uuid,
+        firm_id=firm_uuid,
+        start_date=start_dt,
+        end_date=end_dt,
+        limit=limit,
+        offset=offset,
+    )
+
+    return {
+        "success": True,
+        "sessions": [s.to_dict() for s in sessions],
+        "total": len(sessions),
+    }
+
+
+@router.get("/impersonation/summary")
+@require_platform_admin
+async def get_impersonation_summary(
+    user: TenantContext = Depends(get_current_user),
+    days: int = Query(30, ge=1, le=365, description="Number of days to include"),
+):
+    """Get summary statistics for impersonation sessions."""
+    from ..support import impersonation_service
+
+    start_date = datetime.utcnow() - timedelta(days=days)
+    summary = impersonation_service.get_session_summary(start_date=start_date)
+
+    return {
+        "success": True,
+        **summary,
+    }
 
 
 # =============================================================================
