@@ -1236,7 +1236,9 @@ def intelligent_tax_advisor(request: Request):
     The platform positions tax advisory as the primary service,
     with tax filing available as a secondary service later.
     """
-    return templates.TemplateResponse("intelligent_advisor.html", {"request": request})
+    from config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("intelligent_advisor.html", {"request": request, "branding": branding})
 
 
 @app.get("/intelligent-advisor/v2", response_class=HTMLResponse)
@@ -6589,7 +6591,9 @@ def ai_tax_advisor(request: Request):
 
     This provides a "talk to an advisor" experience.
     """
-    return templates.TemplateResponse("intelligent_advisor.html", {"request": request})
+    from config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("intelligent_advisor.html", {"request": request, "branding": branding})
 
 
 # ============================================================================
