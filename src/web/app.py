@@ -1633,7 +1633,7 @@ def app_portal(request: Request):
 
     Uses the refactored modular template for better performance.
     """
-    from src.config.branding import get_branding_config
+    from config.branding import get_branding_config
     branding = get_branding_config()
     return templates.TemplateResponse("index_refactored.html", {
         "request": request,
@@ -6512,7 +6512,7 @@ def tax_advisory_v2(request: Request):
 
     Template size reduced from 788KB to 31KB (96% reduction).
     """
-    from src.config.branding import get_branding_config
+    from config.branding import get_branding_config
     branding = get_branding_config()
     return templates.TemplateResponse("index_refactored.html", {
         "request": request,
