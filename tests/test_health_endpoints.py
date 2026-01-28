@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 # Import the app
 from web.app import app
+from conftest import CSRF_BYPASS_HEADERS
 
 
 class TestHealthEndpoints:
@@ -73,7 +74,6 @@ class TestHealthEndpoints:
         from services.ocr.resilient_processor import reset_all_circuit_breakers
         reset_all_circuit_breakers()
 
-    @pytest.mark.skip(reason="Requires CSRF token handling")
     def test_resilience_reset_endpoint(self, client):
         """POST /api/health/resilience/reset resets all circuit breakers."""
         # Create a circuit breaker and open it
@@ -98,8 +98,8 @@ class TestHealthEndpoints:
                 # Verify it's open
                 assert engine.is_circuit_open is True
 
-        # Call reset endpoint
-        response = client.post("/api/health/resilience/reset")
+        # Call reset endpoint with CSRF bypass
+        response = client.post("/api/health/resilience/reset", headers=CSRF_BYPASS_HEADERS)
 
         assert response.status_code == 200
         data = response.json()
@@ -112,10 +112,9 @@ class TestHealthEndpoints:
         # Clean up
         reset_all_circuit_breakers()
 
-    @pytest.mark.skip(reason="Requires CSRF token handling")
     def test_resilience_reset_returns_success_message(self, client):
         """Reset endpoint returns success message."""
-        response = client.post("/api/health/resilience/reset")
+        response = client.post("/api/health/resilience/reset", headers=CSRF_BYPASS_HEADERS)
 
         assert response.status_code == 200
         data = response.json()
