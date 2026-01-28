@@ -1208,7 +1208,7 @@ def landing_page(request: Request):
     - Resume banner for returning users
     - Trust badges and value proposition
     """
-    from src.config.branding import get_branding_config
+    from config.branding import get_branding_config
     branding = get_branding_config()
     return templates.TemplateResponse("landing.html", {"request": request, "branding": branding})
 
@@ -1389,6 +1389,74 @@ def cpa_branding_settings(request: Request):
     - Lead magnet branding
     """
     return templates.TemplateResponse("cpa_branding_settings.html", {"request": request})
+
+
+@app.get("/cpa/clients", response_class=HTMLResponse)
+def cpa_clients(request: Request):
+    """
+    CPA Client Management - View and manage all clients.
+
+    Features:
+    - Client list with search and filtering
+    - Client status overview
+    - Quick actions (view details, send message, etc.)
+    - Add new client capability
+    """
+    return templates.TemplateResponse("cpa/clients.html", {
+        "request": request,
+        "active_page": "clients"
+    })
+
+
+@app.get("/cpa/settings", response_class=HTMLResponse)
+def cpa_settings(request: Request):
+    """
+    CPA Settings - Account and firm configuration.
+
+    Features:
+    - Firm profile settings
+    - Notification preferences
+    - Integration settings
+    - Security settings
+    """
+    return templates.TemplateResponse("cpa/settings.html", {
+        "request": request,
+        "active_page": "settings"
+    })
+
+
+@app.get("/cpa/team", response_class=HTMLResponse)
+def cpa_team(request: Request):
+    """
+    CPA Team Management - Manage staff and roles.
+
+    Features:
+    - Team member list
+    - Role assignments
+    - Invite new members
+    - Permission management
+    """
+    return templates.TemplateResponse("cpa/team.html", {
+        "request": request,
+        "active_page": "team"
+    })
+
+
+@app.get("/cpa/billing", response_class=HTMLResponse)
+def cpa_billing(request: Request):
+    """
+    CPA Billing - Subscription and payment management.
+
+    Features:
+    - Current plan details
+    - Usage statistics
+    - Payment history
+    - Plan upgrade options
+    """
+    return templates.TemplateResponse("cpa/billing.html", {
+        "request": request,
+        "active_page": "billing"
+    })
 
 
 # =============================================================================
@@ -1770,9 +1838,9 @@ def filing_results(request: Request, session_id: str = None):
 
     NEW: Premium report gating - free users see teaser only
     """
-    from src.config.branding import get_branding_config
-    from src.database.session_persistence import get_session_persistence
-    from src.subscription.tier_control import ReportAccessControl, SubscriptionTier, get_user_tier
+    from config.branding import get_branding_config
+    from database.session_persistence import get_session_persistence
+    from subscription.tier_control import ReportAccessControl, SubscriptionTier, get_user_tier
 
     # Get session_id from query param or cookie
     if not session_id:
@@ -2953,7 +3021,7 @@ async def startup_database():
 async def startup_auto_save():
     """Start auto-save manager on application startup."""
     try:
-        from src.web.auto_save import get_auto_save_manager
+        from web.auto_save import get_auto_save_manager
         import asyncio
 
         auto_save = get_auto_save_manager()
@@ -2979,7 +3047,7 @@ async def shutdown_database():
 async def shutdown_auto_save():
     """Stop auto-save manager on application shutdown."""
     try:
-        from src.web.auto_save import get_auto_save_manager
+        from web.auto_save import get_auto_save_manager
 
         auto_save = get_auto_save_manager()
         auto_save.stop()
@@ -6478,7 +6546,7 @@ def new_tax_advisory_portal(request: Request):
     
     This is the NEW entry point with modern UI/UX and advisory messaging.
     """
-    from src.config.branding import get_branding_config
+    from config.branding import get_branding_config
     branding = get_branding_config()
     return templates.TemplateResponse("index.html", {
         "request": request,
