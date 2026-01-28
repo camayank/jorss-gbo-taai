@@ -6572,35 +6572,53 @@ async def dismiss_smart_insight(insight_id: str, request: Request):
 
 
 # ============================================================================
-# BRAND NEW URL - TAX ADVISORY PORTAL (Zero Cache Issues)
+# AI TAX ADVISOR - Conversational Chat Interface
+# ============================================================================
+@app.get("/advisor", response_class=HTMLResponse)
+def ai_tax_advisor(request: Request):
+    """
+    AI Tax Advisor - Conversational Chat Interface
+
+    Premium AI-powered tax advisory chat with:
+    - Conversational data collection
+    - Real-time tax calculations
+    - Strategic recommendations
+    - Document upload & OCR
+    - Journey progress tracking
+    - Session persistence
+
+    This provides a "talk to an advisor" experience.
+    """
+    return templates.TemplateResponse("intelligent_advisor.html", {"request": request})
+
+
+# ============================================================================
+# TAX ADVISORY PORTAL - Form-Based Step Wizard
 # ============================================================================
 @app.get("/tax-advisory", response_class=HTMLResponse)
 @app.get("/advisory", response_class=HTMLResponse)
-@app.get("/advisor", response_class=HTMLResponse)  # Alias for /advisory (used in redirects)
 @app.get("/start", response_class=HTMLResponse)
 @app.get("/analysis", response_class=HTMLResponse)
 def new_tax_advisory_portal(request: Request):
     """
-    BRAND NEW URL - Tax Advisory Platform Entry Point
-    
-    Fresh URLs with zero browser cache - serves the comprehensive tax advisory interface.
-    
-    Available URLs (all serve the same new interface):
+    Tax Advisory Platform - Form-Based Step Wizard
+
+    Comprehensive multi-step tax data collection form.
+
+    Available URLs:
     - /tax-advisory
     - /advisory
     - /start
     - /analysis
-    
+
     Features:
     - Professional CPA-grade tax analysis
-    - AI-powered conversational data collection (OpenAI integration)
+    - Step-by-step guided data entry
     - OCR document extraction for express filing
     - Entity structure comparison (LLC/S-Corp/C-Corp)
     - Multi-year tax projections (3-5 years)
     - Strategic tax reduction recommendations
     - Professional PDF advisory report (20-40 pages)
-    
-    This is the NEW entry point with modern UI/UX and advisory messaging.
     """
     from config.branding import get_branding_config
     branding = get_branding_config()
