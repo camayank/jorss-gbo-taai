@@ -488,13 +488,15 @@ except ImportError as e:
 #     logger.warning(f"Pages router not available: {e}")
 logger.info("Pages router disabled - using app.py routes")
 
-# Register Documents Router (Document upload/management)
-try:
-    from web.routers.documents import router as documents_router
-    app.include_router(documents_router)
-    logger.info("Documents router enabled at /api/documents")
-except ImportError as e:
-    logger.warning(f"Documents router not available: {e}")
+# DISABLED: Documents router duplicates routes in app.py which have proper auth/rate limiting
+# The app.py routes at /api/upload, /api/upload/async, etc. should be used instead
+# try:
+#     from web.routers.documents import router as documents_router
+#     app.include_router(documents_router)
+#     logger.info("Documents router enabled at /api/documents")
+# except ImportError as e:
+#     logger.warning(f"Documents router not available: {e}")
+logger.info("Documents router disabled - using app.py document routes")
 
 # Register Returns Router (Tax return CRUD/workflow)
 try:
@@ -6522,7 +6524,8 @@ async def dismiss_smart_insight(insight_id: str, request: Request):
 # BRAND NEW URL - TAX ADVISORY PORTAL (Zero Cache Issues)
 # ============================================================================
 @app.get("/tax-advisory", response_class=HTMLResponse)
-@app.get("/advisory", response_class=HTMLResponse)  
+@app.get("/advisory", response_class=HTMLResponse)
+@app.get("/advisor", response_class=HTMLResponse)  # Alias for /advisory (used in redirects)
 @app.get("/start", response_class=HTMLResponse)
 @app.get("/analysis", response_class=HTMLResponse)
 def new_tax_advisory_portal(request: Request):

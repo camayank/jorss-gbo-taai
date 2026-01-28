@@ -239,6 +239,7 @@ async def get_dashboard_stats(cpa_id: str) -> dict:
             "total_revenue": 0,
             "new_leads_trend": 0,
             "conversion_rate": 0,
+            "conversion_trend": 0,  # Added missing field for template compatibility
         }
 
 

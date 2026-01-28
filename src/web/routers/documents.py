@@ -93,11 +93,26 @@ async def upload_document(
                 content={"status": "error", "error": "File too large (max 20MB)"}
             )
 
-        # Process document
-        processor = _get_document_processor()
-        result = await processor.process_document(content, file.filename)
+        # Process document (sync method - no await)
+        # Determine mime type from filename
+        mime_type = "application/pdf"  # Default
+        if file.filename:
+            ext = file.filename.lower().rsplit('.', 1)[-1] if '.' in file.filename else ''
+            mime_map = {
+                'pdf': 'application/pdf',
+                'png': 'image/png',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'tiff': 'image/tiff',
+                'tif': 'image/tiff',
+            }
+            mime_type = mime_map.get(ext, 'application/pdf')
 
-        if result.success:
+        processor = _get_document_processor()
+        result = processor.process_bytes(content, mime_type, file.filename or "document")
+
+        # Check if processing succeeded (status is "success" or "completed_with_warnings")
+        if result.status in ("success", "completed_with_warnings", "needs_review"):
             # Generate document ID
             document_id = str(uuid.uuid4())
 
@@ -108,7 +123,7 @@ async def upload_document(
                 session_id=session_id,
                 document_type=result.document_type,
                 status="completed",
-                result=result.extracted_data
+                result=result.get_extracted_data()
             )
 
             # Set session cookie
@@ -125,15 +140,17 @@ async def upload_document(
                 "document_id": document_id,
                 "session_id": session_id,
                 "document_type": result.document_type,
-                "extracted_data": result.extracted_data,
-                "confidence": result.confidence,
+                "extracted_data": result.get_extracted_data(),
+                "confidence": result.extraction_confidence,
+                "warnings": result.warnings if result.warnings else None,
             })
         else:
+            error_msg = result.errors[0] if result.errors else "Document processing failed"
             return JSONResponse(
                 status_code=422,
                 content={
                     "status": "error",
-                    "error": result.error_message or "Document processing failed",
+                    "error": error_msg,
                 }
             )
 
