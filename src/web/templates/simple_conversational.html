@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -349,7 +350,7 @@
 
       const avatar = document.createElement('div');
       avatar.className = 'avatar';
-      avatar.textContent = type === 'ai' ? '🤖' : '👤';
+      avatar.textContent = type === 'ai' ? '🤖' : '{{ icon('user') }}';
 
       const bubble = document.createElement('div');
       bubble.className = 'bubble';
@@ -399,18 +400,18 @@
 
       if (lower.includes('yes') && lower.includes('document')) {
         conversationState.hasDocuments = true;
-        addMessage('ai', `Great! You can upload your documents here, and I'll extract the information automatically.<br><br><strong>What would you like to upload first?</strong><div class="quick-actions"><div class="quick-action" onclick="uploadDocument()">📄 Upload W-2</div><div class="quick-action" onclick="uploadDocument()">📄 Upload 1099</div><div class="quick-action" onclick="sendQuickReply('I want to enter manually')">✏️ Enter manually</div></div>`);
+        addMessage('ai', `Great! You can upload your documents here, and I'll extract the information automatically.<br><br><strong>What would you like to upload first?</strong><div class="quick-actions"><div class="quick-action" onclick="uploadDocument()">{{ icon('document-text') }} Upload W-2</div><div class="quick-action" onclick="uploadDocument()">{{ icon('document-text') }} Upload 1099</div><div class="quick-action" onclick="sendQuickReply('I want to enter manually')">{{ icon('pencil') }} Enter manually</div></div>`);
       } else if (lower.includes('no') || lower.includes('chat first')) {
         conversationState.hasDocuments = false;
         addMessage('ai', `No problem! Let's start with some basic questions.<br><br><strong>What's your filing status?</strong><div class="quick-actions"><div class="quick-action" onclick="sendQuickReply('Single')">Single</div><div class="quick-action" onclick="sendQuickReply('Married Filing Jointly')">Married Filing Jointly</div><div class="quick-action" onclick="sendQuickReply('Head of Household')">Head of Household</div><div class="quick-action" onclick="sendQuickReply('Married Filing Separately')">Married Filing Separately</div><div class="quick-action" onclick="sendQuickReply('Qualifying Surviving Spouse')">Qualifying Surviving Spouse</div></div>`);
       } else if (lower.includes('what') && lower.includes('need')) {
-        addMessage('ai', `Here's what you'll typically need:<br><br>📄 <strong>Income Documents:</strong><br>• W-2 from employers<br>• 1099 forms (interest, dividends, freelance)<br>• Business income records<br><br>📄 <strong>Deduction Records:</strong><br>• Mortgage interest statements<br>• Charitable donations<br>• Medical expenses<br><br><strong>Do you have some of these ready?</strong><div class="quick-actions"><div class="quick-action" onclick="sendQuickReply('Yes, I have them')">Yes</div><div class="quick-action" onclick="sendQuickReply('I will get them later')">Later</div></div>`);
+        addMessage('ai', `Here's what you'll typically need:<br><br>{{ icon('document-text') }} <strong>Income Documents:</strong><br>• W-2 from employers<br>• 1099 forms (interest, dividends, freelance)<br>• Business income records<br><br>{{ icon('document-text') }} <strong>Deduction Records:</strong><br>• Mortgage interest statements<br>• Charitable donations<br>• Medical expenses<br><br><strong>Do you have some of these ready?</strong><div class="quick-actions"><div class="quick-action" onclick="sendQuickReply('Yes, I have them')">Yes</div><div class="quick-action" onclick="sendQuickReply('I will get them later')">Later</div></div>`);
       } else if (lower.includes('single') || lower.includes('married') || lower.includes('head')) {
         conversationState.filingStatus = userMessage;
         addMessage('ai', `Perfect! Filing as <strong>${userMessage}</strong>.<br><br>Now, let's talk about your income. <strong>What's your approximate annual income?</strong><div class="quick-actions"><div class="quick-action" onclick="sendQuickReply('Under $50,000')">Under $50K</div><div class="quick-action" onclick="sendQuickReply('$50,000 - $100,000')">$50K - $100K</div><div class="quick-action" onclick="sendQuickReply('Over $100,000')">Over $100K</div></div>`);
       } else {
         // Default response
-        addMessage('ai', `I understand. Let me help you with that.<br><br><strong>Would you like to:</strong><div class="quick-actions"><div class="quick-action" onclick="uploadDocument()">📤 Upload documents</div><div class="quick-action" onclick="sendQuickReply('Tell me about deductions')">💰 Learn about deductions</div><div class="quick-action" onclick="sendQuickReply('How does this work?')">❓ How it works</div></div>`);
+        addMessage('ai', `I understand. Let me help you with that.<br><br><strong>Would you like to:</strong><div class="quick-actions"><div class="quick-action" onclick="uploadDocument()">{{ icon('arrow-up-tray') }} Upload documents</div><div class="quick-action" onclick="sendQuickReply('Tell me about deductions')">{{ icon('banknotes') }} Learn about deductions</div><div class="quick-action" onclick="sendQuickReply('How does this work?')">{{ icon('question-mark-circle') }} How it works</div></div>`);
       }
     }
 

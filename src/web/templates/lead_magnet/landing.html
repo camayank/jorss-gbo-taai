@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -450,17 +451,17 @@
             <!-- Benefits Grid -->
             <div class="benefits-grid">
                 <div class="benefit-item">
-                    <div class="benefit-icon">💰</div>
+                    <div class="benefit-icon">{{ icon('banknotes') }}</div>
                     <div class="benefit-title">Find Hidden Savings</div>
                     <div class="benefit-desc">Identify deductions and credits you may have missed</div>
                 </div>
                 <div class="benefit-item">
-                    <div class="benefit-icon">📊</div>
+                    <div class="benefit-icon">{{ icon('chart-bar') }}</div>
                     <div class="benefit-title">Personalized Insights</div>
                     <div class="benefit-desc">Get recommendations tailored to your situation</div>
                 </div>
                 <div class="benefit-item">
-                    <div class="benefit-icon">🎯</div>
+                    <div class="benefit-icon">{{ icon('sparkles') }}</div>
                     <div class="benefit-title">Expert Guidance</div>
                     <div class="benefit-desc">From a licensed CPA who knows tax law</div>
                 </div>

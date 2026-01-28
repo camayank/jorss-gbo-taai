@@ -1,4 +1,5 @@
 {% extends "cpa/base.html" %}
+{% from 'macros/icons.html' import icon %}
 
 {% block title %}Dashboard{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
@@ -340,7 +341,7 @@
 <!-- Summary Cards -->
 <div class="summary-grid">
     <a href="/cpa/leads?state=new" class="summary-card">
-        <div class="summary-card-icon new">📥</div>
+        <div class="summary-card-icon new">{{ icon('arrow-down-tray') }}</div>
         <div class="summary-card-value">{{ stats.new_leads or 0 }}</div>
         <div class="summary-card-label">New Leads</div>
         <div class="summary-card-trend {% if stats.new_leads_trend >= 0 %}trend-up{% else %}trend-down{% endif %}">
@@ -350,7 +351,7 @@
     </a>
 
     <a href="/cpa/leads?state=advisory_ready" class="summary-card">
-        <div class="summary-card-icon contacted">⭐</div>
+        <div class="summary-card-icon contacted">{{ icon('star') }}</div>
         <div class="summary-card-value">{{ stats.advisory_ready or 0 }}</div>
         <div class="summary-card-label">Advisory Ready</div>
         <div class="summary-card-trend trend-neutral">
@@ -368,7 +369,7 @@
     </a>
 
     <a href="/cpa/converted" class="summary-card">
-        <div class="summary-card-icon converted">✅</div>
+        <div class="summary-card-icon converted">{{ icon('check-circle') }}</div>
         <div class="summary-card-value">{{ stats.converted or 0 }}</div>
         <div class="summary-card-label">Converted</div>
         <div class="summary-card-trend {% if stats.conversion_trend >= 0 %}trend-up{% else %}trend-down{% endif %}">
@@ -377,7 +378,7 @@
     </a>
 
     <a href="/cpa/analytics" class="summary-card">
-        <div class="summary-card-icon revenue">💰</div>
+        <div class="summary-card-icon revenue">{{ icon('banknotes') }}</div>
         <div class="summary-card-value">${{ '{:,.0f}'.format(stats.total_revenue or 0) }}</div>
         <div class="summary-card-label">Est. Pipeline Value</div>
         <div class="summary-card-trend trend-neutral">
@@ -474,7 +475,7 @@
                 {% endfor %}
                 {% else %}
                 <div class="empty-state" style="padding: 32px 24px;">
-                    <div class="empty-state-icon">📋</div>
+                    <div class="empty-state-icon">{{ icon('clipboard-document-list') }}</div>
                     <div class="empty-state-title">Queue is empty</div>
                     <p>Priority leads will appear here.</p>
                 </div>
@@ -490,7 +491,7 @@
             <div class="card-body">
                 <div class="quick-actions">
                     <a href="/lead-magnet?cpa={{ cpa.cpa_slug or 'default' }}" target="_blank" class="quick-action">
-                        <span class="quick-action-icon">🔗</span>
+                        <span class="quick-action-icon">{{ icon('arrow-right') }}</span>
                         <span class="quick-action-text">View Lead Magnet</span>
                     </a>
                     <a href="/cpa/branding" class="quick-action">
@@ -498,11 +499,11 @@
                         <span class="quick-action-text">Edit Branding</span>
                     </a>
                     <a href="/cpa/analytics" class="quick-action">
-                        <span class="quick-action-icon">📊</span>
+                        <span class="quick-action-icon">{{ icon('chart-bar') }}</span>
                         <span class="quick-action-text">View Analytics</span>
                     </a>
                     <a href="/cpa/leads?export=csv" class="quick-action">
-                        <span class="quick-action-icon">📥</span>
+                        <span class="quick-action-icon">{{ icon('arrow-down-tray') }}</span>
                         <span class="quick-action-text">Export Leads</span>
                     </a>
                 </div>
@@ -519,11 +520,11 @@
                 {% for activity in activities[:5] %}
                 <div class="activity-item">
                     <div class="activity-icon">
-                        {% if activity.type == 'new_lead' %}📥
-                        {% elif activity.type == 'state_change' %}🔄
+                        {% if activity.type == 'new_lead' %}{{ icon('arrow-down-tray') }}
+                        {% elif activity.type == 'state_change' %}{{ icon('arrow-path') }}
                         {% elif activity.type == 'engagement' %}💬
-                        {% elif activity.type == 'conversion' %}✅
-                        {% else %}📌{% endif %}
+                        {% elif activity.type == 'conversion' %}{{ icon('check-circle') }}
+                        {% else %}{{ icon('star') }}{% endif %}
                     </div>
                     <div class="activity-content">
                         <div class="activity-text">

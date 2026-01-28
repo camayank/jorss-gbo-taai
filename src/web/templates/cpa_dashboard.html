@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1569,7 +1570,7 @@
             <div class="opt-count"><span id="opt-deductions-count">0</span> signals</div>
           </div>
           <div class="opt-card" onclick="filterByCategory('credits')">
-            <div class="opt-icon credits">✓</div>
+            <div class="opt-icon credits">{{ icon('check') }}</div>
             <div class="opt-label">Credits</div>
             <div class="opt-value" id="opt-credits-level" style="font-size:14px;color:var(--gray-600);">—</div>
             <div class="opt-count"><span id="opt-credits-count">0</span> signals</div>
@@ -2124,7 +2125,7 @@
         <div style="display:flex;gap:12px;justify-content:flex-end" id="report-actions" style="display:none">
           <button class="btn btn-ghost" onclick="downloadReport('markdown')">Download Markdown</button>
           <button class="btn btn-ghost" onclick="downloadReport('html')">Download HTML</button>
-          <button class="btn btn-print" onclick="printReport()" title="Print or save as PDF">🖨️ Print / PDF</button>
+          <button class="btn btn-print" onclick="printReport()" title="Print or save as PDF">{{ icon('printer') }} Print / PDF</button>
           <button class="btn btn-primary" onclick="generateReport()">Generate Full Report</button>
         </div>
 
@@ -3374,21 +3375,21 @@
 
     function getCategoryIcon(category) {
       const icons = {
-        retirement: '🏦',
-        deduction: '📋',
-        credit: '💳',
-        investment: '📈',
-        real_estate: '🏠',
-        business: '💼',
+        retirement: '{{ icon('building-office') }}',
+        deduction: '{{ icon('clipboard-document-list') }}',
+        credit: '{{ icon('credit-card') }}',
+        investment: '{{ icon('arrow-trending-up') }}',
+        real_estate: '{{ icon('home') }}',
+        business: '{{ icon('building-office') }}',
         healthcare: '🏥',
-        filing: '📁',
+        filing: '{{ icon('folder') }}',
         state: '🗺️',
         international: '🌍',
-        equity: '📊',
+        equity: '{{ icon('chart-bar') }}',
         crypto: '₿',
-        estimated_tax: '📅',
+        estimated_tax: '{{ icon('calendar') }}',
       };
-      return icons[category] || '💡';
+      return icons[category] || '{{ icon('light-bulb') }}';
     }
 
     async function loadQueueCounts() {
@@ -5226,14 +5227,14 @@
     // =============================================================================
 
     const commandPaletteCommands = [
-      { id: 'dashboard', icon: '📊', title: 'Dashboard', desc: 'View overview and insights', action: () => switchView('dashboard') },
-      { id: 'clients', icon: '👥', title: 'Clients', desc: 'Manage all clients', action: () => switchView('clients') },
-      { id: 'pipeline', icon: '📈', title: 'Pipeline', desc: 'View lead pipeline', action: () => switchView('pipeline') },
-      { id: 'advisory', icon: '💡', title: 'Advisory Tools', desc: 'Tax optimization tools', action: () => switchView('advisory') },
-      { id: 'review', icon: '✅', title: 'Review Queue', desc: 'Returns pending review', action: () => switchView('review') },
-      { id: 'reports', icon: '📄', title: 'Reports', desc: 'Generate client reports', action: () => switchView('reports') },
-      { id: 'add-client', icon: '➕', title: 'Add New Client', desc: 'Quick onboarding (60s)', action: () => { closeCommandPalette(); openSmartOnboarding(); } },
-      { id: 'refresh', icon: '🔄', title: 'Refresh Data', desc: 'Reload all data', action: () => { closeCommandPalette(); refreshDashboard(); } },
+      { id: 'dashboard', icon: '{{ icon('chart-bar') }}', title: 'Dashboard', desc: 'View overview and insights', action: () => switchView('dashboard') },
+      { id: 'clients', icon: '{{ icon('users') }}', title: 'Clients', desc: 'Manage all clients', action: () => switchView('clients') },
+      { id: 'pipeline', icon: '{{ icon('arrow-trending-up') }}', title: 'Pipeline', desc: 'View lead pipeline', action: () => switchView('pipeline') },
+      { id: 'advisory', icon: '{{ icon('light-bulb') }}', title: 'Advisory Tools', desc: 'Tax optimization tools', action: () => switchView('advisory') },
+      { id: 'review', icon: '{{ icon('check-circle') }}', title: 'Review Queue', desc: 'Returns pending review', action: () => switchView('review') },
+      { id: 'reports', icon: '{{ icon('document-text') }}', title: 'Reports', desc: 'Generate client reports', action: () => switchView('reports') },
+      { id: 'add-client', icon: '{{ icon('plus') }}', title: 'Add New Client', desc: 'Quick onboarding (60s)', action: () => { closeCommandPalette(); openSmartOnboarding(); } },
+      { id: 'refresh', icon: '{{ icon('arrow-path') }}', title: 'Refresh Data', desc: 'Reload all data', action: () => { closeCommandPalette(); refreshDashboard(); } },
     ];
 
     function openCommandPalette() {
@@ -5285,7 +5286,7 @@
         filteredClients.forEach(client => {
           html += `
             <div class="command-palette-item" onclick="openClientFromPalette('${escapeHtml(client.session_id || client.id)}')">
-              <div class="command-palette-item-icon">👤</div>
+              <div class="command-palette-item-icon">{{ icon('user') }}</div>
               <div class="command-palette-item-content">
                 <div class="command-palette-item-title">${escapeHtml(client.name || 'Unknown')}</div>
                 <div class="command-palette-item-desc">${escapeHtml(client.email || 'No email')}</div>

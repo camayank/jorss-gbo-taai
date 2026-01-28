@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -419,7 +420,7 @@
 
             <h3>Signature (for documents)</h3>
             <div class="file-upload" onclick="document.getElementById('signatureUpload').click()">
-                <div class="file-upload-icon">✍️</div>
+                <div class="file-upload-icon">{{ icon('pencil') }}</div>
                 <p><strong>Click to upload</strong> or drag and drop</p>
                 <p style="font-size: 0.875rem; color: #718096; margin-top: 5px;">Transparent PNG recommended (max 2MB)</p>
                 <input type="file" id="signatureUpload" accept="image/*" onchange="uploadSignature()" />
@@ -441,7 +442,7 @@
         <!-- Actions -->
         <div style="display: flex; gap: 15px; margin-bottom: 40px;">
             <button class="btn btn-primary" onclick="saveBranding()">💾 Save Changes</button>
-            <button class="btn btn-secondary" onclick="resetBranding()">🔄 Reset to Defaults</button>
+            <button class="btn btn-secondary" onclick="resetBranding()">{{ icon('arrow-path') }} Reset to Defaults</button>
         </div>
     </div>
 

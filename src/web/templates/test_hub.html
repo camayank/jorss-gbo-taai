@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -192,7 +193,7 @@
         }
 
         .expected-results li:before {
-            content: "✓";
+            content: "{{ icon('check') }}";
             color: #10b981;
             font-weight: bold;
             margin-right: 8px;
@@ -311,9 +312,9 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>🚀 Tax Advisory Platform</h1>
+            <h1>{{ icon('arrow-trending-up') }} Tax Advisory Platform</h1>
             <div class="tagline">Testing Hub - 3 User Flows for First-Level Validation</div>
-            <div class="status-badge">✅ READY FOR TESTING</div>
+            <div class="status-badge">{{ icon('check-circle') }} READY FOR TESTING</div>
         </div>
 
         <!-- Metrics -->
@@ -341,7 +342,7 @@
             <!-- Flow 1: Individual Taxpayer -->
             <div class="flow-card">
                 <div class="flow-header">
-                    <div class="icon">👤</div>
+                    <div class="icon">{{ icon('user') }}</div>
                     <h2>Flow 1: Individual</h2>
                     <div class="user-type">Sarah - W-2 Employee, $75k, Married, 2 Kids</div>
                 </div>
@@ -377,7 +378,7 @@
             <!-- Flow 2: Business Owner -->
             <div class="flow-card">
                 <div class="flow-header">
-                    <div class="icon">💼</div>
+                    <div class="icon">{{ icon('building-office') }}</div>
                     <h2>Flow 2: Business Owner</h2>
                     <div class="user-type">Mike - S-Corp Owner, $150k Total, Home Office</div>
                 </div>
@@ -413,7 +414,7 @@
             <!-- Flow 3: High-Income Professional -->
             <div class="flow-card">
                 <div class="flow-header">
-                    <div class="icon">⭐</div>
+                    <div class="icon">{{ icon('star') }}</div>
                     <h2>Flow 3: High-Income</h2>
                     <div class="user-type">Dr. Johnson - $250k Income, Tax Planning Focus</div>
                 </div>
@@ -449,7 +450,7 @@
 
         <!-- Footer Info -->
         <div class="footer-info">
-            <h2>📚 Testing Information</h2>
+            <h2>{{ icon('clipboard-document-list') }} Testing Information</h2>
             <div class="info-grid">
                 <div class="info-section">
                     <h3>What to Test</h3>
@@ -488,9 +489,9 @@
             </div>
 
             <div class="quick-links">
-                <a href="/file" class="quick-link">🚀 Start Filing</a>
-                <a href="/docs" class="quick-link">📖 API Documentation</a>
-                <a href="/" class="quick-link">🏠 Homepage</a>
+                <a href="/file" class="quick-link">{{ icon('arrow-trending-up') }} Start Filing</a>
+                <a href="/docs" class="quick-link">{{ icon('document-text') }} API Documentation</a>
+                <a href="/" class="quick-link">{{ icon('home') }} Homepage</a>
             </div>
         </div>
     </div>
@@ -549,9 +550,9 @@
         function updateStatus() {
             const now = new Date();
             console.log('Platform Testing Hub Loaded:', now.toISOString());
-            console.log('Server Status: Running ✅');
-            console.log('Backend Tests: 100% Passing ✅');
-            console.log('Deployment Confidence: 98/100 ✅');
+            console.log('Server Status: Running {{ icon('check-circle') }}');
+            console.log('Backend Tests: 100% Passing {{ icon('check-circle') }}');
+            console.log('Deployment Confidence: 98/100 {{ icon('check-circle') }}');
         }
 
         // Initialize

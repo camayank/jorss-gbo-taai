@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -590,19 +591,19 @@
             <!-- Security Badges -->
             <div class="security-badges">
                 <div class="security-badge">
-                    <div class="badge-icon">🔐</div>
+                    <div class="badge-icon">{{ icon('lock-closed') }}</div>
                     <span>256-bit SSL</span>
                 </div>
                 <div class="security-badge">
-                    <div class="badge-icon">✓</div>
+                    <div class="badge-icon">{{ icon('check') }}</div>
                     <span>SOC 2 Type II</span>
                 </div>
                 <div class="security-badge">
-                    <div class="badge-icon">🏛️</div>
+                    <div class="badge-icon">{{ icon('building-office') }}</div>
                     <span>IRS Authorized</span>
                 </div>
                 <div class="security-badge">
-                    <div class="badge-icon">🛡️</div>
+                    <div class="badge-icon">{{ icon('shield-check') }}</div>
                     <span>Data Never Sold</span>
                 </div>
             </div>

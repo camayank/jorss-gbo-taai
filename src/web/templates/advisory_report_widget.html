@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!---
   ADVISORY REPORT WIDGET - Progressive Disclosure Component
 
@@ -360,7 +361,7 @@
   <!-- Level 1: Preview Summary -->
   <div id="advisoryPreview" class="advisory-preview">
     <div class="advisory-preview-header">
-      <div class="advisory-preview-title">📊 Your Tax Advisory Report</div>
+      <div class="advisory-preview-title">{{ icon('chart-bar') }} Your Tax Advisory Report</div>
       <div class="advisory-preview-subtitle">Professional analysis of your tax situation</div>
     </div>
 
@@ -400,7 +401,7 @@
     <!-- Top Recommendations Preview -->
     <div id="advisoryRecommendationsPreview" class="advisory-recommendations-preview" style="display: none;">
       <div class="advisory-recommendations-title">
-        <span>💡</span>
+        <span>{{ icon('light-bulb') }}</span>
         <span>Top Tax-Saving Opportunities</span>
       </div>
       <div id="advisoryTopRecommendations"></div>
@@ -409,10 +410,10 @@
     <!-- Action Buttons -->
     <div id="advisoryActions" class="advisory-actions" style="display: none;">
       <button class="advisory-btn advisory-btn-primary" onclick="showAdvisoryDetailed()">
-        📋 See Detailed Analysis
+        {{ icon('clipboard-document-list') }} See Detailed Analysis
       </button>
       <button class="advisory-btn advisory-btn-secondary" onclick="showAdvisoryFullReport()">
-        📄 View Full Report
+        {{ icon('document-text') }} View Full Report
       </button>
     </div>
   </div>
@@ -432,7 +433,7 @@
 
     <div class="advisory-actions" style="margin-top: 32px;">
       <button class="advisory-btn advisory-btn-primary" onclick="showAdvisoryFullReport()">
-        📄 View Full Report
+        {{ icon('document-text') }} View Full Report
       </button>
     </div>
   </div>
@@ -454,10 +455,10 @@
       <!-- Level 4: PDF Export -->
       <div class="advisory-actions" style="margin-top: 40px; padding-top: 32px; border-top: 2px solid #e5e7eb;">
         <button class="advisory-btn advisory-btn-primary" onclick="downloadAdvisoryPDF()" id="advisoryDownloadPDF">
-          📥 Download PDF Report
+          {{ icon('arrow-down-tray') }} Download PDF Report
         </button>
         <button class="advisory-btn advisory-btn-secondary" onclick="emailAdvisoryReport()" style="display: none;">
-          📧 Email Report
+          {{ icon('envelope') }} Email Report
         </button>
       </div>
     </div>
@@ -725,7 +726,7 @@
     const btn = document.getElementById('advisoryDownloadPDF');
     const originalText = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '⏳ Preparing PDF...';
+    btn.innerHTML = '{{ icon('clock') }} Preparing PDF...';
 
     try {
       // Check if PDF is ready
@@ -735,14 +736,14 @@
       if (statusData.pdf_available) {
         // Download PDF
         window.open(`/api/v1/advisory-reports/${currentReportId}/pdf`, '_blank');
-        btn.innerHTML = '✅ Downloaded!';
+        btn.innerHTML = '{{ icon('check-circle') }} Downloaded!';
         setTimeout(() => {
           btn.innerHTML = originalText;
           btn.disabled = false;
         }, 2000);
       } else {
         // PDF not ready yet, wait and retry
-        btn.innerHTML = '⏳ Generating PDF...';
+        btn.innerHTML = '{{ icon('clock') }} Generating PDF...';
         setTimeout(() => downloadAdvisoryPDF(), 2000);
       }
     } catch (error) {
@@ -766,10 +767,10 @@
       const btn = document.getElementById('advisoryDownloadPDF');
       if (data.pdf_available) {
         btn.disabled = false;
-        btn.innerHTML = '📥 Download PDF Report';
+        btn.innerHTML = '{{ icon('arrow-down-tray') }} Download PDF Report';
       } else {
         btn.disabled = true;
-        btn.innerHTML = '⏳ Generating PDF...';
+        btn.innerHTML = '{{ icon('clock') }} Generating PDF...';
         // Check again in 2 seconds
         setTimeout(checkPDFStatus, 2000);
       }
@@ -798,15 +799,15 @@
    */
   function getSectionIcon(sectionId) {
     const icons = {
-      'executive_summary': '📊',
+      'executive_summary': '{{ icon('chart-bar') }}',
       'current_position': '📍',
-      'recommendations': '💡',
-      'entity_comparison': '🏢',
-      'multi_year_projection': '📈',
-      'action_plan': '✅',
-      'disclaimers': '📋'
+      'recommendations': '{{ icon('light-bulb') }}',
+      'entity_comparison': '{{ icon('building-office') }}',
+      'multi_year_projection': '{{ icon('arrow-trending-up') }}',
+      'action_plan': '{{ icon('check-circle') }}',
+      'disclaimers': '{{ icon('clipboard-document-list') }}'
     };
-    return icons[sectionId] || '📄';
+    return icons[sectionId] || '{{ icon('document-text') }}';
   }
 
   /**

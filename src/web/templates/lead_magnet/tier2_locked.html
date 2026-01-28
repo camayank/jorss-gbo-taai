@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -212,7 +213,7 @@
 <body>
     <div class="container">
         <div class="locked-card">
-            <div class="locked-icon">🔒</div>
+            <div class="locked-icon">{{ icon('lock-closed') }}</div>
 
             <h1>Full Analysis Not Yet Available</h1>
             <p class="description">
@@ -226,7 +227,7 @@
 
                 <div class="requirement-item">
                     <div class="requirement-status {% if session_data and session_data.engaged %}status-complete{% else %}status-pending{% endif %}">
-                        {% if session_data and session_data.engaged %}✓{% else %}1{% endif %}
+                        {% if session_data and session_data.engaged %}{{ icon('check') }}{% else %}1{% endif %}
                     </div>
                     <div class="requirement-text">
                         <div class="requirement-label">CPA Engagement</div>
@@ -238,7 +239,7 @@
 
                 <div class="requirement-item">
                     <div class="requirement-status {% if session_data and session_data.engagement_letter_acknowledged %}status-complete{% else %}status-pending{% endif %}">
-                        {% if session_data and session_data.engagement_letter_acknowledged %}✓{% else %}2{% endif %}
+                        {% if session_data and session_data.engagement_letter_acknowledged %}{{ icon('check') }}{% else %}2{% endif %}
                     </div>
                     <div class="requirement-text">
                         <div class="requirement-label">Engagement Letter</div>

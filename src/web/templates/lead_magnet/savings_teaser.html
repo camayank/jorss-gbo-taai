@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -395,7 +396,7 @@
 
                 <div id="insightsList">
                     <div class="insight-item">
-                        <div class="insight-icon">💰</div>
+                        <div class="insight-icon">{{ icon('banknotes') }}</div>
                         <div class="insight-content">
                             <div class="insight-title">Retirement Savings Opportunity</div>
                             <div class="insight-desc">Maximize tax-deferred contributions...</div>
@@ -403,7 +404,7 @@
                     </div>
 
                     <div class="insight-item">
-                        <div class="insight-icon">🏠</div>
+                        <div class="insight-icon">{{ icon('home') }}</div>
                         <div class="insight-content">
                             <div class="insight-title">Home-Related Deductions</div>
                             <div class="insight-desc">Mortgage interest and property tax...</div>
@@ -422,7 +423,7 @@
 
             <!-- Locked Insights Teaser -->
             <div class="locked-insights">
-                <div class="locked-icon">🔒</div>
+                <div class="locked-icon">{{ icon('lock-closed') }}</div>
                 <div class="locked-title">+5 More Insights Available</div>
                 <div class="locked-desc">
                     Enter your contact info to unlock your complete personalized analysis

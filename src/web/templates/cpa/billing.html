@@ -1,4 +1,5 @@
 {% extends "cpa/base.html" %}
+{% from 'macros/icons.html' import icon %}
 
 {% block title %}Billing{% endblock %}
 {% block page_title %}Billing & Subscription{% endblock %}
@@ -247,7 +248,7 @@
     <div class="plan-card">
         <div class="plan-header">
             <div class="plan-name">{{ billing.plan }}</div>
-            <span class="plan-status">✓ {{ billing.status|capitalize }}</span>
+            <span class="plan-status">{{ icon('check') }} {{ billing.status|capitalize }}</span>
         </div>
         <div class="plan-body">
             <div class="plan-price">
@@ -255,11 +256,11 @@
                 <span class="plan-price-period">/month</span>
             </div>
             <ul class="plan-features">
-                <li><span class="check">✓</span> Up to {{ billing.leads_limit }} leads/month</li>
-                <li><span class="check">✓</span> Lead scoring & prioritization</li>
-                <li><span class="check">✓</span> Custom branding</li>
-                <li><span class="check">✓</span> Analytics dashboard</li>
-                <li><span class="check">✓</span> Email notifications</li>
+                <li><span class="check">{{ icon('check') }}</span> Up to {{ billing.leads_limit }} leads/month</li>
+                <li><span class="check">{{ icon('check') }}</span> Lead scoring & prioritization</li>
+                <li><span class="check">{{ icon('check') }}</span> Custom branding</li>
+                <li><span class="check">{{ icon('check') }}</span> Analytics dashboard</li>
+                <li><span class="check">{{ icon('check') }}</span> Email notifications</li>
             </ul>
             <button class="btn btn-secondary" style="width: 100%;">Change Plan</button>
         </div>
@@ -327,21 +328,21 @@
                     <td>Jan 1, 2026</td>
                     <td>Professional Plan - January</td>
                     <td>${{ billing.amount }}</td>
-                    <td><span class="invoice-status paid">✓ Paid</span></td>
+                    <td><span class="invoice-status paid">{{ icon('check') }} Paid</span></td>
                     <td><a href="#" style="color: var(--primary-color);">Download</a></td>
                 </tr>
                 <tr>
                     <td>Dec 1, 2025</td>
                     <td>Professional Plan - December</td>
                     <td>${{ billing.amount }}</td>
-                    <td><span class="invoice-status paid">✓ Paid</span></td>
+                    <td><span class="invoice-status paid">{{ icon('check') }} Paid</span></td>
                     <td><a href="#" style="color: var(--primary-color);">Download</a></td>
                 </tr>
                 <tr>
                     <td>Nov 1, 2025</td>
                     <td>Professional Plan - November</td>
                     <td>${{ billing.amount }}</td>
-                    <td><span class="invoice-status paid">✓ Paid</span></td>
+                    <td><span class="invoice-status paid">{{ icon('check') }} Paid</span></td>
                     <td><a href="#" style="color: var(--primary-color);">Download</a></td>
                 </tr>
             </tbody>

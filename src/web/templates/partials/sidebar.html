@@ -1,0 +1,236 @@
+{#
+  Unified Sidebar Component
+
+  Usage:
+    {% include 'partials/sidebar.html' %}
+
+  Required context variables:
+    - user: Current user object with role, name properties
+    - current_path: Current URL path for active state
+    - nav_sections: List of navigation sections (optional, will use defaults)
+
+  Optional context variables:
+    - logo_url: Custom logo URL
+    - brand_name: Custom brand name
+    - sidebar_theme: 'default', 'admin', 'cpa'
+#}
+
+{% from 'macros/icons.html' import icon %}
+
+{# Default navigation based on role #}
+{% set default_nav = {
+  'admin': [
+    {
+      'label': 'Dashboard',
+      'items': [
+        {'label': 'Overview', 'url': '/admin', 'icon': 'chart-bar'},
+        {'label': 'Analytics', 'url': '/admin/analytics', 'icon': 'arrow-trending-up'}
+      ]
+    },
+    {
+      'label': 'Management',
+      'items': [
+        {'label': 'Firms', 'url': '/admin/firms', 'icon': 'building-office'},
+        {'label': 'Users', 'url': '/admin/users', 'icon': 'users'},
+        {'label': 'Feature Flags', 'url': '/admin/features', 'icon': 'adjustments-horizontal'},
+        {'label': 'RBAC', 'url': '/admin/rbac', 'icon': 'shield-check'}
+      ]
+    },
+    {
+      'label': 'Settings',
+      'items': [
+        {'label': 'Billing', 'url': '/admin/billing', 'icon': 'credit-card'},
+        {'label': 'Settings', 'url': '/admin/settings', 'icon': 'cog-6-tooth'}
+      ]
+    }
+  ],
+  'cpa': [
+    {
+      'items': [
+        {'label': 'Dashboard', 'url': '/cpa', 'icon': 'chart-bar'},
+        {'label': 'Clients', 'url': '/cpa/clients', 'icon': 'users'},
+        {'label': 'Leads', 'url': '/cpa/leads', 'icon': 'funnel'},
+        {'label': 'Review Queue', 'url': '/cpa/review', 'icon': 'clipboard-document-list'},
+        {'label': 'Advisory Reports', 'url': '/cpa/reports', 'icon': 'document-text'}
+      ]
+    },
+    {
+      'label': 'Settings',
+      'items': [
+        {'label': 'Team', 'url': '/cpa/team', 'icon': 'users'},
+        {'label': 'Branding', 'url': '/cpa/settings/branding', 'icon': 'sparkles'},
+        {'label': 'Payments', 'url': '/cpa/settings/payments', 'icon': 'credit-card'},
+        {'label': 'Settings', 'url': '/cpa/settings', 'icon': 'cog-6-tooth'}
+      ]
+    }
+  ],
+  'client': [
+    {
+      'items': [
+        {'label': 'Dashboard', 'url': '/portal', 'icon': 'home'},
+        {'label': 'Tax Returns', 'url': '/portal/returns', 'icon': 'document-text'},
+        {'label': 'Documents', 'url': '/portal/documents', 'icon': 'folder'},
+        {'label': 'Messages', 'url': '/portal/messages', 'icon': 'envelope'}
+      ]
+    },
+    {
+      'label': 'Account',
+      'items': [
+        {'label': 'Profile', 'url': '/portal/profile', 'icon': 'user'},
+        {'label': 'Settings', 'url': '/portal/settings', 'icon': 'cog-6-tooth'}
+      ]
+    }
+  ]
+} %}
+
+{# Determine navigation sections #}
+{% set user_role = user.role | default('client') | lower %}
+{% set sections = nav_sections | default(default_nav.get(user_role, default_nav.client)) %}
+{% set user_name = user.name | default(user.email | default('User')) %}
+{% set user_initials = user_name[:2] | upper if user_name else 'U' %}
+
+{# Mobile Header #}
+<header class="mobile-header" x-data>
+  <button class="hamburger-btn"
+          @click="$store.sidebar.toggle()"
+          aria-label="Toggle navigation menu">
+    {{ icon('bars-3', 'md') }}
+  </button>
+
+  <span class="mobile-header-title">{{ brand_name | default('Tax Platform') }}</span>
+
+  <div style="width: 44px;"></div> {# Spacer for centering #}
+</header>
+
+{# Sidebar Overlay (mobile) #}
+<div class="sidebar-overlay"
+     :class="{ 'visible': $store.sidebar.showOverlay }"
+     @click="$store.sidebar.close()"
+     x-data>
+</div>
+
+{# Sidebar #}
+<aside class="sidebar"
+       :class="$store.sidebar.sidebarClasses"
+       x-data>
+
+  {# Sidebar Header #}
+  <div class="sidebar-header">
+    <a href="/" class="sidebar-brand">
+      {% if logo_url %}
+        <img src="{{ logo_url }}" alt="{{ brand_name | default('Logo') }}" class="sidebar-logo">
+      {% else %}
+        {{ icon('calculator', 'lg') }}
+      {% endif %}
+      <span class="sidebar-brand-text">{{ brand_name | default('Tax Platform') }}</span>
+    </a>
+
+    {# Desktop collapse toggle #}
+    <button class="sidebar-toggle md:block hidden"
+            @click="$store.sidebar.toggleCollapsed()"
+            aria-label="Toggle sidebar">
+      <template x-if="$store.sidebar.isCollapsed">
+        {{ icon('chevron-right', 'sm') }}
+      </template>
+      <template x-if="!$store.sidebar.isCollapsed">
+        {{ icon('chevron-left', 'sm') }}
+      </template>
+    </button>
+
+    {# Mobile close button #}
+    <button class="sidebar-toggle md:hidden"
+            @click="$store.sidebar.close()"
+            aria-label="Close menu">
+      {{ icon('x-mark', 'md') }}
+    </button>
+  </div>
+
+  {# Navigation #}
+  <nav class="sidebar-nav">
+    {% for section in sections %}
+      <div class="nav-section">
+        {% if section.label %}
+          <h3 class="nav-section-label">{{ section.label }}</h3>
+        {% endif %}
+
+        <ul class="nav-list">
+          {% for item in section.items %}
+            {% if item.roles is not defined or user_role in item.roles %}
+              <li {% if item.children %}x-data="{ expanded: {{ 'true' if item.url in current_path else 'false' }} }"{% endif %}>
+                {% if item.children %}
+                  {# Item with submenu #}
+                  <button class="nav-item"
+                          :class="{ 'active': expanded }"
+                          @click="expanded = !expanded">
+                    <span class="nav-icon">{{ icon(item.icon | default('folder'), 'sm') }}</span>
+                    <span class="nav-label">{{ item.label }}</span>
+                    <span class="nav-icon" style="margin-left: auto;">
+                      <template x-if="expanded">{{ icon('chevron-down', 'sm') }}</template>
+                      <template x-if="!expanded">{{ icon('chevron-right', 'sm') }}</template>
+                    </span>
+                  </button>
+                  <ul class="nav-list" x-show="expanded" x-collapse>
+                    {% for child in item.children %}
+                      <li>
+                        <a href="{{ child.url }}"
+                           class="nav-item {% if current_path == child.url %}active{% endif %}"
+                           style="padding-left: 2.5rem;">
+                          <span class="nav-icon">{{ icon(child.icon | default('document-text'), 'sm') }}</span>
+                          <span class="nav-label">{{ child.label }}</span>
+                        </a>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  {# Simple nav item #}
+                  <a href="{{ item.url }}"
+                     class="nav-item {% if current_path == item.url or (item.url != '/' and current_path.startswith(item.url)) %}active{% endif %}"
+                     @click="$store.sidebar.close()">
+                    <span class="nav-icon">{{ icon(item.icon | default('document-text'), 'sm') }}</span>
+                    <span class="nav-label">{{ item.label }}</span>
+                    {% if item.badge %}
+                      <span class="nav-badge">{{ item.badge }}</span>
+                    {% endif %}
+                  </a>
+                {% endif %}
+              </li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+      </div>
+    {% endfor %}
+  </nav>
+
+  {# Sidebar Footer - User Menu #}
+  <div class="sidebar-footer">
+    <div class="user-menu" x-data="{ open: false }">
+      <button class="user-menu-trigger"
+              @click="open = !open"
+              @click.away="open = false">
+        <span class="user-avatar">{{ user_initials }}</span>
+        <span class="user-name">{{ user_name }}</span>
+        {{ icon('chevron-up', 'sm') }}
+      </button>
+
+      <div class="user-dropdown"
+           x-show="open"
+           x-transition:enter="transition-fast"
+           x-transition:enter-start="opacity-0 translate-y-2"
+           x-transition:enter-end="opacity-100 translate-y-0">
+        <a href="/app/profile">
+          {{ icon('user', 'sm') }}
+          <span>Profile</span>
+        </a>
+        <a href="/app/settings">
+          {{ icon('cog-6-tooth', 'sm') }}
+          <span>Settings</span>
+        </a>
+        <hr style="border-color: var(--color-gray-700); margin: 0.5rem 0;">
+        <a href="/logout">
+          {{ icon('arrow-left', 'sm') }}
+          <span>Sign out</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</aside>

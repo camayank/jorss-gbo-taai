@@ -1,0 +1,54 @@
+{#
+  Standard CSS includes for all pages.
+
+  Usage:
+    {% include 'partials/head_styles.html' %}
+
+  Optional variables:
+    - theme: 'default', 'admin', 'advisor', 'cpa' (defaults to 'default')
+    - page_css: Additional page-specific CSS file to include
+    - extra_styles: Inline styles to add at the end
+#}
+
+{# Core CSS - Variables, Reset, Typography, Layout #}
+<link rel="stylesheet" href="/static/css/core/variables.css">
+<link rel="stylesheet" href="/static/css/core/reset.css">
+<link rel="stylesheet" href="/static/css/core/typography.css">
+<link rel="stylesheet" href="/static/css/core/layout.css">
+<link rel="stylesheet" href="/static/css/core/animations.css">
+
+{# Component CSS #}
+<link rel="stylesheet" href="/static/css/components/buttons.css">
+<link rel="stylesheet" href="/static/css/components/cards.css">
+<link rel="stylesheet" href="/static/css/components/forms.css">
+<link rel="stylesheet" href="/static/css/components/modals.css">
+<link rel="stylesheet" href="/static/css/components/tables.css">
+<link rel="stylesheet" href="/static/css/components/navigation.css">
+<link rel="stylesheet" href="/static/css/components/toast.css">
+
+{# Theme CSS (if specified) #}
+{% if theme == 'admin' %}
+<link rel="stylesheet" href="/static/css/themes/admin.css">
+{% elif theme == 'advisor' %}
+<link rel="stylesheet" href="/static/css/themes/advisor.css">
+{% elif theme == 'cpa' %}
+<link rel="stylesheet" href="/static/css/themes/cpa.css">
+{% endif %}
+
+{# Page-specific CSS (if specified) #}
+{% if page_css %}
+<link rel="stylesheet" href="/static/css/pages/{{ page_css }}.css">
+{% endif %}
+
+{# Existing CSS files that may still be needed #}
+{% if include_legacy_css %}
+<link rel="stylesheet" href="/static/css/advisory-report.css">
+<link rel="stylesheet" href="/static/css/chatbot-ux-enhancements.css">
+{% endif %}
+
+{# Extra inline styles #}
+{% if extra_styles %}
+<style>
+{{ extra_styles | safe }}
+</style>
+{% endif %}

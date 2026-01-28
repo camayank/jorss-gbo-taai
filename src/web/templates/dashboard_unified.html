@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -182,7 +183,7 @@
         }
 
         .feature-locked::after {
-            content: '🔒';
+            content: '{{ icon('lock-closed') }}';
             position: absolute;
             top: 20px;
             right: 20px;
@@ -314,17 +315,17 @@
 
             <div class="actions-grid">
                 <a href="/admin/tenants" class="action-card">
-                    <div class="icon">🏢</div>
+                    <div class="icon">{{ icon('building-office') }}</div>
                     <div class="title">Manage Tenants</div>
                     <div class="description">Create and manage CPA firm tenants</div>
                 </a>
                 <a href="/admin/users" class="action-card">
-                    <div class="icon">👥</div>
+                    <div class="icon">{{ icon('users') }}</div>
                     <div class="title">Manage Users</div>
                     <div class="description">Assign roles and permissions</div>
                 </a>
                 <a href="/api/docs" class="action-card">
-                    <div class="icon">📊</div>
+                    <div class="icon">{{ icon('chart-bar') }}</div>
                     <div class="title">View Analytics</div>
                     <div class="description">Platform-wide analytics and reports</div>
                 </a>
@@ -363,12 +364,12 @@
                     <div class="description">Update your firm's branding and colors</div>
                 </a>
                 <a href="/admin/users" class="action-card">
-                    <div class="icon">👥</div>
+                    <div class="icon">{{ icon('users') }}</div>
                     <div class="title">Manage Team</div>
                     <div class="description">Add staff members and assign clients</div>
                 </a>
                 <a href="/file" class="action-card">
-                    <div class="icon">📄</div>
+                    <div class="icon">{{ icon('document-text') }}</div>
                     <div class="title">File Return</div>
                     <div class="description">Start a new tax return for a client</div>
                 </a>
@@ -407,12 +408,12 @@
                     <div class="description">Quick document-based filing</div>
                 </a>
                 <a href="/clients" class="action-card">
-                    <div class="icon">👥</div>
+                    <div class="icon">{{ icon('users') }}</div>
                     <div class="title">My Clients</div>
                     <div class="description">View and manage assigned clients</div>
                 </a>
                 <a href="/settings" class="action-card">
-                    <div class="icon">⚙️</div>
+                    <div class="icon">{{ icon('cog-6-tooth') }}</div>
                     <div class="title">Profile Settings</div>
                     <div class="description">Update your professional profile</div>
                 </a>
@@ -446,17 +447,17 @@
 
             <div class="actions-grid">
                 <a href="/file" class="action-card">
-                    <div class="icon">📱</div>
+                    <div class="icon">{{ icon('phone') }}</div>
                     <div class="title">Start Filing</div>
                     <div class="description">File your 2024 tax return in 3 minutes</div>
                 </a>
                 <a href="/documents" class="action-card">
-                    <div class="icon">📄</div>
+                    <div class="icon">{{ icon('document-text') }}</div>
                     <div class="title">Upload Documents</div>
                     <div class="description">Add W-2s, 1099s, and receipts</div>
                 </a>
                 <a href="/returns" class="action-card" data-feature-require="basic_reports">
-                    <div class="icon">📊</div>
+                    <div class="icon">{{ icon('chart-bar') }}</div>
                     <div class="title">My Returns</div>
                     <div class="description">View past returns and status</div>
                 </a>
@@ -471,7 +472,7 @@
                 <div class="description">What-if tax scenarios and planning</div>
             </a>
             <a href="/projections" class="action-card" data-feature="tax_projections">
-                <div class="icon">📈</div>
+                <div class="icon">{{ icon('arrow-trending-up') }}</div>
                 <div class="title">Tax Projections</div>
                 <div class="description">5-year tax projection and planning</div>
             </a>

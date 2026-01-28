@@ -1,4 +1,5 @@
 {% extends "cpa/base.html" %}
+{% from 'macros/icons.html' import icon %}
 
 {% block title %}Clients{% endblock %}
 {% block page_title %}Client Management{% endblock %}
@@ -175,7 +176,7 @@
         </div>
     </div>
     <a href="/cpa/leads" class="btn btn-primary">
-        <span>👥</span> View Lead Pipeline
+        <span>{{ icon('users') }}</span> View Lead Pipeline
     </a>
 </div>
 
@@ -198,14 +199,14 @@
         <div class="client-details">
             {% if client.phone %}
             <div class="client-detail">
-                <span>📞</span> {{ client.phone }}
+                <span>{{ icon('phone') }}</span> {{ client.phone }}
             </div>
             {% endif %}
             <div class="client-detail">
-                <span>📅</span> Client since {{ client.created_at[:10] if client.created_at else 'N/A' }}
+                <span>{{ icon('calendar') }}</span> Client since {{ client.created_at[:10] if client.created_at else 'N/A' }}
             </div>
             <div class="client-detail">
-                <span class="status-indicator active">✓ Active</span>
+                <span class="status-indicator active">{{ icon('check') }} Active</span>
             </div>
         </div>
         <div class="client-actions">
@@ -218,7 +219,7 @@
 {% else %}
 <div class="card">
     <div class="empty-state">
-        <div class="empty-state-icon">👥</div>
+        <div class="empty-state-icon">{{ icon('users') }}</div>
         <h3>No clients yet</h3>
         <p>Clients appear here when leads convert through your pipeline.</p>
         <a href="/cpa/leads" class="btn btn-primary" style="margin-top: 16px;">View Lead Pipeline</a>

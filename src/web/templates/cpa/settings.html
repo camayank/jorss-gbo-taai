@@ -1,4 +1,5 @@
 {% extends "cpa/base.html" %}
+{% from 'macros/icons.html' import icon %}
 
 {% block title %}Settings{% endblock %}
 {% block page_title %}Account Settings{% endblock %}
@@ -148,16 +149,16 @@
 <div class="settings-grid">
     <nav class="settings-nav">
         <a href="#notifications" class="settings-nav-item active">
-            <span>🔔</span> Notifications
+            <span>{{ icon('bell') }}</span> Notifications
         </a>
         <a href="#security" class="settings-nav-item">
-            <span>🔒</span> Security
+            <span>{{ icon('lock-closed') }}</span> Security
         </a>
         <a href="#integrations" class="settings-nav-item">
-            <span>🔗</span> Integrations
+            <span>{{ icon('arrow-right') }}</span> Integrations
         </a>
         <a href="/cpa/billing" class="settings-nav-item">
-            <span>💳</span> Billing
+            <span>{{ icon('credit-card') }}</span> Billing
         </a>
     </nav>
 

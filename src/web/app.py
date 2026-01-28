@@ -1187,6 +1187,17 @@ def intelligent_tax_advisor(request: Request):
     return templates.TemplateResponse("intelligent_advisor.html", {"request": request})
 
 
+@app.get("/intelligent-advisor/v2", response_class=HTMLResponse)
+def intelligent_tax_advisor_v2(request: Request):
+    """
+    Intelligent Tax Advisor V2 - Refactored with modular CSS/JS.
+
+    Uses external CSS/JS files for better performance and maintainability.
+    This is the refactored version for testing before full deployment.
+    """
+    return templates.TemplateResponse("intelligent_advisor_refactored.html", {"request": request})
+
+
 @app.get("/landing", response_class=HTMLResponse)
 def landing_page(request: Request):
     """
@@ -1340,6 +1351,17 @@ def cpa_dashboard(request: Request):
     - Engagement Letters
     """
     return templates.TemplateResponse("cpa_dashboard.html", {"request": request})
+
+
+@app.get("/cpa/v2", response_class=HTMLResponse)
+def cpa_dashboard_v2(request: Request):
+    """
+    CPA Dashboard V2 - Refactored with modular CSS/JS.
+
+    Uses external CSS/JS files for better performance and maintainability.
+    This is the refactored version for testing before full deployment.
+    """
+    return templates.TemplateResponse("cpa_dashboard_refactored.html", {"request": request})
 
 
 @app.get("/cpa/settings/payments", response_class=HTMLResponse)
@@ -1540,6 +1562,97 @@ if _ENABLE_TEST_ROUTES:
         - Health checks
         """
         return templates.TemplateResponse("test_auth.html", {"request": request})
+
+
+# =============================================================================
+# UNIFIED APP ROUTER - Single Entry Point with Role-Based Routing
+# =============================================================================
+
+@app.get("/app", response_class=HTMLResponse)
+def app_router(request: Request):
+    """
+    Unified Application Router - Single entry point with role-based routing.
+
+    Routes users to appropriate dashboard based on their authenticated role:
+    - ADMIN       → /admin (Platform administration)
+    - CPA/PREPARER → /app/workspace (CPA workspace dashboard)
+    - TAXPAYER    → /app/portal (Client portal)
+    - GUEST/Unauth → /advisor (Public advisor interface)
+
+    This consolidates the previous 4 separate dashboards into a unified entry point.
+    """
+    from security.auth_decorators import get_user_from_request, Role
+
+    user = get_user_from_request(request)
+
+    if not user:
+        # Unauthenticated users go to the public advisor
+        return RedirectResponse(url="/advisor", status_code=302)
+
+    role = user.get("role", "").lower()
+
+    # Platform administrators
+    if role == Role.ADMIN.value:
+        return RedirectResponse(url="/admin", status_code=302)
+
+    # CPA firm users (CPAs and preparers)
+    if role in [Role.CPA.value, Role.PREPARER.value]:
+        return RedirectResponse(url="/app/workspace", status_code=302)
+
+    # Taxpayer clients
+    if role == Role.TAXPAYER.value:
+        return RedirectResponse(url="/app/portal", status_code=302)
+
+    # Default fallback for guests or unknown roles
+    return RedirectResponse(url="/advisor", status_code=302)
+
+
+@app.get("/app/workspace", response_class=HTMLResponse)
+def app_workspace(request: Request):
+    """
+    CPA Workspace Dashboard - Professional tax preparation interface.
+
+    For CPA firm staff (CPAs, preparers, staff members).
+    Features client management, tax return review, analytics.
+
+    Uses the refactored modular template for better performance.
+    """
+    return templates.TemplateResponse("cpa_dashboard_refactored.html", {"request": request})
+
+
+@app.get("/app/portal", response_class=HTMLResponse)
+def app_portal(request: Request):
+    """
+    Client Portal - Taxpayer self-service interface.
+
+    For individual taxpayers to:
+    - View their tax return status
+    - Upload documents
+    - Communicate with their CPA
+    - Access tax recommendations
+
+    Uses the refactored modular template for better performance.
+    """
+    from src.config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("index_refactored.html", {
+        "request": request,
+        "branding": {
+            "platform_name": branding.platform_name,
+            "company_name": branding.company_name,
+            "tagline": branding.tagline,
+            "firm_credentials": branding.firm_credentials,
+            "primary_color": branding.primary_color,
+            "secondary_color": branding.secondary_color,
+            "accent_color": branding.accent_color,
+            "logo_url": branding.logo_url,
+            "favicon_url": branding.favicon_url,
+            "support_email": branding.support_email,
+            "support_phone": branding.support_phone,
+            "website_url": branding.website_url,
+            "meta_description": branding.meta_description,
+        }
+    })
 
 
 @app.get("/admin", response_class=HTMLResponse)
@@ -6368,6 +6481,40 @@ def new_tax_advisory_portal(request: Request):
     from src.config.branding import get_branding_config
     branding = get_branding_config()
     return templates.TemplateResponse("index.html", {
+        "request": request,
+        "branding": {
+            "platform_name": branding.platform_name,
+            "company_name": branding.company_name,
+            "tagline": branding.tagline,
+            "firm_credentials": branding.firm_credentials,
+            "primary_color": branding.primary_color,
+            "secondary_color": branding.secondary_color,
+            "accent_color": branding.accent_color,
+            "logo_url": branding.logo_url,
+            "favicon_url": branding.favicon_url,
+            "support_email": branding.support_email,
+            "support_phone": branding.support_phone,
+            "website_url": branding.website_url,
+            "meta_description": branding.meta_description,
+        }
+    })
+
+
+@app.get("/tax-advisory/v2", response_class=HTMLResponse)
+@app.get("/advisory/v2", response_class=HTMLResponse)
+@app.get("/start/v2", response_class=HTMLResponse)
+def tax_advisory_v2(request: Request):
+    """
+    Tax Advisory V2 - Refactored with modular CSS/JS.
+
+    Uses external CSS/JS files for better performance and maintainability.
+    This is the refactored version for testing before full deployment.
+
+    Template size reduced from 788KB to 31KB (96% reduction).
+    """
+    from src.config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("index_refactored.html", {
         "request": request,
         "branding": {
             "platform_name": branding.platform_name,

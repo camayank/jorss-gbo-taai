@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2144,7 +2145,7 @@
     }
 
     .insights-empty-illustration::before {
-      content: '💡';
+      content: '{{ icon('light-bulb') }}';
       font-size: clamp(22px, 4vw, 28px); /* Responsive */
       animation: pulse-glow 2s ease-in-out infinite;
     }
@@ -5846,7 +5847,7 @@
     }
 
     .category-checkbox-input:checked + .category-card-content::after {
-      content: '✓';
+      content: '{{ icon('check') }}';
       position: absolute;
       top: 12px;
       right: 12px;
@@ -6977,7 +6978,7 @@
     }
 
     .status-radio-input:checked + .status-card-content::after {
-      content: '✓';
+      content: '{{ icon('check') }}';
       position: absolute;
       top: 12px;
       right: 12px;
@@ -9919,7 +9920,7 @@
     }
 
     .questions-skipped-notification li:before {
-      content: '✓';
+      content: '{{ icon('check') }}';
       margin-right: 8px;
       color: #28a745;
       font-weight: 700;
@@ -10368,7 +10369,7 @@
             modal.innerHTML = `
               <div class="modal-overlay"></div>
               <div class="modal-content">
-                <h3>🔄 Welcome Back!</h3>
+                <h3>{{ icon('arrow-path') }} Welcome Back!</h3>
                 <p>We found unsaved work from <strong>${savedDate.toLocaleString()}</strong> (${ageMinutes} minutes ago).</p>
                 <p>Would you like to continue where you left off?</p>
                 <div class="modal-actions">
@@ -10376,7 +10377,7 @@
                     Start Fresh
                   </button>
                   <button class="btn-primary" onclick="this.closest('.auto-save-restore-modal').remove(); Alpine.store('autoSave').restoreResolve(true);">
-                    Restore My Work ✓
+                    Restore My Work {{ icon('check') }}
                   </button>
                 </div>
               </div>
@@ -10410,7 +10411,7 @@
               class: 'saving'
             },
             saved: {
-              icon: '✓',
+              icon: '{{ icon('check') }}',
               text: this.lastSaved ? `Saved at ${this.lastSaved.toLocaleTimeString()}` : 'All changes saved',
               class: 'saved'
             },
@@ -10420,12 +10421,12 @@
               class: 'saved'
             },
             restored: {
-              icon: '✓',
+              icon: '{{ icon('check') }}',
               text: 'Work restored',
               class: 'saved'
             },
             error: {
-              icon: '⚠',
+              icon: '{{ icon('exclamation-triangle') }}',
               text: 'Save error (saved locally)',
               class: 'error'
             }
@@ -10680,7 +10681,7 @@
 
           const message = `
             <div class="questions-skipped-notification">
-              <div class="notification-icon">✨</div>
+              <div class="notification-icon">{{ icon('sparkles') }}</div>
               <div class="notification-content">
                 <h4>Smart Filtering Active!</h4>
                 <p>We're skipping <strong>${this.questionsSkipped}</strong> questions that don't apply to you, leaving only <strong>${this.questionsAsked}</strong> relevant questions.</p>
@@ -10824,7 +10825,7 @@
   <!-- Deadline Urgency Banner -->
   <div id="deadlineBanner" class="deadline-banner" style="display: none;">
     <div class="deadline-content">
-      <div class="deadline-icon" id="deadlineIcon">⏰</div>
+      <div class="deadline-icon" id="deadlineIcon">{{ icon('clock') }}</div>
       <div class="deadline-text">
         <div class="deadline-title" id="deadlineTitle">Tax Deadline Approaching</div>
         <div class="deadline-message" id="deadlineMessage">83 days until April 15, 2026</div>
@@ -10901,7 +10902,7 @@
         </div>
         <button class="btn-header" id="btnHelp">
           {% if branding and branding.support_phone %}
-          📞 {{ branding.support_phone }}
+          {{ icon('phone') }} {{ branding.support_phone }}
           {% else %}
           Help
           {% endif %}
@@ -10957,7 +10958,7 @@
                 <button class="modal-close-btn" onclick="hideWelcomeModal();" style="position: absolute; top: 20px; right: 20px; background: white; border: 2px solid #e5e7eb; width: 40px; height: 48px; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 10; color: #111827;">×</button>
 
                 <div class="welcome-header" style="text-align: center; padding: 60px 40px 40px 40px; max-width: 800px; margin: 0 auto;">
-                  <div class="welcome-icon-large" style="font-size: 72px; margin-bottom: 24px;">📊</div>
+                  <div class="welcome-icon-large" style="font-size: 72px; margin-bottom: 24px;">{{ icon('chart-bar') }}</div>
                   <h1 style="font-size: clamp(32px, 7vw, 48px); color: #111827; margin-bottom: 16px; font-weight: 700; line-height: 1.2;">Comprehensive Tax Advisory & Optimization</h1>
                   <p style="font-size: clamp(18px, 4vw, 24px); color: #2563eb; font-weight: 600; margin-bottom: 16px;">Get a Professional CPA-Grade Tax Analysis Report</p>
                   <p style="font-size: clamp(16px, 3.5vw, 20px); color: #6b7280; margin-bottom: 40px; line-height: 1.6;">I'll conduct a deep analysis of your financial situation and generate a detailed advisory report with strategic recommendations to minimize your tax liability.</p>
@@ -10969,7 +10970,7 @@
                     <div style="display: grid; gap: 18px;">
                       <!-- Current Tax Analysis -->
                       <div style="display: flex; gap: 16px; align-items: start;">
-                        <div style="font-size: 32px; flex-shrink: 0;">📈</div>
+                        <div style="font-size: 32px; flex-shrink: 0;">{{ icon('arrow-trending-up') }}</div>
                         <div>
                           <div style="font-size: 17px; font-weight: 600; color: #111827; margin-bottom: 4px;">Current Tax Liability Analysis</div>
                           <div style="font-size: 15px; color: #6b7280;">Detailed breakdown of your federal and state tax obligations</div>
@@ -10978,7 +10979,7 @@
 
                       <!-- Entity Comparison -->
                       <div style="display: flex; gap: 16px; align-items: start;">
-                        <div style="font-size: 32px; flex-shrink: 0;">🏢</div>
+                        <div style="font-size: 32px; flex-shrink: 0;">{{ icon('building-office') }}</div>
                         <div>
                           <div style="font-size: 17px; font-weight: 600; color: #111827; margin-bottom: 4px;">Entity Structure Comparison</div>
                           <div style="font-size: 15px; color: #6b7280;">LLC vs S-Corp vs C-Corp analysis with tax impact calculations</div>
@@ -10987,7 +10988,7 @@
 
                       <!-- Multi-Year Projections -->
                       <div style="display: flex; gap: 16px; align-items: start;">
-                        <div style="font-size: 32px; flex-shrink: 0;">📊</div>
+                        <div style="font-size: 32px; flex-shrink: 0;">{{ icon('chart-bar') }}</div>
                         <div>
                           <div style="font-size: 17px; font-weight: 600; color: #111827; margin-bottom: 4px;">Multi-Year Tax Projections</div>
                           <div style="font-size: 15px; color: #6b7280;">3-5 year forward-looking tax scenarios and planning strategies</div>
@@ -10996,7 +10997,7 @@
 
                       <!-- Deduction Optimization -->
                       <div style="display: flex; gap: 16px; align-items: start;">
-                        <div style="font-size: 32px; flex-shrink: 0;">💰</div>
+                        <div style="font-size: 32px; flex-shrink: 0;">{{ icon('banknotes') }}</div>
                         <div>
                           <div style="font-size: 17px; font-weight: 600; color: #111827; margin-bottom: 4px;">Deduction & Credit Optimization</div>
                           <div style="font-size: 15px; color: #6b7280;">Identify every deduction and credit you qualify for with estimated savings</div>
@@ -11005,7 +11006,7 @@
 
                       <!-- Strategic Recommendations -->
                       <div style="display: flex; gap: 16px; align-items: start;">
-                        <div style="font-size: 32px; flex-shrink: 0;">🎯</div>
+                        <div style="font-size: 32px; flex-shrink: 0;">{{ icon('sparkles') }}</div>
                         <div>
                           <div style="font-size: 17px; font-weight: 600; color: #111827; margin-bottom: 4px;">Strategic Tax Reduction Recommendations</div>
                           <div style="font-size: 15px; color: #6b7280;">Actionable strategies with implementation timeline and expected ROI</div>
@@ -11014,7 +11015,7 @@
 
                       <!-- Professional PDF -->
                       <div style="display: flex; gap: 16px; align-items: start;">
-                        <div style="font-size: 32px; flex-shrink: 0;">📄</div>
+                        <div style="font-size: 32px; flex-shrink: 0;">{{ icon('document-text') }}</div>
                         <div>
                           <div style="font-size: 17px; font-weight: 600; color: #111827; margin-bottom: 4px;">Professional PDF Advisory Report</div>
                           <div style="font-size: 15px; color: #6b7280;">Branded, detailed report you can share with your CPA or financial advisor</div>
@@ -11026,7 +11027,7 @@
                   <!-- Value Proposition -->
                   <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 20px 32px; margin-bottom: 32px;">
                     <div style="font-size: 16px; font-weight: 600; color: white; text-align: center;">
-                      💡 Clients typically save <span style="font-size: 22px; font-weight: 700;">$10,000 - $50,000+</span> in taxes annually
+                      {{ icon('light-bulb') }} Clients typically save <span style="font-size: 22px; font-weight: 700;">$10,000 - $50,000+</span> in taxes annually
                     </div>
                   </div>
 
@@ -11036,7 +11037,7 @@
                   </button>
 
                   <p style="font-size: clamp(14px, 3vw, 16px); color: #6b7280; margin-top: 24px; line-height: 1.8;">
-                    ⏱️ 20-30 minutes for complete analysis &nbsp;•&nbsp; 🔒 100% Confidential &nbsp;•&nbsp; 📊 CPA-Grade Professional Advisory
+                    {{ icon('clock') }} 20-30 minutes for complete analysis &nbsp;•&nbsp; {{ icon('lock-closed') }} 100% Confidential &nbsp;•&nbsp; {{ icon('chart-bar') }} CPA-Grade Professional Advisory
                   </p>
                 </div>
               </div>
@@ -11047,14 +11048,14 @@
                   <div class="triage-progress">
                     <div class="triage-progress-bar" style="width: 33%"></div>
                   </div>
-                  <div class="welcome-icon">📄</div>
+                  <div class="welcome-icon">{{ icon('document-text') }}</div>
                   <h1>Let's find the fastest path for you</h1>
                   <p>Do you have your tax documents ready?</p>
                 </div>
 
                 <div class="triage-options">
                   <button class="triage-option" data-answer="yes" data-next="triageStep2">
-                    <div class="to-icon">✅</div>
+                    <div class="to-icon">{{ icon('check-circle') }}</div>
                     <div class="to-text">
                       <div class="to-title">Yes, I have my documents</div>
                       <div class="to-desc">W-2, 1099s, receipts, etc.</div>
@@ -11062,7 +11063,7 @@
                   </button>
 
                   <button class="triage-option" data-answer="no" data-next="triageStep2">
-                    <div class="to-icon">❌</div>
+                    <div class="to-icon">{{ icon('x-circle') }}</div>
                     <div class="to-text">
                       <div class="to-title">No, I don't have them yet</div>
                       <div class="to-desc">I'll enter information manually</div>
@@ -11071,7 +11072,7 @@
                 </div>
 
                 <div class="triage-footer">
-                  <p class="secure-note">🔒 Bank-level encryption • Average time: 8 minutes</p>
+                  <p class="secure-note">{{ icon('lock-closed') }} Bank-level encryption • Average time: 8 minutes</p>
                 </div>
               </div>
 
@@ -11081,7 +11082,7 @@
                   <div class="triage-progress">
                     <div class="triage-progress-bar" style="width: 67%"></div>
                   </div>
-                  <div class="welcome-icon">🎯</div>
+                  <div class="welcome-icon">{{ icon('sparkles') }}</div>
                   <h1>How would you describe your tax situation?</h1>
                   <p>This helps us recommend the best approach</p>
                 </div>
@@ -11104,7 +11105,7 @@
                   </button>
 
                   <button class="triage-option" data-complexity="complex" data-next="triageRecommendation">
-                    <div class="to-icon">🧮</div>
+                    <div class="to-icon">{{ icon('calculator') }}</div>
                     <div class="to-text">
                       <div class="to-title">Complex</div>
                       <div class="to-desc">Self-employed, investments, rental property</div>
@@ -11132,13 +11133,13 @@
                     <div class="rec-icon">⚡</div>
                     <div class="rec-info">
                       <div class="rec-title">Express Lane</div>
-                      <div class="rec-time">⏱️ ~3 minutes</div>
+                      <div class="rec-time">{{ icon('clock') }} ~3 minutes</div>
                     </div>
                   </div>
                   <div class="rec-features">
-                    <div class="rec-feature">✓ Upload tax documents</div>
-                    <div class="rec-feature">✓ AI extracts your data</div>
-                    <div class="rec-feature">✓ Review and file</div>
+                    <div class="rec-feature">{{ icon('check') }} Upload tax documents</div>
+                    <div class="rec-feature">{{ icon('check') }} AI extracts your data</div>
+                    <div class="rec-feature">{{ icon('check') }} Review and file</div>
                   </div>
                   <button class="btn btn-primary btn-lg" id="startRecommended">Start Filing →</button>
                 </div>
@@ -11164,7 +11165,7 @@
 
               <div class="import-options">
                 <div class="import-option" data-source="pdf">
-                  <div class="io-icon">📄</div>
+                  <div class="io-icon">{{ icon('document-text') }}</div>
                   <div class="io-title">Upload Prior Year 1040</div>
                   <div class="io-desc">PDF of your 2024 tax return</div>
                 </div>
@@ -11182,7 +11183,7 @@
                 </div>
 
                 <div class="import-option" data-source="csv">
-                  <div class="io-icon">📊</div>
+                  <div class="io-icon">{{ icon('chart-bar') }}</div>
                   <div class="io-title">CSV/Excel</div>
                   <div class="io-desc">Spreadsheet format</div>
                 </div>
@@ -11191,7 +11192,7 @@
               <div class="import-upload hidden" id="importUpload">
                 <input type="file" id="importFileInput" accept=".pdf,.tax,.txf,.hrb,.csv,.xlsx" />
                 <label for="importFileInput" class="upload-label">
-                  <span>📁 Choose file or drag here</span>
+                  <span>{{ icon('folder') }} Choose file or drag here</span>
                 </label>
                 <div class="import-status" id="importStatus"></div>
               </div>
@@ -11217,7 +11218,7 @@
               <!-- SECTION 1: Personal Information -->
               <details class="form-section-collapsible" id="personalInfoSection" open>
                 <summary class="form-section-header">
-                  <span>📝 Personal Information</span>
+                  <span>{{ icon('pencil') }} Personal Information</span>
                 </summary>
                 <div class="form-section-content">
                   <p class="section-hint">This information is required for your tax return</p>
@@ -11247,7 +11248,7 @@
                     <label class="required">Social Security Number</label>
                     <input type="text" id="ssn" placeholder="XXX-XX-XXXX" required pattern="\d{3}-?\d{2}-?\d{4}"
                            aria-label="Social Security Number" aria-describedby="ssn-hint ssn-constraint">
-                    <span id="ssn-hint" class="field-hint">🔒 Encrypted and secure</span>
+                    <span id="ssn-hint" class="field-hint">{{ icon('lock-closed') }} Encrypted and secure</span>
                     <span id="ssn-constraint" class="input-constraint">Format: XXX-XX-XXXX</span>
                   </div>
                   <div class="pf-field">
@@ -11347,7 +11348,7 @@
               <!-- SECTION 2: Filing Status -->
               <details class="form-section-collapsible" id="filingStatusSection">
                 <summary class="form-section-header">
-                  <span>💼 Your Tax Situation (Filing Status)</span>
+                  <span>{{ icon('building-office') }} Your Tax Situation (Filing Status)</span>
                 </summary>
                 <div class="form-section-content">
                   <p class="section-hint" id="marital-status-desc">Choose the option that describes you on December 31, 2025</p>
@@ -11357,7 +11358,7 @@
                     <input type="radio" name="marital_status" value="single" id="marital-single" class="status-radio-input"
                            aria-label="Single - I'm not married">
                     <div class="status-card-content">
-                      <span class="status-icon-large">👤</span>
+                      <span class="status-icon-large">{{ icon('user') }}</span>
                       <strong>Single</strong>
                       <p>I'm not married</p>
                     </div>
@@ -11394,7 +11395,7 @@
                   <label class="status-selection-card">
                     <input type="radio" name="spouse_death_year" value="2025" class="status-radio-input">
                     <div class="status-card-content">
-                      <span class="status-icon-large">📅</span>
+                      <span class="status-icon-large">{{ icon('calendar') }}</span>
                       <strong>In 2025</strong>
                       <p>You can file as Married Filing Jointly for 2025</p>
                     </div>
@@ -11403,7 +11404,7 @@
                   <label class="status-selection-card">
                     <input type="radio" name="spouse_death_year" value="2024" class="status-radio-input">
                     <div class="status-card-content">
-                      <span class="status-icon-large">📅</span>
+                      <span class="status-icon-large">{{ icon('calendar') }}</span>
                       <strong>In 2024</strong>
                       <p>May qualify for Qualifying Surviving Spouse</p>
                     </div>
@@ -11412,7 +11413,7 @@
                   <label class="status-selection-card">
                     <input type="radio" name="spouse_death_year" value="2023" class="status-radio-input">
                     <div class="status-card-content">
-                      <span class="status-icon-large">📅</span>
+                      <span class="status-icon-large">{{ icon('calendar') }}</span>
                       <strong>In 2023</strong>
                       <p>May qualify for Qualifying Surviving Spouse</p>
                     </div>
@@ -11421,7 +11422,7 @@
                   <label class="status-selection-card">
                     <input type="radio" name="spouse_death_year" value="before_2023" class="status-radio-input">
                     <div class="status-card-content">
-                      <span class="status-icon-large">📅</span>
+                      <span class="status-icon-large">{{ icon('calendar') }}</span>
                       <strong>Before 2023</strong>
                       <p>File as Single or Head of Household</p>
                     </div>
@@ -11464,7 +11465,7 @@
                   </div>
 
                   <div class="info-callout">
-                    <div class="info-icon">💡</div>
+                    <div class="info-icon">{{ icon('light-bulb') }}</div>
                     <div class="info-text">
                       <strong>When to file separately:</strong> Student loan income-based repayment,
                       spouse has tax debt, protect yourself from spouse's tax issues,
@@ -11499,7 +11500,7 @@
                       <label class="required">Spouse Social Security Number</label>
                       <input type="text" id="spouseSsn" placeholder="XXX-XX-XXXX"
                              aria-label="Spouse Social Security Number" aria-describedby="spouseSsn-hint spouseSsn-constraint">
-                      <span id="spouseSsn-hint" class="field-hint">🔒 Encrypted and secure</span>
+                      <span id="spouseSsn-hint" class="field-hint">{{ icon('lock-closed') }} Encrypted and secure</span>
                       <span id="spouseSsn-constraint" class="input-constraint">Format: XXX-XX-XXXX</span>
                     </div>
                     <div class="pf-field">
@@ -11540,7 +11541,7 @@
                     <input type="radio" name="has_dependents" value="yes" id="has-dependents-yes"
                            aria-label="Yes, I have dependents">
                     <div class="radio-option-content">
-                      <span class="radio-icon">👨‍👧‍👦</span>
+                      <span class="radio-icon">{{ icon('user') }}‍👧‍👦</span>
                       <div class="radio-text">
                         <strong>Yes, I have people I support</strong>
                         <span class="radio-desc">This can save you thousands in taxes</span>
@@ -11552,7 +11553,7 @@
                     <input type="radio" name="has_dependents" value="no" id="has-dependents-no"
                            aria-label="No, I don't have dependents">
                     <div class="radio-option-content">
-                      <span class="radio-icon">👤</span>
+                      <span class="radio-icon">{{ icon('user') }}</span>
                       <div class="radio-text">
                         <strong>No one depends on me</strong>
                         <span class="radio-desc">I don't financially support anyone</span>
@@ -11629,11 +11630,11 @@
                     </div>
                     <div class="df-qualifications">
                       <div class="qual-item" data-qual="ctc">
-                        <span class="qual-icon">⏳</span>
+                        <span class="qual-icon">{{ icon('clock') }}</span>
                         <span class="qual-text">Checking Child Tax Credit eligibility...</span>
                       </div>
                       <div class="qual-item" data-qual="eitc">
-                        <span class="qual-icon">⏳</span>
+                        <span class="qual-icon">{{ icon('clock') }}</span>
                         <span class="qual-text">Checking EITC eligibility...</span>
                       </div>
                     </div>
@@ -11668,7 +11669,7 @@
                   <label class="radio-option-card">
                     <input type="radio" name="paid_household_costs" value="yes" id="paid-household-yes">
                     <div class="radio-option-content">
-                      <span class="radio-icon">✅</span>
+                      <span class="radio-icon">{{ icon('check-circle') }}</span>
                       <div class="radio-text">
                         <strong>Yes, I paid more than half</strong>
                         <span class="radio-desc">This may lower your taxes</span>
@@ -11679,7 +11680,7 @@
                   <label class="radio-option-card">
                     <input type="radio" name="paid_household_costs" value="no" id="paid-household-no">
                     <div class="radio-option-content">
-                      <span class="radio-icon">❌</span>
+                      <span class="radio-icon">{{ icon('x-circle') }}</span>
                       <div class="radio-text">
                         <strong>No</strong>
                         <span class="radio-desc">Someone else paid more than half</span>
@@ -11822,7 +11823,7 @@
               </div>
               <div class="chat-stats">
                 <span class="chat-stat">💬 <span id="messageCount">0</span> messages</span>
-                <span class="chat-stat">📊 <span id="dataCollected">0</span>% complete</span>
+                <span class="chat-stat">{{ icon('chart-bar') }} <span id="dataCollected">0</span>% complete</span>
               </div>
             </div>
 
@@ -11830,20 +11831,20 @@
               <!-- Quick Start Suggestions -->
               <div class="chat-quick-start" id="chatQuickStart">
                 <div class="quick-start-header">
-                  <span class="quick-start-icon">✨</span>
+                  <span class="quick-start-icon">{{ icon('sparkles') }}</span>
                   <h3>Try asking about:</h3>
                 </div>
                 <div class="quick-start-grid">
                   <button class="quick-start-btn" data-question="I worked as a freelancer">
-                    <span class="qs-icon">💼</span>
+                    <span class="qs-icon">{{ icon('building-office') }}</span>
                     <span class="qs-text">Freelance income</span>
                   </button>
                   <button class="quick-start-btn" data-question="I sold some stocks">
-                    <span class="qs-icon">📈</span>
+                    <span class="qs-icon">{{ icon('arrow-trending-up') }}</span>
                     <span class="qs-text">Investment gains</span>
                   </button>
                   <button class="quick-start-btn" data-question="I earned interest from savings">
-                    <span class="qs-icon">🏦</span>
+                    <span class="qs-icon">{{ icon('building-office') }}</span>
                     <span class="qs-text">Bank interest</span>
                   </button>
                   <button class="quick-start-btn" data-question="I have rental property">
@@ -11851,11 +11852,11 @@
                     <span class="qs-text">Rental income</span>
                   </button>
                   <button class="quick-start-btn" data-question="I received unemployment">
-                    <span class="qs-icon">📋</span>
+                    <span class="qs-icon">{{ icon('clipboard-document-list') }}</span>
                     <span class="qs-text">Unemployment</span>
                   </button>
                   <button class="quick-start-btn" data-question="None of these apply to me">
-                    <span class="qs-icon">✅</span>
+                    <span class="qs-icon">{{ icon('check-circle') }}</span>
                     <span class="qs-text">No other income</span>
                   </button>
                 </div>
@@ -11868,7 +11869,7 @@
                   <div class="message-content">
                     <p><strong>Hi! I'm your AI tax assistant.</strong></p>
                     <p>I'll help you identify all your income sources and find deductions you might have missed. Just chat with me naturally - I understand plain English!</p>
-                    <p class="message-hint">💡 You can type freely or use the suggestions above</p>
+                    <p class="message-hint">{{ icon('light-bulb') }} You can type freely or use the suggestions above</p>
                   </div>
                 </div>
               </div>
@@ -11931,7 +11932,7 @@
               <label class="category-selection-card">
                 <input type="checkbox" class="category-checkbox-input" data-category="home" id="cat-home">
                 <div class="category-card-content">
-                  <span class="category-icon-large">🏠</span>
+                  <span class="category-icon-large">{{ icon('home') }}</span>
                   <strong>Home Expenses</strong>
                   <p>Mortgage, property taxes, home office</p>
                 </div>
@@ -11941,7 +11942,7 @@
               <label class="category-selection-card">
                 <input type="checkbox" class="category-checkbox-input" data-category="charity" id="cat-charity">
                 <div class="category-card-content">
-                  <span class="category-icon-large">❤️</span>
+                  <span class="category-icon-large">{{ icon('heart') }}</span>
                   <strong>Donations & Giving</strong>
                   <p>Money or items donated to charities</p>
                 </div>
@@ -11971,7 +11972,7 @@
               <label class="category-selection-card">
                 <input type="checkbox" class="category-checkbox-input" data-category="family" id="cat-family">
                 <div class="category-card-content">
-                  <span class="category-icon-large">👨‍👩‍👧</span>
+                  <span class="category-icon-large">{{ icon('user') }}‍{{ icon('user') }}‍👧</span>
                   <strong>Childcare Expenses</strong>
                   <p>Daycare, babysitters, after-school care</p>
                 </div>
@@ -11981,7 +11982,7 @@
               <label class="category-selection-card">
                 <input type="checkbox" class="category-checkbox-input" data-category="retirement" id="cat-retirement">
                 <div class="category-card-content">
-                  <span class="category-icon-large">💰</span>
+                  <span class="category-icon-large">{{ icon('banknotes') }}</span>
                   <strong>Retirement Savings</strong>
                   <p>IRA, 401(k), and other retirement accounts</p>
                 </div>
@@ -11991,7 +11992,7 @@
               <label class="category-selection-card">
                 <input type="checkbox" class="category-checkbox-input" data-category="business" id="cat-business">
                 <div class="category-card-content">
-                  <span class="category-icon-large">💼</span>
+                  <span class="category-icon-large">{{ icon('building-office') }}</span>
                   <strong>Work-Related Costs</strong>
                   <p>Self-employment, freelance, side hustle</p>
                 </div>
@@ -12001,7 +12002,7 @@
               <label class="category-selection-card">
                 <input type="checkbox" class="category-checkbox-input" data-category="investment" id="cat-investment">
                 <div class="category-card-content">
-                  <span class="category-icon-large">📈</span>
+                  <span class="category-icon-large">{{ icon('arrow-trending-up') }}</span>
                   <strong>Investment Income</strong>
                   <p>Stocks, bonds, crypto, real estate sales</p>
                 </div>
@@ -12011,7 +12012,7 @@
               <label class="category-selection-card category-none">
                 <input type="checkbox" class="category-checkbox-input" data-category="none" id="cat-none">
                 <div class="category-card-content">
-                  <span class="category-icon-large">✓</span>
+                  <span class="category-icon-large">{{ icon('check') }}</span>
                   <strong>None of these apply</strong>
                   <p>I'll take the automatic $13,850 tax savings</p>
                 </div>
@@ -12037,7 +12038,7 @@
               <!-- Home & Property -->
               <div class="deduction-category" data-category="home">
                 <div class="category-header">
-                  <span class="category-icon">🏠</span>
+                  <span class="category-icon">{{ icon('home') }}</span>
                   <span class="category-title">Home & Property</span>
                 </div>
 
@@ -12075,7 +12076,7 @@
               <!-- Charitable Giving -->
               <div class="deduction-category" data-category="charity">
                 <div class="category-header">
-                  <span class="category-icon">❤️</span>
+                  <span class="category-icon">{{ icon('heart') }}</span>
                   <span class="category-title">Charitable Giving</span>
                 </div>
 
@@ -12219,7 +12220,7 @@
               <!-- Family & Childcare -->
               <div class="deduction-category" data-category="family">
                 <div class="category-header">
-                  <span class="category-icon">👨‍👩‍👧</span>
+                  <span class="category-icon">{{ icon('user') }}‍{{ icon('user') }}‍👧</span>
                   <span class="category-title">Family & Childcare</span>
                 </div>
 
@@ -12272,7 +12273,7 @@
               <!-- Retirement -->
               <div class="deduction-category" data-category="retirement">
                 <div class="category-header">
-                  <span class="category-icon">🏦</span>
+                  <span class="category-icon">{{ icon('building-office') }}</span>
                   <span class="category-title">Retirement Savings</span>
                 </div>
 
@@ -12310,7 +12311,7 @@
               <!-- Work & Business -->
               <div class="deduction-category" data-category="business">
                 <div class="category-header">
-                  <span class="category-icon">💼</span>
+                  <span class="category-icon">{{ icon('building-office') }}</span>
                   <span class="category-title">Work & Business</span>
                 </div>
 
@@ -12363,7 +12364,7 @@
               <!-- State & Local Taxes -->
               <div class="deduction-category" data-category="always">
                 <div class="category-header">
-                  <span class="category-icon">🏛️</span>
+                  <span class="category-icon">{{ icon('building-office') }}</span>
                   <span class="category-title">State & Local Taxes</span>
                 </div>
 
@@ -12401,7 +12402,7 @@
               <!-- Other Deductions -->
               <div class="deduction-category" data-category="always">
                 <div class="category-header">
-                  <span class="category-icon">📝</span>
+                  <span class="category-icon">{{ icon('pencil') }}</span>
                   <span class="category-title">Other Deductions</span>
                 </div>
 
@@ -12466,7 +12467,7 @@
                 </div>
               </div>
               <div class="recommendation" id="deductionRecommendation">
-                <span class="rec-icon">💡</span>
+                <span class="rec-icon">{{ icon('light-bulb') }}</span>
                 <span class="rec-text">Add your deductions above to see which option saves you more!</span>
               </div>
             </div>
@@ -12594,7 +12595,7 @@
               <!-- Earned Income Credit -->
               <div class="credit-category">
                 <div class="category-header">
-                  <span class="category-icon">💰</span>
+                  <span class="category-icon">{{ icon('banknotes') }}</span>
                   <span class="category-title">Earned Income Tax Credit (EITC)</span>
                 </div>
 
@@ -12718,7 +12719,7 @@
               <!-- Retirement Savings Credit -->
               <div class="credit-category">
                 <div class="category-header">
-                  <span class="category-icon">🏦</span>
+                  <span class="category-icon">{{ icon('building-office') }}</span>
                   <span class="category-title">Retirement Savings Credit</span>
                 </div>
 
@@ -12745,7 +12746,7 @@
               <!-- Other Credits -->
               <div class="credit-category">
                 <div class="category-header">
-                  <span class="category-icon">📋</span>
+                  <span class="category-icon">{{ icon('clipboard-document-list') }}</span>
                   <span class="category-title">Other Credits</span>
                 </div>
 
@@ -12814,7 +12815,7 @@
                 </div>
               </div>
               <div class="cs-note">
-                <span class="cs-icon">💡</span>
+                <span class="cs-icon">{{ icon('light-bulb') }}</span>
                 <span>Refundable credits (CTC, EITC) can result in a refund even if you owe no tax!</span>
               </div>
             </div>
@@ -12850,15 +12851,15 @@
             <!-- Action Bar -->
             <div class="review-actions">
               <button class="action-btn action-btn-primary" id="btnTaxOptimizer" onclick="openTaxOptimizer('scenarios')">
-                <span class="action-icon">🎯</span>
+                <span class="action-icon">{{ icon('sparkles') }}</span>
                 <span>Tax Optimizer</span>
               </button>
               <button class="action-btn" id="btnDownloadPDF">
-                <span class="action-icon">📄</span>
+                <span class="action-icon">{{ icon('document-text') }}</span>
                 <span>Download PDF</span>
               </button>
               <button class="action-btn" id="btnPrintSummary">
-                <span class="action-icon">🖨️</span>
+                <span class="action-icon">{{ icon('printer') }}</span>
                 <span>Print</span>
               </button>
               <button class="action-btn" id="btnCompareStatuses" onclick="openTaxOptimizer('scenarios')">
@@ -12874,10 +12875,10 @@
             <!-- Advisory Report Actions -->
             <div class="review-actions" style="margin-top: 20px; border-top: 2px solid #e0e6ed; padding-top: 20px;">
               <button class="results-btn-advisory" onclick="generateAdvisoryReport()" id="btnGenerateReport">
-                📊 Generate Professional Report
+                {{ icon('chart-bar') }} Generate Professional Report
               </button>
               <button class="results-btn-secondary" onclick="showReportHistory()" style="margin-top: 8px;">
-                📋 View Report History
+                {{ icon('clipboard-document-list') }} View Report History
               </button>
             </div>
 
@@ -12900,7 +12901,7 @@
             <!-- Optimization Recommendations -->
             <div class="optimization-panel" id="optimizationPanel">
               <div class="op-header">
-                <span class="op-icon">💡</span>
+                <span class="op-icon">{{ icon('light-bulb') }}</span>
                 <span class="op-title">Tax Optimization Opportunities</span>
                 <span class="op-potential" id="opPotential">Potential savings: $0</span>
               </div>
@@ -12910,7 +12911,7 @@
               <!-- Quick Optimizer Links -->
               <div class="op-quick-links">
                 <div class="op-quick-link" onclick="openTaxOptimizer('scenarios')">
-                  <span class="oql-icon">🔄</span>
+                  <span class="oql-icon">{{ icon('arrow-path') }}</span>
                   <div class="oql-content">
                     <span class="oql-title">What-If Scenarios</span>
                     <span class="oql-desc">Compare filing options</span>
@@ -12918,7 +12919,7 @@
                   <span class="oql-arrow">→</span>
                 </div>
                 <div class="op-quick-link" onclick="openTaxOptimizer('entity')">
-                  <span class="oql-icon">🏢</span>
+                  <span class="oql-icon">{{ icon('building-office') }}</span>
                   <div class="oql-content">
                     <span class="oql-title">Business Entity</span>
                     <span class="oql-desc">S-Corp savings analysis</span>
@@ -12926,7 +12927,7 @@
                   <span class="oql-arrow">→</span>
                 </div>
                 <div class="op-quick-link" onclick="openTaxOptimizer('retirement')">
-                  <span class="oql-icon">💰</span>
+                  <span class="oql-icon">{{ icon('banknotes') }}</span>
                   <div class="oql-content">
                     <span class="oql-title">Retirement Planning</span>
                     <span class="oql-desc">Maximize contributions</span>
@@ -12946,7 +12947,7 @@
               <!-- Section 1: Income -->
               <div class="cp-section">
                 <div class="cps-header" data-toggle="incomeDetails">
-                  <span class="cps-icon">💰</span>
+                  <span class="cps-icon">{{ icon('banknotes') }}</span>
                   <span class="cps-title">Gross Income</span>
                   <span class="cps-amount" id="cpGrossIncome">$0</span>
                   <span class="cps-toggle">▼</span>
@@ -12982,7 +12983,7 @@
               <!-- Section 2: Adjustments to Income -->
               <div class="cp-section">
                 <div class="cps-header" data-toggle="adjustmentDetails">
-                  <span class="cps-icon">📉</span>
+                  <span class="cps-icon">{{ icon('arrow-trending-up') }}</span>
                   <span class="cps-title">Adjustments to Income (Above-the-Line)</span>
                   <span class="cps-amount negative" id="cpAdjustments">-$0</span>
                   <span class="cps-toggle">▼</span>
@@ -13034,7 +13035,7 @@
                   <div class="cpd-comparison">
                     <div class="cpd-option" id="stdOption">
                       <div class="cpd-opt-header">
-                        <span class="cpd-opt-icon">📋</span>
+                        <span class="cpd-opt-icon">{{ icon('clipboard-document-list') }}</span>
                         <span class="cpd-opt-name">Automatic Tax Savings <small style="color: var(--text-tertiary);  /* 2026: Use design system */">(Standard Deduction)</small></span>
                         <span class="cpd-opt-badge" id="stdBadge">Selected</span>
                       </div>
@@ -13057,7 +13058,7 @@
                     <div class="cpd-vs">VS</div>
                     <div class="cpd-option" id="itemOption">
                       <div class="cpd-opt-header">
-                        <span class="cpd-opt-icon">📝</span>
+                        <span class="cpd-opt-icon">{{ icon('pencil') }}</span>
                         <span class="cpd-opt-name">Itemized Deductions</span>
                         <span class="cpd-opt-badge hidden" id="itemBadge">Selected</span>
                       </div>
@@ -13072,7 +13073,7 @@
                           <span id="itemSALT">$0</span>
                         </div>
                         <div class="cpd-opt-row" id="saltWarning" style="display: none;">
-                          <span class="warning-text">⚠️ SALT capped at $10,000</span>
+                          <span class="warning-text">{{ icon('exclamation-triangle') }} SALT capped at $10,000</span>
                           <span></span>
                         </div>
                         <div class="cpd-opt-row">
@@ -13087,7 +13088,7 @@
                     </div>
                   </div>
                   <div class="cpd-recommendation" id="dedRecommendation">
-                    <span class="rec-icon">✅</span>
+                    <span class="rec-icon">{{ icon('check-circle') }}</span>
                     <span class="rec-text" id="dedRecText">Standard deduction saves you more!</span>
                     <span class="rec-savings" id="dedRecSavings">+$0</span>
                   </div>
@@ -13104,7 +13105,7 @@
               <!-- Section 4: Tax Calculation -->
               <div class="cp-section">
                 <div class="cps-header" data-toggle="taxCalcDetails">
-                  <span class="cps-icon">🧮</span>
+                  <span class="cps-icon">{{ icon('calculator') }}</span>
                   <span class="cps-title">Tax Calculation</span>
                   <span class="cps-amount" id="cpTaxBeforeCredits">$0</span>
                   <span class="cps-toggle">▼</span>
@@ -13138,7 +13139,7 @@
               <!-- Section 5: Credits -->
               <div class="cp-section">
                 <div class="cps-header" data-toggle="creditDetails">
-                  <span class="cps-icon">🎁</span>
+                  <span class="cps-icon">{{ icon('sparkles') }}</span>
                   <span class="cps-title">Tax Credits</span>
                   <span class="cps-amount negative" id="cpCredits">-$0</span>
                   <span class="cps-toggle">▼</span>
@@ -13188,7 +13189,7 @@
               <!-- Section 6: Payments & Withholding -->
               <div class="cp-section">
                 <div class="cps-header" data-toggle="paymentDetails">
-                  <span class="cps-icon">💳</span>
+                  <span class="cps-icon">{{ icon('credit-card') }}</span>
                   <span class="cps-title">Taxes Already Paid <small style="color: var(--text-tertiary);  /* 2026: Use design system */">(Withholding & Payments)</small></span>
                   <span class="cps-amount" id="cpPayments">$0</span>
                   <span class="cps-toggle">▼</span>
@@ -13267,7 +13268,7 @@
                     <!-- Dynamically populated -->
                   </div>
                   <div class="comparison-note">
-                    <span class="note-icon">⚠️</span>
+                    <span class="note-icon">{{ icon('exclamation-triangle') }}</span>
                     <span>You can only select filing statuses you qualify for based on your situation.</span>
                   </div>
                 </div>
@@ -13304,7 +13305,7 @@
             <div class="nav-buttons">
               <button class="btn btn-secondary" id="btnBack6">Back to Credits</button>
               <button class="btn btn-success btn-lg" id="btnFinish">
-                <span class="btn-icon">✓</span>
+                <span class="btn-icon">{{ icon('check') }}</span>
                 File Your Taxes
               </button>
             </div>
@@ -13333,7 +13334,7 @@
           <div class="inline-savings-alert" id="inlineSavingsAlert">
             <button class="inline-savings-alert-dismiss" onclick="dismissInlineSavingsAlert()">×</button>
             <div class="inline-savings-alert-content">
-              <div class="inline-savings-alert-icon">💡</div>
+              <div class="inline-savings-alert-icon">{{ icon('light-bulb') }}</div>
               <div class="inline-savings-alert-text">
                 <div class="inline-savings-alert-title">You could reduce this by $0</div>
                 <div class="inline-savings-alert-subtitle">See how with optimization strategies</div>
@@ -13358,7 +13359,7 @@
           <!-- Enhanced Header with Total Potential (Prompt 3) -->
           <div class="insights-header-enhanced" id="insightsHeaderEnhanced" style="display: none;">
             <div class="insights-header-title">
-              💡 Total Potential
+              {{ icon('light-bulb') }} Total Potential
             </div>
             <div class="insights-total-potential">
               <span class="amount" id="insightsTotalPotential">$0</span>
@@ -13439,16 +13440,16 @@
         <!-- Legacy Tips Card (hidden by default) -->
         <div class="tips-card" id="tipsCard" style="display: none;">
           <div class="tips-header">
-            <div class="tips-icon">💡</div>
+            <div class="tips-icon">{{ icon('light-bulb') }}</div>
             <div class="tips-title">Tax Saving Tips</div>
           </div>
           <div id="tipsList">
             <div class="tip-item">
-              <div class="tip-icon">✓</div>
+              <div class="tip-icon">{{ icon('check') }}</div>
               <div class="tip-text">Upload your W-2 to get started. We'll find deductions automatically.</div>
             </div>
             <div class="tip-item">
-              <div class="tip-icon">✓</div>
+              <div class="tip-icon">{{ icon('check') }}</div>
               <div class="tip-text">Standard deduction for single filers: <span class="tip-savings">$15,000</span></div>
             </div>
           </div>
@@ -13457,7 +13458,7 @@
         <!-- Info Card -->
         <div class="info-card">
           <div class="info-header">
-            <div class="info-icon">📋</div>
+            <div class="info-icon">{{ icon('clipboard-document-list') }}</div>
             <div class="info-title">Your Information</div>
           </div>
           <div class="info-row">
@@ -13911,7 +13912,7 @@
       toast.className = `toast-notification toast-${type}`;
       toast.innerHTML = `
         <div class="toast-content">
-          <span class="toast-icon">${type === 'success' ? '✓' : type === 'error' ? '✕' : type === 'warning' ? '⚠' : 'ℹ'}</span>
+          <span class="toast-icon">${type === 'success' ? '{{ icon('check') }}' : type === 'error' ? '{{ icon('x-mark') }}' : type === 'warning' ? '{{ icon('exclamation-triangle') }}' : 'ℹ'}</span>
           <span class="toast-message">${escapeHtml(message)}</span>
         </div>
         <button class="toast-close" onclick="this.parentElement.remove()">×</button>
@@ -14177,7 +14178,7 @@
         if (is65) {
           const ageNotice = document.getElementById('age65Notice');
           if (ageNotice) {
-            ageNotice.textContent = '✓ Additional standard deduction for age 65+ will be applied automatically';
+            ageNotice.textContent = '{{ icon('check') }} Additional standard deduction for age 65+ will be applied automatically';
             ageNotice.style.display = 'block';
           }
         }
@@ -14203,7 +14204,7 @@
       if (computed.numQualifyingChildren > 0) {
         const ctcNotice = document.getElementById('ctcEligibilityNotice');
         if (ctcNotice) {
-          ctcNotice.innerHTML = `✓ ${computed.numQualifyingChildren} child(ren) may qualify for Child Tax Credit (up to $${2000 * computed.numQualifyingChildren})`;
+          ctcNotice.innerHTML = `{{ icon('check') }} ${computed.numQualifyingChildren} child(ren) may qualify for Child Tax Credit (up to $${2000 * computed.numQualifyingChildren})`;
           ctcNotice.style.display = 'block';
         }
       }
@@ -14363,7 +14364,7 @@
       const ctcNotice = document.getElementById('ctcEligibilityNotice');
       if (ctcNotice) {
         if (qualifyingChildren > 0) {
-          ctcNotice.innerHTML = `✓ ${qualifyingChildren} child(ren) under 17 may qualify for Child Tax Credit (up to $${2000 * qualifyingChildren})`;
+          ctcNotice.innerHTML = `{{ icon('check') }} ${qualifyingChildren} child(ren) under 17 may qualify for Child Tax Credit (up to $${2000 * qualifyingChildren})`;
           ctcNotice.style.display = 'block';
         } else {
           ctcNotice.style.display = 'none';
@@ -14421,7 +14422,7 @@
 
       let html = `
         <div class="recommendations-header">
-          <h4>💡 Tax Optimization Tips</h4>
+          <h4>{{ icon('light-bulb') }} Tax Optimization Tips</h4>
           ${recommendations.total_potential_savings > 0 ?
             `<span class="savings-badge">Potential savings: ${formatCurrency(recommendations.total_potential_savings)}</span>` : ''}
         </div>
@@ -14663,23 +14664,23 @@
           desc: 'Upload documents and we\'ll handle the rest',
           time: '~3 minutes',
           features: [
-            '✓ Upload tax documents (W-2, 1099s)',
-            '✓ AI extracts your data automatically',
-            '✓ Review and file in minutes'
+            '{{ icon('check') }} Upload tax documents (W-2, 1099s)',
+            '{{ icon('check') }} AI extracts your data automatically',
+            '{{ icon('check') }} Review and file in minutes'
           ]
         };
         otherPaths = ['smart', 'guided', 'chat'];
       } else if (hasDocuments && complexity === 'moderate') {
         recommendedPath = {
           id: 'smart',
-          icon: '🎯',
+          icon: '{{ icon('sparkles') }}',
           title: 'Smart Tax',
           desc: 'Adaptive questions with document support',
           time: '~8 minutes',
           features: [
-            '✓ Upload documents for automatic extraction',
-            '✓ Answer targeted questions about deductions',
-            '✓ Maximize your refund with smart suggestions'
+            '{{ icon('check') }} Upload documents for automatic extraction',
+            '{{ icon('check') }} Answer targeted questions about deductions',
+            '{{ icon('check') }} Maximize your refund with smart suggestions'
           ]
         };
         otherPaths = ['express', 'guided', 'chat'];
@@ -14691,23 +14692,23 @@
           desc: 'Conversational tax filing with AI guidance',
           time: '~12 minutes',
           features: [
-            '✓ Chat with AI tax assistant',
-            '✓ Get personalized guidance for complex situations',
-            '✓ Ask questions anytime during filing'
+            '{{ icon('check') }} Chat with AI tax assistant',
+            '{{ icon('check') }} Get personalized guidance for complex situations',
+            '{{ icon('check') }} Ask questions anytime during filing'
           ]
         };
         otherPaths = ['smart', 'express', 'guided'];
       } else {
         recommendedPath = {
           id: 'guided',
-          icon: '📋',
+          icon: '{{ icon('clipboard-document-list') }}',
           title: 'Guided Forms',
           desc: 'Traditional step-by-step form filling',
           time: '~15 minutes',
           features: [
-            '✓ Complete IRS forms step-by-step',
-            '✓ Detailed explanations for each field',
-            '✓ Comprehensive deduction checklist'
+            '{{ icon('check') }} Complete IRS forms step-by-step',
+            '{{ icon('check') }} Detailed explanations for each field',
+            '{{ icon('check') }} Comprehensive deduction checklist'
           ]
         };
         otherPaths = ['smart', 'express', 'chat'];
@@ -14726,7 +14727,7 @@
           <div class="rec-icon">${recommendedPath.icon}</div>
           <div class="rec-info">
             <div class="rec-title">${recommendedPath.title}</div>
-            <div class="rec-time">⏱️ ${recommendedPath.time}</div>
+            <div class="rec-time">{{ icon('clock') }} ${recommendedPath.time}</div>
           </div>
         </div>
         <div class="rec-features">
@@ -14738,9 +14739,9 @@
       // Populate other paths
       const pathsData = {
         express: { icon: '⚡', title: 'Express Lane', time: '~3 min' },
-        smart: { icon: '🎯', title: 'Smart Tax', time: '~8 min' },
+        smart: { icon: '{{ icon('sparkles') }}', title: 'Smart Tax', time: '~8 min' },
         chat: { icon: '💬', title: 'AI Chat', time: '~12 min' },
-        guided: { icon: '📋', title: 'Guided Forms', time: '~15 min' }
+        guided: { icon: '{{ icon('clipboard-document-list') }}', title: 'Guided Forms', time: '~15 min' }
       };
 
       const otherPathsGrid = document.getElementById('otherPathsGrid');
@@ -14903,12 +14904,12 @@
       const file = e.target.files[0];
       if (file) {
         document.getElementById('importStatus').innerHTML =
-          `<span class="import-success">✓ ${escapeHtml(file.name)} loaded. Analyzing...</span>`;
+          `<span class="import-success">{{ icon('check') }} ${escapeHtml(file.name)} loaded. Analyzing...</span>`;
 
         // Simulate import processing
         setTimeout(() => {
           document.getElementById('importStatus').innerHTML =
-            `<span class="import-success">✓ Import complete! Found prior year data.</span>`;
+            `<span class="import-success">{{ icon('check') }} Import complete! Found prior year data.</span>`;
           setTimeout(() => {
             elements.importModal.classList.add('hidden');
             showSubstep('1a');
@@ -14928,7 +14929,7 @@
       loadingDiv.className = 'wizard-card';
       loadingDiv.innerHTML = `
         <div class="result-header" style="text-align: center;">
-          <div class="result-icon">🔄</div>
+          <div class="result-icon">{{ icon('arrow-path') }}</div>
           <h3>Importing your information from last year...</h3>
           <p style="color: var(--gray-600); margin-top: 16px;">This will just take a moment</p>
         </div>
@@ -15070,10 +15071,10 @@
       state.filingStatus = recommendedStatus;
 
       const statusInfo = {
-        'single': { icon: '👤', name: 'Single', deduction: 15750 },
+        'single': { icon: '{{ icon('user') }}', name: 'Single', deduction: 15750 },
         'married_joint': { icon: '👫', name: 'Married Filing Jointly', deduction: 31500 },
         'married_separate': { icon: '↔️', name: 'Married Filing Separately', deduction: 15750 },
-        'head_of_household': { icon: '🏠', name: 'Head of Household', deduction: 23625 },
+        'head_of_household': { icon: '{{ icon('home') }}', name: 'Head of Household', deduction: 23625 },
         'qualifying_widow': { icon: '🕯️', name: 'Qualifying Surviving Spouse', deduction: 31500 },
       };
 
@@ -15155,10 +15156,10 @@
 
         // Update recommendation display
         const statusInfo = {
-          'single': { icon: '👤', name: 'Single', deduction: 15750 },
+          'single': { icon: '{{ icon('user') }}', name: 'Single', deduction: 15750 },
           'married_joint': { icon: '👫', name: 'Married Filing Jointly', deduction: 31500 },
           'married_separate': { icon: '↔️', name: 'Married Filing Separately', deduction: 15750 },
-          'head_of_household': { icon: '🏠', name: 'Head of Household', deduction: 23625 },
+          'head_of_household': { icon: '{{ icon('home') }}', name: 'Head of Household', deduction: 23625 },
           'qualifying_widow': { icon: '🕯️', name: 'Qualifying Surviving Spouse', deduction: 31500 },
         };
         const info = statusInfo[state.filingStatus];
@@ -15288,11 +15289,11 @@
       if (ctcItem) {
         if (ctcEligible) {
           ctcItem.className = 'qual-item eligible';
-          ctcItem.querySelector('.qual-icon').textContent = '✅';
+          ctcItem.querySelector('.qual-icon').textContent = '{{ icon('check-circle') }}';
           ctcItem.querySelector('.qual-text').textContent = 'Qualifies for Child Tax Credit ($2,200)';
         } else if (dependent.dob) {
           ctcItem.className = 'qual-item';
-          ctcItem.querySelector('.qual-icon').textContent = '❌';
+          ctcItem.querySelector('.qual-icon').textContent = '{{ icon('x-circle') }}';
           ctcItem.querySelector('.qual-text').textContent = age >= 17 ? 'Too old for Child Tax Credit' : 'Does not qualify for Child Tax Credit';
         }
       }
@@ -15300,11 +15301,11 @@
       if (eitcItem) {
         if (eitcEligible) {
           eitcItem.className = 'qual-item eligible';
-          eitcItem.querySelector('.qual-icon').textContent = '✅';
+          eitcItem.querySelector('.qual-icon').textContent = '{{ icon('check-circle') }}';
           eitcItem.querySelector('.qual-text').textContent = 'May qualify for Earned Income Credit';
         } else if (dependent.dob) {
           eitcItem.className = 'qual-item';
-          eitcItem.querySelector('.qual-icon').textContent = '❌';
+          eitcItem.querySelector('.qual-icon').textContent = '{{ icon('x-circle') }}';
           eitcItem.querySelector('.qual-text').textContent = 'Does not qualify for EITC';
         }
       }
@@ -15754,7 +15755,7 @@
       const originalText = button?.innerHTML;
       if (button) {
         button.disabled = true;
-        button.innerHTML = '⏳ Applying...';
+        button.innerHTML = '{{ icon('clock') }} Applying...';
       }
 
       try {
@@ -15793,7 +15794,7 @@
       const docName = doc?.filename || 'this document';
 
       // CRITICAL UX: Confirm before deleting (prevents accidental data loss)
-      const confirmed = confirm(`⚠️ Delete ${docName}?\n\nThis action cannot be undone. The document and all extracted data will be permanently removed.`);
+      const confirmed = confirm(`{{ icon('exclamation-triangle') }} Delete ${docName}?\n\nThis action cannot be undone. The document and all extracted data will be permanently removed.`);
       if (!confirmed) {
         return; // User cancelled
       }
@@ -16063,7 +16064,7 @@
       });
 
       if (populatedCount > 0) {
-        showNotification(`✅ Auto-filled ${populatedCount} fields from your document!`, 'success');
+        showNotification(`{{ icon('check-circle') }} Auto-filled ${populatedCount} fields from your document!`, 'success');
       }
     }
 
@@ -16126,7 +16127,7 @@
         <div class="modal-overlay"></div>
         <div class="modal-content gap-questions-content">
           <div class="modal-header">
-            <h2>📋 Just ${count} Quick Questions</h2>
+            <h2>{{ icon('clipboard-document-list') }} Just ${count} Quick Questions</h2>
             <p>We extracted most of your information. Just need these final details:</p>
           </div>
           <div class="modal-body gap-questions-list">
@@ -16170,7 +16171,7 @@
           });
         }
 
-        showNotification('✅ All questions answered! Ready to calculate your taxes.', 'success');
+        showNotification('{{ icon('check-circle') }} All questions answered! Ready to calculate your taxes.', 'success');
         closeGapQuestionsModal();
 
         // Auto-advance to next step
@@ -16202,7 +16203,7 @@
       summaryEl.className = 'extraction-summary animate-slide-in';
       summaryEl.innerHTML = `
         <div class="summary-header">
-          <div class="summary-icon">✅</div>
+          <div class="summary-icon">{{ icon('check-circle') }}</div>
           <div class="summary-title">
             <strong>Extraction Complete!</strong>
             <p>Found ${fields.length} data points with ${Math.round(confidence * 100)}% confidence</p>
@@ -16255,7 +16256,7 @@
       notification.className = `notification notification-${type} animate-slide-in`;
       notification.innerHTML = `
         <div class="notification-icon">
-          ${type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ'}
+          ${type === 'success' ? '{{ icon('check') }}' : type === 'error' ? '✗' : 'ℹ'}
         </div>
         <div class="notification-message">${message}</div>
       `;
@@ -16375,20 +16376,20 @@
           const isRefund = comp.isRefund || comp.refundOrOwed > 0;
           const amount = Math.abs(comp.refundOrOwed);
 
-          let response = '📊 Based on your current information:\n\n';
+          let response = '{{ icon('chart-bar') }} Based on your current information:\n\n';
           response += `• Total Income: ${formatCurrency(comp.grossIncome)}\n`;
           response += `• Tax Liability: ${formatCurrency(comp.taxLiability)}\n`;
           response += `• Withholding: ${formatCurrency(comp.withholding)}\n`;
           response += `• Effective Rate: ${(comp.effectiveRate * 100).toFixed(1)}%\n\n`;
 
           if (isRefund) {
-            response += `✅ Estimated Refund: ${formatCurrency(amount)}\n\n`;
+            response += `{{ icon('check-circle') }} Estimated Refund: ${formatCurrency(amount)}\n\n`;
           } else {
-            response += `⚠️ Amount Owed: ${formatCurrency(amount)}\n`;
+            response += `{{ icon('exclamation-triangle') }} Amount Owed: ${formatCurrency(amount)}\n`;
             response += `Payment due: April 15, 2026\n\n`;
           }
 
-          response += `Want to see savings opportunities? 💡`;
+          response += `Want to see savings opportunities? {{ icon('light-bulb') }}`;
           return response;
         } catch (err) {
           return null;
@@ -16402,13 +16403,13 @@
             ? totalSavingsDiscovered
             : detectedOpportunities.reduce((sum, opp) => sum + (opp.savings || 0), 0);
 
-          let response = `💡 I've detected ${detectedOpportunities.length} tax-saving opportunities!\n\n`;
+          let response = `{{ icon('light-bulb') }} I've detected ${detectedOpportunities.length} tax-saving opportunities!\n\n`;
           response += `Total Potential Savings: ${formatCurrency(totalSavings)}/year\n\n`;
 
           const topOpps = detectedOpportunities.slice(0, 5);
           topOpps.forEach((opp, index) => {
             response += `${index + 1}. ${opp.title}\n`;
-            response += `   💰 Save: ${formatCurrency(opp.savings)}/year\n\n`;
+            response += `   {{ icon('banknotes') }} Save: ${formatCurrency(opp.savings)}/year\n\n`;
           });
 
           if (detectedOpportunities.length > 5) {
@@ -16425,7 +16426,7 @@
       // Pattern 3: Deadline questions
       if (msg.includes('deadline') || msg.includes('when') || msg.includes('due')) {
         const deadlines = getDeadlineInfo();
-        let response = '📅 Important Tax Deadlines:\n\n';
+        let response = '{{ icon('calendar') }} Important Tax Deadlines:\n\n';
 
         if (!deadlines.filing_2025.isPast) {
           response += `Tax Return Filing\n`;
@@ -16448,15 +16449,15 @@
       // Pattern 4: Status/Progress
       if (msg.includes('status') || msg.includes('progress') || msg.includes('where am i')) {
         const comp = computeTaxReturn();
-        let response = '📊 Your Tax Return Status:\n\n';
+        let response = '{{ icon('chart-bar') }} Your Tax Return Status:\n\n';
 
         if (comp && comp.taxLiability > 0) {
-          response += `✅ Tax calculated: ${formatCurrency(comp.taxLiability)}\n`;
-          response += `✅ ${comp.isRefund ? 'Refund' : 'Owed'}: ${formatCurrency(Math.abs(comp.refundOrOwed))}\n\n`;
+          response += `{{ icon('check-circle') }} Tax calculated: ${formatCurrency(comp.taxLiability)}\n`;
+          response += `{{ icon('check-circle') }} ${comp.isRefund ? 'Refund' : 'Owed'}: ${formatCurrency(Math.abs(comp.refundOrOwed))}\n\n`;
         }
 
         if (typeof detectedOpportunities !== 'undefined' && detectedOpportunities.length > 0) {
-          response += `💡 ${detectedOpportunities.length} savings opportunities detected\n\n`;
+          response += `{{ icon('light-bulb') }} ${detectedOpportunities.length} savings opportunities detected\n\n`;
         }
 
         response += `What would you like to do next?`;
@@ -16839,16 +16840,16 @@
       const recIcon = recElement.querySelector('.rec-icon');
 
       if (itemizedTotal === 0) {
-        recIcon.textContent = '💡';
+        recIcon.textContent = '{{ icon('light-bulb') }}';
         recText.textContent = 'Add your deductions above to see which option saves you more!';
         recText.classList.remove('better');
       } else if (itemizedTotal > standardDeduction) {
         const savings = itemizedTotal - standardDeduction;
-        recIcon.textContent = '✅';
+        recIcon.textContent = '{{ icon('check-circle') }}';
         recText.innerHTML = `Itemizing saves you <strong>${formatCurrency(savings)}</strong> more! We'll use itemized deductions.`;
         recText.classList.add('better');
       } else {
-        recIcon.textContent = '✅';
+        recIcon.textContent = '{{ icon('check-circle') }}';
         recText.textContent = `Standard deduction is better for you. We'll use ${formatCurrency(standardDeduction)}.`;
         recText.classList.remove('better');
       }
@@ -17093,7 +17094,7 @@
     const filingStatusConfigs = {
       'single': {
         name: 'Single',
-        icon: '👤',
+        icon: '{{ icon('user') }}',
         baseDeduction: 15750,
         additionalDeduction: 1950, // for age 65+ or blind
         brackets: [
@@ -17138,7 +17139,7 @@
       },
       'head_of_household': {
         name: 'Head of Household',
-        icon: '🏠',
+        icon: '{{ icon('home') }}',
         baseDeduction: 23625,
         additionalDeduction: 1950,
         brackets: [
@@ -17872,17 +17873,17 @@
         backendOpts.recommendations.forEach(rec => {
           // Map backend category to icon
           const iconMap = {
-            'retirement': '💰',
+            'retirement': '{{ icon('banknotes') }}',
             'health': '🏥',
-            'filing_status': '🏠',
-            'deductions': '📝',
-            'credits': '🎯',
-            'income_timing': '📅',
-            'general': '💡'
+            'filing_status': '{{ icon('home') }}',
+            'deductions': '{{ icon('pencil') }}',
+            'credits': '{{ icon('sparkles') }}',
+            'income_timing': '{{ icon('calendar') }}',
+            'general': '{{ icon('light-bulb') }}'
           };
 
           recommendations.push({
-            icon: iconMap[rec.category] || '💡',
+            icon: iconMap[rec.category] || '{{ icon('light-bulb') }}',
             title: rec.title || rec.recommendation,
             desc: rec.description || rec.details || '',
             savings: rec.potential_savings || rec.estimated_savings || 0,
@@ -17905,7 +17906,7 @@
           const savings = Math.min(maxAdditional * comp.marginalRate, maxAdditional);
           if (savings > 50) {
             recommendations.push({
-              icon: '💰',
+              icon: '{{ icon('banknotes') }}',
               title: 'Maximize IRA Contributions',
               desc: `You can contribute up to ${formatCurrency(maxAdditional)} more to a Traditional IRA and reduce your taxable income.`,
               savings,
@@ -17940,7 +17941,7 @@
           const savings = currentTax - hohTax;
           if (savings > 0) {
             recommendations.push({
-              icon: '🏠',
+              icon: '{{ icon('home') }}',
               title: 'Consider Head of Household Status',
               desc: 'Based on your dependents, you may qualify for Head of Household which has lower tax rates.',
               savings,
@@ -17954,7 +17955,7 @@
         if (!comp.useItemized && comp.itemizedDeduction > comp.standardDeduction * 0.7) {
           const gap = comp.standardDeduction - comp.itemizedDeduction;
           recommendations.push({
-            icon: '📝',
+            icon: '{{ icon('pencil') }}',
             title: 'Track More Deductions',
             desc: `You're ${formatCurrency(gap)} away from benefiting from itemized deductions. Consider tracking charitable donations.`,
             savings: 0,
@@ -18223,14 +18224,14 @@
         const savings = currentStateTax - lowestTax;
         if (savings > 0 && lowestTaxState !== currentState) {
           insight.innerHTML = `
-            <div class="insight-header">💡 State Tax Insight</div>
+            <div class="insight-header">{{ icon('light-bulb') }} State Tax Insight</div>
             <div class="insight-text">
               Living in ${stateTaxRates[lowestTaxState].name} instead of ${stateTaxRates[currentState]?.name || 'your current state'} would save you <strong>${formatCurrency(savings)}</strong> in state income tax per year. However, consider cost of living, job opportunities, and other factors before relocating.
             </div>
           `;
         } else {
           insight.innerHTML = `
-            <div class="insight-header">💡 State Tax Insight</div>
+            <div class="insight-header">{{ icon('light-bulb') }} State Tax Insight</div>
             <div class="insight-text">
               ${stateTaxRates[currentState]?.rate === 0 ?
                 'You\'re already in a state with no income tax! This is optimal from a state tax perspective.' :
@@ -18388,7 +18389,7 @@ Generated by TaxFlow - Tax Year 2025
         const email = state.personal.email || '';
 
         if (!firstName.trim() || !lastName.trim()) {
-          showNotification('⚠️ Please provide your full name before generating the report.', 'error');
+          showNotification('{{ icon('exclamation-triangle') }} Please provide your full name before generating the report.', 'error');
           // Prompt for name
           const name = prompt('Please enter your full name (First Last):');
           if (!name || !name.trim()) {
@@ -18401,7 +18402,7 @@ Generated by TaxFlow - Tax Year 2025
         }
 
         if (!email.trim() || !email.includes('@')) {
-          showNotification('⚠️ Please provide your email address before generating the report.', 'error');
+          showNotification('{{ icon('exclamation-triangle') }} Please provide your email address before generating the report.', 'error');
           // Prompt for email
           const userEmail = prompt('Please enter your email address:');
           if (!userEmail || !userEmail.trim() || !userEmail.includes('@')) {
@@ -18412,7 +18413,7 @@ Generated by TaxFlow - Tax Year 2025
         }
 
         btn.disabled = true;
-        btn.innerHTML = '⏳ Generating Report...';
+        btn.innerHTML = '{{ icon('clock') }} Generating Report...';
 
         const response = await fetch('/api/v1/advisory-reports/generate', {
           method: 'POST',
@@ -19197,7 +19198,7 @@ Generated by TaxFlow - Tax Year 2025
                          state.taxData.selfEmploymentIncome > 0 ||
                          state.documents.length > 0;
         incomeItem.classList.toggle('completed', hasIncome);
-        incomeItem.querySelector('.check-icon').textContent = hasIncome ? '✓' : '○';
+        incomeItem.querySelector('.check-icon').textContent = hasIncome ? '{{ icon('check') }}' : '○';
       }
 
       // Check filing status
@@ -19205,7 +19206,7 @@ Generated by TaxFlow - Tax Year 2025
       if (filingItem) {
         const hasFiling = state.filingStatus !== null;
         filingItem.classList.toggle('completed', hasFiling);
-        filingItem.querySelector('.check-icon').textContent = hasFiling ? '✓' : '○';
+        filingItem.querySelector('.check-icon').textContent = hasFiling ? '{{ icon('check') }}' : '○';
       }
 
       // Check deductions
@@ -19213,7 +19214,7 @@ Generated by TaxFlow - Tax Year 2025
       if (deductionsItem) {
         const hasDeductions = Object.values(state.deductions).some(v => v && v > 0);
         deductionsItem.classList.toggle('completed', hasDeductions);
-        deductionsItem.querySelector('.check-icon').textContent = hasDeductions ? '✓' : '○';
+        deductionsItem.querySelector('.check-icon').textContent = hasDeductions ? '{{ icon('check') }}' : '○';
       }
     }
 
@@ -19327,7 +19328,7 @@ Generated by TaxFlow - Tax Year 2025
             ` : ''}
             ${isApplied ? `
               <div class="insight-applied">
-                <span>✓</span> Applied
+                <span>{{ icon('check') }}</span> Applied
               </div>
             ` : `
               <div class="insight-actions">
@@ -19384,14 +19385,14 @@ Generated by TaxFlow - Tax Year 2025
 
     function getInsightEmoji(type) {
       const emojis = {
-        'retirement': '💰',
-        'filing_status': '🏠',
-        'entity': '🏢',
-        'deduction': '📝',
-        'credit': '🎁',
+        'retirement': '{{ icon('banknotes') }}',
+        'filing_status': '{{ icon('home') }}',
+        'entity': '{{ icon('building-office') }}',
+        'deduction': '{{ icon('pencil') }}',
+        'credit': '{{ icon('sparkles') }}',
         'healthcare': '🏥',
       };
-      return emojis[type] || '💡';
+      return emojis[type] || '{{ icon('light-bulb') }}';
     }
 
     async function applyInsight(insightId) {
@@ -19853,13 +19854,13 @@ Generated by TaxFlow - Tax Year 2025
 
     function getOpportunityIcon(type) {
       const icons = {
-        'retirement': '💰',
-        'filing_status': '📋',
-        'entity': '🏢',
-        'credits': '💳',
-        'deduction': '📝',
+        'retirement': '{{ icon('banknotes') }}',
+        'filing_status': '{{ icon('clipboard-document-list') }}',
+        'entity': '{{ icon('building-office') }}',
+        'credits': '{{ icon('credit-card') }}',
+        'deduction': '{{ icon('pencil') }}',
       };
-      return icons[type] || '💡';
+      return icons[type] || '{{ icon('light-bulb') }}';
     }
 
     function selectOpportunity(index) {
@@ -19890,7 +19891,7 @@ Generated by TaxFlow - Tax Year 2025
       if (card) {
         card.innerHTML = `
           <div class="no-recommendations">
-            <div class="no-rec-icon">📊</div>
+            <div class="no-rec-icon">{{ icon('chart-bar') }}</div>
             <div class="no-rec-title">No Recommendations Yet</div>
             <div class="no-rec-subtitle">Complete your tax information to see optimization opportunities</div>
             <button class="recommendation-btn-secondary" onclick="closeTaxOptimizer(); goToStep(2);">
@@ -20348,7 +20349,7 @@ Generated by TaxFlow - Tax Year 2025
         const savings = Math.round(income * 0.153 * 0.4 * 0.5); // Approximate S-Corp savings
 
         nudge.innerHTML = `
-          <div class="floating-nudge-icon">💡</div>
+          <div class="floating-nudge-icon">{{ icon('light-bulb') }}</div>
           <div class="floating-nudge-text">
             With ${formatCurrency(income)} self-employment income,
             an S-Corp could save you <span class="floating-nudge-savings">${formatCurrency(savings)}/year</span>
@@ -20728,7 +20729,7 @@ Generated by TaxFlow - Tax Year 2025
         console.error('Scenario comparison error:', error);
         resultsContainer.innerHTML = `
           <div class="insights-empty">
-            <div class="insights-empty-icon">❌</div>
+            <div class="insights-empty-icon">{{ icon('x-circle') }}</div>
             <div>Error running comparison. Please try again.</div>
           </div>
         `;
@@ -20968,7 +20969,7 @@ Generated by TaxFlow - Tax Year 2025
       if (!results || results.length === 0) {
         container.innerHTML = `
           <div class="insights-empty">
-            <div class="insights-empty-icon">📊</div>
+            <div class="insights-empty-icon">{{ icon('chart-bar') }}</div>
             <div>No results to display</div>
           </div>
         `;
@@ -21128,9 +21129,9 @@ Generated by TaxFlow - Tax Year 2025
       const recommended = data.recommendation || 's_corp';
 
       const entities = [
-        { key: 'sole_proprietorship', icon: '📋', iconClass: 'sole-prop' },
-        { key: 's_corp', icon: '🏢', iconClass: 's-corp' },
-        { key: 'llc', icon: '📄', iconClass: 'llc' },
+        { key: 'sole_proprietorship', icon: '{{ icon('clipboard-document-list') }}', iconClass: 'sole-prop' },
+        { key: 's_corp', icon: '{{ icon('building-office') }}', iconClass: 's-corp' },
+        { key: 'llc', icon: '{{ icon('document-text') }}', iconClass: 'llc' },
       ];
 
       let html = '';
@@ -21457,7 +21458,7 @@ Generated by TaxFlow - Tax Year 2025
             window.sessionId = result.session_id;
           }
 
-          updateSaveStatus('saved', '✓ Saved');
+          updateSaveStatus('saved', '{{ icon('check') }} Saved');
         } catch (error) {
           console.error('Auto-save error:', error);
           updateSaveStatus('error', 'Save failed');
@@ -21826,7 +21827,7 @@ Generated by TaxFlow - Tax Year 2025
       tracker.className = 'savings-tracker';
       tracker.innerHTML = `
         <div class="tracker-header">
-          <div class="tracker-icon">💰</div>
+          <div class="tracker-icon">{{ icon('banknotes') }}</div>
           <div class="tracker-title">Savings Discovered</div>
         </div>
         <div class="tracker-total" id="trackerTotal">$0</div>
@@ -22022,7 +22023,7 @@ Generated by TaxFlow - Tax Year 2025
       opportunityCard.className = 'opportunity-alert animate-slide-in';
       opportunityCard.innerHTML = `
         <div class="opportunity-header">
-          <div class="opportunity-icon">💡</div>
+          <div class="opportunity-icon">{{ icon('light-bulb') }}</div>
           <div class="opportunity-badge">${opportunity.category}</div>
         </div>
         <div class="opportunity-content">
@@ -22129,17 +22130,17 @@ Generated by TaxFlow - Tax Year 2025
         urgencyLevel = 'HIGH';
         urgencyColor = '#ea580c'; // Orange
         urgencyMessage = `${daysUntil} days until deadline - let's work efficiently!`;
-        urgencyIcon = '⚠️';
+        urgencyIcon = '{{ icon('exclamation-triangle') }}';
       } else if (daysUntil <= 60) {
         urgencyLevel = 'MODERATE';
         urgencyColor = '#2563eb'; // Blue
         urgencyMessage = `${daysUntil} days until April 15 - good timing!`;
-        urgencyIcon = '📅';
+        urgencyIcon = '{{ icon('calendar') }}';
       } else {
         urgencyLevel = 'PLANNING';
         urgencyColor = '#16a34a'; // Green
         urgencyMessage = `Perfect timing for tax planning! ${daysUntil} days until deadline.`;
-        urgencyIcon = '✓';
+        urgencyIcon = '{{ icon('check') }}';
       }
 
       return { urgencyLevel, urgencyColor, urgencyMessage, urgencyIcon, daysUntil };
@@ -22347,7 +22348,7 @@ Generated by TaxFlow - Tax Year 2025
         <div class="modal-overlay" onclick="closeScenarioModal()"></div>
         <div class="modal-content scenario-modal-content">
           <div class="modal-header">
-            <h2>📊 Tax Strategy Scenarios</h2>
+            <h2>{{ icon('chart-bar') }} Tax Strategy Scenarios</h2>
             <p>Compare different approaches to minimize your tax liability</p>
             <button class="modal-close" onclick="closeScenarioModal()">×</button>
           </div>
@@ -22377,7 +22378,7 @@ Generated by TaxFlow - Tax Year 2025
 
                     ${!scenario.isBaseline && savings > 0 ? `
                       <div class="scenario-savings">
-                        💰 Save <strong>$${Math.round(savings).toLocaleString()}/year</strong>
+                        {{ icon('banknotes') }} Save <strong>$${Math.round(savings).toLocaleString()}/year</strong>
                       </div>
                     ` : ''}
 
@@ -22452,7 +22453,7 @@ Generated by TaxFlow - Tax Year 2025
         <div class="modal-overlay" onclick="this.parentElement.remove()"></div>
         <div class="modal-content">
           <div class="modal-header">
-            <h2>📋 Implementation Plan: ${scenario.name}</h2>
+            <h2>{{ icon('clipboard-document-list') }} Implementation Plan: ${scenario.name}</h2>
             <button class="modal-close" onclick="this.closest('.scenario-modal').remove()">×</button>
           </div>
 
@@ -22476,7 +22477,7 @@ Generated by TaxFlow - Tax Year 2025
                   <div class="action-content">
                     <div class="action-title">${item.title}</div>
                     <div class="action-description">${item.description}</div>
-                    ${item.deadline ? `<div class="action-deadline">⏰ ${item.deadline}</div>` : ''}
+                    ${item.deadline ? `<div class="action-deadline">{{ icon('clock') }} ${item.deadline}</div>` : ''}
                   </div>
                 </div>
               `).join('')}
@@ -22555,7 +22556,7 @@ Generated by TaxFlow - Tax Year 2025
         const scenariosBtn = document.createElement('button');
         scenariosBtn.id = 'btnViewScenarios';
         scenariosBtn.className = 'btn btn-primary';
-        scenariosBtn.textContent = '📊 Compare Tax Strategies';
+        scenariosBtn.textContent = '{{ icon('chart-bar') }} Compare Tax Strategies';
         scenariosBtn.style.marginTop = '12px';
         scenariosBtn.onclick = async () => {
           const scenarios = await generateTaxScenarios();
@@ -23090,27 +23091,27 @@ Generated by TaxFlow - Tax Year 2025
   <nav class="mobile-bottom-nav" id="mobileBottomNav">
     <div class="nav-items">
       <div class="nav-item active" data-step="1">
-        <span class="nav-icon">👤</span>
+        <span class="nav-icon">{{ icon('user') }}</span>
         <span>Status</span>
       </div>
       <div class="nav-item" data-step="2">
-        <span class="nav-icon">📄</span>
+        <span class="nav-icon">{{ icon('document-text') }}</span>
         <span>Docs</span>
       </div>
       <div class="nav-item" data-step="3">
-        <span class="nav-icon">💰</span>
+        <span class="nav-icon">{{ icon('banknotes') }}</span>
         <span>Income</span>
       </div>
       <div class="nav-item" data-step="4">
-        <span class="nav-icon">📝</span>
+        <span class="nav-icon">{{ icon('pencil') }}</span>
         <span>Deductions</span>
       </div>
       <div class="nav-item" data-step="5">
-        <span class="nav-icon">🎁</span>
+        <span class="nav-icon">{{ icon('sparkles') }}</span>
         <span>Credits</span>
       </div>
       <div class="nav-item" data-step="6">
-        <span class="nav-icon">✓</span>
+        <span class="nav-icon">{{ icon('check') }}</span>
         <span>Review</span>
       </div>
     </div>
@@ -23119,7 +23120,7 @@ Generated by TaxFlow - Tax Year 2025
   <!-- Feedback Toast (Prompt 6) -->
   <div class="feedback-toast" id="feedbackToast">
     <div class="feedback-toast-header">
-      <div class="feedback-toast-icon">✓</div>
+      <div class="feedback-toast-icon">{{ icon('check') }}</div>
       <div class="feedback-toast-title" id="feedbackToastTitle">Change Applied</div>
       <button class="feedback-toast-close" onclick="closeFeedbackToast()">×</button>
     </div>
@@ -23149,7 +23150,7 @@ Generated by TaxFlow - Tax Year 2025
     <div class="tax-optimizer-modal">
       <div class="optimizer-header">
         <div class="optimizer-header-left">
-          <div class="optimizer-icon">🎯</div>
+          <div class="optimizer-icon">{{ icon('sparkles') }}</div>
           <div>
             <div class="optimizer-title">Tax Optimizer</div>
             <div class="optimizer-subtitle">Explore strategies to minimize your tax burden</div>
@@ -23169,22 +23170,22 @@ Generated by TaxFlow - Tax Year 2025
 
           <div class="goal-cards-grid">
             <div class="goal-card" onclick="selectGoal('save_money')">
-              <div class="goal-card-icon">💰</div>
+              <div class="goal-card-icon">{{ icon('banknotes') }}</div>
               <div class="goal-card-title">Save Money on Taxes</div>
               <div class="goal-card-desc">Find deductions & credits</div>
             </div>
             <div class="goal-card" onclick="selectGoal('start_business')">
-              <div class="goal-card-icon">🏢</div>
+              <div class="goal-card-icon">{{ icon('building-office') }}</div>
               <div class="goal-card-title">Start a Business</div>
               <div class="goal-card-desc">Compare entity types</div>
             </div>
             <div class="goal-card" onclick="selectGoal('retirement')">
-              <div class="goal-card-icon">🎯</div>
+              <div class="goal-card-icon">{{ icon('sparkles') }}</div>
               <div class="goal-card-title">Plan for Retirement</div>
               <div class="goal-card-desc">Maximize contributions</div>
             </div>
             <div class="goal-card" onclick="selectGoal('compare')">
-              <div class="goal-card-icon">📊</div>
+              <div class="goal-card-icon">{{ icon('chart-bar') }}</div>
               <div class="goal-card-title">Compare Scenarios</div>
               <div class="goal-card-desc">What-if analysis</div>
             </div>
@@ -23203,7 +23204,7 @@ Generated by TaxFlow - Tax Year 2025
           <div class="questionnaire-header">
             <button class="questionnaire-back" onclick="goToGuidedStep('goals')">←</button>
             <div class="questionnaire-progress">
-              <div class="guided-flow-title" id="questionnaireTitle">💰 Save Money on Taxes</div>
+              <div class="guided-flow-title" id="questionnaireTitle">{{ icon('banknotes') }} Save Money on Taxes</div>
               <div class="questionnaire-progress-dots">
                 <div class="progress-dot active" id="progressDot1"></div>
                 <div class="progress-dot" id="progressDot2"></div>
@@ -23365,22 +23366,22 @@ Generated by TaxFlow - Tax Year 2025
 
         <div class="view-toggle">
           <button class="view-toggle-btn" onclick="showAdvancedView()">
-            ⚙️ Advanced Options
+            {{ icon('cog-6-tooth') }} Advanced Options
           </button>
         </div>
       </div>
 
       <div class="optimizer-tabs" id="optimizerTabs" style="display: none;">
         <button class="optimizer-tab active" data-tab="scenarios" onclick="switchOptimizerTab('scenarios')">
-          <span class="optimizer-tab-icon">🔄</span>
+          <span class="optimizer-tab-icon">{{ icon('arrow-path') }}</span>
           What-If Scenarios
         </button>
         <button class="optimizer-tab" data-tab="entity" onclick="switchOptimizerTab('entity')">
-          <span class="optimizer-tab-icon">🏢</span>
+          <span class="optimizer-tab-icon">{{ icon('building-office') }}</span>
           Business Entity
         </button>
         <button class="optimizer-tab" data-tab="retirement" onclick="switchOptimizerTab('retirement')">
-          <span class="optimizer-tab-icon">💰</span>
+          <span class="optimizer-tab-icon">{{ icon('banknotes') }}</span>
           Retirement Planning
         </button>
         <button class="view-toggle-btn" onclick="showSimpleView()" style="margin-left: auto;">
@@ -23394,7 +23395,7 @@ Generated by TaxFlow - Tax Year 2025
           <div class="scenario-builder">
             <div class="scenario-section">
               <div class="scenario-section-title">
-                <span>📝</span> Build Your Scenario
+                <span>{{ icon('pencil') }}</span> Build Your Scenario
               </div>
               <div class="scenario-input-group">
                 <label class="scenario-label">Scenario Type</label>
@@ -23451,11 +23452,11 @@ Generated by TaxFlow - Tax Year 2025
 
             <div class="scenario-section">
               <div class="scenario-section-title">
-                <span>📊</span> Results
+                <span>{{ icon('chart-bar') }}</span> Results
               </div>
               <div id="scenarioResults">
                 <div class="insights-empty">
-                  <div class="insights-empty-icon">🎯</div>
+                  <div class="insights-empty-icon">{{ icon('sparkles') }}</div>
                   <div>Select a scenario type and click Compare to see results</div>
                 </div>
               </div>
@@ -23468,7 +23469,7 @@ Generated by TaxFlow - Tax Year 2025
           <div class="entity-comparison">
             <div class="entity-inputs">
               <div class="scenario-section-title">
-                <span>📋</span> Business Information
+                <span>{{ icon('clipboard-document-list') }}</span> Business Information
               </div>
               <div class="scenario-input-group">
                 <label class="scenario-label">Gross Business Revenue</label>
@@ -23512,7 +23513,7 @@ Generated by TaxFlow - Tax Year 2025
 
             <div class="entity-results" id="entityResults">
               <div class="insights-empty" style="padding: 60px 20px;">
-                <div class="insights-empty-icon">🏢</div>
+                <div class="insights-empty-icon">{{ icon('building-office') }}</div>
                 <div>Enter your business information and click Compare to see entity structure analysis</div>
               </div>
             </div>
@@ -23525,7 +23526,7 @@ Generated by TaxFlow - Tax Year 2025
             <!-- 401(k) Card -->
             <div class="retirement-account-card" id="retirement401k">
               <div class="retirement-header">
-                <div class="retirement-icon type-401k">💼</div>
+                <div class="retirement-icon type-401k">{{ icon('building-office') }}</div>
                 <div>
                   <div class="retirement-name">401(k) / 403(b)</div>
                   <div class="retirement-limit">2025 Limit: $23,500 (+$7,500 catch-up if 50+)</div>
@@ -23551,7 +23552,7 @@ Generated by TaxFlow - Tax Year 2025
             <!-- Traditional IRA Card -->
             <div class="retirement-account-card" id="retirementIRA">
               <div class="retirement-header">
-                <div class="retirement-icon type-ira">📈</div>
+                <div class="retirement-icon type-ira">{{ icon('arrow-trending-up') }}</div>
                 <div>
                   <div class="retirement-name">Traditional IRA</div>
                   <div class="retirement-limit">2025 Limit: $7,000 (+$1,000 catch-up if 50+)</div>
@@ -23760,7 +23761,7 @@ Generated by TaxFlow - Tax Year 2025
         <div id="reportHistoryList" class="report-history-list"></div>
 
         <div id="reportHistoryEmpty" class="empty-state" style="display: none;">
-          <div class="empty-icon">📋</div>
+          <div class="empty-icon">{{ icon('clipboard-document-list') }}</div>
           <div class="empty-title">No Reports Yet</div>
           <div class="empty-subtitle">Generate your first advisory report to see it here</div>
         </div>

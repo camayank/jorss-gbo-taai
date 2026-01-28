@@ -1,0 +1,423 @@
+/**
+ * Table Components
+ * Responsive table styles for data display.
+ */
+
+/* =========================
+   BASE TABLE
+   ========================= */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table th,
+.table td {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.table th {
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-700);
+  background-color: var(--color-gray-50);
+  border-bottom: 2px solid var(--color-gray-200);
+  white-space: nowrap;
+}
+
+.table td {
+  border-bottom: var(--border-width) solid var(--color-gray-200);
+  color: var(--color-gray-900);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* =========================
+   TABLE VARIANTS
+   ========================= */
+
+/* Striped rows */
+.table-striped tbody tr:nth-child(even) {
+  background-color: var(--color-gray-50);
+}
+
+/* Hoverable rows */
+.table-hover tbody tr {
+  transition: background-color var(--transition-fast);
+}
+
+.table-hover tbody tr:hover {
+  background-color: var(--color-gray-100);
+}
+
+/* Bordered table */
+.table-bordered {
+  border: var(--border-width) solid var(--color-gray-200);
+}
+
+.table-bordered th,
+.table-bordered td {
+  border: var(--border-width) solid var(--color-gray-200);
+}
+
+/* Compact table */
+.table-sm th,
+.table-sm td {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+}
+
+/* Large table */
+.table-lg th,
+.table-lg td {
+  padding: var(--space-4) var(--space-5);
+}
+
+/* =========================
+   TABLE CONTAINER
+   ========================= */
+
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: var(--border-width) solid var(--color-gray-200);
+  background-color: var(--card-bg);
+}
+
+.table-container .table {
+  margin: 0;
+}
+
+.table-container .table th:first-child,
+.table-container .table td:first-child {
+  padding-left: var(--space-5);
+}
+
+.table-container .table th:last-child,
+.table-container .table td:last-child {
+  padding-right: var(--space-5);
+}
+
+/* =========================
+   CELL ALIGNMENT
+   ========================= */
+
+.table .text-center {
+  text-align: center;
+}
+
+.table .text-right {
+  text-align: right;
+}
+
+.table .align-top {
+  vertical-align: top;
+}
+
+/* =========================
+   SORTABLE HEADERS
+   ========================= */
+
+.table-sortable th {
+  cursor: pointer;
+  user-select: none;
+}
+
+.table-sortable th:hover {
+  background-color: var(--color-gray-100);
+}
+
+.th-sortable {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.sort-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--color-gray-400);
+}
+
+.th-sorted .sort-icon {
+  color: var(--color-primary-600);
+}
+
+/* =========================
+   SELECTABLE ROWS
+   ========================= */
+
+.table-selectable tbody tr {
+  cursor: pointer;
+}
+
+.table-selectable tbody tr.selected {
+  background-color: var(--color-primary-50);
+}
+
+.table-selectable tbody tr.selected:hover {
+  background-color: var(--color-primary-100);
+}
+
+/* Row checkbox */
+.table .row-checkbox {
+  width: 40px;
+  text-align: center;
+}
+
+/* =========================
+   ROW ACTIONS
+   ========================= */
+
+.table .row-actions {
+  width: 100px;
+  text-align: right;
+}
+
+.row-actions-menu {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}
+
+.row-action-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  color: var(--color-gray-500);
+  transition: all var(--transition-fast);
+}
+
+.row-action-btn:hover {
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-700);
+}
+
+.row-action-btn.danger:hover {
+  background-color: var(--color-error-50);
+  color: var(--color-error-600);
+}
+
+/* =========================
+   STATUS CELLS
+   ========================= */
+
+.cell-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+}
+
+.status-dot.success { background-color: var(--color-success-500); }
+.status-dot.warning { background-color: var(--color-warning-500); }
+.status-dot.error { background-color: var(--color-error-500); }
+.status-dot.info { background-color: var(--color-info-500); }
+.status-dot.neutral { background-color: var(--color-gray-400); }
+
+/* =========================
+   AVATAR IN TABLE
+   ========================= */
+
+.cell-with-avatar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.table-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary-100);
+  color: var(--color-primary-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  flex-shrink: 0;
+}
+
+.table-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-full);
+}
+
+/* =========================
+   EMPTY STATE
+   ========================= */
+
+.table-empty {
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+}
+
+.table-empty-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto var(--space-4);
+  color: var(--color-gray-400);
+}
+
+.table-empty-title {
+  font-weight: var(--font-medium);
+  color: var(--color-gray-900);
+  margin-bottom: var(--space-1);
+}
+
+.table-empty-message {
+  font-size: var(--text-sm);
+  color: var(--color-gray-500);
+}
+
+/* =========================
+   LOADING STATE
+   ========================= */
+
+.table-loading {
+  position: relative;
+}
+
+.table-loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-loading-row td {
+  background: linear-gradient(90deg,
+    var(--color-gray-200) 25%,
+    var(--color-gray-100) 50%,
+    var(--color-gray-200) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* =========================
+   PAGINATION
+   ========================= */
+
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-5);
+  border-top: var(--border-width) solid var(--color-gray-200);
+  background-color: var(--color-gray-50);
+}
+
+.pagination-info {
+  font-size: var(--text-sm);
+  color: var(--color-gray-600);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.pagination-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-gray-600);
+  transition: all var(--transition-fast);
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: var(--color-gray-200);
+}
+
+.pagination-btn.active {
+  background-color: var(--color-primary-600);
+  color: white;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =========================
+   RESPONSIVE TABLE
+   ========================= */
+
+@media (max-width: 768px) {
+  /* Stack on mobile */
+  .table-responsive {
+    display: block;
+  }
+
+  .table-responsive thead {
+    display: none;
+  }
+
+  .table-responsive tbody,
+  .table-responsive tr,
+  .table-responsive td {
+    display: block;
+  }
+
+  .table-responsive tr {
+    padding: var(--space-4);
+    border-bottom: var(--border-width) solid var(--color-gray-200);
+    margin-bottom: var(--space-3);
+    background-color: var(--card-bg);
+    border-radius: var(--radius-lg);
+  }
+
+  .table-responsive td {
+    padding: var(--space-2) 0;
+    border: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .table-responsive td::before {
+    content: attr(data-label);
+    font-weight: var(--font-medium);
+    color: var(--color-gray-600);
+    flex-shrink: 0;
+    margin-right: var(--space-4);
+  }
+
+  .table-pagination {
+    flex-direction: column;
+    gap: var(--space-3);
+    text-align: center;
+  }
+}

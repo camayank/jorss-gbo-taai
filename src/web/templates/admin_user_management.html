@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -645,7 +646,7 @@
         <div class="header">
             <div>
                 <div class="breadcrumb">Admin / User Management</div>
-                <h1>👥 User Management</h1>
+                <h1>{{ icon('users') }} User Management</h1>
             </div>
             <button class="btn btn-primary" onclick="createNewUser()">
                 + Add User
@@ -876,10 +877,10 @@
                         <h3>Security Actions</h3>
                         <div style="margin-top: 15px;">
                             <button class="btn btn-danger" onclick="suspendUser()">
-                                🚫 Suspend User
+                                {{ icon('x-circle') }} Suspend User
                             </button>
                             <button class="btn btn-secondary" onclick="resetPassword()" style="margin-left: 10px;">
-                                🔑 Reset Password
+                                {{ icon('key') }} Reset Password
                             </button>
                             <button class="btn btn-secondary" onclick="forceLogout()" style="margin-left: 10px;">
                                 🚪 Force Logout
@@ -1020,7 +1021,7 @@
                     <tr>
                         <td colspan="7">
                             <div class="empty-state">
-                                <div class="empty-state-icon">⚠️</div>
+                                <div class="empty-state-icon">{{ icon('exclamation-triangle') }}</div>
                                 <div class="empty-state-text">Failed to load users</div>
                             </div>
                         </td>
@@ -1038,7 +1039,7 @@
                     <tr>
                         <td colspan="7">
                             <div class="empty-state">
-                                <div class="empty-state-icon">👤</div>
+                                <div class="empty-state-icon">{{ icon('user') }}</div>
                                 <div class="empty-state-text">No users found</div>
                             </div>
                         </td>

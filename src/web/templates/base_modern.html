@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+{#
+  Modern Base Template
+
+  This base template uses the new modular CSS/JS system.
+  Extend this template to create new pages with proper styling.
+
+  Usage:
+    {% extends 'base_modern.html' %}
+
+    {% block title %}My Page Title{% endblock %}
+    {% block theme %}cpa{% endblock %}
+    {% block page_css %}dashboard{% endblock %}
+
+    {% block content %}
+      <h1>Page Content</h1>
+    {% endblock %}
+
+  Available blocks:
+    - title: Page title
+    - theme: 'default', 'admin', 'advisor', 'cpa'
+    - page_css: Additional CSS file from static/css/pages/
+    - head_extra: Additional head content
+    - content: Main page content
+    - sidebar: Sidebar content (optional)
+    - scripts_extra: Additional scripts at end of body
+
+  Stores available:
+    - $store.sidebar: Mobile navigation state
+    - $store.taxReturn: Tax return form state (if enabled)
+    - $store.autoSave: Auto-save functionality (if enabled)
+#}
+<html lang="en" data-theme="{% block theme %}default{% endblock %}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() if csrf_token else '' }}">
+  <title>{% block title %}Tax Platform{% endblock %}</title>
+
+  {# Preload critical resources #}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  {# Include standard styles #}
+  {% set theme = self.theme() | trim %}
+  {% set page_css = self.page_css() | trim if self.page_css else none %}
+  {% include 'partials/head_styles.html' %}
+
+  {# Additional head content #}
+  {% block head_extra %}{% endblock %}
+
+  {# Alpine.js cloak styling #}
+  <style>
+    [x-cloak] { display: none !important; }
+  </style>
+</head>
+<body class="{% block body_class %}{% endblock %} has-mobile-header">
+  {# Include sidebar if needed #}
+  {% if show_sidebar | default(true) %}
+    {% include 'partials/sidebar.html' %}
+  {% endif %}
+
+  {# Main content area #}
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  {# Include standard scripts #}
+  {% set use_stores = ['sidebar'] %}
+  {% block stores %}{% endset %}
+  {% include 'partials/foot_scripts.html' %}
+
+  {# Additional scripts #}
+  {% block scripts_extra %}{% endblock %}
+</body>
+</html>
+
+{# Macros for common page patterns #}
+{% macro page_header(title, subtitle=none, actions=none) %}
+<header class="page-header flex justify-between items-center mb-6">
+  <div>
+    <h1 class="h2">{{ title }}</h1>
+    {% if subtitle %}
+    <p class="text-muted text-sm mt-1">{{ subtitle }}</p>
+    {% endif %}
+  </div>
+  {% if actions %}
+  <div class="page-actions flex gap-3">
+    {{ actions }}
+  </div>
+  {% endif %}
+</header>
+{% endmacro %}
+
+{% macro breadcrumbs(items) %}
+<nav class="breadcrumbs mb-4" aria-label="Breadcrumb">
+  {% for item in items %}
+    {% if loop.last %}
+      <span class="breadcrumb-item current">{{ item.label }}</span>
+    {% else %}
+      <span class="breadcrumb-item">
+        <a href="{{ item.url }}">{{ item.label }}</a>
+      </span>
+      <span class="breadcrumb-separator">/</span>
+    {% endif %}
+  {% endfor %}
+</nav>
+{% endmacro %}
+
+{% macro auto_save_indicator() %}
+<div class="auto-save-indicator flex items-center gap-2 text-sm"
+     x-data
+     :class="{
+       'text-muted': $store.autoSave.statusType === 'saved',
+       'text-warning': $store.autoSave.statusType === 'pending',
+       'text-error': $store.autoSave.statusType === 'error',
+       'text-info': $store.autoSave.statusType === 'saving'
+     }">
+  <span x-show="$store.autoSave.isSaving" class="animate-spin">
+    {% from 'macros/icons.html' import icon %}
+    {{ icon('arrow-path', 'sm') }}
+  </span>
+  <span x-text="$store.autoSave.statusText"></span>
+</div>
+{% endmacro %}

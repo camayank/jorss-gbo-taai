@@ -1,4 +1,5 @@
 {% extends "cpa/base.html" %}
+{% from 'macros/icons.html' import icon %}
 
 {% block title %}{{ lead.name or 'Lead Detail' }}{% endblock %}
 {% block page_title %}Lead Detail{% endblock %}
@@ -483,15 +484,15 @@
                 <h2>{{ lead.name or lead.email.split('@')[0] }}</h2>
                 <div class="lead-meta">
                     <span class="lead-meta-item">
-                        📧 {{ lead.email }}
+                        {{ icon('envelope') }} {{ lead.email }}
                     </span>
                     {% if lead.phone %}
                     <span class="lead-meta-item">
-                        📞 {{ lead.phone }}
+                        {{ icon('phone') }} {{ lead.phone }}
                     </span>
                     {% endif %}
                     <span class="lead-meta-item">
-                        🕐 {{ lead.age }}
+                        {{ icon('clock') }} {{ lead.age }}
                     </span>
                 </div>
             </div>
@@ -505,7 +506,7 @@
 
     <div class="status-badges">
         <span class="status-badge state {{ lead.state|lower|replace(' ', '_') }}">
-            {% if lead.state == 'high_leverage' %}🔥{% elif lead.state == 'advisory_ready' %}⭐{% endif %}
+            {% if lead.state == 'high_leverage' %}🔥{% elif lead.state == 'advisory_ready' %}{{ icon('star') }}{% endif %}
             {{ lead.state_display or lead.state|replace('_', ' ')|title }}
         </span>
         <span class="status-badge temperature {{ lead.temperature|lower }}">
@@ -532,7 +533,7 @@
             <div class="info-card-body">
                 <div class="contact-list">
                     <div class="contact-item">
-                        <div class="contact-icon">📧</div>
+                        <div class="contact-icon">{{ icon('envelope') }}</div>
                         <div>
                             <div class="contact-label">Email</div>
                             <div class="contact-value">
@@ -542,7 +543,7 @@
                     </div>
                     {% if lead.phone %}
                     <div class="contact-item">
-                        <div class="contact-icon">📞</div>
+                        <div class="contact-icon">{{ icon('phone') }}</div>
                         <div>
                             <div class="contact-label">Phone</div>
                             <div class="contact-value">
@@ -552,7 +553,7 @@
                     </div>
                     {% endif %}
                     <div class="contact-item">
-                        <div class="contact-icon">📅</div>
+                        <div class="contact-icon">{{ icon('calendar') }}</div>
                         <div>
                             <div class="contact-label">First Contact</div>
                             <div class="contact-value">{{ lead.created_at or 'Unknown' }}</div>
@@ -566,7 +567,7 @@
         {% if lead.tax_profile %}
         <div class="info-card">
             <div class="info-card-header">
-                <h3 class="info-card-title">📊 Tax Profile</h3>
+                <h3 class="info-card-title">{{ icon('chart-bar') }} Tax Profile</h3>
                 {% if lead.session_id %}
                 <a href="/lead-magnet/report?session={{ lead.session_id }}" target="_blank" class="btn btn-secondary btn-sm">
                     View Report
@@ -616,7 +617,7 @@
         {% if lead.insights and lead.insights|length > 0 %}
         <div class="info-card">
             <div class="info-card-header">
-                <h3 class="info-card-title">💡 Tax Insights</h3>
+                <h3 class="info-card-title">{{ icon('light-bulb') }} Tax Insights</h3>
             </div>
             <div class="info-card-body" style="padding: 0;">
                 {% for insight in lead.insights %}
@@ -646,18 +647,18 @@
             <div class="action-buttons">
                 {% if not lead.engaged %}
                 <button class="action-btn action-btn-primary" onclick="engageLead()">
-                    ⭐ Engage Lead
+                    {{ icon('star') }} Engage Lead
                 </button>
                 {% else %}
                 <button class="action-btn action-btn-primary" onclick="convertLead()">
-                    ✅ Convert to Client
+                    {{ icon('check-circle') }} Convert to Client
                 </button>
                 {% endif %}
                 <button class="action-btn action-btn-secondary" onclick="scheduleMeeting()">
-                    📅 Schedule Meeting
+                    {{ icon('calendar') }} Schedule Meeting
                 </button>
                 <button class="action-btn action-btn-secondary" onclick="viewFullReport()">
-                    📊 View Full Report
+                    {{ icon('chart-bar') }} View Full Report
                 </button>
             </div>
         </div>
@@ -665,20 +666,20 @@
         <!-- Engagement Status -->
         <div class="info-card">
             <div class="info-card-header">
-                <h3 class="info-card-title">✅ Engagement Checklist</h3>
+                <h3 class="info-card-title">{{ icon('check-circle') }} Engagement Checklist</h3>
             </div>
             <div class="info-card-body">
                 <div class="engagement-status">
                     <div class="engagement-item">
-                        <span class="engagement-icon">📧</span>
+                        <span class="engagement-icon">{{ icon('envelope') }}</span>
                         <div class="engagement-text">
                             <div class="engagement-label">Contact Captured</div>
                             <div class="engagement-status-text">Lead provided contact info</div>
                         </div>
-                        <div class="engagement-check done">✓</div>
+                        <div class="engagement-check done">{{ icon('check') }}</div>
                     </div>
                     <div class="engagement-item">
-                        <span class="engagement-icon">👤</span>
+                        <span class="engagement-icon">{{ icon('user') }}</span>
                         <div class="engagement-text">
                             <div class="engagement-label">CPA Engaged</div>
                             <div class="engagement-status-text">
@@ -686,11 +687,11 @@
                             </div>
                         </div>
                         <div class="engagement-check {% if lead.engaged %}done{% else %}pending{% endif %}">
-                            {% if lead.engaged %}✓{% else %}○{% endif %}
+                            {% if lead.engaged %}{{ icon('check') }}{% else %}○{% endif %}
                         </div>
                     </div>
                     <div class="engagement-item">
-                        <span class="engagement-icon">📝</span>
+                        <span class="engagement-icon">{{ icon('pencil') }}</span>
                         <div class="engagement-text">
                             <div class="engagement-label">Engagement Letter</div>
                             <div class="engagement-status-text">
@@ -698,7 +699,7 @@
                             </div>
                         </div>
                         <div class="engagement-check {% if lead.engagement_letter_acknowledged %}done{% else %}pending{% endif %}">
-                            {% if lead.engagement_letter_acknowledged %}✓{% else %}○{% endif %}
+                            {% if lead.engagement_letter_acknowledged %}{{ icon('check') }}{% else %}○{% endif %}
                         </div>
                     </div>
                 </div>
@@ -708,7 +709,7 @@
         <!-- Status Timeline -->
         <div class="info-card">
             <div class="info-card-header">
-                <h3 class="info-card-title">📈 Lead Journey</h3>
+                <h3 class="info-card-title">{{ icon('arrow-trending-up') }} Lead Journey</h3>
             </div>
             <div class="info-card-body">
                 <div class="timeline">
@@ -744,16 +745,16 @@
             <div class="info-card-body">
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                     <button class="btn btn-secondary" style="width: 100%; justify-content: flex-start;" onclick="copyEmail()">
-                        📋 Copy Email
+                        {{ icon('clipboard-document-list') }} Copy Email
                     </button>
                     <button class="btn btn-secondary" style="width: 100%; justify-content: flex-start;" onclick="addNote()">
-                        📝 Add Note
+                        {{ icon('pencil') }} Add Note
                     </button>
                     <button class="btn btn-secondary" style="width: 100%; justify-content: flex-start;" onclick="assignTo()">
-                        👥 Assign to Staff
+                        {{ icon('users') }} Assign to Staff
                     </button>
                     <button class="btn btn-secondary" style="width: 100%; justify-content: flex-start; color: var(--danger);" onclick="archiveLead()">
-                        🗑️ Archive Lead
+                        {{ icon('trash') }} Archive Lead
                     </button>
                 </div>
             </div>

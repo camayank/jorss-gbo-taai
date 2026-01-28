@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -246,7 +247,7 @@
         }
 
         .feature-card li::before {
-            content: '✓';
+            content: '{{ icon('check') }}';
             color: #10b981;
             font-weight: bold;
         }
@@ -392,19 +393,19 @@
             <p>Premium Tax Advisory Experience + Lead Generation Platform for CPAs</p>
             <div class="vision-points">
                 <div class="vision-point">
-                    <span class="icon">🎯</span>
+                    <span class="icon">{{ icon('sparkles') }}</span>
                     <span>White-Label Lead Generation</span>
                 </div>
                 <div class="vision-point">
-                    <span class="icon">📊</span>
+                    <span class="icon">{{ icon('chart-bar') }}</span>
                     <span>Tax Advisory Reports (Not Filing)</span>
                 </div>
                 <div class="vision-point">
-                    <span class="icon">📋</span>
+                    <span class="icon">{{ icon('clipboard-document-list') }}</span>
                     <span>Draft Returns as Reference Only</span>
                 </div>
                 <div class="vision-point">
-                    <span class="icon">👨‍💼</span>
+                    <span class="icon">{{ icon('user') }}‍{{ icon('building-office') }}</span>
                     <span>CPA Review Mandatory</span>
                 </div>
             </div>
@@ -413,13 +414,13 @@
         <!-- Journey Tabs -->
         <div class="journey-tabs">
             <div class="journey-tab prospect active" onclick="showJourney('prospect')">
-                🧑‍💻 Prospect/End User Journey
+                {{ icon('user') }}‍💻 Prospect/End User Journey
             </div>
             <div class="journey-tab cpa" onclick="showJourney('cpa')">
-                👨‍💼 CPA User Journey
+                {{ icon('user') }}‍{{ icon('building-office') }} CPA User Journey
             </div>
             <div class="journey-tab admin" onclick="showJourney('admin')">
-                ⚙️ Admin/Platform Journey
+                {{ icon('cog-6-tooth') }} Admin/Platform Journey
             </div>
         </div>
 
@@ -429,31 +430,31 @@
                 <div class="flow-title">📍 Prospect → Lead → Client Journey</div>
                 <div class="flow-steps">
                     <div class="flow-step">
-                        <div class="step-icon green">🔗</div>
+                        <div class="step-icon green">{{ icon('arrow-right') }}</div>
                         <div class="step-title">1. Clicks CPA Link</div>
                         <div class="step-desc">Prospect receives CPA's branded lead magnet link via email, social, or website</div>
                         <div class="step-url">/lead-magnet?cpa=slug</div>
                     </div>
                     <div class="flow-step">
-                        <div class="step-icon blue">📝</div>
+                        <div class="step-icon blue">{{ icon('pencil') }}</div>
                         <div class="step-title">2. Quick Assessment</div>
                         <div class="step-desc">Answers 3 simple questions: filing status, dependents, income sources</div>
                         <div class="step-url">/lead-magnet/assess</div>
                     </div>
                     <div class="flow-step">
-                        <div class="step-icon purple">💰</div>
+                        <div class="step-icon purple">{{ icon('banknotes') }}</div>
                         <div class="step-title">3. Savings Teaser</div>
                         <div class="step-desc">Sees potential savings range (gated) - must provide contact to unlock</div>
                         <div class="step-url">/lead-magnet/teaser</div>
                     </div>
                     <div class="flow-step">
-                        <div class="step-icon orange">📧</div>
+                        <div class="step-icon orange">{{ icon('envelope') }}</div>
                         <div class="step-title">4. Contact Capture</div>
                         <div class="step-desc">Provides email/phone → Becomes LEAD in CPA's dashboard</div>
                         <div class="step-url">/lead-magnet/contact</div>
                     </div>
                     <div class="flow-step">
-                        <div class="step-icon green">📄</div>
+                        <div class="step-icon green">{{ icon('document-text') }}</div>
                         <div class="step-title">5. Tier 1 Report</div>
                         <div class="step-desc">Receives FREE teaser insights report with "Consult CPA" disclaimer</div>
                         <div class="step-url">/lead-magnet/report</div>
@@ -463,7 +464,7 @@
 
             <div class="features-grid">
                 <div class="feature-card">
-                    <h4>📊 Tier 1 Report (FREE)</h4>
+                    <h4>{{ icon('chart-bar') }} Tier 1 Report (FREE)</h4>
                     <ul>
                         <li>Potential savings range estimate</li>
                         <li>Tax complexity assessment</li>
@@ -473,7 +474,7 @@
                     </ul>
                 </div>
                 <div class="feature-card">
-                    <h4>📈 Tier 2 Report (After Engagement)</h4>
+                    <h4>{{ icon('arrow-trending-up') }} Tier 2 Report (After Engagement)</h4>
                     <ul>
                         <li>Full tax analysis breakdown</li>
                         <li>Detailed optimization strategies</li>
@@ -483,7 +484,7 @@
                     </ul>
                 </div>
                 <div class="feature-card">
-                    <h4>🔒 What Prospects CAN'T Do</h4>
+                    <h4>{{ icon('lock-closed') }} What Prospects CAN'T Do</h4>
                     <ul>
                         <li>File taxes directly with IRS</li>
                         <li>Access full tax return editing</li>
@@ -522,10 +523,10 @@
         <!-- CPA JOURNEY -->
         <div id="cpa-journey" class="journey-content">
             <div class="flow-diagram">
-                <div class="flow-title">👨‍💼 CPA Onboarding → Lead Management → Client Service</div>
+                <div class="flow-title">{{ icon('user') }}‍{{ icon('building-office') }} CPA Onboarding → Lead Management → Client Service</div>
                 <div class="flow-steps">
                     <div class="flow-step">
-                        <div class="step-icon blue">📝</div>
+                        <div class="step-icon blue">{{ icon('pencil') }}</div>
                         <div class="step-title">1. CPA Registration</div>
                         <div class="step-desc">Signs up, provides credentials, selects subscription plan</div>
                         <div class="step-url">/cpa/register</div>
@@ -537,19 +538,19 @@
                         <div class="step-url">/cpa/settings/branding</div>
                     </div>
                     <div class="flow-step">
-                        <div class="step-icon green">💳</div>
+                        <div class="step-icon green">{{ icon('credit-card') }}</div>
                         <div class="step-title">3. Connect Stripe</div>
                         <div class="step-desc">Links Stripe account for collecting client payments</div>
                         <div class="step-url">/cpa/settings/payments</div>
                     </div>
                     <div class="flow-step">
-                        <div class="step-icon orange">🔗</div>
+                        <div class="step-icon orange">{{ icon('arrow-right') }}</div>
                         <div class="step-title">4. Share Lead Link</div>
                         <div class="step-desc">Gets unique white-label link to share with prospects</div>
                         <div class="step-url">/lead-magnet?cpa=slug</div>
                     </div>
                     <div class="flow-step">
-                        <div class="step-icon red">📊</div>
+                        <div class="step-icon red">{{ icon('chart-bar') }}</div>
                         <div class="step-title">5. Manage Leads</div>
                         <div class="step-desc">View hot leads, follow up, convert to clients</div>
                         <div class="step-url">/cpa</div>
@@ -559,7 +560,7 @@
 
             <div class="features-grid">
                 <div class="feature-card">
-                    <h4>📈 Lead Management</h4>
+                    <h4>{{ icon('arrow-trending-up') }} Lead Management</h4>
                     <ul>
                         <li>Lead scoring (Hot/Warm/Cold)</li>
                         <li>Lead temperature signals</li>
@@ -569,7 +570,7 @@
                     </ul>
                 </div>
                 <div class="feature-card">
-                    <h4>👥 Client Management</h4>
+                    <h4>{{ icon('users') }} Client Management</h4>
                     <ul>
                         <li>Client status tracking</li>
                         <li>Engagement letter generation</li>
@@ -579,7 +580,7 @@
                     </ul>
                 </div>
                 <div class="feature-card">
-                    <h4>📊 Practice Intelligence</h4>
+                    <h4>{{ icon('chart-bar') }} Practice Intelligence</h4>
                     <ul>
                         <li>Advisory mix breakdown</li>
                         <li>Complexity distribution</li>
@@ -589,7 +590,7 @@
                     </ul>
                 </div>
                 <div class="feature-card">
-                    <h4>✅ Workflow Approval</h4>
+                    <h4>{{ icon('check-circle') }} Workflow Approval</h4>
                     <ul>
                         <li>Review queue management</li>
                         <li>Status transitions (Draft → Review → Approved)</li>
@@ -599,7 +600,7 @@
                     </ul>
                 </div>
                 <div class="feature-card">
-                    <h4>💳 Payments (Stripe Connect)</h4>
+                    <h4>{{ icon('credit-card') }} Payments (Stripe Connect)</h4>
                     <ul>
                         <li>Connect own Stripe account</li>
                         <li>Collect client payments</li>
@@ -658,34 +659,34 @@
         <!-- ADMIN JOURNEY -->
         <div id="admin-journey" class="journey-content">
             <div class="flow-diagram">
-                <div class="flow-title">⚙️ Platform Administration & Multi-Firm Management</div>
+                <div class="flow-title">{{ icon('cog-6-tooth') }} Platform Administration & Multi-Firm Management</div>
                 <div class="flow-steps">
                     <div class="flow-step">
-                        <div class="step-icon red">🔐</div>
+                        <div class="step-icon red">{{ icon('lock-closed') }}</div>
                         <div class="step-title">1. Super Admin Access</div>
                         <div class="step-desc">Platform-level access to manage all firms and users</div>
                         <div class="step-url">/admin</div>
                     </div>
                     <div class="flow-step">
-                        <div class="step-icon orange">🏢</div>
+                        <div class="step-icon orange">{{ icon('building-office') }}</div>
                         <div class="step-title">2. Firm Management</div>
                         <div class="step-desc">Onboard CPAs, manage subscriptions, monitor usage</div>
                         <div class="step-url">/admin/firms</div>
                     </div>
                     <div class="flow-step">
-                        <div class="step-icon blue">💰</div>
+                        <div class="step-icon blue">{{ icon('banknotes') }}</div>
                         <div class="step-title">3. Platform Billing</div>
                         <div class="step-desc">Track MRR, ARR, collect fees via Mercury/Indian banks</div>
                         <div class="step-url">/admin/billing</div>
                     </div>
                     <div class="flow-step">
-                        <div class="step-icon purple">📊</div>
+                        <div class="step-icon purple">{{ icon('chart-bar') }}</div>
                         <div class="step-title">4. Analytics</div>
                         <div class="step-desc">Platform-wide metrics, CPA performance, lead conversion</div>
                         <div class="step-url">/admin/analytics</div>
                     </div>
                     <div class="flow-step">
-                        <div class="step-icon green">🔒</div>
+                        <div class="step-icon green">{{ icon('lock-closed') }}</div>
                         <div class="step-title">5. Compliance</div>
                         <div class="step-desc">Audit logs, security events, RBAC management</div>
                         <div class="step-url">/admin/security</div>
@@ -695,7 +696,7 @@
 
             <div class="features-grid">
                 <div class="feature-card">
-                    <h4>🏢 Multi-Firm Management</h4>
+                    <h4>{{ icon('building-office') }} Multi-Firm Management</h4>
                     <ul>
                         <li>Onboard new CPA firms</li>
                         <li>Manage subscriptions (Starter/Pro/Enterprise)</li>
@@ -705,7 +706,7 @@
                     </ul>
                 </div>
                 <div class="feature-card">
-                    <h4>💰 Platform Billing</h4>
+                    <h4>{{ icon('banknotes') }} Platform Billing</h4>
                     <ul>
                         <li>MRR/ARR tracking</li>
                         <li>Churn analysis</li>
@@ -715,7 +716,7 @@
                     </ul>
                 </div>
                 <div class="feature-card">
-                    <h4>👥 User & Role Management</h4>
+                    <h4>{{ icon('users') }} User & Role Management</h4>
                     <ul>
                         <li>RBAC with 8 roles</li>
                         <li>Permission management</li>
@@ -725,7 +726,7 @@
                     </ul>
                 </div>
                 <div class="feature-card">
-                    <h4>🔒 Security & Compliance</h4>
+                    <h4>{{ icon('lock-closed') }} Security & Compliance</h4>
                     <ul>
                         <li>Audit trail logging</li>
                         <li>Security events monitoring</li>
@@ -773,19 +774,19 @@
 
         <!-- Disclaimer Banner -->
         <div class="disclaimer-banner">
-            <h3>⚠️ Platform Disclaimer</h3>
+            <h3>{{ icon('exclamation-triangle') }} Platform Disclaimer</h3>
             <p>TaxAdvisor Pro is a TAX INFORMATION platform, NOT a tax preparation or advisory service. All draft returns are FOR REFERENCE ONLY. Users MUST consult a licensed CPA, Enrolled Agent, or tax attorney before making any tax decisions or filing any returns.</p>
         </div>
 
         <!-- Quick Links -->
         <div class="quick-links">
-            <a href="/" class="quick-link">🏠 Home</a>
-            <a href="/cpa" class="quick-link">👨‍💼 CPA Dashboard</a>
-            <a href="/admin" class="quick-link">⚙️ Admin Panel</a>
-            <a href="/lead-magnet?cpa=demo-cpa" class="quick-link">🎯 Demo Lead Magnet</a>
+            <a href="/" class="quick-link">{{ icon('home') }} Home</a>
+            <a href="/cpa" class="quick-link">{{ icon('user') }}‍{{ icon('building-office') }} CPA Dashboard</a>
+            <a href="/admin" class="quick-link">{{ icon('cog-6-tooth') }} Admin Panel</a>
+            <a href="/lead-magnet?cpa=demo-cpa" class="quick-link">{{ icon('sparkles') }} Demo Lead Magnet</a>
             <a href="/hub" class="quick-link">📍 System Hub</a>
             <a href="/terms" class="quick-link">📜 Terms</a>
-            <a href="/disclaimer" class="quick-link">⚠️ Disclaimer</a>
+            <a href="/disclaimer" class="quick-link">{{ icon('exclamation-triangle') }} Disclaimer</a>
         </div>
     </div>
 

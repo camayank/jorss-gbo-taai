@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -840,7 +841,7 @@
         </div>
 
         <div class="upload-zone" id="upload-zone">
-          <div class="upload-icon">📄</div>
+          <div class="upload-icon">{{ icon('document-text') }}</div>
           <div class="upload-title">Drop files here or click to browse</div>
           <div class="upload-subtitle">Supports PDF, JPG, PNG (max 10MB each)</div>
           <input type="file" class="upload-input" id="file-input" multiple accept=".pdf,.jpg,.jpeg,.png">
@@ -996,14 +997,14 @@
 
         <div class="path-options" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 24px;">
           <div style="border: 2px solid var(--gray-200); border-radius: var(--radius-lg); padding: 32px; cursor: pointer; transition: var(--transition);" onclick="selectOption('self-file')" id="option-self">
-            <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
+            <div style="font-size: 48px; margin-bottom: 16px;">{{ icon('pencil') }}</div>
             <h3>Self-File</h3>
             <p style="color: var(--gray-500); margin: 16px 0;">File your return yourself</p>
             <div style="font-size: 24px; font-weight: 700; color: var(--accent);">Free</div>
           </div>
 
           <div style="border: 2px solid var(--primary); border-radius: var(--radius-lg); padding: 32px; cursor: pointer; transition: var(--transition); background: var(--primary-50);" onclick="selectOption('cpa-review')" id="option-cpa">
-            <div style="font-size: 48px; margin-bottom: 16px;">👨‍💼</div>
+            <div style="font-size: 48px; margin-bottom: 16px;">{{ icon('user') }}‍{{ icon('building-office') }}</div>
             <h3>CPA Review</h3>
             <p style="color: var(--gray-500); margin: 16px 0;">Expert review and filing</p>
             <div style="font-size: 24px; font-weight: 700; color: var(--primary);">$99</div>
@@ -1013,7 +1014,7 @@
 
         <div id="cpa-recommendation" style="display: none; margin-top: 24px;">
           <div class="alert alert-info">
-            <span class="alert-icon">💡</span>
+            <span class="alert-icon">{{ icon('light-bulb') }}</span>
             <div>
               <strong>CPA Review Recommended</strong>
               <p id="cpa-reason">Your tax situation may benefit from professional review.</p>
@@ -1293,7 +1294,7 @@
       const safeName = escapeHtml(doc.name);
       const safeType = escapeHtml(doc.type?.toUpperCase() || 'DOCUMENT');
       item.innerHTML = `
-        <div class="document-icon">📄</div>
+        <div class="document-icon">{{ icon('document-text') }}</div>
         <div class="document-info">
           <div class="document-name">${safeName}</div>
           <div class="document-meta">${safeType} - Processing...</div>
@@ -1594,7 +1595,7 @@
         recommendationsHtml += `
           <div class="intelligence-section">
             <h3 style="margin: 24px 0 16px; display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 1.5em;">📊</span> Deduction Analysis
+              <span style="font-size: 1.5em;">{{ icon('chart-bar') }}</span> Deduction Analysis
             </h3>
             <div class="card" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 4px solid #22c55e; padding: 16px;">
               <p style="font-size: 1.1em; margin-bottom: 8px;">
@@ -1639,7 +1640,7 @@
             <div style="display: grid; gap: 12px;">
               ${deductions.missed_opportunities.map(opp => `
                 <div class="alert alert-warning">
-                  <span class="alert-icon">💡</span>
+                  <span class="alert-icon">{{ icon('light-bulb') }}</span>
                   <div>
                     <strong>${escapeHtml(opp.title || opp.name)}</strong>
                     <p>${escapeHtml(opp.description || opp.action)}</p>
@@ -1661,7 +1662,7 @@
           recommendationsHtml += `
             <div class="intelligence-section">
               <h3 style="margin: 24px 0 16px; display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 1.5em;">🎯</span> Tax Planning Insights
+                <span style="font-size: 1.5em;">{{ icon('sparkles') }}</span> Tax Planning Insights
               </h3>
               ${planning.optimization_potential > 0 ? `
                 <div class="card" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-left: 4px solid #3b82f6; padding: 16px; margin-bottom: 16px;">
@@ -1678,7 +1679,7 @@
                 <div style="display: grid; gap: 12px;">
                   ${urgentInsights.map(insight => `
                     <div class="alert ${insight.urgency === 'immediate' ? 'alert-error' : 'alert-warning'}">
-                      <span class="alert-icon">${insight.urgency === 'immediate' ? '🚨' : '⏰'}</span>
+                      <span class="alert-icon">${insight.urgency === 'immediate' ? '🚨' : '{{ icon('clock') }}'}</span>
                       <div>
                         <strong>${escapeHtml(insight.title)}</strong>
                         <p style="margin: 4px 0 0;">${escapeHtml(insight.description)}</p>
@@ -1712,7 +1713,7 @@
             <h3 style="margin: 24px 0 16px;">Tax-Saving Opportunities</h3>
             ${opportunities.map(opp => `
               <div class="alert alert-info">
-                <span class="alert-icon">💡</span>
+                <span class="alert-icon">{{ icon('light-bulb') }}</span>
                 <div>
                   <strong>${escapeHtml(opp.title || 'Opportunity')}</strong>
                   <p>${escapeHtml(opp.description || '')}</p>
@@ -1751,7 +1752,7 @@
           planningHtml += `
             <div class="card" style="margin-top: 24px;">
               <h3 style="margin: 0 0 16px; display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 1.25em;">✅</span> Year-End Tax Checklist
+                <span style="font-size: 1.25em;">{{ icon('check-circle') }}</span> Year-End Tax Checklist
               </h3>
               <div style="display: grid; gap: 12px;">
                 ${planning.year_end_checklist.slice(0, 5).map((item, i) => `
@@ -1777,7 +1778,7 @@
             planningHtml += `
               <div class="card" style="margin-top: 24px;">
                 <h3 style="margin: 0 0 16px; display: flex; align-items: center; gap: 8px;">
-                  <span style="font-size: 1.25em;">📅</span> Estimated Tax Payments
+                  <span style="font-size: 1.25em;">{{ icon('calendar') }}</span> Estimated Tax Payments
                 </h3>
                 <div style="display: grid; gap: 12px;">
                   ${relevantEstimates.map(q => `
@@ -1788,7 +1789,7 @@
                       </div>
                       <div style="text-align: right;">
                         <span style="font-size: 1.25em; font-weight: 600;">$${q.recommended_payment?.toLocaleString() || '0'}</span>
-                        ${q.penalty_risk !== 'none' ? `<p style="color: #dc2626; font-size: 0.85em;">⚠️ ${escapeHtml(q.penalty_risk)} penalty risk</p>` : ''}
+                        ${q.penalty_risk !== 'none' ? `<p style="color: #dc2626; font-size: 0.85em;">{{ icon('exclamation-triangle') }} ${escapeHtml(q.penalty_risk)} penalty risk</p>` : ''}
                       </div>
                     </div>
                   `).join('')}
@@ -1804,16 +1805,16 @@
           planningHtml += `
             <div class="card" style="margin-top: 24px;">
               <h3 style="margin: 0 0 16px; display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 1.25em;">💡</span> All Tax Planning Recommendations
+                <span style="font-size: 1.25em;">{{ icon('light-bulb') }}</span> All Tax Planning Recommendations
               </h3>
               <div style="display: grid; gap: 12px;">
                 ${allInsights.map(insight => {
                   const urgencyColors = {
                     immediate: { bg: '#fef2f2', border: '#dc2626', icon: '🚨' },
-                    soon: { bg: '#fffbeb', border: '#f59e0b', icon: '⏰' },
-                    quarterly: { bg: '#eff6ff', border: '#3b82f6', icon: '📊' },
-                    year_end: { bg: '#f0fdf4', border: '#22c55e', icon: '🎯' },
-                    future: { bg: '#f9fafb', border: '#6b7280', icon: '📌' }
+                    soon: { bg: '#fffbeb', border: '#f59e0b', icon: '{{ icon('clock') }}' },
+                    quarterly: { bg: '#eff6ff', border: '#3b82f6', icon: '{{ icon('chart-bar') }}' },
+                    year_end: { bg: '#f0fdf4', border: '#22c55e', icon: '{{ icon('sparkles') }}' },
+                    future: { bg: '#f9fafb', border: '#6b7280', icon: '{{ icon('star') }}' }
                   };
                   const style = urgencyColors[insight.urgency] || urgencyColors.future;
                   return `
@@ -1927,7 +1928,7 @@
       const alertsContainer = document.getElementById('confirm-alerts') || document.querySelector('.card');
       const alert = document.createElement('div');
       alert.className = `alert alert-${type}`;
-      alert.innerHTML = `<span class="alert-icon">${type === 'error' ? '⚠️' : 'ℹ️'}</span><div>${message}</div>`;
+      alert.innerHTML = `<span class="alert-icon">${type === 'error' ? '{{ icon('exclamation-triangle') }}' : 'ℹ️'}</span><div>${message}</div>`;
       alertsContainer.prepend(alert);
     }
 

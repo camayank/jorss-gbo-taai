@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -220,7 +221,7 @@
         }
 
         .options-grid.multi-select .option-card.selected .option-checkmark::after {
-            content: '✓';
+            content: '{{ icon('check') }}';
             color: var(--white);
             font-size: 14px;
             font-weight: bold;
@@ -374,7 +375,7 @@
                     <div class="options-grid">
                         <label class="option-card" onclick="selectOption(this, 'filing_status', 'single')">
                             <input type="radio" name="filing_status" value="single">
-                            <span class="option-icon">👤</span>
+                            <span class="option-icon">{{ icon('user') }}</span>
                             <div class="option-content">
                                 <div class="option-label">Single</div>
                                 <div class="option-desc">Unmarried or legally separated</div>
@@ -394,7 +395,7 @@
 
                         <label class="option-card" onclick="selectOption(this, 'filing_status', 'married_separately')">
                             <input type="radio" name="filing_status" value="married_separately">
-                            <span class="option-icon">👥</span>
+                            <span class="option-icon">{{ icon('users') }}</span>
                             <div class="option-content">
                                 <div class="option-label">Married Filing Separately</div>
                                 <div class="option-desc">Filing separately from spouse</div>
@@ -404,7 +405,7 @@
 
                         <label class="option-card" onclick="selectOption(this, 'filing_status', 'head_of_household')">
                             <input type="radio" name="filing_status" value="head_of_household">
-                            <span class="option-icon">🏠</span>
+                            <span class="option-icon">{{ icon('home') }}</span>
                             <div class="option-content">
                                 <div class="option-label">Head of Household</div>
                                 <div class="option-desc">Single with qualifying dependent</div>
@@ -439,7 +440,7 @@
                     <div class="options-grid">
                         <label class="option-card" onclick="selectOption(this, 'income_range', 'under_50k')">
                             <input type="radio" name="income_range" value="under_50k">
-                            <span class="option-icon">💵</span>
+                            <span class="option-icon">{{ icon('banknotes') }}</span>
                             <div class="option-content">
                                 <div class="option-label">Under $50,000</div>
                             </div>
@@ -448,7 +449,7 @@
 
                         <label class="option-card" onclick="selectOption(this, 'income_range', '50k_100k')">
                             <input type="radio" name="income_range" value="50k_100k">
-                            <span class="option-icon">💰</span>
+                            <span class="option-icon">{{ icon('banknotes') }}</span>
                             <div class="option-content">
                                 <div class="option-label">$50,000 - $100,000</div>
                             </div>
@@ -491,7 +492,7 @@
                     <div class="options-grid multi-select">
                         <label class="option-card" onclick="toggleOption(this, 'situations', 'homeowner')">
                             <input type="checkbox" name="situations" value="homeowner">
-                            <span class="option-icon">🏡</span>
+                            <span class="option-icon">{{ icon('home') }}</span>
                             <div class="option-content">
                                 <div class="option-label">Homeowner</div>
                                 <div class="option-desc">Mortgage interest & property taxes</div>
@@ -511,7 +512,7 @@
 
                         <label class="option-card" onclick="toggleOption(this, 'situations', 'self_employed')">
                             <input type="checkbox" name="situations" value="self_employed">
-                            <span class="option-icon">💼</span>
+                            <span class="option-icon">{{ icon('building-office') }}</span>
                             <div class="option-content">
                                 <div class="option-label">Self-Employed or Business Owner</div>
                                 <div class="option-desc">Business deductions & QBI</div>
@@ -521,7 +522,7 @@
 
                         <label class="option-card" onclick="toggleOption(this, 'situations', 'investments')">
                             <input type="checkbox" name="situations" value="investments">
-                            <span class="option-icon">📈</span>
+                            <span class="option-icon">{{ icon('arrow-trending-up') }}</span>
                             <div class="option-content">
                                 <div class="option-label">Investments or Retirement Accounts</div>
                                 <div class="option-desc">Capital gains & retirement contributions</div>
@@ -541,7 +542,7 @@
 
                         <label class="option-card" onclick="toggleOption(this, 'situations', 'none')">
                             <input type="checkbox" name="situations" value="none">
-                            <span class="option-icon">➡️</span>
+                            <span class="option-icon">{{ icon('arrow-right') }}</span>
                             <div class="option-content">
                                 <div class="option-label">None of These</div>
                                 <div class="option-desc">Continue to see other opportunities</div>

@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -477,7 +478,7 @@
 
             <!-- Locked Insights -->
             <div class="locked-section">
-                <div class="locked-icon">🔒</div>
+                <div class="locked-icon">{{ icon('lock-closed') }}</div>
                 <h3 class="locked-title">
                     +{{ report.locked_count if report else 5 }} More Insights Available
                 </h3>

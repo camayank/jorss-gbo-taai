@@ -1,4 +1,5 @@
 {% extends "cpa/base.html" %}
+{% from 'macros/icons.html' import icon %}
 
 {% block title %}Team{% endblock %}
 {% block page_title %}Team Management{% endblock %}
@@ -212,7 +213,7 @@
                     </td>
                     <td>
                         <span class="status-badge {{ member.status }}">
-                            {% if member.status == 'active' %}✓{% elif member.status == 'pending' %}⏳{% else %}✗{% endif %}
+                            {% if member.status == 'active' %}{{ icon('check') }}{% elif member.status == 'pending' %}{{ icon('clock') }}{% else %}✗{% endif %}
                             {{ member.status|capitalize }}
                         </span>
                     </td>
@@ -225,7 +226,7 @@
         </table>
         {% else %}
         <div class="empty-state">
-            <div class="empty-state-icon">👥</div>
+            <div class="empty-state-icon">{{ icon('users') }}</div>
             <h3>No team members yet</h3>
             <p>Invite your first team member to start collaborating</p>
         </div>

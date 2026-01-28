@@ -1,0 +1,325 @@
+/**
+ * Card Components
+ * Consistent card styles for content containers.
+ */
+
+/* =========================
+   BASE CARD
+   ========================= */
+
+.card {
+  background-color: var(--card-bg);
+  border: var(--border-width) solid var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
+
+/* =========================
+   CARD SECTIONS
+   ========================= */
+
+.card-header {
+  padding: var(--space-4) var(--space-6);
+  border-bottom: var(--border-width) solid var(--card-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.card-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--body-text);
+  margin: 0;
+}
+
+.card-subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-gray-500);
+  margin-top: var(--space-1);
+}
+
+.card-body {
+  padding: var(--space-6);
+}
+
+.card-footer {
+  padding: var(--space-4) var(--space-6);
+  border-top: var(--border-width) solid var(--card-border);
+  background-color: var(--color-gray-50);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+/* =========================
+   CARD VARIANTS
+   ========================= */
+
+/* Flat card (no shadow) */
+.card-flat {
+  box-shadow: none;
+}
+
+/* Elevated card */
+.card-elevated {
+  box-shadow: var(--shadow-lg);
+  border: none;
+}
+
+/* Bordered card (stronger border) */
+.card-bordered {
+  border-width: 2px;
+}
+
+/* Clickable/Interactive card */
+.card-interactive {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.card-interactive:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-gray-300);
+}
+
+.card-interactive:active {
+  transform: scale(0.98);
+}
+
+/* =========================
+   STATUS CARDS
+   ========================= */
+
+.card-success {
+  border-left: 4px solid var(--color-success-500);
+}
+
+.card-warning {
+  border-left: 4px solid var(--color-warning-500);
+}
+
+.card-error {
+  border-left: 4px solid var(--color-error-500);
+}
+
+.card-info {
+  border-left: 4px solid var(--color-info-500);
+}
+
+/* =========================
+   STAT CARD
+   ========================= */
+
+.stat-card {
+  padding: var(--space-5);
+}
+
+.stat-card-label {
+  font-size: var(--text-sm);
+  color: var(--color-gray-500);
+  font-weight: var(--font-medium);
+  margin-bottom: var(--space-1);
+}
+
+.stat-card-value {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  color: var(--body-text);
+  line-height: var(--leading-tight);
+}
+
+.stat-card-change {
+  font-size: var(--text-sm);
+  margin-top: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.stat-card-change.positive {
+  color: var(--color-success-600);
+}
+
+.stat-card-change.negative {
+  color: var(--color-error-600);
+}
+
+/* =========================
+   FEATURE CARD
+   ========================= */
+
+.feature-card {
+  text-align: center;
+  padding: var(--space-8);
+}
+
+.feature-card-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-primary-100);
+  color: var(--color-primary-600);
+  border-radius: var(--radius-xl);
+}
+
+.feature-card-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.feature-card-description {
+  font-size: var(--text-sm);
+  color: var(--color-gray-600);
+  line-height: var(--leading-relaxed);
+}
+
+/* =========================
+   LIST CARD
+   ========================= */
+
+.card-list {
+  padding: 0;
+}
+
+.card-list-item {
+  padding: var(--space-4) var(--space-6);
+  border-bottom: var(--border-width) solid var(--card-border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.card-list-item:last-child {
+  border-bottom: none;
+}
+
+.card-list-item-interactive {
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.card-list-item-interactive:hover {
+  background-color: var(--color-gray-50);
+}
+
+/* =========================
+   PROFILE CARD
+   ========================= */
+
+.profile-card {
+  text-align: center;
+  padding: var(--space-8);
+}
+
+.profile-card-avatar {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary-100);
+  color: var(--color-primary-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+}
+
+.profile-card-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-full);
+}
+
+.profile-card-name {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-1);
+}
+
+.profile-card-role {
+  font-size: var(--text-sm);
+  color: var(--color-gray-500);
+}
+
+/* =========================
+   CARD SIZES
+   ========================= */
+
+.card-sm .card-body {
+  padding: var(--space-4);
+}
+
+.card-sm .card-header,
+.card-sm .card-footer {
+  padding: var(--space-3) var(--space-4);
+}
+
+.card-lg .card-body {
+  padding: var(--space-8);
+}
+
+.card-lg .card-header,
+.card-lg .card-footer {
+  padding: var(--space-5) var(--space-8);
+}
+
+/* =========================
+   CARD GRID
+   ========================= */
+
+.card-grid {
+  display: grid;
+  gap: var(--space-6);
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 480px) {
+  .card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-grid-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (max-width: 480px) {
+  .card-body {
+    padding: var(--space-4);
+  }
+
+  .card-header,
+  .card-footer {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .card-footer {
+    flex-direction: column;
+  }
+
+  .card-footer > * {
+    width: 100%;
+  }
+}

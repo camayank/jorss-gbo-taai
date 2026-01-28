@@ -463,8 +463,8 @@ def check_feature_access(
             result["missing_permission"] = feature.required_permission.code
             return result
 
-    # Check tenant subscription tier
-    tenant_id = tenant_id or ctx.tenant_id
+    # Check tenant subscription tier (AuthContext uses firm_id for tenant)
+    tenant_id = tenant_id or (str(ctx.firm_id) if ctx.firm_id else None)
     if tenant_id:
         persistence = get_tenant_persistence()
         tenant = persistence.get_tenant(tenant_id)

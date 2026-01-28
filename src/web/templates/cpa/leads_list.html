@@ -1,4 +1,5 @@
 {% extends "cpa/base.html" %}
+{% from 'macros/icons.html' import icon %}
 
 {% block title %}Leads{% endblock %}
 {% block page_title %}
@@ -71,7 +72,7 @@
     }
 
     .search-wrapper::before {
-        content: '🔍';
+        content: '{{ icon('magnifying-glass') }}';
         position: absolute;
         left: 12px;
         top: 50%;
@@ -457,7 +458,7 @@
                 </td>
                 <td>
                     <span class="state-badge {{ lead.state|lower|replace(' ', '_') }}">
-                        {% if lead.state == 'high_leverage' %}🔥{% elif lead.state == 'advisory_ready' %}⭐{% endif %}
+                        {% if lead.state == 'high_leverage' %}🔥{% elif lead.state == 'advisory_ready' %}{{ icon('star') }}{% endif %}
                         {{ lead.state_display or lead.state|replace('_', ' ')|title }}
                     </span>
                 </td>
@@ -480,8 +481,8 @@
                 </td>
                 <td onclick="event.stopPropagation();">
                     <div class="actions-cell">
-                        <button class="action-btn" title="View Details" onclick="viewLead('{{ lead.id }}')">👁️</button>
-                        <button class="action-btn" title="Engage Lead" onclick="engageLead('{{ lead.id }}')">✉️</button>
+                        <button class="action-btn" title="View Details" onclick="viewLead('{{ lead.id }}')">{{ icon('eye') }}</button>
+                        <button class="action-btn" title="Engage Lead" onclick="engageLead('{{ lead.id }}')">{{ icon('envelope') }}</button>
                         <button class="action-btn" title="More Options" onclick="showLeadMenu('{{ lead.id }}')">⋮</button>
                     </div>
                 </td>

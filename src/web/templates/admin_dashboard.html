@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -4173,7 +4174,7 @@
               <div>
                 <input type="file" id="logo-upload-input" accept="image/png,image/jpeg,image/svg+xml" style="display: none;" onchange="handleLogoUpload(event, '${firmId}')">
                 <button class="btn btn-primary" onclick="document.getElementById('logo-upload-input').click()" style="margin-bottom: 8px;">
-                  📤 Upload Logo
+                  {{ icon('arrow-up-tray') }} Upload Logo
                 </button>
                 <div style="font-size: 12px; color: var(--gray-500);">PNG, JPG, or SVG. Max 2MB.</div>
               </div>
@@ -4220,7 +4221,7 @@
 
           <!-- Live Branding Preview -->
           <div style="margin-bottom: 24px;">
-            <label style="display: block; margin-bottom: 12px; font-weight: 600;">🔍 Live Preview</label>
+            <label style="display: block; margin-bottom: 12px; font-weight: 600;">{{ icon('magnifying-glass') }} Live Preview</label>
             <div id="branding-preview" style="border: 1px solid var(--gray-200); border-radius: 8px; overflow: hidden; background: white;">
               <!-- Preview Header -->
               <div id="preview-header" style="padding: 12px 20px; display: flex; align-items: center; gap: 12px; background: ${escapeHtml(branding.primary_color || '#059669')};">
@@ -4340,7 +4341,7 @@
       }
 
       // Show uploading status
-      statusDiv.innerHTML = '<span style="color: var(--primary);">⏳ Uploading...</span>';
+      statusDiv.innerHTML = '<span style="color: var(--primary);">{{ icon('clock') }} Uploading...</span>';
       statusDiv.style.display = 'block';
 
       try {
@@ -4361,7 +4362,7 @@
 
         // Update upload preview
         previewDiv.innerHTML = `<img src="${escapeHtml(result.logo_url)}?t=${Date.now()}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="Logo">`;
-        statusDiv.innerHTML = '<span style="color: var(--success);">✓ Logo uploaded successfully!</span>';
+        statusDiv.innerHTML = '<span style="color: var(--success);">{{ icon('check') }} Logo uploaded successfully!</span>';
 
         // Update live branding preview logo
         const brandingPreviewLogo = document.getElementById('preview-logo');

@@ -1,0 +1,661 @@
+{% from 'macros/icons.html' import icon %}
+<!DOCTYPE html>
+<html lang="en" data-theme="default">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TaxFlow">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="csrf-token" content="{{ csrf_token() if csrf_token else '' }}">
+  <title>Tax Advisory & Optimization | Professional Tax Analysis</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/static/icon-192.png">
+
+  <!-- Preconnect for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Core CSS -->
+  <link rel="stylesheet" href="/static/css/core/variables.css">
+  <link rel="stylesheet" href="/static/css/core/reset.css">
+  <link rel="stylesheet" href="/static/css/core/typography.css">
+  <link rel="stylesheet" href="/static/css/core/layout.css">
+  <link rel="stylesheet" href="/static/css/core/animations.css">
+
+  <!-- Component CSS -->
+  <link rel="stylesheet" href="/static/css/components/buttons.css">
+  <link rel="stylesheet" href="/static/css/components/cards.css">
+  <link rel="stylesheet" href="/static/css/components/forms.css">
+  <link rel="stylesheet" href="/static/css/components/modals.css">
+  <link rel="stylesheet" href="/static/css/components/toast.css">
+
+  <!-- Page-specific CSS -->
+  <link rel="stylesheet" href="/static/css/pages/tax-form.css">
+
+  <!-- Alpine.js -->
+  <script defer src="https://unpkg.com/alpinejs@3.14.3/dist/cdn.min.js"></script>
+</head>
+<body>
+  <!-- Skip to Main Content - WCAG 2.4.1 Compliance -->
+  <a href="#main-content" class="skip-to-main">Skip to main content</a>
+
+  <!-- Mobile Progress Bar -->
+  <div class="mobile-progress" id="mobileProgress">
+    <div class="mobile-progress-bar" id="mobileProgressBar" style="width: 0%"></div>
+  </div>
+
+  <!-- Deadline Urgency Banner -->
+  <div id="deadlineBanner" class="deadline-banner" style="display: none;">
+    <div class="deadline-content">
+      <div class="deadline-icon">{{ icon('clock') }}</div>
+      <div class="deadline-text">
+        <div class="deadline-title">Tax Deadline Approaching</div>
+        <div class="deadline-message" id="deadlineMessage">83 days until April 15, 2026</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-container" id="main-content">
+    <!-- Header -->
+    <header class="header">
+      <!-- Left: Firm Branding -->
+      <div class="logo">
+        {% if branding and branding.logo_url %}
+        <img src="{{ branding.logo_url }}" alt="{{ branding.company_name }}" class="logo-image" />
+        {% else %}
+        <div class="logo-placeholder">
+          {{ branding.company_name[0] if branding and branding.company_name else 'T' }}
+        </div>
+        {% endif %}
+        <div class="logo-text">
+          <span class="logo-name">{{ branding.company_name if branding else 'TaxFlow' }}</span>
+          {% if branding and branding.firm_credentials %}
+          <span class="logo-credentials">{{ branding.firm_credentials }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Center: Trust Badges -->
+      <div class="header-center">
+        <div class="trust-badges">
+          <span class="trust-badge">
+            {{ icon('user-circle') }}
+            {{ branding.review_claim if branding and branding.review_claim else 'CPA-Grade Analysis' }}
+          </span>
+          <span class="trust-badge">
+            {{ icon('lock-closed') }}
+            100% Confidential
+          </span>
+          <span class="trust-badge">
+            {{ icon('check-circle') }}
+            Comprehensive Analysis
+          </span>
+        </div>
+      </div>
+
+      <!-- Right: Save Status & Help -->
+      <div class="header-actions">
+        <div class="save-status" id="saveStatus" data-state="saved">
+          {{ icon('cloud') }}
+          <span class="save-text" id="saveText">All changes saved</span>
+          <span class="save-timestamp" id="saveTimestamp"></span>
+        </div>
+        <button class="btn-header" id="btnHelp">
+          {{ icon('question-mark-circle') }} Help
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Primary Card (Form) -->
+      <div class="primary-card">
+        <!-- Progress Bar -->
+        <div class="progress-container">
+          <div class="progress-steps">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            <div class="step active" data-step="1">
+              <div class="step-dot">1</div>
+              <span class="step-label">About You</span>
+            </div>
+            <div class="step" data-step="2">
+              <div class="step-dot">2</div>
+              <span class="step-label">Documents</span>
+            </div>
+            <div class="step" data-step="3">
+              <div class="step-dot">3</div>
+              <span class="step-label">Income</span>
+            </div>
+            <div class="step" data-step="4">
+              <div class="step-dot">4</div>
+              <span class="step-label">Deductions</span>
+            </div>
+            <div class="step" data-step="5">
+              <div class="step-dot">5</div>
+              <span class="step-label">Credits</span>
+            </div>
+            <div class="step" data-step="6">
+              <div class="step-dot">6</div>
+              <span class="step-label">Review</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step Content -->
+        <div class="step-content">
+          <!-- Step 1: About You -->
+          <div class="step-section active" data-step="1">
+            <div class="section-header">
+              <h2 class="section-title">Let's get to know you</h2>
+              <p class="section-subtitle">This helps us personalize your tax analysis</p>
+            </div>
+
+            <!-- Filing Status -->
+            <div class="form-group" style="margin-bottom: var(--space-6);">
+              <label class="form-label">Filing Status</label>
+              <div class="filing-status-grid">
+                <div class="filing-status-option" data-status="single" onclick="selectFilingStatus('single')">
+                  <div class="filing-status-icon">{{ icon('user') }}</div>
+                  <div class="filing-status-label">Single</div>
+                  <div class="filing-status-desc">Unmarried or legally separated</div>
+                </div>
+                <div class="filing-status-option" data-status="married_filing_jointly" onclick="selectFilingStatus('married_filing_jointly')">
+                  <div class="filing-status-icon">{{ icon('users') }}</div>
+                  <div class="filing-status-label">Married Filing Jointly</div>
+                  <div class="filing-status-desc">Married, filing one return together</div>
+                </div>
+                <div class="filing-status-option" data-status="married_filing_separately" onclick="selectFilingStatus('married_filing_separately')">
+                  <div class="filing-status-icon">{{ icon('user-minus') }}</div>
+                  <div class="filing-status-label">Married Filing Separately</div>
+                  <div class="filing-status-desc">Married, filing separate returns</div>
+                </div>
+                <div class="filing-status-option" data-status="head_of_household" onclick="selectFilingStatus('head_of_household')">
+                  <div class="filing-status-icon">{{ icon('home') }}</div>
+                  <div class="filing-status-label">Head of Household</div>
+                  <div class="filing-status-desc">Unmarried, paying more than half of household expenses</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Personal Information -->
+            <div class="form-grid">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="firstName">First Name</label>
+                  <input type="text" id="firstName" name="firstName" class="form-input" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="lastName">Last Name</label>
+                  <input type="text" id="lastName" name="lastName" class="form-input" required>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="dateOfBirth">Date of Birth</label>
+                  <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-input" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="ssn">Social Security Number <span class="form-label-hint">(optional for analysis)</span></label>
+                  <input type="text" id="ssn" name="ssn" class="form-input" placeholder="XXX-XX-XXXX">
+                </div>
+              </div>
+            </div>
+
+            <!-- Spouse Info (shown when married) -->
+            <div class="spouse-field" style="display: none; margin-top: var(--space-6);">
+              <h3 style="font-size: var(--text-lg); margin-bottom: var(--space-4);">Spouse Information</h3>
+              <div class="form-grid">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="spouseFirstName">Spouse First Name</label>
+                    <input type="text" id="spouseFirstName" name="spouseFirstName" class="form-input">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="spouseLastName">Spouse Last Name</label>
+                    <input type="text" id="spouseLastName" name="spouseLastName" class="form-input">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Documents -->
+          <div class="step-section" data-step="2">
+            <div class="section-header">
+              <h2 class="section-title">Upload your tax documents</h2>
+              <p class="section-subtitle">We'll extract the information automatically</p>
+            </div>
+
+            <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+              <div class="upload-icon">{{ icon('cloud-arrow-up') }}</div>
+              <div class="upload-text">Drop your W-2s, 1099s, and other tax documents here</div>
+              <div class="upload-hint">or click to browse • PDF, JPG, PNG supported</div>
+            </div>
+            <input type="file" id="fileInput" style="display: none" onchange="handleDocumentUpload(event)" accept=".pdf,.jpg,.jpeg,.png" multiple>
+
+            <div id="uploadedFilesList" class="uploaded-files"></div>
+
+            <div style="margin-top: var(--space-6); padding: var(--space-4); background: var(--color-primary-50); border-radius: var(--radius-lg);">
+              <p style="font-size: var(--text-sm); color: var(--color-primary-700);">
+                {{ icon('information-circle') }} Don't have your documents? No problem! You can enter information manually in the next steps.
+              </p>
+            </div>
+          </div>
+
+          <!-- Step 3: Income -->
+          <div class="step-section" data-step="3">
+            <div class="section-header">
+              <h2 class="section-title">Tell us about your income</h2>
+              <p class="section-subtitle">Include all sources of income for the tax year</p>
+            </div>
+
+            <div class="form-grid">
+              <!-- W-2 Income -->
+              <div class="income-source-card">
+                <div class="income-source-header">
+                  <span class="income-source-title">{{ icon('briefcase') }} Employment Income (W-2)</span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="wages">Total Wages, Tips, Other Compensation</label>
+                  <div class="currency-input-wrapper">
+                    <input type="text" id="wages" name="wages" class="form-input currency-input" placeholder="0">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="federalWithheld">Federal Tax Withheld</label>
+                    <div class="currency-input-wrapper">
+                      <input type="text" id="federalWithheld" name="federalWithheld" class="form-input currency-input" placeholder="0">
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="stateWithheld">State Tax Withheld</label>
+                    <div class="currency-input-wrapper">
+                      <input type="text" id="stateWithheld" name="stateWithheld" class="form-input currency-input" placeholder="0">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Self-Employment Income -->
+              <div class="income-source-card">
+                <div class="income-source-header">
+                  <span class="income-source-title">{{ icon('building-storefront') }} Self-Employment / Business Income</span>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="businessIncome">Gross Business Income</label>
+                    <div class="currency-input-wrapper">
+                      <input type="text" id="businessIncome" name="businessIncome" class="form-input currency-input" placeholder="0">
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="businessExpenses">Business Expenses</label>
+                    <div class="currency-input-wrapper">
+                      <input type="text" id="businessExpenses" name="businessExpenses" class="form-input currency-input" placeholder="0">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Investment Income -->
+              <div class="income-source-card">
+                <div class="income-source-header">
+                  <span class="income-source-title">{{ icon('chart-bar') }} Investment Income</span>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="dividends">Dividends</label>
+                    <div class="currency-input-wrapper">
+                      <input type="text" id="dividends" name="dividends" class="form-input currency-input" placeholder="0">
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="capitalGains">Capital Gains</label>
+                    <div class="currency-input-wrapper">
+                      <input type="text" id="capitalGains" name="capitalGains" class="form-input currency-input" placeholder="0">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Other Income -->
+              <div class="income-source-card">
+                <div class="income-source-header">
+                  <span class="income-source-title">{{ icon('banknotes') }} Other Income</span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="otherIncome">Other Taxable Income</label>
+                  <div class="currency-input-wrapper">
+                    <input type="text" id="otherIncome" name="otherIncome" class="form-input currency-input" placeholder="0">
+                  </div>
+                  <span class="form-hint">Includes rental income, alimony received, etc.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 4: Deductions -->
+          <div class="step-section" data-step="4">
+            <div class="section-header">
+              <h2 class="section-title">Deductions & Adjustments</h2>
+              <p class="section-subtitle">We'll help you choose between standard and itemized deductions</p>
+            </div>
+
+            <!-- Deduction Type Choice -->
+            <div style="margin-bottom: var(--space-6);">
+              <div class="filing-status-grid" style="grid-template-columns: repeat(2, 1fr);">
+                <div class="filing-status-option selected" data-deduction="standard" onclick="selectDeductionType('standard')">
+                  <div class="filing-status-icon">{{ icon('document-check') }}</div>
+                  <div class="filing-status-label">Standard Deduction</div>
+                  <div class="filing-status-desc" id="standardDeductionAmount">$14,600 for Single</div>
+                </div>
+                <div class="filing-status-option" data-deduction="itemized" onclick="selectDeductionType('itemized')">
+                  <div class="filing-status-icon">{{ icon('clipboard-document-list') }}</div>
+                  <div class="filing-status-label">Itemized Deductions</div>
+                  <div class="filing-status-desc">Mortgage interest, charitable, etc.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Itemized Deductions (shown when itemized selected) -->
+            <div id="itemizedDeductionsSection" style="display: none;">
+              <div class="form-grid">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="mortgageInterest">Mortgage Interest</label>
+                    <div class="currency-input-wrapper">
+                      <input type="text" id="mortgageInterest" name="mortgageInterest" class="form-input currency-input" placeholder="0">
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="stateTaxes">State & Local Taxes (SALT)</label>
+                    <div class="currency-input-wrapper">
+                      <input type="text" id="stateTaxes" name="stateTaxes" class="form-input currency-input" placeholder="0">
+                    </div>
+                    <span class="form-hint">Limited to $10,000</span>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="charitableContributions">Charitable Contributions</label>
+                    <div class="currency-input-wrapper">
+                      <input type="text" id="charitableContributions" name="charitableContributions" class="form-input currency-input" placeholder="0">
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="medicalExpenses">Medical Expenses</label>
+                    <div class="currency-input-wrapper">
+                      <input type="text" id="medicalExpenses" name="medicalExpenses" class="form-input currency-input" placeholder="0">
+                    </div>
+                    <span class="form-hint">Only amounts exceeding 7.5% of AGI</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Retirement Contributions -->
+            <div style="margin-top: var(--space-6);">
+              <h3 style="font-size: var(--text-lg); margin-bottom: var(--space-4);">Retirement Contributions</h3>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="retirement401k">401(k) Contributions</label>
+                  <div class="currency-input-wrapper">
+                    <input type="text" id="retirement401k" name="retirement401k" class="form-input currency-input" placeholder="0">
+                  </div>
+                  <span class="form-hint">Max: $23,000 ($30,500 if 50+)</span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="iraContributions">Traditional IRA Contributions</label>
+                  <div class="currency-input-wrapper">
+                    <input type="text" id="iraContributions" name="iraContributions" class="form-input currency-input" placeholder="0">
+                  </div>
+                  <span class="form-hint">Max: $7,000 ($8,000 if 50+)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 5: Credits -->
+          <div class="step-section" data-step="5">
+            <div class="section-header">
+              <h2 class="section-title">Tax Credits</h2>
+              <p class="section-subtitle">Credits directly reduce your tax bill</p>
+            </div>
+
+            <div class="form-grid">
+              <!-- Child Tax Credit -->
+              <div class="income-source-card">
+                <div class="income-source-header">
+                  <span class="income-source-title">{{ icon('user-group') }} Child Tax Credit</span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="dependentChildren">Number of Qualifying Children (under 17)</label>
+                  <input type="number" id="dependentChildren" name="dependentChildren" class="form-input" min="0" value="0">
+                  <span class="form-hint">Up to $2,000 per qualifying child</span>
+                </div>
+              </div>
+
+              <!-- Education Credits -->
+              <div class="income-source-card">
+                <div class="income-source-header">
+                  <span class="income-source-title">{{ icon('academic-cap') }} Education Credits</span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="educationExpenses">Qualified Education Expenses</label>
+                  <div class="currency-input-wrapper">
+                    <input type="text" id="educationExpenses" name="educationExpenses" class="form-input currency-input" placeholder="0">
+                  </div>
+                  <span class="form-hint">American Opportunity Credit: up to $2,500</span>
+                </div>
+              </div>
+
+              <!-- Energy Credits -->
+              <div class="income-source-card">
+                <div class="income-source-header">
+                  <span class="income-source-title">{{ icon('bolt') }} Energy Credits</span>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">
+                      <input type="checkbox" name="hasEV" id="hasEV"> Purchased Electric Vehicle
+                    </label>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">
+                      <input type="checkbox" name="hasSolar" id="hasSolar"> Installed Solar Panels
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 6: Review -->
+          <div class="step-section" data-step="6">
+            <div class="section-header">
+              <h2 class="section-title">Review Your Tax Analysis</h2>
+              <p class="section-subtitle">Here's your comprehensive tax summary</p>
+            </div>
+
+            <div class="summary-card" style="margin-bottom: var(--space-6);">
+              <div class="summary-header">
+                <span class="summary-title">Tax Summary</span>
+              </div>
+              <div class="summary-body">
+                <div class="tax-breakdown">
+                  <div class="tax-row">
+                    <span class="tax-row-label">Total Income</span>
+                    <span class="tax-row-value" id="totalIncome">$0</span>
+                  </div>
+                  <div class="tax-row">
+                    <span class="tax-row-label">Adjustments</span>
+                    <span class="tax-row-value">-$0</span>
+                  </div>
+                  <div class="tax-row">
+                    <span class="tax-row-label">Adjusted Gross Income</span>
+                    <span class="tax-row-value" id="agi">$0</span>
+                  </div>
+                  <div class="tax-row">
+                    <span class="tax-row-label">Deductions</span>
+                    <span class="tax-row-value">-$14,600</span>
+                  </div>
+                  <div class="tax-row">
+                    <span class="tax-row-label">Taxable Income</span>
+                    <span class="tax-row-value" id="taxableIncome">$0</span>
+                  </div>
+                  <div class="tax-row total">
+                    <span class="tax-row-label">Estimated Tax</span>
+                    <span class="tax-row-value" id="totalTax">$0</span>
+                  </div>
+                </div>
+
+                <div class="refund-display" id="refundDisplay">
+                  <div class="refund-label">Estimated Refund</div>
+                  <div class="refund-amount" id="refundOrOwed">$0</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="text-align: center;">
+              <button class="btn btn-primary btn-lg" onclick="generateReport()">
+                {{ icon('document-text') }} Generate Full Advisory Report
+              </button>
+              <p style="margin-top: var(--space-3); font-size: var(--text-sm); color: var(--color-gray-500);">
+                You'll receive a comprehensive PDF report with personalized recommendations
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="step-navigation">
+          <button class="btn-nav btn-prev" id="btnPrev" onclick="prevStep()" style="visibility: hidden;">
+            {{ icon('arrow-left') }} Back
+          </button>
+          <button class="btn-nav btn-next" id="btnNext" onclick="nextStep()">
+            Continue {{ icon('arrow-right') }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <!-- Tax Summary Card -->
+        <div class="summary-card">
+          <div class="summary-header">
+            <span class="summary-title">{{ icon('calculator') }} Live Tax Estimate</span>
+          </div>
+          <div class="summary-body">
+            <div class="tax-breakdown">
+              <div class="tax-row">
+                <span class="tax-row-label">Total Income</span>
+                <span class="tax-row-value" id="sidebarTotalIncome">$0</span>
+              </div>
+              <div class="tax-row">
+                <span class="tax-row-label">Taxable Income</span>
+                <span class="tax-row-value" id="sidebarTaxableIncome">$0</span>
+              </div>
+              <div class="tax-row">
+                <span class="tax-row-label">Effective Rate</span>
+                <span class="tax-row-value" id="sidebarEffectiveRate">0%</span>
+              </div>
+              <div class="tax-row total">
+                <span class="tax-row-label">Est. Tax</span>
+                <span class="tax-row-value" id="sidebarTotalTax">$0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recommendations Card -->
+        <div class="recommendations-card">
+          <div class="recommendations-header">
+            <span class="recommendations-title">{{ icon('light-bulb') }} Tax Savings Opportunities</span>
+          </div>
+          <div class="recommendations-body" id="recommendationsList">
+            <p style="font-size: var(--text-sm); color: var(--color-gray-500);">
+              Complete your tax information to see personalized recommendations.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Welcome Modal -->
+  <div id="welcomeModal" class="welcome-modal">
+    <div class="welcome-content">
+      <button onclick="hideWelcomeModal()" style="position: absolute; top: 20px; right: 20px; background: white; border: 2px solid var(--color-gray-200); width: 40px; height: 40px; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 10;">×</button>
+
+      <div class="welcome-header">
+        <div class="welcome-icon-large">{{ icon('chart-bar') }}</div>
+        <h1 style="font-size: 2.5rem; color: var(--color-gray-900); margin-bottom: var(--space-4);">Comprehensive Tax Advisory & Optimization</h1>
+        <p style="font-size: 1.25rem; color: var(--color-primary-600); font-weight: 600; margin-bottom: var(--space-4);">Get a Professional CPA-Grade Tax Analysis Report</p>
+        <p style="font-size: 1.1rem; color: var(--color-gray-600); margin-bottom: var(--space-8);">I'll conduct a deep analysis of your financial situation and generate a detailed advisory report with strategic recommendations to minimize your tax liability.</p>
+
+        <!-- Value Proposition -->
+        <div style="background: var(--color-success-500); border-radius: var(--radius-xl); padding: var(--space-5); margin-bottom: var(--space-8);">
+          <div style="font-size: 1rem; font-weight: 600; color: white; text-align: center;">
+            {{ icon('light-bulb') }} Clients typically save <span style="font-size: 1.5rem; font-weight: 700;">$10,000 - $50,000+</span> in taxes annually
+          </div>
+        </div>
+
+        <!-- Start Button -->
+        <button onclick="startIntegratedFlow()" class="btn btn-primary btn-xl" style="width: 100%; max-width: 500px; padding: var(--space-5); font-size: 1.25rem;">
+          Begin Comprehensive Tax Analysis →
+        </button>
+
+        <p style="font-size: var(--text-sm); color: var(--color-gray-500); margin-top: var(--space-6);">
+          {{ icon('clock') }} 20-30 minutes • {{ icon('lock-closed') }} 100% Confidential • {{ icon('chart-bar') }} CPA-Grade Analysis
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Core JavaScript -->
+  <script src="/static/js/core/utils.js" type="module"></script>
+  <script src="/static/js/core/api.js" type="module"></script>
+
+  <!-- Page-specific JavaScript -->
+  <script src="/static/js/pages/tax-form.js" type="module"></script>
+
+  <script>
+    // Deduction type selection
+    function selectDeductionType(type) {
+      document.querySelectorAll('[data-deduction]').forEach(el => {
+        el.classList.toggle('selected', el.dataset.deduction === type);
+      });
+      document.getElementById('itemizedDeductionsSection').style.display = type === 'itemized' ? 'block' : 'none';
+    }
+
+    // Generate report
+    function generateReport() {
+      window.showToast?.('Generating your comprehensive report...', 'info');
+      // Navigate to report generation
+      setTimeout(() => {
+        window.location.href = '/report';
+      }, 1500);
+    }
+
+    // Show welcome modal on first visit
+    document.addEventListener('DOMContentLoaded', () => {
+      const hasVisited = localStorage.getItem('tax_form_visited');
+      if (!hasVisited) {
+        document.getElementById('welcomeModal').classList.remove('hidden');
+      } else {
+        document.getElementById('welcomeModal').classList.add('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

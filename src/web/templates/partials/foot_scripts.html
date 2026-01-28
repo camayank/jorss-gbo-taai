@@ -1,0 +1,85 @@
+{#
+  Standard JavaScript includes for all pages.
+
+  Usage:
+    {% include 'partials/foot_scripts.html' %}
+
+  Optional variables:
+    - use_alpine: Whether to include Alpine.js (default: true)
+    - use_stores: List of Alpine stores to register (e.g., ['sidebar', 'tax-return', 'auto-save'])
+    - page_js: Page-specific JS file to include
+    - extra_scripts: Inline scripts to add
+#}
+
+{# Default use_alpine to true if not set #}
+{% set use_alpine = use_alpine | default(true) %}
+
+{# Core utilities - Always load #}
+<script src="/static/js/core/utils.js" type="module"></script>
+
+{# API client #}
+<script src="/static/js/core/api.js" type="module"></script>
+
+{# Validation utilities #}
+<script src="/static/js/core/validation.js" type="module"></script>
+
+{# Existing JS files #}
+{% if include_legacy_js %}
+<script src="/static/js/security-utils.js"></script>
+<script src="/static/js/feature-gate.js"></script>
+<script src="/static/js/loading-states.js"></script>
+{% endif %}
+
+{# Alpine.js and stores #}
+{% if use_alpine %}
+<script type="module">
+  // Import Alpine stores
+  {% if use_stores %}
+    {% if 'sidebar' in use_stores %}
+    import { registerSidebarStore } from '/static/js/alpine/stores/sidebar.js';
+    {% endif %}
+    {% if 'tax-return' in use_stores %}
+    import { registerTaxReturnStore } from '/static/js/alpine/stores/tax-return.js';
+    {% endif %}
+    {% if 'auto-save' in use_stores %}
+    import { registerAutoSaveStore } from '/static/js/alpine/stores/auto-save.js';
+    {% endif %}
+  {% endif %}
+
+  // Register stores when Alpine initializes
+  document.addEventListener('alpine:init', () => {
+    {% if use_stores %}
+      {% if 'sidebar' in use_stores %}
+      registerSidebarStore(Alpine);
+      {% endif %}
+      {% if 'tax-return' in use_stores %}
+      registerTaxReturnStore(Alpine);
+      {% endif %}
+      {% if 'auto-save' in use_stores %}
+      registerAutoSaveStore(Alpine);
+      {% endif %}
+    {% endif %}
+  });
+</script>
+
+{# Alpine.js CDN - load after stores are registered #}
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+{# Alpine.js Collapse plugin for expandable menus #}
+<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+{% endif %}
+
+{# Page-specific JS #}
+{% if page_js %}
+<script src="/static/js/pages/{{ page_js }}.js" type="module"></script>
+{% endif %}
+
+{# Extra inline scripts #}
+{% if extra_scripts %}
+<script>
+{{ extra_scripts | safe }}
+</script>
+{% endif %}
+
+{# Toast container for notifications #}
+<div id="toast-container" class="toast-container"></div>

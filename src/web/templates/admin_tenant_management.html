@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -488,9 +489,9 @@
     <script src="/static/js/security-utils.js"></script>
     <!-- Header -->
     <div class="header">
-        <h1>🏢 Tenant Management</h1>
+        <h1>{{ icon('building-office') }} Tenant Management</h1>
         <div class="header-actions">
-            <button onclick="openCreateTenantModal()" aria-label="Create new tenant">➕ Create New Tenant</button>
+            <button onclick="openCreateTenantModal()" aria-label="Create new tenant">{{ icon('plus') }} Create New Tenant</button>
         </div>
     </div>
 
@@ -533,10 +534,10 @@
 
                 <!-- Tabs -->
                 <div class="tabs">
-                    <div class="tab active" onclick="switchTab('info')">📋 Info</div>
+                    <div class="tab active" onclick="switchTab('info')">{{ icon('clipboard-document-list') }} Info</div>
                     <div class="tab" onclick="switchTab('branding')">🎨 Branding</div>
-                    <div class="tab" onclick="switchTab('features')">⚙️ Features</div>
-                    <div class="tab" onclick="switchTab('domain')">🌐 Custom Domain</div>
+                    <div class="tab" onclick="switchTab('features')">{{ icon('cog-6-tooth') }} Features</div>
+                    <div class="tab" onclick="switchTab('domain')">{{ icon('globe-alt') }} Custom Domain</div>
                 </div>
 
                 <!-- Tab: Info -->
@@ -693,7 +694,7 @@
                         </div>
 
                         <div id="domainVerification" style="display: none; background: #fff5f5; padding: 15px; border-radius: 6px; margin: 20px 0;">
-                            <h4 style="color: #c53030; margin-bottom: 10px;">⚠️ Domain Not Verified</h4>
+                            <h4 style="color: #c53030; margin-bottom: 10px;">{{ icon('exclamation-triangle') }} Domain Not Verified</h4>
                             <p style="font-size: 0.875rem; color: #742a2a;">Add this TXT record to your DNS:</p>
                             <code style="display: block; background: white; padding: 10px; margin: 10px 0; border-radius: 4px;">
                                 tax-domain-verification=<span id="verificationToken"></span>

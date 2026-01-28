@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -496,11 +497,11 @@
                 <div class="nav-section">
                     <div class="nav-section-title">Overview</div>
                     <a href="/cpa/dashboard" class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
-                        <span class="nav-icon">📊</span>
+                        <span class="nav-icon">{{ icon('chart-bar') }}</span>
                         <span>Dashboard</span>
                     </a>
                     <a href="/cpa/leads" class="nav-item {% if active_page == 'leads' %}active{% endif %}">
-                        <span class="nav-icon">👥</span>
+                        <span class="nav-icon">{{ icon('users') }}</span>
                         <span>All Leads</span>
                         {% if stats and stats.new_leads > 0 %}
                         <span class="nav-badge">{{ stats.new_leads }}</span>
@@ -511,7 +512,7 @@
                 <div class="nav-section">
                     <div class="nav-section-title">Pipeline</div>
                     <a href="/cpa/leads?state=advisory_ready" class="nav-item {% if active_page == 'advisory_ready' %}active{% endif %}">
-                        <span class="nav-icon">⭐</span>
+                        <span class="nav-icon">{{ icon('star') }}</span>
                         <span>Advisory Ready</span>
                         {% if stats and stats.advisory_ready > 0 %}
                         <span class="nav-badge">{{ stats.advisory_ready }}</span>
@@ -525,7 +526,7 @@
                         {% endif %}
                     </a>
                     <a href="/cpa/leads?state=evaluating" class="nav-item {% if active_page == 'evaluating' %}active{% endif %}">
-                        <span class="nav-icon">🔍</span>
+                        <span class="nav-icon">{{ icon('magnifying-glass') }}</span>
                         <span>Evaluating</span>
                     </a>
                 </div>
@@ -533,11 +534,11 @@
                 <div class="nav-section">
                     <div class="nav-section-title">Actions</div>
                     <a href="/cpa/assignments" class="nav-item {% if active_page == 'assignments' %}active{% endif %}">
-                        <span class="nav-icon">📋</span>
+                        <span class="nav-icon">{{ icon('clipboard-document-list') }}</span>
                         <span>My Assignments</span>
                     </a>
                     <a href="/cpa/converted" class="nav-item {% if active_page == 'converted' %}active{% endif %}">
-                        <span class="nav-icon">✅</span>
+                        <span class="nav-icon">{{ icon('check-circle') }}</span>
                         <span>Converted</span>
                     </a>
                 </div>
@@ -545,7 +546,7 @@
                 <div class="nav-section">
                     <div class="nav-section-title">Analytics</div>
                     <a href="/cpa/analytics" class="nav-item {% if active_page == 'analytics' %}active{% endif %}">
-                        <span class="nav-icon">📈</span>
+                        <span class="nav-icon">{{ icon('arrow-trending-up') }}</span>
                         <span>Performance</span>
                     </a>
                 </div>
@@ -553,7 +554,7 @@
                 <div class="nav-section">
                     <div class="nav-section-title">Clients</div>
                     <a href="/cpa/clients" class="nav-item {% if active_page == 'clients' %}active{% endif %}">
-                        <span class="nav-icon">👥</span>
+                        <span class="nav-icon">{{ icon('users') }}</span>
                         <span>Clients</span>
                     </a>
                 </div>
@@ -561,7 +562,7 @@
                 <div class="nav-section">
                     <div class="nav-section-title">Settings</div>
                     <a href="/cpa/profile" class="nav-item {% if active_page == 'profile' %}active{% endif %}">
-                        <span class="nav-icon">👤</span>
+                        <span class="nav-icon">{{ icon('user') }}</span>
                         <span>My Profile</span>
                     </a>
                     <a href="/cpa/branding" class="nav-item {% if active_page == 'branding' %}active{% endif %}">
@@ -569,15 +570,15 @@
                         <span>Branding</span>
                     </a>
                     <a href="/cpa/team" class="nav-item {% if active_page == 'team' %}active{% endif %}">
-                        <span class="nav-icon">👨‍👩‍👧‍👦</span>
+                        <span class="nav-icon">{{ icon('user') }}‍{{ icon('user') }}‍👧‍👦</span>
                         <span>Team</span>
                     </a>
                     <a href="/cpa/settings" class="nav-item {% if active_page == 'settings' %}active{% endif %}">
-                        <span class="nav-icon">⚙️</span>
+                        <span class="nav-icon">{{ icon('cog-6-tooth') }}</span>
                         <span>Settings</span>
                     </a>
                     <a href="/cpa/billing" class="nav-item {% if active_page == 'billing' %}active{% endif %}">
-                        <span class="nav-icon">💳</span>
+                        <span class="nav-icon">{{ icon('credit-card') }}</span>
                         <span>Billing</span>
                     </a>
                 </div>
@@ -611,19 +612,19 @@
 
                 <div class="header-actions">
                     <div class="header-search">
-                        <span class="header-search-icon">🔍</span>
+                        <span class="header-search-icon">{{ icon('magnifying-glass') }}</span>
                         <input type="text" placeholder="Search leads..." id="globalSearch">
                     </div>
 
                     <button class="header-btn" title="Notifications">
-                        🔔
+                        {{ icon('bell') }}
                         {% if stats and stats.new_leads > 0 %}
                         <span class="notification-dot"></span>
                         {% endif %}
                     </button>
 
                     <button class="header-btn" title="Settings" onclick="location.href='/cpa/profile'">
-                        ⚙️
+                        {{ icon('cog-6-tooth') }}
                     </button>
                 </div>
             </header>

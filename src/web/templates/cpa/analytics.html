@@ -1,4 +1,5 @@
 {% extends "cpa/base.html" %}
+{% from 'macros/icons.html' import icon %}
 
 {% block title %}Analytics{% endblock %}
 {% block page_title %}Performance Analytics{% endblock %}
@@ -186,7 +187,7 @@
     <div class="metric-card">
         <div class="metric-header">
             <span class="metric-title">Total Leads</span>
-            <div class="metric-icon">👥</div>
+            <div class="metric-icon">{{ icon('users') }}</div>
         </div>
         <div class="metric-value">{{ stats.total_leads or 0 }}</div>
         <div class="metric-change up">
@@ -197,7 +198,7 @@
     <div class="metric-card">
         <div class="metric-header">
             <span class="metric-title">Conversion Rate</span>
-            <div class="metric-icon">📈</div>
+            <div class="metric-icon">{{ icon('arrow-trending-up') }}</div>
         </div>
         <div class="metric-value">{{ stats.conversion_rate or 0 }}%</div>
         <div class="metric-change up">
@@ -208,7 +209,7 @@
     <div class="metric-card">
         <div class="metric-header">
             <span class="metric-title">Avg. Lead Score</span>
-            <div class="metric-icon">⭐</div>
+            <div class="metric-icon">{{ icon('star') }}</div>
         </div>
         <div class="metric-value">{% if conversion_metrics and conversion_metrics.metrics and conversion_metrics.metrics.average_score %}{{ conversion_metrics.metrics.average_score|round|int }}{% else %}0{% endif %}</div>
         <div class="metric-change up">
@@ -219,7 +220,7 @@
     <div class="metric-card">
         <div class="metric-header">
             <span class="metric-title">Pipeline Value</span>
-            <div class="metric-icon">💰</div>
+            <div class="metric-icon">{{ icon('banknotes') }}</div>
         </div>
         <div class="metric-value">${{ '{:,.0f}'.format(stats.total_revenue or 0) }}</div>
         <div class="metric-change up">
@@ -305,7 +306,7 @@
     </div>
     <div class="chart-body">
         <div class="chart-placeholder">
-            <div class="chart-placeholder-icon">📊</div>
+            <div class="chart-placeholder-icon">{{ icon('chart-bar') }}</div>
             <p>Charts will be populated with real data<br>as leads flow through your pipeline.</p>
         </div>
     </div>
