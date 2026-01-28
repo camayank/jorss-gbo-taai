@@ -386,25 +386,41 @@ class AdvisoryReportGenerator:
         if not business_income:
             return None
 
-        # Use existing entity optimizer (48 tests passing!)
+        # Use existing entity optimizer with correct API
         try:
-            comparison = self.entity_optimizer.compare_all_entities(
-                business_income=business_income["gross_income"],
-                business_expenses=business_income["expenses"],
+            # Create optimizer with filing status and state
+            optimizer = EntityStructureOptimizer(
                 filing_status=tax_return.taxpayer.filing_status.value,
+                other_income=float(getattr(tax_return.income, 'w2_wages', 0) or 0),
                 state=getattr(tax_return.taxpayer, "state", "CA"),
             )
+
+            # Call compare_structures (correct method name)
+            comparison_result = optimizer.compare_structures(
+                gross_revenue=business_income["gross_income"],
+                business_expenses=business_income["expenses"],
+            )
+
+            # Convert EntityComparisonResult to dict for content
+            # Access analyses dict by entity type value
+            sole_prop = comparison_result.analyses.get("sole_proprietorship")
+            s_corp = comparison_result.analyses.get("s_corporation")
 
             content = {
                 "business_income": business_income,
                 "entity_comparison": {
-                    entity_type: {
-                        "total_tax": float(analysis["total_tax"]),
-                        "self_employment_tax": float(analysis.get("self_employment_tax", 0)),
-                        "net_benefit": float(analysis.get("net_benefit", 0)),
-                        "recommended": analysis.get("recommended", False),
-                    }
-                    for entity_type, analysis in comparison.items()
+                    "sole_proprietor": {
+                        "total_tax": float(sole_prop.total_business_tax if sole_prop else 0),
+                        "self_employment_tax": float(sole_prop.self_employment_tax if sole_prop else 0),
+                        "net_benefit": 0.0,  # Baseline
+                        "recommended": comparison_result.recommended_entity.value == "sole_proprietorship" if comparison_result.recommended_entity else False,
+                    },
+                    "s_corp": {
+                        "total_tax": float(s_corp.total_business_tax if s_corp else 0),
+                        "self_employment_tax": float(s_corp.self_employment_tax if s_corp else 0),
+                        "net_benefit": float(comparison_result.max_annual_savings),
+                        "recommended": comparison_result.recommended_entity.value == "s_corporation" if comparison_result.recommended_entity else False,
+                    },
                 },
             }
 

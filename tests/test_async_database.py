@@ -62,8 +62,8 @@ class TestDatabaseSettings:
     def test_pool_settings_defaults(self):
         """Connection pool settings have sensible defaults."""
         settings = DatabaseSettings()
-        assert settings.pool_size == 10
-        assert settings.max_overflow == 20
+        assert settings.pool_size == 20  # Production-optimized default
+        assert settings.max_overflow == 30  # Burst handling default
         assert settings.pool_timeout == 30
         assert settings.pool_recycle == 1800
         assert settings.pool_pre_ping is True

@@ -37,6 +37,8 @@ class ConfigMetadata:
     last_updated: str = ""
     updated_by: str = ""
     notes: str = ""
+    is_current_advisory_year: bool = False  # Flag for current advisory year
+    is_projection: bool = False  # Flag for projection years
 
 
 @dataclass

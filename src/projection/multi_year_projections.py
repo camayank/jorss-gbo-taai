@@ -276,7 +276,7 @@ class MultiYearProjectionEngine:
     def _calculate_total_deductions(self, tax_return: "TaxReturn") -> Decimal:
         """Calculate total deductions from tax return."""
         # Simplified - would use actual deduction calculation
-        if tax_return.deductions.uses_standard:
+        if tax_return.deductions.use_standard_deduction:
             # 2025 standard deduction (single)
             return Decimal('15750')
         elif tax_return.deductions.itemized:
