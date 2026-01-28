@@ -280,7 +280,7 @@ If yes, please list:
 
 **Other:**
 - [ ] Copy of last year's tax return (if new client)
-- [ ] State ID or driver's license (for e-file)
+- [ ] State ID or driver's license (for identity verification)
 - [ ] Bank account info (for direct deposit)
 
 ---
@@ -388,7 +388,7 @@ Profile → Personal Information → Edit → Save
 | **Review** | We review your information | Answer any questions we have |
 | **Preparation** | We prepare your return | None—we're working! |
 | **Draft Review** | You review the draft return | Approve or request changes |
-| **Filing** | We e-file upon your approval | Provide payment (if owed) |
+| **Filing** | We file your return upon approval | Provide payment (if owed) |
 | **Confirmation** | IRS accepts your return | Receive your refund |
 
 **Typical Timeline:**

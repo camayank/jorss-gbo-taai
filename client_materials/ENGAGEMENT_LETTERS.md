@@ -34,7 +34,7 @@ We will prepare the following tax return(s) based on information you provide:
 **Our services include:**
 - Preparation of the above return(s) for the tax year ending December 31, {{TAX_YEAR}}
 - Identification of relevant deductions and credits based on information provided
-- Electronic filing of your return(s) upon your approval
+- Filing of your return(s) upon your approval
 - Response to notices related to the return(s) we prepare (first year only)
 
 **Our services do NOT include:**
@@ -54,7 +54,7 @@ To ensure accurate and complete tax returns, you agree to:
 
 2. **Respond promptly** to our requests for additional information or clarification
 
-3. **Review the completed return** before signing and authorizing e-file
+3. **Review the completed return** before signing and authorizing filing
 
 4. **Retain copies** of all tax documents for at least seven (7) years
 
@@ -109,7 +109,7 @@ Returns will be retained electronically for seven (7) years.
 
 By signing below, you:
 
-1. Authorize us to prepare and electronically file your {{TAX_YEAR}} tax return(s)
+1. Authorize us to prepare and file your {{TAX_YEAR}} tax return(s)
 2. Acknowledge that you have read and understand this engagement letter
 3. Agree to the fees and payment terms described above
 4. Confirm that you will provide complete and accurate information

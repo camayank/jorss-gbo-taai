@@ -989,7 +989,7 @@ Bot: "Let's get their information..."
 2. **No IRS Pre-Filing Validation** (Risk: 9/10)
    - IRS has database of valid SSNs and names
    - Bot doesn't verify SSN belongs to actual person
-   - e-file will reject, but only after user submitted
+   - IRS will reject filing, but only after CPA submits externally
 
 3. **No Identity Verification** (Risk: 10/10)
    - Bot doesn't verify user is who they claim to be
@@ -1290,8 +1290,12 @@ class K1Basis:
 
 ---
 
-#### 4.3 E-File Rejection Handling
-**Requirement**: Handle IRS e-file rejections gracefully.
+#### 4.3 Filing Rejection Handling
+**Requirement**: Handle IRS filing rejections gracefully.
+
+> **NOTE:** This platform does NOT e-file directly with IRS. CPAs use the
+> generated filing package with their preferred external e-filing software.
+> This section addresses handling rejections when CPAs report filing issues.
 
 **Common Rejections**:
 - SSN doesn't match IRS records
@@ -1299,7 +1303,7 @@ class K1Basis:
 - AGI doesn't match prior year
 - Return already filed (identity theft)
 
-**Action**: Explain rejection reason, guide user to fix
+**Action**: Explain rejection reason, guide CPA/user to fix
 
 ---
 
