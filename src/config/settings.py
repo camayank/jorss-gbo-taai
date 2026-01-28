@@ -244,6 +244,16 @@ class Settings(BaseSettings):
         elif len(encryption_key) < 32:
             errors.append("ENCRYPTION_MASTER_KEY: Must be at least 32 characters")
 
+        # Check CSRF_SECRET_KEY (SPEC-002 addition)
+        csrf_secret = os.environ.get("CSRF_SECRET_KEY")
+        if not csrf_secret:
+            errors.append(
+                "CSRF_SECRET_KEY: Required in production for CSRF protection. "
+                "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        elif len(csrf_secret) < 32:
+            errors.append("CSRF_SECRET_KEY: Must be at least 32 characters")
+
         # Check HTTPS enforcement
         if not self.enforce_https:
             errors.append(

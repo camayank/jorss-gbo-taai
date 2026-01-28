@@ -5,6 +5,9 @@ from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 import io
 
+# Skip all tests in this module if celery is not installed
+pytest.importorskip("celery", reason="celery not installed")
+
 from conftest import CSRF_BYPASS_HEADERS
 
 

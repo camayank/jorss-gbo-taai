@@ -4,6 +4,18 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from sqlalchemy.ext.asyncio import AsyncSession
 
+# Check if aiosqlite is available for tests that need real database connections
+try:
+    import aiosqlite
+    HAS_AIOSQLITE = True
+except ImportError:
+    HAS_AIOSQLITE = False
+
+requires_aiosqlite = pytest.mark.skipif(
+    not HAS_AIOSQLITE,
+    reason="aiosqlite not installed"
+)
+
 from database.transaction import (
     TransactionManager,
     NestedTransaction,
@@ -43,6 +55,7 @@ class TestTransactionManager:
         assert tm._session is mock_session
         assert tm._owns_session is False
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_begin_creates_session(self):
         """Begin should create a session if none provided."""
@@ -52,6 +65,7 @@ class TestTransactionManager:
         assert tm._is_active is True
         await tm.close()
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_begin_raises_if_already_active(self):
         """Begin should raise if transaction already active."""
@@ -61,6 +75,7 @@ class TestTransactionManager:
             await tm.begin()
         await tm.close()
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_commit(self):
         """Commit should commit the session."""
@@ -76,6 +91,7 @@ class TestTransactionManager:
         with pytest.raises(RuntimeError, match="No active transaction"):
             await tm.commit()
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_rollback(self):
         """Rollback should rollback the session."""
@@ -91,6 +107,7 @@ class TestTransactionManager:
         # Should not raise
         await tm.rollback()
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_close_cleans_up(self):
         """Close should clean up resources."""
@@ -100,6 +117,7 @@ class TestTransactionManager:
         await tm.close()
         assert tm._is_active is False
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_context_manager_success(self):
         """Context manager should commit on success."""
@@ -107,6 +125,7 @@ class TestTransactionManager:
             assert session is not None
         # No exception means success
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_context_manager_rollback_on_error(self):
         """Context manager should rollback on error."""
@@ -166,6 +185,7 @@ class TestNestedTransaction:
         mock_savepoint.rollback.assert_called_once()
 
 
+@requires_aiosqlite
 class TestTransactionContextManager:
     """Tests for transaction() context manager function."""
 
@@ -202,6 +222,7 @@ class TestTransactionContextManager:
                 raise ValueError("Test error")
 
 
+@requires_aiosqlite
 class TestReadOnlySession:
     """Tests for read_only_session() context manager."""
 
@@ -246,6 +267,7 @@ class TestTransactionalDecorator:
         module._async_engine = None
         module._async_session_factory = None
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_provides_session_if_not_given(self):
         """Should provide session if not given in kwargs."""
@@ -302,6 +324,7 @@ class TestTransactionContext:
         assert ctx._session is None
         assert ctx._transaction_manager is None
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_get_session_creates_session(self):
         """get_session should create a session on first call."""
@@ -311,6 +334,7 @@ class TestTransactionContext:
         assert ctx._session is not None
         await ctx.close()
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_get_session_returns_same_session(self):
         """get_session should return same session on subsequent calls."""
@@ -320,6 +344,7 @@ class TestTransactionContext:
         assert session1 is session2
         await ctx.close()
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_commit(self):
         """commit should commit the transaction."""
@@ -328,6 +353,7 @@ class TestTransactionContext:
         await ctx.commit()
         await ctx.close()
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_rollback(self):
         """rollback should rollback the transaction."""
@@ -336,6 +362,7 @@ class TestTransactionContext:
         await ctx.rollback()
         await ctx.close()
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_close_cleans_up(self):
         """close should clean up resources."""
@@ -346,6 +373,7 @@ class TestTransactionContext:
         assert ctx._session is None
         assert ctx._transaction_manager is None
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_context_manager_commits_on_success(self):
         """Context manager should commit on success."""
@@ -353,6 +381,7 @@ class TestTransactionContext:
             session = await ctx.get_session()
             assert session is not None
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_context_manager_rollback_on_error(self):
         """Context manager should rollback on error."""

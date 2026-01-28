@@ -136,37 +136,60 @@ except Exception as e:
 # 4. CSRF Protection (for state-changing operations)
 try:
     # Get or generate secret key for CSRF tokens
+    # SPEC-002: In production, CSRF_SECRET_KEY must be set
     csrf_secret = os.environ.get("CSRF_SECRET_KEY")
+    _environment = os.environ.get("APP_ENVIRONMENT", "development")
+    _is_production = _environment in ("production", "prod", "staging")
+
     if not csrf_secret:
+        if _is_production:
+            raise RuntimeError(
+                "CRITICAL: CSRF_SECRET_KEY environment variable is required in production. "
+                "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
         import secrets
         csrf_secret = secrets.token_hex(32)
         logger.warning("CSRF_SECRET_KEY not set, using generated key (not persistent across restarts)")
 
+    # SPEC-004: CSRF Exempt Paths Documentation
+    # Each exempt path is justified with its protection mechanism
+    csrf_exempt_paths = {
+        # ===== Read-Only Endpoints (Safe - No State Changes) =====
+        "/api/health",                  # Read-only: System health status
+        "/api/sessions/check-active",   # Read-only: Session existence check
+        "/api/validate/fields",         # Read-only: Field validation
+        "/api/calculate-tax",           # Read-only: Tax calculation (no persistence)
+        "/api/estimate",                # Read-only: Tax estimate (no persistence)
+        "/api/v1/admin/health",         # Read-only: Admin health check
+
+        # ===== Bearer Auth Protected (Alternative Security) =====
+        "/api/chat",                    # Bearer auth required + origin validation
+        "/api/advisor/",                # Bearer auth required + origin validation
+        "/api/ai-chat/chat",            # Bearer auth required + origin validation
+        "/api/ai-chat/upload",          # Bearer auth required + origin validation
+        "/api/ai-chat/analyze-document",# Bearer auth required + origin validation
+        "/api/v1/auth/",                # Auth endpoints (login/register) - no existing session
+        "/api/v1/advisory-reports/",    # Bearer auth required + origin validation
+
+        # ===== Session-Based with Alternative Protection =====
+        "/api/sessions/",               # Session ID acts as CSRF token (unguessable)
+        "/api/sessions/create-session", # Creates new session (no existing state to protect)
+
+        # ===== Webhook Endpoints (Signature Validation) =====
+        "/api/webhook",                 # Protected by webhook signature validation
+
+        # ===== Public Lead Capture (Rate Limited) =====
+        # These accept public form submissions but are rate-limited and
+        # validated via CAPTCHA or honeypot fields in the frontend
+        "/api/leads/create",            # Rate limited + frontend CAPTCHA
+        "/api/cpa/lead-magnet/",        # Rate limited + frontend CAPTCHA
+        "/api/lead-magnet/",            # Rate limited + frontend CAPTCHA
+    }
+
     app.add_middleware(
         CSRFMiddleware,
         secret_key=csrf_secret,
-        exempt_paths={
-            "/api/health",
-            "/api/webhook",
-            "/api/chat",  # Uses Bearer auth
-            "/api/sessions/check-active",  # Read-only
-            "/api/sessions/create-session",  # Session creation for chatbot
-            "/api/validate/fields",  # Field validation
-            "/api/calculate-tax",  # Public tax calculator for chatbot
-            "/api/estimate",  # Public tax estimate for chatbot
-            "/api/leads/create",  # Lead capture from chatbot
-            "/api/advisor/",  # Intelligent advisor chatbot API
-            "/api/ai-chat/chat",  # AI chat for conversational chatbot
-            "/api/ai-chat/upload",  # Document upload for chatbot
-            "/api/ai-chat/analyze-document",  # Document analysis for chatbot
-            "/api/sessions/",  # Session save/restore for intelligent advisor
-            "/api/v1/auth/",  # Auth endpoints only (login, register, refresh)
-            "/api/v1/admin/health",  # Health check endpoints
-            "/api/v1/advisory-reports/",  # Advisory report generation for chatbot
-            "/api/cpa/lead-magnet/",  # Lead magnet funnel - public API
-            "/api/lead-magnet/",  # Lead magnet - public API
-            # Note: Other /api/v1/* endpoints require CSRF token OR Bearer auth
-        }
+        exempt_paths=csrf_exempt_paths,
     )
     logger.info("CSRF protection middleware enabled")
 except Exception as e:
@@ -449,6 +472,51 @@ try:
     logger.info("Health check endpoints enabled at /health")
 except ImportError as e:
     logger.warning(f"Health check routes not available: {e}")
+
+# =============================================================================
+# SPEC-005: MODULAR ROUTERS (Extracted from app.py)
+# =============================================================================
+
+# Register Pages Router (HTML UI pages)
+try:
+    from web.routers.pages import router as pages_router, set_templates
+    # Templates will be set after templates are initialized
+    app.include_router(pages_router)
+    logger.info("Pages router enabled")
+except ImportError as e:
+    logger.warning(f"Pages router not available: {e}")
+
+# Register Documents Router (Document upload/management)
+try:
+    from web.routers.documents import router as documents_router
+    app.include_router(documents_router)
+    logger.info("Documents router enabled at /api/documents")
+except ImportError as e:
+    logger.warning(f"Documents router not available: {e}")
+
+# Register Returns Router (Tax return CRUD/workflow)
+try:
+    from web.routers.returns import router as returns_router
+    app.include_router(returns_router)
+    logger.info("Returns router enabled at /api/returns")
+except ImportError as e:
+    logger.warning(f"Returns router not available: {e}")
+
+# Register Calculations Router (Tax calculations)
+try:
+    from web.routers.calculations import router as calculations_router
+    app.include_router(calculations_router)
+    logger.info("Calculations router enabled at /api/calculate")
+except ImportError as e:
+    logger.warning(f"Calculations router not available: {e}")
+
+# Register Validation Router (Field validation)
+try:
+    from web.routers.validation import router as validation_router
+    app.include_router(validation_router)
+    logger.info("Validation router enabled at /api/validate")
+except ImportError as e:
+    logger.warning(f"Validation router not available: {e}")
 
 
 # =============================================================================
@@ -1138,6 +1206,124 @@ def landing_page(request: Request):
 def dashboard(request: Request):
     """CPA Workspace Dashboard - Multi-client management (legacy)."""
     return templates.TemplateResponse("dashboard.html", {"request": request})
+
+
+# =============================================================================
+# ROLE-BASED APPLICATION ROUTER
+# =============================================================================
+# Single entry point that routes users to appropriate dashboard based on role
+
+@app.get("/app", response_class=HTMLResponse)
+async def app_router(request: Request):
+    """
+    Role-based application router.
+
+    Redirects users to appropriate dashboard based on their role:
+    - PLATFORM_ADMIN, SUPER_ADMIN -> /admin
+    - PARTNER, STAFF, CPA, PREPARER -> /app/workspace
+    - CLIENT, TAXPAYER -> /app/portal
+    - Unauthenticated -> /advisor
+    """
+    # Try to get user from session/cookie
+    session_id = request.cookies.get("tax_session_id")
+    user_role = request.cookies.get("user_role", "").lower()
+
+    # If no session, redirect to public advisor
+    if not session_id:
+        return RedirectResponse(url="/advisor", status_code=302)
+
+    # Route based on role
+    admin_roles = ("super_admin", "platform_admin", "admin")
+    cpa_roles = ("partner", "staff", "cpa", "preparer", "accountant")
+    client_roles = ("client", "taxpayer", "user")
+
+    if user_role in admin_roles:
+        return RedirectResponse(url="/admin", status_code=302)
+    elif user_role in cpa_roles:
+        return RedirectResponse(url="/app/workspace", status_code=302)
+    elif user_role in client_roles:
+        return RedirectResponse(url="/app/portal", status_code=302)
+    else:
+        # Default to advisor for unknown roles
+        return RedirectResponse(url="/advisor", status_code=302)
+
+
+@app.get("/app/workspace", response_class=HTMLResponse)
+async def workspace_dashboard(request: Request):
+    """
+    CPA Workspace Dashboard.
+
+    Unified dashboard for CPA firm users (partners, staff, preparers).
+    Redirects to CPA dashboard with workspace context.
+    """
+    # Get user context for the template
+    user = {
+        "role": request.cookies.get("user_role", "staff"),
+        "name": request.cookies.get("user_name", "User"),
+        "email": request.cookies.get("user_email", ""),
+    }
+    return templates.TemplateResponse(
+        "cpa_dashboard.html",
+        {
+            "request": request,
+            "user": user,
+            "current_path": "/app/workspace",
+        }
+    )
+
+
+@app.get("/app/portal", response_class=HTMLResponse)
+async def client_portal(request: Request):
+    """
+    Client Portal Dashboard.
+
+    Dashboard for taxpayer/client users to:
+    - View their tax returns
+    - Upload documents
+    - Message their CPA
+    - Track return status
+    """
+    user = {
+        "role": request.cookies.get("user_role", "client"),
+        "name": request.cookies.get("user_name", "User"),
+        "email": request.cookies.get("user_email", ""),
+    }
+    return templates.TemplateResponse(
+        "client_portal.html",
+        {
+            "request": request,
+            "user": user,
+            "current_path": "/app/portal",
+        }
+    )
+
+
+@app.get("/app/settings", response_class=HTMLResponse)
+async def app_settings(request: Request):
+    """
+    User settings page accessible from any role.
+    """
+    user = {
+        "role": request.cookies.get("user_role", "user"),
+        "name": request.cookies.get("user_name", "User"),
+        "email": request.cookies.get("user_email", ""),
+    }
+    # Route to appropriate settings based on role
+    role = user["role"].lower()
+    if role in ("partner", "staff", "cpa", "preparer"):
+        return RedirectResponse(url="/cpa/settings", status_code=302)
+    elif role in ("super_admin", "platform_admin", "admin"):
+        return RedirectResponse(url="/admin/settings", status_code=302)
+    else:
+        return templates.TemplateResponse(
+            "client_portal.html",  # Client settings within portal
+            {
+                "request": request,
+                "user": user,
+                "current_path": "/app/settings",
+                "show_settings": True,
+            }
+        )
 
 
 @app.get("/cpa", response_class=HTMLResponse)
@@ -2586,6 +2772,43 @@ async def database_status():
             "status": "error",
             "error": str(e),
         })
+
+
+@app.on_event("startup")
+async def startup_security_validation():
+    """
+    Validate security configuration at application startup.
+
+    CRITICAL: In production, the application will fail to start if:
+    - APP_SECRET_KEY is missing or weak
+    - JWT_SECRET is missing or weak
+    - AUTH_SECRET_KEY is missing or weak
+    - PASSWORD_SALT is missing or weak
+    - ENCRYPTION_MASTER_KEY is missing or weak
+    - CSRF_SECRET_KEY is missing or weak
+
+    SPEC-002: This ensures no production deployment with default/weak secrets.
+    """
+    try:
+        from config.settings import get_settings, validate_startup_security
+
+        settings = get_settings()
+
+        if settings.is_production:
+            # In production, fail fast if security is misconfigured
+            validate_startup_security(settings, exit_on_failure=True)
+            logger.info("[SECURITY] Production security validation PASSED")
+        else:
+            # In development, warn but don't block
+            errors = settings.validate_production_security()
+            if errors:
+                logger.warning(
+                    f"[SECURITY] Development mode - {len(errors)} security settings "
+                    "would fail in production. Set APP_ENVIRONMENT=production to enforce."
+                )
+    except Exception as e:
+        logger.error(f"[SECURITY] Security validation failed: {e}")
+        raise
 
 
 @app.on_event("startup")

@@ -7,6 +7,18 @@ import json
 
 from config.database import DatabaseSettings, get_database_settings
 
+# Check if aiosqlite is available for tests that need real database connections
+try:
+    import aiosqlite
+    HAS_AIOSQLITE = True
+except ImportError:
+    HAS_AIOSQLITE = False
+
+requires_aiosqlite = pytest.mark.skipif(
+    not HAS_AIOSQLITE,
+    reason="aiosqlite not installed"
+)
+
 
 class TestDatabaseSettings:
     """Tests for DatabaseSettings configuration."""
@@ -81,6 +93,7 @@ class TestDatabaseSettings:
         assert settings.ssl_mode == "require"
 
 
+@requires_aiosqlite
 class TestAsyncEngine:
     """Tests for async database engine."""
 
@@ -163,6 +176,7 @@ class TestAsyncEngine:
         await close_database()
 
 
+@requires_aiosqlite
 class TestTransactionManager:
     """Tests for transaction management."""
 
@@ -281,6 +295,7 @@ class TestTransactionManager:
         await close_database()
 
 
+@requires_aiosqlite
 class TestUnitOfWork:
     """Tests for Unit of Work pattern."""
 
@@ -506,6 +521,7 @@ class TestTaxReturnRepository:
         assert mock_session.execute.call_count == 2
 
 
+@requires_aiosqlite
 class TestNestedTransaction:
     """Tests for nested transactions."""
 
@@ -541,6 +557,7 @@ class TestNestedTransaction:
         await close_database()
 
 
+@requires_aiosqlite
 class TestDatabaseInitialization:
     """Tests for database initialization."""
 

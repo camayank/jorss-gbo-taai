@@ -72,11 +72,20 @@ class TaxReturnRepository(ITaxReturnRepository):
         """
         Save a tax return (upsert).
 
+        SECURITY (SPEC-003): SSN is never stored in plaintext.
+        - SSN hash is stored for lookups
+        - SSN is masked in return_data JSON (***-**-XXXX)
+        - Actual SSN should be encrypted separately if needed
+
         Args:
             return_id: Tax return identifier.
             tax_return_data: Full tax return data dict.
         """
+        import copy
         from sqlalchemy import text
+
+        # Create a deep copy to avoid modifying the original
+        sanitized_data = copy.deepcopy(tax_return_data)
 
         # Extract metadata from the tax return data
         taxpayer = tax_return_data.get("taxpayer", {})
@@ -88,9 +97,32 @@ class TaxReturnRepository(ITaxReturnRepository):
         last_name = taxpayer.get("last_name", "")
         taxpayer_name = f"{first_name} {last_name}".strip() or "Unknown"
 
-        # Hash SSN for lookups
+        # Hash SSN for lookups (SPEC-003)
         ssn = taxpayer.get("ssn", "")
         ssn_hash = hashlib.sha256(ssn.encode()).hexdigest() if ssn else None
+
+        # SECURITY (SPEC-003): Sanitize SSN from stored JSON data
+        # Replace plaintext SSN with masked version to prevent PII exposure
+        if "taxpayer" in sanitized_data and "ssn" in sanitized_data["taxpayer"]:
+            raw_ssn = sanitized_data["taxpayer"]["ssn"]
+            if raw_ssn:
+                # Mask SSN: keep last 4 digits only
+                digits = ''.join(c for c in str(raw_ssn) if c.isdigit())
+                if len(digits) >= 4:
+                    sanitized_data["taxpayer"]["ssn"] = f"***-**-{digits[-4:]}"
+                else:
+                    sanitized_data["taxpayer"]["ssn"] = "***-**-****"
+            logger.debug(f"[SECURITY] SSN sanitized for return {return_id}")
+
+        # Also sanitize spouse_ssn if present
+        if "taxpayer" in sanitized_data and "spouse_ssn" in sanitized_data["taxpayer"]:
+            raw_spouse_ssn = sanitized_data["taxpayer"]["spouse_ssn"]
+            if raw_spouse_ssn:
+                digits = ''.join(c for c in str(raw_spouse_ssn) if c.isdigit())
+                if len(digits) >= 4:
+                    sanitized_data["taxpayer"]["spouse_ssn"] = f"***-**-{digits[-4:]}"
+                else:
+                    sanitized_data["taxpayer"]["spouse_ssn"] = "***-**-****"
 
         # Extract financial values
         gross_income = income.get("total_income", 0) or 0
@@ -169,7 +201,7 @@ class TaxReturnRepository(ITaxReturnRepository):
             "state_refund": state_refund,
             "combined_refund": combined_refund,
             "status": tax_return_data.get("status", "draft"),
-            "return_data": json.dumps(tax_return_data),
+            "return_data": json.dumps(sanitized_data),  # SPEC-003: Use sanitized data
             "created_at": now,
             "updated_at": now,
         }

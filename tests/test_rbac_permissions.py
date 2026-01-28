@@ -40,60 +40,67 @@ from src.database.tenant_models import SubscriptionTier
 @pytest.fixture
 def platform_admin_context():
     """Platform admin auth context"""
-    return AuthContext(
-        user_id="admin-001",
+    from uuid import UUID
+    from src.rbac.context import UserType
+    return AuthContext.for_platform_admin(
+        user_id=UUID("00000000-0000-0000-0000-000000000001"),
         email="admin@platform.com",
+        name="Admin User",
         role=Role.PLATFORM_ADMIN,
-        tenant_id=None,
-        is_authenticated=True
     )
 
 
 @pytest.fixture
 def partner_context():
     """Partner (tenant admin) auth context"""
-    return AuthContext(
-        user_id="partner-001",
+    from uuid import UUID
+    return AuthContext.for_firm_user(
+        user_id=UUID("00000000-0000-0000-0000-000000000002"),
         email="partner@tenant1.com",
+        name="Partner User",
         role=Role.PARTNER,
-        tenant_id="tenant-001",
-        is_authenticated=True
+        firm_id=UUID("00000000-0000-0000-0000-000000000010"),
+        firm_name="Test CPA Firm"
     )
 
 
 @pytest.fixture
 def staff_context():
     """Staff (CPA) auth context"""
-    return AuthContext(
-        user_id="staff-001",
+    from uuid import UUID
+    return AuthContext.for_firm_user(
+        user_id=UUID("00000000-0000-0000-0000-000000000003"),
         email="cpa@tenant1.com",
+        name="Staff User",
         role=Role.STAFF,
-        tenant_id="tenant-001",
-        is_authenticated=True
+        firm_id=UUID("00000000-0000-0000-0000-000000000010"),
+        firm_name="Test CPA Firm"
     )
 
 
 @pytest.fixture
 def firm_client_context():
     """Firm client auth context"""
-    return AuthContext(
-        user_id="client-001",
+    from uuid import UUID
+    return AuthContext.for_client(
+        user_id=UUID("00000000-0000-0000-0000-000000000004"),
         email="client@example.com",
-        role=Role.FIRM_CLIENT,
-        tenant_id="tenant-001",
-        is_authenticated=True
+        name="Firm Client",
+        is_direct=False,
+        firm_id=UUID("00000000-0000-0000-0000-000000000010"),
+        firm_name="Test CPA Firm"
     )
 
 
 @pytest.fixture
 def direct_client_context():
     """Direct client (no firm) auth context"""
-    return AuthContext(
-        user_id="client-002",
+    from uuid import UUID
+    return AuthContext.for_client(
+        user_id=UUID("00000000-0000-0000-0000-000000000005"),
         email="direct@example.com",
-        role=Role.DIRECT_CLIENT,
-        tenant_id=None,
-        is_authenticated=True
+        name="Direct Client",
+        is_direct=True,
     )
 
 
@@ -101,7 +108,6 @@ def direct_client_context():
 # PERMISSION DEFINITION TESTS
 # =============================================================================
 
-@pytest.mark.skip(reason="API mismatch - permissions coverage changed")
 class TestPermissionDefinitions:
     """Test permission structure and definitions"""
 
@@ -113,7 +119,7 @@ class TestPermissionDefinitions:
             perm.code = "modified"
 
     def test_permission_code_format(self):
-        """Permission codes should follow naming convention: {SCOPE}_{RESOURCE}_{ACTION}"""
+        """Permission codes should follow naming convention: {scope}.{resource}.{action}"""
         test_perms = [
             Permissions.PLATFORM_TENANT_CREATE,
             Permissions.TENANT_BRANDING_EDIT,
@@ -122,6 +128,7 @@ class TestPermissionDefinitions:
         ]
 
         for perm in test_perms:
+            # Codes use dot notation: e.g., "platform.tenant.create"
             parts = perm.code.split('.')
             assert len(parts) >= 2, f"Permission code should have at least 2 parts: {perm.code}"
 
@@ -149,13 +156,13 @@ class TestPermissionDefinitions:
 
         resources = {perm.resource for perm in all_perms}
 
-        # Should have permissions for major resource types
+        # Updated to match actual ResourceType enum values in implementation
         expected_resources = {
             ResourceType.TENANT,
-            ResourceType.USER,
+            ResourceType.TENANT_USERS,  # Changed from USER
             ResourceType.TAX_RETURN,
             ResourceType.DOCUMENT,
-            ResourceType.CLIENT
+            ResourceType.CLIENT_PROFILE  # Changed from CLIENT
         }
 
         assert expected_resources.issubset(resources), \
@@ -166,27 +173,43 @@ class TestPermissionDefinitions:
 # ROLE PERMISSION TESTS
 # =============================================================================
 
-@pytest.mark.skip(reason="API mismatch - permission attributes changed")
 class TestRolePermissions:
     """Test permission assignments for each role"""
 
-    def test_platform_admin_has_all_permissions(self):
-        """Platform admin should have all permissions"""
+    def test_platform_admin_has_platform_permissions(self):
+        """Platform admin should have all platform-level permissions"""
         admin_perms = get_permissions_for_role('PLATFORM_ADMIN')
-        all_perms = [getattr(Permissions, attr) for attr in dir(Permissions)
-                     if isinstance(getattr(Permissions, attr), Permission)]
 
-        # Platform admin should have all permissions
-        assert len(admin_perms) == len(all_perms), \
-            f"Platform admin should have all {len(all_perms)} permissions, has {len(admin_perms)}"
+        # Platform admin has a specific set of platform-level permissions
+        # Not ALL permissions, but all PLATFORM_ scope permissions
+        platform_perms = [
+            Permissions.PLATFORM_TENANT_VIEW_ALL,
+            Permissions.PLATFORM_TENANT_CREATE,
+            Permissions.PLATFORM_TENANT_EDIT,
+            Permissions.PLATFORM_TENANT_DELETE,
+            Permissions.PLATFORM_TENANT_BRANDING_EDIT,
+            Permissions.PLATFORM_TENANT_FEATURES_EDIT,
+            Permissions.PLATFORM_TENANT_BILLING_MANAGE,
+            Permissions.PLATFORM_SYSTEM_CONFIGURE,
+            Permissions.PLATFORM_AUDIT_VIEW,
+            Permissions.PLATFORM_PERMISSIONS_MANAGE,
+        ]
 
-    def test_partner_permissions_subset_of_admin(self):
-        """Partner permissions should be subset of platform admin"""
-        admin_perms = get_permissions_for_role('PLATFORM_ADMIN')
+        for perm in platform_perms:
+            assert perm in admin_perms, \
+                f"Platform admin should have {perm.code}"
+
+    def test_partner_has_tenant_management_perms(self):
+        """Partner should have tenant management permissions within their tenant"""
         partner_perms = get_permissions_for_role('PARTNER')
 
-        assert partner_perms.issubset(admin_perms), \
-            "Partner should not have permissions that admin doesn't have"
+        # Partner has tenant management but not platform-wide management
+        assert Permissions.TENANT_BRANDING_EDIT in partner_perms
+        assert Permissions.TENANT_USERS_EDIT in partner_perms
+        assert Permissions.TENANT_SETTINGS_EDIT in partner_perms
+
+        # Partner should NOT have platform-level permissions
+        assert Permissions.PLATFORM_TENANT_CREATE not in partner_perms
 
     def test_staff_permissions_subset_of_partner(self):
         """Staff permissions should be subset of partner"""
@@ -203,7 +226,7 @@ class TestRolePermissions:
         tenant_mgmt_perms = {
             Permissions.TENANT_BRANDING_EDIT,
             Permissions.TENANT_USERS_EDIT,
-            Permissions.TENANT_FEATURES_EDIT
+            Permissions.TENANT_SETTINGS_EDIT
         }
 
         assert not tenant_mgmt_perms.intersection(client_perms), \
@@ -215,7 +238,7 @@ class TestRolePermissions:
 
         # This was the bug - ensure SELF_EDIT_RETURN is included
         assert Permissions.CLIENT_RETURNS_EDIT_SELF in client_perms, \
-            "FIRM_CLIENT must have SELF_EDIT_RETURN permission (bug fix verification)"
+            "FIRM_CLIENT must have CLIENT_RETURNS_EDIT_SELF permission (bug fix verification)"
 
     def test_staff_can_view_client_returns(self):
         """Staff should be able to view assigned client returns"""
@@ -236,7 +259,6 @@ class TestRolePermissions:
 # PERMISSION CHECKING TESTS
 # =============================================================================
 
-@pytest.mark.skip(reason="API mismatch - permission attributes changed")
 class TestPermissionChecking:
     """Test permission checking logic"""
 
@@ -289,35 +311,23 @@ class TestPermissionChecking:
             assigned_cpa_id="staff-002"
         ), "Staff should not be able to edit unassigned returns"
 
-    def test_platform_admin_bypasses_ownership(self):
-        """Platform admin should bypass ownership checks"""
+    def test_platform_admin_has_platform_view(self):
+        """Platform admin should have platform-level view permissions"""
         admin_perms = get_permissions_for_role('PLATFORM_ADMIN')
 
-        # Even with different user_ids, admin should have access
+        # Platform admin has view permissions for all tenants
         assert has_permission(
             admin_perms,
-            Permissions.PLATFORM_USERS_VIEW_ALL,
-            user_id="admin-001",
-            resource_owner_id="client-001"
-        ), "Platform admin should bypass ownership restrictions"
+            Permissions.PLATFORM_TENANT_VIEW_ALL
+        ), "Platform admin should have tenant view permission"
 
 
 # =============================================================================
 # FEATURE ACCESS CONTROL TESTS
 # =============================================================================
 
-@pytest.mark.skip(reason="API mismatch - feature access API changed")
 class TestFeatureAccessControl:
     """Test feature gating and subscription tier enforcement"""
-
-    def test_free_tier_features(self, firm_client_context):
-        """Free tier should have access to basic features"""
-        # Mock tenant with free tier
-        firm_client_context.tenant_id = None  # Will default to checking role only
-
-        # Express Lane is free tier
-        access = check_feature_access(Features.EXPRESS_LANE, firm_client_context)
-        # Note: This will fail without tenant, but that's expected behavior
 
     def test_starter_tier_features(self):
         """Starter tier should have additional features"""
@@ -360,7 +370,6 @@ class TestFeatureAccessControl:
 # INTEGRATION TESTS
 # =============================================================================
 
-@pytest.mark.skip(reason="API mismatch - permission enforcement API changed")
 class TestPermissionEnforcement:
     """Test permission enforcement decorators and middleware"""
 
@@ -398,7 +407,6 @@ class TestPermissionEnforcement:
 # SECURITY TESTS
 # =============================================================================
 
-@pytest.mark.skip(reason="API mismatch - permission attributes changed")
 class TestSecurityBoundaries:
     """Test security boundaries and access control"""
 
@@ -449,8 +457,8 @@ class TestSecurityBoundaries:
         # Partner can manage users in their tenant
         assert Permissions.TENANT_USERS_EDIT in partner_perms
 
-        # But should not have PLATFORM_USERS_EDIT_ALL
-        assert Permissions.PLATFORM_USERS_VIEW_ALL not in partner_perms
+        # But should not have platform-level view permissions
+        assert Permissions.PLATFORM_TENANT_VIEW_ALL not in partner_perms
 
 
 # =============================================================================

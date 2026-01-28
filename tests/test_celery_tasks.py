@@ -5,6 +5,9 @@ import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
 from uuid import uuid4
 
+# Skip all tests in this module if celery is not installed
+pytest.importorskip("celery", reason="celery not installed")
+
 
 class TestCeleryApp:
     """Tests for Celery app configuration."""

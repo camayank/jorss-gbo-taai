@@ -329,13 +329,34 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         self.header_name = header_name
         self.safe_methods = safe_methods or {"GET", "HEAD", "OPTIONS", "TRACE"}
         self.exempt_paths = exempt_paths or {"/api/health", "/api/webhook"}
+
+        # SPEC-004: Production safety - environment detection
+        environment = os.environ.get("APP_ENVIRONMENT", "development")
+        self._is_production = environment in ("production", "prod", "staging")
+
         # Allowed origins for Bearer auth requests (CSRF bypass security)
-        self.allowed_origins = allowed_origins or [
-            "http://localhost:3000",
-            "http://localhost:8000",
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:8000",
-        ]
+        # SPEC-004: In production, localhost origins are not allowed
+        if allowed_origins:
+            self.allowed_origins = allowed_origins
+        elif self._is_production:
+            # Production: Only allow the actual application domain
+            # This should be configured via CORS_ORIGINS environment variable
+            cors_origins = os.environ.get("CORS_ORIGINS", "").split(",")
+            self.allowed_origins = [o.strip() for o in cors_origins if o.strip() and "localhost" not in o.lower() and "127.0.0.1" not in o]
+            if not self.allowed_origins:
+                logger.warning("[CSRF] No production origins configured - CORS_ORIGINS should be set")
+        else:
+            # Development: Allow localhost
+            self.allowed_origins = [
+                "http://localhost:3000",
+                "http://localhost:8000",
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:8000",
+            ]
+
+        # CSRF metrics tracking
+        self._csrf_failures = 0
+        self._csrf_successes = 0
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # Skip CSRF for safe methods
@@ -372,19 +393,28 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         )
 
         if not session_token or not request_token:
-            logger.warning(f"CSRF token missing for {request.url.path}")
+            self._csrf_failures += 1
+            logger.warning(
+                f"[CSRF] Token missing | path={request.url.path} | "
+                f"method={request.method} | failures={self._csrf_failures}"
+            )
             return JSONResponse(
                 status_code=403,
                 content={"detail": "CSRF token missing"},
             )
 
         if not self._verify_token(session_token, request_token):
-            logger.warning(f"CSRF token invalid for {request.url.path}")
+            self._csrf_failures += 1
+            logger.warning(
+                f"[CSRF] Token invalid | path={request.url.path} | "
+                f"method={request.method} | failures={self._csrf_failures}"
+            )
             return JSONResponse(
                 status_code=403,
                 content={"detail": "CSRF token invalid"},
             )
 
+        self._csrf_successes += 1
         return await call_next(request)
 
     async def _get_form_token(self, request: Request) -> Optional[str]:

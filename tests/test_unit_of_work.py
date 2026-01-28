@@ -4,6 +4,18 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from sqlalchemy.ext.asyncio import AsyncSession
 
+# Check if aiosqlite is available for tests that need real database connections
+try:
+    import aiosqlite
+    HAS_AIOSQLITE = True
+except ImportError:
+    HAS_AIOSQLITE = False
+
+requires_aiosqlite = pytest.mark.skipif(
+    not HAS_AIOSQLITE,
+    reason="aiosqlite not installed"
+)
+
 from database.unit_of_work import (
     UnitOfWork,
     unit_of_work,
@@ -56,6 +68,7 @@ class TestUnitOfWork:
         uow = UnitOfWork()
         assert uow._pending_events == []
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_aenter_creates_session(self):
         """__aenter__ should create a session if none provided."""
@@ -74,6 +87,7 @@ class TestUnitOfWork:
         assert uow._session is mock_session
         # Don't call __aexit__ since we don't own the session
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_tax_returns_property_lazy_init(self):
         """tax_returns property should lazily initialize repository."""
@@ -196,6 +210,7 @@ class TestUnitOfWork:
         # Should not raise
         await uow.rollback()
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_aexit_commits_on_success(self):
         """__aexit__ should commit on successful exit."""
@@ -203,6 +218,7 @@ class TestUnitOfWork:
             pass
         # No exception means commit happened
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_aexit_rollback_on_exception(self):
         """__aexit__ should rollback on exception."""
@@ -210,6 +226,7 @@ class TestUnitOfWork:
             async with UnitOfWork() as uow:
                 raise ValueError("Test error")
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_aexit_closes_owned_session(self):
         """__aexit__ should close session if we own it."""
@@ -220,6 +237,7 @@ class TestUnitOfWork:
         assert uow._session is None
 
 
+@requires_aiosqlite
 class TestUnitOfWorkContextManager:
     """Tests for unit_of_work() context manager function."""
 
@@ -265,6 +283,7 @@ class TestUnitOfWorkFactory:
         uow = factory.create()
         assert isinstance(uow, UnitOfWork)
 
+    @requires_aiosqlite
     @pytest.mark.asyncio
     async def test_callable_as_context_manager(self):
         """Factory should be usable as async context manager."""
@@ -290,6 +309,7 @@ class TestGetUnitOfWork:
         assert uow1 is not uow2
 
 
+@requires_aiosqlite
 class TestUnitOfWorkEventPublishing:
     """Tests for domain event publishing in UnitOfWork."""
 

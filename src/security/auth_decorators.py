@@ -358,45 +358,193 @@ def is_rate_limited(user_id: str, requests_per_minute: int) -> bool:
 
 
 # ============================================================================
-# STUB IMPLEMENTATIONS (Replace with actual auth system)
+# AUTHENTICATION IMPLEMENTATIONS
 # ============================================================================
 
 def verify_jwt_token(token: str) -> Optional[dict]:
-    """Verify JWT token and return user claims."""
-    # TODO: Implement actual JWT verification
-    # from security.authentication import verify_token
-    # return verify_token(token)
-    return None
+    """
+    Verify JWT token and return user claims.
+
+    Uses the rbac/jwt.py decode_token_safe() for actual verification.
+
+    Returns:
+        User dict with id, role, tenant_id, email, name, or None if invalid.
+    """
+    try:
+        from rbac.jwt import decode_token_safe
+
+        payload = decode_token_safe(token)
+        if not payload:
+            return None
+
+        # Map JWT payload to expected user format
+        return {
+            "id": payload.get("sub"),
+            "email": payload.get("email"),
+            "name": payload.get("name"),
+            "role": payload.get("role"),
+            "user_type": payload.get("user_type"),
+            "tenant_id": payload.get("firm_id") or "default",
+            "firm_id": payload.get("firm_id"),
+            "firm_name": payload.get("firm_name"),
+        }
+    except Exception as e:
+        logger.warning(f"[SECURITY] JWT verification failed: {e}")
+        return None
 
 
 def get_user_from_session(session_id: str) -> Optional[dict]:
-    """Get user from session ID."""
-    # TODO: Implement actual session lookup
-    return None
+    """
+    Get user from session ID.
+
+    Looks up session in database and returns user info.
+
+    Returns:
+        User dict with id, role, tenant_id, or None if not found.
+    """
+    try:
+        from database.session_persistence import get_session_persistence
+
+        persistence = get_session_persistence()
+        session_record = persistence.load_session(session_id)
+
+        if not session_record:
+            return None
+
+        # Extract user info from session data
+        session_data = session_record.data or {}
+        user_id = session_data.get("user_id") or session_record.metadata.get("user_id")
+
+        return {
+            "id": user_id,
+            "role": session_data.get("role", "taxpayer"),
+            "tenant_id": session_record.tenant_id,
+            "session_type": session_record.session_type,
+        }
+    except Exception as e:
+        logger.warning(f"[SECURITY] Session lookup failed: {e}")
+        return None
 
 
 def get_user_from_api_key(api_key: str) -> Optional[dict]:
-    """Get user from API key."""
-    # TODO: Implement actual API key verification
-    return None
+    """
+    Get user from API key.
+
+    Validates API key against stored hashes in the partners table.
+
+    Returns:
+        User dict with id, role, tenant_id, or None if invalid.
+    """
+    import hashlib
+
+    try:
+        # Hash the provided API key for comparison
+        api_key_hash = hashlib.sha256(api_key.encode()).hexdigest()
+
+        from database.session_persistence import DEFAULT_DB_PATH
+        import sqlite3
+
+        with sqlite3.connect(DEFAULT_DB_PATH) as conn:
+            cursor = conn.cursor()
+
+            # Check partners table for API key
+            cursor.execute("""
+                SELECT partner_id, code, name, is_active
+                FROM partners
+                WHERE api_key_hash = ? AND api_enabled = 1 AND is_active = 1
+            """, (api_key_hash,))
+
+            row = cursor.fetchone()
+            if row:
+                return {
+                    "id": row[0],
+                    "role": "api_partner",
+                    "tenant_id": row[1],  # Use partner code as tenant
+                    "name": row[2],
+                    "user_type": "api",
+                }
+
+        return None
+    except Exception as e:
+        logger.warning(f"[SECURITY] API key verification failed: {e}")
+        return None
 
 
 def get_session_from_return_id(return_id: str) -> Optional[str]:
-    """Get session_id from return_id."""
-    # TODO: Implement actual database lookup
-    return None
+    """
+    Get session_id from return_id.
+
+    Looks up the tax return to find its associated session.
+
+    Returns:
+        Session ID string or None if not found.
+    """
+    try:
+        from database.session_persistence import DEFAULT_DB_PATH
+        import sqlite3
+
+        with sqlite3.connect(DEFAULT_DB_PATH) as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                "SELECT session_id FROM tax_returns WHERE return_id = ?",
+                (return_id,)
+            )
+
+            row = cursor.fetchone()
+            return row[0] if row else None
+    except Exception as e:
+        logger.warning(f"[SECURITY] Return lookup failed: {e}")
+        return None
 
 
 def get_tenant_for_session(session_id: str) -> str:
-    """Get tenant_id for a session."""
-    # TODO: Implement actual database lookup
-    return "default"
+    """
+    Get tenant_id for a session.
+
+    Returns:
+        Tenant ID string, defaults to "default" if not found.
+    """
+    try:
+        from database.session_persistence import get_session_persistence
+
+        persistence = get_session_persistence()
+        session_record = persistence.load_session(session_id)
+
+        if session_record:
+            return session_record.tenant_id
+
+        return "default"
+    except Exception as e:
+        logger.warning(f"[SECURITY] Tenant lookup failed: {e}")
+        return "default"
 
 
 def get_owner_for_session(session_id: str) -> Optional[str]:
-    """Get owner user_id for a session."""
-    # TODO: Implement actual database lookup
-    return None
+    """
+    Get owner user_id for a session.
+
+    Returns:
+        Owner user ID or None if not found.
+    """
+    try:
+        from database.session_persistence import get_session_persistence
+
+        persistence = get_session_persistence()
+        session_record = persistence.load_session(session_id)
+
+        if session_record:
+            # Check session data for user_id
+            user_id = session_record.data.get("user_id")
+            if user_id:
+                return user_id
+            # Also check metadata
+            return session_record.metadata.get("user_id")
+
+        return None
+    except Exception as e:
+        logger.warning(f"[SECURITY] Owner lookup failed: {e}")
+        return None
 
 
 # Export main interface

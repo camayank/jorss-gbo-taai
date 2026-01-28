@@ -138,6 +138,27 @@ class TaxReturnPersistence:
         ssn = taxpayer.get("ssn", "")
         ssn_hash = hashlib.sha256(ssn.replace("-", "").encode()).hexdigest() if ssn else None
 
+        # SECURITY (SPEC-003): Sanitize SSN before storing in JSON
+        # Create a copy with masked SSN to prevent PII exposure
+        import copy
+        sanitized_data = copy.deepcopy(tax_return_data)
+        if "taxpayer" in sanitized_data and "ssn" in sanitized_data["taxpayer"]:
+            raw_ssn = sanitized_data["taxpayer"]["ssn"]
+            if raw_ssn:
+                digits = ''.join(c for c in str(raw_ssn) if c.isdigit())
+                if len(digits) >= 4:
+                    sanitized_data["taxpayer"]["ssn"] = f"***-**-{digits[-4:]}"
+                else:
+                    sanitized_data["taxpayer"]["ssn"] = "***-**-****"
+        if "taxpayer" in sanitized_data and "spouse_ssn" in sanitized_data["taxpayer"]:
+            raw_spouse_ssn = sanitized_data["taxpayer"]["spouse_ssn"]
+            if raw_spouse_ssn:
+                digits = ''.join(c for c in str(raw_spouse_ssn) if c.isdigit())
+                if len(digits) >= 4:
+                    sanitized_data["taxpayer"]["spouse_ssn"] = f"***-**-{digits[-4:]}"
+                else:
+                    sanitized_data["taxpayer"]["spouse_ssn"] = "***-**-****"
+
         # Get computed values
         gross_income = tax_return_data.get("adjusted_gross_income", 0) or 0
         if not gross_income and income:
@@ -195,7 +216,7 @@ class TaxReturnPersistence:
                     tax_return_data.get("state_refund_or_owed", 0) or 0,
                     tax_return_data.get("combined_refund_or_owed", 0) or 0,
                     "in_progress",
-                    json.dumps(tax_return_data, default=str),
+                    json.dumps(sanitized_data, default=str),
                     now,
                     return_id
                 ))
@@ -228,7 +249,7 @@ class TaxReturnPersistence:
                     tax_return_data.get("state_refund_or_owed", 0) or 0,
                     tax_return_data.get("combined_refund_or_owed", 0) or 0,
                     "draft",
-                    json.dumps(tax_return_data, default=str),
+                    json.dumps(sanitized_data, default=str),
                     now,
                     now
                 ))
