@@ -1,4 +1,3 @@
-{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1715,7 +1714,7 @@
     }
 
     .field-valid::after {
-      content: '{{ icon('check') }}';
+      content: '✓';
       position: absolute;
       right: 12px;
       top: 50%;
@@ -1844,7 +1843,7 @@
 
   <!-- Offline Detection Banner -->
   <div class="offline-banner" id="offlineBanner" role="alert" aria-live="assertive">
-    {{ icon('exclamation-triangle') }} You're offline. Your messages will be sent when connection is restored.
+    ⚠️ You're offline. Your messages will be sent when connection is restored.
   </div>
 
   <!-- Loading Overlay for Heavy Operations -->
@@ -1863,7 +1862,7 @@
     </div>
     <div class="header-right">
       <button class="clear-chat-btn" onclick="clearConversation()" title="Start new conversation" aria-label="Start new conversation">
-        {{ icon('arrow-path') }} New Chat
+        🔄 New Chat
       </button>
       <div class="connection-status" id="connectionStatus" role="status" aria-live="polite">
         <span class="status-dot" id="connectionDot"></span>
@@ -1875,27 +1874,27 @@
   <!-- Data Collection Consent Modal -->
   <div class="consent-modal" id="consentModal" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
     <div class="consent-content">
-      <h2 id="consentTitle">{{ icon('clipboard-document-list') }} Before We Begin</h2>
+      <h2 id="consentTitle">📋 Before We Begin</h2>
       <div class="consent-body">
         <p><strong>This AI assistant will collect personal tax information to provide guidance.</strong></p>
 
         <div class="consent-item">
-          <span class="consent-icon">{{ icon('lock-closed') }}</span>
+          <span class="consent-icon">🔒</span>
           <span><strong>Data Security:</strong> All information is encrypted (AES-256) in transit and at rest.</span>
         </div>
 
         <div class="consent-item">
-          <span class="consent-icon">{{ icon('clock') }}</span>
+          <span class="consent-icon">⏰</span>
           <span><strong>Data Retention:</strong> Your session data is automatically deleted after 30 days of inactivity.</span>
         </div>
 
         <div class="consent-item">
-          <span class="consent-icon">{{ icon('x-circle') }}</span>
+          <span class="consent-icon">🚫</span>
           <span><strong>No Selling:</strong> We never sell or share your personal information with third parties.</span>
         </div>
 
         <div class="consent-item warning">
-          <span class="consent-icon">{{ icon('exclamation-triangle') }}</span>
+          <span class="consent-icon">⚠️</span>
           <span><strong>IRS Circular 230 Notice:</strong> This AI provides general guidance only, NOT professional tax advice. It cannot represent you before the IRS. For complex tax situations, always consult a licensed CPA, EA, or tax attorney.</span>
         </div>
 
@@ -1909,7 +1908,7 @@
         <a href="/privacy" target="_blank" class="consent-link">Privacy Policy</a>
         <a href="/terms" target="_blank" class="consent-link">Terms of Service</a>
         <button class="consent-btn" id="acceptConsentBtn" disabled onclick="acceptConsent();">
-          {{ icon('check') }} Accept & Continue
+          ✓ Accept & Continue
         </button>
       </div>
     </div>
@@ -1924,7 +1923,7 @@
           <span><strong>AI Assistant:</strong> I provide estimates and general guidance, not professional tax advice. Always verify with a licensed CPA or tax professional.</span>
         </div>
         <div class="disclaimer-item">
-          <span class="disclaimer-icon">{{ icon('lock-closed') }}</span>
+          <span class="disclaimer-icon">🔒</span>
           <span><strong>Privacy:</strong> Your data is encrypted and never sold. <a href="/privacy" style="color: var(--primary);">Privacy Policy</a></span>
         </div>
       </div>
@@ -1932,19 +1931,19 @@
       <!-- Journey Progress Stepper -->
       <div class="journey-stepper" id="journeyStepper" role="navigation" aria-label="Tax advisory progress">
         <div class="journey-step active" data-step="1" id="step-1">
-          <div class="step-icon">{{ icon('clipboard-document-list') }}</div>
+          <div class="step-icon">📋</div>
           <div class="step-label">Profile</div>
         </div>
         <div class="journey-step" data-step="2" id="step-2">
-          <div class="step-icon">{{ icon('banknotes') }}</div>
+          <div class="step-icon">💰</div>
           <div class="step-label">Income</div>
         </div>
         <div class="journey-step" data-step="3" id="step-3">
-          <div class="step-icon">{{ icon('sparkles') }}</div>
+          <div class="step-icon">🎯</div>
           <div class="step-label">Analysis</div>
         </div>
         <div class="journey-step" data-step="4" id="step-4">
-          <div class="step-icon">{{ icon('chart-bar') }}</div>
+          <div class="step-icon">📊</div>
           <div class="step-label">Report</div>
         </div>
       </div>
@@ -1956,7 +1955,7 @@
       <div class="messages" id="messages" role="log" aria-live="polite" aria-label="Conversation with AI tax advisor">
         <!-- Premium initial message -->
         <div class="message ai" role="article" aria-label="AI assistant message">
-          <div class="avatar" aria-hidden="true">{{ icon('building-office') }}</div>
+          <div class="avatar" aria-hidden="true">💼</div>
           <div class="bubble">
             <div style="margin-bottom: 16px;">
               <span style="font-size: 24px; font-weight: 700; color: var(--accent-light);">Welcome to Your Tax Advisory Session</span>
@@ -1964,7 +1963,7 @@
             I'm your AI-powered tax strategist, trained on thousands of tax scenarios to help you <strong>maximize savings</strong> and <strong>minimize liability</strong>.<br><br>
             <div class="insight-card" style="margin: 16px 0;">
               <div class="insight-header">
-                <span>{{ icon('chart-bar') }}</span>
+                <span>📊</span>
                 <span>Average Client Savings</span>
               </div>
               <div class="savings-amount">$4,200 - $12,500</div>
@@ -2011,7 +2010,7 @@
 
     <div class="side-panel">
       <div class="panel-card">
-        <div class="panel-header">{{ icon('chart-bar') }} Advisory Progress</div>
+        <div class="panel-header">📊 Advisory Progress</div>
         <div class="progress-bar">
           <div class="progress-fill" id="progressFill" style="width: 0%"></div>
         </div>
@@ -2024,16 +2023,16 @@
       </div>
 
       <div class="panel-card">
-        <div class="panel-header">{{ icon('light-bulb') }} Strategic Recommendations</div>
+        <div class="panel-header">💡 Strategic Recommendations</div>
         <div id="insights" style="font-size: 14px; color: var(--text-secondary);">
           I'll share personalized recommendations as we review your financial situation...
         </div>
       </div>
 
       <div class="panel-card" id="uploadPanel">
-        <div class="panel-header">{{ icon('folder') }} Quick Upload</div>
+        <div class="panel-header">📁 Quick Upload</div>
         <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
-          <div style="font-size: 32px; margin-bottom: 8px;">{{ icon('document-text') }}</div>
+          <div style="font-size: 32px; margin-bottom: 8px;">📄</div>
           <div style="font-size: 14px; margin-bottom: 4px;">Drop documents here</div>
           <div style="font-size: 12px; color: var(--text-secondary);">or click to browse</div>
         </div>
@@ -2250,10 +2249,10 @@
     // ============ JOURNEY STEPPER MANAGEMENT ============
     let currentJourneyStep = 1;
     const journeySteps = {
-      1: { name: 'Profile', icon: '{{ icon('clipboard-document-list') }}' },
-      2: { name: 'Income', icon: '{{ icon('banknotes') }}' },
-      3: { name: 'Analysis', icon: '{{ icon('sparkles') }}' },
-      4: { name: 'Report', icon: '{{ icon('chart-bar') }}' }
+      1: { name: 'Profile', icon: '📋' },
+      2: { name: 'Income', icon: '💰' },
+      3: { name: 'Analysis', icon: '🎯' },
+      4: { name: 'Report', icon: '📊' }
     };
 
     function updateJourneyStep(stepNumber) {
@@ -2272,7 +2271,7 @@
         if (i < stepNumber) {
           // Completed steps show checkmark
           stepEl.classList.add('completed');
-          stepIconEl.textContent = '{{ icon('check') }}';
+          stepIconEl.textContent = '✓';
         } else if (i === stepNumber) {
           // Active step
           stepEl.classList.add('active');
@@ -2341,7 +2340,7 @@
       errorDiv.className = 'error-banner';
       errorDiv.id = 'currentErrorBanner';
       errorDiv.innerHTML = `
-        <span class="error-icon">{{ icon('exclamation-triangle') }}</span>
+        <span class="error-icon">⚠️</span>
         <div class="error-content">
           <div class="error-title">${title}</div>
           <div class="error-message">${message}</div>
@@ -2367,7 +2366,7 @@
 
       const successDiv = document.createElement('div');
       successDiv.className = 'success-banner';
-      successDiv.innerHTML = `<span>{{ icon('check-circle') }}</span> <span>${message}</span>`;
+      successDiv.innerHTML = `<span>✅</span> <span>${message}</span>`;
 
       messages.appendChild(successDiv);
       messages.scrollTop = messages.scrollHeight;
@@ -2427,7 +2426,7 @@
       I'm your AI-powered tax strategist, trained on thousands of tax scenarios to help you <strong>maximize savings</strong> and <strong>minimize liability</strong>.<br><br>
       <div class="insight-card" style="margin: 16px 0;">
         <div class="insight-header">
-          <span>{{ icon('chart-bar') }}</span>
+          <span>📊</span>
           <span>Average Client Savings</span>
         </div>
         <div class="savings-amount">$4,200 - $12,500</div>
@@ -2468,12 +2467,12 @@
 
       if (confidence.level === 'high') {
         disclaimer = `<div class="confidence-indicator confidence-high">
-          <span>{{ icon('check-circle') }} ${confidence.label} (${confidence.percentage}% data)</span>
+          <span>✅ ${confidence.label} (${confidence.percentage}% data)</span>
           <span style="margin-left: auto; font-size: 11px;">Verify with a tax professional before filing</span>
         </div>`;
       } else if (confidence.level === 'medium') {
         disclaimer = `<div class="confidence-indicator confidence-medium">
-          <span>{{ icon('exclamation-triangle') }} ${confidence.label} (${confidence.percentage}% data)</span>
+          <span>⚠️ ${confidence.label} (${confidence.percentage}% data)</span>
           <span style="margin-left: auto; font-size: 11px;">Provide more details for better accuracy</span>
         </div>`;
       } else {
@@ -2485,7 +2484,7 @@
 
       if (includeIRS) {
         disclaimer += `<div style="font-size: 11px; color: var(--text-secondary); margin-top: 8px;">
-          {{ icon('clipboard-document-list') }} Based on 2025 IRS guidelines. See <a href="https://www.irs.gov/forms-instructions" target="_blank" rel="noopener" style="color: var(--primary);">IRS.gov</a> for official forms.
+          📋 Based on 2025 IRS guidelines. See <a href="https://www.irs.gov/forms-instructions" target="_blank" rel="noopener" style="color: var(--primary);">IRS.gov</a> for official forms.
         </div>`;
       }
 
@@ -2520,7 +2519,7 @@
       const avatar = document.createElement('div');
       avatar.className = 'avatar';
       avatar.setAttribute('aria-hidden', 'true');
-      avatar.textContent = type === 'ai' ? '{{ icon('building-office') }}' : '{{ icon('user') }}';
+      avatar.textContent = type === 'ai' ? '💼' : '👤';
 
       const bubble = document.createElement('div');
       bubble.className = 'bubble';
@@ -2537,14 +2536,14 @@
       if (type === 'ai') {
         const copyBtn = document.createElement('button');
         copyBtn.className = 'copy-btn';
-        copyBtn.textContent = '{{ icon('clipboard-document-list') }} Copy';
+        copyBtn.textContent = '📋 Copy';
         copyBtn.setAttribute('aria-label', 'Copy this message');
         copyBtn.onclick = (e) => {
           e.stopPropagation();
-          const textContent = bubble.innerText.replace('{{ icon('clipboard-document-list') }} Copy', '').trim();
+          const textContent = bubble.innerText.replace('📋 Copy', '').trim();
           navigator.clipboard.writeText(textContent).then(() => {
-            copyBtn.textContent = '{{ icon('check') }} Copied';
-            setTimeout(() => copyBtn.textContent = '{{ icon('clipboard-document-list') }} Copy', 2000);
+            copyBtn.textContent = '✓ Copied';
+            setTimeout(() => copyBtn.textContent = '📋 Copy', 2000);
           });
         };
         bubble.appendChild(copyBtn);
@@ -2595,7 +2594,7 @@
       typing.setAttribute('aria-live', 'polite');
       typing.setAttribute('aria-label', 'AI assistant is typing a response');
       typing.innerHTML = `
-        <div class="avatar" aria-hidden="true">{{ icon('building-office') }}</div>
+        <div class="avatar" aria-hidden="true">💼</div>
         <div class="bubble">
           <div class="typing-indicator" role="img" aria-label="Typing">
             <span></span>
@@ -2670,7 +2669,7 @@
           showTyping();
           setTimeout(() => {
             hideTyping();
-            addMessage('ai', `<strong>Perfect! Let's use our Express Lane document analysis.</strong><br><br>{{ icon('document-text') }} <strong>Upload any of these documents:</strong><br>• W-2 forms (employment income)<br>• 1099 forms (freelance, interest, dividends)<br>• Previous tax returns<br>• Business financial statements<br>• Receipts for deductions<br><br>I'll use advanced OCR and AI to extract all relevant information automatically.<br><br><div style="text-align: center; margin: 20px 0;"><button onclick="document.getElementById('fileInput').click()" style="padding: 16px 40px; background: var(--gradient); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 18px;">{{ icon('arrow-up-tray') }} Upload Documents</button></div>Or <strong>drag and drop</strong> files anywhere on this page.`);
+            addMessage('ai', `<strong>Perfect! Let's use our Express Lane document analysis.</strong><br><br>📄 <strong>Upload any of these documents:</strong><br>• W-2 forms (employment income)<br>• 1099 forms (freelance, interest, dividends)<br>• Previous tax returns<br>• Business financial statements<br>• Receipts for deductions<br><br>I'll use advanced OCR and AI to extract all relevant information automatically.<br><br><div style="text-align: center; margin: 20px 0;"><button onclick="document.getElementById('fileInput').click()" style="padding: 16px 40px; background: var(--gradient); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 18px;">📤 Upload Documents</button></div>Or <strong>drag and drop</strong> files anywhere on this page.`);
           }, 1000);
         } else {
           // Conversational mode - start smart Q&A
@@ -2710,8 +2709,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `Great question! Here's what I typically review for a comprehensive tax advisory:<br><br><strong>{{ icon('chart-bar') }} Income Documents:</strong><br>• W-2 forms (from employers)<br>• 1099 forms (interest, dividends, freelance income)<br>• Business income records<br>• Rental property income<br><br><strong>{{ icon('banknotes') }} Deduction & Credit Records:</strong><br>• Mortgage interest statements (1098)<br>• Property tax records<br>• Charitable contribution receipts<br>• Education expenses (1098-T)<br>• Medical expense receipts<br>• Retirement contributions<br><br><strong>{{ icon('arrow-trending-up') }} Investment Records:</strong><br>• Brokerage statements<br>• Cryptocurrency transactions<br>• Capital gains/losses<br><br>Don't worry if you don't have everything right now. <strong>What would you like to do next?</strong>`, [
-            { label: '{{ icon('document-text') }} I have some documents ready', value: 'yes_upload' },
+          addMessage('ai', `Great question! Here's what I typically review for a comprehensive tax advisory:<br><br><strong>📊 Income Documents:</strong><br>• W-2 forms (from employers)<br>• 1099 forms (interest, dividends, freelance income)<br>• Business income records<br>• Rental property income<br><br><strong>💰 Deduction & Credit Records:</strong><br>• Mortgage interest statements (1098)<br>• Property tax records<br>• Charitable contribution receipts<br>• Education expenses (1098-T)<br>• Medical expense receipts<br>• Retirement contributions<br><br><strong>📈 Investment Records:</strong><br>• Brokerage statements<br>• Cryptocurrency transactions<br>• Capital gains/losses<br><br>Don't worry if you don't have everything right now. <strong>What would you like to do next?</strong>`, [
+            { label: '📄 I have some documents ready', value: 'yes_upload' },
             { label: '💬 Let\'s discuss my situation', value: 'no_manual' }
           ]);
         }, 2000);
@@ -3376,7 +3375,7 @@
           showTyping();
           setTimeout(() => {
             hideTyping();
-            addMessage('ai', `{{ icon('exclamation-triangle') }} <strong>Important:</strong> IRS requires S-Corp owner-employees to receive reasonable compensation. Taking only distributions may trigger reclassification and payroll tax penalties.<br><br><strong>What's your approximate annual distributions/draws?</strong>`, [
+            addMessage('ai', `⚠️ <strong>Important:</strong> IRS requires S-Corp owner-employees to receive reasonable compensation. Taking only distributions may trigger reclassification and payroll tax penalties.<br><br><strong>What's your approximate annual distributions/draws?</strong>`, [
               { label: 'Under $50,000', value: 'scorp_dist_under50k' },
               { label: '$50,000 - $100,000', value: 'scorp_dist_50_100k' },
               { label: '$100,000 - $200,000', value: 'scorp_dist_100_200k' },
@@ -4400,7 +4399,7 @@
           showTyping();
           setTimeout(() => {
             hideTyping();
-            addMessage('ai', `{{ icon('exclamation-triangle') }} <strong>High AMT Risk Alert:</strong> With a $${spread.toLocaleString()} spread, you may owe significant AMT (potentially $${potentialAMT.toLocaleString()}).<br><br><strong>Did you already make estimated tax payments for AMT?</strong>`, [
+            addMessage('ai', `⚠️ <strong>High AMT Risk Alert:</strong> With a $${spread.toLocaleString()} spread, you may owe significant AMT (potentially $${potentialAMT.toLocaleString()}).<br><br><strong>Did you already make estimated tax payments for AMT?</strong>`, [
               { label: 'Yes, made AMT estimated payments', value: 'amt_estimated_yes' },
               { label: 'No, need to plan for this', value: 'amt_estimated_no' },
               { label: 'My CPA is handling this', value: 'amt_estimated_cpa' }
@@ -4535,7 +4534,7 @@
           showTyping();
           setTimeout(() => {
             hideTyping();
-            addMessage('ai', `<strong>QBI Deduction Explained:</strong><br><br>The Qualified Business Income (QBI) deduction lets you deduct up to <strong>20% of your net business income</strong> from your taxes.<br><br>{{ icon('check-circle') }} <strong>You may qualify if:</strong><br>• You're self-employed or own a pass-through business<br>• Your income is below $${extractedData.tax_profile.filing_status === 'Married Filing Jointly' ? '364,200' : '182,100'} (full deduction)<br>• Higher incomes may still qualify for partial deduction<br><br>This is one of the biggest tax savings opportunities for business owners!`, [
+            addMessage('ai', `<strong>QBI Deduction Explained:</strong><br><br>The Qualified Business Income (QBI) deduction lets you deduct up to <strong>20% of your net business income</strong> from your taxes.<br><br>✅ <strong>You may qualify if:</strong><br>• You're self-employed or own a pass-through business<br>• Your income is below $${extractedData.tax_profile.filing_status === 'Married Filing Jointly' ? '364,200' : '182,100'} (full deduction)<br>• Higher incomes may still qualify for partial deduction<br><br>This is one of the biggest tax savings opportunities for business owners!`, [
               { label: 'I\'ll look into this', value: 'qbi_noted' },
               { label: 'My CPA can help', value: 'qbi_cpa_help' }
             ]);
@@ -5619,9 +5618,9 @@
           hideTyping();
           addMessage('ai', `Perfect! Now let's explore tax credits you might qualify for. Credits directly reduce your tax bill dollar-for-dollar.<br><br><strong>Do any of these situations apply to you?</strong>`, [
             { label: '👶 Child Tax Credit', value: 'credit_child' },
-            { label: '{{ icon('clipboard-document-list') }} Education Credits (AOTC/LLC)', value: 'credit_education' },
+            { label: '📚 Education Credits (AOTC/LLC)', value: 'credit_education' },
             { label: '⚡ Energy Efficiency Credits', value: 'credit_energy' },
-            { label: '{{ icon('building-office') }} Earned Income Credit', value: 'credit_eitc' },
+            { label: '💼 Earned Income Credit', value: 'credit_eitc' },
             { label: 'Not sure / Continue', value: 'credit_skip' }
           ]);
         }, 1500);
@@ -5643,10 +5642,10 @@
 
           // Generate summary
           const summary = generateSummary();
-          addMessage('ai', `<strong>Excellent! I now have a comprehensive understanding of your tax situation.</strong><br><br>Here's what we've covered:<br><br>${summary}<br><br>Based on this information, I can provide you with a detailed strategic tax advisory report including:<br><br>{{ icon('check') }} <strong>Personalized tax optimization strategies</strong><br>{{ icon('check') }} <strong>Estimated tax savings opportunities</strong><br>{{ icon('check') }} <strong>Action items for the current tax year</strong><br>{{ icon('check') }} <strong>Long-term planning recommendations</strong><br>{{ icon('check') }} <strong>Compliance checklist</strong><br><br><strong>Would you like me to generate your comprehensive tax advisory report now?</strong>`, [
-            { label: '{{ icon('chart-bar') }} Yes, generate my report', value: 'generate_report' },
+          addMessage('ai', `<strong>Excellent! I now have a comprehensive understanding of your tax situation.</strong><br><br>Here's what we've covered:<br><br>${summary}<br><br>Based on this information, I can provide you with a detailed strategic tax advisory report including:<br><br>✓ <strong>Personalized tax optimization strategies</strong><br>✓ <strong>Estimated tax savings opportunities</strong><br>✓ <strong>Action items for the current tax year</strong><br>✓ <strong>Long-term planning recommendations</strong><br>✓ <strong>Compliance checklist</strong><br><br><strong>Would you like me to generate your comprehensive tax advisory report now?</strong>`, [
+            { label: '📊 Yes, generate my report', value: 'generate_report' },
             { label: '💬 I have more questions first', value: 'more_questions' },
-            { label: '{{ icon('document-text') }} Let me add documents', value: 'add_documents' }
+            { label: '📄 Let me add documents', value: 'add_documents' }
           ]);
         }, 2000);
 
@@ -5663,10 +5662,10 @@
           setTimeout(() => {
             updateProgress(100);
             addMessage('ai', `<div class="insight-card"><div class="insight-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;"><span style="font-size: 32px;">🎉</span><strong style="font-size: 20px;">Your Tax Advisory Report is Ready!</strong></div><div style="color: var(--text-secondary); line-height: 1.6;">I've completed a comprehensive analysis of your tax situation. Your personalized report includes strategic recommendations that could save you thousands of dollars.</div></div><br><strong>What would you like to do next?</strong>`, [
-              { label: '{{ icon('arrow-down-tray') }} Download Full Report (PDF)', value: 'download_report' },
+              { label: '📥 Download Full Report (PDF)', value: 'download_report' },
               { label: '👀 View Report Online', value: 'view_report' },
-              { label: '{{ icon('envelope') }} Email Report to Me', value: 'email_report' },
-              { label: '{{ icon('phone') }} Schedule CPA Consultation', value: 'schedule_consult' }
+              { label: '📧 Email Report to Me', value: 'email_report' },
+              { label: '📞 Schedule CPA Consultation', value: 'schedule_consult' }
             ]);
           }, 3000);
         }, 1000);
@@ -5710,9 +5709,9 @@
         setTimeout(() => {
           hideTyping();
           addMessage('ai', `<strong>Excellent decision! A personalized consultation can help you maximize your tax savings.</strong><br><br>Our CPA team specializes in individual tax advisory and can provide:<br>• One-on-one strategic planning<br>• Custom optimization strategies<br>• Ongoing tax advisory support<br>• Filing assistance when needed<br><br><strong>What works best for you?</strong>`, [
-            { label: '{{ icon('phone') }} Schedule a call', value: 'consult_call' },
+            { label: '📞 Schedule a call', value: 'consult_call' },
             { label: '💬 Chat with a CPA now', value: 'consult_chat' },
-            { label: '{{ icon('envelope') }} Email consultation', value: 'consult_email' }
+            { label: '📧 Email consultation', value: 'consult_email' }
           ]);
         }, 1500);
 
@@ -5741,8 +5740,8 @@
         setTimeout(() => {
           hideTyping();
           addMessage('ai', `<strong>Perfect! I'm connecting you with our CPA team.</strong><br><br>Your comprehensive tax profile and advisory report will be shared with them so they can provide immediate, informed guidance.<br><br>A member of our team will reach out within 24 hours to schedule your personalized consultation.<br><br><strong>Is there anything else I can help you with today?</strong>`, [
-            { label: '{{ icon('check-circle') }} No, I\'m all set', value: 'finish_satisfied' },
-            { label: '{{ icon('arrow-down-tray') }} Download my report first', value: 'download_report' },
+            { label: '✅ No, I\'m all set', value: 'finish_satisfied' },
+            { label: '📥 Download my report first', value: 'download_report' },
             { label: '💬 Ask another question', value: 'more_questions' }
           ]);
         }, 1500);
@@ -5783,15 +5782,15 @@
             ]);
           } else if (!extractedData.focus_area) {
             addMessage('ai', `Excellent! <strong>What areas are you most interested in optimizing?</strong>`, [
-              { label: '{{ icon('home') }} Homeownership & Real Estate', value: 'focus_real_estate' },
-              { label: '{{ icon('clipboard-document-list') }} Education & Student Loans', value: 'focus_education' },
-              { label: '{{ icon('building-office') }} Business & Self-Employment', value: 'focus_business' },
+              { label: '🏠 Homeownership & Real Estate', value: 'focus_real_estate' },
+              { label: '📚 Education & Student Loans', value: 'focus_education' },
+              { label: '💼 Business & Self-Employment', value: 'focus_business' },
               { label: '🏥 Healthcare & Medical', value: 'focus_healthcare' },
-              { label: '{{ icon('arrow-trending-up') }} Investments & Retirement', value: 'focus_investments' }
+              { label: '📈 Investments & Retirement', value: 'focus_investments' }
             ]);
           } else {
             addMessage('ai', `We've covered the basics! <strong>Ready to generate your comprehensive advisory report?</strong>`, [
-              { label: '{{ icon('chart-bar') }} Yes, generate report', value: 'generate_report' },
+              { label: '📊 Yes, generate report', value: 'generate_report' },
               { label: '💬 I have questions first', value: 'more_questions' }
             ]);
           }
@@ -5805,8 +5804,8 @@
           hideTyping();
           const summary = generateSummary();
           addMessage('ai', `<strong>Perfect! Here's what we've covered:</strong><br><br>${summary}<br><br>I can now prepare your comprehensive tax advisory report with personalized recommendations. <strong>Shall we proceed?</strong>`, [
-            { label: '{{ icon('chart-bar') }} Generate my report', value: 'generate_report' },
-            { label: '{{ icon('pencil') }} Make changes first', value: 'review_summary' }
+            { label: '📊 Generate my report', value: 'generate_report' },
+            { label: '✏️ Make changes first', value: 'review_summary' }
           ]);
         }, 1000);
 
@@ -5817,9 +5816,9 @@
           hideTyping();
           const summary = generateSummary();
           addMessage('ai', `<strong>Here's a complete summary of your tax profile:</strong><br><br>${summary}<br><br>Would you like to update any of this information or continue to generate your report?`, [
-            { label: '{{ icon('pencil') }} Update filing status', value: 'no_manual' },
-            { label: '{{ icon('pencil') }} Update income/focus', value: 'continue_assessment' },
-            { label: '{{ icon('check-circle') }} Looks good, continue', value: 'generate_report' }
+            { label: '✏️ Update filing status', value: 'no_manual' },
+            { label: '✏️ Update income/focus', value: 'continue_assessment' },
+            { label: '✅ Looks good, continue', value: 'generate_report' }
           ]);
         }, 1000);
 
@@ -5832,9 +5831,9 @@
           setTimeout(() => {
             hideTyping();
             addMessage('ai', `<strong>Great question! Here's how our premium tax advisory works:</strong><br><br><strong>1. Understanding Your Situation (5 minutes)</strong><br>I ask targeted questions to understand your financial picture, or you can upload documents for instant analysis.<br><br><strong>2. Comprehensive Analysis</strong><br>I analyze your situation using 2025 IRS rules, identifying every deduction, credit, and strategy available to you.<br><br><strong>3. Personalized Report</strong><br>You receive a detailed advisory report with:<br>• Current tax liability estimate<br>• Potential savings opportunities<br>• Specific action items<br>• Long-term planning strategies<br><br><strong>4. Ongoing Support</strong><br>Access to CPA consultations, filing assistance (if needed), and year-round advisory support.<br><br><strong>Ready to get started with your assessment?</strong>`, [
-              { label: '{{ icon('check-circle') }} Yes, let\'s begin', value: 'continue_assessment' },
-              { label: '{{ icon('document-text') }} I want to upload docs', value: 'yes_upload' },
-              { label: '{{ icon('question-mark-circle') }} I have another question', value: 'more_questions' }
+              { label: '✅ Yes, let\'s begin', value: 'continue_assessment' },
+              { label: '📄 I want to upload docs', value: 'yes_upload' },
+              { label: '❓ I have another question', value: 'more_questions' }
             ]);
           }, 1500);
         } else {
@@ -5881,9 +5880,9 @@
         setTimeout(() => {
           hideTyping();
           addMessage('ai', `No problem! Let's start fresh. I'm your AI-powered tax advisor, ready to help you discover strategic opportunities to optimize your tax situation.<br><br><strong>Would you like to upload tax documents for me to analyze, or shall we talk through your situation?</strong>`, [
-            { label: '{{ icon('document-text') }} Upload documents', value: 'yes_upload' },
+            { label: '📄 Upload documents', value: 'yes_upload' },
             { label: '💬 Let\'s discuss my situation', value: 'no_manual' },
-            { label: '{{ icon('question-mark-circle') }} How does this work?', value: 'how_it_works' }
+            { label: '❓ How does this work?', value: 'how_it_works' }
           ]);
         }, 1000);
 
@@ -5917,11 +5916,11 @@
       setTimeout(() => {
         hideTyping();
         addMessage('ai', `I've gathered some valuable information about your situation. Now let's explore any additional deductions you might have.<br><br><strong>Do you have any of these common deductions?</strong>`, [
-          { label: '{{ icon('home') }} Mortgage Interest', value: 'deduct_mortgage' },
-          { label: '{{ icon('banknotes') }} Charitable Donations', value: 'deduct_charity' },
+          { label: '🏠 Mortgage Interest', value: 'deduct_mortgage' },
+          { label: '💰 Charitable Donations', value: 'deduct_charity' },
           { label: '🏥 Medical Expenses', value: 'deduct_medical' },
-          { label: '{{ icon('building-office') }} Business Expenses', value: 'deduct_business' },
-          { label: '{{ icon('arrow-right') }} Continue to Credits', value: 'deduct_skip' }
+          { label: '💼 Business Expenses', value: 'deduct_business' },
+          { label: '➡️ Continue to Credits', value: 'deduct_skip' }
         ]);
       }, 1200);
     }
@@ -5931,19 +5930,19 @@
       let summary = '';
 
       if (extractedData.filing_status) {
-        summary += `{{ icon('clipboard-document-list') }} <strong>Filing Status:</strong> ${extractedData.filing_status}<br>`;
+        summary += `📋 <strong>Filing Status:</strong> ${extractedData.filing_status}<br>`;
       }
       if (extractedData.income_range) {
-        summary += `{{ icon('banknotes') }} <strong>Income Range:</strong> ${extractedData.income_range}<br>`;
+        summary += `💰 <strong>Income Range:</strong> ${extractedData.income_range}<br>`;
       }
       if (extractedData.focus_area) {
-        summary += `{{ icon('sparkles') }} <strong>Focus Area:</strong> ${extractedData.focus_area}<br>`;
+        summary += `🎯 <strong>Focus Area:</strong> ${extractedData.focus_area}<br>`;
       }
       if (extractedData.deductions && extractedData.deductions.length > 0) {
-        summary += `{{ icon('chart-bar') }} <strong>Deductions:</strong> ${extractedData.deductions.join(', ')}<br>`;
+        summary += `📊 <strong>Deductions:</strong> ${extractedData.deductions.join(', ')}<br>`;
       }
       if (extractedData.credits && extractedData.credits.length > 0) {
-        summary += `{{ icon('star') }} <strong>Credits:</strong> ${extractedData.credits.join(', ')}<br>`;
+        summary += `⭐ <strong>Credits:</strong> ${extractedData.credits.join(', ')}<br>`;
       }
 
       return summary || 'Your comprehensive tax profile';
@@ -5952,7 +5951,7 @@
     // Helper function to generate and download report
     async function generateAndDownloadReport() {
       try {
-        addMessage('ai', '{{ icon('clock') }} Generating your PDF report...');
+        addMessage('ai', '⏳ Generating your PDF report...');
 
         // Call the advisory report API
         const response = await fetch('/api/v1/advisory-reports/generate', {
@@ -5982,7 +5981,7 @@
               pdfReady = true;
               // Download the PDF
               window.open(`/api/v1/advisory-reports/${data.report_id}/pdf`, '_blank');
-              addMessage('ai', `{{ icon('check-circle') }} <strong>Your report is ready!</strong><br><br>The PDF download should begin automatically. If not, <a href="/api/v1/advisory-reports/${data.report_id}/pdf" target="_blank" style="color: var(--primary);">click here to download</a>.`);
+              addMessage('ai', `✅ <strong>Your report is ready!</strong><br><br>The PDF download should begin automatically. If not, <a href="/api/v1/advisory-reports/${data.report_id}/pdf" target="_blank" style="color: var(--primary);">click here to download</a>.`);
             }
             attempts++;
           }
@@ -6008,10 +6007,10 @@
 
       setTimeout(() => {
         hideTyping();
-        addMessage('ai', `<strong>{{ icon('check-circle') }} Report sent successfully!</strong><br><br>I've emailed your comprehensive tax advisory report to <strong>${email}</strong>.<br><br>Please check your inbox (and spam folder) within the next few minutes. The email will include:<br>• PDF attachment of your full report<br>• Summary of key findings<br>• Personalized action items<br>• Link to schedule a consultation<br><br><strong>What would you like to do next?</strong>`, [
-          { label: '{{ icon('arrow-down-tray') }} Also download PDF', value: 'download_report' },
-          { label: '{{ icon('phone') }} Schedule consultation', value: 'schedule_consult' },
-          { label: '{{ icon('check-circle') }} I\'m all set', value: 'finish_satisfied' }
+        addMessage('ai', `<strong>✅ Report sent successfully!</strong><br><br>I've emailed your comprehensive tax advisory report to <strong>${email}</strong>.<br><br>Please check your inbox (and spam folder) within the next few minutes. The email will include:<br>• PDF attachment of your full report<br>• Summary of key findings<br>• Personalized action items<br>• Link to schedule a consultation<br><br><strong>What would you like to do next?</strong>`, [
+          { label: '📥 Also download PDF', value: 'download_report' },
+          { label: '📞 Schedule consultation', value: 'schedule_consult' },
+          { label: '✅ I\'m all set', value: 'finish_satisfied' }
         ]);
       }, 2000);
     }
@@ -6215,7 +6214,7 @@
         role: 'system',
         content: `You are a premium CPA tax advisor AI assistant specializing in individual tax advisory. You're having a warm, professional conversation with a client.
 
-{{ icon('exclamation-triangle') }} CRITICAL AI DISCLOSURE REQUIREMENTS:
+⚠️ CRITICAL AI DISCLOSURE REQUIREMENTS:
 - You are an AI assistant, NOT a licensed CPA or tax professional
 - Your responses are ESTIMATES and GENERAL GUIDANCE, not professional tax advice
 - Users should ALWAYS verify information with a licensed tax professional before making decisions
@@ -6276,25 +6275,25 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       if (progress < 20) {
         return [
           { label: '💬 Tell you my situation', value: 'no_manual' },
-          { label: '{{ icon('document-text') }} Upload documents', value: 'yes_upload' },
-          { label: '{{ icon('question-mark-circle') }} How does this work?', value: 'how_it_works' }
+          { label: '📄 Upload documents', value: 'yes_upload' },
+          { label: '❓ How does this work?', value: 'how_it_works' }
         ];
       } else if (progress < 50) {
         return [
-          { label: '{{ icon('chart-bar') }} Continue the assessment', value: 'continue_assessment' },
-          { label: '{{ icon('question-mark-circle') }} I have a question', value: 'ask_question' },
-          { label: '{{ icon('document-text') }} Add documents', value: 'add_documents' }
+          { label: '📊 Continue the assessment', value: 'continue_assessment' },
+          { label: '❓ I have a question', value: 'ask_question' },
+          { label: '📄 Add documents', value: 'add_documents' }
         ];
       } else if (progress < 90) {
         return [
-          { label: '{{ icon('check-circle') }} Continue to report', value: 'continue_to_report' },
+          { label: '✅ Continue to report', value: 'continue_to_report' },
           { label: '💬 Ask something else', value: 'ask_question' },
-          { label: '{{ icon('clipboard-document-list') }} Review what we covered', value: 'review_summary' }
+          { label: '📋 Review what we covered', value: 'review_summary' }
         ];
       } else {
         return [
-          { label: '{{ icon('chart-bar') }} Generate my report', value: 'generate_report' },
-          { label: '{{ icon('phone') }} Schedule consultation', value: 'schedule_consult' },
+          { label: '📊 Generate my report', value: 'generate_report' },
+          { label: '📞 Schedule consultation', value: 'schedule_consult' },
           { label: '💬 I have questions', value: 'more_questions' }
         ];
       }
@@ -6366,11 +6365,11 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
     // Phase mapping from backend to UI
     const PHASE_MAPPING = {
-      'personal_info': { step: 1, label: 'Profile Setup', icon: '{{ icon('clipboard-document-list') }}' },
-      'income': { step: 2, label: 'Income Review', icon: '{{ icon('banknotes') }}' },
-      'deductions': { step: 3, label: 'Deductions & Credits', icon: '{{ icon('sparkles') }}' },
-      'review': { step: 4, label: 'Final Review', icon: '{{ icon('chart-bar') }}' },
-      'ready_to_file': { step: 4, label: 'Ready to File!', icon: '{{ icon('check-circle') }}' }
+      'personal_info': { step: 1, label: 'Profile Setup', icon: '📋' },
+      'income': { step: 2, label: 'Income Review', icon: '💰' },
+      'deductions': { step: 3, label: 'Deductions & Credits', icon: '🎯' },
+      'review': { step: 4, label: 'Final Review', icon: '📊' },
+      'ready_to_file': { step: 4, label: 'Ready to File!', icon: '✅' }
     };
 
     // Update progress indicator with full progress data from backend
@@ -6521,7 +6520,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       }
 
       if (status === 'saved') {
-        indicator.innerHTML = '<span style="color: #276749;">{{ icon('check') }} Saved</span>';
+        indicator.innerHTML = '<span style="color: #276749;">✓ Saved</span>';
         indicator.style.opacity = '1';
         setTimeout(() => { indicator.style.opacity = '0.5'; }, 2000);
       } else if (status === 'saving') {
@@ -6586,7 +6585,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       banner.className = 'resume-banner';
       banner.innerHTML = `
         <div class="resume-content">
-          <div class="resume-icon">{{ icon('clipboard-document-list') }}</div>
+          <div class="resume-icon">📋</div>
           <div class="resume-text">
             <strong>Welcome back!</strong>
             <span>You have a saved session (${Math.round(sessionData.completion_percentage || 0)}% complete). Would you like to continue?</span>
@@ -6833,7 +6832,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       setTimeout(() => {
         hideTyping();
         addMessage('ai', `Thank you, ${name}! It's a pleasure to work with you.<br><br>Now, to provide you with the most accurate tax analysis and connect you with the right CPA specialist, <strong>may I have your email address?</strong> (We'll send your comprehensive report here)`, [
-          { label: '{{ icon('envelope') }} Enter email', value: 'enter_email' },
+          { label: '📧 Enter email', value: 'enter_email' },
           { label: '⏭️ Skip for now', value: 'skip_email' }
         ]);
       }, 1000);
@@ -6864,9 +6863,9 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         hideTyping();
         const firstName = extractedData.contact.name ? extractedData.contact.name.split(' ')[0] : 'there';
         addMessage('ai', `Perfect, ${firstName}! I've saved your email.<br><br>🎉 <strong>You're now qualified for our premium tax advisory service!</strong><br><br>Let's analyze your tax situation and calculate your actual potential savings. This will take about 3-5 minutes.<br><br><strong>How would you like to provide your tax information?</strong>`, [
-          { label: '{{ icon('document-text') }} Upload tax documents (fastest)', value: 'upload_docs_qualified' },
+          { label: '📄 Upload tax documents (fastest)', value: 'upload_docs_qualified' },
           { label: '💬 Answer questions conversationally', value: 'conversational_qualified' },
-          { label: '{{ icon('sparkles') }} Hybrid: docs + questions', value: 'hybrid_qualified' }
+          { label: '🎯 Hybrid: docs + questions', value: 'hybrid_qualified' }
         ]);
       }, 1500);
     }
@@ -6876,7 +6875,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       setTimeout(() => {
         hideTyping();
         addMessage('ai', `No problem! Let's gather your tax information.<br><br><strong>How would you like to share your information with me?</strong>`, [
-          { label: '{{ icon('document-text') }} Upload tax documents', value: 'upload_docs_qualified' },
+          { label: '📄 Upload tax documents', value: 'upload_docs_qualified' },
           { label: '💬 Answer questions', value: 'conversational_qualified' }
         ]);
       }, 1000);
@@ -7451,7 +7450,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         if ((isSelfEmployed || isBusinessOwner) && profile.business_revenue && !profile.business_expenses_explored && !wasQuestionAsked('business_expenses')) {
           markQuestionAsked('business_expenses');
           addMessage('ai', `What are your major business expense categories? (Select all that apply)`, [
-            { label: '{{ icon('home') }} Home Office', value: 'bizexp_home_office' },
+            { label: '🏠 Home Office', value: 'bizexp_home_office' },
             { label: '🚗 Vehicle / Mileage', value: 'bizexp_vehicle' },
             { label: '💻 Equipment & Software', value: 'bizexp_equipment' },
             { label: '📢 Marketing & Advertising', value: 'bizexp_marketing' },
@@ -7707,7 +7706,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           addMessage('ai', `Have you made any energy-efficient improvements or purchases this year?`, [
             { label: '☀️ Solar panels installed', value: 'energy_solar' },
             { label: '🚗 Electric vehicle purchased', value: 'energy_ev' },
-            { label: '{{ icon('home') }} Heat pump / HVAC upgrade', value: 'energy_hvac' },
+            { label: '🏠 Heat pump / HVAC upgrade', value: 'energy_hvac' },
             { label: '🪟 Windows / insulation / doors', value: 'energy_home_improve' },
             { label: 'None of these', value: 'energy_none' }
           ]);
@@ -8206,7 +8205,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
                   ${strategy.action_steps.map(step => `<li style="margin: 4px 0;">${step}</li>`).join('')}
                 </ul>
               </div>
-              ${strategy.irs_reference ? `<div style="margin-top: 12px; font-size: 12px; color: var(--text-muted);">{{ icon('clipboard-document-list') }} Reference: ${strategy.irs_reference}</div>` : ''}
+              ${strategy.irs_reference ? `<div style="margin-top: 12px; font-size: 12px; color: var(--text-muted);">📚 Reference: ${strategy.irs_reference}</div>` : ''}
             </details>
           </div>
         `;
@@ -8492,7 +8491,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         if (result.valid) {
           input.classList.add('field-valid');
           msgEl.className = 'validation-message success';
-          msgEl.textContent = result.message || '{{ icon('check') }} Valid';
+          msgEl.textContent = result.message || '✓ Valid';
         } else {
           input.classList.add('field-error');
           msgEl.className = 'validation-message error';
