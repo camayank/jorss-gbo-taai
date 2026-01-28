@@ -113,7 +113,7 @@ class RedisClient:
     async def close(self) -> None:
         """Close Redis connection."""
         if self._client:
-            await self._client.close()
+            await self._client.aclose()  # Use aclose() instead of deprecated close()
             self._client = None
 
         if self._pool:

@@ -353,5 +353,5 @@ class TestQueryBenchmarks:
             assert limits["max_queries"] > 0, f"{operation} should have query limit"
             assert limits["max_duration_ms"] > 0, f"{operation} should have time limit"
 
-        # Export baselines for use in other tests
-        return baselines
+        # Store baselines as class attribute for use in other tests if needed
+        self.__class__.BASELINES = baselines

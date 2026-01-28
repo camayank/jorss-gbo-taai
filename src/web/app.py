@@ -1648,47 +1648,8 @@ if _ENABLE_TEST_ROUTES:
 # UNIFIED APP ROUTER - Single Entry Point with Role-Based Routing
 # =============================================================================
 
-@app.get("/app", response_class=HTMLResponse)
-def app_router(request: Request):
-    """
-    Unified Application Router - Single entry point with role-based routing.
-
-    Routes users to appropriate dashboard based on their authenticated role:
-    - ADMIN       → /admin (Platform administration)
-    - CPA/PREPARER → /app/workspace (CPA workspace dashboard)
-    - TAXPAYER    → /app/portal (Client portal)
-    - GUEST/Unauth → /advisor (Public advisor interface)
-
-    This consolidates the previous 4 separate dashboards into a unified entry point.
-    """
-    from security.auth_decorators import get_user_from_request, Role
-
-    user = get_user_from_request(request)
-
-    if not user:
-        # Unauthenticated users go to the public advisor
-        return RedirectResponse(url="/advisor", status_code=302)
-
-    role = user.get("role", "").lower()
-
-    # Platform administrators
-    if role == Role.ADMIN.value:
-        return RedirectResponse(url="/admin", status_code=302)
-
-    # CPA firm users (CPAs and preparers)
-    if role in [Role.CPA.value, Role.PREPARER.value]:
-        return RedirectResponse(url="/app/workspace", status_code=302)
-
-    # Taxpayer clients
-    if role == Role.TAXPAYER.value:
-        return RedirectResponse(url="/app/portal", status_code=302)
-
-    # Default fallback for guests or unknown roles
-    return RedirectResponse(url="/advisor", status_code=302)
-
-
-@app.get("/app/workspace", response_class=HTMLResponse)
-def app_workspace(request: Request):
+@app.get("/app/workspace", response_class=HTMLResponse, operation_id="unified_workspace_dashboard")
+def unified_workspace_dashboard(request: Request):
     """
     CPA Workspace Dashboard - Professional tax preparation interface.
 
@@ -1700,8 +1661,8 @@ def app_workspace(request: Request):
     return templates.TemplateResponse("cpa_dashboard_refactored.html", {"request": request})
 
 
-@app.get("/app/portal", response_class=HTMLResponse)
-def app_portal(request: Request):
+@app.get("/app/portal", response_class=HTMLResponse, operation_id="unified_client_portal")
+def unified_client_portal(request: Request):
     """
     Client Portal - Taxpayer self-service interface.
 
@@ -2803,8 +2764,8 @@ async def get_supported_documents():
 # HEALTH & RESILIENCE MONITORING ENDPOINTS
 # =============================================================================
 
-@app.get("/api/health")
-async def health_check():
+@app.get("/api/health", operation_id="api_health_check")
+async def api_health_check():
     """Basic health check endpoint."""
     return JSONResponse({
         "status": "healthy",
@@ -4138,8 +4099,8 @@ async def sync_tax_return(request: Request):
     return response
 
 
-@app.get("/health")
-async def health_check():
+@app.get("/health", operation_id="root_health_check")
+async def root_health_check():
     """Health check endpoint."""
     return JSONResponse({
         "status": "healthy",
@@ -4439,8 +4400,8 @@ class ReturnStatus(str, Enum):
     CPA_APPROVED = "CPA_APPROVED"  # Signed off by CPA, full feature access
 
 
-@app.get("/api/returns/{session_id}/status")
-async def get_return_status(session_id: str, request: Request):
+@app.get("/api/returns/{session_id}/status", operation_id="get_return_workflow_status")
+async def get_return_workflow_status(session_id: str, request: Request):
     """
     Get the current workflow status of a return.
 
@@ -4545,10 +4506,10 @@ async def submit_return_for_review(session_id: str, request: Request):
     })
 
 
-@app.post("/api/returns/{session_id}/approve")
+@app.post("/api/returns/{session_id}/approve", operation_id="approve_return_cpa_signoff")
 @require_auth(roles=[Role.CPA])
 @require_session_owner(session_param="session_id")
-async def approve_return(session_id: str, request: Request):
+async def approve_return_cpa_signoff(session_id: str, request: Request):
     """
     CPA sign-off on a return.
 
@@ -5575,8 +5536,8 @@ async def validate_and_get_field_states(request: Request):
     })
 
 
-@app.post("/api/validate/field/{field_name}")
-async def validate_single_field(field_name: str, request: Request):
+@app.post("/api/validate/field/{field_name}", operation_id="validate_tax_field")
+async def validate_tax_field(field_name: str, request: Request):
     """Validate a single field and return its state."""
     from validation import TaxContext, get_rules_engine, ValidationSeverity
 

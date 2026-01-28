@@ -135,7 +135,7 @@ class TestRedisClientConnection:
 
             await client.close()
 
-            mock_redis.close.assert_called_once()
+            mock_redis.aclose.assert_called_once()  # aclose() is the non-deprecated method
             mock_pool.disconnect.assert_called_once()
             assert client._connected is False
             assert client._client is None

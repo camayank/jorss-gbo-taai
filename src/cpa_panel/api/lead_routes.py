@@ -45,8 +45,8 @@ def get_engine():
 # LEAD MANAGEMENT ENDPOINTS
 # =============================================================================
 
-@lead_router.get("/leads/{lead_id}")
-async def get_lead(lead_id: str, request: Request):
+@lead_router.get("/leads/{lead_id}", operation_id="get_lead_details")
+async def get_lead_details(lead_id: str, request: Request):
     """
     Get lead details by ID.
 
