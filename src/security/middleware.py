@@ -548,6 +548,173 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class IPWhitelistMiddleware(BaseHTTPMiddleware):
+    """
+    IP Whitelist middleware for tenant-level access control.
+
+    When enabled for a tenant, only requests from whitelisted IPs are allowed.
+    Platform admins and public routes bypass this check.
+    """
+
+    # Routes that bypass IP whitelist (public access)
+    PUBLIC_PATHS = {
+        "/health",
+        "/api/health",
+        "/docs",
+        "/redoc",
+        "/openapi.json",
+        "/static",
+        "/favicon.ico",
+    }
+
+    def __init__(self, app, get_tenant_whitelist: Optional[Callable] = None):
+        """
+        Initialize IP Whitelist middleware.
+
+        Args:
+            app: FastAPI application
+            get_tenant_whitelist: Callable that takes tenant_id and returns list of allowed IPs
+        """
+        super().__init__(app)
+        self.get_tenant_whitelist = get_tenant_whitelist or self._default_get_whitelist
+
+    def _default_get_whitelist(self, tenant_id: str) -> Optional[List[str]]:
+        """Default whitelist lookup from database."""
+        try:
+            from database.tenant_persistence import get_tenant_persistence
+            persistence = get_tenant_persistence()
+            tenant = persistence.get_tenant(tenant_id)
+            if tenant and hasattr(tenant, 'ip_whitelist'):
+                return tenant.ip_whitelist
+            return None
+        except Exception as e:
+            logger.warning(f"[IP_WHITELIST] Failed to get whitelist for tenant {tenant_id}: {e}")
+            return None
+
+    def _get_client_ip(self, request: Request) -> str:
+        """Extract client IP, handling proxies."""
+        # Check X-Forwarded-For first (for proxied requests)
+        forwarded_for = request.headers.get("x-forwarded-for")
+        if forwarded_for:
+            # Take the first IP in the chain (original client)
+            return forwarded_for.split(",")[0].strip()
+
+        # Check X-Real-IP
+        real_ip = request.headers.get("x-real-ip")
+        if real_ip:
+            return real_ip.strip()
+
+        # Fall back to direct connection
+        if request.client:
+            return request.client.host
+
+        return "unknown"
+
+    def _is_public_path(self, path: str) -> bool:
+        """Check if path is public (bypasses whitelist)."""
+        for public_path in self.PUBLIC_PATHS:
+            if path.startswith(public_path):
+                return True
+        return False
+
+    def _ip_matches(self, client_ip: str, whitelist: List[str]) -> bool:
+        """Check if client IP matches any entry in whitelist."""
+        import ipaddress
+
+        try:
+            client = ipaddress.ip_address(client_ip)
+
+            for entry in whitelist:
+                entry = entry.strip()
+                if not entry:
+                    continue
+
+                try:
+                    # Check if it's a network (CIDR notation)
+                    if "/" in entry:
+                        network = ipaddress.ip_network(entry, strict=False)
+                        if client in network:
+                            return True
+                    else:
+                        # Single IP address
+                        if client == ipaddress.ip_address(entry):
+                            return True
+                except ValueError:
+                    logger.warning(f"[IP_WHITELIST] Invalid whitelist entry: {entry}")
+                    continue
+
+            return False
+        except ValueError:
+            logger.warning(f"[IP_WHITELIST] Invalid client IP: {client_ip}")
+            return False
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # Skip check for public paths
+        if self._is_public_path(request.url.path):
+            return await call_next(request)
+
+        # Get tenant ID from request (various sources)
+        tenant_id = None
+
+        # Try from auth context (JWT claims)
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.startswith("Bearer "):
+            try:
+                from rbac.jwt import decode_token_safe
+                payload = decode_token_safe(auth_header[7:])
+                if payload:
+                    tenant_id = payload.get("firm_id") or payload.get("tenant_id")
+                    # Platform admins bypass IP whitelist
+                    role = payload.get("role", "")
+                    if role in ("super_admin", "platform_admin", "support"):
+                        return await call_next(request)
+            except Exception:
+                pass
+
+        # Try from session cookie
+        if not tenant_id:
+            session_id = request.cookies.get("tax_session_id")
+            if session_id:
+                try:
+                    from database.session_persistence import get_session_persistence
+                    persistence = get_session_persistence()
+                    session = persistence.load_session(session_id)
+                    if session:
+                        tenant_id = session.tenant_id
+                except Exception:
+                    pass
+
+        # No tenant context, allow request (public access)
+        if not tenant_id:
+            return await call_next(request)
+
+        # Get whitelist for tenant
+        whitelist = self.get_tenant_whitelist(tenant_id)
+
+        # No whitelist configured, allow all
+        if not whitelist:
+            return await call_next(request)
+
+        # Check if client IP is in whitelist
+        client_ip = self._get_client_ip(request)
+
+        if self._ip_matches(client_ip, whitelist):
+            return await call_next(request)
+
+        # IP not in whitelist - deny access
+        logger.warning(
+            f"[IP_WHITELIST] Access denied | tenant={tenant_id} | ip={client_ip} | path={request.url.path}"
+        )
+
+        return JSONResponse(
+            status_code=403,
+            content={
+                "detail": "Access denied: IP address not in whitelist",
+                "error_code": "IP_NOT_WHITELISTED",
+            },
+        )
+
+
 def configure_security_middleware(
     app: FastAPI,
     secret_key: str,
