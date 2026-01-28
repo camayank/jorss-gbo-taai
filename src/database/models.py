@@ -337,6 +337,7 @@ class TaxReturnRecord(Base):
         CheckConstraint('amendment_number >= 0', name='ck_valid_amendment'),
         Index('ix_return_status_year', 'status', 'tax_year'),
         Index('ix_return_filing_status', 'filing_status', 'tax_year'),
+        Index('ix_return_original_return', 'original_return_id'),
     )
 
     def __repr__(self):
@@ -1149,6 +1150,7 @@ class DocumentRecord(Base):
         Index('ix_doc_taxpayer_year', 'taxpayer_id', 'tax_year'),
         Index('ix_doc_type_status', 'document_type', 'status'),
         Index('ix_doc_file_hash', 'file_hash'),
+        Index('ix_doc_return_id', 'return_id'),
     )
 
 
@@ -1418,6 +1420,7 @@ class ClientSessionRecord(Base):
         Index('ix_session_preparer_year', 'preparer_id', 'tax_year'),
         Index('ix_session_status', 'status', 'preparer_id'),
         Index('ix_session_last_accessed', 'last_accessed_at'),
+        Index('ix_session_return_id', 'return_id'),
     )
 
 

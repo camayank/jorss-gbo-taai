@@ -583,10 +583,27 @@
             document.getElementById('submitButton').disabled = true;
 
             try {
+                // Get CSRF token from cookie or meta tag
+                function getCsrfToken() {
+                    // Try cookie first
+                    const cookieMatch = document.cookie.match(/csrf_token=([^;]+)/);
+                    if (cookieMatch) return cookieMatch[1];
+                    // Try meta tag
+                    const meta = document.querySelector('meta[name="csrf-token"]');
+                    if (meta) return meta.getAttribute('content');
+                    return null;
+                }
+
                 // Submit to API
+                const csrfToken = getCsrfToken();
+                const headers = { 'Content-Type': 'application/json' };
+                if (csrfToken) {
+                    headers['X-CSRF-Token'] = csrfToken;
+                }
+
                 const response = await fetch(`/api/cpa/lead-magnet/${sessionId}/contact`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: headers,
                     body: JSON.stringify({
                         first_name: firstName,
                         email: email,
