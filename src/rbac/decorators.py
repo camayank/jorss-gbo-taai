@@ -22,7 +22,7 @@ from src.rbac.status_permissions import (
     can_approve_return,
     can_submit_for_review,
     can_revert_status,
-    can_efile_return,
+    can_generate_filing_package,
     can_view_return
 )
 from src.database.session_persistence import get_session_persistence
@@ -106,7 +106,8 @@ def require_return_permission(action: str):
     Decorator for FastAPI endpoints that require status-based return permissions.
 
     Args:
-        action: Action type - 'view', 'edit', 'approve', 'submit', 'revert', 'efile'
+        action: Action type - 'view', 'edit', 'approve', 'submit', 'revert', 'generate_filing_package'
+                (also accepts 'efile' for backward compatibility)
 
     Usage:
         @router.post("/returns/{session_id}/edit")
@@ -200,8 +201,8 @@ def require_return_permission(action: str):
                     is_assigned_cpa=is_assigned_cpa
                 )
 
-            elif action == 'efile':
-                allowed = can_efile_return(
+            elif action in ('generate_filing_package', 'efile'):  # 'efile' for backward compatibility
+                allowed = can_generate_filing_package(
                     return_status,
                     ctx.role,
                     is_assigned_cpa=is_assigned_cpa

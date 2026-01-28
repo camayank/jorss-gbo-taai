@@ -69,8 +69,11 @@ class AuthContext:
     firm_id: Optional[UUID] = None
     """
     For firm_user: The CPA firm they belong to.
-    For client: The CPA firm serving them (or None for direct_client).
+    For client: The CPA firm serving them.
     For platform_admin: None.
+
+    NOTE: This platform is B2B only - all clients belong to CPA firms.
+    The concept of "direct_client" without a firm is deprecated.
     """
 
     firm_name: Optional[str] = None
@@ -272,13 +275,22 @@ class AuthContext:
         user_id: UUID,
         email: str,
         name: str,
-        is_direct: bool,
+        is_direct: bool = False,  # DEPRECATED: All clients treated the same
         firm_id: Optional[UUID] = None,
         firm_name: Optional[str] = None,
         token_id: Optional[str] = None,
         token_exp: Optional[datetime] = None,
     ) -> "AuthContext":
-        """Create context for a client (direct or firm client)."""
+        """
+        Create context for a client.
+
+        NOTE: This platform is B2B only - all clients belong to CPA firms.
+        The is_direct parameter is DEPRECATED and kept only for backward
+        compatibility. All clients are treated identically regardless of
+        how they were created. Both DIRECT_CLIENT and FIRM_CLIENT have
+        the same permissions and capabilities.
+        """
+        # Backward compatibility: accept is_direct but treat all clients the same
         role = Role.DIRECT_CLIENT if is_direct else Role.FIRM_CLIENT
         return cls(
             user_id=user_id,

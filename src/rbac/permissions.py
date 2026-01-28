@@ -105,7 +105,9 @@ class Permission(str, Enum):
     DOCUMENT_DELETE = "document_delete"
 
     # =========================================================================
-    # SELF-SERVICE PERMISSIONS (Direct Clients)
+    # SELF-SERVICE PERMISSIONS (All Clients)
+    # NOTE: All clients are CPA's clients (no B2C channel). These permissions
+    # apply to all clients equally - there is no DIRECT_CLIENT distinction.
     # =========================================================================
 
     SELF_VIEW_RETURN = "self_view_return"
@@ -516,23 +518,24 @@ ROLE_PERMISSIONS: dict[Role, FrozenSet[Permission]] = {
     }),
 
     # -------------------------------------------------------------------------
-    # DIRECT_CLIENT: Self-service taxpayer
+    # CLIENT PERMISSIONS (All clients treated the same)
+    # NOTE: This platform is B2B only. All clients belong to CPA firms.
+    # DIRECT_CLIENT and FIRM_CLIENT have IDENTICAL permissions.
     # -------------------------------------------------------------------------
-    Role.DIRECT_CLIENT: frozenset({
+    Role.FIRM_CLIENT: frozenset({
         Permission.SELF_VIEW_RETURN,
         Permission.SELF_EDIT_RETURN,
-        Permission.SELF_UPLOAD_DOCS,
         Permission.SELF_VIEW_STATUS,
+        Permission.SELF_UPLOAD_DOCS,
         Permission.DOCUMENT_VIEW,
         Permission.DOCUMENT_UPLOAD,
     }),
 
-    # -------------------------------------------------------------------------
-    # FIRM_CLIENT: CPA's client (limited self-service)
-    # -------------------------------------------------------------------------
-    Role.FIRM_CLIENT: frozenset({
+    # DEPRECATED: Use FIRM_CLIENT - kept for backward compatibility only
+    # All clients are treated the same regardless of how they were created
+    Role.DIRECT_CLIENT: frozenset({
         Permission.SELF_VIEW_RETURN,
-        Permission.SELF_EDIT_RETURN,  # ADDED: Fix permission bug - clients can edit DRAFT returns
+        Permission.SELF_EDIT_RETURN,
         Permission.SELF_VIEW_STATUS,
         Permission.SELF_UPLOAD_DOCS,
         Permission.DOCUMENT_VIEW,

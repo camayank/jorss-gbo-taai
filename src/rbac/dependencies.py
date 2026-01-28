@@ -96,13 +96,15 @@ async def get_auth_context(
                 token_exp=payload.get("exp"),
             )
         else:
-            # Client
+            # Client - All clients are CPA's clients (B2B only platform)
+            # NOTE: is_direct is deprecated - all clients treated the same
+            # Kept for backward compatibility with existing tokens
             is_direct = payload.get("role") == Role.DIRECT_CLIENT.value
             ctx = AuthContext.for_client(
                 user_id=UUID(payload["sub"]),
                 email=payload["email"],
                 name=payload.get("name", ""),
-                is_direct=is_direct,
+                is_direct=is_direct,  # Deprecated: treated identically to firm_client
                 firm_id=UUID(payload["firm_id"]) if payload.get("firm_id") else None,
                 firm_name=payload.get("firm_name", ""),
                 token_id=payload.get("jti"),

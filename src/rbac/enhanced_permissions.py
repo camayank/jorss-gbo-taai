@@ -50,7 +50,8 @@ class ResourceType(Enum):
     TAX_RETURN = "tax_return"
     TAX_RETURN_REVIEW = "tax_return_review"
     TAX_RETURN_APPROVAL = "tax_return_approval"
-    TAX_RETURN_EFILE = "tax_return_efile"
+    TAX_RETURN_EFILE = "tax_return_efile"  # NOTE: Actually "filing_package" - platform does NOT e-file with IRS
+    FILING_PACKAGE = "tax_return_efile"  # Alias - same as TAX_RETURN_EFILE
 
     # Documents
     DOCUMENT = "document"
@@ -445,18 +446,22 @@ class Permissions:
         requires_assignment=True
     )
 
-    CPA_RETURNS_EFILE = Permission(
-        code="cpa.returns.efile",
-        name="E-File Tax Returns",
-        description="Submit tax returns for e-filing",
+    CPA_RETURNS_GENERATE_FILING_PACKAGE = Permission(
+        code="cpa.returns.generate_filing_package",
+        name="Generate Filing Package",
+        description="Generate filing package for external e-filing (platform does NOT e-file with IRS)",
         scope=PermissionScope.CPA,
-        resource=ResourceType.TAX_RETURN_EFILE,
+        resource=ResourceType.TAX_RETURN_EFILE,  # Resource type kept for compatibility
         action=PermissionAction.EXECUTE,
         requires_assignment=True
     )
 
+    # Backward compatibility alias
+    CPA_RETURNS_EFILE = CPA_RETURNS_GENERATE_FILING_PACKAGE
+
     # =========================================================================
-    # CLIENT-LEVEL PERMISSIONS (Firm Client, Direct Client)
+    # CLIENT-LEVEL PERMISSIONS (All clients are CPA's clients)
+    # NOTE: No distinction between "direct" and "firm" clients - all same
     # =========================================================================
 
     # Own Profile
@@ -681,7 +686,7 @@ class PermissionSets:
         Permissions.CPA_RETURNS_EDIT,
         Permissions.CPA_RETURNS_REVIEW,
         Permissions.CPA_RETURNS_APPROVE,
-        Permissions.CPA_RETURNS_EFILE,
+        Permissions.CPA_RETURNS_GENERATE_FILING_PACKAGE,  # Generate filing package (NOT e-file)
 
         # Features
         Permissions.FEATURE_EXPRESS_LANE_USE,
@@ -711,7 +716,7 @@ class PermissionSets:
         Permissions.CPA_RETURNS_EDIT,
         Permissions.CPA_RETURNS_REVIEW,
         Permissions.CPA_RETURNS_APPROVE,
-        Permissions.CPA_RETURNS_EFILE,
+        Permissions.CPA_RETURNS_GENERATE_FILING_PACKAGE,  # Generate filing package (NOT e-file)
 
         # Features
         Permissions.FEATURE_EXPRESS_LANE_USE,
@@ -721,8 +726,9 @@ class PermissionSets:
         Permissions.FEATURE_PROJECTIONS_USE,
     })
 
-    # Firm Client - Client with CPA firm
-    FIRM_CLIENT_PERMISSIONS = frozenset({
+    # Client Permissions - All clients are CPA's clients (no distinction)
+    # NOTE: Platform is B2B only. All clients access through CPA's portal.
+    CLIENT_PERMISSIONS = frozenset({
         # Self profile
         Permissions.CLIENT_PROFILE_VIEW_SELF,
         Permissions.CLIENT_PROFILE_EDIT_SELF,
@@ -747,28 +753,9 @@ class PermissionSets:
         Permissions.FEATURE_PROJECTIONS_USE,
     })
 
-    # Direct Client - DIY client
-    DIRECT_CLIENT_PERMISSIONS = frozenset({
-        # Self profile
-        Permissions.CLIENT_PROFILE_VIEW_SELF,
-        Permissions.CLIENT_PROFILE_EDIT_SELF,
-
-        # Own returns
-        Permissions.CLIENT_RETURNS_VIEW_SELF,
-        Permissions.CLIENT_RETURNS_EDIT_SELF,
-        Permissions.CLIENT_RETURNS_CREATE,
-
-        # Documents
-        Permissions.CLIENT_DOCUMENTS_VIEW_SELF,
-        Permissions.CLIENT_DOCUMENTS_UPLOAD,
-
-        # Portal
-        Permissions.CLIENT_PORTAL_ACCESS,
-
-        # Features (limited)
-        Permissions.FEATURE_EXPRESS_LANE_USE,
-        Permissions.FEATURE_SMART_TAX_USE,
-    })
+    # Aliases for backward compatibility - ALL clients treated the same
+    FIRM_CLIENT_PERMISSIONS = CLIENT_PERMISSIONS
+    DIRECT_CLIENT_PERMISSIONS = CLIENT_PERMISSIONS  # DEPRECATED: Same as FIRM_CLIENT
 
     # Anonymous - Not logged in
     ANONYMOUS_PERMISSIONS = frozenset({

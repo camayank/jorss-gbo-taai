@@ -23,13 +23,17 @@ class ReturnStatus(str, Enum):
     Tax return status states.
 
     Maps to return_status.status column in database.
+
+    NOTE: This platform does NOT e-file directly with IRS.
+    FILING_READY means the filing package has been generated and is ready
+    for the CPA to file externally using their preferred e-filing software.
     """
     DRAFT = "DRAFT"                     # Initial state, editable by client
     IN_REVIEW = "IN_REVIEW"             # Submitted to CPA, locked for client
-    CPA_APPROVED = "CPA_APPROVED"       # Signed by CPA, locked for everyone
-    EFILED = "EFILED"                   # E-filed with IRS
-    ACCEPTED = "ACCEPTED"               # Accepted by IRS
-    REJECTED = "REJECTED"               # Rejected by IRS, back to DRAFT
+    CPA_APPROVED = "CPA_APPROVED"       # Signed by CPA, ready for filing package
+    FILING_READY = "FILING_READY"       # Filing package generated, ready for external e-filing
+    ACCEPTED = "ACCEPTED"               # CPA confirmed filed externally and accepted
+    REJECTED = "REJECTED"               # Issues found, back to CPA review
 
 
 def can_edit_return(
@@ -80,8 +84,8 @@ def can_edit_return(
     elif status == ReturnStatus.CPA_APPROVED:
         return False
 
-    # EFILED: Locked, can't edit filed returns
-    elif status == ReturnStatus.EFILED:
+    # FILING_READY: Locked, filing package has been generated
+    elif status == ReturnStatus.FILING_READY:
         return False
 
     # ACCEPTED: Locked
@@ -192,20 +196,24 @@ def can_revert_status(
     if status in {ReturnStatus.IN_REVIEW, ReturnStatus.CPA_APPROVED, ReturnStatus.REJECTED}:
         return True
 
-    # Cannot revert filed or accepted returns
-    if status in {ReturnStatus.EFILED, ReturnStatus.ACCEPTED}:
+    # Cannot revert returns with filing package generated or accepted
+    if status in {ReturnStatus.FILING_READY, ReturnStatus.ACCEPTED}:
         return False
 
     return False
 
 
-def can_efile_return(
+def can_generate_filing_package(
     status: ReturnStatus,
     role: Role,
     is_assigned_cpa: bool = False
 ) -> bool:
     """
-    Check if user can e-file a return with IRS.
+    Check if user can generate a filing package for external e-filing.
+
+    NOTE: This platform does NOT e-file directly with IRS.
+    This function checks if the user can generate the filing package
+    (reports, forms, data) that the CPA will use to file externally.
 
     Args:
         status: Current status of the return
@@ -213,9 +221,9 @@ def can_efile_return(
         is_assigned_cpa: Whether user is the assigned CPA
 
     Returns:
-        True if user can e-file, False otherwise
+        True if user can generate filing package, False otherwise
     """
-    # Only CPAs can e-file
+    # Only CPAs can generate filing packages
     if role not in {Role.STAFF, Role.PARTNER, Role.PLATFORM_ADMIN}:
         return False
 
@@ -223,11 +231,15 @@ def can_efile_return(
     if not is_assigned_cpa and role != Role.PLATFORM_ADMIN:
         return False
 
-    # Can only e-file CPA_APPROVED returns
+    # Can only generate filing package for CPA_APPROVED returns
     if status == ReturnStatus.CPA_APPROVED:
         return True
 
     return False
+
+
+# Backward compatibility alias (deprecated)
+can_efile_return = can_generate_filing_package
 
 
 def can_view_return(
@@ -303,10 +315,10 @@ def get_allowed_transitions(
         transitions = [ReturnStatus.CPA_APPROVED, ReturnStatus.DRAFT]  # Approve or send back
 
     elif current_status == ReturnStatus.CPA_APPROVED:
-        transitions = [ReturnStatus.EFILED, ReturnStatus.DRAFT]  # E-file or revert
+        transitions = [ReturnStatus.FILING_READY, ReturnStatus.DRAFT]  # Generate filing package or revert
 
-    elif current_status == ReturnStatus.EFILED:
-        transitions = [ReturnStatus.ACCEPTED, ReturnStatus.REJECTED]
+    elif current_status == ReturnStatus.FILING_READY:
+        transitions = [ReturnStatus.ACCEPTED, ReturnStatus.REJECTED]  # CPA marks as filed externally
 
     elif current_status == ReturnStatus.REJECTED:
         transitions = [ReturnStatus.DRAFT]  # Fix and start over
@@ -323,9 +335,9 @@ def get_status_display_name(status: ReturnStatus) -> str:
         ReturnStatus.DRAFT: "Draft",
         ReturnStatus.IN_REVIEW: "Under Review",
         ReturnStatus.CPA_APPROVED: "CPA Approved",
-        ReturnStatus.EFILED: "E-Filed",
-        ReturnStatus.ACCEPTED: "Accepted by IRS",
-        ReturnStatus.REJECTED: "Rejected by IRS"
+        ReturnStatus.FILING_READY: "Filing Package Ready",
+        ReturnStatus.ACCEPTED: "Filed & Accepted",
+        ReturnStatus.REJECTED: "Needs Corrections"
     }
     return display_names.get(status, str(status))
 
@@ -335,9 +347,9 @@ def get_status_description(status: ReturnStatus) -> str:
     descriptions = {
         ReturnStatus.DRAFT: "Return is being prepared and can be edited.",
         ReturnStatus.IN_REVIEW: "Return has been submitted for CPA review. Client cannot edit.",
-        ReturnStatus.CPA_APPROVED: "Return has been reviewed and approved by CPA. Ready to file.",
-        ReturnStatus.EFILED: "Return has been e-filed with the IRS. Awaiting response.",
-        ReturnStatus.ACCEPTED: "Return has been accepted by the IRS. Filing complete.",
-        ReturnStatus.REJECTED: "Return was rejected by the IRS. Needs corrections."
+        ReturnStatus.CPA_APPROVED: "Return has been reviewed and approved by CPA. Ready to generate filing package.",
+        ReturnStatus.FILING_READY: "Filing package generated. CPA can download and file externally with preferred e-filing software.",
+        ReturnStatus.ACCEPTED: "CPA has confirmed the return was filed and accepted. Filing complete.",
+        ReturnStatus.REJECTED: "Issues found during external filing. Needs corrections."
     }
     return descriptions.get(status, "Unknown status")

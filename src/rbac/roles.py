@@ -77,23 +77,28 @@ class Role(str, Enum):
     """
 
     # =========================================================================
-    # LEVEL 1B: DIRECT CLIENT (B2C)
-    # =========================================================================
-
-    DIRECT_CLIENT = "direct_client"
-    """
-    Self-service taxpayer using CA4CPA directly (no CPA intermediary).
-    Who: Individual taxpayers, DIY filers
-    """
-
-    # =========================================================================
-    # LEVEL 2: FIRM CLIENT (B2B2C)
+    # LEVEL 2: CLIENT (B2B2C - All clients are CPA's clients)
     # =========================================================================
 
     FIRM_CLIENT = "firm_client"
     """
     Taxpayer who is a client of a CPA firm.
+
+    NOTE: This platform is B2B only. All clients belong to CPA firms.
+    There is no direct B2C channel - all clients access through their CPA's
+    white-labeled portal.
+
     Who: Clients of CPA practices
+    """
+
+    # DEPRECATED: Use FIRM_CLIENT instead
+    # Kept for backward compatibility only - treated identically to FIRM_CLIENT
+    DIRECT_CLIENT = "direct_client"
+    """
+    DEPRECATED: Legacy role - use FIRM_CLIENT instead.
+
+    All clients are now treated the same regardless of how they access
+    the platform. This role exists only for backward compatibility.
     """
 
 
@@ -195,13 +200,13 @@ ROLES: dict[Role, RoleInfo] = {
     ),
 
     # -------------------------------------------------------------------------
-    # Direct Client Role (Level 1B)
+    # Client Role (Level 2) - All clients are CPA's clients
     # -------------------------------------------------------------------------
-    Role.DIRECT_CLIENT: RoleInfo(
-        role=Role.DIRECT_CLIENT,
-        name="Direct Client",
-        description="Self-service taxpayer - DIY filer",
-        level=Level.FIRM,  # Same level as firm for data isolation
+    Role.FIRM_CLIENT: RoleInfo(
+        role=Role.FIRM_CLIENT,
+        name="Client",
+        description="CPA's taxpayer client - All clients access via CPA's portal",
+        level=Level.CLIENT,
         is_platform=False,
         is_firm=False,
         is_client=True,
@@ -209,13 +214,14 @@ ROLES: dict[Role, RoleInfo] = {
     ),
 
     # -------------------------------------------------------------------------
-    # Firm Client Role (Level 2)
+    # DEPRECATED: Direct Client (kept for backward compatibility)
+    # Treated identically to FIRM_CLIENT
     # -------------------------------------------------------------------------
-    Role.FIRM_CLIENT: RoleInfo(
-        role=Role.FIRM_CLIENT,
-        name="Firm Client",
-        description="CPA's taxpayer client",
-        level=Level.CLIENT,
+    Role.DIRECT_CLIENT: RoleInfo(
+        role=Role.DIRECT_CLIENT,
+        name="Client (Legacy)",
+        description="DEPRECATED: Use FIRM_CLIENT - All clients treated the same",
+        level=Level.CLIENT,  # Same as FIRM_CLIENT
         is_platform=False,
         is_firm=False,
         is_client=True,

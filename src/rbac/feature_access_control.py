@@ -144,15 +144,15 @@ class Features:
         ui_icon="🎯"
     )
 
-    E_FILE = Feature(
-        code="e_file",
-        name="E-File Returns",
-        description="Electronic filing with IRS",
+    FILING_PACKAGE = Feature(
+        code="filing_package",
+        name="Filing Package Export",
+        description="Generate comprehensive filing packages to support external e-filing (platform does NOT e-file directly with IRS)",
         category=FeatureCategory.FILING,
         min_tier=SubscriptionTier.STARTER,
         allowed_roles={"PARTNER", "STAFF"},
-        ui_icon="📨",
-        upgrade_message="Upgrade to Starter to e-file returns"
+        ui_icon="📦",
+        upgrade_message="Upgrade to Starter to generate filing packages"
     )
 
     # =============================================================================
