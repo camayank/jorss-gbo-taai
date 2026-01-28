@@ -570,6 +570,50 @@ try:
 except ImportError as e:
     logger.warning(f"Webhooks router not available: {e}")
 
+# =============================================================================
+# NEW API ROUTERS - UI/Backend Gap Implementation
+# =============================================================================
+
+# Register Support Tickets API (CPA Firms)
+try:
+    from web.routers.support_api import router as support_router
+    app.include_router(support_router)
+    logger.info("Support Tickets API enabled at /api/cpa/support")
+except ImportError as e:
+    logger.warning(f"Support Tickets API not available: {e}")
+
+# Register Admin Impersonation API (Platform Admins)
+try:
+    from web.routers.admin_impersonation_api import router as impersonation_router
+    app.include_router(impersonation_router)
+    logger.info("Admin Impersonation API enabled at /api/admin/impersonation")
+except ImportError as e:
+    logger.warning(f"Admin Impersonation API not available: {e}")
+
+# Register Admin API Keys API (Firm Partners)
+try:
+    from web.routers.admin_api_keys_api import router as api_keys_router
+    app.include_router(api_keys_router)
+    logger.info("Admin API Keys API enabled at /api/admin/api-keys")
+except ImportError as e:
+    logger.warning(f"Admin API Keys API not available: {e}")
+
+# Register Admin Refunds API (Platform Admins)
+try:
+    from web.routers.admin_refunds_api import router as refunds_router
+    app.include_router(refunds_router)
+    logger.info("Admin Refunds API enabled at /api/admin/refunds")
+except ImportError as e:
+    logger.warning(f"Admin Refunds API not available: {e}")
+
+# Register Admin Compliance API (Platform Admins)
+try:
+    from web.routers.admin_compliance_api import router as compliance_router
+    app.include_router(compliance_router)
+    logger.info("Admin Compliance API enabled at /api/admin/compliance")
+except ImportError as e:
+    logger.warning(f"Admin Compliance API not available: {e}")
+
 
 # =============================================================================
 # ERROR HANDLING SYSTEM
@@ -1239,17 +1283,6 @@ def intelligent_tax_advisor(request: Request):
     from config.branding import get_branding_config
     branding = get_branding_config()
     return templates.TemplateResponse("intelligent_advisor.html", {"request": request, "branding": branding})
-
-
-@app.get("/intelligent-advisor/v2", response_class=HTMLResponse)
-def intelligent_tax_advisor_v2(request: Request):
-    """
-    Intelligent Tax Advisor V2 - Refactored with modular CSS/JS.
-
-    Uses external CSS/JS files for better performance and maintainability.
-    This is the refactored version for testing before full deployment.
-    """
-    return templates.TemplateResponse("intelligent_advisor_refactored.html", {"request": request})
 
 
 @app.get("/landing", response_class=HTMLResponse)
@@ -6579,120 +6612,36 @@ async def dismiss_smart_insight(insight_id: str, request: Request):
 @app.get("/advisor", response_class=HTMLResponse)
 def ai_tax_advisor(request: Request):
     """
-    AI Tax Advisor - Conversational Chat Interface
-
-    Premium AI-powered tax advisory chat with:
-    - Conversational data collection
-    - Real-time tax calculations
-    - Strategic recommendations
-    - Document upload & OCR
-    - Journey progress tracking
-    - Session persistence
-
-    This provides a "talk to an advisor" experience.
+    AI Tax Advisor - Intelligent chatbot interface.
     """
     from config.branding import get_branding_config
     branding = get_branding_config()
-    return templates.TemplateResponse("intelligent_advisor.html", {"request": request, "branding": branding})
-
-
-# ============================================================================
-# TAX ADVISORY PORTAL - Form-Based Step Wizard
-# ============================================================================
-@app.get("/tax-advisory", response_class=HTMLResponse)
-@app.get("/advisory", response_class=HTMLResponse)
-@app.get("/start", response_class=HTMLResponse)
-@app.get("/analysis", response_class=HTMLResponse)
-def new_tax_advisory_portal(request: Request):
-    """
-    Tax Advisory Platform - Form-Based Step Wizard
-
-    Comprehensive multi-step tax data collection form.
-
-    Available URLs:
-    - /tax-advisory
-    - /advisory
-    - /start
-    - /analysis
-
-    Features:
-    - Professional CPA-grade tax analysis
-    - Step-by-step guided data entry
-    - OCR document extraction for express filing
-    - Entity structure comparison (LLC/S-Corp/C-Corp)
-    - Multi-year tax projections (3-5 years)
-    - Strategic tax reduction recommendations
-    - Professional PDF advisory report (20-40 pages)
-    """
-    from config.branding import get_branding_config
-    branding = get_branding_config()
-    return templates.TemplateResponse("index.html", {
+    return templates.TemplateResponse("intelligent_advisor.html", {
         "request": request,
-        "branding": {
-            "platform_name": branding.platform_name,
-            "company_name": branding.company_name,
-            "tagline": branding.tagline,
-            "firm_credentials": branding.firm_credentials,
-            "primary_color": branding.primary_color,
-            "secondary_color": branding.secondary_color,
-            "accent_color": branding.accent_color,
-            "logo_url": branding.logo_url,
-            "favicon_url": branding.favicon_url,
-            "support_email": branding.support_email,
-            "support_phone": branding.support_phone,
-            "website_url": branding.website_url,
-            "meta_description": branding.meta_description,
-        }
+        "branding": branding,
     })
 
 
-@app.get("/tax-advisory/v2", response_class=HTMLResponse)
-@app.get("/advisory/v2", response_class=HTMLResponse)
-@app.get("/start/v2", response_class=HTMLResponse)
-def tax_advisory_v2(request: Request):
+# ============================================================================
+# LEGACY ROUTES - Redirect to AI Advisor
+# ============================================================================
+@app.get("/tax-advisory")
+@app.get("/advisory")
+@app.get("/start")
+@app.get("/analysis")
+@app.get("/tax-advisory/v2")
+@app.get("/advisory/v2")
+@app.get("/start/v2")
+@app.get("/simple")
+@app.get("/conversation")
+@app.get("/chat")
+def legacy_routes_redirect():
     """
-    Tax Advisory V2 - Refactored with modular CSS/JS.
+    Legacy routes redirected to AI Tax Advisor.
 
-    Uses external CSS/JS files for better performance and maintainability.
-    This is the refactored version for testing before full deployment.
-
-    Template size reduced from 788KB to 31KB (96% reduction).
+    Old form-wizard and prototype routes now redirect to the main
+    AI-powered tax advisor at /advisor.
     """
-    from config.branding import get_branding_config
-    branding = get_branding_config()
-    return templates.TemplateResponse("index_refactored.html", {
-        "request": request,
-        "branding": {
-            "platform_name": branding.platform_name,
-            "company_name": branding.company_name,
-            "tagline": branding.tagline,
-            "firm_credentials": branding.firm_credentials,
-            "primary_color": branding.primary_color,
-            "secondary_color": branding.secondary_color,
-            "accent_color": branding.accent_color,
-            "logo_url": branding.logo_url,
-            "favicon_url": branding.favicon_url,
-            "support_email": branding.support_email,
-            "support_phone": branding.support_phone,
-            "website_url": branding.website_url,
-            "meta_description": branding.meta_description,
-        }
-    })
-
-
-
-@app.get("/simple", response_class=HTMLResponse)
-@app.get("/conversation", response_class=HTMLResponse)
-@app.get("/chat", response_class=HTMLResponse)
-def simple_conversational_interface(request: Request):
-    """
-    Simple Conversational Tax Advisory Interface
-
-    Clean, single-flow conversational interface with:
-    - AI chat as primary interface
-    - Document upload option
-    - Manual data entry fallback
-    - No bulky forms - everything conversational
-    """
-    return templates.TemplateResponse("simple_conversational.html", {"request": request})
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/advisor", status_code=302)
 
