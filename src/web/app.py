@@ -353,6 +353,14 @@ try:
 except ImportError as e:
     logger.warning(f"Unified Filing API not available: {e}")
 
+# Guided Filing API (Step-by-step tax filing workflow)
+try:
+    from web.guided_filing_api import router as guided_filing_router
+    app.include_router(guided_filing_router)
+    logger.info("Guided Filing API enabled at /api/filing/guided")
+except ImportError as e:
+    logger.warning(f"Guided Filing API not available: {e}")
+
 # Session Management API (Phase 2.2: Session endpoints for resume, transfer, etc.)
 try:
     from web.sessions_api import router as sessions_router
@@ -473,6 +481,30 @@ try:
 except ImportError as e:
     logger.warning(f"CPA Branding API not available: {e}")
 
+# Register Filing Package Export API (Structured data export for tax software)
+try:
+    from web.filing_package_api import router as filing_package_router
+    app.include_router(filing_package_router)
+    logger.info("Filing Package API enabled at /api/filing-package")
+except ImportError as e:
+    logger.warning(f"Filing Package API not available: {e}")
+
+# Register Custom Domain API (DNS verification flow)
+try:
+    from web.custom_domain_api import router as custom_domain_router
+    app.include_router(custom_domain_router)
+    logger.info("Custom Domain API enabled at /api/custom-domain")
+except ImportError as e:
+    logger.warning(f"Custom Domain API not available: {e}")
+
+# Register MFA/2FA API (TOTP-based two-factor authentication)
+try:
+    from web.mfa_api import router as mfa_router
+    app.include_router(mfa_router)
+    logger.info("MFA API enabled at /api/mfa")
+except ImportError as e:
+    logger.warning(f"MFA API not available: {e}")
+
 # Register Health Check and Monitoring Routes
 try:
     from web.routers.health import router as health_router
@@ -529,6 +561,14 @@ try:
     logger.info("Validation router enabled at /api/validate")
 except ImportError as e:
     logger.warning(f"Validation router not available: {e}")
+
+# Register Webhooks Router (Enterprise feature)
+try:
+    from webhooks.router import router as webhooks_router
+    app.include_router(webhooks_router)
+    logger.info("Webhooks router enabled at /api/webhooks")
+except ImportError as e:
+    logger.warning(f"Webhooks router not available: {e}")
 
 
 # =============================================================================
@@ -1795,6 +1835,48 @@ def smart_tax_app_legacy(request: Request, path: str = ""):
     5. ACT - File or connect with CPA
     """
     return templates.TemplateResponse("smart_tax.html", {"request": request})
+
+
+@app.get("/guided", response_class=HTMLResponse)
+@app.get("/guided/{session_id}", response_class=HTMLResponse)
+def guided_filing_page(request: Request, session_id: str = None):
+    """
+    Guided tax filing - step-by-step workflow.
+
+    Steps:
+    1. PERSONAL - Basic taxpayer information
+    2. FILING STATUS - Select filing status
+    3. INCOME - Report all income sources
+    4. DEDUCTIONS - Standard or itemized
+    5. CREDITS - Applicable tax credits
+    6. REVIEW - Verify all information
+    7. COMPLETE - Submit for CPA review
+    """
+    context = {
+        "request": request,
+        "session_id": session_id or "",
+    }
+
+    # Add tenant branding if available
+    try:
+        from config.branding import get_branding_config
+        context["branding"] = get_branding_config()
+    except Exception:
+        pass
+
+    # Add tenant features if available
+    try:
+        from database.tenant_persistence import get_tenant_persistence
+        tenant_id = request.cookies.get("tenant_id")
+        if tenant_id:
+            persistence = get_tenant_persistence()
+            tenant = persistence.get_tenant(tenant_id)
+            if tenant:
+                context["tenant_features"] = tenant.features.to_dict() if hasattr(tenant.features, 'to_dict') else {}
+    except Exception:
+        pass
+
+    return templates.TemplateResponse("guided_filing.html", context)
 
 
 @app.get("/results", response_class=HTMLResponse)

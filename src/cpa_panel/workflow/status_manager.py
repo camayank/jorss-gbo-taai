@@ -307,6 +307,20 @@ class CPAWorkflowManager:
                 }
             )
 
+        # Emit webhook event for status change
+        try:
+            from webhooks.triggers import trigger_return_status_changed
+            trigger_return_status_changed(
+                firm_id=tenant_id,
+                return_id=session_id,
+                previous_status=current.status.value,
+                new_status=target_status.value,
+                changed_by=cpa_reviewer_id,
+                notes=notes,
+            )
+        except ImportError:
+            pass  # Webhooks module not available
+
         return self.get_status(session_id, tenant_id)
 
     def submit_for_review(self, session_id: str, tenant_id: str = "default") -> StatusRecord:
