@@ -4,7 +4,7 @@ Database Cascade and Index Audit Utilities
 SPEC-012: Tools for auditing database schema for proper cascades and indexes.
 
 Usage:
-    from tests.utils.database_audit import (
+    from tests.helpers.database_audit import (
         audit_cascades,
         audit_foreign_key_indexes,
         audit_missing_indexes,

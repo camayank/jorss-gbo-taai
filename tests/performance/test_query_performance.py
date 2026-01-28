@@ -17,7 +17,7 @@ src_path = Path(__file__).parent.parent.parent / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
-from tests.utils.query_counter import QueryCounter, QueryStats, QueryInfo, assert_query_count
+from tests.helpers.query_counter import QueryCounter, QueryStats, QueryInfo, assert_query_count
 
 
 class TestQueryCounter:

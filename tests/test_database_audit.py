@@ -31,7 +31,7 @@ class TestForeignKeyIndexes:
         - Slow cascade deletes
         - Table scans on relationship queries
         """
-        from tests.utils.database_audit import audit_foreign_key_indexes
+        from tests.helpers.database_audit import audit_foreign_key_indexes
 
         issues = audit_foreign_key_indexes()
         high_severity = [i for i in issues if i.severity == "high"]
@@ -48,7 +48,7 @@ class TestForeignKeyIndexes:
 
     def test_document_foreign_keys_indexed(self):
         """Document-related tables should have indexed FKs."""
-        from tests.utils.database_audit import audit_foreign_key_indexes
+        from tests.helpers.database_audit import audit_foreign_key_indexes
 
         issues = audit_foreign_key_indexes()
         doc_issues = [
@@ -72,7 +72,7 @@ class TestCascadeConfiguration:
         - Deleting a tax return leaves orphan W2s, 1099s, etc.
         - Foreign key constraints cause delete failures
         """
-        from tests.utils.database_audit import audit_cascades
+        from tests.helpers.database_audit import audit_cascades
 
         issues = audit_cascades()
         tax_return_issues = [
@@ -89,7 +89,7 @@ class TestCascadeConfiguration:
         """
         PreparerRecord should cascade deletes to client relationships.
         """
-        from tests.utils.database_audit import audit_cascades
+        from tests.helpers.database_audit import audit_cascades
 
         issues = audit_cascades()
         preparer_issues = [
@@ -106,7 +106,7 @@ class TestCascadeConfiguration:
         """
         Parent tables should have delete-orphan to prevent orphaned children.
         """
-        from tests.utils.database_audit import audit_cascades
+        from tests.helpers.database_audit import audit_cascades
 
         issues = audit_cascades()
         orphan_risks = [
@@ -128,7 +128,7 @@ class TestRecommendedIndexes:
         """
         Status and flag columns used in WHERE clauses should be indexed.
         """
-        from tests.utils.database_audit import audit_missing_indexes
+        from tests.helpers.database_audit import audit_missing_indexes
 
         issues = audit_missing_indexes()
         status_issues = [
@@ -146,7 +146,7 @@ class TestRecommendedIndexes:
         """
         Timestamp columns used for sorting should be indexed.
         """
-        from tests.utils.database_audit import audit_missing_indexes
+        from tests.helpers.database_audit import audit_missing_indexes
 
         issues = audit_missing_indexes()
         timestamp_issues = [
@@ -162,7 +162,7 @@ class TestRecommendedIndexes:
         """
         Hash columns used for lookups (ssn_hash, etc.) must be indexed.
         """
-        from tests.utils.database_audit import audit_missing_indexes
+        from tests.helpers.database_audit import audit_missing_indexes
 
         issues = audit_missing_indexes()
         hash_issues = [
@@ -188,7 +188,7 @@ class TestCompositeIndexes:
         """
         Tax returns should have composite indexes for common queries.
         """
-        from tests.utils.database_audit import audit_composite_indexes
+        from tests.helpers.database_audit import audit_composite_indexes
 
         issues = audit_composite_indexes()
         tax_issues = [
@@ -205,7 +205,7 @@ class TestCompositeIndexes:
         """
         Audit logs should have indexes for efficient querying.
         """
-        from tests.utils.database_audit import audit_composite_indexes
+        from tests.helpers.database_audit import audit_composite_indexes
 
         issues = audit_composite_indexes()
         audit_issues = [
@@ -227,7 +227,7 @@ class TestFullAuditReport:
         """
         Full audit report should be generated successfully.
         """
-        from tests.utils.database_audit import generate_audit_report, format_report_text
+        from tests.helpers.database_audit import generate_audit_report, format_report_text
 
         report = generate_audit_report()
 
@@ -239,7 +239,7 @@ class TestFullAuditReport:
         """
         Audit report should include actionable recommendations.
         """
-        from tests.utils.database_audit import generate_audit_report
+        from tests.helpers.database_audit import generate_audit_report
 
         report = generate_audit_report()
 
@@ -261,7 +261,7 @@ class TestFullAuditReport:
         """
         Print full audit report for manual review.
         """
-        from tests.utils.database_audit import generate_audit_report, format_report_text
+        from tests.helpers.database_audit import generate_audit_report, format_report_text
 
         report = generate_audit_report()
         formatted = format_report_text(report)
@@ -280,7 +280,7 @@ class TestSchemaIntegrity:
         """
         SQLAlchemy models should be properly configured for inspection.
         """
-        from tests.utils.database_audit import get_model_metadata
+        from tests.helpers.database_audit import get_model_metadata
 
         metadata = get_model_metadata()
 
@@ -297,7 +297,7 @@ class TestSchemaIntegrity:
         """
         Core tax tables should exist in the schema.
         """
-        from tests.utils.database_audit import get_model_metadata
+        from tests.helpers.database_audit import get_model_metadata
 
         metadata = get_model_metadata()
 
@@ -320,7 +320,7 @@ class TestSchemaIntegrity:
         """
         All relationships should reference existing tables.
         """
-        from tests.utils.database_audit import get_model_metadata
+        from tests.helpers.database_audit import get_model_metadata
 
         metadata = get_model_metadata()
 

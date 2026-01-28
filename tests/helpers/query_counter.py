@@ -4,7 +4,7 @@ N+1 Query Detection Utilities
 SPEC-010: Tools for detecting and preventing N+1 query patterns in tests.
 
 Usage:
-    from tests.utils.query_counter import QueryCounter, assert_query_count
+    from tests.helpers.query_counter import QueryCounter, assert_query_count
 
     async def test_no_n_plus_one():
         async with QueryCounter() as counter:
