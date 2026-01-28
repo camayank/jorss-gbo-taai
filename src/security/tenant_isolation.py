@@ -44,9 +44,18 @@ class TenantIsolationError(Exception):
 # =============================================================================
 import os
 
-# Strict mode: if True, enforce tenant isolation (Phase 2+)
-# If False, allow access with audit logging (MVP mode)
-TENANT_STRICT_MODE = os.environ.get("TENANT_STRICT_MODE", "false").lower() == "true"
+# Environment detection
+_environment = os.environ.get("APP_ENVIRONMENT", "development")
+_is_production = _environment in ("production", "prod", "staging")
+
+# Strict mode: if True, enforce tenant isolation
+# SECURITY: Defaults to True in production, False in development
+# Can be overridden with TENANT_STRICT_MODE environment variable
+_strict_mode_env = os.environ.get("TENANT_STRICT_MODE")
+if _strict_mode_env is not None:
+    TENANT_STRICT_MODE = _strict_mode_env.lower() == "true"
+else:
+    TENANT_STRICT_MODE = _is_production  # True in production, False in development
 
 # In-memory cache for tenant access (should be replaced with Redis in production)
 _tenant_access_cache: Dict[str, Dict[str, TenantAccessLevel]] = {}
@@ -416,21 +425,50 @@ def verify_cpa_client_access(
     # Track this access for anomaly detection
     _track_access_anomaly(client_user_id, f"cpa:{cpa_id}")
 
+    has_access = False
+
     # In production with strict mode, query cpa_client_assignments table
     if TENANT_STRICT_MODE:
         # Production mode: query database for actual assignment
-        # with get_db_session() as session:
-        #     assignment = session.query(CPAClientAssignment).filter_by(
-        #         cpa_id=cpa_id, client_id=client_user_id, status='active'
-        #     ).first()
-        #     has_access = assignment is not None
-        logger.warning(
-            f"[SECURITY] Strict tenant mode enabled but DB query not implemented | "
-            f"cpa={cpa_id} | client={client_user_id}"
-        )
-        has_access = True  # TODO: Implement actual DB query for Phase 2
+        try:
+            from database.session_persistence import DEFAULT_DB_PATH
+            import sqlite3
+
+            with sqlite3.connect(DEFAULT_DB_PATH) as conn:
+                cursor = conn.cursor()
+
+                # Check if client is assigned to this CPA
+                # Looks for active assignments in cpa_client_assignments or similar table
+                cursor.execute("""
+                    SELECT 1 FROM cpa_client_assignments
+                    WHERE cpa_id = ? AND client_id = ? AND status = 'active'
+                    LIMIT 1
+                """, (cpa_id, client_user_id))
+
+                row = cursor.fetchone()
+                has_access = row is not None
+
+                # If no assignment table exists, check session ownership as fallback
+                if not has_access:
+                    cursor.execute("""
+                        SELECT 1 FROM tax_sessions
+                        WHERE tenant_id = ? AND (
+                            data LIKE ? OR metadata LIKE ?
+                        )
+                        LIMIT 1
+                    """, (cpa_id, f'%"user_id":"{client_user_id}"%', f'%"user_id":"{client_user_id}"%'))
+
+                    row = cursor.fetchone()
+                    has_access = row is not None
+
+        except Exception as e:
+            logger.warning(
+                f"[SECURITY] CPA client access check failed, denying access | "
+                f"cpa={cpa_id} | client={client_user_id} | error={e}"
+            )
+            has_access = False  # Fail secure - deny access on error
     else:
-        # MVP mode: allow with comprehensive audit logging
+        # Development mode: allow with comprehensive audit logging
         has_access = True
 
     logger.info(

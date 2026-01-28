@@ -32,13 +32,14 @@ class Role(str, Enum):
     GUEST = "guest"
 
 
-def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True):
+def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True, enforce: bool = True):
     """
     Decorator to require authentication for an endpoint.
 
     Args:
         roles: List of roles allowed to access this endpoint. If None, any authenticated user can access.
         require_tenant: If True, enforce tenant isolation (user can only access their own tenant's data)
+        enforce: If True, raise HTTPException on auth failure. If False, log only (for gradual migration).
 
     Example:
         @app.post("/api/returns/save")
@@ -46,17 +47,18 @@ def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True
         async def save_return(request: Request):
             pass
     """
+    # Check environment - always enforce in production
+    import os
+    _environment = os.environ.get("APP_ENVIRONMENT", "development")
+    _is_production = _environment in ("production", "prod", "staging")
+    _should_enforce = enforce or _is_production
+
     def decorator(func: Callable):
         @functools.wraps(func)
         async def wrapper(request: Request, *args, **kwargs):
-            # Check if authentication is enabled
-            # For now, log warning but don't block (backward compatibility)
-            # TODO: After migration, change to raise HTTPException
-
             # Get user from session/JWT
             user = get_user_from_request(request)
 
-            # FREEZE & FINISH: Auth enforcement deferred to Phase 2
             # Comprehensive logging for security audit trail
             client_ip = request.client.host if request.client else "unknown"
             user_agent = request.headers.get("user-agent", "unknown")[:100]
@@ -66,7 +68,11 @@ def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True
                     f"[AUDIT] Unauthenticated access | path={request.url.path} | "
                     f"method={request.method} | ip={client_ip} | ua={user_agent}"
                 )
-                # Phase 2: raise HTTPException(401, "Authentication required")
+                if _should_enforce:
+                    raise HTTPException(
+                        status_code=401,
+                        detail="Authentication required"
+                    )
 
             # Check role authorization
             if user and roles:
@@ -77,7 +83,11 @@ def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True
                         f"[AUDIT] Role mismatch | user={user_id} | role={user_role} | "
                         f"required={[r.value for r in roles]} | path={request.url.path} | ip={client_ip}"
                     )
-                    # Phase 2: raise HTTPException(403, "Insufficient permissions")
+                    if _should_enforce:
+                        raise HTTPException(
+                            status_code=403,
+                            detail="Insufficient permissions"
+                        )
 
             # Check tenant isolation
             if user and require_tenant:
@@ -89,7 +99,11 @@ def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True
                             f"[AUDIT] Tenant violation | user={user.get('id')} | "
                             f"session={session_id} | path={request.url.path} | ip={client_ip}"
                         )
-                        # Phase 2: raise HTTPException(403, "Access denied: wrong tenant")
+                        if _should_enforce:
+                            raise HTTPException(
+                                status_code=403,
+                                detail="Access denied: wrong tenant"
+                            )
 
             # Call original function
             return await func(request, *args, **kwargs)
@@ -98,12 +112,13 @@ def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True
     return decorator
 
 
-def require_session_owner(session_param: str = "session_id"):
+def require_session_owner(session_param: str = "session_id", enforce: bool = True):
     """
     Decorator to require that the authenticated user owns the session being accessed.
 
     Args:
         session_param: Name of the parameter containing the session ID
+        enforce: If True, raise HTTPException on auth failure. If False, log only.
 
     Example:
         @app.get("/api/returns/{session_id}")
@@ -111,12 +126,17 @@ def require_session_owner(session_param: str = "session_id"):
         async def get_return(request: Request, session_id: str):
             pass
     """
+    # Check environment - always enforce in production
+    import os
+    _environment = os.environ.get("APP_ENVIRONMENT", "development")
+    _is_production = _environment in ("production", "prod", "staging")
+    _should_enforce = enforce or _is_production
+
     def decorator(func: Callable):
         @functools.wraps(func)
         async def wrapper(request: Request, *args, **kwargs):
             user = get_user_from_request(request)
 
-            # FREEZE & FINISH: Auth enforcement deferred to Phase 2
             # Comprehensive logging for security audit trail
             client_ip = request.client.host if request.client else "unknown"
 
@@ -125,7 +145,11 @@ def require_session_owner(session_param: str = "session_id"):
                     f"[AUDIT] Unauthenticated session access | path={request.url.path} | "
                     f"method={request.method} | ip={client_ip}"
                 )
-                # Phase 2: raise HTTPException(401, "Authentication required")
+                if _should_enforce:
+                    raise HTTPException(
+                        status_code=401,
+                        detail="Authentication required"
+                    )
                 return await func(request, *args, **kwargs)
 
             # Get session_id from kwargs
@@ -136,7 +160,11 @@ def require_session_owner(session_param: str = "session_id"):
                     f"[AUDIT] Session ownership violation | user={user.get('id')} | "
                     f"session={session_id} | path={request.url.path} | ip={client_ip}"
                 )
-                # Phase 2: raise HTTPException(403, "Access denied: not your session")
+                if _should_enforce:
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Access denied: not your session"
+                    )
 
             return await func(request, *args, **kwargs)
 

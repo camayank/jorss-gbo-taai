@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Availability Settings | JORSS-GBO</title>
+    <link rel="stylesheet" href="/static/css/core/variables.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-sans);
+            background: var(--color-gray-50);
+            min-height: 100vh;
+        }
+
+        .page-header {
+            background: white;
+            border-bottom: 1px solid var(--color-gray-200);
+            padding: var(--space-4) var(--space-6);
+        }
+
+        .header-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            color: var(--color-gray-600);
+            text-decoration: none;
+            font-size: var(--text-sm);
+        }
+        .back-link:hover { color: var(--color-primary-600); }
+        .back-link svg { width: 18px; height: 18px; }
+
+        .page-title { font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--color-gray-900); }
+
+        .main-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: var(--space-6);
+        }
+
+        .settings-section {
+            background: white;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: var(--space-6);
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: var(--space-4) var(--space-5);
+            border-bottom: 1px solid var(--color-gray-200);
+        }
+
+        .section-title {
+            font-size: var(--text-lg);
+            font-weight: var(--font-semibold);
+            color: var(--color-gray-900);
+        }
+
+        .section-subtitle {
+            font-size: var(--text-sm);
+            color: var(--color-gray-500);
+            margin-top: var(--space-1);
+        }
+
+        .section-content { padding: var(--space-5); }
+
+        /* Availability Schedule */
+        .schedule-grid { display: flex; flex-direction: column; gap: var(--space-3); }
+
+        .schedule-row {
+            display: grid;
+            grid-template-columns: 120px 1fr auto;
+            gap: var(--space-4);
+            align-items: center;
+            padding: var(--space-3);
+            background: var(--color-gray-50);
+            border-radius: var(--radius-lg);
+        }
+
+        .day-label {
+            font-weight: var(--font-medium);
+            color: var(--color-gray-900);
+        }
+
+        .time-inputs {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .time-input {
+            padding: var(--space-2) var(--space-3);
+            border: 1px solid var(--color-gray-300);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-sm);
+            width: 110px;
+        }
+
+        .time-input:focus {
+            outline: none;
+            border-color: var(--color-primary-500);
+        }
+
+        .time-separator {
+            color: var(--color-gray-400);
+            font-size: var(--text-sm);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: var(--color-gray-300);
+            border-radius: var(--radius-full);
+            transition: var(--transition-fast);
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: var(--transition-fast);
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: var(--color-primary-600);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        /* Settings Form */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-4);
+        }
+
+        .form-group { margin-bottom: var(--space-4); }
+
+        .form-group.full-width { grid-column: 1 / -1; }
+
+        .form-label {
+            display: block;
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            color: var(--color-gray-700);
+            margin-bottom: var(--space-2);
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: var(--space-3);
+            border: 1px solid var(--color-gray-300);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-base);
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--color-primary-500);
+            box-shadow: 0 0 0 3px var(--color-primary-100);
+        }
+
+        .form-hint {
+            font-size: var(--text-xs);
+            color: var(--color-gray-500);
+            margin-top: var(--space-1);
+        }
+
+        /* Blocked Dates */
+        .blocked-dates { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+        .blocked-date {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-3);
+            background: var(--color-error-50);
+            border: 1px solid var(--color-error-200);
+            border-radius: var(--radius-full);
+            font-size: var(--text-sm);
+            color: var(--color-error-700);
+        }
+
+        .blocked-date button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--color-error-500);
+            display: flex;
+        }
+
+        .blocked-date button svg { width: 14px; height: 14px; }
+
+        .add-date-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-3);
+            background: white;
+            border: 1px dashed var(--color-gray-300);
+            border-radius: var(--radius-full);
+            font-size: var(--text-sm);
+            color: var(--color-gray-600);
+            cursor: pointer;
+        }
+
+        .add-date-btn:hover {
+            border-color: var(--color-primary-500);
+            color: var(--color-primary-600);
+        }
+
+        .add-date-btn svg { width: 16px; height: 16px; }
+
+        /* Appointment Types */
+        .type-list { display: flex; flex-direction: column; gap: var(--space-3); }
+
+        .type-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+            padding: var(--space-4);
+            background: var(--color-gray-50);
+            border-radius: var(--radius-lg);
+        }
+
+        .type-color {
+            width: 12px;
+            height: 12px;
+            border-radius: var(--radius-sm);
+        }
+
+        .type-info { flex: 1; }
+
+        .type-name {
+            font-weight: var(--font-medium);
+            color: var(--color-gray-900);
+        }
+
+        .type-duration {
+            font-size: var(--text-sm);
+            color: var(--color-gray-500);
+        }
+
+        .duration-input {
+            width: 80px;
+            padding: var(--space-2);
+            border: 1px solid var(--color-gray-300);
+            border-radius: var(--radius-md);
+            font-size: var(--text-sm);
+            text-align: center;
+        }
+
+        /* Save Button */
+        .save-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--space-3);
+            padding-top: var(--space-4);
+            border-top: 1px solid var(--color-gray-200);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-3) var(--space-6);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-base);
+            font-weight: var(--font-medium);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-700));
+            color: white;
+        }
+
+        .btn-primary:hover { box-shadow: var(--shadow-md); }
+
+        .btn-secondary {
+            background: white;
+            color: var(--color-gray-700);
+            border: 1px solid var(--color-gray-300);
+        }
+
+        @media (max-width: 768px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .schedule-row { grid-template-columns: 1fr; gap: var(--space-2); }
+            .time-inputs { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+    <header class="page-header">
+        <div class="header-content">
+            <a href="/appointments/calendar" class="back-link">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Back to Calendar
+            </a>
+            <h1 class="page-title">Availability Settings</h1>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- Weekly Schedule -->
+        <div class="settings-section">
+            <div class="section-header">
+                <h2 class="section-title">Weekly Schedule</h2>
+                <p class="section-subtitle">Set your available hours for each day of the week</p>
+            </div>
+            <div class="section-content">
+                <div class="schedule-grid">
+                    <div class="schedule-row">
+                        <span class="day-label">Monday</span>
+                        <div class="time-inputs">
+                            <input type="time" class="time-input" value="09:00">
+                            <span class="time-separator">to</span>
+                            <input type="time" class="time-input" value="17:00">
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="schedule-row">
+                        <span class="day-label">Tuesday</span>
+                        <div class="time-inputs">
+                            <input type="time" class="time-input" value="09:00">
+                            <span class="time-separator">to</span>
+                            <input type="time" class="time-input" value="17:00">
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="schedule-row">
+                        <span class="day-label">Wednesday</span>
+                        <div class="time-inputs">
+                            <input type="time" class="time-input" value="09:00">
+                            <span class="time-separator">to</span>
+                            <input type="time" class="time-input" value="17:00">
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="schedule-row">
+                        <span class="day-label">Thursday</span>
+                        <div class="time-inputs">
+                            <input type="time" class="time-input" value="09:00">
+                            <span class="time-separator">to</span>
+                            <input type="time" class="time-input" value="17:00">
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="schedule-row">
+                        <span class="day-label">Friday</span>
+                        <div class="time-inputs">
+                            <input type="time" class="time-input" value="09:00">
+                            <span class="time-separator">to</span>
+                            <input type="time" class="time-input" value="17:00">
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="schedule-row">
+                        <span class="day-label">Saturday</span>
+                        <div class="time-inputs">
+                            <input type="time" class="time-input" value="10:00">
+                            <span class="time-separator">to</span>
+                            <input type="time" class="time-input" value="14:00">
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="schedule-row">
+                        <span class="day-label">Sunday</span>
+                        <div class="time-inputs">
+                            <input type="time" class="time-input" value="09:00" disabled>
+                            <span class="time-separator">to</span>
+                            <input type="time" class="time-input" value="17:00" disabled>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Booking Settings -->
+        <div class="settings-section">
+            <div class="section-header">
+                <h2 class="section-title">Booking Settings</h2>
+                <p class="section-subtitle">Configure how clients can book appointments</p>
+            </div>
+            <div class="section-content">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Buffer Time Between Appointments</label>
+                        <select class="form-select">
+                            <option value="0">No buffer</option>
+                            <option value="5">5 minutes</option>
+                            <option value="10">10 minutes</option>
+                            <option value="15" selected>15 minutes</option>
+                            <option value="30">30 minutes</option>
+                        </select>
+                        <p class="form-hint">Time between appointments for breaks</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Minimum Advance Booking</label>
+                        <select class="form-select">
+                            <option value="1">1 hour</option>
+                            <option value="2">2 hours</option>
+                            <option value="4">4 hours</option>
+                            <option value="24" selected>24 hours</option>
+                            <option value="48">48 hours</option>
+                        </select>
+                        <p class="form-hint">How far in advance clients must book</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Maximum Advance Booking</label>
+                        <select class="form-select">
+                            <option value="7">1 week</option>
+                            <option value="14">2 weeks</option>
+                            <option value="30">1 month</option>
+                            <option value="60" selected>2 months</option>
+                            <option value="90">3 months</option>
+                        </select>
+                        <p class="form-hint">How far ahead clients can book</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Timezone</label>
+                        <select class="form-select">
+                            <option value="America/New_York" selected>Eastern Time (ET)</option>
+                            <option value="America/Chicago">Central Time (CT)</option>
+                            <option value="America/Denver">Mountain Time (MT)</option>
+                            <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Video Meeting Link</label>
+                        <input type="url" class="form-input" placeholder="https://zoom.us/j/..." value="https://zoom.us/j/1234567890">
+                        <p class="form-hint">Link to your video conferencing room (Zoom, Google Meet, etc.)</p>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Office Address</label>
+                        <input type="text" class="form-input" placeholder="123 Main St, City, State ZIP" value="100 Financial Plaza, Suite 500, New York, NY 10001">
+                        <p class="form-hint">For in-person appointments</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Appointment Types -->
+        <div class="settings-section">
+            <div class="section-header">
+                <h2 class="section-title">Appointment Types</h2>
+                <p class="section-subtitle">Customize durations for different appointment types</p>
+            </div>
+            <div class="section-content">
+                <div class="type-list">
+                    <div class="type-item">
+                        <div class="type-color" style="background: var(--color-primary-500);"></div>
+                        <div class="type-info">
+                            <div class="type-name">Initial Consultation</div>
+                            <div class="type-duration">First-time client meetings</div>
+                        </div>
+                        <input type="number" class="duration-input" value="30" min="15" step="15"> min
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="type-item">
+                        <div class="type-color" style="background: var(--color-success-500);"></div>
+                        <div class="type-info">
+                            <div class="type-name">Return Review</div>
+                            <div class="type-duration">Review and discuss tax returns</div>
+                        </div>
+                        <input type="number" class="duration-input" value="45" min="15" step="15"> min
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="type-item">
+                        <div class="type-color" style="background: var(--color-purple-500);"></div>
+                        <div class="type-info">
+                            <div class="type-name">Tax Planning</div>
+                            <div class="type-duration">Strategic tax planning sessions</div>
+                        </div>
+                        <input type="number" class="duration-input" value="60" min="15" step="15"> min
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="type-item">
+                        <div class="type-color" style="background: var(--color-warning-500);"></div>
+                        <div class="type-info">
+                            <div class="type-name">Follow-up Call</div>
+                            <div class="type-duration">Quick follow-up discussions</div>
+                        </div>
+                        <input type="number" class="duration-input" value="15" min="15" step="15"> min
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Blocked Dates -->
+        <div class="settings-section">
+            <div class="section-header">
+                <h2 class="section-title">Blocked Dates</h2>
+                <p class="section-subtitle">Mark specific dates as unavailable</p>
+            </div>
+            <div class="section-content">
+                <div class="blocked-dates">
+                    <div class="blocked-date">
+                        Apr 15, 2025 (Tax Day)
+                        <button onclick="this.parentElement.remove()">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="blocked-date">
+                        Dec 25, 2025 (Christmas)
+                        <button onclick="this.parentElement.remove()">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <button class="add-date-btn">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Add Date
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="save-actions">
+            <button class="btn btn-secondary">Cancel</button>
+            <button class="btn btn-primary" onclick="saveSettings()">Save Changes</button>
+        </div>
+    </main>
+
+    <script>
+        function saveSettings() {
+            alert('Settings saved successfully!');
+        }
+    </script>
+</body>
+</html>

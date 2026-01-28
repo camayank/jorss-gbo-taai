@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointment Calendar | JORSS-GBO</title>
+    <link rel="stylesheet" href="/static/css/core/variables.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-sans);
+            background: var(--color-gray-50);
+            min-height: 100vh;
+        }
+
+        .page-header {
+            background: white;
+            border-bottom: 1px solid var(--color-gray-200);
+            padding: var(--space-4) var(--space-6);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title { font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--color-gray-900); }
+        .page-subtitle { font-size: var(--text-sm); color: var(--color-gray-500); margin-top: var(--space-1); }
+
+        .header-actions { display: flex; gap: var(--space-3); }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-4);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            border: none;
+            text-decoration: none;
+        }
+        .btn svg { width: 18px; height: 18px; }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-700));
+            color: white;
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .btn-secondary {
+            background: white;
+            color: var(--color-gray-700);
+            border: 1px solid var(--color-gray-300);
+        }
+        .btn-secondary:hover { background: var(--color-gray-50); }
+
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--space-6);
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: var(--space-6);
+        }
+
+        /* Calendar */
+        .calendar-container {
+            background: white;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-4);
+            border-bottom: 1px solid var(--color-gray-200);
+        }
+
+        .calendar-nav { display: flex; align-items: center; gap: var(--space-3); }
+
+        .nav-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--color-gray-300);
+            background: white;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-gray-600);
+        }
+        .nav-btn:hover { background: var(--color-gray-50); }
+        .nav-btn svg { width: 18px; height: 18px; }
+
+        .calendar-title {
+            font-size: var(--text-lg);
+            font-weight: var(--font-semibold);
+            color: var(--color-gray-900);
+        }
+
+        .view-toggle {
+            display: flex;
+            background: var(--color-gray-100);
+            border-radius: var(--radius-lg);
+            padding: var(--space-1);
+        }
+
+        .view-btn {
+            padding: var(--space-2) var(--space-3);
+            border: none;
+            background: transparent;
+            border-radius: var(--radius-md);
+            font-size: var(--text-sm);
+            color: var(--color-gray-600);
+            cursor: pointer;
+        }
+        .view-btn.active {
+            background: white;
+            color: var(--color-primary-600);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+        }
+
+        .calendar-day-header {
+            padding: var(--space-3);
+            text-align: center;
+            font-size: var(--text-xs);
+            font-weight: var(--font-semibold);
+            color: var(--color-gray-500);
+            text-transform: uppercase;
+            background: var(--color-gray-50);
+            border-bottom: 1px solid var(--color-gray-200);
+        }
+
+        .calendar-day {
+            min-height: 120px;
+            padding: var(--space-2);
+            border-right: 1px solid var(--color-gray-100);
+            border-bottom: 1px solid var(--color-gray-100);
+            cursor: pointer;
+            transition: background var(--transition-fast);
+        }
+        .calendar-day:nth-child(7n) { border-right: none; }
+        .calendar-day:hover { background: var(--color-gray-50); }
+        .calendar-day.other-month { background: var(--color-gray-50); }
+        .calendar-day.other-month .day-number { color: var(--color-gray-400); }
+        .calendar-day.today { background: var(--color-primary-50); }
+        .calendar-day.today .day-number {
+            background: var(--color-primary-600);
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .day-number {
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            color: var(--color-gray-900);
+            margin-bottom: var(--space-1);
+        }
+
+        .day-events { display: flex; flex-direction: column; gap: 2px; }
+
+        .event-pill {
+            padding: 2px var(--space-2);
+            border-radius: var(--radius-sm);
+            font-size: var(--text-xs);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .event-pill.consultation {
+            background: var(--color-primary-100);
+            color: var(--color-primary-700);
+        }
+        .event-pill.review {
+            background: var(--color-success-100);
+            color: var(--color-success-700);
+        }
+        .event-pill.followup {
+            background: var(--color-warning-100);
+            color: var(--color-warning-700);
+        }
+
+        .more-events {
+            font-size: var(--text-xs);
+            color: var(--color-gray-500);
+            padding: 2px var(--space-2);
+        }
+
+        /* Sidebar */
+        .sidebar { display: flex; flex-direction: column; gap: var(--space-4); }
+
+        .sidebar-card {
+            background: white;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: var(--space-4);
+            border-bottom: 1px solid var(--color-gray-200);
+            font-size: var(--text-base);
+            font-weight: var(--font-semibold);
+            color: var(--color-gray-900);
+        }
+
+        .sidebar-content { padding: var(--space-4); }
+
+        /* Mini Calendar */
+        .mini-calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            text-align: center;
+        }
+
+        .mini-day-header {
+            font-size: var(--text-xs);
+            color: var(--color-gray-500);
+            padding: var(--space-1);
+        }
+
+        .mini-day {
+            font-size: var(--text-xs);
+            padding: var(--space-1);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+        }
+        .mini-day:hover { background: var(--color-gray-100); }
+        .mini-day.today {
+            background: var(--color-primary-600);
+            color: white;
+        }
+        .mini-day.has-event {
+            font-weight: var(--font-semibold);
+            color: var(--color-primary-600);
+        }
+
+        /* Upcoming Appointments */
+        .appointment-list { display: flex; flex-direction: column; gap: var(--space-3); }
+
+        .appointment-item {
+            display: flex;
+            gap: var(--space-3);
+            padding: var(--space-3);
+            background: var(--color-gray-50);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        .appointment-item:hover {
+            background: var(--color-gray-100);
+            transform: translateX(2px);
+        }
+
+        .appointment-time {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: var(--space-2);
+            background: white;
+            border-radius: var(--radius-md);
+            min-width: 50px;
+        }
+        .appointment-time .time {
+            font-size: var(--text-sm);
+            font-weight: var(--font-semibold);
+            color: var(--color-gray-900);
+        }
+        .appointment-time .period {
+            font-size: var(--text-xs);
+            color: var(--color-gray-500);
+        }
+
+        .appointment-info { flex: 1; }
+        .appointment-title {
+            font-size: var(--text-sm);
+            font-weight: var(--font-medium);
+            color: var(--color-gray-900);
+        }
+        .appointment-client {
+            font-size: var(--text-xs);
+            color: var(--color-gray-500);
+            margin-top: 2px;
+        }
+
+        .appointment-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            align-self: center;
+        }
+        .appointment-status.confirmed { background: var(--color-success-500); }
+        .appointment-status.pending { background: var(--color-warning-500); }
+
+        /* Legend */
+        .legend { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: var(--text-xs);
+            color: var(--color-gray-600);
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: var(--radius-sm);
+        }
+
+        @media (max-width: 1024px) {
+            .main-content { grid-template-columns: 1fr; }
+            .sidebar { order: -1; }
+        }
+
+        @media (max-width: 640px) {
+            .calendar-day { min-height: 80px; }
+            .event-pill { display: none; }
+            .day-events .more-events { display: block; }
+        }
+    </style>
+</head>
+<body>
+    <header class="page-header">
+        <div class="header-content">
+            <div>
+                <h1 class="page-title">Appointment Calendar</h1>
+                <p class="page-subtitle">Manage your schedule and client meetings</p>
+            </div>
+            <div class="header-actions">
+                <a href="/appointments/settings" class="btn btn-secondary">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    Settings
+                </a>
+                <button class="btn btn-primary" onclick="openNewAppointment()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    New Appointment
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <div class="calendar-nav">
+                    <button class="nav-btn" onclick="prevMonth()">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <h2 class="calendar-title" id="calendarTitle">January 2025</h2>
+                    <button class="nav-btn" onclick="nextMonth()">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-secondary" onclick="goToToday()">Today</button>
+                </div>
+                <div class="view-toggle">
+                    <button class="view-btn active">Month</button>
+                    <button class="view-btn">Week</button>
+                    <button class="view-btn">Day</button>
+                </div>
+            </div>
+
+            <div class="calendar-grid" id="calendarGrid">
+                <div class="calendar-day-header">Sun</div>
+                <div class="calendar-day-header">Mon</div>
+                <div class="calendar-day-header">Tue</div>
+                <div class="calendar-day-header">Wed</div>
+                <div class="calendar-day-header">Thu</div>
+                <div class="calendar-day-header">Fri</div>
+                <div class="calendar-day-header">Sat</div>
+                <!-- Calendar days populated by JS -->
+            </div>
+        </div>
+
+        <aside class="sidebar">
+            <div class="sidebar-card">
+                <div class="sidebar-header">Today's Schedule</div>
+                <div class="sidebar-content">
+                    <div class="appointment-list">
+                        <div class="appointment-item">
+                            <div class="appointment-time">
+                                <span class="time">9:00</span>
+                                <span class="period">AM</span>
+                            </div>
+                            <div class="appointment-info">
+                                <div class="appointment-title">Tax Consultation</div>
+                                <div class="appointment-client">John Smith</div>
+                            </div>
+                            <div class="appointment-status confirmed"></div>
+                        </div>
+                        <div class="appointment-item">
+                            <div class="appointment-time">
+                                <span class="time">11:30</span>
+                                <span class="period">AM</span>
+                            </div>
+                            <div class="appointment-info">
+                                <div class="appointment-title">Return Review</div>
+                                <div class="appointment-client">Sarah Johnson</div>
+                            </div>
+                            <div class="appointment-status confirmed"></div>
+                        </div>
+                        <div class="appointment-item">
+                            <div class="appointment-time">
+                                <span class="time">2:00</span>
+                                <span class="period">PM</span>
+                            </div>
+                            <div class="appointment-info">
+                                <div class="appointment-title">Follow-up Call</div>
+                                <div class="appointment-client">Mike Chen</div>
+                            </div>
+                            <div class="appointment-status pending"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-card">
+                <div class="sidebar-header">Appointment Types</div>
+                <div class="sidebar-content">
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: var(--color-primary-500);"></div>
+                            <span>Consultation</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: var(--color-success-500);"></div>
+                            <span>Review</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: var(--color-warning-500);"></div>
+                            <span>Follow-up</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <script>
+        let currentDate = new Date();
+        const appointments = [
+            { date: '2025-01-28', title: 'Tax Consultation', client: 'John Smith', type: 'consultation' },
+            { date: '2025-01-28', title: 'Return Review', client: 'Sarah Johnson', type: 'review' },
+            { date: '2025-01-29', title: 'Follow-up Call', client: 'Mike Chen', type: 'followup' },
+            { date: '2025-01-30', title: 'New Client Meeting', client: 'Lisa Wong', type: 'consultation' },
+            { date: '2025-02-03', title: 'Quarterly Review', client: 'Tech Corp', type: 'review' },
+        ];
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            const title = document.getElementById('calendarTitle');
+
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            title.textContent = new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+            // Clear existing days (keep headers)
+            const headers = Array.from(grid.querySelectorAll('.calendar-day-header'));
+            grid.innerHTML = '';
+            headers.forEach(h => grid.appendChild(h));
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+
+            // Previous month days
+            for (let i = firstDay - 1; i >= 0; i--) {
+                const day = daysInPrevMonth - i;
+                const dayEl = createDayElement(day, true, null);
+                grid.appendChild(dayEl);
+            }
+
+            // Current month days
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isToday = dateStr === todayStr;
+                const dayAppointments = appointments.filter(a => a.date === dateStr);
+                const dayEl = createDayElement(day, false, dayAppointments, isToday);
+                grid.appendChild(dayEl);
+            }
+
+            // Next month days
+            const totalCells = grid.children.length - 7;
+            const remaining = 42 - totalCells;
+            for (let day = 1; day <= remaining; day++) {
+                const dayEl = createDayElement(day, true, null);
+                grid.appendChild(dayEl);
+            }
+        }
+
+        function createDayElement(day, isOtherMonth, dayAppointments, isToday = false) {
+            const el = document.createElement('div');
+            el.className = 'calendar-day';
+            if (isOtherMonth) el.classList.add('other-month');
+            if (isToday) el.classList.add('today');
+
+            let html = `<div class="day-number">${day}</div>`;
+
+            if (dayAppointments && dayAppointments.length > 0) {
+                html += '<div class="day-events">';
+                dayAppointments.slice(0, 2).forEach(apt => {
+                    html += `<div class="event-pill ${apt.type}">${apt.title}</div>`;
+                });
+                if (dayAppointments.length > 2) {
+                    html += `<div class="more-events">+${dayAppointments.length - 2} more</div>`;
+                }
+                html += '</div>';
+            }
+
+            el.innerHTML = html;
+            el.onclick = () => openDayView(day);
+            return el;
+        }
+
+        function prevMonth() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        }
+
+        function nextMonth() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        }
+
+        function goToToday() {
+            currentDate = new Date();
+            renderCalendar();
+        }
+
+        function openDayView(day) {
+            console.log('Open day view for:', day);
+        }
+
+        function openNewAppointment() {
+            window.location.href = '/appointments/booking';
+        }
+
+        renderCalendar();
+    </script>
+</body>
+</html>
