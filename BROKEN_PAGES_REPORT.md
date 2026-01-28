@@ -1,0 +1,191 @@
+# Broken Pages Report - Jorss-Gbo Platform
+
+**Date:** January 27, 2026
+**Tester:** AI Agent (End-to-End Functional Testing)
+
+---
+
+## Executive Summary
+
+| Status | Count | Description |
+|--------|-------|-------------|
+| ✅ Working (200) | 17 | Fully functional |
+| 🔄 Redirect (302) | 2 | Expected auth redirects |
+| ❌ Not Found (404) | 5 | Missing routes |
+| 🔧 Fixed This Session | 1 | `/cpa/analytics` template error |
+
+---
+
+## ❌ BROKEN PAGES (Still Not Working)
+
+### 1. `/results` - 404 Not Found
+
+**URL:** `http://localhost:8000/results`
+**HTTP Status:** 404
+**Issue:** Route requires `session_id` query parameter
+**User Impact:** Users get 404 if they access directly without completing estimate flow
+
+**Recommendation:** Redirect to `/lead-magnet/` when no session_id provided
+
+---
+
+### 2. `/cpa/clients` - 404 Not Found
+
+**URL:** `http://localhost:8000/cpa/clients`
+**HTTP Status:** 404
+**Issue:** Route not implemented
+**User Impact:** CPAs cannot manage their client list
+
+**Recommendation:** Implement client management page or remove from navigation
+
+---
+
+### 3. `/cpa/settings` - 404 Not Found
+
+**URL:** `http://localhost:8000/cpa/settings`
+**HTTP Status:** 404
+**Issue:** Route requires `email-validator` package and has import issues
+**User Impact:** CPAs cannot access account settings
+
+**Fix Required:**
+```bash
+pip install email-validator
+```
+
+---
+
+### 4. `/cpa/team` - 404 Not Found
+
+**URL:** `http://localhost:8000/cpa/team`
+**HTTP Status:** 404
+**Issue:** Route requires `email-validator` package
+**User Impact:** CPAs cannot manage team members
+
+**Fix Required:**
+```bash
+pip install email-validator
+```
+
+---
+
+### 5. `/cpa/billing` - 404 Not Found
+
+**URL:** `http://localhost:8000/cpa/billing`
+**HTTP Status:** 404
+**Issue:** Billing routes dependency issues
+**User Impact:** CPAs cannot manage billing/subscription
+
+---
+
+## 🔧 FIXED THIS SESSION
+
+### `/cpa/analytics` - Was 500, Now 200 ✅
+
+**URL:** `http://localhost:8000/cpa/analytics`
+**Previous Status:** 500 Internal Server Error
+**Current Status:** 200 OK
+
+**Root Cause:** Jinja2 template trying to call `|round|int` on undefined values
+
+**Fix Applied:** Updated template conditionals in `src/web/templates/cpa/analytics.html` (lines 213, 276, 280, 284) to properly check for undefined values before applying filters.
+
+---
+
+## ✅ WORKING PAGES
+
+### Prospect-Facing
+| URL | Status | Description |
+|-----|--------|-------------|
+| `/landing` | 200 | Smart Landing Page |
+| `/file` | 200 | Intelligent Tax Advisor (with consent modal) |
+| `/lead-magnet/` | 200 | Lead Magnet Landing |
+| `/lead-magnet/estimate` | 200 | Tax Estimate Form (3 steps) |
+| `/lead-magnet/teaser` | 200 | Savings Preview |
+| `/lead-magnet/contact` | 200 | Contact Capture |
+| `/lead-magnet/report` | 200 | Full Analysis Report |
+
+### CPA-Facing
+| URL | Status | Description |
+|-----|--------|-------------|
+| `/cpa-landing` | 200 | CPA Marketing Page |
+| `/for-cpas` | 200 | CPA Registration Page |
+| `/cpa/dashboard` | 200 | CPA Dashboard (demo mode) |
+| `/cpa/leads` | 200 | Lead Pipeline |
+| `/cpa/analytics` | 200 | Analytics Dashboard (FIXED) |
+
+### Admin
+| URL | Status | Description |
+|-----|--------|-------------|
+| `/admin` | 200 | Admin Panel |
+| `/admin/dashboard` | 200 | Admin Dashboard |
+
+### Health & Monitoring
+| URL | Status | Description |
+|-----|--------|-------------|
+| `/health` | 200 | System Health Check |
+| `/health/live` | 200 | Kubernetes Liveness Probe |
+| `/health/ready` | 200 | Kubernetes Readiness Probe |
+
+---
+
+## 🔄 EXPECTED REDIRECTS
+
+| URL | Redirects To | Reason |
+|-----|--------------|--------|
+| `/` | `/lead-magnet/` | Default homepage redirect |
+| `/cpa` | Login page | Authentication required |
+
+---
+
+## Server Startup Warnings (Non-blocking)
+
+```
+CSRF_SECRET_KEY not set, using generated key
+JWT_SECRET not set - using insecure development default
+Global RBAC middleware not available: attempted relative import
+Client visibility routes not available: attempted relative import
+```
+
+**Production Recommendation:** Set environment variables:
+```bash
+export CSRF_SECRET_KEY="your-secure-random-key"
+export JWT_SECRET="your-secure-jwt-secret"
+```
+
+---
+
+## Priority Fix List
+
+### 🔴 High Priority
+1. Install `email-validator` to enable `/cpa/settings`, `/cpa/team`
+2. Implement `/cpa/clients` route
+3. Implement `/cpa/billing` route
+
+### 🟡 Medium Priority
+4. Add graceful handling for `/results` without session_id
+5. Fix RBAC relative import issues
+
+### 🟢 Low Priority
+6. Set production environment variables
+
+---
+
+## Quick Fix Commands
+
+```bash
+# Install missing dependencies
+pip install email-validator
+
+# Set environment variables
+export CSRF_SECRET_KEY=$(openssl rand -hex 32)
+export JWT_SECRET=$(openssl rand -hex 32)
+
+# Restart server
+PYTHONPATH=src python -m uvicorn web.app:app --host 0.0.0.0 --port 8000
+```
+
+---
+
+*Report generated by AI E2E Testing Agent*
+*Fixes applied: 1 (analytics template)*
+*Remaining issues: 5 (missing routes/dependencies)*
