@@ -98,6 +98,102 @@ class ResilienceSettings(BaseSettings):
     circuit_half_open_requests: int = Field(default=3, description="Test requests in half-open")
 
 
+class EmailSettings(BaseSettings):
+    """
+    Email delivery configuration.
+
+    SPEC-012 Critical Gap Fix: Production email configuration.
+
+    Supports three providers (in priority order):
+    1. SendGrid - Set SENDGRID_API_KEY
+    2. AWS SES - Set AWS_SES_REGION (and AWS credentials)
+    3. SMTP - Set SMTP_HOST
+
+    If no provider is configured, emails are logged but not sent.
+    """
+
+    model_config = SettingsConfigDict(
+        extra="ignore",
+    )
+
+    # SendGrid configuration (recommended for production)
+    sendgrid_api_key: Optional[str] = Field(
+        default=None,
+        description="SendGrid API key for email delivery",
+        json_schema_extra={"env": "SENDGRID_API_KEY"},
+    )
+    sendgrid_from_email: str = Field(
+        default="noreply@example.com",
+        description="Default sender email for SendGrid",
+        json_schema_extra={"env": "SENDGRID_FROM_EMAIL"},
+    )
+    sendgrid_from_name: str = Field(
+        default="Tax Filing Platform",
+        description="Default sender name for SendGrid",
+        json_schema_extra={"env": "SENDGRID_FROM_NAME"},
+    )
+
+    # AWS SES configuration (for AWS infrastructure)
+    aws_ses_region: Optional[str] = Field(
+        default=None,
+        description="AWS region for SES (e.g., us-east-1)",
+        json_schema_extra={"env": "AWS_SES_REGION"},
+    )
+    aws_ses_from_email: str = Field(
+        default="noreply@example.com",
+        description="Default sender email for SES (must be verified)",
+        json_schema_extra={"env": "AWS_SES_FROM_EMAIL"},
+    )
+
+    # SMTP configuration (for self-hosted/testing)
+    smtp_host: Optional[str] = Field(
+        default=None,
+        description="SMTP server hostname",
+        json_schema_extra={"env": "SMTP_HOST"},
+    )
+    smtp_port: int = Field(
+        default=587,
+        description="SMTP server port",
+        json_schema_extra={"env": "SMTP_PORT"},
+    )
+    smtp_username: Optional[str] = Field(
+        default=None,
+        description="SMTP authentication username",
+        json_schema_extra={"env": "SMTP_USERNAME"},
+    )
+    smtp_password: Optional[str] = Field(
+        default=None,
+        description="SMTP authentication password",
+        json_schema_extra={"env": "SMTP_PASSWORD"},
+    )
+    smtp_use_tls: bool = Field(
+        default=True,
+        description="Use STARTTLS for SMTP",
+        json_schema_extra={"env": "SMTP_USE_TLS"},
+    )
+    smtp_from_email: str = Field(
+        default="noreply@example.com",
+        description="Default sender email for SMTP",
+        json_schema_extra={"env": "SMTP_FROM_EMAIL"},
+    )
+
+    @property
+    def provider(self) -> str:
+        """Get the configured email provider name."""
+        if self.sendgrid_api_key:
+            return "sendgrid"
+        elif self.aws_ses_region:
+            return "ses"
+        elif self.smtp_host:
+            return "smtp"
+        return "null"
+
+    @property
+    def is_configured(self) -> bool:
+        """Check if any email provider is configured."""
+        return self.provider != "null"
+
+
 class Settings(BaseSettings):
     """Main application settings."""
 
@@ -179,6 +275,10 @@ class Settings(BaseSettings):
         return ResilienceSettings()
 
     @property
+    def email(self) -> EmailSettings:
+        return EmailSettings()
+
+    @property
     def is_production(self) -> bool:
         """Check if running in production environment."""
         return self.environment in ("production", "prod", "staging")
@@ -258,6 +358,14 @@ class Settings(BaseSettings):
         if not self.enforce_https:
             errors.append(
                 "APP_ENFORCE_HTTPS: Should be True in production for security"
+            )
+
+        # Check email configuration (warning only, not blocking)
+        email_settings = self.email
+        if not email_settings.is_configured:
+            logger.warning(
+                "EMAIL: No email provider configured. Set SENDGRID_API_KEY, "
+                "AWS_SES_REGION, or SMTP_HOST to enable email notifications."
             )
 
         return errors
