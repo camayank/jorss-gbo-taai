@@ -359,8 +359,8 @@ class TestFeatureAccessControl:
 
     def test_role_restricted_features(self):
         """Some features should be role-restricted"""
-        # E-file should require CPA roles
-        assert Features.E_FILE.allowed_roles == {"PARTNER", "STAFF"}
+        # Filing Package should require PARTNER/STAFF roles
+        assert Features.FILING_PACKAGE.allowed_roles == {"PARTNER", "STAFF"}
 
         # User management should require admin roles
         assert Features.USER_MANAGEMENT.allowed_roles == {"PLATFORM_ADMIN", "PARTNER"}

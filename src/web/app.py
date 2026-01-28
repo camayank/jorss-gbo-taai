@@ -465,6 +465,14 @@ try:
 except ImportError as e:
     logger.warning(f"CPA Dashboard Pages not available: {e}")
 
+# Register CPA Branding API (Personal branding for CPAs/Staff)
+try:
+    from web.cpa_branding_api import router as cpa_branding_router
+    app.include_router(cpa_branding_router)
+    logger.info("CPA Branding API enabled at /api/cpa/branding")
+except ImportError as e:
+    logger.warning(f"CPA Branding API not available: {e}")
+
 # Register Health Check and Monitoring Routes
 try:
     from web.routers.health import router as health_router

@@ -265,10 +265,10 @@ class TestFeatureAccessChecking:
             firm_name="Test CPA Firm"
         )
 
-        # E-file is restricted to CPA roles
-        access = check_feature_access(Features.E_FILE, client_context)
+        # FILING_PACKAGE is restricted to PARTNER/STAFF roles (CPA roles)
+        access = check_feature_access(Features.FILING_PACKAGE, client_context)
 
-        assert not access["allowed"], "Client should not have access to E-file"
+        assert not access["allowed"], "Client should not have access to Filing Package"
         assert "role" in access["reason"].lower()
 
 
