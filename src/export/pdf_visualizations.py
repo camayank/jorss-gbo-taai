@@ -578,7 +578,7 @@ class PDFChartGenerator:
             # Add "Selected" badge
             selected_idx = 0 if selected_type == 'standard' else 1
             ax.text(selected_idx, values[selected_idx] * 0.5,
-                   '✓ SELECTED', ha='center', va='center',
+                   'SELECTED', ha='center', va='center',
                    fontsize=9, fontweight='bold', color='white',
                    bbox=dict(boxstyle='round,pad=0.3',
                             facecolor=COLORS['success_dark'], alpha=0.9))

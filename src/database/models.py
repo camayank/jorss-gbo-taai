@@ -447,6 +447,7 @@ class TaxpayerRecord(Base):
 
     __table_args__ = (
         Index('ix_taxpayer_ssn_hash', 'ssn_hash'),
+        Index('ix_taxpayer_spouse_ssn_hash', 'spouse_ssn_hash'),
         Index('ix_taxpayer_name', 'last_name', 'first_name'),
     )
 
@@ -581,6 +582,7 @@ class W2Record(Base):
 
     __table_args__ = (
         Index('ix_w2_employer', 'employer_ein', 'return_id'),
+        Index('ix_w2_employee_ssn_hash', 'employee_ssn_hash'),
         CheckConstraint('box_1_wages >= 0', name='ck_w2_wages_positive'),
         CheckConstraint('box_3_ss_wages <= 176100 OR box_3_ss_wages IS NULL',
                        name='ck_w2_ss_wage_base_2025'),  # 2025 SS wage base
@@ -668,6 +670,7 @@ class Form1099Record(Base):
     __table_args__ = (
         Index('ix_1099_form_type', 'form_type', 'return_id'),
         Index('ix_1099_payer', 'payer_tin', 'return_id'),
+        Index('ix_1099_recipient_ssn_hash', 'recipient_ssn_hash'),
     )
 
 
@@ -794,6 +797,7 @@ class CreditRecord(Base):
 
     __table_args__ = (
         Index('ix_credit_type', 'credit_type', 'return_id'),
+        Index('ix_credit_student_ssn_hash', 'student_ssn_hash'),
     )
 
 
@@ -1353,6 +1357,7 @@ class ClientRecord(Base):
     __table_args__ = (
         Index('ix_client_preparer', 'preparer_id', 'is_active'),
         Index('ix_client_name', 'last_name', 'first_name'),
+        Index('ix_client_ssn_hash', 'ssn_hash'),
         UniqueConstraint('preparer_id', 'external_id', name='uq_client_external_id'),
     )
 

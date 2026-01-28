@@ -113,6 +113,9 @@ class Invitation(Base):
         Index("ix_invitation_token", "token"),
         Index("ix_invitation_firm_status", "firm_id", "status"),
         Index("ix_invitation_email_firm", "email", "firm_id"),
+        Index("ix_invitation_invited_by", "invited_by"),
+        Index("ix_invitation_accepted_by", "accepted_by_user_id"),
+        Index("ix_invitation_revoked_by", "revoked_by"),
     )
 
     def __init__(self, **kwargs):

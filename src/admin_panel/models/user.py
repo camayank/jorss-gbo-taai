@@ -101,6 +101,7 @@ class User(Base):
         Index("ix_user_firm_role", "firm_id", "role"),
         Index("ix_user_firm_active", "firm_id", "is_active"),
         Index("ix_user_last_activity", "last_activity_at"),
+        Index("ix_user_invited_by", "invited_by"),
         CheckConstraint("failed_login_attempts >= 0", name="ck_user_login_attempts"),
     )
 

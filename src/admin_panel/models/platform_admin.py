@@ -116,6 +116,7 @@ class PlatformAdmin(Base):
     __table_args__ = (
         Index("ix_platform_admin_role", "role"),
         Index("ix_platform_admin_active", "is_active"),
+        Index("ix_platform_admin_created_by", "created_by"),
     )
 
     def __repr__(self):

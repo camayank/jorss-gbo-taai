@@ -215,6 +215,8 @@ class Subscription(Base):
         Index("ix_subscription_firm_status", "firm_id", "status"),
         Index("ix_subscription_next_billing", "next_billing_date"),
         Index("ix_subscription_stripe", "stripe_subscription_id"),
+        Index("ix_subscription_plan_id", "plan_id"),
+        Index("ix_subscription_cancelled_by", "cancelled_by"),
     )
 
     def __repr__(self):
@@ -322,6 +324,7 @@ class Invoice(Base):
         Index("ix_invoice_firm_status", "firm_id", "status"),
         Index("ix_invoice_due_date", "due_date"),
         Index("ix_invoice_stripe", "stripe_invoice_id"),
+        Index("ix_invoice_subscription_id", "subscription_id"),
         CheckConstraint("amount_due >= 0", name="ck_invoice_amount_due"),
         CheckConstraint("amount_paid >= 0", name="ck_invoice_amount_paid"),
     )
