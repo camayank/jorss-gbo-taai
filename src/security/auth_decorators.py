@@ -32,14 +32,15 @@ class Role(str, Enum):
     GUEST = "guest"
 
 
-def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True, enforce: bool = True):
+def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True, enforce: Optional[bool] = None):
     """
     Decorator to require authentication for an endpoint.
 
     Args:
         roles: List of roles allowed to access this endpoint. If None, any authenticated user can access.
         require_tenant: If True, enforce tenant isolation (user can only access their own tenant's data)
-        enforce: If True, raise HTTPException on auth failure. If False, log only (for gradual migration).
+        enforce: If True, raise HTTPException on auth failure. If False, log only.
+                 If None (default), enforces in production only.
 
     Example:
         @app.post("/api/returns/save")
@@ -51,7 +52,12 @@ def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True
     import os
     _environment = os.environ.get("APP_ENVIRONMENT", "development")
     _is_production = _environment in ("production", "prod", "staging")
-    _should_enforce = enforce or _is_production
+
+    # Determine enforcement: explicit setting > environment-based default
+    if enforce is not None:
+        _should_enforce = enforce
+    else:
+        _should_enforce = _is_production  # Auto-enforce only in production
 
     def decorator(func: Callable):
         @functools.wraps(func)
@@ -112,13 +118,14 @@ def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True
     return decorator
 
 
-def require_session_owner(session_param: str = "session_id", enforce: bool = True):
+def require_session_owner(session_param: str = "session_id", enforce: Optional[bool] = None):
     """
     Decorator to require that the authenticated user owns the session being accessed.
 
     Args:
         session_param: Name of the parameter containing the session ID
         enforce: If True, raise HTTPException on auth failure. If False, log only.
+                 If None (default), enforces in production only.
 
     Example:
         @app.get("/api/returns/{session_id}")
@@ -130,7 +137,12 @@ def require_session_owner(session_param: str = "session_id", enforce: bool = Tru
     import os
     _environment = os.environ.get("APP_ENVIRONMENT", "development")
     _is_production = _environment in ("production", "prod", "staging")
-    _should_enforce = enforce or _is_production
+
+    # Determine enforcement: explicit setting > environment-based default
+    if enforce is not None:
+        _should_enforce = enforce
+    else:
+        _should_enforce = _is_production  # Auto-enforce only in production
 
     def decorator(func: Callable):
         @functools.wraps(func)
