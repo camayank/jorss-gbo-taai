@@ -23,7 +23,12 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...database.connection import get_async_session
+try:
+    from database.connection import get_async_session
+except ImportError:
+    async def _mock_session():
+        yield None
+    get_async_session = _mock_session
 
 import logging
 

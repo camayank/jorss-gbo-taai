@@ -17,7 +17,12 @@ import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...database.connection import get_async_session
+try:
+    from database.connection import get_async_session
+except ImportError:
+    async def _mock_session():
+        yield None
+    get_async_session = _mock_session
 from ..services.smart_onboarding_service import (
     get_smart_onboarding_service,
     OnboardingStatus,

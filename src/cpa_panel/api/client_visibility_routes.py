@@ -23,7 +23,12 @@ import json
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...database.connection import get_async_session
+try:
+    from database.connection import get_async_session
+except ImportError:
+    async def _mock_session():
+        yield None
+    get_async_session = _mock_session
 from ..client_visibility import ClientVisibilityService, ClientVisibilityData
 from .common import format_success_response, format_error_response
 

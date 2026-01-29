@@ -26,6 +26,7 @@ from enum import Enum
 from fastapi import FastAPI, Request, Response, UploadFile, File, Form, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 
 # Pagination helpers for consistent API responses
 try:
@@ -98,6 +99,31 @@ def get_secure_serializer() -> SecureSerializer:
     return _secure_serializer
 
 app = FastAPI(title="US Tax Preparation Agent (Tax Year 2025)")
+
+
+# =============================================================================
+# CORS MIDDLEWARE CONFIGURATION
+# =============================================================================
+
+# Get CORS origins from environment (comma-separated list)
+cors_origins_str = os.environ.get("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000,http://127.0.0.1:8000")
+cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+
+# Add wildcard for development if needed
+_environment = os.environ.get("APP_ENVIRONMENT", "development")
+if _environment == "development" and "*" not in cors_origins:
+    # Allow all origins in development for easier testing
+    cors_origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["*"],
+    expose_headers=["X-Request-ID", "X-Correlation-ID"],
+)
+logger.info(f"CORS middleware enabled for origins: {cors_origins}")
 
 
 # =============================================================================

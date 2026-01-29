@@ -24,7 +24,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .auth_routes import get_current_user
 from ..models.user import UserContext, UserType
-from ...database.connection import get_async_session
+
+# Database session dependency
+try:
+    from database.connection import get_async_session
+except ImportError:
+    # Fallback - mock session for development when database module not available
+    async def _mock_session():
+        yield None
+    get_async_session = _mock_session
 
 logger = logging.getLogger(__name__)
 
