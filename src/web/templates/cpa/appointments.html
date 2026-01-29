@@ -1,0 +1,268 @@
+{% extends "cpa/base.html" %}
+{% from 'macros/icons.html' import icon %}
+
+{% block title %}Appointments{% endblock %}
+{% block page_title %}{{ page_title|default('Appointment Calendar') }}{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .appointments-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .view-toggle {
+        display: flex;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .view-btn {
+        padding: 8px 16px;
+        border: none;
+        background: white;
+        cursor: pointer;
+        font-size: 0.9rem;
+        border-right: 1px solid var(--border-color);
+    }
+
+    .view-btn:last-child {
+        border-right: none;
+    }
+
+    .view-btn:hover,
+    .view-btn.active {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .calendar-nav {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .nav-btn {
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: white;
+        cursor: pointer;
+    }
+
+    .nav-btn:hover {
+        background: var(--bg-light);
+    }
+
+    .current-period {
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .appointments-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        border: 1px solid var(--border-color);
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+
+    .stat-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+
+    .calendar-container {
+        background: white;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+    }
+
+    .calendar-header {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        background: var(--bg-light);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .calendar-header-cell {
+        padding: 12px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+    }
+
+    .calendar-cell {
+        min-height: 100px;
+        border-right: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+        padding: 8px;
+    }
+
+    .calendar-cell:nth-child(7n) {
+        border-right: none;
+    }
+
+    .calendar-date {
+        font-weight: 500;
+        margin-bottom: 8px;
+    }
+
+    .calendar-date.today {
+        background: var(--primary-color);
+        color: white;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .appointment-item {
+        background: var(--primary-color);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        margin-bottom: 4px;
+        cursor: pointer;
+    }
+
+    .appointment-item:hover {
+        opacity: 0.9;
+    }
+
+    .add-appointment-btn {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .add-appointment-btn:hover {
+        background: var(--primary-hover);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-muted);
+    }
+
+    .empty-state svg {
+        width: 64px;
+        height: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="appointments-header">
+    <div class="calendar-nav">
+        <button class="nav-btn">{{ icon('chevron-left') }}</button>
+        <span class="current-period">January 2026</span>
+        <button class="nav-btn">{{ icon('chevron-right') }}</button>
+        <button class="nav-btn">Today</button>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <div class="view-toggle">
+            <button class="view-btn">Day</button>
+            <button class="view-btn">Week</button>
+            <button class="view-btn active">Month</button>
+        </div>
+        <button class="add-appointment-btn">
+            {{ icon('plus') }}
+            Schedule Appointment
+        </button>
+    </div>
+</div>
+
+<div class="appointments-stats">
+    <div class="stat-card">
+        <div class="stat-value">0</div>
+        <div class="stat-label">This Week</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">0</div>
+        <div class="stat-label">This Month</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">0</div>
+        <div class="stat-label">Upcoming</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">0</div>
+        <div class="stat-label">Completed</div>
+    </div>
+</div>
+
+<div class="calendar-container">
+    <div class="calendar-header">
+        <div class="calendar-header-cell">Sun</div>
+        <div class="calendar-header-cell">Mon</div>
+        <div class="calendar-header-cell">Tue</div>
+        <div class="calendar-header-cell">Wed</div>
+        <div class="calendar-header-cell">Thu</div>
+        <div class="calendar-header-cell">Fri</div>
+        <div class="calendar-header-cell">Sat</div>
+    </div>
+    <div class="calendar-grid">
+        {% for i in range(35) %}
+        <div class="calendar-cell">
+            <div class="calendar-date {% if i == 28 %}today{% endif %}">{{ (i % 31) + 1 }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // View toggle handling
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+
+    // Add appointment button
+    document.querySelector('.add-appointment-btn')?.addEventListener('click', function() {
+        alert('Appointment scheduling coming soon!');
+    });
+});
+</script>
+{% endblock %}

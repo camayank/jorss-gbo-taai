@@ -1,0 +1,236 @@
+{% extends "cpa/base.html" %}
+{% from 'macros/icons.html' import icon %}
+
+{% block title %}Tasks{% endblock %}
+{% block page_title %}{{ page_title|default('Task Management') }}{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .tasks-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .tasks-filters {
+        display: flex;
+        gap: 12px;
+    }
+
+    .filter-btn {
+        padding: 8px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: white;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+
+    .filter-btn:hover,
+    .filter-btn.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .task-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .task-stat-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        border: 1px solid var(--border-color);
+    }
+
+    .task-stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+
+    .task-stat-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+
+    .task-list {
+        background: white;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+
+    .task-item {
+        display: flex;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-color);
+        gap: 16px;
+    }
+
+    .task-item:last-child {
+        border-bottom: none;
+    }
+
+    .task-item:hover {
+        background: var(--bg-light);
+    }
+
+    .task-checkbox {
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--border-color);
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .task-checkbox.completed {
+        background: var(--success-color);
+        border-color: var(--success-color);
+    }
+
+    .task-content {
+        flex: 1;
+    }
+
+    .task-title {
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .task-meta {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .task-priority {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .priority-high {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .priority-medium {
+        background: #fef3c7;
+        color: #d97706;
+    }
+
+    .priority-low {
+        background: #d1fae5;
+        color: #059669;
+    }
+
+    .task-due {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .task-due.overdue {
+        color: #dc2626;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-muted);
+    }
+
+    .empty-state svg {
+        width: 64px;
+        height: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+
+    .add-task-btn {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .add-task-btn:hover {
+        background: var(--primary-hover);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tasks-header">
+    <div class="tasks-filters">
+        <button class="filter-btn active">All Tasks</button>
+        <button class="filter-btn">My Tasks</button>
+        <button class="filter-btn">Due Today</button>
+        <button class="filter-btn">Overdue</button>
+    </div>
+    <button class="add-task-btn">
+        {{ icon('plus') }}
+        Add Task
+    </button>
+</div>
+
+<div class="task-stats">
+    <div class="task-stat-card">
+        <div class="task-stat-value">0</div>
+        <div class="task-stat-label">Total Tasks</div>
+    </div>
+    <div class="task-stat-card">
+        <div class="task-stat-value">0</div>
+        <div class="task-stat-label">In Progress</div>
+    </div>
+    <div class="task-stat-card">
+        <div class="task-stat-value">0</div>
+        <div class="task-stat-label">Due Today</div>
+    </div>
+    <div class="task-stat-card">
+        <div class="task-stat-value">0</div>
+        <div class="task-stat-label">Completed</div>
+    </div>
+</div>
+
+<div class="task-list">
+    <div class="empty-state">
+        {{ icon('clipboard-list') }}
+        <h3>No tasks yet</h3>
+        <p>Create your first task to start tracking your work.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter button handling
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+
+    // Add task button
+    document.querySelector('.add-task-btn')?.addEventListener('click', function() {
+        alert('Task creation coming soon!');
+    });
+});
+</script>
+{% endblock %}

@@ -830,3 +830,69 @@ async def cpa_billing_page(
             "active_page": "billing",
         }
     )
+
+
+@cpa_dashboard_router.get("/tasks", response_class=HTMLResponse)
+async def cpa_tasks_page(
+    request: Request,
+    current_user: dict = Depends(require_cpa_auth)
+):
+    """CPA Tasks - Task management for CPA workflows. Requires authentication."""
+    cpa_profile = await get_cpa_profile_from_context(request)
+    stats = await get_dashboard_stats(get_cpa_id_from_user(current_user))
+
+    return templates.TemplateResponse(
+        "cpa/tasks.html",
+        {
+            "request": request,
+            "cpa": cpa_profile,
+            "stats": stats,
+            "current_user": current_user,
+            "active_page": "tasks",
+            "page_title": "Task Management",
+        }
+    )
+
+
+@cpa_dashboard_router.get("/appointments", response_class=HTMLResponse)
+async def cpa_appointments_page(
+    request: Request,
+    current_user: dict = Depends(require_cpa_auth)
+):
+    """CPA Appointments - Calendar and scheduling management. Requires authentication."""
+    cpa_profile = await get_cpa_profile_from_context(request)
+    stats = await get_dashboard_stats(get_cpa_id_from_user(current_user))
+
+    return templates.TemplateResponse(
+        "cpa/appointments.html",
+        {
+            "request": request,
+            "cpa": cpa_profile,
+            "stats": stats,
+            "current_user": current_user,
+            "active_page": "appointments",
+            "page_title": "Appointment Calendar",
+        }
+    )
+
+
+@cpa_dashboard_router.get("/deadlines", response_class=HTMLResponse)
+async def cpa_deadlines_page(
+    request: Request,
+    current_user: dict = Depends(require_cpa_auth)
+):
+    """CPA Deadlines - Tax deadline tracker and reminders. Requires authentication."""
+    cpa_profile = await get_cpa_profile_from_context(request)
+    stats = await get_dashboard_stats(get_cpa_id_from_user(current_user))
+
+    return templates.TemplateResponse(
+        "cpa/deadlines.html",
+        {
+            "request": request,
+            "cpa": cpa_profile,
+            "stats": stats,
+            "current_user": current_user,
+            "active_page": "deadlines",
+            "page_title": "Deadline Tracker",
+        }
+    )

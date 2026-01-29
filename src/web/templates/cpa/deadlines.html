@@ -1,0 +1,333 @@
+{% extends "cpa/base.html" %}
+{% from 'macros/icons.html' import icon %}
+
+{% block title %}Deadlines{% endblock %}
+{% block page_title %}{{ page_title|default('Deadline Tracker') }}{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .deadlines-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .deadline-filters {
+        display: flex;
+        gap: 12px;
+    }
+
+    .filter-btn {
+        padding: 8px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: white;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+
+    .filter-btn:hover,
+    .filter-btn.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .deadline-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        border: 1px solid var(--border-color);
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+    }
+
+    .stat-value.urgent {
+        color: #dc2626;
+    }
+
+    .stat-value.warning {
+        color: #d97706;
+    }
+
+    .stat-value.success {
+        color: #059669;
+    }
+
+    .stat-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+
+    .deadlines-grid {
+        display: grid;
+        gap: 16px;
+    }
+
+    .deadline-section {
+        background: white;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+    }
+
+    .section-header {
+        padding: 16px 20px;
+        background: var(--bg-light);
+        border-bottom: 1px solid var(--border-color);
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .section-count {
+        background: var(--primary-color);
+        color: white;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+    }
+
+    .deadline-list {
+        padding: 0;
+        margin: 0;
+        list-style: none;
+    }
+
+    .deadline-item {
+        display: flex;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-color);
+        gap: 16px;
+    }
+
+    .deadline-item:last-child {
+        border-bottom: none;
+    }
+
+    .deadline-item:hover {
+        background: var(--bg-light);
+    }
+
+    .deadline-status {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+
+    .status-overdue {
+        background: #dc2626;
+    }
+
+    .status-urgent {
+        background: #f59e0b;
+    }
+
+    .status-upcoming {
+        background: #10b981;
+    }
+
+    .deadline-content {
+        flex: 1;
+    }
+
+    .deadline-title {
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .deadline-client {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .deadline-date {
+        text-align: right;
+    }
+
+    .deadline-date-value {
+        font-weight: 600;
+    }
+
+    .deadline-date-value.overdue {
+        color: #dc2626;
+    }
+
+    .deadline-days {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .deadline-days.overdue {
+        color: #dc2626;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--text-muted);
+    }
+
+    .add-deadline-btn {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .add-deadline-btn:hover {
+        background: var(--primary-hover);
+    }
+
+    .tax-deadlines {
+        background: white;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        padding: 20px;
+        margin-bottom: 24px;
+    }
+
+    .tax-deadlines-title {
+        font-weight: 600;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .tax-deadline-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+    }
+
+    .tax-deadline-card {
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-light);
+    }
+
+    .tax-deadline-date {
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+
+    .tax-deadline-name {
+        font-size: 0.9rem;
+        margin-top: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="deadlines-header">
+    <div class="deadline-filters">
+        <button class="filter-btn active">All Deadlines</button>
+        <button class="filter-btn">Overdue</button>
+        <button class="filter-btn">This Week</button>
+        <button class="filter-btn">This Month</button>
+    </div>
+    <button class="add-deadline-btn">
+        {{ icon('plus') }}
+        Add Deadline
+    </button>
+</div>
+
+<div class="tax-deadlines">
+    <div class="tax-deadlines-title">
+        {{ icon('calendar') }}
+        Important Tax Deadlines (2026)
+    </div>
+    <div class="tax-deadline-grid">
+        <div class="tax-deadline-card">
+            <div class="tax-deadline-date">January 15</div>
+            <div class="tax-deadline-name">Q4 Estimated Tax Payment</div>
+        </div>
+        <div class="tax-deadline-card">
+            <div class="tax-deadline-date">January 31</div>
+            <div class="tax-deadline-name">W-2 / 1099 Filing Deadline</div>
+        </div>
+        <div class="tax-deadline-card">
+            <div class="tax-deadline-date">March 15</div>
+            <div class="tax-deadline-name">S-Corp / Partnership Returns</div>
+        </div>
+        <div class="tax-deadline-card">
+            <div class="tax-deadline-date">April 15</div>
+            <div class="tax-deadline-name">Individual Tax Returns</div>
+        </div>
+    </div>
+</div>
+
+<div class="deadline-stats">
+    <div class="stat-card">
+        <div class="stat-value urgent">0</div>
+        <div class="stat-label">Overdue</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value warning">0</div>
+        <div class="stat-label">Due This Week</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">0</div>
+        <div class="stat-label">Due This Month</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value success">0</div>
+        <div class="stat-label">Completed</div>
+    </div>
+</div>
+
+<div class="deadlines-grid">
+    <div class="deadline-section">
+        <div class="section-header">
+            <span>Client Deadlines</span>
+            <span class="section-count">0</span>
+        </div>
+        <div class="empty-state">
+            <p>No client deadlines tracked yet.</p>
+            <p>Add deadlines to stay on top of client tax filings.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter button handling
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+
+    // Add deadline button
+    document.querySelector('.add-deadline-btn')?.addEventListener('click', function() {
+        alert('Deadline tracking coming soon!');
+    });
+});
+</script>
+{% endblock %}
