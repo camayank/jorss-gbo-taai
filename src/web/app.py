@@ -1316,6 +1316,48 @@ def quick_estimate_page(request: Request):
     return templates.TemplateResponse("quick_estimate.html", {"request": request, "branding": branding})
 
 
+@app.get("/login", response_class=HTMLResponse)
+@app.get("/signin", response_class=HTMLResponse)
+def login_page(request: Request):
+    """
+    Login Page - Premium authentication experience.
+
+    Features:
+    - Matches design system (navy theme)
+    - Shows estimate banner if coming from quick-estimate
+    - Social login options (Google, Microsoft)
+    - Redirects to ?next= parameter after login
+    """
+    from config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("auth/login.html", {"request": request, "branding": branding})
+
+
+@app.get("/signup", response_class=HTMLResponse)
+@app.get("/register", response_class=HTMLResponse)
+def signup_page(request: Request):
+    """
+    Signup Page - Create new account.
+
+    Features:
+    - Matches design system (navy theme)
+    - Shows estimate banner if coming from quick-estimate
+    - Social signup options
+    - Redirects to advisor after signup
+    """
+    from config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("auth/signup.html", {"request": request, "branding": branding})
+
+
+@app.get("/forgot-password", response_class=HTMLResponse)
+def forgot_password_page(request: Request):
+    """Forgot Password Page."""
+    from config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("auth/forgot_password.html", {"request": request, "branding": branding})
+
+
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request):
     """CPA Workspace Dashboard - Multi-client management (legacy)."""
