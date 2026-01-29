@@ -692,11 +692,34 @@
     </main>
 
     <script>
-        // Check for estimate data from quick-estimate
+        // API Base URL for authentication
+        const AUTH_API = '/api/core/auth';
+
+        // Check for estimate data and OAuth callback
         document.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
             const nextUrl = urlParams.get('next') || '/advisor';
             document.getElementById('next-url').value = nextUrl;
+
+            // Handle OAuth callback
+            if (urlParams.get('oauth_success') === 'true') {
+                const token = urlParams.get('token');
+                if (token) {
+                    // Store token and redirect
+                    localStorage.setItem('auth_token', token);
+                    window.location.href = nextUrl;
+                    return;
+                }
+            }
+
+            // Handle OAuth error
+            if (urlParams.get('error') === 'oauth_failed') {
+                const provider = urlParams.get('provider');
+                const message = urlParams.get('message') || 'Authentication failed';
+                document.getElementById('error-message').textContent =
+                    `${provider ? provider.charAt(0).toUpperCase() + provider.slice(1) + ' ' : ''}login failed: ${message}`;
+                document.getElementById('error-alert').classList.add('show');
+            }
 
             // Show estimate banner if coming from quick-estimate
             if (urlParams.get('estimate') === 'true') {
@@ -748,11 +771,11 @@
             const data = {
                 email: formData.get('email'),
                 password: formData.get('password'),
-                remember: formData.get('remember') === 'on'
+                remember_me: formData.get('remember') === 'on'
             };
 
             try {
-                const response = await fetch('/api/auth/login', {
+                const response = await fetch(`${AUTH_API}/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -763,29 +786,57 @@
                 const result = await response.json();
 
                 if (response.ok && result.success) {
+                    // Store tokens
+                    if (result.access_token) {
+                        localStorage.setItem('auth_token', result.access_token);
+                    }
+                    if (result.refresh_token) {
+                        localStorage.setItem('refresh_token', result.refresh_token);
+                    }
                     // Redirect to next URL
                     const nextUrl = document.getElementById('next-url').value;
                     window.location.href = nextUrl;
                 } else {
                     // Show error
                     document.getElementById('error-message').textContent =
-                        result.message || 'Invalid email or password';
+                        result.detail || result.message || 'Invalid email or password';
                     errorAlert.classList.add('show');
                     submitBtn.classList.remove('loading');
                     submitBtn.disabled = false;
                 }
             } catch (error) {
-                // For demo, simulate successful login
-                console.log('Login attempt:', data);
-                const nextUrl = document.getElementById('next-url').value;
-                window.location.href = nextUrl;
+                console.error('Login error:', error);
+                document.getElementById('error-message').textContent =
+                    'Unable to connect. Please try again.';
+                errorAlert.classList.add('show');
+                submitBtn.classList.remove('loading');
+                submitBtn.disabled = false;
             }
         });
 
-        // Social login
-        function socialLogin(provider) {
-            const nextUrl = document.getElementById('next-url').value;
-            window.location.href = `/api/auth/${provider}?next=${encodeURIComponent(nextUrl)}`;
+        // Social login - start OAuth flow
+        async function socialLogin(provider) {
+            try {
+                // Get OAuth authorization URL
+                const response = await fetch(`${AUTH_API}/oauth/${provider}/start`);
+                const result = await response.json();
+
+                if (result.authorization_url) {
+                    // Store state for CSRF verification (optional client-side)
+                    sessionStorage.setItem('oauth_state', result.state);
+                    // Redirect to OAuth provider
+                    window.location.href = result.authorization_url;
+                } else {
+                    document.getElementById('error-message').textContent =
+                        `${provider} login is not configured`;
+                    document.getElementById('error-alert').classList.add('show');
+                }
+            } catch (error) {
+                console.error('OAuth error:', error);
+                document.getElementById('error-message').textContent =
+                    `${provider} login is currently unavailable`;
+                document.getElementById('error-alert').classList.add('show');
+            }
         }
     </script>
 </body>

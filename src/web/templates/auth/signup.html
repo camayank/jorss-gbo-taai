@@ -528,10 +528,32 @@
     </main>
 
     <script>
+        // API Base URL for authentication
+        const AUTH_API = '/api/core/auth';
+
         document.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
             const nextUrl = urlParams.get('next') || '/advisor';
             document.getElementById('next-url').value = nextUrl;
+
+            // Handle OAuth callback
+            if (urlParams.get('oauth_success') === 'true') {
+                const token = urlParams.get('token');
+                if (token) {
+                    localStorage.setItem('auth_token', token);
+                    window.location.href = nextUrl;
+                    return;
+                }
+            }
+
+            // Handle OAuth error
+            if (urlParams.get('error') === 'oauth_failed') {
+                const provider = urlParams.get('provider');
+                const message = urlParams.get('message') || 'Authentication failed';
+                document.getElementById('error-message').textContent =
+                    `${provider ? provider.charAt(0).toUpperCase() + provider.slice(1) + ' ' : ''}signup failed: ${message}`;
+                document.getElementById('error-alert').classList.add('show');
+            }
 
             if (urlParams.get('estimate') === 'true') {
                 const estimateData = sessionStorage.getItem('quickEstimate');
@@ -582,14 +604,15 @@
 
             const formData = new FormData(this);
             const data = {
-                firstName: formData.get('firstName'),
-                lastName: formData.get('lastName'),
+                first_name: formData.get('firstName'),
+                last_name: formData.get('lastName'),
                 email: formData.get('email'),
-                password: formData.get('password')
+                password: formData.get('password'),
+                user_type: 'consumer'
             };
 
             try {
-                const response = await fetch('/api/auth/register', {
+                const response = await fetch(`${AUTH_API}/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -598,24 +621,48 @@
                 const result = await response.json();
 
                 if (response.ok && result.success) {
+                    // Store tokens
+                    if (result.access_token) {
+                        localStorage.setItem('auth_token', result.access_token);
+                    }
+                    if (result.refresh_token) {
+                        localStorage.setItem('refresh_token', result.refresh_token);
+                    }
                     const nextUrl = document.getElementById('next-url').value;
                     window.location.href = nextUrl;
                 } else {
-                    document.getElementById('error-message').textContent = result.message || 'Registration failed';
+                    document.getElementById('error-message').textContent = result.detail || result.message || 'Registration failed';
                     errorAlert.classList.add('show');
                     submitBtn.classList.remove('loading');
                     submitBtn.disabled = false;
                 }
             } catch (error) {
-                // For demo, simulate successful signup
-                const nextUrl = document.getElementById('next-url').value;
-                window.location.href = nextUrl;
+                console.error('Registration error:', error);
+                document.getElementById('error-message').textContent = 'Unable to connect. Please try again.';
+                errorAlert.classList.add('show');
+                submitBtn.classList.remove('loading');
+                submitBtn.disabled = false;
             }
         });
 
-        function socialSignup(provider) {
-            const nextUrl = document.getElementById('next-url').value;
-            window.location.href = `/api/auth/${provider}?next=${encodeURIComponent(nextUrl)}`;
+        // Social signup - start OAuth flow
+        async function socialSignup(provider) {
+            try {
+                const response = await fetch(`${AUTH_API}/oauth/${provider}/start`);
+                const result = await response.json();
+
+                if (result.authorization_url) {
+                    sessionStorage.setItem('oauth_state', result.state);
+                    window.location.href = result.authorization_url;
+                } else {
+                    document.getElementById('error-message').textContent = `${provider} signup is not configured`;
+                    document.getElementById('error-alert').classList.add('show');
+                }
+            } catch (error) {
+                console.error('OAuth error:', error);
+                document.getElementById('error-message').textContent = `${provider} signup is currently unavailable`;
+                document.getElementById('error-alert').classList.add('show');
+            }
         }
     </script>
 </body>

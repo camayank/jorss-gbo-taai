@@ -80,6 +80,10 @@ class UnifiedUser(BaseModel):
     mfa_secret: Optional[str] = None
     email_verified: bool = False
 
+    # OAuth (for social login)
+    oauth_provider: Optional[str] = None  # 'google', 'microsoft'
+    oauth_provider_id: Optional[str] = None  # Provider's user ID
+
     # Status
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)

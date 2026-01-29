@@ -30,6 +30,10 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Core Authentication"])
 
+# Include OAuth routes
+from .oauth_routes import router as oauth_router
+router.include_router(oauth_router)
+
 
 # =============================================================================
 # DEPENDENCY: Get current user from token
@@ -315,4 +319,129 @@ async def verify_token(
         "valid": True,
         "user_id": user.user_id,
         "user_type": user.user_type
+    }
+
+
+# =============================================================================
+# PASSWORD RESET
+# =============================================================================
+
+from pydantic import BaseModel
+import secrets
+from datetime import datetime, timedelta
+
+# In-memory storage for password reset tokens (use Redis in production)
+_reset_tokens: dict = {}
+
+
+class PasswordResetRequest(BaseModel):
+    """Password reset request."""
+    email: str
+
+
+class PasswordResetConfirm(BaseModel):
+    """Password reset confirmation."""
+    token: str
+    new_password: str
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    request: PasswordResetRequest,
+    auth_service: CoreAuthService = Depends(get_auth_service)
+):
+    """
+    Request a password reset email.
+
+    Sends an email with a reset link if the account exists.
+    Always returns success to prevent email enumeration.
+    """
+    from ..services.email_service import get_email_service
+
+    # Find user
+    user = auth_service.get_user_by_email(request.email)
+
+    if user:
+        # Generate reset token
+        reset_token = secrets.token_urlsafe(32)
+        expires_at = datetime.utcnow() + timedelta(minutes=15)
+
+        # Store token
+        _reset_tokens[reset_token] = {
+            "user_id": user.id,
+            "email": user.email,
+            "expires_at": expires_at
+        }
+
+        # Send email
+        email_service = get_email_service()
+        await email_service.send_password_reset_email(
+            to_email=user.email,
+            reset_token=reset_token,
+            user_name=user.first_name
+        )
+
+        logger.info(f"Password reset requested for {request.email}")
+
+    # Always return success to prevent email enumeration
+    return {
+        "success": True,
+        "message": "If an account exists with that email, a reset link has been sent."
+    }
+
+
+@router.post("/reset-password")
+async def reset_password(
+    request: PasswordResetConfirm,
+    auth_service: CoreAuthService = Depends(get_auth_service)
+):
+    """
+    Reset password using reset token.
+
+    Validates the token and updates the user's password.
+    """
+    # Validate token
+    token_data = _reset_tokens.get(request.token)
+
+    if not token_data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+
+    # Check expiration
+    if datetime.utcnow() > token_data["expires_at"]:
+        del _reset_tokens[request.token]
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset token has expired"
+        )
+
+    # Validate new password
+    is_valid, error_msg = auth_service._validate_password(request.new_password)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_msg
+        )
+
+    # Get user and update password
+    user = auth_service.get_user_by_id(token_data["user_id"])
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found"
+        )
+
+    # Update password hash
+    user.password_hash = auth_service._hash_password(request.new_password)
+
+    # Clean up used token
+    del _reset_tokens[request.token]
+
+    logger.info(f"Password reset completed for {user.email}")
+
+    return {
+        "success": True,
+        "message": "Password has been reset successfully. You can now sign in with your new password."
     }
