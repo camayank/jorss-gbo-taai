@@ -1300,6 +1300,22 @@ def landing_page(request: Request):
     return templates.TemplateResponse("landing.html", {"request": request, "branding": branding})
 
 
+@app.get("/quick-estimate", response_class=HTMLResponse)
+@app.get("/estimate", response_class=HTMLResponse)
+def quick_estimate_page(request: Request):
+    """
+    Quick Tax Estimate - Premium 30-second quiz.
+
+    Shows potential savings before full signup:
+    - 3-question quick assessment
+    - Instant estimate calculation
+    - Leads to login/signup for detailed analysis
+    """
+    from config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("quick_estimate.html", {"request": request, "branding": branding})
+
+
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request):
     """CPA Workspace Dashboard - Multi-client management (legacy)."""

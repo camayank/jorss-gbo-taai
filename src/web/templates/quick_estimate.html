@@ -1,0 +1,1082 @@
+{% from 'macros/icons.html' import icon %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Tax Estimate - See Your Potential Savings | {{ branding.platform_name }}</title>
+    <meta name="description" content="Get a quick estimate of your potential tax savings in under 30 seconds. Free, no signup required.">
+    {% if branding.favicon_url %}
+    <link rel="icon" href="{{ branding.favicon_url }}">
+    {% endif %}
+    <style>
+        :root {
+            --primary: #1a365d;
+            --primary-light: #2c5282;
+            --primary-dark: #1a202c;
+            --bg: #f7fafc;
+            --surface: #ffffff;
+            --text: #1a202c;
+            --text-light: #4a5568;
+            --text-muted: #718096;
+            --success: #276749;
+            --success-light: #c6f6d5;
+            --success-bg: #f0fff4;
+            --warning: #c69214;
+            --border: #e2e8f0;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+            --shadow-xl: 0 20px 50px rgba(0,0,0,0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+
+        .logo img {
+            height: 32px;
+        }
+
+        .header-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--success-bg);
+            color: var(--success);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .header-badge svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Main Container */
+        .main {
+            padding-top: 80px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            background: var(--surface);
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .progress-inner {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .progress-title {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .progress-step {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 3px;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Quiz Container */
+        .quiz-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 24px;
+        }
+
+        .quiz-card {
+            background: var(--surface);
+            border-radius: 20px;
+            box-shadow: var(--shadow-xl);
+            max-width: 560px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        /* Question Slides */
+        .question-slide {
+            display: none;
+            padding: 48px 40px;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .question-slide.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .question-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .question-icon svg {
+            width: 32px;
+            height: 32px;
+            color: white;
+        }
+
+        .question-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .question-subtitle {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin-bottom: 32px;
+        }
+
+        /* Option Cards */
+        .options-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .option-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 20px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--surface);
+        }
+
+        .option-card:hover {
+            border-color: var(--primary-light);
+            background: #f8faff;
+        }
+
+        .option-card.selected {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, rgba(26, 54, 93, 0.05) 0%, rgba(44, 82, 130, 0.08) 100%);
+        }
+
+        .option-radio {
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+        }
+
+        .option-card.selected .option-radio {
+            border-color: var(--primary);
+            background: var(--primary);
+        }
+
+        .option-radio-inner {
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.2s ease;
+        }
+
+        .option-card.selected .option-radio-inner {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .option-content {
+            flex: 1;
+        }
+
+        .option-label {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .option-description {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .option-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--bg);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        /* Navigation */
+        .quiz-nav {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px 40px;
+            background: var(--bg);
+            border-top: 1px solid var(--border);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-muted);
+        }
+
+        .btn-secondary:hover {
+            color: var(--text);
+            background: var(--surface);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(26, 54, 93, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(26, 54, 93, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Results Slide */
+        .results-slide {
+            display: none;
+            text-align: center;
+        }
+
+        .results-slide.active {
+            display: block;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .results-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            padding: 48px 40px;
+            color: white;
+        }
+
+        .results-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+        }
+
+        .results-title {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            margin-bottom: 16px;
+        }
+
+        .results-amount {
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .results-range {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        .results-body {
+            padding: 40px;
+        }
+
+        .results-features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .feature-item {
+            text-align: center;
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--bg);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
+            color: var(--primary);
+        }
+
+        .feature-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .feature-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .feature-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .results-cta {
+            margin-bottom: 24px;
+        }
+
+        .btn-large {
+            padding: 18px 40px;
+            font-size: 1.1rem;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .results-disclaimer {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* Trust Bar */
+        .trust-bar {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            padding: 20px 40px;
+            background: var(--bg);
+            border-top: 1px solid var(--border);
+        }
+
+        .trust-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .trust-item svg {
+            width: 18px;
+            height: 18px;
+            color: var(--success);
+        }
+
+        /* Loading Animation */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.95);
+            z-index: 1000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 24px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.1rem;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .loading-subtext {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .header-badge {
+                display: none;
+            }
+
+            .question-slide {
+                padding: 32px 24px;
+            }
+
+            .question-title {
+                font-size: 1.5rem;
+            }
+
+            .quiz-nav {
+                padding: 16px 24px;
+            }
+
+            .results-header {
+                padding: 32px 24px;
+            }
+
+            .results-amount {
+                font-size: 3rem;
+            }
+
+            .results-body {
+                padding: 24px;
+            }
+
+            .results-features {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .trust-bar {
+                flex-direction: column;
+                align-items: center;
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="logo">
+                {% if branding.logo_url %}
+                <img src="{{ branding.logo_url }}" alt="{{ branding.platform_name }}">
+                {% else %}
+                {{ branding.platform_name }}
+                {% endif %}
+            </a>
+            <div class="header-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Free &amp; Secure
+            </div>
+        </div>
+    </header>
+
+    <!-- Progress -->
+    <div class="progress-container">
+        <div class="progress-inner">
+            <div class="progress-header">
+                <span class="progress-title">Quick Tax Estimate</span>
+                <span class="progress-step" id="step-indicator">Step 1 of 3</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill" style="width: 33%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="quiz-container">
+            <div class="quiz-card">
+                <!-- Question 1: Filing Status -->
+                <div class="question-slide active" data-step="1">
+                    <div class="question-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
+                    <h2 class="question-title">What's your filing status?</h2>
+                    <p class="question-subtitle">This helps us estimate your tax bracket and potential deductions</p>
+
+                    <div class="options-grid">
+                        <div class="option-card" data-value="single">
+                            <div class="option-radio"><div class="option-radio-inner"></div></div>
+                            <div class="option-content">
+                                <div class="option-label">Single</div>
+                                <div class="option-description">Unmarried or legally separated</div>
+                            </div>
+                            <div class="option-icon">👤</div>
+                        </div>
+                        <div class="option-card" data-value="married_joint">
+                            <div class="option-radio"><div class="option-radio-inner"></div></div>
+                            <div class="option-content">
+                                <div class="option-label">Married Filing Jointly</div>
+                                <div class="option-description">Filing together with spouse</div>
+                            </div>
+                            <div class="option-icon">👫</div>
+                        </div>
+                        <div class="option-card" data-value="married_separate">
+                            <div class="option-radio"><div class="option-radio-inner"></div></div>
+                            <div class="option-content">
+                                <div class="option-label">Married Filing Separately</div>
+                                <div class="option-description">Filing separately from spouse</div>
+                            </div>
+                            <div class="option-icon">👥</div>
+                        </div>
+                        <div class="option-card" data-value="head_household">
+                            <div class="option-radio"><div class="option-radio-inner"></div></div>
+                            <div class="option-content">
+                                <div class="option-label">Head of Household</div>
+                                <div class="option-description">Unmarried with qualifying dependent</div>
+                            </div>
+                            <div class="option-icon">🏠</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Question 2: Income Range -->
+                <div class="question-slide" data-step="2">
+                    <div class="question-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="1" x2="12" y2="23"/>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </div>
+                    <h2 class="question-title">What's your annual income?</h2>
+                    <p class="question-subtitle">Include all sources: salary, business, investments</p>
+
+                    <div class="options-grid">
+                        <div class="option-card" data-value="0-50000">
+                            <div class="option-radio"><div class="option-radio-inner"></div></div>
+                            <div class="option-content">
+                                <div class="option-label">Under $50,000</div>
+                                <div class="option-description">May qualify for EITC credits</div>
+                            </div>
+                            <div class="option-icon">💵</div>
+                        </div>
+                        <div class="option-card" data-value="50000-100000">
+                            <div class="option-radio"><div class="option-radio-inner"></div></div>
+                            <div class="option-content">
+                                <div class="option-label">$50,000 - $100,000</div>
+                                <div class="option-description">22-24% tax bracket typically</div>
+                            </div>
+                            <div class="option-icon">💰</div>
+                        </div>
+                        <div class="option-card" data-value="100000-250000">
+                            <div class="option-radio"><div class="option-radio-inner"></div></div>
+                            <div class="option-content">
+                                <div class="option-label">$100,000 - $250,000</div>
+                                <div class="option-description">Strategic planning opportunities</div>
+                            </div>
+                            <div class="option-icon">💎</div>
+                        </div>
+                        <div class="option-card" data-value="250000+">
+                            <div class="option-radio"><div class="option-radio-inner"></div></div>
+                            <div class="option-content">
+                                <div class="option-label">Over $250,000</div>
+                                <div class="option-description">Complex planning beneficial</div>
+                            </div>
+                            <div class="option-icon">🏆</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Question 3: Primary Concern -->
+                <div class="question-slide" data-step="3">
+                    <div class="question-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <h2 class="question-title">What's your biggest tax concern?</h2>
+                    <p class="question-subtitle">We'll prioritize this in your personalized analysis</p>
+
+                    <div class="options-grid">
+                        <div class="option-card" data-value="maximize_refund">
+                            <div class="option-radio"><div class="option-radio-inner"></div></div>
+                            <div class="option-content">
+                                <div class="option-label">Maximize my refund</div>
+                                <div class="option-description">Find every deduction I'm entitled to</div>
+                            </div>
+                            <div class="option-icon">💸</div>
+                        </div>
+                        <div class="option-card" data-value="reduce_liability">
+                            <div class="option-radio"><div class="option-radio-inner"></div></div>
+                            <div class="option-content">
+                                <div class="option-label">Reduce what I owe</div>
+                                <div class="option-description">Lower my tax liability legally</div>
+                            </div>
+                            <div class="option-icon">📉</div>
+                        </div>
+                        <div class="option-card" data-value="business_taxes">
+                            <div class="option-radio"><div class="option-radio-inner"></div></div>
+                            <div class="option-content">
+                                <div class="option-label">Business tax optimization</div>
+                                <div class="option-description">Self-employed or business owner</div>
+                            </div>
+                            <div class="option-icon">🏢</div>
+                        </div>
+                        <div class="option-card" data-value="understand_situation">
+                            <div class="option-radio"><div class="option-radio-inner"></div></div>
+                            <div class="option-content">
+                                <div class="option-label">Understand my situation</div>
+                                <div class="option-description">Get clarity on my tax position</div>
+                            </div>
+                            <div class="option-icon">🔍</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div class="results-slide" data-step="results">
+                    <div class="results-header">
+                        <div class="results-badge">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                            Estimate Ready
+                        </div>
+                        <p class="results-title">Your Potential Tax Savings</p>
+                        <div class="results-amount" id="savings-amount">$2,847</div>
+                        <p class="results-range" id="savings-range">Estimated range: $1,800 - $4,200</p>
+                    </div>
+                    <div class="results-body">
+                        <div class="results-features">
+                            <div class="feature-item">
+                                <div class="feature-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14 2 14 8 20 8"/>
+                                    </svg>
+                                </div>
+                                <div class="feature-value" id="deductions-count">12+</div>
+                                <div class="feature-label">Potential Deductions</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                        <line x1="16" y1="2" x2="16" y2="6"/>
+                                        <line x1="8" y1="2" x2="8" y2="6"/>
+                                        <line x1="3" y1="10" x2="21" y2="10"/>
+                                    </svg>
+                                </div>
+                                <div class="feature-value" id="tax-bracket">22%</div>
+                                <div class="feature-label">Current Bracket</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <polyline points="12 6 12 12 16 14"/>
+                                    </svg>
+                                </div>
+                                <div class="feature-value">~8 min</div>
+                                <div class="feature-label">Full Analysis Time</div>
+                            </div>
+                        </div>
+
+                        <div class="results-cta">
+                            <a href="/login?next=/advisor&estimate=true" class="btn btn-primary btn-large">
+                                Get Your Detailed Analysis
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="5" y1="12" x2="19" y2="12"/>
+                                    <polyline points="12 5 19 12 12 19"/>
+                                </svg>
+                            </a>
+                        </div>
+
+                        <p class="results-disclaimer">
+                            This is an estimate based on your inputs. Your actual savings may vary.
+                            Create a free account to get a detailed AI-powered analysis with personalized recommendations.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Navigation (hidden on results) -->
+                <div class="quiz-nav" id="quiz-nav">
+                    <button class="btn btn-secondary" id="btn-back" style="visibility: hidden;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back
+                    </button>
+                    <button class="btn btn-primary" id="btn-next" disabled>
+                        Continue
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                            <polyline points="12 5 19 12 12 19"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Trust Bar -->
+                <div class="trust-bar">
+                    <div class="trust-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                        256-bit Encryption
+                    </div>
+                    <div class="trust-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        Data Never Sold
+                    </div>
+                    <div class="trust-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        CPA Verified
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Calculating your estimate...</div>
+        <div class="loading-subtext">Analyzing tax brackets and deductions</div>
+    </div>
+
+    <script>
+        // Quiz State
+        const state = {
+            currentStep: 1,
+            totalSteps: 3,
+            answers: {}
+        };
+
+        // DOM Elements
+        const slides = document.querySelectorAll('.question-slide');
+        const resultsSlide = document.querySelector('.results-slide');
+        const progressFill = document.getElementById('progress-fill');
+        const stepIndicator = document.getElementById('step-indicator');
+        const btnBack = document.getElementById('btn-back');
+        const btnNext = document.getElementById('btn-next');
+        const quizNav = document.getElementById('quiz-nav');
+        const loading = document.getElementById('loading');
+
+        // Initialize
+        function init() {
+            // Add click handlers to all option cards
+            document.querySelectorAll('.option-card').forEach(card => {
+                card.addEventListener('click', () => selectOption(card));
+            });
+
+            btnNext.addEventListener('click', nextStep);
+            btnBack.addEventListener('click', prevStep);
+
+            updateUI();
+        }
+
+        // Select Option
+        function selectOption(card) {
+            const slide = card.closest('.question-slide');
+            const step = parseInt(slide.dataset.step);
+
+            // Deselect all options in this slide
+            slide.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+
+            // Select this option
+            card.classList.add('selected');
+
+            // Store answer
+            state.answers[step] = card.dataset.value;
+
+            // Enable next button
+            btnNext.disabled = false;
+
+            // Auto-advance after short delay for better UX
+            setTimeout(() => {
+                if (state.currentStep < state.totalSteps) {
+                    nextStep();
+                }
+            }, 300);
+        }
+
+        // Next Step
+        function nextStep() {
+            if (state.currentStep < state.totalSteps) {
+                state.currentStep++;
+                updateUI();
+            } else {
+                showResults();
+            }
+        }
+
+        // Previous Step
+        function prevStep() {
+            if (state.currentStep > 1) {
+                state.currentStep--;
+                updateUI();
+            }
+        }
+
+        // Update UI
+        function updateUI() {
+            // Update slides
+            slides.forEach(slide => {
+                slide.classList.remove('active');
+                if (parseInt(slide.dataset.step) === state.currentStep) {
+                    slide.classList.add('active');
+                }
+            });
+
+            // Update progress
+            const progress = (state.currentStep / state.totalSteps) * 100;
+            progressFill.style.width = `${progress}%`;
+            stepIndicator.textContent = `Step ${state.currentStep} of ${state.totalSteps}`;
+
+            // Update back button visibility
+            btnBack.style.visibility = state.currentStep > 1 ? 'visible' : 'hidden';
+
+            // Update next button state
+            btnNext.disabled = !state.answers[state.currentStep];
+
+            // Update next button text on last step
+            if (state.currentStep === state.totalSteps) {
+                btnNext.innerHTML = `
+                    See My Estimate
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                `;
+            }
+        }
+
+        // Show Results
+        function showResults() {
+            // Show loading
+            loading.classList.add('active');
+
+            // Calculate estimate based on answers
+            setTimeout(() => {
+                const estimate = calculateEstimate();
+
+                // Update results
+                document.getElementById('savings-amount').textContent = `$${estimate.savings.toLocaleString()}`;
+                document.getElementById('savings-range').textContent =
+                    `Estimated range: $${estimate.low.toLocaleString()} - $${estimate.high.toLocaleString()}`;
+                document.getElementById('deductions-count').textContent = estimate.deductions + '+';
+                document.getElementById('tax-bracket').textContent = estimate.bracket + '%';
+
+                // Hide loading
+                loading.classList.remove('active');
+
+                // Show results
+                slides.forEach(s => s.classList.remove('active'));
+                resultsSlide.classList.add('active');
+                quizNav.style.display = 'none';
+                progressFill.style.width = '100%';
+                stepIndicator.textContent = 'Complete';
+
+                // Store estimate in session storage for advisor page
+                sessionStorage.setItem('quickEstimate', JSON.stringify({
+                    ...state.answers,
+                    estimate: estimate
+                }));
+
+            }, 1500);
+        }
+
+        // Calculate Estimate (simplified logic)
+        function calculateEstimate() {
+            const income = state.answers[2];
+            const concern = state.answers[3];
+
+            let baseSavings, bracket, deductions;
+
+            switch(income) {
+                case '0-50000':
+                    baseSavings = 1200;
+                    bracket = 12;
+                    deductions = 8;
+                    break;
+                case '50000-100000':
+                    baseSavings = 2400;
+                    bracket = 22;
+                    deductions = 12;
+                    break;
+                case '100000-250000':
+                    baseSavings = 4800;
+                    bracket = 24;
+                    deductions = 18;
+                    break;
+                case '250000+':
+                    baseSavings = 12000;
+                    bracket = 32;
+                    deductions = 25;
+                    break;
+                default:
+                    baseSavings = 2000;
+                    bracket = 22;
+                    deductions = 10;
+            }
+
+            // Adjust based on concern
+            if (concern === 'business_taxes') {
+                baseSavings *= 1.4;
+                deductions += 8;
+            } else if (concern === 'maximize_refund') {
+                baseSavings *= 1.2;
+            }
+
+            // Add some variance for realism
+            const variance = 0.3;
+            const low = Math.round(baseSavings * (1 - variance));
+            const high = Math.round(baseSavings * (1 + variance));
+            const savings = Math.round(baseSavings + (Math.random() * 400 - 200));
+
+            return {
+                savings,
+                low,
+                high,
+                bracket,
+                deductions: Math.round(deductions)
+            };
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
