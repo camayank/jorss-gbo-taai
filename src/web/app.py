@@ -1936,6 +1936,27 @@ if _ENABLE_TEST_ROUTES:
         return templates.TemplateResponse("test_hub.html", {"request": request})
 
 
+# =============================================================================
+# TEST DASHBOARD - ALL USER FLOWS
+# =============================================================================
+@app.get("/test-dashboard", response_class=HTMLResponse)
+@app.get("/qa", response_class=HTMLResponse)
+def test_dashboard(request: Request):
+    """
+    QA Test Dashboard - Test all user types, flows, and API endpoints.
+
+    Provides:
+    - Quick login as any user type (Super Admin, Platform Admin, Partner, Staff, Client)
+    - Visual status of all features (Working, Partial, Stub)
+    - API tester for endpoint validation
+    - End-to-end flow testing
+    - Feature status matrix
+
+    Access: http://127.0.0.1:8000/test-dashboard or /qa
+    """
+    return templates.TemplateResponse("test_dashboard.html", {"request": request})
+
+
 @app.get("/smart-tax", response_class=HTMLResponse)
 @app.get("/smart-tax/{path:path}", response_class=HTMLResponse)
 def smart_tax_redirect(request: Request, path: str = ""):

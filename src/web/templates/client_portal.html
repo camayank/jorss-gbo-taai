@@ -2183,7 +2183,7 @@
               </div>
             </div>
 
-            <div class="checkbox-group" id="consent-box" onclick="toggleConsent()">
+            <div class="checkbox-group" id="consent-box" onclick="toggleConsent(event)">
               <input type="checkbox" id="consent-check">
               <label class="checkbox-label" for="consent-check">
                 I have read and agree to the privacy policy. I consent to the collection
@@ -2193,7 +2193,7 @@
           </div>
           <div class="card-footer">
             <span class="form-hint">No credit card required</span>
-            <button class="btn btn-primary" id="btn-start" disabled onclick="startAssessment()">
+            <button type="button" class="btn btn-primary" id="btn-start" disabled onclick="startAssessment()">
               Start My FREE Assessment <span>&#8594;</span>
             </button>
           </div>
@@ -3287,14 +3287,17 @@
     // ================================================================
     // CONSENT HANDLING
     // ================================================================
-    function toggleConsent() {
+    function toggleConsent(event) {
       const checkbox = document.getElementById('consent-check');
       const box = document.getElementById('consent-box');
       const btn = document.getElementById('btn-start');
 
-      checkbox.checked = !checkbox.checked;
-      state.consent = checkbox.checked;
+      // Only toggle if click was NOT on the checkbox itself (checkbox handles its own toggle)
+      if (event && event.target && event.target.id !== 'consent-check') {
+        checkbox.checked = !checkbox.checked;
+      }
 
+      state.consent = checkbox.checked;
       box.classList.toggle('checked', checkbox.checked);
       btn.disabled = !checkbox.checked;
     }

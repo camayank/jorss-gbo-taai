@@ -1,0 +1,846 @@
+{% extends 'base_modern.html' %}
+
+{% block title %}Guided Tax Filing{% endblock %}
+{% block theme %}default{% endblock %}
+{% block page_css %}guided-filing{% endblock %}
+
+{% block content %}
+<div class="guided-filing-container" x-data="guidedFiling()">
+  {# Progress Header #}
+  <header class="guided-header">
+    <div class="container">
+      <div class="progress-wrapper">
+        <div class="progress-bar" :style="`width: ${progressPercent}%`"></div>
+      </div>
+      <div class="step-indicators">
+        <template x-for="(step, index) in steps" :key="step.id">
+          <div class="step-indicator"
+               :class="{
+                 'completed': index < currentStepIndex,
+                 'active': index === currentStepIndex,
+                 'upcoming': index > currentStepIndex
+               }">
+            <span class="step-number" x-text="index + 1"></span>
+            <span class="step-label" x-text="step.label"></span>
+          </div>
+        </template>
+      </div>
+    </div>
+  </header>
+
+  {# Main Content Area #}
+  <main class="guided-main">
+    <div class="container">
+      {# Step Content #}
+      <div class="step-content" x-show="!loading">
+        {# Step: Personal Information #}
+        <template x-if="currentStep.id === 'personal'">
+          <div class="step-section">
+            <h1 class="step-title">Let's start with your personal information</h1>
+            <p class="step-subtitle">This helps us identify you on your tax return.</p>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="firstName">First Name</label>
+                <input type="text" id="firstName" x-model="formData.personal.firstName"
+                       placeholder="Enter your first name" required>
+              </div>
+              <div class="form-group">
+                <label for="lastName">Last Name</label>
+                <input type="text" id="lastName" x-model="formData.personal.lastName"
+                       placeholder="Enter your last name" required>
+              </div>
+              <div class="form-group">
+                <label for="ssn">Social Security Number</label>
+                <input type="text" id="ssn" x-model="formData.personal.ssn"
+                       placeholder="XXX-XX-XXXX" maxlength="11"
+                       @input="formatSSN($event)">
+                <span class="help-text">Your SSN is encrypted and never shared.</span>
+              </div>
+              <div class="form-group">
+                <label for="dob">Date of Birth</label>
+                <input type="date" id="dob" x-model="formData.personal.dateOfBirth">
+              </div>
+            </div>
+          </div>
+        </template>
+
+        {# Step: Filing Status #}
+        <template x-if="currentStep.id === 'filing_status'">
+          <div class="step-section">
+            <h1 class="step-title">What's your filing status?</h1>
+            <p class="step-subtitle">This affects your tax brackets and standard deduction.</p>
+
+            <div class="option-cards">
+              <template x-for="status in filingStatuses" :key="status.value">
+                <div class="option-card"
+                     :class="{ 'selected': formData.filingStatus === status.value }"
+                     @click="formData.filingStatus = status.value">
+                  <div class="option-icon" x-text="status.icon"></div>
+                  <div class="option-content">
+                    <h3 x-text="status.label"></h3>
+                    <p x-text="status.description"></p>
+                  </div>
+                  <div class="option-check" x-show="formData.filingStatus === status.value">✓</div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>
+
+        {# Step: Income #}
+        <template x-if="currentStep.id === 'income'">
+          <div class="step-section">
+            <h1 class="step-title">Tell us about your income</h1>
+            <p class="step-subtitle">Select all types of income you received this year.</p>
+
+            <div class="checkbox-grid">
+              <template x-for="income in incomeTypes" :key="income.value">
+                <label class="checkbox-card"
+                       :class="{ 'selected': formData.incomeTypes.includes(income.value) }">
+                  <input type="checkbox"
+                         :value="income.value"
+                         x-model="formData.incomeTypes">
+                  <span class="checkbox-icon" x-text="income.icon"></span>
+                  <span class="checkbox-label" x-text="income.label"></span>
+                </label>
+              </template>
+            </div>
+
+            {# W-2 Income Details (shown if W-2 selected) #}
+            <template x-if="formData.incomeTypes.includes('w2')">
+              <div class="income-details">
+                <h3>W-2 Wage Income</h3>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Employer Name</label>
+                    <input type="text" x-model="formData.income.w2.employerName">
+                  </div>
+                  <div class="form-group">
+                    <label>Wages (Box 1)</label>
+                    <input type="text" x-model="formData.income.w2.wages"
+                           @input="formatCurrency($event)">
+                  </div>
+                  <div class="form-group">
+                    <label>Federal Tax Withheld (Box 2)</label>
+                    <input type="text" x-model="formData.income.w2.federalWithheld"
+                           @input="formatCurrency($event)">
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        {# Step: Deductions #}
+        <template x-if="currentStep.id === 'deductions'">
+          <div class="step-section">
+            <h1 class="step-title">Do you want to itemize deductions?</h1>
+            <p class="step-subtitle">We'll compare to the standard deduction and recommend the best option.</p>
+
+            <div class="deduction-choice">
+              <div class="option-card"
+                   :class="{ 'selected': formData.deductionMethod === 'standard' }"
+                   @click="formData.deductionMethod = 'standard'">
+                <h3>Standard Deduction</h3>
+                <p class="amount" x-text="'$' + standardDeduction.toLocaleString()"></p>
+                <p>Quick and easy - recommended for most filers.</p>
+              </div>
+              <div class="option-card"
+                   :class="{ 'selected': formData.deductionMethod === 'itemized' }"
+                   @click="formData.deductionMethod = 'itemized'">
+                <h3>Itemize Deductions</h3>
+                <p>If you have significant deductible expenses.</p>
+              </div>
+            </div>
+
+            <template x-if="formData.deductionMethod === 'itemized'">
+              <div class="itemized-details">
+                <h3>Enter your deductible expenses</h3>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Mortgage Interest</label>
+                    <input type="text" x-model="formData.deductions.mortgageInterest"
+                           @input="formatCurrency($event)">
+                  </div>
+                  <div class="form-group">
+                    <label>State & Local Taxes (SALT)</label>
+                    <input type="text" x-model="formData.deductions.salt"
+                           @input="formatCurrency($event)">
+                    <span class="help-text">Limited to $10,000</span>
+                  </div>
+                  <div class="form-group">
+                    <label>Charitable Contributions</label>
+                    <input type="text" x-model="formData.deductions.charitable"
+                           @input="formatCurrency($event)">
+                  </div>
+                  <div class="form-group">
+                    <label>Medical Expenses</label>
+                    <input type="text" x-model="formData.deductions.medical"
+                           @input="formatCurrency($event)">
+                    <span class="help-text">Only amounts exceeding 7.5% of AGI</span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        {# Step: Credits #}
+        <template x-if="currentStep.id === 'credits'">
+          <div class="step-section">
+            <h1 class="step-title">Check for tax credits you may qualify for</h1>
+            <p class="step-subtitle">Credits directly reduce your tax bill.</p>
+
+            <div class="credit-cards">
+              <template x-for="credit in availableCredits" :key="credit.id">
+                <div class="credit-card"
+                     :class="{ 'selected': formData.credits[credit.id]?.claimed }">
+                  <div class="credit-header">
+                    <span class="credit-icon" x-text="credit.icon"></span>
+                    <h3 x-text="credit.name"></h3>
+                  </div>
+                  <p x-text="credit.description"></p>
+                  <p class="credit-value">Worth up to <strong x-text="'$' + credit.maxValue.toLocaleString()"></strong></p>
+                  <button class="btn btn-sm"
+                          @click="toggleCredit(credit.id)"
+                          x-text="formData.credits[credit.id]?.claimed ? 'Remove' : 'Add'">
+                  </button>
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>
+
+        {# Step: Review #}
+        <template x-if="currentStep.id === 'review'">
+          <div class="step-section">
+            <h1 class="step-title">Review your tax return</h1>
+            <p class="step-subtitle">Please verify all information is correct before submitting.</p>
+
+            <div class="review-summary">
+              <div class="summary-card">
+                <h3>Your Tax Summary</h3>
+                <div class="summary-row">
+                  <span>Total Income</span>
+                  <span class="amount" x-text="'$' + calculateTotalIncome().toLocaleString()"></span>
+                </div>
+                <div class="summary-row">
+                  <span>Deductions</span>
+                  <span class="amount" x-text="'-$' + calculateDeductions().toLocaleString()"></span>
+                </div>
+                <div class="summary-row">
+                  <span>Taxable Income</span>
+                  <span class="amount" x-text="'$' + calculateTaxableIncome().toLocaleString()"></span>
+                </div>
+                <hr>
+                <div class="summary-row highlight">
+                  <span>Estimated Tax</span>
+                  <span class="amount" x-text="'$' + calculateTax().toLocaleString()"></span>
+                </div>
+                <div class="summary-row" :class="{ 'refund': calculateRefund() > 0, 'owe': calculateRefund() < 0 }">
+                  <span x-text="calculateRefund() >= 0 ? 'Estimated Refund' : 'Amount Owed'"></span>
+                  <span class="amount" x-text="'$' + Math.abs(calculateRefund()).toLocaleString()"></span>
+                </div>
+              </div>
+
+              <div class="review-sections">
+                <div class="review-section" @click="goToStep('personal')">
+                  <h4>Personal Information</h4>
+                  <p x-text="formData.personal.firstName + ' ' + formData.personal.lastName"></p>
+                  <span class="edit-link">Edit</span>
+                </div>
+                <div class="review-section" @click="goToStep('filing_status')">
+                  <h4>Filing Status</h4>
+                  <p x-text="getFilingStatusLabel()"></p>
+                  <span class="edit-link">Edit</span>
+                </div>
+                <div class="review-section" @click="goToStep('income')">
+                  <h4>Income</h4>
+                  <p x-text="formData.incomeTypes.length + ' income source(s)'"></p>
+                  <span class="edit-link">Edit</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        {# Step: Complete #}
+        <template x-if="currentStep.id === 'complete'">
+          <div class="step-section complete-section">
+            <div class="success-icon">✓</div>
+            <h1 class="step-title">Your return is ready!</h1>
+            <p class="step-subtitle">Your tax return has been prepared and is ready for review by your CPA.</p>
+
+            <div class="action-cards">
+              <a href="/api/filing/{{ session_id }}/export/pdf" class="action-card">
+                <span class="action-icon">📄</span>
+                <span>Download PDF</span>
+              </a>
+              <a href="/cpa/review" class="action-card">
+                <span class="action-icon">👁️</span>
+                <span>View in CPA Portal</span>
+              </a>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      {# Loading State #}
+      <div class="loading-state" x-show="loading">
+        <div class="spinner"></div>
+        <p>Saving your progress...</p>
+      </div>
+    </div>
+  </main>
+
+  {# Navigation Footer #}
+  <footer class="guided-footer" x-show="currentStep.id !== 'complete'">
+    <div class="container">
+      <button class="btn btn-secondary" @click="previousStep()" :disabled="currentStepIndex === 0">
+        ← Back
+      </button>
+      <button class="btn btn-primary" @click="nextStep()" :disabled="!canProceed">
+        <span x-text="currentStep.id === 'review' ? 'Submit Return' : 'Continue'"></span> →
+      </button>
+    </div>
+  </footer>
+</div>
+
+<style>
+  .guided-filing-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-gray-50);
+  }
+
+  .guided-header {
+    background: white;
+    border-bottom: 1px solid var(--color-gray-200);
+    padding: 1rem 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .progress-wrapper {
+    height: 4px;
+    background: var(--color-gray-200);
+    border-radius: 2px;
+    margin-bottom: 1rem;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: var(--color-primary-500);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  .step-indicators {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .step-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--color-gray-400);
+  }
+
+  .step-indicator.active {
+    color: var(--color-primary-600);
+    font-weight: 600;
+  }
+
+  .step-indicator.completed {
+    color: var(--color-green-600);
+  }
+
+  .step-number {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: var(--color-gray-200);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+  }
+
+  .step-indicator.active .step-number {
+    background: var(--color-primary-500);
+    color: white;
+  }
+
+  .step-indicator.completed .step-number {
+    background: var(--color-green-500);
+    color: white;
+  }
+
+  .guided-main {
+    flex: 1;
+    padding: 2rem 0;
+  }
+
+  .step-section {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .step-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--color-gray-900);
+    margin-bottom: 0.5rem;
+  }
+
+  .step-subtitle {
+    font-size: 1rem;
+    color: var(--color-gray-600);
+    margin-bottom: 2rem;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-weight: 500;
+    color: var(--color-gray-700);
+  }
+
+  .form-group input {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-gray-300);
+    border-radius: 0.5rem;
+    font-size: 1rem;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: var(--color-primary-500);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+
+  .help-text {
+    font-size: 0.75rem;
+    color: var(--color-gray-500);
+  }
+
+  .option-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .option-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: white;
+    border: 2px solid var(--color-gray-200);
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .option-card:hover {
+    border-color: var(--color-primary-300);
+  }
+
+  .option-card.selected {
+    border-color: var(--color-primary-500);
+    background: var(--color-primary-50);
+  }
+
+  .option-icon {
+    font-size: 2rem;
+  }
+
+  .option-content h3 {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+
+  .option-content p {
+    font-size: 0.875rem;
+    color: var(--color-gray-600);
+  }
+
+  .option-check {
+    margin-left: auto;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: var(--color-primary-500);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  .checkbox-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem;
+    background: white;
+    border: 2px solid var(--color-gray-200);
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .checkbox-card input {
+    display: none;
+  }
+
+  .checkbox-card.selected {
+    border-color: var(--color-primary-500);
+    background: var(--color-primary-50);
+  }
+
+  .checkbox-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .guided-footer {
+    background: white;
+    border-top: 1px solid var(--color-gray-200);
+    padding: 1rem 0;
+    position: sticky;
+    bottom: 0;
+  }
+
+  .guided-footer .container {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .summary-card {
+    background: white;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--color-gray-100);
+  }
+
+  .summary-row.highlight {
+    font-weight: 600;
+    font-size: 1.125rem;
+  }
+
+  .summary-row.refund .amount {
+    color: var(--color-green-600);
+  }
+
+  .summary-row.owe .amount {
+    color: var(--color-red-600);
+  }
+
+  .complete-section {
+    text-align: center;
+    padding: 3rem 0;
+  }
+
+  .success-icon {
+    width: 4rem;
+    height: 4rem;
+    background: var(--color-green-500);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto 1.5rem;
+  }
+
+  .action-cards {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+  }
+
+  .action-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1.5rem 2rem;
+    background: white;
+    border: 1px solid var(--color-gray-200);
+    border-radius: 0.75rem;
+    text-decoration: none;
+    color: var(--color-gray-900);
+    transition: all 0.2s;
+  }
+
+  .action-card:hover {
+    border-color: var(--color-primary-500);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .action-icon {
+    font-size: 1.5rem;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .checkbox-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .step-label {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+function guidedFiling() {
+  return {
+    loading: false,
+    sessionId: '{{ session_id | default("") }}',
+    currentStepIndex: 0,
+
+    steps: [
+      { id: 'personal', label: 'Personal Info' },
+      { id: 'filing_status', label: 'Filing Status' },
+      { id: 'income', label: 'Income' },
+      { id: 'deductions', label: 'Deductions' },
+      { id: 'credits', label: 'Credits' },
+      { id: 'review', label: 'Review' },
+      { id: 'complete', label: 'Complete' }
+    ],
+
+    formData: {
+      personal: { firstName: '', lastName: '', ssn: '', dateOfBirth: '' },
+      filingStatus: '',
+      incomeTypes: [],
+      income: {
+        w2: { employerName: '', wages: '', federalWithheld: '' },
+        selfEmployment: { grossIncome: '', expenses: '' },
+        investments: { dividends: '', capitalGains: '' }
+      },
+      deductionMethod: 'standard',
+      deductions: { mortgageInterest: '', salt: '', charitable: '', medical: '' },
+      credits: {}
+    },
+
+    filingStatuses: [
+      { value: 'single', label: 'Single', icon: '👤', description: 'Unmarried or legally separated' },
+      { value: 'mfj', label: 'Married Filing Jointly', icon: '👫', description: 'Married and filing together' },
+      { value: 'mfs', label: 'Married Filing Separately', icon: '↔️', description: 'Married but filing separate returns' },
+      { value: 'hoh', label: 'Head of Household', icon: '🏠', description: 'Unmarried with qualifying dependent' },
+      { value: 'qw', label: 'Qualifying Widow(er)', icon: '🤲', description: 'Spouse died within past 2 years' }
+    ],
+
+    incomeTypes: [
+      { value: 'w2', label: 'W-2 Wages', icon: '💼' },
+      { value: 'self_employment', label: 'Self-Employment', icon: '🏢' },
+      { value: '1099_int', label: 'Interest (1099-INT)', icon: '🏦' },
+      { value: '1099_div', label: 'Dividends (1099-DIV)', icon: '📈' },
+      { value: '1099_misc', label: 'Other Income (1099)', icon: '📄' },
+      { value: 'rental', label: 'Rental Income', icon: '🏘️' }
+    ],
+
+    availableCredits: [
+      { id: 'eitc', name: 'Earned Income Tax Credit', icon: '💵', description: 'For low-to-moderate income workers', maxValue: 7430 },
+      { id: 'ctc', name: 'Child Tax Credit', icon: '👶', description: 'Per qualifying child under 17', maxValue: 2000 },
+      { id: 'aotc', name: 'American Opportunity Credit', icon: '🎓', description: 'For college education expenses', maxValue: 2500 },
+      { id: 'savers', name: "Saver's Credit", icon: '🏦', description: 'For retirement contributions', maxValue: 1000 }
+    ],
+
+    get currentStep() {
+      return this.steps[this.currentStepIndex];
+    },
+
+    get progressPercent() {
+      return ((this.currentStepIndex) / (this.steps.length - 1)) * 100;
+    },
+
+    get standardDeduction() {
+      const deductions = { single: 14600, mfj: 29200, mfs: 14600, hoh: 21900, qw: 29200 };
+      return deductions[this.formData.filingStatus] || 14600;
+    },
+
+    get canProceed() {
+      const step = this.currentStep.id;
+      if (step === 'personal') {
+        return this.formData.personal.firstName && this.formData.personal.lastName;
+      }
+      if (step === 'filing_status') {
+        return this.formData.filingStatus;
+      }
+      return true;
+    },
+
+    formatSSN(e) {
+      let value = e.target.value.replace(/\D/g, '');
+      if (value.length > 3) value = value.slice(0, 3) + '-' + value.slice(3);
+      if (value.length > 6) value = value.slice(0, 6) + '-' + value.slice(6);
+      e.target.value = value.slice(0, 11);
+      this.formData.personal.ssn = e.target.value;
+    },
+
+    formatCurrency(e) {
+      let value = e.target.value.replace(/[^\d.]/g, '');
+      if (value) {
+        const num = parseFloat(value);
+        e.target.value = isNaN(num) ? '' : '$' + num.toLocaleString();
+      }
+    },
+
+    async nextStep() {
+      if (this.currentStepIndex < this.steps.length - 1) {
+        this.loading = true;
+        await this.saveProgress();
+        this.currentStepIndex++;
+        this.loading = false;
+        window.scrollTo(0, 0);
+      }
+    },
+
+    previousStep() {
+      if (this.currentStepIndex > 0) {
+        this.currentStepIndex--;
+        window.scrollTo(0, 0);
+      }
+    },
+
+    goToStep(stepId) {
+      const index = this.steps.findIndex(s => s.id === stepId);
+      if (index >= 0 && index < this.currentStepIndex) {
+        this.currentStepIndex = index;
+      }
+    },
+
+    toggleCredit(creditId) {
+      if (!this.formData.credits[creditId]) {
+        this.formData.credits[creditId] = { claimed: true };
+      } else {
+        this.formData.credits[creditId].claimed = !this.formData.credits[creditId].claimed;
+      }
+    },
+
+    getFilingStatusLabel() {
+      const status = this.filingStatuses.find(s => s.value === this.formData.filingStatus);
+      return status ? status.label : 'Not selected';
+    },
+
+    calculateTotalIncome() {
+      let total = 0;
+      if (this.formData.income.w2.wages) {
+        total += parseFloat(this.formData.income.w2.wages.replace(/[^\d.]/g, '')) || 0;
+      }
+      return total;
+    },
+
+    calculateDeductions() {
+      if (this.formData.deductionMethod === 'standard') {
+        return this.standardDeduction;
+      }
+      let total = 0;
+      for (const key in this.formData.deductions) {
+        const val = this.formData.deductions[key];
+        if (val) total += parseFloat(val.replace(/[^\d.]/g, '')) || 0;
+      }
+      return Math.max(total, this.standardDeduction);
+    },
+
+    calculateTaxableIncome() {
+      return Math.max(0, this.calculateTotalIncome() - this.calculateDeductions());
+    },
+
+    calculateTax() {
+      const income = this.calculateTaxableIncome();
+      // Simplified 2024 tax brackets for single
+      if (income <= 11600) return income * 0.10;
+      if (income <= 47150) return 1160 + (income - 11600) * 0.12;
+      if (income <= 100525) return 5426 + (income - 47150) * 0.22;
+      return 17168.50 + (income - 100525) * 0.24;
+    },
+
+    calculateRefund() {
+      const tax = this.calculateTax();
+      const withheld = parseFloat((this.formData.income.w2.federalWithheld || '').replace(/[^\d.]/g, '')) || 0;
+      return withheld - tax;
+    },
+
+    async saveProgress() {
+      if (!this.sessionId) return;
+      try {
+        await fetch(`/api/filing/guided/${this.sessionId}/progress`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            step: this.currentStep.id,
+            data: this.formData
+          })
+        });
+      } catch (e) {
+        console.error('Failed to save progress:', e);
+      }
+    },
+
+    async init() {
+      if (this.sessionId) {
+        try {
+          const response = await fetch(`/api/filing/guided/${this.sessionId}/progress`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.formData) this.formData = { ...this.formData, ...data.formData };
+            if (data.currentStep) {
+              const index = this.steps.findIndex(s => s.id === data.currentStep);
+              if (index >= 0) this.currentStepIndex = index;
+            }
+          }
+        } catch (e) {
+          console.error('Failed to load progress:', e);
+        }
+      }
+    }
+  };
+}
+</script>
+{% endblock %}

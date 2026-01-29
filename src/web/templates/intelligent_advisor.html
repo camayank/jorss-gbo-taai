@@ -318,6 +318,697 @@
       box-shadow: var(--shadow-md);
     }
 
+    /* Multi-Select Checkboxes */
+    .multi-select-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .multi-select-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #ffffff;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .multi-select-option:hover {
+      border-color: #1a365d;
+      background: #f7fafc;
+    }
+
+    .multi-select-option.selected {
+      border-color: #1a365d;
+      background: #ebf8ff;
+    }
+
+    .multi-select-option input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: #1a365d;
+      cursor: pointer;
+    }
+
+    .multi-select-option label {
+      flex: 1;
+      font-size: 14px;
+      color: #1a365d;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .multi-select-submit {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .multi-select-submit button {
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .multi-select-submit .submit-btn {
+      background: #1a365d;
+      color: white;
+      border: none;
+    }
+
+    .multi-select-submit .submit-btn:hover {
+      background: #2c5282;
+    }
+
+    .multi-select-submit .submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .multi-select-submit .skip-btn {
+      background: white;
+      color: #718096;
+      border: 2px solid #e2e8f0;
+    }
+
+    .multi-select-submit .skip-btn:hover {
+      border-color: #718096;
+    }
+
+    /* Radio Button Group */
+    .radio-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .radio-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      background: #ffffff;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .radio-option:hover {
+      border-color: #1a365d;
+      background: #f7fafc;
+    }
+
+    .radio-option.selected {
+      border-color: #1a365d;
+      background: #ebf8ff;
+    }
+
+    .radio-option input[type="radio"] {
+      width: 20px;
+      height: 20px;
+      accent-color: #1a365d;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .radio-option .radio-content {
+      flex: 1;
+    }
+
+    .radio-option label {
+      font-size: 15px;
+      color: #1a365d;
+      cursor: pointer;
+      font-weight: 600;
+      display: block;
+    }
+
+    .radio-option .radio-description {
+      font-size: 13px;
+      color: #718096;
+      margin-top: 2px;
+    }
+
+    /* Dropdown Select */
+    .dropdown-actions {
+      margin-top: 20px;
+    }
+
+    .dropdown-select {
+      width: 100%;
+      padding: 14px 18px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #1a365d;
+      background: #ffffff;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%231a365d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 20px;
+      transition: all 0.2s ease;
+    }
+
+    .dropdown-select:hover {
+      border-color: #1a365d;
+    }
+
+    .dropdown-select:focus {
+      outline: none;
+      border-color: #1a365d;
+      box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
+    }
+
+    .dropdown-submit {
+      margin-top: 12px;
+    }
+
+    .dropdown-submit button {
+      padding: 12px 28px;
+      background: #1a365d;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .dropdown-submit button:hover {
+      background: #2c5282;
+    }
+
+    .dropdown-submit button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* =========================================================
+       UX ENHANCEMENTS - Tooltips, Progress, Quick-Edit, etc.
+       ========================================================= */
+
+    /* Tooltip System */
+    .tooltip-trigger {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      cursor: help;
+    }
+
+    .tooltip-icon {
+      width: 16px;
+      height: 16px;
+      background: #e2e8f0;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #64748b;
+      margin-left: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .tooltip-icon:hover {
+      background: #1a365d;
+      color: white;
+    }
+
+    .tooltip-content {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: white;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 400;
+      line-height: 1.5;
+      width: max-content;
+      max-width: 280px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .tooltip-content::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: #1e293b;
+    }
+
+    .tooltip-trigger:hover .tooltip-content {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Real-time Savings Estimate Card */
+    .savings-estimate {
+      position: fixed;
+      bottom: 100px;
+      right: 24px;
+      background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+      color: white;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(6, 95, 70, 0.3);
+      z-index: 100;
+      min-width: 200px;
+      animation: slideInRight 0.4s ease;
+      transition: transform 0.3s ease;
+    }
+
+    .savings-estimate:hover {
+      transform: translateY(-4px);
+    }
+
+    .savings-estimate-label {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .savings-estimate-amount {
+      font-size: 28px;
+      font-weight: 700;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .savings-estimate-amount .range {
+      font-size: 16px;
+      opacity: 0.8;
+    }
+
+    .savings-estimate-details {
+      font-size: 12px;
+      opacity: 0.85;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Quick-Edit Panel */
+    .quick-edit-panel {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+
+    .quick-edit-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .quick-edit-title {
+      font-weight: 600;
+      color: #1a365d;
+      font-size: 14px;
+    }
+
+    .quick-edit-toggle {
+      font-size: 12px;
+      color: #3182ce;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .quick-edit-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .quick-edit-item:hover {
+      border-color: #3182ce;
+      cursor: pointer;
+    }
+
+    .quick-edit-item:hover .edit-icon {
+      opacity: 1;
+    }
+
+    .quick-edit-label {
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    .quick-edit-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a365d;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .edit-icon {
+      opacity: 0;
+      color: #3182ce;
+      transition: opacity 0.2s ease;
+    }
+
+    /* Progress Stepper */
+    .progress-stepper {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      margin-bottom: 20px;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+    }
+
+    .step-number {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .step.completed .step-number {
+      background: #065f46;
+      color: white;
+    }
+
+    .step.active .step-number {
+      background: #1a365d;
+      color: white;
+      box-shadow: 0 0 0 4px rgba(26, 54, 93, 0.2);
+    }
+
+    .step.pending .step-number {
+      background: #e2e8f0;
+      color: #64748b;
+    }
+
+    .step-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #64748b;
+    }
+
+    .step.active .step-label {
+      color: #1a365d;
+      font-weight: 600;
+    }
+
+    .step.completed .step-label {
+      color: #065f46;
+    }
+
+    .step-connector {
+      flex: 1;
+      height: 2px;
+      background: #e2e8f0;
+      margin: 0 12px;
+    }
+
+    .step-connector.completed {
+      background: #065f46;
+    }
+
+    /* Currency Input */
+    .currency-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .currency-symbol {
+      position: absolute;
+      left: 14px;
+      font-size: 16px;
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .currency-input {
+      width: 100%;
+      padding: 14px 14px 14px 32px;
+      font-size: 18px;
+      font-weight: 600;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      transition: all 0.2s ease;
+    }
+
+    .currency-input:focus {
+      outline: none;
+      border-color: #1a365d;
+      box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
+    }
+
+    .currency-input::placeholder {
+      color: #a0aec0;
+      font-weight: 400;
+    }
+
+    /* Slider Input */
+    .slider-input-wrapper {
+      padding: 20px 0;
+    }
+
+    .slider-value-display {
+      text-align: center;
+      font-size: 32px;
+      font-weight: 700;
+      color: #1a365d;
+      margin-bottom: 16px;
+    }
+
+    .slider-input {
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: #e2e8f0;
+      appearance: none;
+      cursor: pointer;
+    }
+
+    .slider-input::-webkit-slider-thumb {
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #1a365d;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(26, 54, 93, 0.3);
+      transition: transform 0.2s ease;
+    }
+
+    .slider-input::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+    }
+
+    .slider-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    /* Confidence Indicator */
+    .confidence-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .confidence-high {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .confidence-medium {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .confidence-low {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .confidence-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .confidence-high .confidence-dot { background: #22c55e; }
+    .confidence-medium .confidence-dot { background: #f59e0b; }
+    .confidence-low .confidence-dot { background: #ef4444; }
+
+    /* Keyboard Shortcut Hints */
+    .keyboard-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: 8px;
+      opacity: 0.6;
+    }
+
+    .kbd {
+      display: inline-block;
+      padding: 2px 6px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: monospace;
+      color: #475569;
+    }
+
+    /* Trust Badge */
+    .trust-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #166534;
+    }
+
+    .trust-badge-icon {
+      font-size: 14px;
+    }
+
+    /* Animated Typing Cursor */
+    .typing-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1.2em;
+      background: #1a365d;
+      margin-left: 2px;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+
+    /* Success Checkmark Animation */
+    .success-check {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      background: #22c55e;
+      border-radius: 50%;
+      color: white;
+      font-size: 14px;
+      animation: popIn 0.3s ease;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0); }
+      70% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+
+    /* Data Security Notice */
+    .security-notice {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #1e40af;
+      margin-top: 16px;
+    }
+
+    .security-notice-icon {
+      font-size: 18px;
+    }
+
+    /* Smart Suggestion Chip */
+    .suggestion-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: #fef3c7;
+      border: 1px solid #fcd34d;
+      border-radius: 20px;
+      font-size: 13px;
+      color: #92400e;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .suggestion-chip:hover {
+      background: #fde68a;
+      transform: translateY(-1px);
+    }
+
     /* Insight Cards */
     .insight-card {
       background: #f0fff4;
@@ -2102,6 +2793,450 @@
     let taxCalculations = null;
     let leadQualified = false;
 
+    // =========================================================================
+    // ROBUSTNESS LAYER - Error Handling, Validation, Recovery, Rate Limiting
+    // =========================================================================
+
+    const RobustnessConfig = {
+      maxRetries: 3,
+      retryDelay: 1000,  // ms
+      maxMessageLength: 5000,
+      minMessageLength: 1,
+      rateLimitMessages: 30,  // max messages per minute
+      rateLimitWindow: 60000,  // 1 minute
+      sessionTimeout: 30 * 60 * 1000,  // 30 minutes
+      offlineQueueMax: 10,
+      debugMode: false
+    };
+
+    // Rate limiting state
+    const rateLimitState = {
+      messages: [],
+      blocked: false,
+      blockUntil: null
+    };
+
+    // Offline message queue
+    const offlineQueue = [];
+    let isOnline = navigator.onLine;
+
+    // Session recovery state
+    let lastActivityTime = Date.now();
+    let sessionRecoveryAttempted = false;
+
+    // =========== INPUT VALIDATION & SANITIZATION ===========
+
+    function sanitizeInput(input) {
+      if (typeof input !== 'string') return '';
+
+      // Remove potential XSS vectors
+      let sanitized = input
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<[^>]*>/g, '')  // Remove HTML tags
+        .replace(/javascript:/gi, '')
+        .replace(/on\w+\s*=/gi, '')  // Remove event handlers
+        .trim();
+
+      // Limit length
+      if (sanitized.length > RobustnessConfig.maxMessageLength) {
+        sanitized = sanitized.substring(0, RobustnessConfig.maxMessageLength);
+      }
+
+      return sanitized;
+    }
+
+    function validateMessage(message) {
+      const errors = [];
+
+      if (!message || typeof message !== 'string') {
+        errors.push('Message must be a non-empty string');
+      } else {
+        if (message.length < RobustnessConfig.minMessageLength) {
+          errors.push('Message is too short');
+        }
+        if (message.length > RobustnessConfig.maxMessageLength) {
+          errors.push(`Message exceeds maximum length of ${RobustnessConfig.maxMessageLength} characters`);
+        }
+      }
+
+      return {
+        valid: errors.length === 0,
+        errors: errors
+      };
+    }
+
+    function validateNumericInput(value, min = 0, max = Infinity) {
+      const num = parseFloat(value);
+      if (isNaN(num)) return { valid: false, error: 'Must be a valid number' };
+      if (num < min) return { valid: false, error: `Must be at least ${min}` };
+      if (num > max) return { valid: false, error: `Must be no more than ${max}` };
+      return { valid: true, value: num };
+    }
+
+    // =========== RATE LIMITING ===========
+
+    function checkRateLimit() {
+      const now = Date.now();
+
+      // Check if currently blocked
+      if (rateLimitState.blocked) {
+        if (now < rateLimitState.blockUntil) {
+          const waitSeconds = Math.ceil((rateLimitState.blockUntil - now) / 1000);
+          return {
+            allowed: false,
+            reason: `Too many messages. Please wait ${waitSeconds} seconds.`
+          };
+        }
+        // Block expired
+        rateLimitState.blocked = false;
+        rateLimitState.blockUntil = null;
+      }
+
+      // Remove old messages from tracking
+      rateLimitState.messages = rateLimitState.messages.filter(
+        time => now - time < RobustnessConfig.rateLimitWindow
+      );
+
+      // Check if over limit
+      if (rateLimitState.messages.length >= RobustnessConfig.rateLimitMessages) {
+        rateLimitState.blocked = true;
+        rateLimitState.blockUntil = now + 30000; // Block for 30 seconds
+        return {
+          allowed: false,
+          reason: 'You\'re sending messages too quickly. Please slow down.'
+        };
+      }
+
+      // Record this message
+      rateLimitState.messages.push(now);
+      return { allowed: true };
+    }
+
+    // =========== NETWORK STATUS MONITORING ===========
+
+    function initNetworkMonitoring() {
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+    }
+
+    function handleOnline() {
+      isOnline = true;
+      showToast('Connection restored', 'success');
+
+      // Process queued messages
+      processOfflineQueue();
+    }
+
+    function handleOffline() {
+      isOnline = false;
+      showToast('You\'re offline. Messages will be sent when connection is restored.', 'warning');
+    }
+
+    async function processOfflineQueue() {
+      if (offlineQueue.length === 0) return;
+
+      showToast(`Sending ${offlineQueue.length} queued message(s)...`, 'info');
+
+      while (offlineQueue.length > 0 && isOnline) {
+        const message = offlineQueue.shift();
+        try {
+          await processAIResponseInternal(message);
+        } catch (error) {
+          console.error('Failed to process queued message:', error);
+          // Put it back if failed and still offline
+          if (!isOnline) {
+            offlineQueue.unshift(message);
+            break;
+          }
+        }
+      }
+    }
+
+    function queueOfflineMessage(message) {
+      if (offlineQueue.length >= RobustnessConfig.offlineQueueMax) {
+        showToast('Offline queue full. Please wait for connection.', 'error');
+        return false;
+      }
+      offlineQueue.push(message);
+      showToast(`Message queued. ${offlineQueue.length} message(s) waiting.`, 'info');
+      return true;
+    }
+
+    // =========== API CALL WITH RETRY LOGIC ===========
+
+    async function fetchWithRetry(url, options = {}, retries = RobustnessConfig.maxRetries) {
+      let lastError;
+
+      for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+          const response = await fetch(url, {
+            ...options,
+            headers: {
+              'Content-Type': 'application/json',
+              ...options.headers
+            }
+          });
+
+          if (!response.ok) {
+            // Don't retry client errors (4xx)
+            if (response.status >= 400 && response.status < 500) {
+              const errorData = await response.json().catch(() => ({}));
+              throw new Error(errorData.detail || `Request failed with status ${response.status}`);
+            }
+            throw new Error(`Server error: ${response.status}`);
+          }
+
+          return response;
+        } catch (error) {
+          lastError = error;
+
+          if (RobustnessConfig.debugMode) {
+            console.log(`Attempt ${attempt}/${retries} failed:`, error.message);
+          }
+
+          // Don't retry if it's a client error or last attempt
+          if (attempt === retries || error.message.includes('400') || error.message.includes('401')) {
+            break;
+          }
+
+          // Wait before retry (exponential backoff)
+          await new Promise(resolve =>
+            setTimeout(resolve, RobustnessConfig.retryDelay * Math.pow(2, attempt - 1))
+          );
+        }
+      }
+
+      throw lastError;
+    }
+
+    // =========== SESSION RECOVERY ===========
+
+    function updateLastActivity() {
+      lastActivityTime = Date.now();
+      localStorage.setItem('tax_advisor_last_activity', lastActivityTime.toString());
+    }
+
+    function checkSessionValidity() {
+      const now = Date.now();
+      const storedTime = parseInt(localStorage.getItem('tax_advisor_last_activity') || '0');
+
+      if (storedTime && (now - storedTime) > RobustnessConfig.sessionTimeout) {
+        return false; // Session expired
+      }
+      return true;
+    }
+
+    async function attemptSessionRecovery() {
+      if (sessionRecoveryAttempted) return false;
+      sessionRecoveryAttempted = true;
+
+      const storedSessionId = sessionStorage.getItem('tax_session_id');
+      const storedData = localStorage.getItem('tax_advisor_data');
+
+      if (storedSessionId && storedData) {
+        try {
+          const savedData = JSON.parse(storedData);
+
+          // Verify session still exists on server
+          const response = await fetch(`/api/sessions/${storedSessionId}/status`);
+          if (response.ok) {
+            sessionId = storedSessionId;
+
+            // Restore extracted data
+            if (savedData.extractedData) {
+              Object.assign(extractedData, savedData.extractedData);
+            }
+
+            showToast('Previous session restored', 'success');
+            return true;
+          }
+        } catch (error) {
+          console.log('Session recovery failed:', error);
+        }
+      }
+
+      return false;
+    }
+
+    function saveSessionData() {
+      try {
+        localStorage.setItem('tax_advisor_data', JSON.stringify({
+          extractedData: extractedData,
+          timestamp: Date.now()
+        }));
+        updateLastActivity();
+      } catch (error) {
+        console.warn('Failed to save session data:', error);
+      }
+    }
+
+    // =========== COMPREHENSIVE ERROR HANDLER ===========
+
+    function handleError(error, context = 'Unknown') {
+      console.error(`Error in ${context}:`, error);
+
+      // Determine error type and appropriate response
+      let userMessage = '';
+      let recoveryAction = null;
+
+      if (!isOnline || error.message?.includes('network') || error.message?.includes('fetch')) {
+        userMessage = 'Connection issue. Please check your internet and try again.';
+        recoveryAction = 'retry';
+      } else if (error.message?.includes('timeout')) {
+        userMessage = 'The request took too long. Please try again.';
+        recoveryAction = 'retry';
+      } else if (error.message?.includes('401') || error.message?.includes('403')) {
+        userMessage = 'Session expired. Please refresh the page.';
+        recoveryAction = 'refresh';
+      } else if (error.message?.includes('429')) {
+        userMessage = 'Too many requests. Please wait a moment.';
+        recoveryAction = 'wait';
+      } else if (error.message?.includes('500') || error.message?.includes('502') || error.message?.includes('503')) {
+        userMessage = 'Server is temporarily unavailable. Please try again.';
+        recoveryAction = 'retry';
+      } else {
+        userMessage = 'Something went wrong. Let me try a different approach.';
+        recoveryAction = 'fallback';
+      }
+
+      // Show error to user
+      showToast(userMessage, 'error');
+
+      // Return recovery info
+      return {
+        message: userMessage,
+        action: recoveryAction,
+        originalError: error
+      };
+    }
+
+    // =========== FALLBACK RESPONSES ===========
+
+    const FallbackResponses = {
+      networkError: [
+        "I'm having trouble connecting right now. Could you try again in a moment?",
+        "Connection issues detected. Your data is safe - please try again shortly.",
+        "Network hiccup! Don't worry, just click 'Retry' or try your message again."
+      ],
+
+      parseError: [
+        "I didn't quite catch that. Could you rephrase your question?",
+        "Let me make sure I understand - could you say that differently?",
+        "I want to help, but I'm not sure what you mean. Can you clarify?"
+      ],
+
+      serverError: [
+        "I'm experiencing some technical difficulties. Let me try a simpler approach.",
+        "Something went wrong on my end. Let's continue with the basics.",
+        "Technical issue detected. I'll work around it - please continue."
+      ],
+
+      unknown: [
+        "I'm not sure how to respond to that. Let me ask you something instead.",
+        "Interesting! Let's focus on your tax situation. What's your filing status?",
+        "I want to help you save on taxes. Can you tell me about your income?"
+      ],
+
+      empty: [
+        "I didn't receive your message. Please try typing again.",
+        "It looks like your message was empty. What would you like to know?",
+        "I'm ready to help! Just type your question or select an option above."
+      ]
+    };
+
+    function getFallbackResponse(type = 'unknown') {
+      const responses = FallbackResponses[type] || FallbackResponses.unknown;
+      return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    // =========== GRACEFUL DEGRADATION ===========
+
+    function attemptGracefulDegradation(originalRequest, error) {
+      // If the main API fails, try simpler alternatives
+      const degradedResponse = {
+        success: false,
+        message: getFallbackResponse('serverError'),
+        quickActions: [
+          { label: 'Tell me your filing status', value: 'filing_prompt' },
+          { label: 'Enter your income', value: 'income_prompt' },
+          { label: 'Start over', value: 'reset' }
+        ]
+      };
+
+      return degradedResponse;
+    }
+
+    // =========== MESSAGE QUEUE MANAGEMENT ===========
+
+    const messageQueue = [];
+    let isProcessingQueue = false;
+
+    async function addToMessageQueue(message) {
+      messageQueue.push({
+        message: message,
+        timestamp: Date.now(),
+        retries: 0
+      });
+
+      if (!isProcessingQueue) {
+        processMessageQueue();
+      }
+    }
+
+    async function processMessageQueue() {
+      if (isProcessingQueue || messageQueue.length === 0) return;
+
+      isProcessingQueue = true;
+
+      while (messageQueue.length > 0) {
+        const item = messageQueue[0];
+
+        try {
+          await processAIResponseInternal(item.message);
+          messageQueue.shift(); // Remove processed message
+        } catch (error) {
+          item.retries++;
+
+          if (item.retries >= RobustnessConfig.maxRetries) {
+            messageQueue.shift(); // Give up after max retries
+            addMessage('ai', getFallbackResponse('serverError'), [
+              { label: 'Try again', value: 'retry_last' },
+              { label: 'Start fresh', value: 'reset' }
+            ]);
+          } else {
+            // Wait before retry
+            await new Promise(r => setTimeout(r, RobustnessConfig.retryDelay * item.retries));
+          }
+        }
+      }
+
+      isProcessingQueue = false;
+    }
+
+    // =========== INITIALIZE ROBUSTNESS FEATURES ===========
+
+    function initRobustnessFeatures() {
+      initNetworkMonitoring();
+
+      // Periodically save session data
+      setInterval(saveSessionData, 30000);
+
+      // Check for session recovery on load
+      attemptSessionRecovery();
+
+      // Log robustness initialization
+      if (RobustnessConfig.debugMode) {
+        console.log('Robustness features initialized:', {
+          online: isOnline,
+          sessionValid: checkSessionValidity(),
+          queueSize: offlineQueue.length
+        });
+      }
+    }
+
+    // Initialize on DOM ready
+    document.addEventListener('DOMContentLoaded', initRobustnessFeatures);
+
     // Toast notification function for user feedback
     function showToast(message, type = 'info') {
       // Remove any existing toast
@@ -2559,20 +3694,273 @@
       bubble.appendChild(timestamp);
 
       if (quickActions.length > 0) {
-        const actionsDiv = document.createElement('div');
-        actionsDiv.className = 'quick-actions';
-        actionsDiv.setAttribute('role', 'group');
-        actionsDiv.setAttribute('aria-label', 'Quick response options');
+        // Check if this is a multi-select question
+        const isMultiSelect = options.multiSelect === true;
 
-        quickActions.forEach((action, index) => {
-          const btn = document.createElement('button');
-          btn.className = action.primary ? 'quick-action primary' : 'quick-action';
-          btn.textContent = action.label;
-          btn.setAttribute('aria-label', action.label.replace(/[^\w\s]/g, '').trim());
-          btn.onclick = () => handleQuickAction(action.value);
-          actionsDiv.appendChild(btn);
-        });
-        bubble.appendChild(actionsDiv);
+        if (isMultiSelect) {
+          // Render as checkboxes for multi-select
+          const actionsDiv = document.createElement('div');
+          actionsDiv.className = 'multi-select-actions';
+          actionsDiv.setAttribute('role', 'group');
+          actionsDiv.setAttribute('aria-label', 'Select all that apply');
+
+          const selectedValues = new Set();
+
+          quickActions.forEach((action, index) => {
+            const optionDiv = document.createElement('div');
+            optionDiv.className = 'multi-select-option';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `multi-select-${index}`;
+            checkbox.value = action.value;
+
+            const label = document.createElement('label');
+            label.htmlFor = `multi-select-${index}`;
+            label.textContent = action.label;
+
+            checkbox.onchange = () => {
+              if (checkbox.checked) {
+                selectedValues.add(action.value);
+                optionDiv.classList.add('selected');
+              } else {
+                selectedValues.delete(action.value);
+                optionDiv.classList.remove('selected');
+              }
+              // Enable/disable submit button
+              const submitBtn = actionsDiv.querySelector('.submit-btn');
+              if (submitBtn) {
+                submitBtn.disabled = selectedValues.size === 0;
+              }
+            };
+
+            optionDiv.onclick = (e) => {
+              if (e.target !== checkbox) {
+                checkbox.checked = !checkbox.checked;
+                checkbox.dispatchEvent(new Event('change'));
+              }
+            };
+
+            optionDiv.appendChild(checkbox);
+            optionDiv.appendChild(label);
+            actionsDiv.appendChild(optionDiv);
+          });
+
+          // Add submit and skip buttons
+          const submitDiv = document.createElement('div');
+          submitDiv.className = 'multi-select-submit';
+
+          const submitBtn = document.createElement('button');
+          submitBtn.className = 'submit-btn';
+          submitBtn.textContent = 'Continue with Selected';
+          submitBtn.disabled = true;
+          submitBtn.onclick = () => {
+            const selected = Array.from(selectedValues);
+            if (selected.length > 0) {
+              // Send all selected values as comma-separated
+              const labels = quickActions
+                .filter(a => selected.includes(a.value))
+                .map(a => a.label);
+              handleQuickAction(selected.join(','), labels.join(', '));
+            }
+          };
+
+          const skipBtn = document.createElement('button');
+          skipBtn.className = 'skip-btn';
+          skipBtn.textContent = 'Skip';
+          skipBtn.onclick = () => {
+            handleQuickAction('skip_multi_select', 'None selected');
+          };
+
+          submitDiv.appendChild(submitBtn);
+          submitDiv.appendChild(skipBtn);
+          actionsDiv.appendChild(submitDiv);
+
+          bubble.appendChild(actionsDiv);
+
+        } else if (options.inputType === 'radio') {
+          // Render as radio buttons for single-select with descriptions
+          const actionsDiv = document.createElement('div');
+          actionsDiv.className = 'radio-actions';
+          actionsDiv.setAttribute('role', 'radiogroup');
+          actionsDiv.setAttribute('aria-label', 'Select one option');
+
+          const radioName = `radio-group-${Date.now()}`;
+          let selectedValue = null;
+
+          quickActions.forEach((action, index) => {
+            const optionDiv = document.createElement('div');
+            optionDiv.className = 'radio-option';
+
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = radioName;
+            radio.id = `radio-${radioName}-${index}`;
+            radio.value = action.value;
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'radio-content';
+
+            const label = document.createElement('label');
+            label.htmlFor = radio.id;
+            label.textContent = action.label;
+            contentDiv.appendChild(label);
+
+            if (action.description) {
+              const desc = document.createElement('div');
+              desc.className = 'radio-description';
+              desc.textContent = action.description;
+              contentDiv.appendChild(desc);
+            }
+
+            radio.onchange = () => {
+              // Remove selected from all options
+              actionsDiv.querySelectorAll('.radio-option').forEach(opt => opt.classList.remove('selected'));
+              optionDiv.classList.add('selected');
+              selectedValue = action.value;
+              // Auto-submit after selection (with brief delay for visual feedback)
+              setTimeout(() => {
+                handleQuickAction(action.value);
+              }, 300);
+            };
+
+            optionDiv.onclick = (e) => {
+              if (e.target !== radio) {
+                radio.checked = true;
+                radio.dispatchEvent(new Event('change'));
+              }
+            };
+
+            optionDiv.appendChild(radio);
+            optionDiv.appendChild(contentDiv);
+            actionsDiv.appendChild(optionDiv);
+          });
+
+          bubble.appendChild(actionsDiv);
+
+        } else if (options.inputType === 'dropdown') {
+          // Render as dropdown for many options
+          const actionsDiv = document.createElement('div');
+          actionsDiv.className = 'dropdown-actions';
+
+          const select = document.createElement('select');
+          select.className = 'dropdown-select';
+          select.setAttribute('aria-label', 'Select an option');
+
+          // Add placeholder option
+          const placeholder = document.createElement('option');
+          placeholder.value = '';
+          placeholder.textContent = options.placeholder || 'Select an option...';
+          placeholder.disabled = true;
+          placeholder.selected = true;
+          select.appendChild(placeholder);
+
+          // Group options if categories provided
+          if (options.groups) {
+            options.groups.forEach(group => {
+              const optgroup = document.createElement('optgroup');
+              optgroup.label = group.label;
+              group.options.forEach(action => {
+                const option = document.createElement('option');
+                option.value = action.value;
+                option.textContent = action.label;
+                optgroup.appendChild(option);
+              });
+              select.appendChild(optgroup);
+            });
+          } else {
+            quickActions.forEach(action => {
+              const option = document.createElement('option');
+              option.value = action.value;
+              option.textContent = action.label;
+              select.appendChild(option);
+            });
+          }
+
+          actionsDiv.appendChild(select);
+
+          // Add continue button
+          const submitDiv = document.createElement('div');
+          submitDiv.className = 'dropdown-submit';
+
+          const submitBtn = document.createElement('button');
+          submitBtn.textContent = 'Continue →';
+          submitBtn.disabled = true;
+
+          select.onchange = () => {
+            submitBtn.disabled = !select.value;
+          };
+
+          submitBtn.onclick = () => {
+            if (select.value) {
+              const selectedOption = quickActions.find(a => a.value === select.value);
+              handleQuickAction(select.value, selectedOption?.label);
+            }
+          };
+
+          submitDiv.appendChild(submitBtn);
+          actionsDiv.appendChild(submitDiv);
+
+          bubble.appendChild(actionsDiv);
+
+        } else if (options.inputType === 'currency') {
+          // Currency input for exact amounts
+          const currencyInput = createCurrencyInput(
+            options.placeholder || 'Enter amount',
+            (value) => {
+              addMessage('user', '$' + value.toLocaleString());
+              if (options.onSubmit) {
+                options.onSubmit(value);
+              } else if (options.field) {
+                extractedData.tax_profile[options.field] = value;
+                updateSavingsEstimate();
+                startIntelligentQuestioning();
+              }
+            }
+          );
+          bubble.appendChild(currencyInput);
+
+          // Add security notice for financial input
+          bubble.appendChild(createSecurityNotice());
+
+        } else if (options.inputType === 'slider') {
+          // Slider for ranges
+          const slider = createSliderInput(
+            options.min || 0,
+            options.max || 500000,
+            options.step || 5000,
+            options.default || (options.max / 2),
+            (val) => '$' + val.toLocaleString(),
+            (value) => {
+              addMessage('user', '$' + value.toLocaleString());
+              if (options.onSubmit) {
+                options.onSubmit(value);
+              } else if (options.field) {
+                extractedData.tax_profile[options.field] = value;
+                updateSavingsEstimate();
+                startIntelligentQuestioning();
+              }
+            }
+          );
+          bubble.appendChild(slider);
+
+        } else {
+          // Regular single-select buttons (default)
+          const actionsDiv = document.createElement('div');
+          actionsDiv.className = 'quick-actions';
+          actionsDiv.setAttribute('role', 'group');
+          actionsDiv.setAttribute('aria-label', 'Quick response options');
+
+          quickActions.forEach((action, index) => {
+            const btn = document.createElement('button');
+            btn.className = action.primary ? 'quick-action primary' : 'quick-action';
+            btn.textContent = action.label;
+            btn.setAttribute('aria-label', action.label.replace(/[^\w\s]/g, '').trim());
+            btn.onclick = () => handleQuickAction(action.value);
+            actionsDiv.appendChild(btn);
+          });
+          bubble.appendChild(actionsDiv);
+        }
       }
 
       messageDiv.appendChild(avatar);
@@ -2615,22 +4003,356 @@
 
     async function sendMessage() {
       const input = document.getElementById('userInput');
-      const text = input.value.trim();
+      let text = input.value.trim();
 
+      // Basic checks
       if (!text || isProcessing) return;
 
+      // Sanitize input
+      text = sanitizeInput(text);
+
+      // Validate message
+      const validation = validateMessage(text);
+      if (!validation.valid) {
+        showToast(validation.errors[0], 'warning');
+        return;
+      }
+
+      // Check rate limit
+      const rateCheck = checkRateLimit();
+      if (!rateCheck.allowed) {
+        showToast(rateCheck.reason, 'warning');
+        return;
+      }
+
+      // Check network status
+      if (!isOnline) {
+        addMessage('user', text);
+        queueOfflineMessage(text);
+        input.value = '';
+        input.style.height = 'auto';
+        return;
+      }
+
+      // Process message
       addMessage('user', text);
       input.value = '';
       input.style.height = 'auto';
 
+      // Update activity timestamp
+      updateLastActivity();
+
       await processAIResponse(text);
     }
 
-    async function handleQuickAction(value) {
+    // =========================================================================
+    // UX ENHANCEMENT HELPERS
+    // =========================================================================
+
+    // Create tooltip with help text
+    function createTooltip(text, helpText) {
+      return `<span class="tooltip-trigger">${text}<span class="tooltip-icon">?</span><span class="tooltip-content">${helpText}</span></span>`;
+    }
+
+    // Update real-time savings estimate
+    function updateSavingsEstimate() {
+      const profile = extractedData.tax_profile || {};
+      const income = profile.total_income || 0;
+
+      // Remove existing estimate
+      const existing = document.querySelector('.savings-estimate');
+      if (existing) existing.remove();
+
+      // Only show if we have some data
+      if (!income && !extractedData.filing_status) return;
+
+      // Calculate estimated savings based on profile
+      let minSavings = 500;
+      let maxSavings = 2000;
+      let details = [];
+
+      if (income > 0) {
+        if (income > 200000) {
+          minSavings = 5000; maxSavings = 25000;
+          details.push('High-income strategies');
+        } else if (income > 100000) {
+          minSavings = 3000; maxSavings = 12000;
+          details.push('Upper-bracket optimization');
+        } else if (income > 50000) {
+          minSavings = 1500; maxSavings = 6000;
+          details.push('Middle-income deductions');
+        }
+      }
+
+      if (profile.is_self_employed || profile.income_source === 'self_employed') {
+        minSavings += 2000; maxSavings += 8000;
+        details.push('Self-employment deductions');
+      }
+
+      if (profile.has_home_office) {
+        minSavings += 500; maxSavings += 3000;
+        details.push('Home office deduction');
+      }
+
+      if (profile.has_rental_income) {
+        minSavings += 1000; maxSavings += 5000;
+        details.push('Rental property benefits');
+      }
+
+      if (profile.dependents > 0) {
+        minSavings += profile.dependents * 500;
+        maxSavings += profile.dependents * 2000;
+        details.push('Child/dependent credits');
+      }
+
+      // Create savings card
+      const savingsCard = document.createElement('div');
+      savingsCard.className = 'savings-estimate';
+      savingsCard.innerHTML = `
+        <div class="savings-estimate-label">Estimated Annual Savings</div>
+        <div class="savings-estimate-amount">
+          $${minSavings.toLocaleString()}<span class="range"> - $${maxSavings.toLocaleString()}</span>
+        </div>
+        ${details.length > 0 ? `<div class="savings-estimate-details">${details.slice(0, 2).join(' • ')}</div>` : ''}
+      `;
+
+      document.body.appendChild(savingsCard);
+    }
+
+    // Create currency input with formatting
+    function createCurrencyInput(placeholder = 'Enter amount', onSubmit) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'currency-input-wrapper';
+      wrapper.style.marginTop = '16px';
+
+      const symbol = document.createElement('span');
+      symbol.className = 'currency-symbol';
+      symbol.textContent = '$';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'currency-input';
+      input.placeholder = placeholder;
+      input.inputMode = 'numeric';
+
+      // Format as user types
+      input.addEventListener('input', (e) => {
+        let value = e.target.value.replace(/[^\d]/g, '');
+        if (value) {
+          e.target.value = parseInt(value).toLocaleString();
+        }
+      });
+
+      // Submit on Enter
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && input.value) {
+          const numValue = parseInt(input.value.replace(/[^\d]/g, ''));
+          if (onSubmit) onSubmit(numValue);
+        }
+      });
+
+      wrapper.appendChild(symbol);
+      wrapper.appendChild(input);
+
+      // Add submit button
+      const submitDiv = document.createElement('div');
+      submitDiv.className = 'dropdown-submit';
+
+      const submitBtn = document.createElement('button');
+      submitBtn.textContent = 'Continue →';
+      submitBtn.onclick = () => {
+        if (input.value) {
+          const numValue = parseInt(input.value.replace(/[^\d]/g, ''));
+          if (onSubmit) onSubmit(numValue);
+        }
+      };
+
+      submitDiv.appendChild(submitBtn);
+
+      const container = document.createElement('div');
+      container.appendChild(wrapper);
+      container.appendChild(submitDiv);
+
+      return container;
+    }
+
+    // Create slider input for ranges
+    function createSliderInput(min, max, step, defaultValue, formatFn, onSubmit) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'slider-input-wrapper';
+
+      const display = document.createElement('div');
+      display.className = 'slider-value-display';
+      display.textContent = formatFn(defaultValue);
+
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.className = 'slider-input';
+      slider.min = min;
+      slider.max = max;
+      slider.step = step;
+      slider.value = defaultValue;
+
+      slider.addEventListener('input', () => {
+        display.textContent = formatFn(parseInt(slider.value));
+      });
+
+      const labels = document.createElement('div');
+      labels.className = 'slider-labels';
+      labels.innerHTML = `<span>${formatFn(min)}</span><span>${formatFn(max)}</span>`;
+
+      wrapper.appendChild(display);
+      wrapper.appendChild(slider);
+      wrapper.appendChild(labels);
+
+      // Add submit button
+      const submitDiv = document.createElement('div');
+      submitDiv.className = 'dropdown-submit';
+      submitDiv.style.textAlign = 'center';
+
+      const submitBtn = document.createElement('button');
+      submitBtn.textContent = 'Confirm Amount →';
+      submitBtn.onclick = () => {
+        if (onSubmit) onSubmit(parseInt(slider.value));
+      };
+
+      submitDiv.appendChild(submitBtn);
+      wrapper.appendChild(submitDiv);
+
+      return wrapper;
+    }
+
+    // Create quick-edit panel for collected data
+    function createQuickEditPanel() {
+      const profile = extractedData.tax_profile || {};
+      const items = [];
+
+      if (extractedData.filing_status) {
+        items.push({ label: 'Filing Status', value: extractedData.filing_status, field: 'filing_status' });
+      }
+      if (profile.total_income) {
+        items.push({ label: 'Income', value: '$' + profile.total_income.toLocaleString(), field: 'total_income' });
+      }
+      if (profile.state) {
+        items.push({ label: 'State', value: profile.state, field: 'state' });
+      }
+      if (profile.dependents !== undefined) {
+        items.push({ label: 'Dependents', value: profile.dependents, field: 'dependents' });
+      }
+
+      if (items.length === 0) return null;
+
+      const panel = document.createElement('div');
+      panel.className = 'quick-edit-panel';
+
+      let html = `
+        <div class="quick-edit-header">
+          <span class="quick-edit-title">📋 Your Information</span>
+          <span class="quick-edit-toggle" onclick="toggleQuickEdit()">Edit</span>
+        </div>
+      `;
+
+      items.forEach(item => {
+        html += `
+          <div class="quick-edit-item" onclick="editField('${item.field}')">
+            <span class="quick-edit-label">${item.label}</span>
+            <span class="quick-edit-value">
+              ${item.value}
+              <span class="edit-icon">✏️</span>
+            </span>
+          </div>
+        `;
+      });
+
+      panel.innerHTML = html;
+      return panel;
+    }
+
+    // Edit a specific field
+    function editField(field) {
+      const fieldLabels = {
+        'filing_status': 'filing status',
+        'total_income': 'income',
+        'state': 'state',
+        'dependents': 'number of dependents'
+      };
+
+      const message = `I'd like to change my ${fieldLabels[field] || field}`;
+      addMessage('user', message);
+      processAIResponse(message);
+    }
+
+    // Add keyboard navigation support
+    function initKeyboardNavigation() {
+      document.addEventListener('keydown', (e) => {
+        // Focus input on any letter key if not already focused
+        const input = document.getElementById('userInput');
+        if (input && document.activeElement !== input) {
+          if (e.key.length === 1 && e.key.match(/[a-z]/i) && !e.ctrlKey && !e.metaKey) {
+            input.focus();
+          }
+        }
+
+        // Number keys to select quick actions
+        if (e.key >= '1' && e.key <= '9') {
+          const actions = document.querySelectorAll('.quick-actions:last-of-type .quick-action, .radio-actions:last-of-type .radio-option, .multi-select-actions:last-of-type .multi-select-option');
+          const index = parseInt(e.key) - 1;
+          if (actions[index]) {
+            actions[index].click();
+          }
+        }
+
+        // Escape to clear input
+        if (e.key === 'Escape' && input) {
+          input.value = '';
+          input.blur();
+        }
+      });
+    }
+
+    // Create trust/security badge
+    function createSecurityNotice() {
+      const notice = document.createElement('div');
+      notice.className = 'security-notice';
+      notice.innerHTML = `
+        <span class="security-notice-icon">🔒</span>
+        <span>Your data is encrypted and never shared. We follow IRS data protection guidelines.</span>
+      `;
+      return notice;
+    }
+
+    // Show success animation
+    function showSuccessCheck(element) {
+      const check = document.createElement('span');
+      check.className = 'success-check';
+      check.textContent = '✓';
+      element.appendChild(check);
+      setTimeout(() => check.remove(), 2000);
+    }
+
+    // Initialize keyboard navigation on page load
+    document.addEventListener('DOMContentLoaded', initKeyboardNavigation);
+
+    async function handleQuickAction(value, displayLabel = null) {
       console.log('====== handleQuickAction CALLED ======');
       console.log('Quick action clicked:', value);
+      console.log('Display label:', displayLabel);
       console.log('Current extracted data:', extractedData);
       console.log('Messages container exists:', !!document.getElementById('messages'));
+
+      // Handle multi-select skip
+      if (value === 'skip_multi_select') {
+        addMessage('user', 'None / Skip');
+        await processAIResponse('none');
+        return;
+      }
+
+      // Handle multi-select submission (comma-separated values)
+      if (value.includes(',') && displayLabel) {
+        addMessage('user', displayLabel);
+        await processAIResponse(displayLabel);
+        return;
+      }
 
       // Lead capture - Name entry
       if (value === 'enter_name') {
@@ -2736,6 +4458,9 @@
         updateStats({ filing_status: statusText });
         calculateLeadScore();
 
+        // Update savings estimate
+        updateSavingsEstimate();
+
         startIntelligentQuestioning();
 
       } else if (value.startsWith('income_')) {
@@ -2774,6 +4499,9 @@
         extractedData.lead_data.score += 15;
         updateStats({ total_income: incomeAmount });
         calculateLeadScore();
+
+        // Update savings estimate
+        updateSavingsEstimate();
 
         startIntelligentQuestioning();
 
@@ -3307,23 +5035,31 @@
         addMessage('user', `$${(incomeAmounts[farmIncome] || 100000).toLocaleString()}`);
         extractedData.tax_profile.farm_gross_income = incomeAmounts[farmIncome] || 100000;
 
-        // Ask about farm expenses
+        // Ask about farm expenses - MULTI-SELECT
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<strong>What are your major farm expense categories?</strong>`, [
-            { label: 'Seeds, feed, fertilizer', value: 'farm_exp_supplies' },
-            { label: 'Equipment & machinery', value: 'farm_exp_equipment' },
-            { label: 'Labor costs', value: 'farm_exp_labor' },
-            { label: 'Land rent/lease', value: 'farm_exp_land' },
-            { label: 'All of the above', value: 'farm_exp_all' }
-          ]);
+          addMessage('ai', `<strong>What are your major farm expense categories?</strong> (Select all that apply)`, [
+            { label: '🌾 Seeds, feed, fertilizer', value: 'farm_exp_supplies' },
+            { label: '🚜 Equipment & machinery', value: 'farm_exp_equipment' },
+            { label: '👷 Labor costs', value: 'farm_exp_labor' },
+            { label: '🏞️ Land rent/lease', value: 'farm_exp_land' },
+            { label: '⛽ Fuel & utilities', value: 'farm_exp_fuel' }
+          ], { multiSelect: true });
         }, 800);
 
-      // Farm Expense Handlers
+      // Farm Expense Handlers - Multi-select
+      } else if (value.includes('farm_exp_') && value.includes(',')) {
+        const expTypes = value.split(',').map(v => v.replace('farm_exp_', '').trim());
+        extractedData.tax_profile.farm_expense_types = expTypes;
+        extractedData.lead_data.score += expTypes.length * 2;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Farm Expense Handlers - Single select
       } else if (value.startsWith('farm_exp_')) {
         const farmExp = value.replace('farm_exp_', '');
-        const expLabels = { 'supplies': 'Seeds/feed/fertilizer', 'equipment': 'Equipment', 'labor': 'Labor', 'land': 'Land rent', 'all': 'All categories' };
+        const expLabels = { 'supplies': 'Seeds/feed/fertilizer', 'equipment': 'Equipment', 'labor': 'Labor', 'land': 'Land rent', 'fuel': 'Fuel & utilities' };
         addMessage('user', expLabels[farmExp] || farmExp);
         extractedData.tax_profile.farm_expense_type = farmExp;
         calculateLeadScore();
@@ -3499,6 +5235,52 @@
       // BUSINESS EXPENSE HANDLERS
       // =====================================================================
 
+      // Handle multi-select business expenses (comma-separated values)
+      } else if (value.includes('bizexp_') && value.includes(',')) {
+        const expTypes = value.split(',').map(v => v.replace('bizexp_', '').trim());
+        const expLabels = {
+          'home_office': 'Home Office',
+          'vehicle': 'Vehicle / Mileage',
+          'equipment': 'Equipment & Software',
+          'marketing': 'Marketing & Advertising',
+          'supplies': 'Supplies & Materials',
+          'training': 'Training & Education'
+        };
+
+        // Store all selected expense types
+        extractedData.tax_profile.business_expenses = expTypes;
+        extractedData.lead_data.score += expTypes.length * 3;
+
+        // Check which specific expense types were selected for follow-ups
+        extractedData.tax_profile.has_home_office = expTypes.includes('home_office');
+        extractedData.tax_profile.has_vehicle_expenses = expTypes.includes('vehicle');
+
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          // If home office was selected, ask about it first
+          if (expTypes.includes('home_office')) {
+            addMessage('ai', `Great, you selected multiple expense categories! Let's start with your <strong>home office</strong>.\n\nWhat's the approximate square footage of your home office?`, [
+              { label: 'Under 100 sq ft', value: 'homeoffice_under100' },
+              { label: '100-300 sq ft', value: 'homeoffice_100_300' },
+              { label: '300-500 sq ft', value: 'homeoffice_300_500' },
+              { label: 'Over 500 sq ft', value: 'homeoffice_over500' }
+            ]);
+          } else if (expTypes.includes('vehicle')) {
+            addMessage('ai', `Let's start with your <strong>vehicle expenses</strong>.\n\nApproximately how many business miles do you drive per year?`, [
+              { label: 'Under 5,000 miles', value: 'vehicle_under5k' },
+              { label: '5,000 - 15,000 miles', value: 'vehicle_5_15k' },
+              { label: '15,000 - 30,000 miles', value: 'vehicle_15_30k' },
+              { label: 'Over 30,000 miles', value: 'vehicle_over30k' }
+            ]);
+          } else {
+            // Skip to summary if no home office or vehicle
+            extractedData.tax_profile.business_expenses_explored = true;
+            calculateLeadScore();
+            startIntelligentQuestioning();
+          }
+        }, 800);
+
       } else if (value.startsWith('bizexp_')) {
         const expType = value.replace('bizexp_', '');
         const expLabels = {
@@ -3506,6 +5288,8 @@
           'vehicle': 'Vehicle / Mileage',
           'equipment': 'Equipment & Software',
           'marketing': 'Marketing & Advertising',
+          'supplies': 'Supplies & Materials',
+          'training': 'Training & Education',
           'skip': 'Continue without specifying'
         };
         addMessage('user', expLabels[expType] || expType);
@@ -3637,6 +5421,39 @@
       // INVESTMENT INCOME HANDLERS
       // =====================================================================
 
+      // Multi-select investment types
+      } else if (value.includes('invest_') && value.includes(',')) {
+        const investTypes = value.split(',').map(v => v.replace('invest_', '').trim());
+        const investLabels = {
+          'stocks': 'Stocks & capital gains',
+          'rental': 'Rental income',
+          'interest': 'Interest income',
+          'k1': 'K-1 income',
+          'crypto': 'Cryptocurrency'
+        };
+
+        extractedData.tax_profile.investment_types = investTypes;
+        extractedData.tax_profile.investment_explored = true;
+        extractedData.tax_profile.has_investment_income = true;
+
+        // Set flags based on selections
+        if (investTypes.includes('rental')) {
+          extractedData.tax_profile.has_rental_income = true;
+        }
+        if (investTypes.includes('k1')) {
+          extractedData.lead_data.complexity = 'complex';
+          extractedData.lead_data.score += 15;
+        }
+        if (investTypes.includes('crypto')) {
+          extractedData.tax_profile.has_crypto = true;
+          extractedData.lead_data.score += 10;
+        }
+
+        extractedData.lead_data.score += investTypes.length * 5;
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Single invest type
       } else if (value.startsWith('invest_')) {
         const investType = value.replace('invest_', '');
         const investLabels = {
@@ -3644,6 +5461,7 @@
           'rental': 'Rental property income',
           'interest': 'Interest income',
           'k1': 'Partnership/K-1 income',
+          'crypto': 'Cryptocurrency',
           'multiple': 'Multiple investment types'
         };
         addMessage('user', investLabels[investType] || investType);
@@ -6104,19 +7922,39 @@
         }
       }
 
-      // Build context-aware system message for AI
-      const systemContext = buildSystemContext();
-
+      // Use the intelligent advisor API for dynamic NLU parsing
       try {
-        const response = await fetchWithRetry('/api/ai-chat/chat', {
+        // Build profile from extracted data for the advisor API
+        const statusMap = {
+          'Single': 'single',
+          'Married Filing Jointly': 'married_joint',
+          'Head of Household': 'head_of_household',
+          'Married Filing Separately': 'married_separate',
+          'Qualifying Surviving Spouse': 'qualifying_widow'
+        };
+
+        const profile = {
+          filing_status: statusMap[extractedData.tax_profile.filing_status] || extractedData.tax_profile.filing_status || null,
+          total_income: extractedData.tax_profile.total_income || null,
+          w2_income: extractedData.tax_profile.w2_income || null,
+          business_income: extractedData.tax_profile.business_income || null,
+          investment_income: extractedData.tax_profile.investment_income || null,
+          rental_income: extractedData.tax_profile.rental_income || null,
+          dependents: extractedData.tax_profile.dependents || null,
+          state: extractedData.tax_profile.state || null,
+          mortgage_interest: extractedData.tax_items.mortgage_interest || null,
+          charitable_donations: extractedData.tax_items.charitable || null,
+          is_self_employed: (extractedData.tax_profile.business_income || 0) > 0
+        };
+
+        const response = await fetchWithRetry('/api/advisor/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             session_id: sessionId,
-            user_message: userMessage,
-            conversation_history: conversationHistory,
-            extracted_data: extractedData,
-            system_context: systemContext
+            message: userMessage,
+            profile: profile.filing_status || profile.total_income ? profile : null,
+            conversation_history: conversationHistory.slice(-10) // Last 10 messages for context
           })
         }, 3); // 3 retries with exponential backoff
 
@@ -6130,39 +7968,54 @@
         // Update conversation history
         conversationHistory.push(
           { role: 'user', content: userMessage },
-          { role: 'assistant', content: data.ai_response }
+          { role: 'assistant', content: data.response }
         );
 
-        // Update extracted data if AI extracted any information
-        if (data.extracted_data) {
-          extractedData = { ...extractedData, ...data.extracted_data };
-          console.log('Updated extracted data:', extractedData);
+        // Update local extracted data based on API response
+        // The API parses the message and updates the profile server-side
+        // We sync some key fields back to client
+        if (data.profile_completeness > 0) {
+          // If API returned tax calculation, update our local data
+          if (data.tax_calculation) {
+            taxCalculations = data.tax_calculation;
+          }
+          if (data.strategies && data.strategies.length > 0) {
+            taxStrategies = data.strategies;
+            extractedData.lead_data.estimated_savings = taxStrategies.reduce((sum, s) => sum + (s.estimated_savings || 0), 0);
+          }
+          if (data.lead_score) {
+            extractedData.lead_data.score = data.lead_score;
+          }
+          console.log('API updated profile, completeness:', data.profile_completeness);
           markUnsaved(); // Trigger auto-save
         }
 
-        // Show AI response with any suggested quick actions
-        const aiResponse = data.ai_response || data.response || "I'm here to help. Could you please clarify?";
+        // Show AI response with quick actions from API
+        const aiResponse = data.response || "I'm here to help. Could you please clarify?";
         const quickActions = data.quick_actions || generateSmartQuickActions();
 
         addMessage('ai', aiResponse, quickActions);
 
-        // Update side panel with AI insights
-        // Check for progress_update from backend (preferred)
-        if (data.progress_update) {
-          updateProgressIndicator(data.progress_update);
-        } else if (data.completion_percentage !== undefined) {
-          updateProgress(data.completion_percentage);
+        // Update side panel with API insights
+        if (data.profile_completeness !== undefined) {
+          updateProgress(Math.round(data.profile_completeness * 100));
         }
 
         // Also update phase based on local extracted data
         updatePhaseFromData();
 
-        if (data.insights && data.insights.length > 0) {
-          updateInsights(data.insights);
+        if (data.key_insights && data.key_insights.length > 0) {
+          updateInsights(data.key_insights);
         }
-        if (data.extracted_summary) {
-          updateStats(data.extracted_summary);
+        if (data.warnings && data.warnings.length > 0) {
+          data.warnings.forEach(w => console.warn('Tax warning:', w));
         }
+
+        // Save session data for recovery
+        saveSessionData();
+
+        // Update savings estimate based on new data
+        updateSavingsEstimate();
 
       } catch (error) {
         hideTyping();
@@ -7285,25 +9138,102 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         // Step 1: Filing Status
         if (!profile.filing_status) {
           markQuestionAsked('filing_status');
+          // Use radio buttons for filing status (mutually exclusive with descriptions)
           addMessage('ai', `Let's start with the basics. What's your filing status for 2025?`, [
-            { label: 'Single', value: 'filing_single' },
-            { label: 'Married Filing Jointly', value: 'filing_married' },
-            { label: 'Head of Household', value: 'filing_hoh' },
-            { label: 'Married Filing Separately', value: 'filing_mfs' }
-          ]);
+            { label: 'Single', value: 'filing_single', description: 'Unmarried or legally separated' },
+            { label: 'Married Filing Jointly', value: 'filing_married', description: 'Married and filing together with spouse' },
+            { label: 'Married Filing Separately', value: 'filing_mfs', description: 'Married but filing individual returns' },
+            { label: 'Head of Household', value: 'filing_hoh', description: 'Unmarried and paying 50%+ of household costs' }
+          ], { inputType: 'radio' });
           return;
         }
 
         // Step 2: State of Residence
         if (!profile.state) {
           markQuestionAsked('state');
-          addMessage('ai', `Which state do you live in? This affects your state tax calculation.`, [
-            { label: 'California', value: 'state_CA' },
-            { label: 'New York', value: 'state_NY' },
-            { label: 'Texas (no income tax)', value: 'state_TX' },
-            { label: 'Florida (no income tax)', value: 'state_FL' },
-            { label: 'Other state', value: 'state_other' }
-          ]);
+          // Use dropdown for state selection (50 states is too many for buttons)
+          addMessage('ai', `Which state do you live in? This affects your state tax calculation.`, [], {
+            inputType: 'dropdown',
+            placeholder: 'Select your state...',
+            groups: [
+              {
+                label: '⭐ No Income Tax States',
+                options: [
+                  { label: 'Alaska', value: 'state_AK' },
+                  { label: 'Florida', value: 'state_FL' },
+                  { label: 'Nevada', value: 'state_NV' },
+                  { label: 'South Dakota', value: 'state_SD' },
+                  { label: 'Tennessee', value: 'state_TN' },
+                  { label: 'Texas', value: 'state_TX' },
+                  { label: 'Washington', value: 'state_WA' },
+                  { label: 'Wyoming', value: 'state_WY' }
+                ]
+              },
+              {
+                label: '🌴 West',
+                options: [
+                  { label: 'Arizona', value: 'state_AZ' },
+                  { label: 'California', value: 'state_CA' },
+                  { label: 'Colorado', value: 'state_CO' },
+                  { label: 'Hawaii', value: 'state_HI' },
+                  { label: 'Idaho', value: 'state_ID' },
+                  { label: 'Montana', value: 'state_MT' },
+                  { label: 'New Mexico', value: 'state_NM' },
+                  { label: 'Oregon', value: 'state_OR' },
+                  { label: 'Utah', value: 'state_UT' }
+                ]
+              },
+              {
+                label: '🌾 Midwest',
+                options: [
+                  { label: 'Illinois', value: 'state_IL' },
+                  { label: 'Indiana', value: 'state_IN' },
+                  { label: 'Iowa', value: 'state_IA' },
+                  { label: 'Kansas', value: 'state_KS' },
+                  { label: 'Michigan', value: 'state_MI' },
+                  { label: 'Minnesota', value: 'state_MN' },
+                  { label: 'Missouri', value: 'state_MO' },
+                  { label: 'Nebraska', value: 'state_NE' },
+                  { label: 'North Dakota', value: 'state_ND' },
+                  { label: 'Ohio', value: 'state_OH' },
+                  { label: 'Wisconsin', value: 'state_WI' }
+                ]
+              },
+              {
+                label: '🏛️ Northeast',
+                options: [
+                  { label: 'Connecticut', value: 'state_CT' },
+                  { label: 'Delaware', value: 'state_DE' },
+                  { label: 'Maine', value: 'state_ME' },
+                  { label: 'Maryland', value: 'state_MD' },
+                  { label: 'Massachusetts', value: 'state_MA' },
+                  { label: 'New Hampshire', value: 'state_NH' },
+                  { label: 'New Jersey', value: 'state_NJ' },
+                  { label: 'New York', value: 'state_NY' },
+                  { label: 'Pennsylvania', value: 'state_PA' },
+                  { label: 'Rhode Island', value: 'state_RI' },
+                  { label: 'Vermont', value: 'state_VT' }
+                ]
+              },
+              {
+                label: '🌸 South',
+                options: [
+                  { label: 'Alabama', value: 'state_AL' },
+                  { label: 'Arkansas', value: 'state_AR' },
+                  { label: 'Georgia', value: 'state_GA' },
+                  { label: 'Kentucky', value: 'state_KY' },
+                  { label: 'Louisiana', value: 'state_LA' },
+                  { label: 'Mississippi', value: 'state_MS' },
+                  { label: 'North Carolina', value: 'state_NC' },
+                  { label: 'Oklahoma', value: 'state_OK' },
+                  { label: 'South Carolina', value: 'state_SC' },
+                  { label: 'Virginia', value: 'state_VA' },
+                  { label: 'West Virginia', value: 'state_WV' },
+                  { label: 'Washington D.C.', value: 'state_DC' }
+                ]
+              }
+            ]
+          });
           return;
         }
 
@@ -7337,14 +9267,14 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         // Step 3: Income Range
         if (!profile.total_income) {
           markQuestionAsked('income');
+          // Use radio buttons for income ranges (mutually exclusive)
           addMessage('ai', `What's your approximate total household income for 2025?`, [
-            { label: '$0 - $50,000', value: 'income_0_50k' },
-            { label: '$50,000 - $100,000', value: 'income_50_100k' },
-            { label: '$100,000 - $200,000', value: 'income_100_200k' },
-            { label: '$200,000 - $500,000', value: 'income_200_500k' },
-            { label: 'Over $500,000', value: 'income_500k_plus' },
-            { label: 'I\'ll type the exact amount', value: 'income_custom' }
-          ]);
+            { label: '$0 - $50,000', value: 'income_0_50k', description: 'Entry-level, part-time, or starting out' },
+            { label: '$50,000 - $100,000', value: 'income_50_100k', description: 'Middle income range' },
+            { label: '$100,000 - $200,000', value: 'income_100_200k', description: 'Upper-middle income' },
+            { label: '$200,000 - $500,000', value: 'income_200_500k', description: 'High earner, more tax strategies available' },
+            { label: 'Over $500,000', value: 'income_500k_plus', description: 'Top bracket, complex planning needed' }
+          ], { inputType: 'radio' });
           return;
         }
 
@@ -7423,13 +9353,14 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         // Business Entity Type
         if ((isSelfEmployed || isBusinessOwner) && profile.business_type && !profile.entity_type && !wasQuestionAsked('entity_type')) {
           markQuestionAsked('entity_type');
+          // Use radio buttons for business structure (mutually exclusive with descriptions)
           addMessage('ai', `What's your business structure? This significantly impacts your tax strategy.`, [
-            { label: 'Sole Proprietorship', value: 'entity_sole' },
-            { label: 'Single-Member LLC', value: 'entity_llc_single' },
-            { label: 'Multi-Member LLC / Partnership', value: 'entity_llc_multi' },
-            { label: 'S-Corporation', value: 'entity_scorp' },
-            { label: 'C-Corporation', value: 'entity_ccorp' }
-          ]);
+            { label: 'Sole Proprietorship', value: 'entity_sole', description: 'Self-employed, no formal business entity' },
+            { label: 'Single-Member LLC', value: 'entity_llc_single', description: 'One owner, limited liability protection' },
+            { label: 'Multi-Member LLC / Partnership', value: 'entity_llc_multi', description: 'Multiple owners sharing profits/losses' },
+            { label: 'S-Corporation', value: 'entity_scorp', description: 'Pass-through taxation, salary + distributions' },
+            { label: 'C-Corporation', value: 'entity_ccorp', description: 'Separate entity, double taxation possible' }
+          ], { inputType: 'radio' });
           return;
         }
 
@@ -7446,7 +9377,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           return;
         }
 
-        // Business Expense Categories (for self-employed)
+        // Business Expense Categories (for self-employed) - MULTI-SELECT
         if ((isSelfEmployed || isBusinessOwner) && profile.business_revenue && !profile.business_expenses_explored && !wasQuestionAsked('business_expenses')) {
           markQuestionAsked('business_expenses');
           addMessage('ai', `What are your major business expense categories? (Select all that apply)`, [
@@ -7454,8 +9385,9 @@ If they're ready to move forward, suggest generating their comprehensive advisor
             { label: '🚗 Vehicle / Mileage', value: 'bizexp_vehicle' },
             { label: '💻 Equipment & Software', value: 'bizexp_equipment' },
             { label: '📢 Marketing & Advertising', value: 'bizexp_marketing' },
-            { label: 'Continue without specifying', value: 'bizexp_skip' }
-          ]);
+            { label: '📦 Supplies & Materials', value: 'bizexp_supplies' },
+            { label: '🎓 Training & Education', value: 'bizexp_training' }
+          ], { multiSelect: true });
           return;
         }
 
@@ -7504,16 +9436,16 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           return;
         }
 
-        // Investment Income Follow-up for Investors or High Earners
+        // Investment Income Follow-up for Investors or High Earners - MULTI-SELECT
         if ((isInvestor || isVeryHighEarner) && !profile.investment_explored && !wasQuestionAsked('investment_type')) {
           markQuestionAsked('investment_type');
-          addMessage('ai', `${isVeryHighEarner ? 'At your income level, investment strategy is crucial. ' : ''}What types of investment income do you have?`, [
-            { label: 'Stock dividends & capital gains', value: 'invest_stocks' },
-            { label: 'Rental property income', value: 'invest_rental' },
-            { label: 'Interest income (bonds, savings)', value: 'invest_interest' },
-            { label: 'Partnership/K-1 income', value: 'invest_k1' },
-            { label: 'Multiple types', value: 'invest_multiple' }
-          ]);
+          addMessage('ai', `${isVeryHighEarner ? 'At your income level, investment strategy is crucial. ' : ''}What types of investment income do you have? (Select all that apply)`, [
+            { label: '📈 Stock dividends & capital gains', value: 'invest_stocks' },
+            { label: '🏠 Rental property income', value: 'invest_rental' },
+            { label: '💵 Interest income (bonds, savings)', value: 'invest_interest' },
+            { label: '📋 Partnership/K-1 income', value: 'invest_k1' },
+            { label: '🪙 Cryptocurrency', value: 'invest_crypto' }
+          ], { multiSelect: true });
           return;
         }
 
