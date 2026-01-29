@@ -2524,6 +2524,677 @@
         transition-duration: 0.01ms !important;
       }
     }
+
+    /* =========================================================================
+       UX ENHANCEMENT STYLES - Celebrations, Voice, Streaming, Nudges
+       ========================================================================= */
+
+    /* Celebration Overlay */
+    .celebration-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 9999;
+      overflow: hidden;
+    }
+
+    /* Confetti Animation */
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      opacity: 0;
+      animation: confetti-fall 3s ease-out forwards;
+    }
+
+    @keyframes confetti-fall {
+      0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* Money Rain Animation */
+    .money-particle {
+      position: absolute;
+      font-size: 24px;
+      opacity: 0;
+      animation: money-fall 2.5s ease-out forwards;
+    }
+
+    @keyframes money-fall {
+      0% { transform: translateY(-50px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+    }
+
+    /* Celebration Toast */
+    .celebration-toast {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+      color: white;
+      padding: 30px 50px;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      z-index: 10000;
+      text-align: center;
+      animation: celebration-pop 0.5s ease-out forwards;
+    }
+
+    @keyframes celebration-pop {
+      0% { transform: translate(-50%, -50%) scale(0); }
+      50% { transform: translate(-50%, -50%) scale(1.1); }
+      100% { transform: translate(-50%, -50%) scale(1); }
+    }
+
+    .celebration-toast .celebration-emoji {
+      font-size: 60px;
+      display: block;
+      margin-bottom: 15px;
+      animation: bounce 0.6s ease infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .celebration-toast .celebration-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .celebration-toast .celebration-subtitle {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
+    .celebration-toast .celebration-amount {
+      font-size: 36px;
+      font-weight: 800;
+      color: #68d391;
+      margin-top: 10px;
+      text-shadow: 0 2px 10px rgba(104, 211, 145, 0.5);
+    }
+
+    /* Sparkle Effect */
+    .sparkle {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: radial-gradient(circle, #ffd700 0%, transparent 70%);
+      border-radius: 50%;
+      animation: sparkle-pop 0.8s ease-out forwards;
+    }
+
+    @keyframes sparkle-pop {
+      0% { transform: scale(0); opacity: 1; }
+      50% { transform: scale(1.5); opacity: 1; }
+      100% { transform: scale(0); opacity: 0; }
+    }
+
+    /* Streaming Text Animation */
+    .streaming-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1.2em;
+      background: var(--primary);
+      margin-left: 2px;
+      animation: cursor-blink 0.7s infinite;
+      vertical-align: text-bottom;
+    }
+
+    @keyframes cursor-blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+
+    .streaming-text {
+      display: inline;
+    }
+
+    /* Voice Input Button */
+    .voice-input-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .voice-input-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: scale(1.05);
+    }
+
+    .voice-input-btn.recording {
+      background: #fee2e2;
+      border-color: #ef4444;
+      color: #ef4444;
+      animation: pulse-recording 1s infinite;
+    }
+
+    @keyframes pulse-recording {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+      50% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+    }
+
+    .voice-input-btn.recording::before {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #ef4444;
+      border-radius: 50%;
+      animation: pulse-dot 1s infinite;
+    }
+
+    /* Voice Transcript Preview */
+    .voice-transcript {
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow-lg);
+      display: none;
+    }
+
+    .voice-transcript.active {
+      display: block;
+      animation: fadeInUp 0.3s ease;
+    }
+
+    .voice-transcript-text {
+      color: var(--text);
+      font-size: 15px;
+      min-height: 24px;
+    }
+
+    .voice-transcript-hint {
+      color: var(--text-muted);
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
+    /* Smart Nudge */
+    .smart-nudge {
+      position: fixed;
+      bottom: 100px;
+      right: 30px;
+      max-width: 320px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+      animation: slideInRight 0.4s ease;
+    }
+
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .smart-nudge-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .smart-nudge-title {
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .smart-nudge-message {
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .smart-nudge-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .smart-nudge-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .smart-nudge-btn.primary {
+      background: var(--primary);
+      color: white;
+      border: none;
+    }
+
+    .smart-nudge-btn.primary:hover {
+      background: var(--primary-light);
+    }
+
+    .smart-nudge-btn.secondary {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+
+    .smart-nudge-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 4px;
+    }
+
+    /* Confidence Indicators */
+    .confidence-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    .confidence-high {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .confidence-medium {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .confidence-low {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    /* Extracted Data Display with Confidence */
+    .extracted-field {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--surface-light);
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .extracted-field .field-name {
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .extracted-field .field-value {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* Emotion-Adaptive Message Styles */
+    .message.empathetic .bubble {
+      border-left: 3px solid #8b5cf6;
+    }
+
+    .message.encouraging .bubble {
+      border-left: 3px solid #10b981;
+    }
+
+    .message.reassuring .bubble {
+      border-left: 3px solid #3b82f6;
+    }
+
+    /* Photo Capture Modal */
+    .photo-capture-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 10000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .photo-capture-modal.active {
+      display: flex;
+    }
+
+    .camera-preview {
+      width: 100%;
+      max-width: 600px;
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .camera-preview video {
+      width: 100%;
+      display: block;
+    }
+
+    .document-guide {
+      position: absolute;
+      top: 10%;
+      left: 10%;
+      right: 10%;
+      bottom: 10%;
+      border: 3px dashed rgba(255, 255, 255, 0.6);
+      border-radius: 12px;
+      pointer-events: none;
+    }
+
+    .camera-controls {
+      margin-top: 20px;
+      display: flex;
+      gap: 20px;
+    }
+
+    .capture-btn {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: white;
+      border: 4px solid rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .capture-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .capture-btn:active {
+      transform: scale(0.95);
+    }
+
+    .close-camera-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      font-size: 24px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    /* Upload Options Modal */
+    .upload-options-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 9998;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .upload-options-modal.visible {
+      opacity: 1;
+    }
+
+    .upload-options-content {
+      background: var(--surface);
+      border-radius: 20px;
+      padding: 32px;
+      max-width: 400px;
+      width: 90%;
+      position: relative;
+      transform: translateY(20px);
+      transition: transform 0.3s ease;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .upload-options-modal.visible .upload-options-content {
+      transform: translateY(0);
+    }
+
+    .upload-options-content h3 {
+      font-size: 1.5rem;
+      margin: 0 0 8px 0;
+      color: var(--text-primary);
+    }
+
+    .upload-options-content p {
+      color: var(--text-secondary);
+      margin: 0 0 24px 0;
+    }
+
+    .close-options-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: var(--surface-light);
+      border: none;
+      color: var(--text-secondary);
+      font-size: 20px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .close-options-btn:hover {
+      background: var(--border);
+      color: var(--text-primary);
+    }
+
+    .upload-options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .upload-option {
+      background: var(--surface-light);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .upload-option:hover {
+      border-color: var(--accent);
+      background: rgba(37, 99, 235, 0.05);
+      transform: translateY(-2px);
+    }
+
+    .upload-option .option-icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+    }
+
+    .upload-option .option-title {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .upload-option .option-desc {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    /* Personality Selector */
+    .personality-selector {
+      display: flex;
+      gap: 12px;
+      padding: 16px;
+      background: var(--surface-light);
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+
+    .personality-option {
+      flex: 1;
+      padding: 16px;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .personality-option:hover {
+      border-color: var(--primary);
+    }
+
+    .personality-option.selected {
+      border-color: var(--primary);
+      background: rgba(26, 54, 93, 0.05);
+    }
+
+    .personality-option .personality-avatar {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .personality-option .personality-name {
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .personality-option .personality-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* Near-Miss Opportunity Card */
+    .near-miss-card {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border: 1px solid #f59e0b;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+
+    .near-miss-card .near-miss-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .near-miss-card .near-miss-icon {
+      font-size: 24px;
+    }
+
+    .near-miss-card .near-miss-title {
+      font-weight: 700;
+      color: #92400e;
+    }
+
+    .near-miss-card .near-miss-amount {
+      font-size: 24px;
+      font-weight: 800;
+      color: #b45309;
+      margin: 8px 0;
+    }
+
+    .near-miss-card .near-miss-gap {
+      font-size: 14px;
+      color: #92400e;
+      margin-bottom: 12px;
+    }
+
+    .near-miss-card .near-miss-suggestion {
+      background: rgba(255, 255, 255, 0.7);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #78350f;
+    }
+
+    /* Live Savings Counter */
+    .live-savings-display {
+      position: fixed;
+      top: 80px;
+      right: 30px;
+      background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+      color: white;
+      padding: 16px 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(6, 95, 70, 0.3);
+      z-index: 100;
+      text-align: center;
+      transition: transform 0.3s ease;
+    }
+
+    .live-savings-display:hover {
+      transform: scale(1.05);
+    }
+
+    .live-savings-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.9;
+      margin-bottom: 4px;
+    }
+
+    .live-savings-amount {
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .live-savings-amount.counting {
+      animation: countPulse 0.3s ease;
+    }
+
+    @keyframes countPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
   </style>
   <!-- Loading States Manager for accessible loading indicators -->
   <script src="/static/js/loading-states.js" defer></script>
@@ -2602,6 +3273,25 @@
           ✓ Accept & Continue
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- Photo Document Capture Modal -->
+  <div class="photo-capture-modal" id="photoCaptureModal" role="dialog" aria-modal="true" aria-label="Capture document photo">
+    <button class="close-camera-btn" onclick="PhotoCapture.close()" aria-label="Close camera">&times;</button>
+    <div class="camera-preview">
+      <video id="cameraVideo" autoplay playsinline></video>
+      <div class="document-guide">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
+          📄 Position document inside frame
+        </div>
+      </div>
+    </div>
+    <div class="camera-controls">
+      <button class="capture-btn" onclick="PhotoCapture.capture()" aria-label="Take photo"></button>
+    </div>
+    <div style="color: white; text-align: center; margin-top: 20px; font-size: 14px;">
+      Supported: W-2, 1099, 1098, K-1, and other tax documents
     </div>
   </div>
 
@@ -3236,6 +3926,745 @@
 
     // Initialize on DOM ready
     document.addEventListener('DOMContentLoaded', initRobustnessFeatures);
+
+    // =========================================================================
+    // UX ENHANCEMENT LAYER - Celebrations, Voice, Streaming, Nudges, Emotions
+    // =========================================================================
+
+    // Celebration System
+    const CelebrationSystem = {
+      // Create confetti particles
+      createConfetti(count = 100) {
+        const overlay = document.createElement('div');
+        overlay.className = 'celebration-overlay';
+        document.body.appendChild(overlay);
+
+        const colors = ['#1a365d', '#2c5282', '#38a169', '#c69214', '#4299e1', '#68d391'];
+
+        for (let i = 0; i < count; i++) {
+          const confetti = document.createElement('div');
+          confetti.className = 'confetti';
+          confetti.style.left = Math.random() * 100 + '%';
+          confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+          confetti.style.animationDelay = Math.random() * 2 + 's';
+          confetti.style.animationDuration = (2 + Math.random() * 2) + 's';
+          overlay.appendChild(confetti);
+        }
+
+        setTimeout(() => overlay.remove(), 4000);
+      },
+
+      // Create money rain
+      createMoneyRain(count = 50) {
+        const overlay = document.createElement('div');
+        overlay.className = 'celebration-overlay';
+        document.body.appendChild(overlay);
+
+        const moneyEmojis = ['💵', '💰', '🤑', '💲', '💎'];
+
+        for (let i = 0; i < count; i++) {
+          const money = document.createElement('div');
+          money.className = 'money-particle';
+          money.textContent = moneyEmojis[Math.floor(Math.random() * moneyEmojis.length)];
+          money.style.left = Math.random() * 100 + '%';
+          money.style.animationDelay = Math.random() * 1.5 + 's';
+          overlay.appendChild(money);
+        }
+
+        setTimeout(() => overlay.remove(), 3500);
+      },
+
+      // Create sparkle effect at position
+      createSparkles(x, y, count = 8) {
+        for (let i = 0; i < count; i++) {
+          const sparkle = document.createElement('div');
+          sparkle.className = 'sparkle';
+          sparkle.style.left = (x + (Math.random() - 0.5) * 100) + 'px';
+          sparkle.style.top = (y + (Math.random() - 0.5) * 100) + 'px';
+          sparkle.style.animationDelay = Math.random() * 0.3 + 's';
+          document.body.appendChild(sparkle);
+          setTimeout(() => sparkle.remove(), 1000);
+        }
+      },
+
+      // Show celebration toast
+      showCelebrationToast(emoji, title, subtitle, amount = null) {
+        const toast = document.createElement('div');
+        toast.className = 'celebration-toast';
+        toast.innerHTML = `
+          <span class="celebration-emoji">${emoji}</span>
+          <div class="celebration-title">${title}</div>
+          <div class="celebration-subtitle">${subtitle}</div>
+          ${amount ? `<div class="celebration-amount">$${amount.toLocaleString()}</div>` : ''}
+        `;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+          toast.style.animation = 'celebration-pop 0.3s ease reverse forwards';
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      },
+
+      // Celebrate profile completion
+      celebrateProfileComplete() {
+        this.createConfetti(150);
+        this.showCelebrationToast('🎉', 'Amazing!', 'Your profile is complete!');
+        this.playSound('success');
+      },
+
+      // Celebrate savings found
+      celebrateSavingsFound(amount) {
+        this.createMoneyRain(60);
+        this.showCelebrationToast('💰', 'Savings Found!', 'Potential tax savings discovered', amount);
+        this.playSound('money');
+      },
+
+      // Celebrate strategy unlock
+      celebrateStrategyUnlock(strategyName) {
+        this.createSparkles(window.innerWidth / 2, window.innerHeight / 2, 12);
+        this.showCelebrationToast('⭐', 'Strategy Unlocked!', strategyName);
+        this.playSound('unlock');
+      },
+
+      // Celebrate first milestone
+      celebrateFirstMilestone() {
+        this.showCelebrationToast('🚀', 'Great Start!', 'You\'re on your way to tax savings!');
+      },
+
+      // Play celebration sound (if enabled)
+      playSound(type) {
+        // Only play if user has interacted with page (browser requirement)
+        if (!window.userHasInteracted) return;
+
+        const sounds = {
+          success: 'data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgA',
+          money: 'data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgA',
+          unlock: 'data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgA'
+        };
+
+        // Note: In production, replace with actual sound files
+        // For now, celebrations are visual only
+      }
+    };
+
+    // Track user interaction for sound
+    document.addEventListener('click', () => { window.userHasInteracted = true; }, { once: true });
+
+    // Celebration triggers
+    let previousSavings = 0;
+    let previousCompleteness = 0;
+    let celebratedMilestones = new Set();
+
+    function checkForCelebration(data) {
+      // Check for savings milestone
+      const currentSavings = data.total_potential_savings || 0;
+      if (currentSavings > previousSavings + 1000 && currentSavings >= 1000) {
+        CelebrationSystem.celebrateSavingsFound(currentSavings);
+        previousSavings = currentSavings;
+      }
+
+      // Check for profile completion
+      const completeness = data.profile_completeness || 0;
+      if (completeness >= 1.0 && previousCompleteness < 1.0) {
+        CelebrationSystem.celebrateProfileComplete();
+      } else if (completeness >= 0.5 && previousCompleteness < 0.5 && !celebratedMilestones.has('50')) {
+        celebratedMilestones.add('50');
+        CelebrationSystem.celebrateFirstMilestone();
+      }
+      previousCompleteness = completeness;
+
+      // Check for first strategy
+      if (data.strategies && data.strategies.length > 0 && !celebratedMilestones.has('first_strategy')) {
+        celebratedMilestones.add('first_strategy');
+        CelebrationSystem.celebrateStrategyUnlock(data.strategies[0].title);
+      }
+    }
+
+    // Voice Input System
+    const VoiceInputSystem = {
+      recognition: null,
+      isRecording: false,
+      transcript: '',
+
+      init() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+          console.log('Speech recognition not supported');
+          return false;
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        this.recognition = new SpeechRecognition();
+        this.recognition.continuous = true;
+        this.recognition.interimResults = true;
+        this.recognition.lang = 'en-US';
+
+        this.recognition.onresult = (event) => {
+          let interimTranscript = '';
+          let finalTranscript = '';
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript;
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+
+          this.transcript = finalTranscript || interimTranscript;
+          this.updateTranscriptDisplay(this.transcript, !finalTranscript);
+        };
+
+        this.recognition.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          this.stopRecording();
+          if (event.error === 'not-allowed') {
+            showToast('Please allow microphone access to use voice input', 'warning');
+          }
+        };
+
+        this.recognition.onend = () => {
+          if (this.isRecording) {
+            // Restart if still in recording mode (browser auto-stops)
+            this.recognition.start();
+          }
+        };
+
+        return true;
+      },
+
+      startRecording() {
+        if (!this.recognition && !this.init()) {
+          showToast('Voice input not supported in this browser', 'warning');
+          return;
+        }
+
+        this.isRecording = true;
+        this.transcript = '';
+        this.recognition.start();
+        this.showTranscriptPanel();
+
+        const btn = document.getElementById('voiceInputBtn');
+        if (btn) {
+          btn.classList.add('recording');
+          btn.innerHTML = '🔴';
+        }
+      },
+
+      stopRecording() {
+        this.isRecording = false;
+        if (this.recognition) {
+          this.recognition.stop();
+        }
+
+        const btn = document.getElementById('voiceInputBtn');
+        if (btn) {
+          btn.classList.remove('recording');
+          btn.innerHTML = '🎤';
+        }
+
+        this.hideTranscriptPanel();
+
+        // Send the transcript as a message
+        if (this.transcript.trim()) {
+          const input = document.getElementById('userInput');
+          if (input) {
+            input.value = this.transcript;
+            sendMessage();
+          }
+        }
+      },
+
+      toggleRecording() {
+        if (this.isRecording) {
+          this.stopRecording();
+        } else {
+          this.startRecording();
+        }
+      },
+
+      showTranscriptPanel() {
+        let panel = document.getElementById('voiceTranscript');
+        if (!panel) {
+          panel = document.createElement('div');
+          panel.id = 'voiceTranscript';
+          panel.className = 'voice-transcript';
+          panel.innerHTML = `
+            <div class="voice-transcript-text" id="voiceTranscriptText">Listening...</div>
+            <div class="voice-transcript-hint">🎤 Speak naturally. Click mic again to send.</div>
+          `;
+          const inputContainer = document.querySelector('.input-container');
+          if (inputContainer) {
+            inputContainer.style.position = 'relative';
+            inputContainer.appendChild(panel);
+          }
+        }
+        panel.classList.add('active');
+      },
+
+      hideTranscriptPanel() {
+        const panel = document.getElementById('voiceTranscript');
+        if (panel) {
+          panel.classList.remove('active');
+        }
+      },
+
+      updateTranscriptDisplay(text, isInterim) {
+        const display = document.getElementById('voiceTranscriptText');
+        if (display) {
+          display.textContent = text || 'Listening...';
+          display.style.opacity = isInterim ? '0.7' : '1';
+        }
+      }
+    };
+
+    // Smart Nudge System
+    const SmartNudgeSystem = {
+      lastActivityTime: Date.now(),
+      nudgeTimeout: null,
+      currentNudge: null,
+
+      init() {
+        // Track user activity
+        ['mousemove', 'keydown', 'scroll', 'click'].forEach(event => {
+          document.addEventListener(event, () => this.resetIdleTimer());
+        });
+
+        this.startIdleCheck();
+      },
+
+      resetIdleTimer() {
+        this.lastActivityTime = Date.now();
+      },
+
+      startIdleCheck() {
+        setInterval(() => {
+          const idleTime = Date.now() - this.lastActivityTime;
+
+          // Show nudge after 30 seconds of inactivity
+          if (idleTime > 30000 && !this.currentNudge) {
+            this.showIdleNudge();
+          }
+        }, 10000);
+      },
+
+      showIdleNudge() {
+        const nudges = [
+          {
+            icon: '💡',
+            title: 'Need help?',
+            message: 'I noticed you paused. Would you like me to explain something differently?',
+            primaryAction: { label: 'Yes, help me', value: 'help_me' },
+            secondaryAction: { label: 'I\'m fine', value: 'dismiss' }
+          },
+          {
+            icon: '🤔',
+            title: 'Stuck on something?',
+            message: 'Feel free to ask any question, or I can guide you step by step.',
+            primaryAction: { label: 'Guide me', value: 'guide_me' },
+            secondaryAction: { label: 'Just thinking', value: 'dismiss' }
+          }
+        ];
+
+        const nudge = nudges[Math.floor(Math.random() * nudges.length)];
+        this.showNudge(nudge);
+      },
+
+      showOpportunityNudge(opportunity) {
+        this.showNudge({
+          icon: '💰',
+          title: 'Quick tip!',
+          message: opportunity.message,
+          primaryAction: { label: 'Tell me more', value: opportunity.action },
+          secondaryAction: { label: 'Maybe later', value: 'dismiss' }
+        });
+      },
+
+      showNudge(config) {
+        // Remove existing nudge
+        this.dismissNudge();
+
+        const nudge = document.createElement('div');
+        nudge.className = 'smart-nudge';
+        nudge.id = 'smartNudge';
+        nudge.innerHTML = `
+          <button class="smart-nudge-close" onclick="SmartNudgeSystem.dismissNudge()">&times;</button>
+          <div class="smart-nudge-icon">${config.icon}</div>
+          <div class="smart-nudge-title">${config.title}</div>
+          <div class="smart-nudge-message">${config.message}</div>
+          <div class="smart-nudge-actions">
+            <button class="smart-nudge-btn primary" onclick="SmartNudgeSystem.handleNudgeAction('${config.primaryAction.value}')">${config.primaryAction.label}</button>
+            <button class="smart-nudge-btn secondary" onclick="SmartNudgeSystem.handleNudgeAction('${config.secondaryAction.value}')">${config.secondaryAction.label}</button>
+          </div>
+        `;
+
+        document.body.appendChild(nudge);
+        this.currentNudge = nudge;
+
+        // Auto dismiss after 15 seconds
+        this.nudgeTimeout = setTimeout(() => this.dismissNudge(), 15000);
+      },
+
+      dismissNudge() {
+        if (this.currentNudge) {
+          this.currentNudge.remove();
+          this.currentNudge = null;
+        }
+        if (this.nudgeTimeout) {
+          clearTimeout(this.nudgeTimeout);
+        }
+        this.lastActivityTime = Date.now();
+      },
+
+      handleNudgeAction(action) {
+        this.dismissNudge();
+
+        if (action === 'dismiss') return;
+
+        // Trigger action in chat
+        const actionMessages = {
+          'help_me': 'I need help understanding this',
+          'guide_me': 'Please guide me step by step'
+        };
+
+        const message = actionMessages[action] || action;
+        const input = document.getElementById('userInput');
+        if (input) {
+          input.value = message;
+          sendMessage();
+        }
+      }
+    };
+
+    // Emotion Detection System
+    const EmotionDetector = {
+      patterns: {
+        frustrated: [
+          /this (is |isn't |doesn't |does not )?(not |so )?work/i,
+          /i('m| am) (so )?(confused|frustrated|lost|stuck)/i,
+          /i don't (understand|get it|know)/i,
+          /what(\?|!)+ *$/i,
+          /ugh|argh|wtf|wth/i,
+          /help!+/i
+        ],
+        confused: [
+          /what does (that|this) mean/i,
+          /i('m| am) not sure/i,
+          /can you explain/i,
+          /\?{2,}/,
+          /huh\??/i
+        ],
+        anxious: [
+          /worried|nervous|scared|afraid/i,
+          /audit/i,
+          /penalty|penalties/i,
+          /am i (doing|getting) (this|it) right/i,
+          /is this (correct|right|ok|okay)/i
+        ],
+        excited: [
+          /wow|amazing|awesome|great|fantastic/i,
+          /!{2,}/,
+          /that's (so )?(cool|great|awesome)/i,
+          /really\?!?/i
+        ],
+        rushed: [
+          /quick(ly)?|fast|hurry|asap/i,
+          /don't have (much )?time/i,
+          /in a (rush|hurry)/i,
+          /just (tell|give) me/i
+        ]
+      },
+
+      detect(message) {
+        for (const [emotion, patterns] of Object.entries(this.patterns)) {
+          if (patterns.some(pattern => pattern.test(message))) {
+            return emotion;
+          }
+        }
+        return 'neutral';
+      },
+
+      getResponseModifier(emotion) {
+        const modifiers = {
+          frustrated: {
+            prefix: "I completely understand - let me make this simpler. ",
+            tone: "empathetic",
+            style: "Use very simple language, be extra patient and supportive"
+          },
+          confused: {
+            prefix: "Let me explain this more clearly. ",
+            tone: "reassuring",
+            style: "Break down into simple steps, use analogies"
+          },
+          anxious: {
+            prefix: "Don't worry - you're doing great! ",
+            tone: "reassuring",
+            style: "Be calming, emphasize accuracy and safety"
+          },
+          excited: {
+            prefix: "",
+            tone: "encouraging",
+            style: "Match their enthusiasm, celebrate with them"
+          },
+          rushed: {
+            prefix: "Got it - here's the quick version: ",
+            tone: "neutral",
+            style: "Be concise, prioritize key information"
+          },
+          neutral: {
+            prefix: "",
+            tone: "neutral",
+            style: "Normal helpful tone"
+          }
+        };
+        return modifiers[emotion] || modifiers.neutral;
+      }
+    };
+
+    // Streaming Response Simulator
+    // (For real streaming, backend needs to support SSE/WebSocket)
+    const StreamingDisplay = {
+      async displayStreamingResponse(container, fullText, quickActions = []) {
+        const bubble = container.querySelector('.bubble');
+        if (!bubble) return;
+
+        // Add streaming cursor
+        const cursor = document.createElement('span');
+        cursor.className = 'streaming-cursor';
+
+        const textSpan = document.createElement('span');
+        textSpan.className = 'streaming-text';
+
+        // Clear existing content except copy button
+        const copyBtn = bubble.querySelector('.copy-btn');
+        const timestamp = bubble.querySelector('.message-time');
+        bubble.innerHTML = '';
+        bubble.appendChild(textSpan);
+        bubble.appendChild(cursor);
+
+        // Stream text character by character
+        const words = fullText.split(' ');
+        let currentText = '';
+
+        for (let i = 0; i < words.length; i++) {
+          currentText += (i > 0 ? ' ' : '') + words[i];
+          textSpan.innerHTML = currentText;
+
+          // Scroll to bottom
+          const messages = document.getElementById('messages');
+          if (messages) {
+            messages.scrollTop = messages.scrollHeight;
+          }
+
+          // Variable delay for more natural feel
+          await new Promise(resolve => setTimeout(resolve, 20 + Math.random() * 30));
+        }
+
+        // Remove cursor, restore full content
+        cursor.remove();
+        bubble.innerHTML = fullText;
+
+        // Re-add copy button and timestamp
+        if (copyBtn) bubble.appendChild(copyBtn);
+        if (timestamp) bubble.appendChild(timestamp);
+
+        // Add quick actions if any
+        if (quickActions.length > 0) {
+          // Quick actions will be added by the main addMessage function
+        }
+      }
+    };
+
+    // Live Savings Display
+    const LiveSavingsDisplay = {
+      currentAmount: 0,
+      targetAmount: 0,
+      displayElement: null,
+
+      init() {
+        // Create the floating display if it doesn't exist
+        if (!document.getElementById('liveSavingsDisplay')) {
+          const display = document.createElement('div');
+          display.id = 'liveSavingsDisplay';
+          display.className = 'live-savings-display';
+          display.style.display = 'none';
+          display.innerHTML = `
+            <div class="live-savings-label">Potential Savings</div>
+            <div class="live-savings-amount" id="liveSavingsAmount">$0</div>
+          `;
+          document.body.appendChild(display);
+        }
+        this.displayElement = document.getElementById('liveSavingsDisplay');
+      },
+
+      update(amount) {
+        if (!this.displayElement) this.init();
+
+        if (amount > 0) {
+          this.displayElement.style.display = 'block';
+          this.animateToAmount(amount);
+        }
+      },
+
+      animateToAmount(target) {
+        const amountEl = document.getElementById('liveSavingsAmount');
+        if (!amountEl) return;
+
+        const start = this.currentAmount;
+        const diff = target - start;
+        const duration = 1000;
+        const startTime = performance.now();
+
+        const animate = (currentTime) => {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+
+          // Ease out cubic
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const current = Math.round(start + diff * eased);
+
+          amountEl.textContent = '$' + current.toLocaleString();
+          amountEl.classList.add('counting');
+
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          } else {
+            this.currentAmount = target;
+            amountEl.classList.remove('counting');
+          }
+        };
+
+        requestAnimationFrame(animate);
+      }
+    };
+
+    // Photo Document Capture System
+    const PhotoCapture = {
+      stream: null,
+      video: null,
+
+      async open() {
+        const modal = document.getElementById('photoCaptureModal');
+        this.video = document.getElementById('cameraVideo');
+
+        if (!modal || !this.video) return;
+
+        try {
+          this.stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: 'environment', // Use back camera on mobile
+              width: { ideal: 1920 },
+              height: { ideal: 1080 }
+            }
+          });
+
+          this.video.srcObject = this.stream;
+          modal.classList.add('active');
+
+        } catch (error) {
+          console.error('Camera access error:', error);
+          if (error.name === 'NotAllowedError') {
+            showToast('Please allow camera access to capture documents', 'warning');
+          } else {
+            showToast('Unable to access camera. Please upload instead.', 'error');
+          }
+        }
+      },
+
+      close() {
+        const modal = document.getElementById('photoCaptureModal');
+        if (modal) {
+          modal.classList.remove('active');
+        }
+
+        if (this.stream) {
+          this.stream.getTracks().forEach(track => track.stop());
+          this.stream = null;
+        }
+      },
+
+      async capture() {
+        if (!this.video) return;
+
+        // Create canvas to capture frame
+        const canvas = document.createElement('canvas');
+        canvas.width = this.video.videoWidth;
+        canvas.height = this.video.videoHeight;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(this.video, 0, 0);
+
+        // Convert to blob
+        canvas.toBlob(async (blob) => {
+          if (!blob) {
+            showToast('Failed to capture image', 'error');
+            return;
+          }
+
+          // Close camera
+          this.close();
+
+          // Show processing toast
+          showToast('Processing document...', 'info');
+
+          // Create form data and upload
+          const formData = new FormData();
+          formData.append('file', blob, 'captured_document.jpg');
+          formData.append('session_id', sessionId || 'temp-session');
+
+          try {
+            const response = await fetch('/api/advisor/upload-document', {
+              method: 'POST',
+              body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              // Celebrate successful capture
+              CelebrationSystem.createSparkles(window.innerWidth / 2, window.innerHeight / 2, 8);
+              showToast('Document captured successfully!', 'success');
+
+              // Add message about extracted data
+              addMessage('ai', `📄 **Document Captured!**\n\nI detected a **${result.document_type || 'tax document'}** and extracted the following:\n\n${
+                Object.entries(result.extracted_fields || {})
+                  .slice(0, 5)
+                  .map(([key, value]) => `• ${key}: **${value}**`)
+                  .join('\n')
+              }\n\nIs this information correct?`, [
+                { label: '✓ Yes, looks good', value: 'document_confirmed' },
+                { label: 'Make corrections', value: 'document_corrections' },
+                { label: 'Capture another', value: 'capture_another' }
+              ]);
+
+            } else {
+              showToast(result.message || 'Could not process document', 'warning');
+              addMessage('ai', `I had trouble reading that document. Would you like to try again or enter the information manually?`, [
+                { label: 'Try again', value: 'capture_another' },
+                { label: 'Enter manually', value: 'enter_manually' }
+              ]);
+            }
+
+          } catch (error) {
+            console.error('Document upload error:', error);
+            showToast('Failed to upload document', 'error');
+          }
+
+        }, 'image/jpeg', 0.9);
+      }
+    };
+
+    // Initialize UX enhancements
+    function initUXEnhancements() {
+      SmartNudgeSystem.init();
+      LiveSavingsDisplay.init();
+      VoiceInputSystem.init();
+
+      console.log('UX enhancements initialized');
+    }
+
+    // Initialize on DOM ready
+    document.addEventListener('DOMContentLoaded', initUXEnhancements);
 
     // Toast notification function for user feedback
     function showToast(message, type = 'info') {
@@ -8017,6 +9446,14 @@
         // Update savings estimate based on new data
         updateSavingsEstimate();
 
+        // Update live savings display
+        if (data.total_potential_savings) {
+          LiveSavingsDisplay.update(data.total_potential_savings);
+        }
+
+        // Check for celebration triggers
+        checkForCelebration(data);
+
       } catch (error) {
         hideTyping();
         console.error('AI response error:', error);
@@ -8620,11 +10057,62 @@ If they're ready to move forward, suggest generating their comprehensive advisor
     }
 
     function uploadDocument() {
+      // Show upload options modal
+      showUploadOptions();
+    }
+
+    function showUploadOptions() {
+      // Create options modal
+      const modal = document.createElement('div');
+      modal.className = 'upload-options-modal';
+      modal.id = 'uploadOptionsModal';
+      modal.innerHTML = `
+        <div class="upload-options-content">
+          <button class="close-options-btn" onclick="closeUploadOptions()">&times;</button>
+          <h3>📎 Upload Document</h3>
+          <p>Choose how you'd like to add your document</p>
+          <div class="upload-options-grid">
+            <button class="upload-option" onclick="selectFileUpload()">
+              <div class="option-icon">📁</div>
+              <div class="option-title">Browse Files</div>
+              <div class="option-desc">Select from your device</div>
+            </button>
+            <button class="upload-option" onclick="selectCameraCapture()">
+              <div class="option-icon">📷</div>
+              <div class="option-title">Take Photo</div>
+              <div class="option-desc">Capture with camera</div>
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      // Animate in
+      requestAnimationFrame(() => {
+        modal.classList.add('visible');
+      });
+    }
+
+    function closeUploadOptions() {
+      const modal = document.getElementById('uploadOptionsModal');
+      if (modal) {
+        modal.classList.remove('visible');
+        setTimeout(() => modal.remove(), 300);
+      }
+    }
+
+    function selectFileUpload() {
+      closeUploadOptions();
       document.getElementById('fileInput').click();
     }
 
+    function selectCameraCapture() {
+      closeUploadOptions();
+      PhotoCapture.open();
+    }
+
     function addVoiceInput() {
-      alert('Voice input feature coming soon!');
+      VoiceInputSystem.toggleRecording();
     }
 
     function handleKeyDown(event) {
