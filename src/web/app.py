@@ -473,6 +473,14 @@ try:
 except ImportError as e:
     logger.warning(f"CPA Dashboard Pages not available: {e}")
 
+# Register Funnel Orchestration API (CONVERT + MATCH + FACILITATE)
+try:
+    from cpa_panel.api.funnel_routes import funnel_router
+    app.include_router(funnel_router, prefix="/api/cpa")
+    logger.info("Funnel Orchestration API enabled at /api/cpa/funnel")
+except ImportError as e:
+    logger.warning(f"Funnel Orchestration API not available: {e}")
+
 # Register CPA Branding API (Personal branding for CPAs/Staff)
 try:
     from web.cpa_branding_api import router as cpa_branding_router

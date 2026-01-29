@@ -62,6 +62,20 @@ class BenefitHighlight:
     action_required: Optional[str] = None
 
 
+@dataclass
+class BasicEstimate:
+    """Simplified estimate for quick calculations and API responses."""
+    estimated_refund: float
+    estimated_owed: float
+    is_refund: bool
+    federal_tax: float
+    state_tax: float
+    effective_rate: float
+    marginal_rate: float
+    confidence: str
+    benefits_summary: Dict[str, Any] = field(default_factory=dict)
+
+
 class OnboardingBenefitEstimator:
     """
     Provides real-time benefit estimates during onboarding.
@@ -128,6 +142,64 @@ class OnboardingBenefitEstimator:
     def __init__(self):
         """Initialize the estimator."""
         self._last_estimate: Optional[TaxEstimate] = None
+
+    def estimate_from_basics(
+        self,
+        wages: float,
+        withholding: float = 0,
+        filing_status: str = "single",
+        num_dependents: int = 0,
+        state_code: Optional[str] = None,
+    ) -> "BasicEstimate":
+        """
+        Generate a quick estimate from basic inputs (for API/quick estimate).
+
+        Args:
+            wages: Total annual wages/income
+            withholding: Total federal tax withheld
+            filing_status: Filing status (single, married_joint, etc.)
+            num_dependents: Number of dependents
+            state_code: State code for state tax estimate
+
+        Returns:
+            BasicEstimate with tax projections
+        """
+        # Convert to answers format and calculate
+        answers = {
+            "w2_wages_1": wages,
+            "w2_federal_withheld_1": withholding,
+            "filing_status": filing_status,
+            "num_children": num_dependents,
+            "state_residence": state_code or "CA",
+        }
+
+        # Calculate using full method
+        full_estimate = self.estimate_from_answers(answers)
+
+        # Return simplified BasicEstimate
+        return BasicEstimate(
+            estimated_refund=full_estimate.estimated_amount if full_estimate.estimate_type == EstimateType.REFUND else 0,
+            estimated_owed=full_estimate.estimated_amount if full_estimate.estimate_type == EstimateType.OWED else 0,
+            is_refund=full_estimate.estimate_type == EstimateType.REFUND,
+            federal_tax=full_estimate.estimated_federal_tax,
+            state_tax=full_estimate.estimated_state_tax,
+            effective_rate=full_estimate.effective_rate,
+            marginal_rate=full_estimate.marginal_rate,
+            confidence=full_estimate.confidence,
+            benefits_summary=self._generate_benefits_summary(full_estimate, wages),
+        )
+
+    def _generate_benefits_summary(self, estimate: "TaxEstimate", wages: float) -> Dict[str, Any]:
+        """Generate a summary of potential benefits."""
+        summary = {
+            "total_tax": estimate.estimated_total_tax,
+            "deduction_type": estimate.deduction_type,
+            "deduction_amount": estimate.deduction_amount,
+            "taxable_income": estimate.estimated_taxable_income,
+            "potential_savings": round(estimate.estimated_total_tax * 0.08, 2),  # ~8% potential savings
+            "recommendations": estimate.potential_improvements[:3] if estimate.potential_improvements else [],
+        }
+        return summary
 
     def estimate_from_answers(self, answers: Dict[str, Any]) -> TaxEstimate:
         """

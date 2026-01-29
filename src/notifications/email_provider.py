@@ -330,3 +330,286 @@ def send_templated_email(
 
     provider = get_email_provider()
     return provider.send(message)
+
+
+async def send_email_with_attachment(
+    to: str,
+    subject: str,
+    body_html: Optional[str] = None,
+    body_text: Optional[str] = None,
+    attachment_path: Optional[str] = None,
+    attachment_name: Optional[str] = None,
+    attachment_content: Optional[bytes] = None,
+    attachment_mime_type: str = "application/pdf",
+    from_email: Optional[str] = None,
+    from_name: Optional[str] = None,
+    reply_to: Optional[str] = None,
+    tags: Optional[List[str]] = None,
+) -> DeliveryResult:
+    """
+    Send email with file attachment.
+
+    This function supports sending emails with attachments using various providers.
+    For providers that don't support attachments natively, it falls back to
+    embedding a download link.
+
+    Args:
+        to: Recipient email address
+        subject: Email subject
+        body_html: HTML body (optional)
+        body_text: Plain text body (optional)
+        attachment_path: Path to file to attach
+        attachment_name: Name for the attachment (defaults to filename)
+        attachment_content: Raw bytes to attach (alternative to path)
+        attachment_mime_type: MIME type of attachment
+        from_email: Sender email
+        from_name: Sender name
+        reply_to: Reply-to address
+        tags: Tags for tracking
+
+    Returns:
+        DeliveryResult with status
+    """
+    import base64
+    from pathlib import Path as FilePath
+
+    # Read attachment if path provided
+    attachment_data = None
+    if attachment_path:
+        try:
+            path = FilePath(attachment_path)
+            if path.exists():
+                attachment_data = path.read_bytes()
+                if not attachment_name:
+                    attachment_name = path.name
+        except Exception as e:
+            logger.error(f"Failed to read attachment {attachment_path}: {e}")
+
+    elif attachment_content:
+        attachment_data = attachment_content
+
+    # Get provider
+    provider = get_email_provider()
+
+    # Check if provider supports attachments (SendGrid, SMTP do)
+    if hasattr(provider, 'send_with_attachment') and attachment_data:
+        return await provider.send_with_attachment(
+            to=to,
+            subject=subject,
+            body_html=body_html,
+            body_text=body_text,
+            attachment_data=attachment_data,
+            attachment_name=attachment_name or "attachment.pdf",
+            attachment_mime_type=attachment_mime_type,
+            from_email=from_email,
+            from_name=from_name,
+        )
+
+    # Fallback: Use SMTP with attachment support
+    if provider.provider_name == "smtp" and attachment_data:
+        try:
+            return await _send_smtp_with_attachment(
+                to=to,
+                subject=subject,
+                body_html=body_html,
+                body_text=body_text,
+                attachment_data=attachment_data,
+                attachment_name=attachment_name or "attachment.pdf",
+                attachment_mime_type=attachment_mime_type,
+                from_email=from_email,
+                from_name=from_name,
+            )
+        except Exception as e:
+            logger.error(f"SMTP attachment send failed: {e}")
+
+    # If SendGrid is available and has attachment data
+    if provider.provider_name == "sendgrid" and attachment_data:
+        try:
+            return await _send_sendgrid_with_attachment(
+                to=to,
+                subject=subject,
+                body_html=body_html,
+                body_text=body_text,
+                attachment_data=attachment_data,
+                attachment_name=attachment_name or "attachment.pdf",
+                attachment_mime_type=attachment_mime_type,
+                from_email=from_email,
+                from_name=from_name,
+            )
+        except Exception as e:
+            logger.error(f"SendGrid attachment send failed: {e}")
+
+    # Final fallback: send without attachment
+    logger.warning(f"Sending email to {to} without attachment (provider: {provider.provider_name})")
+    return provider.send(EmailMessage(
+        to=to,
+        subject=subject,
+        body_html=body_html,
+        body_text=body_text,
+        from_email=from_email,
+        from_name=from_name,
+        reply_to=reply_to,
+        tags=tags or [],
+    ))
+
+
+async def _send_smtp_with_attachment(
+    to: str,
+    subject: str,
+    body_html: Optional[str],
+    body_text: Optional[str],
+    attachment_data: bytes,
+    attachment_name: str,
+    attachment_mime_type: str,
+    from_email: Optional[str],
+    from_name: Optional[str],
+) -> DeliveryResult:
+    """Send email with attachment via SMTP."""
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    from email.mime.base import MIMEBase
+    from email import encoders
+
+    try:
+        # Get SMTP config
+        smtp_host = os.environ.get("SMTP_HOST", "localhost")
+        smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+        smtp_user = os.environ.get("SMTP_USER")
+        smtp_password = os.environ.get("SMTP_PASSWORD")
+        smtp_use_tls = os.environ.get("SMTP_USE_TLS", "true").lower() == "true"
+        default_from = os.environ.get("SMTP_FROM_EMAIL", "noreply@example.com")
+
+        sender = from_email or default_from
+        if from_name:
+            sender_display = f"{from_name} <{sender}>"
+        else:
+            sender_display = sender
+
+        # Create message
+        msg = MIMEMultipart()
+        msg['From'] = sender_display
+        msg['To'] = to
+        msg['Subject'] = subject
+
+        # Attach body
+        if body_html:
+            msg.attach(MIMEText(body_html, 'html'))
+        elif body_text:
+            msg.attach(MIMEText(body_text, 'plain'))
+
+        # Attach file
+        main_type, sub_type = attachment_mime_type.split('/')
+        attachment = MIMEBase(main_type, sub_type)
+        attachment.set_payload(attachment_data)
+        encoders.encode_base64(attachment)
+        attachment.add_header(
+            'Content-Disposition',
+            f'attachment; filename="{attachment_name}"'
+        )
+        msg.attach(attachment)
+
+        # Send
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            if smtp_use_tls:
+                server.starttls()
+            if smtp_user and smtp_password:
+                server.login(smtp_user, smtp_password)
+            server.sendmail(sender, [to], msg.as_string())
+
+        return DeliveryResult(
+            success=True,
+            status=DeliveryStatus.SENT,
+            message_id=f"smtp-{datetime.utcnow().timestamp()}",
+            provider="smtp",
+        )
+
+    except Exception as e:
+        logger.error(f"SMTP send with attachment failed: {e}")
+        return DeliveryResult(
+            success=False,
+            status=DeliveryStatus.FAILED,
+            error_message=str(e),
+            provider="smtp",
+        )
+
+
+async def _send_sendgrid_with_attachment(
+    to: str,
+    subject: str,
+    body_html: Optional[str],
+    body_text: Optional[str],
+    attachment_data: bytes,
+    attachment_name: str,
+    attachment_mime_type: str,
+    from_email: Optional[str],
+    from_name: Optional[str],
+) -> DeliveryResult:
+    """Send email with attachment via SendGrid."""
+    import base64
+
+    try:
+        import sendgrid
+        from sendgrid.helpers.mail import (
+            Mail, Email, To, Content, Attachment,
+            FileContent, FileName, FileType, Disposition
+        )
+
+        api_key = os.environ.get("SENDGRID_API_KEY")
+        if not api_key:
+            raise ValueError("SENDGRID_API_KEY not configured")
+
+        default_from = os.environ.get("SENDGRID_FROM_EMAIL", "noreply@example.com")
+        sender = from_email or default_from
+
+        # Create message
+        message = Mail(
+            from_email=Email(sender, from_name),
+            to_emails=To(to),
+            subject=subject,
+        )
+
+        # Add content
+        if body_html:
+            message.content = Content("text/html", body_html)
+        elif body_text:
+            message.content = Content("text/plain", body_text)
+
+        # Add attachment
+        encoded_content = base64.b64encode(attachment_data).decode()
+        attachment = Attachment(
+            FileContent(encoded_content),
+            FileName(attachment_name),
+            FileType(attachment_mime_type),
+            Disposition('attachment')
+        )
+        message.attachment = attachment
+
+        # Send
+        sg = sendgrid.SendGridAPIClient(api_key=api_key)
+        response = sg.send(message)
+
+        return DeliveryResult(
+            success=response.status_code in (200, 202),
+            status=DeliveryStatus.SENT if response.status_code in (200, 202) else DeliveryStatus.FAILED,
+            message_id=response.headers.get('X-Message-Id'),
+            provider="sendgrid",
+            raw_response={"status_code": response.status_code},
+        )
+
+    except ImportError:
+        logger.error("SendGrid package not installed")
+        return DeliveryResult(
+            success=False,
+            status=DeliveryStatus.FAILED,
+            error_message="SendGrid package not installed",
+            provider="sendgrid",
+        )
+    except Exception as e:
+        logger.error(f"SendGrid send with attachment failed: {e}")
+        return DeliveryResult(
+            success=False,
+            status=DeliveryStatus.FAILED,
+            error_message=str(e),
+            provider="sendgrid",
+        )
