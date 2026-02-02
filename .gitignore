@@ -63,3 +63,4 @@ sample_report*.html
 # Data directory (runtime databases)
 data/
 .venv/
+node_modules/
