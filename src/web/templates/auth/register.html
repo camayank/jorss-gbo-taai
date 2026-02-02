@@ -424,7 +424,7 @@
                 <div class="alert alert-error" id="errorAlert"></div>
 
                 <form id="registerForm" action="/api/v1/auth/register" method="POST">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+                    <input type="hidden" name="csrf_token" value="{{ request.state.csrf_token if request and request.state and request.state.csrf_token else (csrf_token() if csrf_token else '') }}">
 
                     <div class="form-row">
                         <div class="form-group">

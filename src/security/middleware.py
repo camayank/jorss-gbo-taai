@@ -63,6 +63,14 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         """
         Build Content-Security-Policy with optional nonce.
 
+        HARDENED CSP includes:
+        - Nonce-based script protection (when available)
+        - object-src 'none' - prevents plugin exploitation (Flash, Java)
+        - upgrade-insecure-requests - forces HTTPS for all subresources
+        - worker-src 'self' - restricts service workers
+        - manifest-src 'self' - restricts PWA manifests
+        - Explicit frame-src 'none' - prevents iframe embedding of content
+
         Args:
             nonce: Per-request nonce for script/style-src
 
@@ -77,26 +85,41 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         if nonce and self.use_nonce:
             # SECURITY: Use nonce instead of 'unsafe-inline' for scripts
             # This prevents XSS attacks from injecting arbitrary scripts
-            script_src = f"script-src 'self' 'nonce-{nonce}' https://unpkg.com"
+            script_src = f"script-src 'self' 'nonce-{nonce}' https://unpkg.com https://cdn.jsdelivr.net"
             # Note: We still need 'unsafe-inline' for styles due to Alpine.js/inline styles
             # This is a known limitation - inline styles are lower risk than inline scripts
             style_src = "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com"
         else:
             # Fallback for non-HTML responses or when nonce is disabled
-            script_src = "script-src 'self' 'unsafe-inline' https://unpkg.com"
+            script_src = "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net"
             style_src = "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com"
 
-        return "; ".join([
+        # Build hardened CSP directives
+        directives = [
             "default-src 'self'",
             script_src,
             style_src,
             "img-src 'self' data: https:",
-            "font-src 'self' https: https://fonts.gstatic.com",
+            "font-src 'self' https://fonts.gstatic.com",
             "connect-src 'self'",
+            # HARDENING: Prevent framing attacks
             "frame-ancestors 'none'",
+            "frame-src 'none'",
+            # HARDENING: Prevent plugin exploitation
+            "object-src 'none'",
+            # HARDENING: Restrict base URI to prevent base tag injection
             "base-uri 'self'",
+            # HARDENING: Restrict form submission targets
             "form-action 'self'",
-        ])
+            # HARDENING: Restrict service workers and web workers
+            "worker-src 'self'",
+            # HARDENING: Restrict PWA manifest
+            "manifest-src 'self'",
+            # HARDENING: Force HTTPS for all subresources
+            "upgrade-insecure-requests",
+        ]
+
+        return "; ".join(directives)
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # Generate nonce for this request
@@ -127,6 +150,88 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Remove potentially dangerous headers
         if "Server" in response.headers:
             del response.headers["Server"]
+
+        return response
+
+
+class CSRFCookieMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware to ensure CSRF token cookie is set on HTML responses.
+
+    SECURITY: This middleware solves the CSRF token persistence problem by:
+    1. Generating a CSRF token if no valid cookie exists
+    2. Setting the token cookie on HTML responses
+    3. Storing the token in request.state for template access
+    4. Using the same token across requests (persistence)
+
+    The cookie is:
+    - httponly=False (must be readable by JavaScript for AJAX)
+    - secure=True in production (HTTPS only)
+    - samesite="lax" (prevents cross-site request attacks)
+    - max_age=86400 (24 hours - matches typical session duration)
+    """
+
+    def __init__(
+        self,
+        app,
+        secret_key: bytes,
+        cookie_name: str = "csrf_token",
+        cookie_max_age: int = 86400,  # 24 hours
+        secure: bool = True,
+    ):
+        super().__init__(app)
+        self.secret_key = secret_key
+        self.cookie_name = cookie_name
+        self.cookie_max_age = cookie_max_age
+        self.secure = secure
+
+    def _generate_token(self) -> str:
+        """Generate a signed CSRF token."""
+        token_data = secrets.token_hex(32)
+        signature = hmac.new(self.secret_key, token_data.encode(), hashlib.sha256).hexdigest()
+        return f"{token_data}:{signature}"
+
+    def _validate_token(self, token: str) -> bool:
+        """Validate a CSRF token signature."""
+        if not token or ":" not in token:
+            return False
+        try:
+            token_data, signature = token.split(":", 1)
+            expected_sig = hmac.new(self.secret_key, token_data.encode(), hashlib.sha256).hexdigest()
+            return hmac.compare_digest(signature, expected_sig)
+        except Exception:
+            return False
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # Check for existing valid CSRF token in cookie
+        existing_token = request.cookies.get(self.cookie_name)
+        token_valid = self._validate_token(existing_token) if existing_token else False
+
+        # Use existing token if valid, otherwise generate new one
+        csrf_token = existing_token if token_valid else self._generate_token()
+
+        # Store token in request.state for template access
+        request.state.csrf_token = csrf_token
+
+        # Process the request
+        response = await call_next(request)
+
+        # Set CSRF cookie on HTML responses (or if cookie was missing/invalid)
+        content_type = response.headers.get("content-type", "")
+        is_html = "text/html" in content_type
+
+        if is_html or not token_valid:
+            # Set the CSRF token cookie
+            response.set_cookie(
+                key=self.cookie_name,
+                value=csrf_token,
+                httponly=False,  # Must be readable by JavaScript
+                secure=self.secure,
+                samesite="lax",
+                max_age=self.cookie_max_age,
+                path="/",  # Available for all paths
+            )
+            logger.debug(f"[CSRF] Set cookie on {'HTML' if is_html else 'non-HTML'} response")
 
         return response
 

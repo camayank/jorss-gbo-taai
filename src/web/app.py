@@ -70,6 +70,7 @@ from security.data_sanitizer import (
 )
 from security.middleware import (
     SecurityHeadersMiddleware,
+    CSRFCookieMiddleware,
     RateLimitMiddleware,
     RequestValidationMiddleware,
     CSRFMiddleware,
@@ -223,6 +224,18 @@ try:
 
     # Store CSRF secret at module level for token generation
     _csrf_secret_key = csrf_secret.encode("utf-8")
+
+    # 5. CSRF Cookie Persistence (ensures token is set on HTML responses)
+    # This solves the token persistence problem where tokens weren't being
+    # properly set in cookies before, causing validation failures
+    app.add_middleware(
+        CSRFCookieMiddleware,
+        secret_key=_csrf_secret_key,
+        cookie_name="csrf_token",
+        cookie_max_age=86400,  # 24 hours (matches typical session duration)
+        secure=_is_production,
+    )
+    logger.info("CSRF cookie persistence middleware enabled")
 except Exception as e:
     logger.warning(f"CSRF middleware failed: {e}")
     _csrf_secret_key = None
