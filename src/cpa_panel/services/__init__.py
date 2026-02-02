@@ -2,6 +2,7 @@
 CPA Panel Services
 
 Core business logic services for the CPA panel.
+Includes AI-powered lead intelligence and client research (Phase 8).
 """
 
 from .form_1040_parser import Form1040Parser, Parsed1040Data, FilingStatus
@@ -28,6 +29,34 @@ from .lead_generation_service import (
     LeadStatus,
     LeadPriority,
     get_lead_generation_service,
+)
+# AI-Powered Services (Phase 8)
+from .ai_lead_intelligence import (
+    ClaudeLeadIntelligence,
+    get_lead_intelligence,
+    LeadIntelligenceResult,
+    LeadData,
+    LeadScoring,
+    RevenueProjection,
+    CrossSellOpportunity,
+    OutreachStrategy,
+    LeadQualityTier,
+    ServiceTier,
+    EngagementUrgency,
+)
+from .client_researcher import (
+    PerplexityClientResearcher,
+    get_client_researcher,
+    ClientResearchResult,
+    CompanyProfile,
+    IndustryInsight,
+    NewsItem,
+    CompetitorInfo,
+    FinancialIndicators,
+    TaxConsiderations,
+    ResearchDepth,
+    IndustryTrendSignal,
+    FinancialHealthIndicator,
 )
 
 __all__ = [
@@ -56,4 +85,29 @@ __all__ = [
     "LeadStatus",
     "LeadPriority",
     "get_lead_generation_service",
+    # AI Lead Intelligence (Phase 8)
+    "ClaudeLeadIntelligence",
+    "get_lead_intelligence",
+    "LeadIntelligenceResult",
+    "LeadData",
+    "LeadScoring",
+    "RevenueProjection",
+    "CrossSellOpportunity",
+    "OutreachStrategy",
+    "LeadQualityTier",
+    "ServiceTier",
+    "EngagementUrgency",
+    # AI Client Research (Phase 8)
+    "PerplexityClientResearcher",
+    "get_client_researcher",
+    "ClientResearchResult",
+    "CompanyProfile",
+    "IndustryInsight",
+    "NewsItem",
+    "CompetitorInfo",
+    "FinancialIndicators",
+    "TaxConsiderations",
+    "ResearchDepth",
+    "IndustryTrendSignal",
+    "FinancialHealthIndicator",
 ]
