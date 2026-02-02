@@ -86,6 +86,109 @@ class ExtractionConfidence(Enum):
     UNCERTAIN = "uncertain"  # <50% confidence
 
 
+# Import validators for confidence calculation (Phase 2.2)
+try:
+    from web.validation_helpers import validate_ssn, validate_currency, validate_name, validate_ein
+    VALIDATORS_AVAILABLE = True
+except ImportError:
+    VALIDATORS_AVAILABLE = False
+
+
+def calculate_entity_confidence(entity_type: str, value: Any) -> ExtractionConfidence:
+    """
+    Phase 2.2: Calculate confidence based on actual validation.
+
+    Uses validators to determine if values are valid and reasonable.
+
+    Args:
+        entity_type: Type of entity (ssn, w2_wages, etc.)
+        value: The extracted value
+
+    Returns:
+        ExtractionConfidence level based on validation results
+    """
+    if not value:
+        return ExtractionConfidence.UNCERTAIN
+
+    try:
+        # SSN validation
+        if entity_type == "ssn":
+            if VALIDATORS_AVAILABLE:
+                is_valid, _ = validate_ssn(str(value))
+                return ExtractionConfidence.HIGH if is_valid else ExtractionConfidence.LOW
+            else:
+                # Basic check
+                clean = str(value).replace("-", "").replace(" ", "")
+                return ExtractionConfidence.HIGH if len(clean) == 9 else ExtractionConfidence.LOW
+
+        # Currency/wage validation
+        if entity_type in ["w2_wages", "w2_federal_withholding", "mortgage_interest",
+                           "property_taxes", "charitable_cash", "self_employment_income"]:
+            try:
+                val = float(str(value).replace(",", "").replace("$", ""))
+                # Check for reasonable ranges
+                if entity_type == "w2_wages":
+                    if val < 0:
+                        return ExtractionConfidence.UNCERTAIN
+                    if val > 10000000:  # $10M+ seems unusual
+                        return ExtractionConfidence.UNCERTAIN
+                    if val > 1000000:  # $1M+ is high but possible
+                        return ExtractionConfidence.MEDIUM
+                    return ExtractionConfidence.HIGH
+
+                if entity_type == "w2_federal_withholding":
+                    if val < 0:
+                        return ExtractionConfidence.UNCERTAIN
+                    if val > 5000000:  # >$5M withholding is unusual
+                        return ExtractionConfidence.UNCERTAIN
+                    return ExtractionConfidence.HIGH
+
+                # Other currency fields
+                if val < 0:
+                    return ExtractionConfidence.LOW
+                return ExtractionConfidence.HIGH
+
+            except (ValueError, TypeError):
+                return ExtractionConfidence.LOW
+
+        # Name validation
+        if entity_type in ["first_name", "last_name", "employer_name"]:
+            if VALIDATORS_AVAILABLE and entity_type != "employer_name":
+                is_valid, _ = validate_name(str(value), entity_type.replace("_", " ").title())
+                return ExtractionConfidence.HIGH if is_valid else ExtractionConfidence.MEDIUM
+            else:
+                name = str(value).strip()
+                if len(name) < 2:
+                    return ExtractionConfidence.LOW
+                if len(name) > 100:
+                    return ExtractionConfidence.LOW
+                return ExtractionConfidence.HIGH
+
+        # Filing status validation
+        if entity_type == "filing_status":
+            valid_statuses = ["single", "married_filing_jointly", "married_filing_separately",
+                            "head_of_household", "qualifying_widow", "married", "hoh"]
+            status_lower = str(value).lower().replace(" ", "_")
+            if any(s in status_lower for s in valid_statuses):
+                return ExtractionConfidence.HIGH
+            return ExtractionConfidence.MEDIUM
+
+        # EIN validation
+        if entity_type == "ein":
+            if VALIDATORS_AVAILABLE:
+                is_valid, _ = validate_ein(str(value))
+                return ExtractionConfidence.HIGH if is_valid else ExtractionConfidence.LOW
+            else:
+                clean = str(value).replace("-", "").replace(" ", "")
+                return ExtractionConfidence.HIGH if len(clean) == 9 else ExtractionConfidence.LOW
+
+        # Default: return medium confidence for unvalidated fields
+        return ExtractionConfidence.MEDIUM
+
+    except Exception:
+        return ExtractionConfidence.UNCERTAIN
+
+
 @dataclass
 class ExtractedEntity:
     """A piece of information extracted from user input or documents."""
@@ -282,6 +385,17 @@ VALIDATION:
 - Dollar amounts must be non-negative for most fields
 - Filing status must match life situation
 
+RESPONSE STRUCTURE (Phase 2.1):
+- Line 1: Acknowledge/confirm extracted data
+- Lines 2-3: Relevant insight (if applicable)
+- Line 4: Single focused follow-up question
+- Keep under 150 words
+
+CONFIDENCE BEHAVIOR:
+- HIGH confidence: Apply data silently, acknowledge briefly
+- MEDIUM confidence: Confirm with user before proceeding
+- LOW/UNCERTAIN confidence: Ask user to verify explicitly before applying
+
 Keep responses conversational, friendly, and professional. Extract all structured data you can while maintaining natural dialogue."""
 
         self.messages = [{"role": "system", "content": self.system_prompt}]
@@ -350,9 +464,18 @@ Let's start with the basics. What's your first name?"""
         extracted_entities = self._extract_entities_with_ai(user_input)
 
         # Update tax return with extracted information
+        contradictions = []
         for entity in extracted_entities:
+            # Phase 1.5: Check for contradictions before applying
+            contradiction_warning = self._detect_contradictions(entity)
+            if contradiction_warning:
+                contradictions.append(contradiction_warning)
+
             self._apply_extracted_entity(entity)
             self.context.extraction_history.append(entity)
+
+        # Store contradictions for response generation
+        self._current_contradictions = contradictions
 
         # Calculate running tax estimate after each update
         self._calculate_running_estimate()
@@ -470,13 +593,32 @@ Let's start with the basics. What's your first name?"""
                 # Convert to ExtractedEntity objects
                 entities = []
                 for entity_data in result.get("entities", []):
+                    # Phase 2.2: Use validation-based confidence instead of AI-reported
+                    ai_confidence = ExtractionConfidence(entity_data["confidence"])
+                    validated_confidence = calculate_entity_confidence(
+                        entity_data["entity_type"],
+                        entity_data["value"]
+                    )
+                    # Use the lower of AI confidence and validation confidence
+                    confidence_priority = {
+                        ExtractionConfidence.HIGH: 4,
+                        ExtractionConfidence.MEDIUM: 3,
+                        ExtractionConfidence.LOW: 2,
+                        ExtractionConfidence.UNCERTAIN: 1
+                    }
+                    final_confidence = (
+                        validated_confidence
+                        if confidence_priority[validated_confidence] < confidence_priority[ai_confidence]
+                        else ai_confidence
+                    )
+
                     entity = ExtractedEntity(
                         entity_type=entity_data["entity_type"],
                         value=entity_data["value"],
-                        confidence=ExtractionConfidence(entity_data["confidence"]),
+                        confidence=final_confidence,
                         source="conversation",
                         context=entity_data.get("context"),
-                        needs_verification=(entity_data["confidence"] in ["low", "uncertain"])
+                        needs_verification=(final_confidence in [ExtractionConfidence.LOW, ExtractionConfidence.UNCERTAIN])
                     )
                     entities.append(entity)
 
@@ -601,10 +743,81 @@ Let's start with the basics. What's your first name?"""
 
         return entities
 
+    def _validate_before_apply(self, entity: ExtractedEntity) -> tuple:
+        """
+        Phase 2.3: Gate all data application through validation.
+
+        Cross-validates related fields (e.g., withholding < wages).
+
+        Args:
+            entity: The entity to validate
+
+        Returns:
+            (is_valid, error_message) tuple
+        """
+        entity_type = entity.entity_type
+        value = entity.value
+
+        try:
+            # SSN validation
+            if entity_type == "ssn":
+                if VALIDATORS_AVAILABLE:
+                    is_valid, error = validate_ssn(str(value))
+                    if not is_valid:
+                        return False, error
+                else:
+                    clean = str(value).replace("-", "").replace(" ", "")
+                    if len(clean) != 9:
+                        return False, "SSN must be 9 digits"
+
+            # Currency validations
+            if entity_type in ["w2_wages", "w2_federal_withholding", "mortgage_interest",
+                               "property_taxes", "charitable_cash"]:
+                try:
+                    val = float(str(value).replace(",", "").replace("$", ""))
+                    if val < 0:
+                        return False, f"{entity_type.replace('_', ' ')} cannot be negative"
+
+                    # Cross-validation: withholding should be less than wages
+                    if entity_type == "w2_federal_withholding" and self.tax_return:
+                        if self.tax_return.income.w2_forms:
+                            wages = self.tax_return.income.w2_forms[-1].wages
+                            if wages and val > wages:
+                                return False, f"Federal withholding (${val:,.0f}) cannot exceed wages (${wages:,.0f})"
+
+                    # Sanity check for unreasonable values
+                    if entity_type == "w2_wages" and val > 50000000:  # $50M
+                        return False, "Wages amount seems unusually high. Please verify."
+
+                except (ValueError, TypeError):
+                    return False, f"Invalid number format for {entity_type.replace('_', ' ')}"
+
+            # Name validation
+            if entity_type in ["first_name", "last_name"]:
+                name = str(value).strip()
+                if len(name) < 1:
+                    return False, f"{entity_type.replace('_', ' ').title()} is required"
+                if len(name) > 100:
+                    return False, f"{entity_type.replace('_', ' ').title()} is too long"
+
+            return True, None
+
+        except Exception as e:
+            return False, f"Validation error: {str(e)}"
+
     def _apply_extracted_entity(self, entity: ExtractedEntity):
         """Apply an extracted entity to the tax return with audit logging."""
         if not self.tax_return:
             self._initialize_tax_return()
+
+        # Phase 2.3: Validate before applying
+        is_valid, error_msg = self._validate_before_apply(entity)
+        if not is_valid:
+            # Add to pending clarifications instead of applying invalid data
+            clarification_msg = f"⚠️ {error_msg} - Please provide correct value for {entity.entity_type.replace('_', ' ')}"
+            if clarification_msg not in self.context.pending_clarifications:
+                self.context.pending_clarifications.append(clarification_msg)
+            return  # Don't apply invalid data
 
         # Convert confidence to float for audit
         confidence_map = {
@@ -615,6 +828,12 @@ Let's start with the basics. What's your first name?"""
         }
         confidence_score = confidence_map.get(entity.confidence, 0.5)
         source = entity.source if entity.source else "ai_chatbot"
+
+        # Phase 1.4: Add to pending_clarifications when LOW/UNCERTAIN confidence
+        if entity.confidence in [ExtractionConfidence.LOW, ExtractionConfidence.UNCERTAIN]:
+            clarification_msg = f"Please verify {entity.entity_type.replace('_', ' ')}: {entity.value}"
+            if clarification_msg not in self.context.pending_clarifications:
+                self.context.pending_clarifications.append(clarification_msg)
 
         try:
             # Personal info
@@ -1036,6 +1255,67 @@ Let's start with the basics. What's your first name?"""
         # Would apply fields from document analysis
         pass
 
+    def _detect_contradictions(self, new_entity: ExtractedEntity) -> Optional[str]:
+        """
+        Phase 1.5: Detect contradictions with previously extracted data.
+
+        Checks extraction_history for same entity_type with different value.
+        Flags numeric changes >10%, string changes.
+
+        Args:
+            new_entity: The newly extracted entity to check
+
+        Returns:
+            Warning message if contradiction detected, None otherwise
+        """
+        if not self.context.extraction_history:
+            return None
+
+        # Find previous extractions of the same entity type
+        previous_extractions = [
+            e for e in self.context.extraction_history
+            if e.entity_type == new_entity.entity_type and e != new_entity
+        ]
+
+        if not previous_extractions:
+            return None
+
+        # Get the most recent previous extraction
+        prev = previous_extractions[-1]
+
+        # Compare values
+        try:
+            # Handle numeric comparisons
+            if isinstance(new_entity.value, (int, float)) or isinstance(prev.value, (int, float)):
+                new_val = float(str(new_entity.value).replace(",", "").replace("$", ""))
+                old_val = float(str(prev.value).replace(",", "").replace("$", ""))
+
+                if old_val != 0:
+                    pct_change = abs(new_val - old_val) / abs(old_val) * 100
+                    if pct_change > 10:  # More than 10% change
+                        field_name = new_entity.entity_type.replace("_", " ")
+                        return (
+                            f"⚠️ I noticed a change in {field_name}: "
+                            f"${old_val:,.0f} → ${new_val:,.0f} ({pct_change:.0f}% change). "
+                            f"Which value is correct?"
+                        )
+
+            # Handle string comparisons
+            elif isinstance(new_entity.value, str) and isinstance(prev.value, str):
+                if new_entity.value.lower() != prev.value.lower():
+                    field_name = new_entity.entity_type.replace("_", " ")
+                    return (
+                        f"⚠️ I noticed a change in {field_name}: "
+                        f"'{prev.value}' → '{new_entity.value}'. "
+                        f"Which is correct?"
+                    )
+
+        except (ValueError, TypeError, AttributeError):
+            # Can't compare, skip contradiction detection
+            pass
+
+        return None
+
     def _detect_patterns_and_suggest(self):
         """
         Detect patterns in conversation and suggest proactive questions.
@@ -1181,8 +1461,16 @@ Let's start with the basics. What's your first name?"""
                     for entity in low_confidence_items:
                         confidence_warnings += f"⚠️ {entity.entity_type}: {entity.value} ({entity.confidence.value} confidence - ask user to verify)\n"
 
+                # Phase 1.4: Include pending clarifications in system prompt
+                pending_clarifications_text = ""
+                if self.context.pending_clarifications:
+                    pending_clarifications_text = "\n\nPENDING CLARIFICATIONS (address these with user):\n"
+                    for clarification in self.context.pending_clarifications[:3]:  # Top 3
+                        pending_clarifications_text += f"❓ {clarification}\n"
+
                 # Add recent conversation context to system prompt
                 system_prompt += f"""
+{pending_clarifications_text}
 
 RECENT CONVERSATION CONTEXT:
 Last question you asked: {last_assistant_msg[:200] if last_assistant_msg else "None"}
@@ -1199,6 +1487,7 @@ CRITICAL: If you extracted information with LOW or UNCERTAIN confidence, politel
 - "Just to confirm, you mentioned [value] - is that correct?"
 - "I want to make sure I have this right: [value]?"
 - "Let me verify: did you say [value]?"
+{self._get_personalization_context()}
 """
             else:
                 # Fallback to basic context if CPA Intelligence not available
@@ -1214,7 +1503,15 @@ CRITICAL: If you extracted information with LOW or UNCERTAIN confidence, politel
                     for entity in low_confidence_items:
                         confidence_warnings += f"⚠️ {entity.entity_type}: {entity.value} ({entity.confidence.value} confidence)\n"
 
+                # Phase 1.4: Include pending clarifications
+                pending_clarifications_text = ""
+                if self.context.pending_clarifications:
+                    pending_clarifications_text = "\n\nPENDING CLARIFICATIONS (address these):\n"
+                    for clarification in self.context.pending_clarifications[:3]:
+                        pending_clarifications_text += f"❓ {clarification}\n"
+
                 system_prompt = f"""Generate a helpful, natural response.
+{pending_clarifications_text}
 
 RECENT CONVERSATION CONTEXT:
 Last question you asked: {last_assistant_msg[:200] if last_assistant_msg else "None"}
@@ -1247,6 +1544,12 @@ Keep responses conversational, friendly, and professional. Always acknowledge wh
 
             response_text = response.choices[0].message.content
 
+            # Phase 1.5: Prepend contradiction warnings if any
+            if hasattr(self, '_current_contradictions') and self._current_contradictions:
+                contradiction_text = "\n".join(self._current_contradictions)
+                response_text = f"{contradiction_text}\n\n{response_text}"
+                self._current_contradictions = []  # Clear after use
+
             # Proactively detect and show tax-saving opportunities
             if self.should_show_opportunities():
                 opportunities_text = self.get_opportunities_for_chat(limit=3)
@@ -1255,7 +1558,116 @@ Keep responses conversational, friendly, and professional. Always acknowledge wh
 
             return response_text
         except Exception as e:
-            return f"I understand. Let me make sure I have this right... (Error: {str(e)[:50]})"
+            # Phase 2.4: User-friendly error messages
+            return self._get_friendly_error_message(str(e))
+
+    def _get_friendly_error_message(self, error: str) -> str:
+        """
+        Phase 2.4: Convert technical errors to user-friendly messages.
+
+        Maps common error types to helpful, non-technical responses.
+        """
+        ERROR_MESSAGES = {
+            "timeout": "I'm taking a moment to think. Please wait or try rephrasing your question.",
+            "rate_limit": "I'm receiving a lot of requests right now. Let me try again in a moment.",
+            "api_error": "I'm having trouble processing that. Let's try again - could you rephrase?",
+            "connection": "I'm having trouble connecting. Please check your internet and try again.",
+            "validation": "I couldn't understand that value. Could you rephrase or provide it differently?",
+            "invalid": "That doesn't look quite right. Could you double-check and try again?",
+            "openai": "I'm having a brief technical difficulty. Let me try a different approach.",
+            "json": "I had trouble understanding your response. Could you rephrase it?",
+            "key": "There's a configuration issue on my end. Please try again shortly.",
+        }
+
+        error_lower = error.lower()
+
+        # Match error to friendly message
+        for key, message in ERROR_MESSAGES.items():
+            if key in error_lower:
+                return message
+
+        # Default friendly message
+        return "I understand. Let me make sure I have this right - could you tell me more about that?"
+
+    def _get_personalization_context(self) -> str:
+        """
+        Phase 2.5: Generate personalized context for responses.
+
+        Uses taxpayer name, adjusts terminology for business owners,
+        mentions phase-outs for high income, and is concise after 10+ messages.
+        """
+        context_parts = []
+
+        # Use taxpayer name when available
+        taxpayer_name = ""
+        if self.tax_return and self.tax_return.taxpayer:
+            first_name = self.tax_return.taxpayer.first_name
+            if first_name:
+                taxpayer_name = first_name
+                context_parts.append(f"Address the user as {first_name}.")
+
+        # Adjust for business owners
+        is_business_owner = (
+            self.tax_return and
+            self.tax_return.income and
+            (self.tax_return.income.business_income > 0 or
+             self.tax_return.income.self_employment_income > 0)
+        )
+        if is_business_owner:
+            context_parts.append(
+                "User is a business owner/self-employed. "
+                "Use business terminology: 'deductible business expenses', 'Schedule C', 'estimated taxes', 'QBI deduction'."
+            )
+
+        # High income phase-out mentions
+        total_income = 0
+        if self.tax_return and self.tax_return.income:
+            if self.tax_return.income.w2_forms:
+                total_income = sum(w2.wages for w2 in self.tax_return.income.w2_forms)
+            total_income += self.tax_return.income.business_income + self.tax_return.income.other_income
+
+        if total_income > 200000:
+            context_parts.append(
+                "User has high income (>$200K). "
+                "Mention potential phase-outs: child tax credit, education credits, IRA deductions, "
+                "and the 3.8% Net Investment Income Tax if applicable."
+            )
+        elif total_income > 400000:
+            context_parts.append(
+                "User has very high income (>$400K). "
+                "Be aware of top bracket (37%), NIIT, and FICA additional Medicare tax. "
+                "Emphasize tax planning strategies."
+            )
+
+        # Be concise after many messages
+        message_count = len(self.messages)
+        if message_count > 20:
+            context_parts.append(
+                "This is a longer conversation (20+ messages). "
+                "Be more concise. Skip pleasantries. Get straight to the point."
+            )
+        elif message_count > 10:
+            context_parts.append(
+                "Keep responses brief. User has been engaged for a while."
+            )
+
+        # Mention filing status implications
+        if self.tax_return and self.tax_return.taxpayer.filing_status:
+            status = self.tax_return.taxpayer.filing_status
+            if status == FilingStatus.HEAD_OF_HOUSEHOLD:
+                context_parts.append(
+                    "User is Head of Household - remind about qualifying person requirements if relevant."
+                )
+            elif status == FilingStatus.MARRIED_SEPARATE:
+                context_parts.append(
+                    "User is Married Filing Separately - note this has tax disadvantages "
+                    "(no EITC, lower IRA limits, etc.). Only recommend if they have a reason."
+                )
+
+        if not context_parts:
+            return ""
+
+        return "\n\nPERSONALIZATION:\n" + "\n".join(f"• {p}" for p in context_parts)
 
     def get_extracted_summary(self) -> Dict[str, Any]:
         """Get a summary of all extracted information with confidence levels."""

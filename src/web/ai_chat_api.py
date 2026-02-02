@@ -516,6 +516,16 @@ async def process_chat_message(request: ChatMessageRequest):
         suggestions = _generate_suggestions(current_phase, extracted_data)
         progress_update = _calculate_progress(current_phase, extracted_data)
 
+        # Wire agent's suggested questions to response (Phase 1.2)
+        if hasattr(agent, 'context') and hasattr(agent.context, 'suggested_questions'):
+            suggested_questions = agent.context.suggested_questions[:2]  # Take top 2
+            if suggested_questions and ai_response:
+                # Append suggested questions to the response
+                questions_text = "\n\n💡 **You might also want to share:**\n"
+                for q in suggested_questions:
+                    questions_text += f"• {q}\n"
+                ai_response += questions_text
+
         # Save updated session (database or in-memory)
         # Prune history before saving to prevent storage bloat
         try:
@@ -753,6 +763,21 @@ async def upload_document(
         else:
             unified_session.extracted_data.update(extracted_data)
 
+        # Phase 1.6: Document-conversation integration - add system message
+        fields_summary = ", ".join([f"{k}: {v}" for k, v in list(extracted_data.items())[:5]])
+        doc_system_message = {
+            "role": "system",
+            "content": f"User uploaded {document_type.upper()}. Extracted: {fields_summary}",
+            "timestamp": datetime.now().isoformat(),
+            "is_document_context": True
+        }
+
+        # Add document context to conversation history
+        if isinstance(unified_session, dict):
+            unified_session.setdefault("conversation_history", []).append(doc_system_message)
+        elif hasattr(unified_session, 'add_message'):
+            unified_session.add_message("system", doc_system_message["content"])
+
         # Save updated session
         try:
             if persistence and not use_memory_fallback:
@@ -978,6 +1003,25 @@ async def analyze_document(
                     persistence.save_unified_session(session)
             elif session_id in _chat_sessions:
                 _chat_sessions[session_id].setdefault("extracted_data", {}).update(extracted_data)
+
+            # Phase 1.6: Document-conversation integration
+            # Append system message to conversation_history about the document upload
+            fields_summary = ", ".join([f"{k}: {v}" for k, v in list(extracted_data.items())[:5]])
+            doc_system_message = {
+                "role": "system",
+                "content": f"User uploaded {document_type.upper()}. Extracted: {fields_summary}",
+                "timestamp": datetime.now().isoformat(),
+                "is_document_context": True
+            }
+
+            # Add to session conversation history
+            if persistence and session:
+                if hasattr(session, 'add_message'):
+                    session.add_message("system", doc_system_message["content"])
+                    persistence.save_unified_session(session)
+            elif session_id in _chat_sessions:
+                _chat_sessions[session_id].setdefault("conversation_history", []).append(doc_system_message)
+
         except Exception as save_error:
             logger.warning(f"[{request_id}] Failed to save to session: {save_error}")
 
@@ -1270,16 +1314,225 @@ def _create_simple_response(user_message: str) -> ChatMessageResponse:
 # ============================================================================
 
 def _determine_phase(extracted_data: Dict[str, Any]) -> str:
-    """Determine current phase of tax preparation"""
-    if not extracted_data.get("first_name") or not extracted_data.get("ssn"):
-        return "personal_info"
-    if not extracted_data.get("w2_wages") and not extracted_data.get("income_1099"):
-        return "income"
-    if not extracted_data.get("deductions_confirmed"):
-        return "deductions"
+    """Determine current phase of tax preparation based on quality scoring"""
+    phase_result = _determine_phase_with_quality(extracted_data)
+    return phase_result["phase"]
+
+
+def _determine_phase_with_quality(extracted_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Determine current phase with quality scoring.
+
+    Returns phase name + quality metrics for UI feedback.
+    Requires 75% quality threshold before advancing phases.
+    """
+    # Import validation helpers
+    try:
+        from web.validation_helpers import validate_ssn, validate_currency, validate_name
+        validators_available = True
+    except ImportError:
+        validators_available = False
+
+    QUALITY_THRESHOLD = 75  # Require 75% quality to advance
+
+    # Phase 1: Personal Info - validate name, ssn, filing_status
+    personal_quality = _calculate_personal_info_quality(extracted_data, validators_available)
+    if personal_quality["score"] < QUALITY_THRESHOLD:
+        return {
+            "phase": "personal_info",
+            "quality": personal_quality,
+            "message": personal_quality.get("message", "Please complete your personal information")
+        }
+
+    # Phase 2: Income - validate wages, withholding
+    income_quality = _calculate_income_quality(extracted_data, validators_available)
+    if income_quality["score"] < QUALITY_THRESHOLD:
+        return {
+            "phase": "income",
+            "quality": income_quality,
+            "message": income_quality.get("message", "Please add your income information")
+        }
+
+    # Phase 3: Deductions
+    deductions_quality = _calculate_deductions_quality(extracted_data)
+    if not extracted_data.get("deductions_confirmed") and deductions_quality["score"] < QUALITY_THRESHOLD:
+        return {
+            "phase": "deductions",
+            "quality": deductions_quality,
+            "message": "Review and confirm your deductions"
+        }
+
+    # Phase 4: Review
     if not extracted_data.get("review_confirmed"):
-        return "review"
-    return "ready_to_file"
+        return {
+            "phase": "review",
+            "quality": {"score": 90, "fields": {}},
+            "message": "Please review all your information"
+        }
+
+    return {
+        "phase": "ready_to_file",
+        "quality": {"score": 100, "fields": {}},
+        "message": "Ready to file!"
+    }
+
+
+def _calculate_personal_info_quality(extracted_data: Dict[str, Any], validators_available: bool) -> Dict[str, Any]:
+    """Calculate quality score for personal info phase (0-100)"""
+    fields = {}
+    total_weight = 0
+    weighted_score = 0
+
+    # First name (weight: 20)
+    first_name = extracted_data.get("first_name", "")
+    if first_name:
+        if validators_available:
+            try:
+                from web.validation_helpers import validate_name
+                is_valid, _ = validate_name(first_name, "First name")
+                fields["first_name"] = {"value": first_name, "valid": is_valid, "score": 100 if is_valid else 50}
+            except:
+                fields["first_name"] = {"value": first_name, "valid": True, "score": 100}
+        else:
+            fields["first_name"] = {"value": first_name, "valid": len(first_name) >= 2, "score": 100 if len(first_name) >= 2 else 50}
+        weighted_score += fields["first_name"]["score"] * 20
+    else:
+        fields["first_name"] = {"value": None, "valid": False, "score": 0}
+    total_weight += 20
+
+    # Last name (weight: 20)
+    last_name = extracted_data.get("last_name", "")
+    if last_name:
+        fields["last_name"] = {"value": last_name, "valid": len(last_name) >= 2, "score": 100 if len(last_name) >= 2 else 50}
+        weighted_score += fields["last_name"]["score"] * 20
+    else:
+        fields["last_name"] = {"value": None, "valid": False, "score": 0}
+    total_weight += 20
+
+    # SSN (weight: 35)
+    ssn = extracted_data.get("ssn", "")
+    if ssn:
+        if validators_available:
+            try:
+                from web.validation_helpers import validate_ssn
+                is_valid, error = validate_ssn(ssn)
+                fields["ssn"] = {"value": f"***-**-{ssn[-4:]}" if len(ssn) >= 4 else "***", "valid": is_valid, "score": 100 if is_valid else 30}
+            except:
+                fields["ssn"] = {"value": "***", "valid": True, "score": 80}
+        else:
+            fields["ssn"] = {"value": "***", "valid": len(ssn.replace("-", "")) == 9, "score": 100 if len(ssn.replace("-", "")) == 9 else 30}
+        weighted_score += fields["ssn"]["score"] * 35
+    else:
+        fields["ssn"] = {"value": None, "valid": False, "score": 0}
+    total_weight += 35
+
+    # Filing status (weight: 25)
+    filing_status = extracted_data.get("filing_status", "")
+    valid_statuses = ["single", "married_filing_jointly", "married_filing_separately", "head_of_household", "qualifying_widow"]
+    if filing_status:
+        is_valid = filing_status.lower().replace(" ", "_") in valid_statuses or any(s in filing_status.lower() for s in ["single", "married", "head", "widow"])
+        fields["filing_status"] = {"value": filing_status, "valid": is_valid, "score": 100 if is_valid else 50}
+        weighted_score += fields["filing_status"]["score"] * 25
+    else:
+        fields["filing_status"] = {"value": None, "valid": False, "score": 0}
+    total_weight += 25
+
+    final_score = int(weighted_score / total_weight) if total_weight > 0 else 0
+
+    # Generate helpful message
+    missing = [k for k, v in fields.items() if not v["valid"]]
+    message = None
+    if missing:
+        message = f"Please provide: {', '.join(f.replace('_', ' ') for f in missing)}"
+
+    return {"score": final_score, "fields": fields, "message": message}
+
+
+def _calculate_income_quality(extracted_data: Dict[str, Any], validators_available: bool) -> Dict[str, Any]:
+    """Calculate quality score for income phase (0-100)"""
+    fields = {}
+    total_weight = 0
+    weighted_score = 0
+
+    # W2 Wages (weight: 50)
+    w2_wages = extracted_data.get("w2_wages") or extracted_data.get("wages")
+    if w2_wages is not None:
+        try:
+            wages_val = float(str(w2_wages).replace(",", "").replace("$", ""))
+            is_valid = wages_val >= 0 and wages_val < 10000000  # Reasonable range
+            fields["w2_wages"] = {"value": wages_val, "valid": is_valid, "score": 100 if is_valid else 50}
+            weighted_score += fields["w2_wages"]["score"] * 50
+        except (ValueError, TypeError):
+            fields["w2_wages"] = {"value": w2_wages, "valid": False, "score": 30}
+            weighted_score += 30 * 50
+    else:
+        # Check for 1099 income as alternative
+        income_1099 = extracted_data.get("income_1099") or extracted_data.get("self_employment_income")
+        if income_1099:
+            fields["w2_wages"] = {"value": None, "valid": True, "score": 80}  # 1099 is acceptable
+            weighted_score += 80 * 50
+        else:
+            fields["w2_wages"] = {"value": None, "valid": False, "score": 0}
+    total_weight += 50
+
+    # Federal Withheld (weight: 30)
+    fed_withheld = extracted_data.get("federal_withheld") or extracted_data.get("federal_tax_withheld")
+    if fed_withheld is not None:
+        try:
+            withheld_val = float(str(fed_withheld).replace(",", "").replace("$", ""))
+            is_valid = withheld_val >= 0
+            fields["federal_withheld"] = {"value": withheld_val, "valid": is_valid, "score": 100 if is_valid else 50}
+            weighted_score += fields["federal_withheld"]["score"] * 30
+        except (ValueError, TypeError):
+            fields["federal_withheld"] = {"value": fed_withheld, "valid": False, "score": 30}
+            weighted_score += 30 * 30
+    else:
+        fields["federal_withheld"] = {"value": None, "valid": False, "score": 0}
+    total_weight += 30
+
+    # Employer info (weight: 20) - nice to have
+    employer = extracted_data.get("employer_name") or extracted_data.get("employer")
+    if employer:
+        fields["employer_name"] = {"value": employer, "valid": True, "score": 100}
+        weighted_score += 100 * 20
+    else:
+        fields["employer_name"] = {"value": None, "valid": False, "score": 0}
+    total_weight += 20
+
+    final_score = int(weighted_score / total_weight) if total_weight > 0 else 0
+
+    missing = [k for k, v in fields.items() if not v["valid"] and k != "employer_name"]
+    message = None
+    if missing:
+        message = f"Please provide: {', '.join(f.replace('_', ' ') for f in missing)}"
+
+    return {"score": final_score, "fields": fields, "message": message}
+
+
+def _calculate_deductions_quality(extracted_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Calculate quality score for deductions phase (0-100)"""
+    fields = {}
+
+    # Check if user has chosen standard vs itemized
+    if extracted_data.get("deduction_type") == "standard":
+        return {"score": 100, "fields": {"deduction_type": {"value": "standard", "valid": True, "score": 100}}}
+
+    # Check for common itemized deductions
+    deductions_found = 0
+    deduction_fields = ["mortgage_interest", "property_taxes", "charitable_contributions",
+                        "medical_expenses", "state_tax", "student_loan_interest"]
+
+    for field in deduction_fields:
+        val = extracted_data.get(field)
+        if val is not None:
+            deductions_found += 1
+            fields[field] = {"value": val, "valid": True, "score": 100}
+
+    # If no deductions specified, assume standard deduction (which is fine)
+    if deductions_found == 0:
+        return {"score": 75, "fields": {}, "message": "Using standard deduction by default"}
+
+    return {"score": min(100, 60 + deductions_found * 10), "fields": fields}
 
 
 def _generate_quick_actions(phase: str, extracted_data: Dict[str, Any]) -> List[QuickAction]:

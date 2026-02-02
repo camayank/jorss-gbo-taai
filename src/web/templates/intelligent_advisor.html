@@ -307,6 +307,349 @@
       pointer-events: none;
     }
 
+    /* Phase 3.2: Mobile Quick Actions Overflow */
+    .quick-action-btn {
+      max-width: 100%;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    @media (max-width: 480px) {
+      .quick-actions {
+        flex-direction: column;
+        gap: 8px;
+      }
+      .quick-actions.many {
+        flex-direction: row;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 8px;
+      }
+      .quick-actions.many .quick-action {
+        scroll-snap-align: start;
+        flex-shrink: 0;
+      }
+    }
+
+    /* Phase 3.6: Safe Area Support for Notched Devices */
+    .header, .chat-header {
+      padding-top: max(20px, env(safe-area-inset-top));
+    }
+
+    .chat-input-area, .input-area {
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+    }
+
+    /* Upload Progress Styles */
+    .upload-progress-container {
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin: 12px 0;
+    }
+
+    .upload-progress-info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .upload-filename {
+      color: #4a5568;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 200px;
+    }
+
+    .upload-percent {
+      color: #2b6cb0;
+      font-weight: 600;
+    }
+
+    .upload-progress-bar {
+      background: #e2e8f0;
+      border-radius: 4px;
+      height: 6px;
+      overflow: hidden;
+    }
+
+    .upload-progress-fill {
+      background: linear-gradient(90deg, #2b6cb0, #4299e1);
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.2s ease;
+    }
+
+    /* Offline Banner Styles */
+    .offline-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #c69214;
+      color: white;
+      padding: 10px 20px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 9999;
+      animation: slideDown 0.3s ease;
+    }
+
+    .offline-banner.fade-out {
+      animation: slideUp 0.3s ease forwards;
+    }
+
+    @keyframes slideDown {
+      from { transform: translateY(-100%); }
+      to { transform: translateY(0); }
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(0); }
+      to { transform: translateY(-100%); }
+    }
+
+    /* Actionable Error Styles */
+    .actionable-error {
+      background: #fff5f5;
+      border: 1px solid #fc8181;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 12px 0;
+    }
+
+    .error-message {
+      color: #c53030;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    .error-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .error-action-btn {
+      background: white;
+      border: 1px solid #c53030;
+      color: #c53030;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .error-action-btn:hover {
+      background: #c53030;
+      color: white;
+    }
+
+    /* File Preview Modal Styles */
+    .file-preview-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9998;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .file-preview-modal.visible {
+      opacity: 1;
+    }
+
+    .file-preview-content {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow: auto;
+      position: relative;
+    }
+
+    .file-preview-content h3 {
+      margin: 0 0 16px 0;
+      color: #1a365d;
+    }
+
+    .close-preview-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #718096;
+    }
+
+    .preview-container {
+      background: #f7fafc;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .image-preview {
+      max-width: 100%;
+      max-height: 300px;
+      border-radius: 4px;
+    }
+
+    .pdf-preview {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pdf-icon {
+      font-size: 48px;
+    }
+
+    .file-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #718096;
+      margin-bottom: 16px;
+    }
+
+    .preview-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .preview-cancel {
+      background: #e2e8f0;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .preview-confirm {
+      background: #1a365d;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    /* Camera Modal Styles */
+    .camera-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .camera-modal.visible {
+      opacity: 1;
+    }
+
+    .camera-content {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 600px;
+      width: 95%;
+      position: relative;
+    }
+
+    .camera-content h3 {
+      margin: 0 0 16px 0;
+      color: #1a365d;
+    }
+
+    .close-camera-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #718096;
+    }
+
+    .camera-container {
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .camera-container video,
+    .camera-container img {
+      width: 100%;
+      display: block;
+    }
+
+    .capture-preview {
+      background: #1a1a1a;
+    }
+
+    .camera-controls {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .camera-btn {
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .camera-btn.capture {
+      background: #c53030;
+      color: white;
+    }
+
+    .camera-btn.retake {
+      background: #e2e8f0;
+      color: #1a365d;
+    }
+
+    .camera-btn.use {
+      background: #276749;
+      color: white;
+    }
+
     .quick-action.primary {
       background: #1a365d;
       border: none;
@@ -12008,6 +12351,563 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           }, 300);
         });
       }
+    }
+
+    // ===================================================================
+    // PHASE 3: UX/VISUAL FLOW IMPROVEMENTS
+    // ===================================================================
+
+    // Phase 3.1: Upload Progress Percentage with XMLHttpRequest
+    async function uploadFileWithProgress(file) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('session_id', sessionId);
+
+        // Create progress UI
+        const progressContainer = document.createElement('div');
+        progressContainer.className = 'upload-progress-container';
+        progressContainer.innerHTML = `
+          <div class="upload-progress-info">
+            <span class="upload-filename">${file.name}</span>
+            <span class="upload-percent">0%</span>
+          </div>
+          <div class="upload-progress-bar">
+            <div class="upload-progress-fill" style="width: 0%"></div>
+          </div>
+        `;
+        const messagesContainer = document.getElementById('messages');
+        if (messagesContainer) {
+          messagesContainer.appendChild(progressContainer);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        const progressFill = progressContainer.querySelector('.upload-progress-fill');
+        const progressPercent = progressContainer.querySelector('.upload-percent');
+
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            progressFill.style.width = percent + '%';
+            progressPercent.textContent = percent + '%';
+          }
+        });
+
+        xhr.onload = () => {
+          progressContainer.remove();
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch (e) {
+              reject(new Error('Invalid response'));
+            }
+          } else {
+            reject(new Error(`Upload failed: ${xhr.status}`));
+          }
+        };
+
+        xhr.onerror = () => {
+          progressContainer.remove();
+          reject(new Error('Network error'));
+        };
+
+        xhr.open('POST', '/api/ai-chat/analyze-document');
+        xhr.send(formData);
+      });
+    }
+
+    // Phase 3.3: Enhanced Keyboard Navigation
+    function initEnhancedKeyboardNav() {
+      document.addEventListener('keydown', (e) => {
+        // Escape: Close modals
+        if (e.key === 'Escape') {
+          closeUploadOptions();
+          closeFilePreview();
+          const modals = document.querySelectorAll('.modal-overlay, .upload-options-modal.visible');
+          modals.forEach(m => m.remove());
+        }
+
+        // Tab: Navigate quick actions -> input
+        if (e.key === 'Tab') {
+          const quickActions = document.querySelectorAll('.quick-action:not(:disabled)');
+          const input = document.getElementById('userInput');
+          if (quickActions.length > 0 && document.activeElement === input && !e.shiftKey) {
+            e.preventDefault();
+            quickActions[0].focus();
+          }
+        }
+
+        // Arrow keys for quick actions
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          const quickActions = Array.from(document.querySelectorAll('.quick-action:not(:disabled)'));
+          const currentIdx = quickActions.indexOf(document.activeElement);
+          if (currentIdx >= 0) {
+            e.preventDefault();
+            const newIdx = e.key === 'ArrowRight'
+              ? (currentIdx + 1) % quickActions.length
+              : (currentIdx - 1 + quickActions.length) % quickActions.length;
+            quickActions[newIdx].focus();
+          }
+        }
+
+        // Enter: Select focused action
+        if (e.key === 'Enter' && document.activeElement.classList.contains('quick-action')) {
+          e.preventDefault();
+          document.activeElement.click();
+        }
+      });
+    }
+    initEnhancedKeyboardNav();
+
+    // Phase 3.4: Actionable Error Messages
+    const ERROR_ACTIONS = {
+      network: {
+        message: "Connection lost. Please check your internet.",
+        actions: [
+          { label: "Retry", action: () => retryLastAction() },
+          { label: "Work Offline", action: () => enableOfflineMode() }
+        ]
+      },
+      rate_limit: {
+        message: "Too many requests. Please wait a moment.",
+        actions: [
+          { label: "Wait 30s", action: () => showCountdown(30) }
+        ]
+      },
+      upload_failed: {
+        message: "Upload failed.",
+        actions: [
+          { label: "Retry", action: () => retryLastUpload() },
+          { label: "Try smaller file", action: () => showFileSizeHint() }
+        ]
+      },
+      timeout: {
+        message: "Request timed out.",
+        actions: [
+          { label: "Retry", action: () => retryLastAction() }
+        ]
+      }
+    };
+
+    let lastAction = null;
+    let lastUploadFile = null;
+
+    function showActionableError(errorType, customMessage) {
+      const errorConfig = ERROR_ACTIONS[errorType] || {
+        message: customMessage || "Something went wrong.",
+        actions: [{ label: "Retry", action: () => retryLastAction() }]
+      };
+
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'actionable-error';
+      errorDiv.innerHTML = `
+        <div class="error-message">${errorConfig.message}</div>
+        <div class="error-actions">
+          ${errorConfig.actions.map((a, i) =>
+            `<button class="error-action-btn" data-idx="${i}">${a.label}</button>`
+          ).join('')}
+        </div>
+      `;
+
+      errorConfig.actions.forEach((a, i) => {
+        const btn = errorDiv.querySelector(`[data-idx="${i}"]`);
+        if (btn) btn.onclick = a.action;
+      });
+
+      const messages = document.getElementById('messages');
+      if (messages) {
+        messages.appendChild(errorDiv);
+        messages.scrollTop = messages.scrollHeight;
+      }
+    }
+
+    function retryLastAction() {
+      if (lastAction) lastAction();
+    }
+
+    function retryLastUpload() {
+      if (lastUploadFile) {
+        handleValidatedUpload(lastUploadFile);
+      }
+    }
+
+    function showCountdown(seconds) {
+      showToast(`Please wait ${seconds} seconds...`, 'info');
+      setTimeout(() => {
+        showToast('You can try again now', 'success');
+      }, seconds * 1000);
+    }
+
+    function showFileSizeHint() {
+      showToast('Try a file under 10MB, or compress images before uploading', 'info');
+    }
+
+    function enableOfflineMode() {
+      showToast('Offline mode enabled. Your data will be saved locally.', 'info');
+    }
+
+    // Phase 3.5: Offline Detection
+    let isOnline = navigator.onLine;
+    let offlineQueue = [];
+
+    function showOfflineBanner() {
+      if (document.getElementById('offlineBanner')) return;
+      const banner = document.createElement('div');
+      banner.id = 'offlineBanner';
+      banner.className = 'offline-banner';
+      banner.innerHTML = `
+        <span>📡 You're offline. Messages will be sent when connection is restored.</span>
+      `;
+      document.body.prepend(banner);
+    }
+
+    function hideOfflineBanner() {
+      const banner = document.getElementById('offlineBanner');
+      if (banner) {
+        banner.classList.add('fade-out');
+        setTimeout(() => banner.remove(), 300);
+      }
+    }
+
+    function processOfflineQueue() {
+      if (offlineQueue.length > 0 && navigator.onLine) {
+        showToast(`Sending ${offlineQueue.length} queued message(s)...`, 'info');
+        offlineQueue.forEach(msg => {
+          processAIResponse(msg);
+        });
+        offlineQueue = [];
+      }
+    }
+
+    window.addEventListener('offline', () => {
+      isOnline = false;
+      showOfflineBanner();
+    });
+
+    window.addEventListener('online', () => {
+      isOnline = true;
+      hideOfflineBanner();
+      processOfflineQueue();
+    });
+
+    // ===================================================================
+    // PHASE 4: DOCUMENT HANDLING IMPROVEMENTS
+    // ===================================================================
+
+    // Phase 4.1: Client-Side File Validation
+    function validateFile(file) {
+      const errors = [];
+      const maxSize = 50 * 1024 * 1024; // 50MB
+      const minSize = 1024; // 1KB
+
+      if (file.size > maxSize) {
+        errors.push(`File exceeds 50MB limit (${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+      }
+
+      if (file.size < minSize) {
+        errors.push("File too small - may be corrupted");
+      }
+
+      const ext = file.name.split('.').pop().toLowerCase();
+      const allowedExts = ['pdf', 'png', 'jpg', 'jpeg', 'heic', 'gif', 'webp'];
+      if (!allowedExts.includes(ext)) {
+        errors.push(`Unsupported file type: .${ext}. Allowed: PDF, PNG, JPG, HEIC`);
+      }
+
+      // Check MIME type
+      const allowedMimes = [
+        'application/pdf',
+        'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/heic'
+      ];
+      if (file.type && !allowedMimes.includes(file.type)) {
+        errors.push(`Invalid file format: ${file.type}`);
+      }
+
+      return {
+        isValid: errors.length === 0,
+        errors: errors
+      };
+    }
+
+    // Phase 4.2: File Preview Before Upload
+    let pendingUploadFile = null;
+
+    function showFilePreview(file) {
+      const validation = validateFile(file);
+      if (!validation.isValid) {
+        showToast(validation.errors[0], 'error');
+        return;
+      }
+
+      pendingUploadFile = file;
+      lastUploadFile = file;
+
+      const modal = document.createElement('div');
+      modal.className = 'file-preview-modal';
+      modal.id = 'filePreviewModal';
+
+      const isPDF = file.type === 'application/pdf';
+
+      modal.innerHTML = `
+        <div class="file-preview-content">
+          <button class="close-preview-btn" onclick="closeFilePreview()">&times;</button>
+          <h3>📄 Confirm Upload</h3>
+          <div class="preview-container">
+            ${isPDF
+              ? `<div class="pdf-preview"><span class="pdf-icon">📑</span><span>${file.name}</span></div>`
+              : `<img id="imagePreview" class="image-preview" alt="Preview" />`
+            }
+          </div>
+          <div class="file-info">
+            <span>${file.name}</span>
+            <span>${(file.size / 1024).toFixed(1)} KB</span>
+          </div>
+          <div class="preview-actions">
+            <button class="preview-cancel" onclick="closeFilePreview()">Cancel</button>
+            <button class="preview-confirm" onclick="confirmUpload()">Upload</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+
+      // Load image preview
+      if (!isPDF) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = document.getElementById('imagePreview');
+          if (img) img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+
+      requestAnimationFrame(() => modal.classList.add('visible'));
+    }
+
+    function closeFilePreview() {
+      const modal = document.getElementById('filePreviewModal');
+      if (modal) {
+        modal.classList.remove('visible');
+        setTimeout(() => modal.remove(), 300);
+      }
+      pendingUploadFile = null;
+    }
+
+    function confirmUpload() {
+      if (pendingUploadFile) {
+        handleValidatedUpload(pendingUploadFile);
+        closeFilePreview();
+      }
+    }
+
+    // Phase 4.3: Parallel Uploads with Progress
+    async function uploadFilesParallel(files) {
+      const fileArray = Array.from(files);
+      const validated = fileArray.filter(f => validateFile(f).isValid);
+      const invalid = fileArray.filter(f => !validateFile(f).isValid);
+
+      if (invalid.length > 0) {
+        showToast(`${invalid.length} file(s) skipped due to validation errors`, 'warning');
+      }
+
+      if (validated.length === 0) {
+        showToast('No valid files to upload', 'error');
+        return;
+      }
+
+      const results = await Promise.allSettled(
+        validated.map(f => uploadWithRetry(f))
+      );
+
+      const succeeded = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+
+      if (succeeded > 0) {
+        showToast(`Uploaded ${succeeded} of ${validated.length} file(s)`, 'success');
+      }
+      if (failed > 0) {
+        showToast(`${failed} file(s) failed to upload`, 'error');
+      }
+
+      return results;
+    }
+
+    // Phase 4.4: Retry Mechanism with Exponential Backoff
+    async function uploadWithRetry(file, maxRetries = 3) {
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          return await uploadFileWithProgress(file);
+        } catch (e) {
+          console.warn(`Upload attempt ${i + 1} failed:`, e.message);
+          if (i === maxRetries - 1) {
+            showActionableError('upload_failed');
+            throw e;
+          }
+          // Exponential backoff: 1s, 2s, 4s
+          await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i)));
+        }
+      }
+    }
+
+    async function handleValidatedUpload(file) {
+      addMessage('user', `Uploading: ${file.name}`);
+      showTyping();
+
+      try {
+        const data = await uploadWithRetry(file);
+        hideTyping();
+
+        addMessage('ai', data.ai_response, data.quick_actions || []);
+
+        if (data.extracted_data) {
+          extractedData = { ...extractedData, ...data.extracted_data };
+          markUnsaved();
+        }
+
+        updateProgress(data.completion_percentage || 0);
+        updateStats(data.extracted_summary || {});
+        updatePhaseFromData();
+      } catch (error) {
+        hideTyping();
+        // Error already shown by uploadWithRetry
+      }
+    }
+
+    // Phase 4.5: Camera Preview Before Capture
+    const PhotoCaptureEnhanced = {
+      stream: null,
+      videoElement: null,
+      previewCanvas: null,
+      capturedImage: null,
+
+      open: function() {
+        const modal = document.createElement('div');
+        modal.className = 'camera-modal';
+        modal.id = 'cameraModal';
+        modal.innerHTML = `
+          <div class="camera-content">
+            <button class="close-camera-btn" onclick="PhotoCaptureEnhanced.close()">&times;</button>
+            <h3>📷 Capture Document</h3>
+            <div class="camera-container">
+              <video id="cameraVideo" autoplay playsinline></video>
+              <canvas id="cameraCanvas" style="display: none;"></canvas>
+              <div id="capturePreview" class="capture-preview" style="display: none;">
+                <img id="capturedImg" alt="Captured" />
+              </div>
+            </div>
+            <div class="camera-controls">
+              <button id="captureBtn" class="camera-btn capture" onclick="PhotoCaptureEnhanced.capture()">
+                📸 Capture
+              </button>
+              <button id="retakeBtn" class="camera-btn retake" style="display: none;" onclick="PhotoCaptureEnhanced.retake()">
+                🔄 Retake
+              </button>
+              <button id="usePhotoBtn" class="camera-btn use" style="display: none;" onclick="PhotoCaptureEnhanced.usePhoto()">
+                ✓ Use Photo
+              </button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        requestAnimationFrame(() => modal.classList.add('visible'));
+        this.startCamera();
+      },
+
+      startCamera: async function() {
+        try {
+          this.stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' }
+          });
+          this.videoElement = document.getElementById('cameraVideo');
+          if (this.videoElement) {
+            this.videoElement.srcObject = this.stream;
+          }
+        } catch (e) {
+          showToast('Camera access denied. Please allow camera permissions.', 'error');
+          this.close();
+        }
+      },
+
+      capture: function() {
+        const video = document.getElementById('cameraVideo');
+        const canvas = document.getElementById('cameraCanvas');
+        const preview = document.getElementById('capturePreview');
+        const capturedImg = document.getElementById('capturedImg');
+
+        if (video && canvas) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0);
+
+          this.capturedImage = canvas.toDataURL('image/jpeg', 0.9);
+          capturedImg.src = this.capturedImage;
+
+          video.style.display = 'none';
+          preview.style.display = 'block';
+          document.getElementById('captureBtn').style.display = 'none';
+          document.getElementById('retakeBtn').style.display = 'inline-block';
+          document.getElementById('usePhotoBtn').style.display = 'inline-block';
+        }
+      },
+
+      retake: function() {
+        const video = document.getElementById('cameraVideo');
+        const preview = document.getElementById('capturePreview');
+
+        video.style.display = 'block';
+        preview.style.display = 'none';
+        document.getElementById('captureBtn').style.display = 'inline-block';
+        document.getElementById('retakeBtn').style.display = 'none';
+        document.getElementById('usePhotoBtn').style.display = 'none';
+
+        this.capturedImage = null;
+      },
+
+      usePhoto: async function() {
+        if (!this.capturedImage) return;
+
+        // Convert data URL to File
+        const res = await fetch(this.capturedImage);
+        const blob = await res.blob();
+        const file = new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' });
+
+        this.close();
+        handleValidatedUpload(file);
+      },
+
+      close: function() {
+        if (this.stream) {
+          this.stream.getTracks().forEach(track => track.stop());
+          this.stream = null;
+        }
+        const modal = document.getElementById('cameraModal');
+        if (modal) {
+          modal.classList.remove('visible');
+          setTimeout(() => modal.remove(), 300);
+        }
+      }
+    };
+
+    // Override the original file select to use preview
+    const originalHandleFileSelect = handleFileSelect;
+    handleFileSelect = function(event) {
+      const files = event.target.files;
+      if (files.length === 0) return;
+
+      if (files.length === 1) {
+        // Single file: show preview
+        showFilePreview(files[0]);
+      } else {
+        // Multiple files: upload in parallel
+        uploadFilesParallel(files);
+      }
+    };
+
+    // Override PhotoCapture to use enhanced version
+    if (typeof PhotoCapture !== 'undefined') {
+      PhotoCapture.open = PhotoCaptureEnhanced.open.bind(PhotoCaptureEnhanced);
     }
   </script>
 </body>
