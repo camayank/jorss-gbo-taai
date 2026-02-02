@@ -3825,6 +3825,7 @@
     let isProcessing = false;
     let taxCalculations = null;
     let leadQualified = false;
+    let retryCount = 0; // Track consecutive retry attempts to prevent infinite loops
 
     // =========================================================================
     // ROBUSTNESS LAYER - Error Handling, Validation, Recovery, Rate Limiting
@@ -3856,6 +3857,127 @@
     // Session recovery state
     let lastActivityTime = Date.now();
     let sessionRecoveryAttempted = false;
+
+    // =========================================================================
+    // DATA PROTECTION LAYER - Prevents race conditions and data overwrites
+    // =========================================================================
+
+    // Mutex for data operations - prevents concurrent modifications
+    const dataMutex = {
+      locked: false,
+      queue: [],
+      async acquire() {
+        return new Promise(resolve => {
+          if (!this.locked) {
+            this.locked = true;
+            resolve();
+          } else {
+            this.queue.push(resolve);
+          }
+        });
+      },
+      release() {
+        if (this.queue.length > 0) {
+          const next = this.queue.shift();
+          next();
+        } else {
+          this.locked = false;
+        }
+      }
+    };
+
+    // Track user-confirmed data that should not be overwritten by AI
+    const confirmedData = {
+      fields: new Set(), // Set of field paths like 'tax_profile.filing_status'
+      mark(fieldPath) {
+        this.fields.add(fieldPath);
+        console.log('Marked as confirmed:', fieldPath);
+      },
+      isConfirmed(fieldPath) {
+        return this.fields.has(fieldPath);
+      },
+      clear() {
+        this.fields.clear();
+      }
+    };
+
+    // Deep merge that respects confirmed data and handles nested objects
+    function safeDeepMerge(target, source, parentPath = '') {
+      if (!source || typeof source !== 'object') return target;
+
+      const result = { ...target };
+
+      for (const key of Object.keys(source)) {
+        const fieldPath = parentPath ? `${parentPath}.${key}` : key;
+        const sourceValue = source[key];
+        const targetValue = result[key];
+
+        // Skip if this field is user-confirmed and has a value
+        if (confirmedData.isConfirmed(fieldPath) && targetValue != null) {
+          console.log(`Skipping confirmed field: ${fieldPath}`);
+          continue;
+        }
+
+        // Skip null/undefined source values (don't overwrite with nothing)
+        if (sourceValue == null) continue;
+
+        // Deep merge nested objects (but not arrays)
+        if (typeof sourceValue === 'object' && !Array.isArray(sourceValue) &&
+            typeof targetValue === 'object' && !Array.isArray(targetValue)) {
+          result[key] = safeDeepMerge(targetValue || {}, sourceValue, fieldPath);
+        } else if (Array.isArray(sourceValue) && Array.isArray(targetValue)) {
+          // For arrays, merge unique items
+          const combined = [...targetValue];
+          for (const item of sourceValue) {
+            const exists = combined.some(existing =>
+              JSON.stringify(existing) === JSON.stringify(item)
+            );
+            if (!exists) combined.push(item);
+          }
+          result[key] = combined;
+        } else {
+          // Simple value assignment
+          result[key] = sourceValue;
+        }
+      }
+
+      return result;
+    }
+
+    // Thread-safe data update function
+    async function updateExtractedDataSafe(newData, source = 'unknown') {
+      await dataMutex.acquire();
+      try {
+        console.log(`Updating extractedData from ${source}:`, newData);
+        extractedData = safeDeepMerge(extractedData, newData);
+        markUnsaved();
+      } finally {
+        dataMutex.release();
+      }
+    }
+
+    // Helper to set a value AND mark it as user-confirmed (prevents AI overwriting)
+    function setConfirmedValue(path, value) {
+      const parts = path.split('.');
+      let obj = extractedData;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!obj[parts[i]]) obj[parts[i]] = {};
+        obj = obj[parts[i]];
+      }
+      obj[parts[parts.length - 1]] = value;
+      confirmedData.mark(path);
+      markUnsaved();
+    }
+
+    // Batch confirm multiple values at once
+    function setConfirmedValues(values) {
+      for (const [path, value] of Object.entries(values)) {
+        setConfirmedValue(path, value);
+      }
+    }
+
+    // Queue processing mutex - prevents parallel queue processing
+    let isProcessingQueue = false;
 
     // =========== INPUT VALIDATION & SANITIZATION ===========
 
@@ -3966,22 +4088,32 @@
     }
 
     async function processOfflineQueue() {
+      // Prevent concurrent queue processing
+      if (isProcessingQueue) {
+        console.log('Queue processing already in progress, skipping');
+        return;
+      }
       if (offlineQueue.length === 0) return;
 
-      showToast(`Sending ${offlineQueue.length} queued message(s)...`, 'info');
+      isProcessingQueue = true;
+      try {
+        showToast(`Sending ${offlineQueue.length} queued message(s)...`, 'info');
 
-      while (offlineQueue.length > 0 && isOnline) {
-        const message = offlineQueue.shift();
-        try {
-          await processAIResponseInternal(message);
-        } catch (error) {
-          console.error('Failed to process queued message:', error);
-          // Put it back if failed and still offline
-          if (!isOnline) {
-            offlineQueue.unshift(message);
-            break;
+        while (offlineQueue.length > 0 && isOnline) {
+          const message = offlineQueue.shift();
+          try {
+            await processAIResponse(message);
+          } catch (error) {
+            console.error('Failed to process queued message:', error);
+            // Put it back if failed and still offline
+            if (!isOnline) {
+              offlineQueue.unshift(message);
+              break;
+            }
           }
         }
+      } finally {
+        isProcessingQueue = false;
       }
     }
 
@@ -3997,18 +4129,25 @@
 
     // =========== API CALL WITH RETRY LOGIC ===========
 
-    async function fetchWithRetry(url, options = {}, retries = RobustnessConfig.maxRetries) {
+    async function fetchWithRetryRobust(url, options = {}, retries = RobustnessConfig.maxRetries, timeoutMs = 30000) {
       let lastError;
 
       for (let attempt = 1; attempt <= retries; attempt++) {
         try {
+          // Add timeout with AbortController
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
           const response = await fetch(url, {
             ...options,
+            signal: controller.signal,
             headers: {
               'Content-Type': 'application/json',
               ...options.headers
             }
           });
+
+          clearTimeout(timeoutId);
 
           if (!response.ok) {
             // Don't retry client errors (4xx)
@@ -4022,6 +4161,11 @@
           return response;
         } catch (error) {
           lastError = error;
+
+          // Handle timeout separately
+          if (error.name === 'AbortError') {
+            lastError = new Error('Request timeout - please try again');
+          }
 
           if (RobustnessConfig.debugMode) {
             console.log(`Attempt ${attempt}/${retries} failed:`, error.message);
@@ -4075,9 +4219,11 @@
           if (response.ok) {
             sessionId = storedSessionId;
 
-            // Restore extracted data
+            // Restore extracted data using safe deep merge (prevents nested object loss)
             if (savedData.extractedData) {
-              Object.assign(extractedData, savedData.extractedData);
+              extractedData = safeDeepMerge(extractedData, savedData.extractedData);
+              // Reset questioning state for restored sessions
+              resetQuestioningState();
             }
 
             showToast('Previous session restored', 'success');
@@ -4088,18 +4234,58 @@
         }
       }
 
+      // Allow retry on next page load
+      sessionRecoveryAttempted = false;
       return false;
     }
 
+    // Track localStorage quota usage
+    let localStorageWarningShown = false;
+
     function saveSessionData() {
       try {
-        localStorage.setItem('tax_advisor_data', JSON.stringify({
+        const dataToSave = JSON.stringify({
           extractedData: extractedData,
           timestamp: Date.now()
-        }));
+        });
+
+        // Check size before saving (5MB typical limit)
+        const sizeInBytes = new Blob([dataToSave]).size;
+        const maxSize = 4 * 1024 * 1024; // 4MB to leave buffer
+
+        if (sizeInBytes > maxSize) {
+          console.warn('Session data too large, trimming conversation history');
+          // Trim data to fit
+          const trimmedData = {
+            extractedData: {
+              ...extractedData,
+              documents: extractedData.documents?.slice(-5) || [] // Keep only last 5 documents
+            },
+            timestamp: Date.now()
+          };
+          localStorage.setItem('tax_advisor_data', JSON.stringify(trimmedData));
+        } else {
+          localStorage.setItem('tax_advisor_data', dataToSave);
+        }
         updateLastActivity();
+        localStorageWarningShown = false;
       } catch (error) {
-        console.warn('Failed to save session data:', error);
+        // Handle QuotaExceededError
+        if (error.name === 'QuotaExceededError' || error.code === 22) {
+          if (!localStorageWarningShown) {
+            showToast('Storage full - some data may not be saved locally', 'warning');
+            localStorageWarningShown = true;
+          }
+          // Try to clear old data and retry
+          try {
+            localStorage.removeItem('tax_advisor_data');
+            console.warn('Cleared old storage due to quota exceeded');
+          } catch (e) {
+            console.error('Failed to clear storage:', e);
+          }
+        } else {
+          console.warn('Failed to save session data:', error);
+        }
       }
     }
 
@@ -6040,6 +6226,33 @@
       return panel;
     }
 
+    // Toggle quick edit panel between view and edit mode
+    function toggleQuickEdit() {
+      const panel = document.querySelector('.quick-edit-panel');
+      if (!panel) return;
+
+      const isEditing = panel.classList.contains('edit-mode');
+
+      if (isEditing) {
+        // Switch to view mode
+        panel.classList.remove('edit-mode');
+        const toggle = panel.querySelector('.quick-edit-toggle');
+        if (toggle) toggle.textContent = 'Edit';
+        // Re-enable items
+        panel.querySelectorAll('.quick-edit-item').forEach(item => {
+          item.style.pointerEvents = 'auto';
+          item.style.opacity = '1';
+        });
+      } else {
+        // Switch to edit mode
+        panel.classList.add('edit-mode');
+        const toggle = panel.querySelector('.quick-edit-toggle');
+        if (toggle) toggle.textContent = 'Done';
+        // Show edit hints
+        showToast('Click any field to edit it', 'info');
+      }
+    }
+
     // Edit a specific field
     function editField(field) {
       const fieldLabels = {
@@ -6225,7 +6438,8 @@
         const statusText = statusMap[status] || status;
 
         addMessage('user', statusText);
-        extractedData.tax_profile.filing_status = statusText;
+        // Mark as user-confirmed to prevent AI from overwriting
+        setConfirmedValue('tax_profile.filing_status', statusText);
         extractedData.lead_data.score += 10;
         updateStats({ filing_status: statusText });
         calculateLeadScore();
@@ -6233,6 +6447,234 @@
         // Update savings estimate
         updateSavingsEstimate();
 
+        // Ask about divorce for Single, HOH, or MFS (potential alimony/custody implications)
+        if ((status === 'single' || status === 'hoh' || status === 'mfs') && !extractedData.tax_profile.divorce_explored) {
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Did your marital status change this year?</strong><br><small>Divorce can affect filing status, dependency claims, and alimony treatment.</small>`, [
+              { label: 'Yes, recently divorced', value: 'divorce_recent' },
+              { label: 'Yes, legally separated', value: 'divorce_separated' },
+              { label: 'Widowed this year', value: 'divorce_widowed' },
+              { label: 'No change', value: 'divorce_none' }
+            ]);
+          }, 800);
+          return;
+        }
+
+        startIntelligentQuestioning();
+
+      // Divorce Scenario Handlers
+      } else if (value.startsWith('divorce_')) {
+        const divorceType = value.replace('divorce_', '');
+        const divorceLabels = {
+          'recent': 'Recently divorced',
+          'separated': 'Legally separated',
+          'widowed': 'Widowed this year',
+          'none': 'No change'
+        };
+        addMessage('user', divorceLabels[divorceType] || divorceType);
+        extractedData.tax_profile.divorce_explored = true;
+        extractedData.tax_profile.marital_change = divorceType;
+
+        if (divorceType === 'recent') {
+          // Ask about alimony (pre-2019 vs post-2019 divorce)
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>When was your divorce finalized?</strong><br><small>Alimony tax treatment changed for divorces after Dec 31, 2018.</small>`, [
+              { label: 'Before 2019', value: 'divorce_year_pre2019' },
+              { label: '2019 or later', value: 'divorce_year_post2019' }
+            ]);
+          }, 800);
+          return;
+        } else if (divorceType === 'separated') {
+          extractedData.tax_profile.is_separated = true;
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Are you living apart from your spouse?</strong><br><small>This may affect whether you can file as Head of Household.</small>`, [
+              { label: 'Yes, we live separately', value: 'separated_live_apart' },
+              { label: 'No, still living together', value: 'separated_same_home' }
+            ]);
+          }, 800);
+          return;
+        } else if (divorceType === 'widowed') {
+          extractedData.tax_profile.is_widowed = true;
+          // May qualify for Qualifying Surviving Spouse status
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `I'm sorry for your loss. <strong>Do you have dependent children living with you?</strong><br><small>You may qualify for Qualifying Surviving Spouse status (same tax rates as Married Filing Jointly) for up to 2 years.</small>`, [
+              { label: 'Yes, dependents in my home', value: 'widowed_with_deps' },
+              { label: 'No dependents', value: 'widowed_no_deps' }
+            ]);
+          }, 800);
+          return;
+        }
+        startIntelligentQuestioning();
+
+      // Divorce Year Handler (affects alimony treatment)
+      } else if (value.startsWith('divorce_year_')) {
+        const yearType = value.replace('divorce_year_', '');
+        addMessage('user', yearType === 'pre2019' ? 'Before 2019' : '2019 or later');
+        extractedData.tax_profile.divorce_year_type = yearType;
+
+        if (yearType === 'pre2019') {
+          // Ask about alimony paid/received (deductible for payer, taxable for recipient)
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Did you pay or receive alimony this year?</strong><br><small>Pre-2019 divorces: Alimony is deductible for the payer and taxable income for the recipient.</small>`, [
+              { label: 'I paid alimony', value: 'alimony_paid' },
+              { label: 'I received alimony', value: 'alimony_received' },
+              { label: 'No alimony', value: 'alimony_none' }
+            ]);
+          }, 800);
+          return;
+        } else {
+          // Post-2018 divorces: alimony not deductible/taxable
+          extractedData.tax_profile.alimony_taxable = false;
+          // Ask about child support and custody
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Do you have children from this marriage?</strong><br><small>Understanding custody arrangements helps determine who can claim dependents.</small>`, [
+              { label: 'Yes, I have primary custody', value: 'custody_primary' },
+              { label: 'Yes, shared custody', value: 'custody_shared' },
+              { label: 'Yes, ex has primary custody', value: 'custody_ex' },
+              { label: 'No children', value: 'custody_none' }
+            ]);
+          }, 800);
+          return;
+        }
+
+      // Alimony Handlers (pre-2019 divorces)
+      } else if (value.startsWith('alimony_')) {
+        const alimonyType = value.replace('alimony_', '');
+        const alimonyLabels = { 'paid': 'I paid alimony', 'received': 'I received alimony', 'none': 'No alimony' };
+        addMessage('user', alimonyLabels[alimonyType] || alimonyType);
+        extractedData.tax_profile.alimony_type = alimonyType;
+
+        if (alimonyType === 'paid' || alimonyType === 'received') {
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>How much alimony did you ${alimonyType === 'paid' ? 'pay' : 'receive'} this year?</strong>`, [
+              { label: 'Under $10,000', value: `alimony_amt_${alimonyType}_under10k` },
+              { label: '$10,000 - $25,000', value: `alimony_amt_${alimonyType}_10_25k` },
+              { label: '$25,000 - $50,000', value: `alimony_amt_${alimonyType}_25_50k` },
+              { label: 'Over $50,000', value: `alimony_amt_${alimonyType}_over50k` }
+            ]);
+          }, 800);
+          return;
+        }
+        startIntelligentQuestioning();
+
+      // Alimony Amount Handlers
+      } else if (value.startsWith('alimony_amt_')) {
+        const parts = value.replace('alimony_amt_', '').split('_');
+        const type = parts[0]; // 'paid' or 'received'
+        const amtKey = parts.slice(1).join('_');
+        const amtLabels = { 'under10k': 'Under $10,000', '10_25k': '$10,000-$25,000', '25_50k': '$25,000-$50,000', 'over50k': 'Over $50,000' };
+        const amtValues = { 'under10k': 5000, '10_25k': 17500, '25_50k': 37500, 'over50k': 75000 };
+        addMessage('user', amtLabels[amtKey] || amtKey);
+
+        if (type === 'paid') {
+          extractedData.tax_profile.alimony_paid = amtValues[amtKey] || 10000;
+          extractedData.tax_profile.alimony_deduction = extractedData.tax_profile.alimony_paid;
+        } else {
+          extractedData.tax_profile.alimony_received = amtValues[amtKey] || 10000;
+          extractedData.tax_profile.alimony_income = extractedData.tax_profile.alimony_received;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Custody Handlers
+      } else if (value.startsWith('custody_')) {
+        const custodyType = value.replace('custody_', '');
+        const custodyLabels = { 'primary': 'Primary custody', 'shared': 'Shared custody', 'ex': 'Ex has primary custody', 'none': 'No children' };
+        addMessage('user', custodyLabels[custodyType] || custodyType);
+        extractedData.tax_profile.custody_arrangement = custodyType;
+
+        if (custodyType === 'primary' || custodyType === 'shared') {
+          // Ask about Form 8332 (release of claim to exemption)
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Did you sign Form 8332 to release your claim to the child's exemption?</strong><br><small>The custodial parent typically claims the child, but can release this right to the other parent.</small>`, [
+              { label: 'Yes, I signed Form 8332', value: 'form8332_signed' },
+              { label: 'No, I will claim my children', value: 'form8332_no' },
+              { label: 'We alternate years', value: 'form8332_alternate' },
+              { label: 'Not sure', value: 'form8332_unsure' }
+            ]);
+          }, 800);
+          return;
+        }
+        startIntelligentQuestioning();
+
+      // Form 8332 Handlers
+      } else if (value.startsWith('form8332_')) {
+        const f8332Type = value.replace('form8332_', '');
+        const f8332Labels = { 'signed': 'Signed Form 8332', 'no': 'I will claim my children', 'alternate': 'We alternate years', 'unsure': 'Not sure' };
+        addMessage('user', f8332Labels[f8332Type] || f8332Type);
+        extractedData.tax_profile.form_8332_status = f8332Type;
+
+        if (f8332Type === 'signed') {
+          extractedData.tax_profile.released_dependency_claim = true;
+        } else if (f8332Type === 'alternate') {
+          extractedData.tax_profile.alternates_dependency_claim = true;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Separated Living Handlers
+      } else if (value.startsWith('separated_')) {
+        const sepType = value.replace('separated_', '');
+        addMessage('user', sepType === 'live_apart' ? 'Living separately' : 'Same home');
+        extractedData.tax_profile.separated_living_apart = (sepType === 'live_apart');
+
+        if (sepType === 'live_apart') {
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Have you lived apart for the last 6 months of the year?</strong><br><small>This is one requirement for filing as Head of Household while married.</small>`, [
+              { label: 'Yes, 6+ months apart', value: 'apart_6months_yes' },
+              { label: 'No, less than 6 months', value: 'apart_6months_no' }
+            ]);
+          }, 800);
+          return;
+        }
+        startIntelligentQuestioning();
+
+      // 6 Months Apart Handler
+      } else if (value.startsWith('apart_6months_')) {
+        const apart = value.replace('apart_6months_', '');
+        addMessage('user', apart === 'yes' ? '6+ months apart' : 'Less than 6 months');
+        extractedData.tax_profile.apart_6_months = (apart === 'yes');
+
+        if (apart === 'yes') {
+          extractedData.tax_profile.may_qualify_hoh = true;
+        }
+        calculateLeadScore();
+        startIntelligentQuestioning();
+
+      // Widowed Handlers
+      } else if (value.startsWith('widowed_')) {
+        const widowedType = value.replace('widowed_', '');
+        addMessage('user', widowedType === 'with_deps' ? 'Dependents in my home' : 'No dependents');
+
+        if (widowedType === 'with_deps') {
+          extractedData.tax_profile.qualifies_qss = true;
+          extractedData.tax_profile.filing_status = 'Qualifying Surviving Spouse';
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `You may qualify for <strong>Qualifying Surviving Spouse</strong> status, which provides the same tax rates as Married Filing Jointly for up to 2 years after your spouse's passing. This can result in significant tax savings.<br><br>Let's continue gathering your information.`);
+            setTimeout(() => startIntelligentQuestioning(), 1500);
+          }, 800);
+          return;
+        }
         startIntelligentQuestioning();
 
       } else if (value.startsWith('income_')) {
@@ -6266,8 +6708,11 @@
         }
 
         addMessage('user', incomeText);
-        extractedData.tax_profile.total_income = incomeAmount;
-        extractedData.tax_profile.w2_income = incomeAmount; // Assume W2 unless told otherwise
+        // Mark as user-confirmed to prevent AI from overwriting
+        setConfirmedValues({
+          'tax_profile.total_income': incomeAmount,
+          'tax_profile.w2_income': incomeAmount // Assume W2 unless told otherwise
+        });
         extractedData.lead_data.score += 15;
         updateStats({ total_income: incomeAmount });
         calculateLeadScore();
@@ -6283,7 +6728,8 @@
         const depText = depNum === 0 ? 'No dependents' : depNum === 1 ? '1 dependent' : `${depNum}+ dependents`;
 
         addMessage('user', depText);
-        extractedData.tax_profile.dependents = depNum;
+        // Mark as user-confirmed to prevent AI from overwriting
+        setConfirmedValue('tax_profile.dependents', depNum);
         extractedData.lead_data.score += 10;
         calculateLeadScore();
 
@@ -6303,10 +6749,95 @@
 
         addMessage('user', stateText);
         // Use 'OTHER' for other states so the flow continues (not empty string)
-        extractedData.tax_profile.state = stateCode === 'other' ? 'OTHER' : stateCode;
+        // Mark as user-confirmed to prevent AI from overwriting
+        setConfirmedValue('tax_profile.state', stateCode === 'other' ? 'OTHER' : stateCode);
         extractedData.lead_data.score += 5;
         calculateLeadScore();
 
+        // States with significant local/city taxes - ask follow-up questions
+        const statesWithLocalTax = {
+          'NY': { name: 'New York', cities: ['New York City', 'Yonkers', 'Other NY area'], question: 'Do you live or work in a city with local income tax?' },
+          'OH': { name: 'Ohio', cities: ['Columbus', 'Cleveland', 'Cincinnati', 'Toledo', 'Other OH city'], question: 'Most Ohio cities have their own income tax. Which city do you live in?' },
+          'PA': { name: 'Pennsylvania', cities: ['Philadelphia', 'Pittsburgh', 'Other PA city', 'None (rural)'], question: 'Pennsylvania has local earned income taxes. Do you live in a city with additional taxes?' },
+          'MD': { name: 'Maryland', cities: ['Baltimore City', 'Montgomery County', 'Prince George\'s County', 'Other MD county'], question: 'Maryland counties have varying tax rates. Which county do you live in?' },
+          'IN': { name: 'Indiana', cities: ['Indianapolis/Marion', 'Fort Wayne', 'Other IN county'], question: 'Indiana has county income taxes. Which county do you live in?' },
+          'KY': { name: 'Kentucky', cities: ['Louisville', 'Lexington', 'Other KY city'], question: 'Kentucky has local occupational taxes. Do you live or work in a major city?' }
+        };
+
+        if (statesWithLocalTax[stateCode] && !extractedData.tax_profile.local_tax_explored) {
+          const stateInfo = statesWithLocalTax[stateCode];
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            const cityOptions = stateInfo.cities.map((city, idx) => ({
+              label: city,
+              value: `localtax_${stateCode}_${idx}`
+            }));
+            cityOptions.push({ label: 'Not sure', value: `localtax_${stateCode}_unsure` });
+            addMessage('ai', `<strong>${stateInfo.question}</strong><br><small>This helps calculate your total state and local tax obligation.</small>`, cityOptions);
+          }, 800);
+          return;
+        }
+
+        // No income tax states - note this benefit
+        const noIncomeTaxStates = ['AK', 'FL', 'NV', 'SD', 'TN', 'TX', 'WA', 'WY', 'NH'];
+        if (noIncomeTaxStates.includes(stateCode)) {
+          extractedData.tax_profile.no_state_income_tax = true;
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `Great! ${stateText} has <strong>no state income tax</strong>, which is a nice advantage. Let's continue.`);
+            setTimeout(() => startIntelligentQuestioning(), 1000);
+          }, 800);
+          return;
+        }
+
+        // High tax states - note potential SALT cap impact
+        const highTaxStates = ['CA', 'NY', 'NJ', 'CT', 'MA', 'OR', 'MN', 'HI'];
+        if (highTaxStates.includes(stateCode)) {
+          extractedData.tax_profile.high_tax_state = true;
+        }
+
+        startIntelligentQuestioning();
+
+      // Local Tax Handlers
+      } else if (value.startsWith('localtax_')) {
+        const parts = value.replace('localtax_', '').split('_');
+        const stateCode = parts[0];
+        const cityIdx = parts[1];
+        extractedData.tax_profile.local_tax_explored = true;
+
+        const localTaxInfo = {
+          'NY': { cities: ['New York City', 'Yonkers', 'Other NY area'], rates: [3.876, 1.5, 0] },
+          'OH': { cities: ['Columbus', 'Cleveland', 'Cincinnati', 'Toledo', 'Other OH city'], rates: [2.5, 2.5, 2.1, 2.25, 1.5] },
+          'PA': { cities: ['Philadelphia', 'Pittsburgh', 'Other PA city', 'None'], rates: [3.79, 3.0, 1.0, 0] },
+          'MD': { cities: ['Baltimore City', 'Montgomery County', 'Prince George\'s County', 'Other MD county'], rates: [3.2, 3.2, 3.2, 2.5] },
+          'IN': { cities: ['Indianapolis/Marion', 'Fort Wayne', 'Other IN county'], rates: [2.02, 1.35, 1.5] },
+          'KY': { cities: ['Louisville', 'Lexington', 'Other KY city'], rates: [2.2, 2.25, 1.5] }
+        };
+
+        if (cityIdx === 'unsure') {
+          addMessage('user', 'Not sure about local taxes');
+          extractedData.tax_profile.local_tax_city = 'unknown';
+        } else {
+          const info = localTaxInfo[stateCode];
+          const idx = parseInt(cityIdx);
+          if (info && info.cities[idx]) {
+            addMessage('user', info.cities[idx]);
+            extractedData.tax_profile.local_tax_city = info.cities[idx];
+            extractedData.tax_profile.local_tax_rate = info.rates[idx];
+
+            if (info.rates[idx] > 0) {
+              showTyping();
+              setTimeout(() => {
+                hideTyping();
+                addMessage('ai', `Got it. ${info.cities[idx]} has a local income tax rate of approximately <strong>${info.rates[idx]}%</strong>. This will be factored into your tax estimate.`);
+                setTimeout(() => startIntelligentQuestioning(), 1000);
+              }, 800);
+              return;
+            }
+          }
+        }
         startIntelligentQuestioning();
 
       // Income source handlers
@@ -7494,6 +8025,35 @@
         if (ageGroup === 'college') {
           extractedData.tax_profile.has_college_students = true;
         }
+
+        // Calculate Child Tax Credit for children under 17
+        const hasChildrenUnder17 = ageGroup === 'under6' || ageGroup === '6_17' || ageGroup === 'mixed';
+        if (hasChildrenUnder17) {
+          const numDependents = extractedData.tax_profile.dependents || 1;
+          // Estimate qualifying children (assume all if under6 or 6_17, half if mixed)
+          const qualifyingChildren = ageGroup === 'mixed' ? Math.ceil(numDependents / 2) : numDependents;
+          const ctcPerChild = 2000; // 2025 CTC amount
+          const income = extractedData.tax_profile.total_income || 0;
+          const filingStatus = extractedData.tax_profile.filing_status;
+
+          // Phase-out thresholds (2025)
+          const phaseOutStart = (filingStatus === 'Married Filing Jointly') ? 400000 : 200000;
+
+          let estimatedCTC = qualifyingChildren * ctcPerChild;
+
+          // Apply phase-out ($50 reduction per $1,000 over threshold)
+          if (income > phaseOutStart) {
+            const reduction = Math.floor((income - phaseOutStart) / 1000) * 50;
+            estimatedCTC = Math.max(0, estimatedCTC - reduction);
+          }
+
+          extractedData.tax_profile.qualifying_children_ctc = qualifyingChildren;
+          extractedData.tax_profile.estimated_child_tax_credit = estimatedCTC;
+          extractedData.tax_profile.has_child_tax_credit = estimatedCTC > 0;
+
+          console.log(`Estimated Child Tax Credit: $${estimatedCTC} for ${qualifyingChildren} qualifying children`);
+        }
+
         extractedData.lead_data.score += 5;
         calculateLeadScore();
 
@@ -7566,6 +8126,32 @@
         addMessage('user', childcareLabels[childcareLevel] || childcareLevel);
         extractedData.tax_items.childcare = childcareAmounts[childcareLevel] || 0;
         extractedData.tax_profile.childcare_explored = true;
+
+        // Calculate Child and Dependent Care Credit (Form 2441)
+        if (childcareLevel !== 'none') {
+          const income = extractedData.tax_profile.total_income || 0;
+          const expenses = childcareAmounts[childcareLevel];
+          const numChildren = Math.min(extractedData.tax_profile.dependents || 1, 2); // Max 2 for credit
+          const expenseLimit = numChildren === 1 ? 3000 : 6000; // IRS limits
+          const qualifyingExpenses = Math.min(expenses, expenseLimit);
+
+          // Credit percentage based on AGI (20-35%)
+          let creditPct = 0.20;
+          if (income <= 15000) creditPct = 0.35;
+          else if (income <= 17000) creditPct = 0.34;
+          else if (income <= 19000) creditPct = 0.33;
+          else if (income <= 21000) creditPct = 0.32;
+          else if (income <= 23000) creditPct = 0.31;
+          else if (income <= 25000) creditPct = 0.30;
+          else if (income <= 43000) creditPct = 0.20 + (43000 - income) / 2000 * 0.01;
+
+          const estimatedCredit = Math.round(qualifyingExpenses * creditPct);
+          extractedData.tax_profile.dependent_care_credit = estimatedCredit;
+          extractedData.tax_profile.has_dependent_care_credit = true;
+
+          console.log(`Estimated Dependent Care Credit: $${estimatedCredit}`);
+        }
+
         extractedData.lead_data.score += 5;
         calculateLeadScore();
         startIntelligentQuestioning();
@@ -9305,6 +9891,28 @@
           ]);
         }, 1500);
 
+      } else if (value === 'focus_input') {
+        // Simply focus the input field - escape from retry loop
+        const input = document.getElementById('userInput');
+        if (input) {
+          input.focus();
+          input.placeholder = 'Type your message here...';
+        }
+        retryCount = 0; // Reset retry counter
+
+      } else if (value === 'contact_support') {
+        addMessage('user', 'I need help from a person');
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `I understand you'd like to speak with someone directly. Here are your options:<br><br>• <strong>Email:</strong> support@taxadvisor.com<br>• <strong>Phone:</strong> 1-800-TAX-HELP (available 9am-6pm ET)<br>• <strong>Live Chat:</strong> Click the chat icon in the corner<br><br>Our team typically responds within 24 hours during business days.`, [
+            { label: '📧 Send email', value: 'consult_email' },
+            { label: '💬 Continue with AI', value: 'no_manual' },
+            { label: '🔄 Start fresh', value: 'reset_conversation' }
+          ]);
+          retryCount = 0; // Reset retry counter
+        }, 1000);
+
       } else if (value === 'more_questions') {
         addMessage('user', 'I have more questions first');
         showTyping();
@@ -9386,6 +9994,117 @@
           }
         }, 1000);
 
+      } else if (value === 'continue_questioning' || value === 'continue_flow') {
+        // Resume the intelligent questioning flow after document upload or session restore
+        addMessage('user', value === 'continue_questioning' ? 'Yes, let\'s continue' : 'Continue');
+        startIntelligentQuestioning();
+
+      } else if (value === 'review_data') {
+        // Show user what data we have collected
+        addMessage('user', 'Show me what you have');
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          const profile = extractedData.tax_profile;
+          const items = extractedData.tax_items;
+
+          let summary = '<strong>📋 Here\'s what I have so far:</strong><br><br>';
+
+          if (profile.filing_status) summary += `• Filing Status: ${profile.filing_status}<br>`;
+          if (profile.state) summary += `• State: ${profile.state_name || profile.state}<br>`;
+          if (profile.total_income) summary += `• Total Income: $${profile.total_income.toLocaleString()}<br>`;
+          if (profile.dependents !== undefined) summary += `• Dependents: ${profile.dependents}<br>`;
+          if (profile.income_source) summary += `• Income Source: ${profile.income_source}<br>`;
+          if (profile.is_self_employed) summary += `• Self-Employed: Yes<br>`;
+          if (items.mortgage_interest) summary += `• Mortgage Interest: $${items.mortgage_interest.toLocaleString()}<br>`;
+          if (items.charitable) summary += `• Charitable Donations: $${items.charitable.toLocaleString()}<br>`;
+
+          if (extractedData.documents && extractedData.documents.length > 0) {
+            summary += `<br>📄 Documents uploaded: ${extractedData.documents.length}<br>`;
+          }
+
+          summary += '<br><strong>What would you like to do?</strong>';
+
+          addMessage('ai', summary, [
+            { label: '✅ Continue with questions', value: 'continue_questioning' },
+            { label: '✏️ Make corrections', value: 'make_corrections' },
+            { label: '📄 Upload more documents', value: 'yes_upload' },
+            { label: '📊 Generate report', value: 'generate_report' }
+          ]);
+        }, 800);
+
+      } else if (value === 'make_corrections') {
+        addMessage('user', 'I need to make corrections');
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `No problem! What would you like to correct?`, [
+            { label: '📋 Filing status', value: 'change_filing_status' },
+            { label: '💰 Income amount', value: 'change_income' },
+            { label: '🏠 State', value: 'change_state' },
+            { label: '👨‍👩‍👧 Dependents', value: 'change_dependents' },
+            { label: '💬 Something else', value: 'describe_change' }
+          ]);
+        }, 500);
+
+      } else if (value === 'change_filing_status') {
+        addMessage('user', 'Change my filing status');
+        // Clear confirmed status so it can be changed
+        confirmedData.fields.delete('tax_profile.filing_status');
+        extractedData.tax_profile.filing_status = null;
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `What's your correct filing status?`, [
+            { label: 'Single', value: 'filing_single' },
+            { label: 'Married Filing Jointly', value: 'filing_married' },
+            { label: 'Head of Household', value: 'filing_hoh' },
+            { label: 'Married Filing Separately', value: 'filing_mfs' },
+            { label: 'Qualifying Surviving Spouse', value: 'filing_qss' }
+          ], { inputType: 'radio' });
+        }, 500);
+
+      } else if (value === 'change_income') {
+        addMessage('user', 'Change my income');
+        confirmedData.fields.delete('tax_profile.total_income');
+        confirmedData.fields.delete('tax_profile.w2_income');
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `What's your correct total annual income?<br><br><input type="number" id="incomeInput" placeholder="Enter amount" style="width: 100%; padding: 14px; margin: 12px 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: 8px; color: var(--text); font-size: 16px;" onkeypress="if(event.key==='Enter') captureIncome()"><br><button onclick="captureIncome()" style="padding: 12px 32px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 8px;">Update Income</button>`);
+          setTimeout(() => document.getElementById('incomeInput').focus(), 100);
+        }, 500);
+
+      } else if (value === 'change_state') {
+        addMessage('user', 'Change my state');
+        confirmedData.fields.delete('tax_profile.state');
+        extractedData.tax_profile.state = null;
+        // Trigger state selection question
+        startIntelligentQuestioning();
+
+      } else if (value === 'change_dependents') {
+        addMessage('user', 'Change my dependents');
+        confirmedData.fields.delete('tax_profile.dependents');
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `How many dependents do you have?`, [
+            { label: '0', value: 'dependents_0' },
+            { label: '1', value: 'dependents_1' },
+            { label: '2', value: 'dependents_2' },
+            { label: '3+', value: 'dependents_3plus' }
+          ]);
+        }, 500);
+
+      } else if (value === 'describe_change') {
+        addMessage('user', 'I\'ll describe what needs to change');
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `Please type what you'd like to change and I'll help you update it.`);
+          document.getElementById('userInput').focus();
+        }, 500);
+
       } else if (value === 'continue_to_report') {
         addMessage('user', 'Let\'s move forward with the report');
         updateProgress(85);
@@ -9465,6 +10184,10 @@
           documents: [],
           lead_data: { score: 0 }
         };
+        // Reset questioning state to allow all questions again
+        resetQuestioningState();
+        // Reset retry counters
+        retryCount = 0;
         updateProgress(0);
         showTyping();
         setTimeout(() => {
@@ -9477,17 +10200,36 @@
         }, 1000);
 
       } else if (value === 'retry_message') {
-        // Retry the last message if available
-        if (lastUserMessage) {
-          addMessage('user', 'Retrying my last message...');
+        // Track retries to prevent infinite loops
+        retryCount++;
+        const MAX_RETRIES = 3;
+
+        if (retryCount > MAX_RETRIES) {
+          // Too many retries - offer reset as escape route
+          addMessage('user', 'I\'ve tried several times...');
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `I'm sorry for the trouble! It seems we're having persistent issues. Let's try a fresh start to get things working properly again.`, [
+              { label: '🔄 Start fresh', value: 'reset_conversation' },
+              { label: '💬 Type a new message', value: 'focus_input' },
+              { label: '📞 Get human help', value: 'contact_support' }
+            ]);
+            retryCount = 0; // Reset counter after offering escape
+          }, 500);
+        } else if (lastUserMessage) {
+          // Retry with the last message
+          addMessage('user', `Retrying... (attempt ${retryCount} of ${MAX_RETRIES})`);
           await processAIResponse(lastUserMessage);
         } else {
+          // No previous message to retry
           addMessage('user', 'Let me try again');
           showTyping();
           setTimeout(() => {
             hideTyping();
             addMessage('ai', `I'm ready when you are! What would you like to discuss?`, generateSmartQuickActions());
             document.getElementById('userInput').focus();
+            retryCount = 0; // Reset since we're starting fresh
           }, 500);
         }
 
@@ -9665,8 +10407,9 @@
       lastUserMessage = userMessage; // Store for retry
       showTyping();
 
-      // Create session if not already created
-      if (!sessionId) {
+      // Create session if not already created, or upgrade temp session
+      const isTemporarySession = sessionId && sessionId.startsWith('temp-');
+      if (!sessionId || isTemporarySession) {
         try {
           const sessionResponse = await fetchWithRetry('/api/sessions/create-session', {
             method: 'POST',
@@ -9679,18 +10422,25 @@
 
           if (!sessionResponse.ok) {
             // If session creation fails, generate a temporary client-side ID
+            // DON'T store temp IDs in sessionStorage - they shouldn't persist
             sessionId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-            console.warn('Using temporary session ID:', sessionId);
+            console.warn('Using temporary session ID (will retry on next message):', sessionId);
           } else {
             const sessionData = await sessionResponse.json();
+            const oldSessionId = sessionId;
             sessionId = sessionData.session_id;
+            // Only store real session IDs
+            sessionStorage.setItem('tax_session_id', sessionId);
+            if (oldSessionId && oldSessionId.startsWith('temp-')) {
+              console.log('Upgraded from temporary session to real session:', sessionId);
+            }
           }
-          sessionStorage.setItem('tax_session_id', sessionId);
         } catch (error) {
           console.error('Failed to create session:', error);
           // Generate temporary client-side session ID as fallback
+          // DON'T persist temp sessions - they will be retried on next message
           sessionId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-          sessionStorage.setItem('tax_session_id', sessionId);
+          console.warn('Using temporary session ID (will retry on next message):', sessionId);
         }
       }
 
@@ -9736,12 +10486,26 @@
 
         const data = await response.json();
         hideTyping();
+        retryCount = 0; // Reset retry counter on successful response
 
-        // Update conversation history
-        conversationHistory.push(
-          { role: 'user', content: userMessage },
-          { role: 'assistant', content: data.response }
-        );
+        // Validate response data
+        if (!data || typeof data !== 'object') {
+          console.error('Invalid API response:', data);
+          throw new Error('Received invalid response from server');
+        }
+
+        // Only add to history if we have actual content
+        const responseContent = data.response || '';
+        if (responseContent.trim()) {
+          conversationHistory.push(
+            { role: 'user', content: userMessage },
+            { role: 'assistant', content: responseContent }
+          );
+        } else {
+          // Just add user message if response was empty
+          conversationHistory.push({ role: 'user', content: userMessage });
+          console.warn('Received empty response from API');
+        }
 
         // Update local extracted data based on API response
         // The API parses the message and updates the profile server-side
@@ -9813,10 +10577,18 @@
             { label: 'Start over', value: 'reset_conversation' }
           ];
         } else if (error.message && error.message.includes('404')) {
-          // Session not found - recreate
+          // Session not found - full reset to prevent stale data confusion
           sessionId = null;
           sessionStorage.removeItem('tax_session_id');
-          errorMessage = "Your session was reset. Let's continue from where we were. What would you like to discuss?";
+          conversationHistory = []; // Clear old history to prevent context confusion
+          resetQuestioningState(); // Reset questioning flow
+          retryCount = 0;
+          // Note: We preserve extractedData since that's the user's actual tax data
+          errorMessage = "Your session expired. I've preserved your tax data, but let's start our conversation fresh. How can I help you?";
+          quickActions = [
+            { label: '💬 Continue with my data', value: 'no_manual' },
+            { label: '🔄 Start completely fresh', value: 'reset_conversation' }
+          ];
         } else if (error.message && error.message.includes('504') || error.message && error.message.includes('timeout')) {
           // Timeout - suggest rephrasing
           errorMessage = "That's taking longer than expected. Could you try rephrasing your question or asking something simpler?";
@@ -10225,7 +10997,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           </div>
           <div class="resume-actions">
             <button class="resume-btn primary" onclick="restoreSession()">Continue</button>
-            <button class="resume-btn secondary" onclick="dismissResumeBanner()">Start Fresh</button>
+            <button class="resume-btn secondary" onclick="dismissResumeBanner(true)">Start Fresh</button>
           </div>
         </div>
       `;
@@ -10241,13 +11013,19 @@ If they're ready to move forward, suggest generating their comprehensive advisor
     }
 
     // Restore session from saved data
-    function restoreSession() {
+    async function restoreSession() {
       const sessionData = window._pendingRestore;
       if (!sessionData) return;
 
-      // Restore extracted data
+      // CRITICAL: Reset questioning state before restore
+      // This ensures the flow can ask questions appropriate to the restored data state
+      resetQuestioningState();
+      retryCount = 0;
+      confirmedData.clear(); // Clear confirmed data tracking for fresh restore
+
+      // Restore extracted data using safe merge
       if (sessionData.extracted_data) {
-        extractedData = { ...extractedData, ...sessionData.extracted_data };
+        await updateExtractedDataSafe(sessionData.extracted_data, 'session_restore');
       }
 
       // Restore conversation history
@@ -10292,13 +11070,23 @@ If they're ready to move forward, suggest generating their comprehensive advisor
     }
 
     // Dismiss resume banner and start fresh
-    function dismissResumeBanner() {
+    function dismissResumeBanner(startFresh = false) {
       const banner = document.getElementById('resumeBanner');
       if (banner) {
         banner.style.animation = 'slideUp 0.3s ease forwards';
         setTimeout(() => banner.remove(), 300);
       }
       window._pendingRestore = null;
+
+      // If starting fresh, ensure clean state
+      if (startFresh) {
+        resetQuestioningState();
+        retryCount = 0;
+        confirmedData.clear();
+        // Clear old session from storage so it doesn't keep prompting
+        sessionStorage.removeItem('tax_session_id');
+        sessionId = null;
+      }
     }
 
     // Save before page unload
@@ -10382,8 +11170,8 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         addMessage('ai', data.ai_response, data.quick_actions || []);
 
         if (data.extracted_data) {
-          extractedData = { ...extractedData, ...data.extracted_data };
-          markUnsaved(); // Trigger auto-save
+          // Use safe merge to prevent overwriting confirmed data
+          await updateExtractedDataSafe(data.extracted_data, 'document_upload');
         }
 
         // Update progress
@@ -10393,9 +11181,33 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         // Update phase based on new extracted data
         updatePhaseFromData();
 
+        // INTEGRATION: Continue questioning flow after document upload
+        // Only if we have enough data and didn't already show quick actions
+        const hasBasicData = extractedData.tax_profile.filing_status ||
+                            extractedData.tax_profile.total_income ||
+                            (data.extracted_data && Object.keys(data.extracted_data).length > 2);
+
+        if (hasBasicData && (!data.quick_actions || data.quick_actions.length === 0)) {
+          // Offer to continue with questions to complete the profile
+          setTimeout(() => {
+            addMessage('ai', `I've extracted information from your document. ${
+              extractedData.tax_profile.total_income ? `I see income of $${extractedData.tax_profile.total_income.toLocaleString()}.` : ''
+            } Would you like me to continue asking questions to complete your tax profile?`, [
+              { label: '✅ Yes, continue', value: 'continue_questioning' },
+              { label: '📄 Upload another document', value: 'yes_upload' },
+              { label: '📋 Review what I have', value: 'review_data' }
+            ]);
+          }, 500);
+        }
+
       } catch (error) {
         hideTyping();
-        addMessage('ai', 'I had trouble reading that document. Could you try uploading it again or tell me the information manually?');
+        console.error('Document upload error:', error);
+        addMessage('ai', `I had trouble reading that document. Would you like to try again or enter the information manually?`, [
+          { label: '🔄 Try again', value: 'yes_upload' },
+          { label: '💬 Enter manually', value: 'no_manual' },
+          { label: '❓ What documents work best?', value: 'what_docs' }
+        ]);
       }
     }
 
@@ -11658,6 +12470,9 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
     // Show summary of collected information before running analysis
     async function showPreliminarySummary() {
+      // Reset questioning call count - flow completed successfully
+      questioningState.callCount = 0;
+
       const profile = extractedData.tax_profile;
       const items = extractedData.tax_items;
 
@@ -12034,8 +12849,11 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         showToast('Please verify this amount - it seems unusually high', 'warning');
       }
 
-      extractedData.tax_profile.total_income = income;
-      extractedData.tax_profile.w2_income = income;
+      // Mark as user-confirmed to prevent AI from overwriting
+      setConfirmedValues({
+        'tax_profile.total_income': income,
+        'tax_profile.w2_income': income
+      });
       extractedData.lead_data.score += 15;
       addMessage('user', `$${income.toLocaleString()}`);
       updateStats({ total_income: income });
@@ -12110,6 +12928,10 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       console.log('Page loaded, initializing...');
       const messagesContainer = document.getElementById('messages');
       console.log('Messages container found:', messagesContainer);
+
+      // Reset questioning state on page load for clean start
+      resetQuestioningState();
+      retryCount = 0;
 
       // Check initial connection status
       updateConnectionStatus(navigator.onLine);
@@ -12569,25 +13391,19 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       }
     }
 
-    function processOfflineQueue() {
-      if (offlineQueue.length > 0 && navigator.onLine) {
-        showToast(`Sending ${offlineQueue.length} queued message(s)...`, 'info');
-        offlineQueue.forEach(msg => {
-          processAIResponse(msg);
-        });
-        offlineQueue = [];
-      }
-    }
+    // Note: processOfflineQueue is defined earlier in the file (async version at ~line 4070)
+    // Do NOT redefine it here to avoid race conditions with parallel message processing
 
     window.addEventListener('offline', () => {
       isOnline = false;
       showOfflineBanner();
     });
 
-    window.addEventListener('online', () => {
+    window.addEventListener('online', async () => {
       isOnline = true;
       hideOfflineBanner();
-      processOfflineQueue();
+      // Use the async version defined earlier to process messages sequentially
+      await processOfflineQueue();
     });
 
     // ===================================================================
@@ -12715,9 +13531,17 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         return;
       }
 
-      const results = await Promise.allSettled(
-        validated.map(f => uploadWithRetry(f))
-      );
+      // Process uploads SEQUENTIALLY to prevent race conditions on extractedData
+      // Each upload may modify extractedData, so we must wait for each to complete
+      const results = [];
+      for (const file of validated) {
+        try {
+          const result = await uploadWithRetry(file);
+          results.push({ status: 'fulfilled', value: result });
+        } catch (error) {
+          results.push({ status: 'rejected', reason: error });
+        }
+      }
 
       const succeeded = results.filter(r => r.status === 'fulfilled').length;
       const failed = results.filter(r => r.status === 'rejected').length;
@@ -12760,8 +13584,8 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         addMessage('ai', data.ai_response, data.quick_actions || []);
 
         if (data.extracted_data) {
-          extractedData = { ...extractedData, ...data.extracted_data };
-          markUnsaved();
+          // Use safe merge to prevent overwriting confirmed data and handle nested objects
+          await updateExtractedDataSafe(data.extracted_data, 'document_upload');
         }
 
         updateProgress(data.completion_percentage || 0);
