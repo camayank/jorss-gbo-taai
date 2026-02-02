@@ -29,16 +29,54 @@ from src.database.session_persistence import get_session_persistence
 
 
 # Import AuthContext from your auth module
-# Adjust import path as needed
+# SECURITY: Fail-fast on missing auth module - DO NOT use silent fallback
+import os
+import logging
+
+_rbac_logger = logging.getLogger(__name__)
+
+# Try multiple import paths for auth module
+_AUTH_AVAILABLE = False
 try:
     from src.auth.auth_context import AuthContext, require_auth
+    _AUTH_AVAILABLE = True
 except ImportError:
-    # Fallback if auth module structured differently
-    from typing import Any as AuthContext
-
-    def require_auth():
-        """Placeholder - replace with actual auth dependency"""
+    try:
+        from security.auth_decorators import require_auth
+        from typing import Any as AuthContext
+        _AUTH_AVAILABLE = True
+    except ImportError:
         pass
+
+if not _AUTH_AVAILABLE:
+    # CRITICAL: Auth module not available
+    _env = os.environ.get("APP_ENVIRONMENT", "").lower().strip()
+    _dev_envs = {"development", "dev", "local", "test", "testing"}
+
+    if _env not in _dev_envs:
+        # FAIL-FAST in production/unknown environments
+        raise ImportError(
+            "CRITICAL SECURITY ERROR: Authentication module not available. "
+            "Cannot start application without auth in production. "
+            "Ensure src.auth.auth_context or security.auth_decorators is installed."
+        )
+    else:
+        # Only allow in explicit dev environments with loud warning
+        _rbac_logger.critical(
+            "[SECURITY] AUTH MODULE NOT FOUND - Using placeholder auth. "
+            "This is ONLY acceptable in development!"
+        )
+        from typing import Any as AuthContext
+
+        def require_auth():
+            """
+            DEVELOPMENT ONLY placeholder auth.
+            In production, this would be a critical security failure.
+            """
+            _rbac_logger.warning(
+                "[SECURITY] Using placeholder auth - NO ACTUAL AUTHENTICATION"
+            )
+            return None
 
 
 def get_return_status(session_id: str) -> Optional[ReturnStatus]:

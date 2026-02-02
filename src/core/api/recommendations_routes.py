@@ -25,16 +25,48 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .auth_routes import get_current_user
 from ..models.user import UserContext, UserType
 
+# Logger must be defined early for module-level use
+logger = logging.getLogger(__name__)
+
 # Database session dependency
+# SECURITY: Fail-fast on missing database module - DO NOT use silent fallback
+import os
+
+_DB_AVAILABLE = False
 try:
     from database.connection import get_async_session
+    _DB_AVAILABLE = True
 except ImportError:
-    # Fallback - mock session for development when database module not available
-    async def _mock_session():
-        yield None
-    get_async_session = _mock_session
+    pass
 
-logger = logging.getLogger(__name__)
+if not _DB_AVAILABLE:
+    # CRITICAL: Database module not available
+    _env = os.environ.get("APP_ENVIRONMENT", "").lower().strip()
+    _dev_envs = {"development", "dev", "local", "test", "testing"}
+
+    if _env not in _dev_envs:
+        # FAIL-FAST in production/unknown environments
+        raise ImportError(
+            "CRITICAL ERROR: Database connection module not available. "
+            "Cannot start application without database in production. "
+            "Ensure database.connection module is installed and configured."
+        )
+    else:
+        # Only allow mock in explicit dev environments with warning
+        logger.critical(
+            "[DATABASE] Database module not found - using mock session. "
+            "This is ONLY acceptable in development! Data will NOT be persisted."
+        )
+
+        async def _mock_session():
+            """
+            DEVELOPMENT ONLY mock session.
+            Yields None - routes must handle this gracefully or fail.
+            """
+            logger.warning("[DATABASE] Using mock database session - NO DATA PERSISTENCE")
+            yield None
+
+        get_async_session = _mock_session
 
 router = APIRouter(prefix="/recommendations", tags=["Core Tax Recommendations"])
 

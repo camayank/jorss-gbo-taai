@@ -586,6 +586,192 @@ class TaxReturnService:
             prior_year_agi=breakdown.agi,
         )
 
+    def get_prior_year_carryovers(
+        self,
+        prior_return_id: str
+    ) -> Optional[PriorYearCarryovers]:
+        """
+        Get capital loss and other carryovers from a prior year return.
+
+        Per IRC Section 1212, capital losses that exceed the $3,000 annual
+        deduction limit carry forward indefinitely to future years.
+
+        Args:
+            prior_return_id: The return ID of the prior year return
+
+        Returns:
+            PriorYearCarryovers with carryforward amounts, or None if not found
+        """
+        prior_data = self._persistence.load_return(prior_return_id)
+        if not prior_data:
+            self._logger.warning(f"Prior year return not found: {prior_return_id}")
+            return None
+
+        # Extract carryforward values from prior year calculation results
+        # These are stored in the return data after calculation
+        income_data = prior_data.get("income", {})
+
+        # Get the NEW carryforward amounts calculated from the prior year return
+        # These represent losses that couldn't be used in that year
+        st_loss_carryforward = prior_data.get(
+            "new_st_loss_carryforward",
+            income_data.get("new_st_loss_carryforward", 0.0)
+        )
+        lt_loss_carryforward = prior_data.get(
+            "new_lt_loss_carryforward",
+            income_data.get("new_lt_loss_carryforward", 0.0)
+        )
+
+        # If no explicit carryforward stored, check if there's a calculation breakdown
+        if st_loss_carryforward == 0 and lt_loss_carryforward == 0:
+            calc_breakdown = prior_data.get("calculation_breakdown", {})
+            st_loss_carryforward = calc_breakdown.get("new_st_loss_carryforward", 0.0)
+            lt_loss_carryforward = calc_breakdown.get("new_lt_loss_carryforward", 0.0)
+
+        # Get other carryover amounts
+        amt_credit_carryover = prior_data.get(
+            "amt_credit_carryforward",
+            prior_data.get("calculation_breakdown", {}).get("new_amt_credit_carryforward", 0.0)
+        )
+
+        carryovers = PriorYearCarryovers(
+            short_term_capital_loss_carryover=st_loss_carryforward,
+            long_term_capital_loss_carryover=lt_loss_carryforward,
+            amt_credit_carryover=amt_credit_carryover,
+            prior_year_total_tax=prior_data.get("tax_liability", 0.0),
+            prior_year_agi=prior_data.get("adjusted_gross_income", 0.0),
+        )
+
+        self._logger.info(
+            f"Loaded prior year carryovers",
+            extra={'extra_data': {
+                'prior_return_id': prior_return_id,
+                'st_loss_carryforward': st_loss_carryforward,
+                'lt_loss_carryforward': lt_loss_carryforward,
+            }}
+        )
+
+        return carryovers
+
+    def apply_carryovers_to_return(
+        self,
+        return_id: str,
+        session_id: str,
+        carryovers: PriorYearCarryovers
+    ) -> bool:
+        """
+        Apply prior year carryovers to a tax return.
+
+        Updates the income section of the return with carryforward amounts
+        so they are included in the next calculation.
+
+        Args:
+            return_id: Current year return ID
+            session_id: Session identifier
+            carryovers: Prior year carryover amounts
+
+        Returns:
+            True if successfully applied, False otherwise
+        """
+        # Load the current return
+        return_data = self._persistence.load_return(return_id)
+        if not return_data:
+            self._logger.warning(f"Return not found for carryover application: {return_id}")
+            return False
+
+        # Get or create income section
+        income_data = return_data.get("income", {})
+
+        # Apply capital loss carryforwards to income
+        # These fields are used by the calculator in net_capital_gain_loss calculation
+        income_data["short_term_loss_carryforward"] = carryovers.short_term_capital_loss_carryover
+        income_data["long_term_loss_carryforward"] = carryovers.long_term_capital_loss_carryover
+
+        # Store the applied carryovers for audit trail
+        return_data["income"] = income_data
+        return_data["applied_carryovers"] = {
+            "short_term_capital_loss": carryovers.short_term_capital_loss_carryover,
+            "long_term_capital_loss": carryovers.long_term_capital_loss_carryover,
+            "amt_credit": carryovers.amt_credit_carryover,
+            "prior_year_agi": carryovers.prior_year_agi,
+            "prior_year_tax": carryovers.prior_year_total_tax,
+            "applied_at": datetime.now().isoformat(),
+        }
+
+        # Save updated return
+        self._persistence.save_return(session_id, return_data, return_id)
+
+        self._logger.info(
+            f"Applied carryovers to return",
+            extra={'extra_data': {
+                'return_id': return_id,
+                'st_loss_carryforward': carryovers.short_term_capital_loss_carryover,
+                'lt_loss_carryforward': carryovers.long_term_capital_loss_carryover,
+            }}
+        )
+
+        return True
+
+    def initialize_return_with_prior_year(
+        self,
+        session_id: str,
+        tax_year: int,
+        prior_return_id: str,
+        initial_data: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
+        """
+        Create a new tax return and automatically apply carryovers from prior year.
+
+        This is the recommended way to create a return when a prior year return exists,
+        as it ensures capital loss carryforwards (IRC Section 1212) and other
+        carryover amounts are properly initialized.
+
+        Args:
+            session_id: Session identifier
+            tax_year: Tax year for the new return
+            prior_return_id: Return ID of the prior year return
+            initial_data: Optional additional initial data
+
+        Returns:
+            The return_id of the created return, or None if prior year not found
+        """
+        # Get carryovers from prior year
+        carryovers = self.get_prior_year_carryovers(prior_return_id)
+        if not carryovers:
+            self._logger.warning(
+                f"Could not load prior year carryovers from {prior_return_id}"
+            )
+            # Still create the return, just without carryovers
+            return self.create_return(session_id, tax_year, initial_data)
+
+        # Initialize income data with carryovers
+        if initial_data is None:
+            initial_data = {}
+
+        income_data = initial_data.get("income", {})
+        income_data["short_term_loss_carryforward"] = carryovers.short_term_capital_loss_carryover
+        income_data["long_term_loss_carryforward"] = carryovers.long_term_capital_loss_carryover
+        initial_data["income"] = income_data
+
+        # Store reference to prior year for audit trail
+        initial_data["prior_year_return_id"] = prior_return_id
+        initial_data["carryovers_applied"] = True
+
+        # Create the return with carryovers pre-populated
+        return_id = self.create_return(session_id, tax_year, initial_data)
+
+        self._logger.info(
+            f"Created return with prior year carryovers",
+            extra={'extra_data': {
+                'return_id': return_id,
+                'prior_return_id': prior_return_id,
+                'st_loss_carryforward': carryovers.short_term_capital_loss_carryover,
+                'lt_loss_carryforward': carryovers.long_term_capital_loss_carryover,
+            }}
+        )
+
+        return return_id
+
     def list_returns(
         self,
         tax_year: Optional[int] = None,
