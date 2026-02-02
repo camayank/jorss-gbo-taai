@@ -40,6 +40,11 @@ from .inference_engine import (
     infer_document_fields,
     aggregate_multi_document_income,
 )
+from .ai_enhanced_processor import (
+    AIEnhancedDocumentProcessor,
+    AIEnhancedResult,
+    get_ai_enhanced_processor,
+)
 
 __all__ = [
     # Core processors
@@ -75,4 +80,8 @@ __all__ = [
     "MultiDocumentInference",
     "infer_document_fields",
     "aggregate_multi_document_income",
+    # AI-enhanced processing
+    "AIEnhancedDocumentProcessor",
+    "AIEnhancedResult",
+    "get_ai_enhanced_processor",
 ]

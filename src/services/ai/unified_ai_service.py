@@ -453,6 +453,179 @@ class PerplexityAdapter(BaseProviderAdapter):
         return json.loads(response.content.strip())
 
 
+class GeminiAdapter(BaseProviderAdapter):
+    """Adapter for Google Gemini API (for multimodal processing)."""
+
+    def __init__(self, config: ProviderConfig):
+        super().__init__(config)
+        self._client = None
+
+    @property
+    def client(self):
+        """Lazy-load Gemini client."""
+        if self._client is None:
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=self.config.api_key)
+                self._client = genai
+            except ImportError:
+                raise ImportError("google-generativeai package required: pip install google-generativeai")
+        return self._client
+
+    async def complete(
+        self,
+        messages: List[AIMessage],
+        model: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+        **kwargs
+    ) -> AIResponse:
+        model_name = model or self.config.default_model
+        start_time = time.time()
+
+        try:
+            # Get the generative model
+            gen_model = self.client.GenerativeModel(model_name)
+
+            # Build content from messages
+            contents = []
+            system_instruction = None
+
+            for msg in messages:
+                if msg.role == "system":
+                    system_instruction = msg.content
+                elif msg.role == "user":
+                    contents.append({"role": "user", "parts": [msg.content]})
+                elif msg.role == "assistant":
+                    contents.append({"role": "model", "parts": [msg.content]})
+
+            # Configure generation
+            generation_config = self.client.GenerationConfig(
+                temperature=temperature,
+                max_output_tokens=max_tokens,
+            )
+
+            # Generate response
+            if system_instruction:
+                gen_model = self.client.GenerativeModel(
+                    model_name,
+                    system_instruction=system_instruction
+                )
+
+            response = await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: gen_model.generate_content(
+                    contents,
+                    generation_config=generation_config
+                )
+            )
+
+            latency_ms = int((time.time() - start_time) * 1000)
+
+            # Extract token counts if available
+            input_tokens = 0
+            output_tokens = 0
+            if hasattr(response, 'usage_metadata'):
+                input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0)
+                output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0)
+
+            self.circuit_breaker.record_success()
+
+            return AIResponse(
+                content=response.text,
+                model=model_name,
+                provider=AIProvider.GOOGLE,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                latency_ms=latency_ms,
+                cost_estimate=estimate_cost(model_name, input_tokens, output_tokens),
+            )
+        except Exception as e:
+            self.circuit_breaker.record_failure()
+            raise
+
+    async def analyze_image(
+        self,
+        image_data: bytes,
+        prompt: str,
+        model: Optional[str] = None,
+        **kwargs
+    ) -> AIResponse:
+        """
+        Analyze an image using Gemini's multimodal capabilities.
+
+        Args:
+            image_data: Raw image bytes
+            prompt: Analysis prompt
+            model: Optional model override
+
+        Returns:
+            AIResponse with analysis
+        """
+        model_name = model or self.config.models.get(ModelCapability.MULTIMODAL, self.config.default_model)
+        start_time = time.time()
+
+        try:
+            import PIL.Image
+            import io
+
+            # Convert bytes to PIL Image
+            image = PIL.Image.open(io.BytesIO(image_data))
+
+            gen_model = self.client.GenerativeModel(model_name)
+
+            response = await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: gen_model.generate_content([prompt, image])
+            )
+
+            latency_ms = int((time.time() - start_time) * 1000)
+
+            input_tokens = 0
+            output_tokens = 0
+            if hasattr(response, 'usage_metadata'):
+                input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0)
+                output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0)
+
+            self.circuit_breaker.record_success()
+
+            return AIResponse(
+                content=response.text,
+                model=model_name,
+                provider=AIProvider.GOOGLE,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                latency_ms=latency_ms,
+                cost_estimate=estimate_cost(model_name, input_tokens, output_tokens),
+                metadata={"multimodal": True}
+            )
+        except Exception as e:
+            self.circuit_breaker.record_failure()
+            raise
+
+    async def extract_structured(
+        self,
+        text: str,
+        schema: Dict[str, Any],
+        model: Optional[str] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        messages = [
+            AIMessage(role="system", content="Extract structured data from the text. Return valid JSON only matching the schema."),
+            AIMessage(role="user", content=f"Schema: {schema}\n\nText: {text}")
+        ]
+
+        response = await self.complete(messages, model=model, temperature=0.1)
+
+        import json
+        content = response.content.strip()
+        if content.startswith("```"):
+            content = content.split("```")[1]
+            if content.startswith("json"):
+                content = content[4:]
+        return json.loads(content.strip())
+
+
 # =============================================================================
 # UNIFIED AI SERVICE
 # =============================================================================
@@ -481,6 +654,7 @@ class UnifiedAIService:
             AIProvider.OPENAI: OpenAIAdapter,
             AIProvider.ANTHROPIC: AnthropicAdapter,
             AIProvider.PERPLEXITY: PerplexityAdapter,
+            AIProvider.GOOGLE: GeminiAdapter,
         }
 
         for provider in available:
@@ -690,6 +864,71 @@ Focus on the most recent guidance and rules."""
         except Exception as e:
             self._record_usage(provider, model, error=str(e))
             raise
+
+    async def analyze_image(
+        self,
+        image_data: bytes,
+        prompt: str,
+        **kwargs
+    ) -> AIResponse:
+        """
+        Analyze an image using multimodal capabilities (uses Gemini).
+
+        Args:
+            image_data: Raw image bytes (PNG, JPEG, etc.)
+            prompt: Analysis prompt
+
+        Returns:
+            AIResponse with image analysis
+        """
+        # Gemini is the preferred provider for multimodal
+        if AIProvider.GOOGLE in self._adapters:
+            adapter = self._adapters[AIProvider.GOOGLE]
+            if adapter.circuit_breaker.can_execute():
+                try:
+                    response = await adapter.analyze_image(image_data, prompt, **kwargs)
+                    self._record_usage(AIProvider.GOOGLE, response.model, response)
+                    return response
+                except Exception as e:
+                    self._record_usage(AIProvider.GOOGLE, "gemini-multimodal", error=str(e))
+                    logger.error(f"Gemini image analysis failed: {e}")
+                    raise
+
+        raise ValueError("No multimodal provider available (Gemini required)")
+
+    async def analyze_document(
+        self,
+        document_data: bytes,
+        document_type: str,
+        extraction_schema: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ) -> AIResponse:
+        """
+        Analyze a tax document using multimodal AI.
+
+        Args:
+            document_data: Raw document bytes (image or PDF)
+            document_type: Type hint (e.g., "W-2", "1099-INT", "unknown")
+            extraction_schema: Optional schema for structured extraction
+
+        Returns:
+            AIResponse with document analysis and extracted data
+        """
+        prompt = f"""Analyze this tax document ({document_type}).
+
+Extract all relevant tax information including:
+1. Document type and tax year
+2. All monetary amounts with their field labels
+3. Names, addresses, and identification numbers (mask SSN showing only last 4)
+4. Any important dates or deadlines
+5. Filing status implications if applicable
+
+Return a structured analysis with confidence scores for each extracted field."""
+
+        if extraction_schema:
+            prompt += f"\n\nExtract data matching this schema:\n{extraction_schema}"
+
+        return await self.analyze_image(document_data, prompt, **kwargs)
 
     def get_usage_summary(self) -> Dict[str, Any]:
         """Get usage statistics summary."""
