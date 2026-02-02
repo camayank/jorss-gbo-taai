@@ -32,9 +32,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     - X-Content-Type-Options
     - X-Frame-Options
     - X-XSS-Protection
-    - Content-Security-Policy
+    - Content-Security-Policy (with nonce support)
     - Referrer-Policy
     - Permissions-Policy
+
+    SECURITY: Uses nonce-based CSP to eliminate 'unsafe-inline' for scripts.
+    The nonce is generated per-request and stored in request.state.csp_nonce.
+    Templates can access this via {{ request.state.csp_nonce }}.
     """
 
     def __init__(
@@ -43,20 +47,51 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         hsts_max_age: int = 31536000,  # 1 year
         frame_options: str = "DENY",
         content_security_policy: Optional[str] = None,
+        use_nonce: bool = True,  # Enable nonce-based CSP by default
     ):
         super().__init__(app)
         self.hsts_max_age = hsts_max_age
         self.frame_options = frame_options
-        self.csp = content_security_policy or self._default_csp()
+        self.use_nonce = use_nonce
+        self._static_csp = content_security_policy  # User-provided static CSP
 
-    def _default_csp(self) -> str:
-        """Default Content-Security-Policy."""
+    def _generate_nonce(self) -> str:
+        """Generate a cryptographically secure nonce for CSP."""
+        return secrets.token_urlsafe(32)
+
+    def _build_csp(self, nonce: Optional[str] = None) -> str:
+        """
+        Build Content-Security-Policy with optional nonce.
+
+        Args:
+            nonce: Per-request nonce for script/style-src
+
+        Returns:
+            CSP header value
+        """
+        if self._static_csp:
+            # User provided static CSP - use as-is (might contain their own nonce)
+            return self._static_csp
+
+        # Build nonce-based CSP
+        if nonce and self.use_nonce:
+            # SECURITY: Use nonce instead of 'unsafe-inline' for scripts
+            # This prevents XSS attacks from injecting arbitrary scripts
+            script_src = f"script-src 'self' 'nonce-{nonce}' https://unpkg.com"
+            # Note: We still need 'unsafe-inline' for styles due to Alpine.js/inline styles
+            # This is a known limitation - inline styles are lower risk than inline scripts
+            style_src = "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com"
+        else:
+            # Fallback for non-HTML responses or when nonce is disabled
+            script_src = "script-src 'self' 'unsafe-inline' https://unpkg.com"
+            style_src = "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com"
+
         return "; ".join([
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' https://unpkg.com",  # Allow CDN scripts
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",  # Allow Google Fonts
+            script_src,
+            style_src,
             "img-src 'self' data: https:",
-            "font-src 'self' https: https://fonts.gstatic.com",  # Allow Google Fonts
+            "font-src 'self' https: https://fonts.gstatic.com",
             "connect-src 'self'",
             "frame-ancestors 'none'",
             "base-uri 'self'",
@@ -64,14 +99,28 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         ])
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # Generate nonce for this request
+        nonce = self._generate_nonce() if self.use_nonce else None
+
+        # Store nonce in request state for template access
+        if nonce:
+            request.state.csp_nonce = nonce
+
         response = await call_next(request)
+
+        # Determine if this is an HTML response that needs nonce-based CSP
+        content_type = response.headers.get("content-type", "")
+        is_html = "text/html" in content_type
+
+        # Build CSP with nonce for HTML responses
+        csp = self._build_csp(nonce if is_html else None)
 
         # Add security headers
         response.headers["Strict-Transport-Security"] = f"max-age={self.hsts_max_age}; includeSubDomains"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = self.frame_options
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Content-Security-Policy"] = self.csp
+        response.headers["Content-Security-Policy"] = csp
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
 

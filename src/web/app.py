@@ -160,12 +160,14 @@ except Exception as e:
     logger.warning(f"Request validation middleware failed: {e}")
 
 # 4. CSRF Protection (for state-changing operations)
+# Define environment detection BEFORE try block so it's always available
+_environment = os.environ.get("APP_ENVIRONMENT", "development")
+_is_production = _environment in ("production", "prod", "staging")
+
 try:
     # Get or generate secret key for CSRF tokens
     # SPEC-002: In production, CSRF_SECRET_KEY must be set
     csrf_secret = os.environ.get("CSRF_SECRET_KEY")
-    _environment = os.environ.get("APP_ENVIRONMENT", "development")
-    _is_production = _environment in ("production", "prod", "staging")
 
     if not csrf_secret:
         if _is_production:
@@ -218,8 +220,65 @@ try:
         exempt_paths=csrf_exempt_paths,
     )
     logger.info("CSRF protection middleware enabled")
+
+    # Store CSRF secret at module level for token generation
+    _csrf_secret_key = csrf_secret.encode("utf-8")
 except Exception as e:
     logger.warning(f"CSRF middleware failed: {e}")
+    _csrf_secret_key = None
+
+
+# =============================================================================
+# CSRF TOKEN GENERATION (for templates and cookie setting)
+# =============================================================================
+def generate_csrf_token() -> str:
+    """
+    Generate a signed CSRF token.
+
+    Returns a token in format: random_data:hmac_signature
+    The same token should be stored in cookie and included in requests.
+    """
+    if not _csrf_secret_key:
+        logger.warning("[CSRF] No secret key available, returning empty token")
+        return ""
+
+    import secrets as _secrets
+    import hmac as _hmac
+    import hashlib as _hashlib
+
+    # Generate random token data
+    token_data = _secrets.token_hex(32)
+
+    # Sign the token
+    signature = _hmac.new(_csrf_secret_key, token_data.encode(), _hashlib.sha256).hexdigest()
+
+    return f"{token_data}:{signature}"
+
+
+def set_csrf_cookie(response: Response, token: Optional[str] = None) -> str:
+    """
+    Set CSRF token cookie on a response.
+
+    Args:
+        response: FastAPI Response object
+        token: Optional existing token (generates new if not provided)
+
+    Returns:
+        The CSRF token that was set
+    """
+    csrf_token = token or generate_csrf_token()
+
+    # Set secure cookie attributes
+    response.set_cookie(
+        key="csrf_token",
+        value=csrf_token,
+        httponly=False,  # Must be readable by JavaScript
+        secure=_is_production,  # HTTPS only in production
+        samesite="lax",  # Prevent cross-site request attacks
+        max_age=3600,  # 1 hour expiry
+    )
+
+    return csrf_token
 
 
 # =============================================================================
@@ -303,6 +362,46 @@ if RBAC_V2_ENABLED:
         logger.warning(f"Global RBAC middleware not available: {e}")
 else:
     logger.info("Global RBAC v2 middleware disabled (feature flag off)")
+
+
+# =============================================================================
+# IMPORT FALLBACK HANDLING
+# =============================================================================
+# SECURITY: In production, critical import failures should fail fast.
+# Optional features can be disabled with warnings.
+
+
+def require_import(critical: bool = False):
+    """
+    Decorator for handling import failures based on criticality.
+
+    Args:
+        critical: If True, fail fast in production for missing imports.
+                  If False, log warning and continue.
+
+    Usage:
+        @require_import(critical=True)
+        def load_auth_api():
+            from web.auth_api import router
+            app.include_router(router)
+    """
+    def decorator(func):
+        def wrapper():
+            try:
+                func()
+                return True
+            except ImportError as e:
+                if critical and _is_production:
+                    logger.critical(
+                        f"[SECURITY] Critical import failed in production: {e}. "
+                        f"Application cannot start safely."
+                    )
+                    raise RuntimeError(f"Critical import failed: {e}")
+                else:
+                    logger.warning(f"Optional feature not available: {e}")
+                    return False
+        return wrapper
+    return decorator
 
 
 # =============================================================================
@@ -997,6 +1096,10 @@ def validate_date(date_str: str) -> tuple[bool, Optional[str]]:
 
 
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
+
+# Add CSRF token function to Jinja2 template globals
+# This allows templates to use {{ csrf_token() }} to get a CSRF token
+templates.env.globals["csrf_token"] = generate_csrf_token
 
 # Static files (for PWA manifest, icons, etc.)
 from fastapi.staticfiles import StaticFiles

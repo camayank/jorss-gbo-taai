@@ -32,7 +32,7 @@
 
 {# Alpine.js and stores #}
 {% if use_alpine %}
-<script type="module">
+<script type="module"{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
   // Import Alpine stores
   {% if use_stores %}
     {% if 'sidebar' in use_stores %}
@@ -76,7 +76,7 @@
 
 {# Extra inline scripts #}
 {% if extra_scripts %}
-<script>
+<script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
 {{ extra_scripts | safe }}
 </script>
 {% endif %}

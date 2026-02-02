@@ -354,6 +354,16 @@ class Settings(BaseSettings):
         elif len(csrf_secret) < 32:
             errors.append("CSRF_SECRET_KEY: Must be at least 32 characters")
 
+        # Check SSN_HASH_SECRET (Phase 1 Security Fix: HMAC-SHA256 for SSN hashing)
+        ssn_hash_secret = os.environ.get("SSN_HASH_SECRET")
+        if not ssn_hash_secret:
+            errors.append(
+                "SSN_HASH_SECRET: Required in production for secure SSN hashing. "
+                "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        elif len(ssn_hash_secret) < 32:
+            errors.append("SSN_HASH_SECRET: Must be at least 32 characters")
+
         # Check HTTPS enforcement
         if not self.enforce_https:
             errors.append(

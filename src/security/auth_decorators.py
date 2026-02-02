@@ -22,6 +22,50 @@ from enum import Enum
 
 logger = logging.getLogger(__name__)
 
+# Explicit allowlist of environments where auth can be disabled
+_DEV_ENVIRONMENTS = frozenset({"development", "dev", "local", "test", "testing"})
+
+
+def _determine_enforcement(enforce: Optional[bool], context: str = "auth") -> bool:
+    """
+    Determine if authentication/authorization should be enforced.
+
+    SECURITY: Fail-closed design - unknown environments enforce auth by default.
+    Only explicitly allowlisted development environments can disable enforcement.
+
+    Args:
+        enforce: Explicit override (True/False) or None for auto-detection
+        context: Context for logging (e.g., "auth", "session_owner")
+
+    Returns:
+        True if enforcement is required, False only in explicit dev environments
+    """
+    import os
+
+    # Explicit override takes precedence
+    if enforce is not None:
+        if not enforce:
+            logger.warning(
+                f"[SECURITY] {context} enforcement explicitly DISABLED by decorator parameter"
+            )
+        return enforce
+
+    # Auto-detect based on environment
+    env = os.environ.get("APP_ENVIRONMENT", "").lower().strip()
+
+    # Only disable in explicitly allowlisted dev environments
+    if env in _DEV_ENVIRONMENTS:
+        logger.info(f"[SECURITY] {context} enforcement disabled in '{env}' environment")
+        return False
+
+    # Unknown or production = ENFORCE (fail-closed)
+    if env and env not in ("production", "prod", "staging"):
+        logger.warning(
+            f"[SECURITY] Unknown APP_ENVIRONMENT '{env}' - enforcing {context} (fail-closed)"
+        )
+
+    return True
+
 
 class Role(str, Enum):
     """User roles for authorization."""
@@ -40,7 +84,12 @@ def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True
         roles: List of roles allowed to access this endpoint. If None, any authenticated user can access.
         require_tenant: If True, enforce tenant isolation (user can only access their own tenant's data)
         enforce: If True, raise HTTPException on auth failure. If False, log only.
-                 If None (default), enforces in production only.
+                 If None (default), uses fail-closed logic: enforces unless in explicit dev environment.
+
+    SECURITY NOTE:
+        This decorator uses fail-closed design. Authentication is ENFORCED by default
+        unless APP_ENVIRONMENT is explicitly set to a development value (development,
+        dev, local, test, testing). Unknown environments will enforce authentication.
 
     Example:
         @app.post("/api/returns/save")
@@ -48,16 +97,8 @@ def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True
         async def save_return(request: Request):
             pass
     """
-    # Check environment - always enforce in production
-    import os
-    _environment = os.environ.get("APP_ENVIRONMENT", "development")
-    _is_production = _environment in ("production", "prod", "staging")
-
-    # Determine enforcement: explicit setting > environment-based default
-    if enforce is not None:
-        _should_enforce = enforce
-    else:
-        _should_enforce = _is_production  # Auto-enforce only in production
+    # Use fail-closed enforcement determination
+    _should_enforce = _determine_enforcement(enforce, "auth")
 
     def decorator(func: Callable):
         @functools.wraps(func)
@@ -125,7 +166,12 @@ def require_session_owner(session_param: str = "session_id", enforce: Optional[b
     Args:
         session_param: Name of the parameter containing the session ID
         enforce: If True, raise HTTPException on auth failure. If False, log only.
-                 If None (default), enforces in production only.
+                 If None (default), uses fail-closed logic: enforces unless in explicit dev environment.
+
+    SECURITY NOTE:
+        This decorator uses fail-closed design. Session ownership is ENFORCED by default
+        unless APP_ENVIRONMENT is explicitly set to a development value (development,
+        dev, local, test, testing). Unknown environments will enforce ownership checks.
 
     Example:
         @app.get("/api/returns/{session_id}")
@@ -133,16 +179,8 @@ def require_session_owner(session_param: str = "session_id", enforce: Optional[b
         async def get_return(request: Request, session_id: str):
             pass
     """
-    # Check environment - always enforce in production
-    import os
-    _environment = os.environ.get("APP_ENVIRONMENT", "development")
-    _is_production = _environment in ("production", "prod", "staging")
-
-    # Determine enforcement: explicit setting > environment-based default
-    if enforce is not None:
-        _should_enforce = enforce
-    else:
-        _should_enforce = _is_production  # Auto-enforce only in production
+    # Use fail-closed enforcement determination
+    _should_enforce = _determine_enforcement(enforce, "session_owner")
 
     def decorator(func: Callable):
         @functools.wraps(func)
