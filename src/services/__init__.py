@@ -81,6 +81,21 @@ def create_cached_calculation_pipeline(**kwargs):
     from .cached_calculation_pipeline import create_cached_pipeline
     return create_cached_pipeline(**kwargs)
 
+def get_tax_knowledge_base():
+    """Get PerplexityTaxKnowledgeBase instance for real-time tax research."""
+    from .ai_knowledge_base import get_tax_knowledge_base as _get_kb
+    return _get_kb()
+
+def get_tax_law_interpreter():
+    """Get ClaudeTaxLawInterpreter instance for tax law analysis."""
+    from .tax_law_interpreter import get_tax_law_interpreter as _get_interp
+    return _get_interp()
+
+def get_case_matcher():
+    """Get OpenAICaseMatcher instance for finding similar cases."""
+    from .case_matcher import get_case_matcher as _get_matcher
+    return _get_matcher()
+
 __all__ = [
     # OCR Services
     "DocumentProcessor",
@@ -93,4 +108,8 @@ __all__ = [
     "get_validation_service",
     "get_cached_calculation_pipeline",
     "create_cached_calculation_pipeline",
+    # AI Tax Research Services (Phase 5)
+    "get_tax_knowledge_base",
+    "get_tax_law_interpreter",
+    "get_case_matcher",
 ]
