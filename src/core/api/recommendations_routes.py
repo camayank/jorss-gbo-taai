@@ -11,19 +11,25 @@ Access control is automatically applied based on UserContext.
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query, status
-from typing import Optional, List
-from datetime import datetime
+from typing import Optional, List, Dict, Any
+from datetime import datetime, timedelta
 from enum import Enum
 from pydantic import BaseModel
 from uuid import uuid4
 import json
 import logging
+import hashlib
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .auth_routes import get_current_user
 from ..models.user import UserContext, UserType
+
+# In-memory cache for analytics (short TTL)
+# PERFORMANCE: Caches expensive aggregate queries to reduce database load
+_analytics_cache: Dict[str, Dict[str, Any]] = {}
+_ANALYTICS_CACHE_TTL_SECONDS = 300  # 5 minutes
 
 # Logger must be defined early for module-level use
 logger = logging.getLogger(__name__)
@@ -908,64 +914,181 @@ async def generate_recommendations(
 # ANALYTICS
 # =============================================================================
 
+def _get_cache_key(context: UserContext) -> str:
+    """Generate cache key based on user context."""
+    key_data = f"{context.user_type}:{context.user_id}:{context.firm_id or ''}"
+    return hashlib.md5(key_data.encode()).hexdigest()
+
+
+def _get_cached_analytics(cache_key: str) -> Optional[Dict[str, Any]]:
+    """Get cached analytics if not expired."""
+    if cache_key not in _analytics_cache:
+        return None
+
+    cached = _analytics_cache[cache_key]
+    if datetime.utcnow() > cached["expires_at"]:
+        del _analytics_cache[cache_key]
+        return None
+
+    return cached["data"]
+
+
+def _set_cached_analytics(cache_key: str, data: Dict[str, Any]) -> None:
+    """Cache analytics data with TTL."""
+    _analytics_cache[cache_key] = {
+        "data": data,
+        "expires_at": datetime.utcnow() + timedelta(seconds=_ANALYTICS_CACHE_TTL_SECONDS)
+    }
+
+    # Cleanup old cache entries (simple LRU-ish behavior)
+    if len(_analytics_cache) > 100:
+        # Remove oldest entries
+        sorted_keys = sorted(
+            _analytics_cache.keys(),
+            key=lambda k: _analytics_cache[k]["expires_at"]
+        )
+        for old_key in sorted_keys[:20]:
+            del _analytics_cache[old_key]
+
+
 @router.get("/analytics/summary")
 async def get_recommendation_analytics(
     context: UserContext = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_async_session),
+    force_refresh: bool = Query(False, description="Bypass cache")
 ):
-    """Get recommendation analytics."""
+    """
+    Get recommendation analytics.
+
+    PERFORMANCE: Results are cached for 5 minutes to reduce database load
+    on this expensive aggregate query. Use force_refresh=true to bypass cache.
+    """
+    # Check cache first
+    cache_key = _get_cache_key(context)
+    if not force_refresh:
+        cached = _get_cached_analytics(cache_key)
+        if cached:
+            logger.debug(f"Analytics cache hit for {cache_key}")
+            return cached
+
     await _ensure_recommendations_table(session)
 
     # Build access conditions
     access_conditions, access_params = await _build_access_conditions(context)
 
-    # Get counts by status
-    status_query = text(f"""
-        SELECT status, COUNT(*) as count
-        FROM recommendations r
-        WHERE {access_conditions}
-        GROUP BY status
-    """)
-    status_result = await session.execute(status_query, access_params)
-    status_rows = status_result.fetchall()
-    by_status = {row[0]: row[1] for row in status_rows}
-
-    # Get counts by category
-    category_query = text(f"""
-        SELECT category, COUNT(*) as count
-        FROM recommendations r
-        WHERE {access_conditions}
-        GROUP BY category
-    """)
-    category_result = await session.execute(category_query, access_params)
-    category_rows = category_result.fetchall()
-    by_category = {row[0]: row[1] for row in category_rows}
-
-    # Get total and savings aggregates
-    totals_query = text(f"""
+    # PERFORMANCE: Combined single query instead of 3 separate queries
+    combined_query = text(f"""
         SELECT
             COUNT(*) as total,
             COALESCE(SUM(estimated_savings_low), 0) as total_low,
             COALESCE(SUM(estimated_savings_high), 0) as total_high,
             COALESCE(SUM(CASE WHEN status = 'implemented'
                 THEN (estimated_savings_low + estimated_savings_high) / 2
-                ELSE 0 END), 0) as implemented_savings
+                ELSE 0 END), 0) as implemented_savings,
+            (SELECT json_object_agg(status, cnt) FROM (
+                SELECT status, COUNT(*) as cnt FROM recommendations r2
+                WHERE {access_conditions.replace(':user_id', ':user_id2').replace(':firm_id', ':firm_id2')}
+                GROUP BY status
+            ) s) as by_status,
+            (SELECT json_object_agg(category, cnt) FROM (
+                SELECT category, COUNT(*) as cnt FROM recommendations r3
+                WHERE {access_conditions.replace(':user_id', ':user_id3').replace(':firm_id', ':firm_id3')}
+                GROUP BY category
+            ) c) as by_category
         FROM recommendations r
         WHERE {access_conditions}
     """)
-    totals_result = await session.execute(totals_query, access_params)
-    totals_row = totals_result.fetchone()
 
-    total_recommendations = totals_row[0] if totals_row else 0
-    total_potential_savings_low = float(totals_row[1]) if totals_row else 0
-    total_potential_savings_high = float(totals_row[2]) if totals_row else 0
-    implemented_savings = float(totals_row[3]) if totals_row else 0
+    # Duplicate params for subqueries
+    combined_params = {**access_params}
+    if "user_id" in access_params:
+        combined_params["user_id2"] = access_params["user_id"]
+        combined_params["user_id3"] = access_params["user_id"]
+    if "firm_id" in access_params:
+        combined_params["firm_id2"] = access_params["firm_id"]
+        combined_params["firm_id3"] = access_params["firm_id"]
 
-    return {
-        "total_recommendations": total_recommendations,
-        "by_status": by_status,
-        "by_category": by_category,
-        "total_potential_savings_low": total_potential_savings_low,
-        "total_potential_savings_high": total_potential_savings_high,
-        "implemented_savings": implemented_savings
-    }
+    try:
+        result = await session.execute(combined_query, combined_params)
+        row = result.fetchone()
+
+        if row:
+            by_status = row[4] if row[4] else {}
+            by_category = row[5] if row[5] else {}
+            if isinstance(by_status, str):
+                by_status = json.loads(by_status)
+            if isinstance(by_category, str):
+                by_category = json.loads(by_category)
+
+            analytics = {
+                "total_recommendations": row[0] or 0,
+                "by_status": by_status,
+                "by_category": by_category,
+                "total_potential_savings_low": float(row[1] or 0),
+                "total_potential_savings_high": float(row[2] or 0),
+                "implemented_savings": float(row[3] or 0)
+            }
+        else:
+            analytics = {
+                "total_recommendations": 0,
+                "by_status": {},
+                "by_category": {},
+                "total_potential_savings_low": 0,
+                "total_potential_savings_high": 0,
+                "implemented_savings": 0
+            }
+    except Exception as e:
+        # Fallback to original separate queries if combined query fails
+        # (e.g., SQLite doesn't support json_object_agg)
+        logger.debug(f"Combined query failed, using fallback: {e}")
+
+        # Get counts by status
+        status_query = text(f"""
+            SELECT status, COUNT(*) as count
+            FROM recommendations r
+            WHERE {access_conditions}
+            GROUP BY status
+        """)
+        status_result = await session.execute(status_query, access_params)
+        status_rows = status_result.fetchall()
+        by_status = {row[0]: row[1] for row in status_rows}
+
+        # Get counts by category
+        category_query = text(f"""
+            SELECT category, COUNT(*) as count
+            FROM recommendations r
+            WHERE {access_conditions}
+            GROUP BY category
+        """)
+        category_result = await session.execute(category_query, access_params)
+        category_rows = category_result.fetchall()
+        by_category = {row[0]: row[1] for row in category_rows}
+
+        # Get total and savings aggregates
+        totals_query = text(f"""
+            SELECT
+                COUNT(*) as total,
+                COALESCE(SUM(estimated_savings_low), 0) as total_low,
+                COALESCE(SUM(estimated_savings_high), 0) as total_high,
+                COALESCE(SUM(CASE WHEN status = 'implemented'
+                    THEN (estimated_savings_low + estimated_savings_high) / 2
+                    ELSE 0 END), 0) as implemented_savings
+            FROM recommendations r
+            WHERE {access_conditions}
+        """)
+        totals_result = await session.execute(totals_query, access_params)
+        totals_row = totals_result.fetchone()
+
+        analytics = {
+            "total_recommendations": totals_row[0] if totals_row else 0,
+            "by_status": by_status,
+            "by_category": by_category,
+            "total_potential_savings_low": float(totals_row[1]) if totals_row else 0,
+            "total_potential_savings_high": float(totals_row[2]) if totals_row else 0,
+            "implemented_savings": float(totals_row[3]) if totals_row else 0
+        }
+
+    # Cache the result
+    _set_cached_analytics(cache_key, analytics)
+
+    return analytics

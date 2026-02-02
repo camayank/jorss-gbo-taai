@@ -456,40 +456,63 @@ class SessionPersistence:
                 ))
             return sessions
 
-    def cleanup_expired_sessions(self) -> int:
-        """Remove all expired sessions."""
+    def cleanup_expired_sessions(self, batch_size: int = 500) -> int:
+        """
+        Remove all expired sessions in batches to prevent memory issues.
+
+        PERFORMANCE: Uses batched deletion to avoid loading all expired
+        session IDs into memory at once, which can cause OOM errors
+        when many sessions have expired.
+
+        Args:
+            batch_size: Number of sessions to delete per batch (default: 500)
+
+        Returns:
+            Total number of sessions deleted
+        """
         now = datetime.utcnow().isoformat()
+        total_deleted = 0
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
-            # Get expired session IDs
-            cursor.execute(
-                "SELECT session_id FROM session_states WHERE expires_at < ?",
-                (now,)
-            )
-            expired_ids = [row[0] for row in cursor.fetchall()]
+            while True:
+                # Get batch of expired session IDs (with LIMIT for pagination)
+                cursor.execute(
+                    "SELECT session_id FROM session_states WHERE expires_at < ? LIMIT ?",
+                    (now, batch_size)
+                )
+                expired_ids = [row[0] for row in cursor.fetchall()]
 
-            if not expired_ids:
-                return 0
+                if not expired_ids:
+                    break
 
-            # Delete related data
-            placeholders = ",".join("?" * len(expired_ids))
-            cursor.execute(
-                f"DELETE FROM document_processing WHERE session_id IN ({placeholders})",
-                expired_ids
-            )
-            cursor.execute(
-                f"DELETE FROM session_tax_returns WHERE session_id IN ({placeholders})",
-                expired_ids
-            )
-            cursor.execute(
-                f"DELETE FROM session_states WHERE session_id IN ({placeholders})",
-                expired_ids
-            )
+                # Delete related data for this batch
+                placeholders = ",".join("?" * len(expired_ids))
+                cursor.execute(
+                    f"DELETE FROM document_processing WHERE session_id IN ({placeholders})",
+                    expired_ids
+                )
+                cursor.execute(
+                    f"DELETE FROM session_tax_returns WHERE session_id IN ({placeholders})",
+                    expired_ids
+                )
+                cursor.execute(
+                    f"DELETE FROM session_states WHERE session_id IN ({placeholders})",
+                    expired_ids
+                )
 
-            conn.commit()
-            return len(expired_ids)
+                conn.commit()
+                total_deleted += len(expired_ids)
+
+                # Log progress for large cleanups
+                if total_deleted % 1000 == 0:
+                    logger.info(f"Cleanup progress: {total_deleted} sessions deleted")
+
+        if total_deleted > 0:
+            logger.info(f"Cleanup complete: {total_deleted} expired sessions deleted")
+
+        return total_deleted
 
     # =========================================================================
     # DOCUMENT PROCESSING METHODS (replaces _DOCUMENTS)
@@ -1442,10 +1465,58 @@ class SessionPersistence:
 # Global instance
 _session_persistence: Optional[SessionPersistence] = None
 
+# Configuration for session storage backend
+# Set SESSION_STORAGE_TYPE=redis to use Redis (requires Redis to be available)
+# Default is 'sqlite' for backward compatibility
+import os
+_SESSION_STORAGE_TYPE = os.environ.get("SESSION_STORAGE_TYPE", "sqlite").lower()
+
 
 def get_session_persistence() -> SessionPersistence:
-    """Get the global session persistence instance."""
+    """
+    Get the global session persistence instance.
+
+    Uses Redis if SESSION_STORAGE_TYPE=redis and Redis is available,
+    otherwise falls back to SQLite (default).
+
+    Environment variables:
+        SESSION_STORAGE_TYPE: 'redis' or 'sqlite' (default: 'sqlite')
+
+    Returns:
+        SessionPersistence instance (SQLite-based)
+
+    Note:
+        For async Redis operations, use get_redis_session_persistence()
+        from database.redis_session_persistence instead.
+    """
     global _session_persistence
     if _session_persistence is None:
+        if _SESSION_STORAGE_TYPE == "redis":
+            logger.info("SESSION_STORAGE_TYPE=redis, but sync persistence requires SQLite. "
+                       "Use async get_redis_session_persistence() for Redis operations.")
         _session_persistence = SessionPersistence()
     return _session_persistence
+
+
+async def get_async_session_persistence():
+    """
+    Get async session persistence - Redis if available, else SQLite wrapper.
+
+    This is the preferred method for async code paths. Returns Redis
+    persistence if available, otherwise wraps SQLite persistence.
+
+    Returns:
+        Redis or SQLite session persistence
+    """
+    if _SESSION_STORAGE_TYPE == "redis":
+        try:
+            from database.redis_session_persistence import get_redis_session_persistence
+            redis_persistence = await get_redis_session_persistence()
+            if redis_persistence:
+                return redis_persistence
+            logger.warning("Redis session persistence unavailable, falling back to SQLite")
+        except Exception as e:
+            logger.warning(f"Failed to initialize Redis session persistence: {e}")
+
+    # Fallback to SQLite
+    return get_session_persistence()
