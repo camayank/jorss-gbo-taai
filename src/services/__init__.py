@@ -96,6 +96,16 @@ def get_case_matcher():
     from .case_matcher import get_case_matcher as _get_matcher
     return _get_matcher()
 
+def get_client_communicator(firm_name: str = "Your Tax Advisory Firm"):
+    """Get ClaudeClientCommunicator instance for personalized client emails."""
+    from .client_communicator import get_client_communicator as _get_comm
+    return _get_comm(firm_name=firm_name)
+
+def get_multimodal_support():
+    """Get GeminiMultimodalSupport instance for voice/video processing."""
+    from .multimodal_support import get_multimodal_support as _get_mm
+    return _get_mm()
+
 __all__ = [
     # OCR Services
     "DocumentProcessor",
@@ -112,4 +122,7 @@ __all__ = [
     "get_tax_knowledge_base",
     "get_tax_law_interpreter",
     "get_case_matcher",
+    # AI Client Communication Services (Phase 6)
+    "get_client_communicator",
+    "get_multimodal_support",
 ]
