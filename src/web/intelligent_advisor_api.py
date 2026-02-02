@@ -3952,7 +3952,7 @@ async def intelligent_chat(request: ChatRequest):
         )
 
     # If we have enough data, calculate taxes
-    if profile.get("total_income") and profile.get("filing_status"):
+    if profile.get("total_income") and profile.get("filing_status") and profile.get("state"):
         tax_calculation = await chat_engine.get_tax_calculation(profile)
 
         # Get strategies
