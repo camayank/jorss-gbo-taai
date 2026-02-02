@@ -12548,8 +12548,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
     }
 
     // Phase 3.5: Offline Detection
-    let isOnline = navigator.onLine;
-    let offlineQueue = [];
+    // Note: isOnline and offlineQueue already declared earlier in the file
 
     function showOfflineBanner() {
       if (document.getElementById('offlineBanner')) return;
