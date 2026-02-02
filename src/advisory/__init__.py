@@ -20,11 +20,40 @@ from .report_generator import (
     ReportType,
     generate_advisory_report,
 )
+from .ai_narrative_generator import (
+    AINarrativeGenerator,
+    ClientProfile,
+    CommunicationStyle,
+    TaxSophistication,
+    GeneratedNarrative,
+    get_narrative_generator,
+)
+from .report_summarizer import (
+    AIReportSummarizer,
+    SummaryLevel,
+    ReportSummary,
+    MultiLevelSummaries,
+    get_report_summarizer,
+)
 
 __all__ = [
+    # Report generation
     "AdvisoryReportGenerator",
     "AdvisoryReportResult",
     "AdvisoryReportSection",
     "ReportType",
     "generate_advisory_report",
+    # AI narrative generation
+    "AINarrativeGenerator",
+    "ClientProfile",
+    "CommunicationStyle",
+    "TaxSophistication",
+    "GeneratedNarrative",
+    "get_narrative_generator",
+    # AI report summarization
+    "AIReportSummarizer",
+    "SummaryLevel",
+    "ReportSummary",
+    "MultiLevelSummaries",
+    "get_report_summarizer",
 ]
