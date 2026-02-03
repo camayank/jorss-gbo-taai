@@ -1295,16 +1295,31 @@
         function buildActionPlanSection(content) {
             const div = document.createElement('div');
 
+            // SECURITY: Helper to escape HTML to prevent XSS
+            const escapeHtml = (text) => {
+                const tempDiv = document.createElement('div');
+                tempDiv.textContent = text || '';
+                return tempDiv.innerHTML;
+            };
+
+            // SECURITY: Helper to safely format currency
+            const safeCurrency = (value) => {
+                const num = Number(value);
+                if (isNaN(num)) return '$0.00';
+                return '$' + num.toLocaleString('en-US', {minimumFractionDigits: 2});
+            };
+
             if (content.immediate_actions && content.immediate_actions.length > 0) {
                 div.innerHTML += '<h3>Immediate Actions</h3>';
                 const ul = document.createElement('ul');
                 ul.className = 'action-list';
                 content.immediate_actions.forEach(action => {
+                    // SECURITY: Escape all user-controlled data
                     ul.innerHTML += `
                         <li>
-                            <strong>${action.title}</strong>
-                            <div class="savings-amount">Saves: $${action.savings.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
-                            <p>${action.action}</p>
+                            <strong>${escapeHtml(action.title)}</strong>
+                            <div class="savings-amount">Saves: ${safeCurrency(action.savings)}</div>
+                            <p>${escapeHtml(action.action)}</p>
                         </li>
                     `;
                 });
@@ -1316,11 +1331,12 @@
                 const ul = document.createElement('ul');
                 ul.className = 'action-list';
                 content.current_year_actions.forEach(action => {
+                    // SECURITY: Escape all user-controlled data
                     ul.innerHTML += `
                         <li>
-                            <strong>${action.title}</strong>
-                            <div class="savings-amount">Saves: $${action.savings.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
-                            <p>${action.action}</p>
+                            <strong>${escapeHtml(action.title)}</strong>
+                            <div class="savings-amount">Saves: ${safeCurrency(action.savings)}</div>
+                            <p>${escapeHtml(action.action)}</p>
                         </li>
                     `;
                 });

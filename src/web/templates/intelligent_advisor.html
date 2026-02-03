@@ -3840,8 +3840,93 @@
       rateLimitWindow: 60000,  // 1 minute
       sessionTimeout: 30 * 60 * 1000,  // 30 minutes
       offlineQueueMax: 10,
-      debugMode: false
+      debugMode: false  // Set to true only for development
     };
+
+    // =========================================================================
+    // SECURITY: Production-Safe Logger (prevents info leakage in production)
+    // =========================================================================
+
+    /**
+     * Production-safe logger that only outputs when debugMode is enabled.
+     * SECURITY: Prevents sensitive debugging information from being exposed
+     * in browser console in production environments.
+     */
+    const DevLogger = {
+      log: function(...args) {
+        if (RobustnessConfig.debugMode) {
+          console.log('[DEV]', ...args);
+        }
+      },
+      warn: function(...args) {
+        if (RobustnessConfig.debugMode) {
+          console.warn('[DEV]', ...args);
+        }
+      },
+      error: function(...args) {
+        // Always log errors, but redact sensitive data in production
+        if (RobustnessConfig.debugMode) {
+          console.error('[DEV]', ...args);
+        } else {
+          // In production, only log generic error without details
+          console.error('An error occurred. Enable debugMode for details.');
+        }
+      },
+      debug: function(...args) {
+        if (RobustnessConfig.debugMode) {
+          console.debug('[DEV]', ...args);
+        }
+      }
+    };
+
+    // =========================================================================
+    // SECURITY: CSRF Protection
+    // =========================================================================
+
+    /**
+     * Get CSRF token from cookie or meta tag.
+     * @returns {string|null} The CSRF token or null if not found
+     */
+    function getCSRFToken() {
+      // First try to get from cookie
+      const cookies = document.cookie.split(';');
+      for (const cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'csrf_token') {
+          return decodeURIComponent(value);
+        }
+      }
+      // Fallback to meta tag
+      const metaTag = document.querySelector('meta[name="csrf-token"]');
+      return metaTag ? metaTag.getAttribute('content') : null;
+    }
+
+    /**
+     * Secure fetch wrapper that automatically includes CSRF token.
+     * Use this for all POST/PUT/DELETE requests.
+     * @param {string} url - The URL to fetch
+     * @param {object} options - Fetch options
+     * @returns {Promise<Response>}
+     */
+    async function secureFetch(url, options = {}) {
+      const method = (options.method || 'GET').toUpperCase();
+
+      // Add CSRF token for state-changing requests
+      if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+        const csrfToken = getCSRFToken();
+        if (csrfToken) {
+          options.headers = {
+            ...options.headers,
+            'X-CSRF-Token': csrfToken
+          };
+        }
+      }
+
+      // Ensure credentials are included for cookie-based auth
+      options.credentials = options.credentials || 'same-origin';
+
+      return fetch(url, options);
+    }
 
     // Rate limiting state
     const rateLimitState = {
@@ -3891,7 +3976,7 @@
       fields: new Set(), // Set of field paths like 'tax_profile.filing_status'
       mark(fieldPath) {
         this.fields.add(fieldPath);
-        console.log('Marked as confirmed:', fieldPath);
+        DevLogger.log('Marked as confirmed:', fieldPath);
       },
       isConfirmed(fieldPath) {
         return this.fields.has(fieldPath);
@@ -3914,7 +3999,7 @@
 
         // Skip if this field is user-confirmed and has a value
         if (confirmedData.isConfirmed(fieldPath) && targetValue != null) {
-          console.log(`Skipping confirmed field: ${fieldPath}`);
+          DevLogger.log(`Skipping confirmed field: ${fieldPath}`);
           continue;
         }
 
@@ -3948,7 +4033,7 @@
     async function updateExtractedDataSafe(newData, source = 'unknown') {
       await dataMutex.acquire();
       try {
-        console.log(`Updating extractedData from ${source}:`, newData);
+        DevLogger.log(`Updating extractedData from ${source}:`, newData);
         extractedData = safeDeepMerge(extractedData, newData);
         markUnsaved();
       } finally {
@@ -4090,7 +4175,7 @@
     async function processOfflineQueue() {
       // Prevent concurrent queue processing
       if (isProcessingQueue) {
-        console.log('Queue processing already in progress, skipping');
+        DevLogger.log('Queue processing already in progress, skipping');
         return;
       }
       if (offlineQueue.length === 0) return;
@@ -4104,7 +4189,7 @@
           try {
             await processAIResponse(message);
           } catch (error) {
-            console.error('Failed to process queued message:', error);
+            DevLogger.error('Failed to process queued message:', error);
             // Put it back if failed and still offline
             if (!isOnline) {
               offlineQueue.unshift(message);
@@ -4138,13 +4223,25 @@
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+          // SECURITY: Add CSRF token for state-changing requests
+          const method = (options.method || 'GET').toUpperCase();
+          const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers
+          };
+
+          if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+            const csrfToken = getCSRFToken();
+            if (csrfToken) {
+              headers['X-CSRF-Token'] = csrfToken;
+            }
+          }
+
           const response = await fetch(url, {
             ...options,
             signal: controller.signal,
-            headers: {
-              'Content-Type': 'application/json',
-              ...options.headers
-            }
+            headers: headers,
+            credentials: 'same-origin'
           });
 
           clearTimeout(timeoutId);
@@ -4190,12 +4287,13 @@
 
     function updateLastActivity() {
       lastActivityTime = Date.now();
-      localStorage.setItem('tax_advisor_last_activity', lastActivityTime.toString());
+      // SECURITY: Use sessionStorage for PII (clears when tab closes)
+      sessionStorage.setItem('tax_advisor_last_activity', lastActivityTime.toString());
     }
 
     function checkSessionValidity() {
       const now = Date.now();
-      const storedTime = parseInt(localStorage.getItem('tax_advisor_last_activity') || '0');
+      const storedTime = parseInt(sessionStorage.getItem('tax_advisor_last_activity') || '0');
 
       if (storedTime && (now - storedTime) > RobustnessConfig.sessionTimeout) {
         return false; // Session expired
@@ -4208,7 +4306,7 @@
       sessionRecoveryAttempted = true;
 
       const storedSessionId = sessionStorage.getItem('tax_session_id');
-      const storedData = localStorage.getItem('tax_advisor_data');
+      const storedData = sessionStorage.getItem('tax_advisor_data');
 
       if (storedSessionId && storedData) {
         try {
@@ -4254,7 +4352,7 @@
         const maxSize = 4 * 1024 * 1024; // 4MB to leave buffer
 
         if (sizeInBytes > maxSize) {
-          console.warn('Session data too large, trimming conversation history');
+          DevLogger.warn('Session data too large, trimming conversation history');
           // Trim data to fit
           const trimmedData = {
             extractedData: {
@@ -4263,9 +4361,9 @@
             },
             timestamp: Date.now()
           };
-          localStorage.setItem('tax_advisor_data', JSON.stringify(trimmedData));
+          sessionStorage.setItem('tax_advisor_data', JSON.stringify(trimmedData));
         } else {
-          localStorage.setItem('tax_advisor_data', dataToSave);
+          sessionStorage.setItem('tax_advisor_data', dataToSave);
         }
         updateLastActivity();
         localStorageWarningShown = false;
@@ -4278,13 +4376,13 @@
           }
           // Try to clear old data and retry
           try {
-            localStorage.removeItem('tax_advisor_data');
-            console.warn('Cleared old storage due to quota exceeded');
+            sessionStorage.removeItem('tax_advisor_data');
+            DevLogger.warn('Cleared old storage due to quota exceeded');
           } catch (e) {
-            console.error('Failed to clear storage:', e);
+            DevLogger.error('Failed to clear storage:', e);
           }
         } else {
-          console.warn('Failed to save session data:', error);
+          DevLogger.warn('Failed to save session data:', error);
         }
       }
     }
@@ -4292,7 +4390,7 @@
     // =========== COMPREHENSIVE ERROR HANDLER ===========
 
     function handleError(error, context = 'Unknown') {
-      console.error(`Error in ${context}:`, error);
+      DevLogger.error(`Error in ${context}:`, error);
 
       // Determine error type and appropriate response
       let userMessage = '';
@@ -4445,7 +4543,7 @@
 
       // Log robustness initialization
       if (RobustnessConfig.debugMode) {
-        console.log('Robustness features initialized:', {
+        DevLogger.log('Robustness features initialized:', {
           online: isOnline,
           sessionValid: checkSessionValidity(),
           queueSize: offlineQueue.length
@@ -4617,7 +4715,7 @@
 
       init() {
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-          console.log('Speech recognition not supported');
+          DevLogger.log('Speech recognition not supported');
           return false;
         }
 
@@ -4645,7 +4743,7 @@
         };
 
         this.recognition.onerror = (event) => {
-          console.error('Speech recognition error:', event.error);
+          DevLogger.error('Speech recognition error:', event.error);
           this.stopRecording();
           if (event.error === 'not-allowed') {
             showToast('Please allow microphone access to use voice input', 'warning');
@@ -5091,7 +5189,7 @@
           modal.classList.add('active');
 
         } catch (error) {
-          console.error('Camera access error:', error);
+          DevLogger.error('Camera access error:', error);
           if (error.name === 'NotAllowedError') {
             showToast('Please allow camera access to capture documents', 'warning');
           } else {
@@ -5142,7 +5240,8 @@
           formData.append('session_id', sessionId || 'temp-session');
 
           try {
-            const response = await fetch('/api/advisor/upload-document', {
+            // SECURITY: Use secureFetch for CSRF protection
+            const response = await secureFetch('/api/advisor/upload-document', {
               method: 'POST',
               body: formData
             });
@@ -5175,7 +5274,7 @@
             }
 
           } catch (error) {
-            console.error('Document upload error:', error);
+            DevLogger.error('Document upload error:', error);
             showToast('Failed to upload document', 'error');
           }
 
@@ -5189,7 +5288,7 @@
       LiveSavingsDisplay.init();
       VoiceInputSystem.init();
 
-      console.log('UX enhancements initialized');
+      DevLogger.log('UX enhancements initialized');
     }
 
     // Initialize on DOM ready
@@ -5485,12 +5584,13 @@
 
     // Initialize session
     async function initializeSession() {
-      console.log('initializeSession called');
+      DevLogger.log('initializeSession called');
 
       // Static greeting is already in HTML, just create session
       try {
-        console.log('Creating session...');
-        const response = await fetch('/api/sessions/create-session', {
+        DevLogger.log('Creating session...');
+        // SECURITY: Use secureFetch for CSRF protection
+        const response = await secureFetch('/api/sessions/create-session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -5502,35 +5602,40 @@
         const data = await response.json();
         sessionId = data.session_id;
         sessionStorage.setItem('tax_session_id', sessionId);
-        console.log('Session initialized:', sessionId);
+        DevLogger.log('Session initialized:', sessionId);
       } catch (error) {
-        console.error('Session initialization error:', error);
+        DevLogger.error('Session initialization error:', error);
         // Continue without session - will be created on first message
       }
     }
 
     async function sendInitialGreeting() {
-      console.log('sendInitialGreeting called');
+      DevLogger.log('sendInitialGreeting called');
 
-      // Premium tax advisory greeting
+      // Clean post-login greeting - leads to full robust chatbot
       addMessage('ai', `<div style="margin-bottom: 16px;">
-        <span style="font-size: 24px; font-weight: 700; color: var(--accent-light);">Welcome to Your Tax Advisory Session</span>
+        <span style="font-size: 24px; font-weight: 700; color: var(--primary);">Welcome to Your Tax Advisory Session</span>
       </div>
-      I'm your AI-powered tax strategist, trained on thousands of tax scenarios to help you <strong>maximize savings</strong> and <strong>minimize liability</strong>.<br><br>
-      <div class="insight-card" style="margin: 16px 0;">
-        <div class="insight-header">
-          <span>📊</span>
-          <span>Average Client Savings</span>
+      I'm your AI-powered tax strategist ready to help you <strong>maximize your savings</strong>.<br><br>
+      <div style="display: grid; gap: 12px; margin: 16px 0;">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(26, 54, 93, 0.05); border-radius: 8px;">
+          <span style="font-size: 18px;">📄</span>
+          <div>
+            <strong>Upload Documents</strong> - I'll extract data from your W-2s, 1099s automatically
+          </div>
         </div>
-        <div class="savings-amount">$4,200 - $12,500</div>
-        <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">per year through strategic tax planning</div>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(26, 54, 93, 0.05); border-radius: 8px;">
+          <span style="font-size: 18px;">💬</span>
+          <div>
+            <strong>Answer Questions</strong> - Smart guided conversation with AI assistance
+          </div>
+        </div>
       </div>
-      <strong>How would you like to begin?</strong>`, [
-        { label: "Start Guided Analysis →", value: 'no_manual', primary: true },
-        { label: "Upload Documents", value: 'yes_upload' },
-        { label: "Learn More", value: 'what_docs' }
+      <strong>How would you like to start?</strong>`, [
+        { label: "📄 Upload My Documents", value: 'yes_upload', primary: true },
+        { label: "💬 Answer Questions", value: 'no_manual' }
       ]);
-      console.log('Initial greeting added');
+      DevLogger.log('Initial greeting added');
     }
 
     // Calculate confidence level based on data completeness
@@ -5585,10 +5690,10 @@
     }
 
     function addMessage(type, text, quickActions = [], options = {}) {
-      console.log('====== addMessage CALLED ======');
-      console.log('Type:', type);
-      console.log('Text preview:', text.substring(0, 50));
-      console.log('Quick actions count:', quickActions.length);
+      DevLogger.log('====== addMessage CALLED ======');
+      DevLogger.log('Type:', type);
+      DevLogger.log('Text preview:', text.substring(0, 50));
+      DevLogger.log('Quick actions count:', quickActions.length);
 
       // Mark session as having unsaved changes when user sends a message
       if (type === 'user' && typeof markUnsaved === 'function') {
@@ -5596,10 +5701,10 @@
       }
 
       const messages = document.getElementById('messages');
-      console.log('Messages container found:', !!messages);
+      DevLogger.log('Messages container found:', !!messages);
 
       if (!messages) {
-        console.error('Messages container not found!');
+        DevLogger.error('Messages container not found!');
         showToast('Error displaying message', 'error');
         return;
       }
@@ -5925,7 +6030,7 @@
       messageDiv.appendChild(bubble);
       messages.appendChild(messageDiv);
 
-      console.log('Message added successfully. Total messages now:', messages.children.length);
+      DevLogger.log('Message added successfully. Total messages now:', messages.children.length);
 
       messages.scrollTop = messages.scrollHeight;
       return messageDiv;
@@ -6319,11 +6424,11 @@
     document.addEventListener('DOMContentLoaded', initKeyboardNavigation);
 
     async function handleQuickAction(value, displayLabel = null) {
-      console.log('====== handleQuickAction CALLED ======');
-      console.log('Quick action clicked:', value);
-      console.log('Display label:', displayLabel);
-      console.log('Current extracted data:', extractedData);
-      console.log('Messages container exists:', !!document.getElementById('messages'));
+      DevLogger.log('====== handleQuickAction CALLED ======');
+      DevLogger.log('Quick action clicked:', value);
+      DevLogger.log('Display label:', displayLabel);
+      DevLogger.log('Current extracted data:', extractedData);
+      DevLogger.log('Messages container exists:', !!document.getElementById('messages'));
 
       // Handle multi-select skip
       if (value === 'skip_multi_select') {
@@ -6336,6 +6441,816 @@
       if (value.includes(',') && displayLabel) {
         addMessage('user', displayLabel);
         await processAIResponse(displayLabel);
+        return;
+      }
+
+      // =========================================================================
+      // UNIFIED GUIDED FLOW - Clean single mode (post-login)
+      // =========================================================================
+
+      if (value === 'guided_start') {
+        addMessage('user', 'Answer Questions');
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<strong>Let's get to know your tax situation.</strong><br><br>
+          <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 1 of 5</span>
+          </div>
+          <strong>What best describes your situation?</strong>`, [
+            { label: "💼 W-2 Employee", value: 'guided_type_w2', primary: true },
+            { label: "🏢 Self-Employed / 1099", value: 'guided_type_self' },
+            { label: "📊 Both W-2 + Self-Employed", value: 'guided_type_both' },
+            { label: "🏖️ Retired / Other Income", value: 'guided_type_retired' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Guided - Select income type
+      if (value.startsWith('guided_type_')) {
+        const typeMap = {
+          'w2': { source: 'w2', label: 'W-2 Employee' },
+          'self': { source: 'self_employed', label: 'Self-Employed / 1099' },
+          'both': { source: 'mixed', label: 'Both W-2 + Self-Employed' },
+          'retired': { source: 'retirement', label: 'Retired / Other Income' }
+        };
+        const typeKey = value.replace('guided_type_', '');
+        const info = typeMap[typeKey] || typeMap['w2'];
+        extractedData.tax_profile.income_source = info.source;
+        if (typeKey === 'self' || typeKey === 'both') {
+          extractedData.tax_profile.is_self_employed = true;
+        }
+        addMessage('user', info.label);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 2 of 5</span>
+          </div>
+          <strong>What's your filing status?</strong>`, [
+            { label: "Single", value: 'guided_filing_single' },
+            { label: "Married Filing Jointly", value: 'guided_filing_mfj' },
+            { label: "Head of Household", value: 'guided_filing_hoh' },
+            { label: "Married Filing Separately", value: 'guided_filing_mfs' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Guided - Filing status
+      if (value.startsWith('guided_filing_')) {
+        const statusMap = { 'single': 'Single', 'mfj': 'Married Filing Jointly', 'hoh': 'Head of Household', 'mfs': 'Married Filing Separately' };
+        const statusKey = value.replace('guided_filing_', '');
+        extractedData.tax_profile.filing_status = statusMap[statusKey] || 'Single';
+        addMessage('user', statusMap[statusKey] || 'Single');
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 3 of 5</span>
+          </div>
+          <strong>What's your approximate annual income?</strong>`, [
+            { label: "Under $50k", value: 'guided_income_50k' },
+            { label: "$50k - $100k", value: 'guided_income_100k' },
+            { label: "$100k - $200k", value: 'guided_income_200k' },
+            { label: "$200k+", value: 'guided_income_200kplus' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Guided - Income
+      if (value.startsWith('guided_income_')) {
+        const incomeMap = { '50k': 35000, '100k': 75000, '200k': 150000, '200kplus': 250000 };
+        const labelMap = { '50k': 'Under $50k', '100k': '$50k - $100k', '200k': '$100k - $200k', '200kplus': '$200k+' };
+        const incomeKey = value.replace('guided_income_', '');
+        extractedData.tax_profile.total_income = incomeMap[incomeKey] || 75000;
+        addMessage('user', labelMap[incomeKey]);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 4 of 5</span>
+          </div>
+          <strong>Any dependents?</strong>`, [
+            { label: "No dependents", value: 'guided_deps_0' },
+            { label: "1 dependent", value: 'guided_deps_1' },
+            { label: "2 dependents", value: 'guided_deps_2' },
+            { label: "3+ dependents", value: 'guided_deps_3plus' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Guided - Dependents
+      if (value.startsWith('guided_deps_')) {
+        const depsMap = { '0': 0, '1': 1, '2': 2, '3plus': 3 };
+        const labelMap = { '0': 'No dependents', '1': '1 dependent', '2': '2 dependents', '3plus': '3+ dependents' };
+        const depsKey = value.replace('guided_deps_', '');
+        extractedData.tax_profile.dependents = depsMap[depsKey] || 0;
+        extractedData.tax_profile.qualifying_children_ctc = depsMap[depsKey] || 0;
+        if (depsMap[depsKey] > 0) extractedData.tax_profile.has_dependents = true;
+        addMessage('user', labelMap[depsKey]);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          // Show relevant deductions based on income source
+          const isSelfEmployed = extractedData.tax_profile.is_self_employed;
+          const deductionOptions = [
+            { label: "🏠 Mortgage Interest", value: 'guided_ded_mortgage' },
+            { label: "💰 401k/IRA", value: 'guided_ded_retirement' },
+            { label: "🎁 Charitable Donations", value: 'guided_ded_charity' }
+          ];
+          if (isSelfEmployed) {
+            deductionOptions.push({ label: "🚗 Business Expenses", value: 'guided_ded_business' });
+            deductionOptions.push({ label: "🏠 Home Office", value: 'guided_ded_homeoffice' });
+          }
+          deductionOptions.push({ label: "➡️ None - Get My Results", value: 'guided_ded_none' });
+
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 5 of 5</span>
+          </div>
+          <strong>Any of these apply?</strong> <span style="color: var(--text-secondary);">(Select any that apply)</span>`, deductionOptions);
+        }, 600);
+        return;
+      }
+
+      // Guided - Deductions & Generate Report
+      if (value.startsWith('guided_ded_')) {
+        const ded = value.replace('guided_ded_', '');
+        const dedLabels = {
+          'mortgage': '🏠 Mortgage Interest',
+          'retirement': '💰 401k/IRA',
+          'charity': '🎁 Charitable Donations',
+          'business': '🚗 Business Expenses',
+          'homeoffice': '🏠 Home Office',
+          'none': 'Get My Results'
+        };
+
+        if (ded === 'mortgage') extractedData.tax_items.has_mortgage = true;
+        if (ded === 'retirement') extractedData.tax_items.has_retirement = true;
+        if (ded === 'charity') extractedData.tax_items.charitable = true;
+        if (ded === 'business') extractedData.tax_items.business_expenses = true;
+        if (ded === 'homeoffice') extractedData.tax_items.home_office = true;
+
+        addMessage('user', dedLabels[ded] || 'Get Results');
+        showTyping();
+        setTimeout(async () => {
+          hideTyping();
+          addMessage('ai', `<div style="text-align: center; padding: 20px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
+            <div style="font-size: 20px; font-weight: 700; color: var(--primary); margin-bottom: 8px;">Profile Complete!</div>
+            <div style="color: var(--text-secondary); margin-bottom: 20px;">Generating your personalized tax analysis...</div>
+          </div>`, []);
+          await performTaxCalculation();
+        }, 800);
+        return;
+      }
+
+      // Express W-2 Simple Flow (legacy - no longer accessible from UI)
+      if (value.startsWith('express_filing_')) {
+        const status = value.replace('express_filing_', '');
+        const statusMap = { 'single': 'Single', 'married': 'Married Filing Jointly', 'hoh': 'Head of Household', 'mfs': 'Married Filing Separately' };
+        extractedData.tax_profile.filing_status = statusMap[status] || 'Single';
+        addMessage('user', statusMap[status] || 'Single');
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 2 of 5</span>
+          </div>
+          <strong>What's your approximate annual income?</strong>`, [
+            { label: "Under $50k", value: 'express_income_50k' },
+            { label: "$50k - $100k", value: 'express_income_100k' },
+            { label: "$100k - $200k", value: 'express_income_200k' },
+            { label: "$200k+", value: 'express_income_200kplus' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Express Income Selection
+      if (value.startsWith('express_income_')) {
+        const incomeMap = { '50k': 35000, '100k': 75000, '200k': 150000, '200kplus': 250000 };
+        const incomeKey = value.replace('express_income_', '');
+        extractedData.tax_profile.total_income = incomeMap[incomeKey] || 75000;
+        const labelMap = { '50k': 'Under $50k', '100k': '$50k - $100k', '200k': '$100k - $200k', '200kplus': '$200k+' };
+        addMessage('user', labelMap[incomeKey]);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 3 of 5</span>
+          </div>
+          <strong>Which state do you live in?</strong>`, [
+            { label: "California", value: 'express_state_CA' },
+            { label: "Texas", value: 'express_state_TX' },
+            { label: "New York", value: 'express_state_NY' },
+            { label: "Florida", value: 'express_state_FL' },
+            { label: "Other State →", value: 'express_state_other' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Express State Selection
+      if (value.startsWith('express_state_')) {
+        const state = value.replace('express_state_', '');
+        if (state === 'other') {
+          // Show more states
+          addMessage('user', 'Other State');
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Select your state:</strong>`, [
+              { label: "Illinois", value: 'express_state_IL' },
+              { label: "Pennsylvania", value: 'express_state_PA' },
+              { label: "Ohio", value: 'express_state_OH' },
+              { label: "Georgia", value: 'express_state_GA' },
+              { label: "North Carolina", value: 'express_state_NC' },
+              { label: "Michigan", value: 'express_state_MI' },
+              { label: "New Jersey", value: 'express_state_NJ' },
+              { label: "Washington", value: 'express_state_WA' },
+              { label: "Arizona", value: 'express_state_AZ' },
+              { label: "Colorado", value: 'express_state_CO' }
+            ]);
+          }, 400);
+          return;
+        }
+        extractedData.tax_profile.state = state;
+        addMessage('user', state);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 4 of 5</span>
+          </div>
+          <strong>Any dependents (children, elderly parents)?</strong>`, [
+            { label: "No dependents", value: 'express_deps_0' },
+            { label: "1 dependent", value: 'express_deps_1' },
+            { label: "2 dependents", value: 'express_deps_2' },
+            { label: "3+ dependents", value: 'express_deps_3plus' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Express Dependents Selection
+      if (value.startsWith('express_deps_')) {
+        const depsMap = { '0': 0, '1': 1, '2': 2, '3plus': 3 };
+        const depsKey = value.replace('express_deps_', '');
+        extractedData.tax_profile.dependents = depsMap[depsKey] || 0;
+        const labelMap = { '0': 'No dependents', '1': '1 dependent', '2': '2 dependents', '3plus': '3+ dependents' };
+        addMessage('user', labelMap[depsKey]);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 5 of 5</span>
+          </div>
+          <strong>Any of these deductions?</strong> <span style="color: var(--text-secondary);">(Select all that apply)</span>`, [
+            { label: "🏠 Mortgage interest", value: 'express_ded_mortgage' },
+            { label: "💰 401k/IRA contributions", value: 'express_ded_retirement' },
+            { label: "🎁 Charitable donations", value: 'express_ded_charity' },
+            { label: "📚 Student loans", value: 'express_ded_student' },
+            { label: "➡️ None / Skip to Report", value: 'express_ded_none' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Express Deduction Selection - Generate Report
+      if (value.startsWith('express_ded_')) {
+        const ded = value.replace('express_ded_', '');
+        if (ded === 'mortgage') {
+          extractedData.tax_items.has_mortgage = true;
+          addMessage('user', '🏠 Mortgage interest');
+        } else if (ded === 'retirement') {
+          extractedData.tax_items.has_retirement = true;
+          addMessage('user', '💰 401k/IRA contributions');
+        } else if (ded === 'charity') {
+          extractedData.tax_items.charitable = true;
+          addMessage('user', '🎁 Charitable donations');
+        } else if (ded === 'student') {
+          extractedData.tax_items.student_loan_interest = true;
+          addMessage('user', '📚 Student loans');
+        } else {
+          addMessage('user', 'Skip to Report');
+        }
+
+        // Now generate the report
+        showTyping();
+        setTimeout(async () => {
+          hideTyping();
+          // Show completion message
+          addMessage('ai', `<div style="text-align: center; padding: 20px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
+            <div style="font-size: 20px; font-weight: 700; color: var(--accent-light); margin-bottom: 8px;">Profile Complete!</div>
+            <div style="color: var(--text-secondary); margin-bottom: 20px;">Generating your personalized tax analysis...</div>
+          </div>`, []);
+
+          // Calculate and show results
+          await performTaxCalculation();
+        }, 800);
+        return;
+      }
+
+      // Express Family Flow - Kids count
+      if (value.startsWith('express_fam_')) {
+        const kidsMap = { '1kid': 1, '2kids': 2, '3kids': 3, '4plus': 4 };
+        const kidsKey = value.replace('express_fam_', '');
+        extractedData.tax_profile.dependents = kidsMap[kidsKey] || 1;
+        extractedData.tax_profile.qualifying_children_ctc = kidsMap[kidsKey] || 1;
+        const labelMap = { '1kid': '1 child', '2kids': '2 children', '3kids': '3 children', '4plus': '4+ children' };
+        addMessage('user', labelMap[kidsKey]);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 2 of 6</span>
+          </div>
+          <strong>Combined household income?</strong>`, [
+            { label: "Under $75k", value: 'express_fam_inc_75k' },
+            { label: "$75k - $150k", value: 'express_fam_inc_150k' },
+            { label: "$150k - $250k", value: 'express_fam_inc_250k' },
+            { label: "$250k+", value: 'express_fam_inc_250kplus' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Express Family - Income
+      if (value.startsWith('express_fam_inc_')) {
+        const incomeMap = { '75k': 50000, '150k': 112500, '250k': 200000, '250kplus': 350000 };
+        const incKey = value.replace('express_fam_inc_', '');
+        extractedData.tax_profile.total_income = incomeMap[incKey] || 112500;
+        const labelMap = { '75k': 'Under $75k', '150k': '$75k - $150k', '250k': '$150k - $250k', '250kplus': '$250k+' };
+        addMessage('user', labelMap[incKey]);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 3 of 6</span>
+          </div>
+          <strong>Do you pay for childcare?</strong>`, [
+            { label: "Yes, daycare/preschool", value: 'express_fam_care_yes' },
+            { label: "Yes, after-school care", value: 'express_fam_care_after' },
+            { label: "No childcare expenses", value: 'express_fam_care_no' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Express Family - Childcare
+      if (value.startsWith('express_fam_care_')) {
+        const care = value.replace('express_fam_care_', '');
+        if (care === 'yes' || care === 'after') {
+          extractedData.tax_profile.has_dependent_care = true;
+          addMessage('user', care === 'yes' ? 'Yes, daycare/preschool' : 'Yes, after-school care');
+        } else {
+          addMessage('user', 'No childcare expenses');
+        }
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 4 of 6</span>
+          </div>
+          <strong>Which state?</strong>`, [
+            { label: "California", value: 'express_fam_state_CA' },
+            { label: "Texas", value: 'express_fam_state_TX' },
+            { label: "New York", value: 'express_fam_state_NY' },
+            { label: "Florida", value: 'express_fam_state_FL' },
+            { label: "Other →", value: 'express_fam_state_other' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Express Family - State
+      if (value.startsWith('express_fam_state_')) {
+        const state = value.replace('express_fam_state_', '');
+        if (state === 'other') {
+          addMessage('user', 'Other State');
+          // Show more states
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Select your state:</strong>`, [
+              { label: "Illinois", value: 'express_fam_state_IL' },
+              { label: "Pennsylvania", value: 'express_fam_state_PA' },
+              { label: "Ohio", value: 'express_fam_state_OH' },
+              { label: "Georgia", value: 'express_fam_state_GA' },
+              { label: "North Carolina", value: 'express_fam_state_NC' },
+              { label: "New Jersey", value: 'express_fam_state_NJ' },
+              { label: "Michigan", value: 'express_fam_state_MI' }
+            ]);
+          }, 400);
+          return;
+        }
+        extractedData.tax_profile.state = state;
+        addMessage('user', state);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 5 of 6</span>
+          </div>
+          <strong>Do you own a home?</strong>`, [
+            { label: "Yes, with mortgage", value: 'express_fam_home_yes' },
+            { label: "Yes, paid off", value: 'express_fam_home_paid' },
+            { label: "No, renting", value: 'express_fam_home_no' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Express Family - Home
+      if (value.startsWith('express_fam_home_')) {
+        const home = value.replace('express_fam_home_', '');
+        if (home === 'yes') {
+          extractedData.tax_items.has_mortgage = true;
+          addMessage('user', 'Yes, with mortgage');
+        } else if (home === 'paid') {
+          addMessage('user', 'Yes, paid off');
+        } else {
+          addMessage('user', 'No, renting');
+        }
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 6 of 6</span>
+          </div>
+          <strong>401k or retirement contributions?</strong>`, [
+            { label: "Yes, contributing", value: 'express_fam_ret_yes' },
+            { label: "No", value: 'express_fam_ret_no' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Express Family - Retirement (Final step)
+      if (value.startsWith('express_fam_ret_')) {
+        const ret = value.replace('express_fam_ret_', '');
+        if (ret === 'yes') {
+          extractedData.tax_items.has_retirement = true;
+          addMessage('user', 'Yes, contributing');
+        } else {
+          addMessage('user', 'No');
+        }
+        showTyping();
+        setTimeout(async () => {
+          hideTyping();
+          addMessage('ai', `<div style="text-align: center; padding: 20px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
+            <div style="font-size: 20px; font-weight: 700; color: var(--accent-light); margin-bottom: 8px;">Family Profile Complete!</div>
+            <div style="color: var(--text-secondary); margin-bottom: 20px;">Calculating your Child Tax Credits and deductions...</div>
+          </div>`, []);
+          await performTaxCalculation();
+        }, 800);
+        return;
+      }
+
+      // Express Self-Employed Flow
+      if (value.startsWith('express_se_')) {
+        const seKey = value.replace('express_se_', '');
+        if (seKey === 'single' || seKey === 'married' || seKey === 'hoh') {
+          const statusMap = { 'single': 'Single', 'married': 'Married Filing Jointly', 'hoh': 'Head of Household' };
+          extractedData.tax_profile.filing_status = statusMap[seKey];
+          addMessage('user', statusMap[seKey]);
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+              <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 2 of 7</span>
+            </div>
+            <strong>What type of self-employment?</strong>`, [
+              { label: "Freelance/Consulting", value: 'express_se_type_freelance' },
+              { label: "Small Business", value: 'express_se_type_business' },
+              { label: "Gig Work (Uber, DoorDash)", value: 'express_se_type_gig' },
+              { label: "Online Sales", value: 'express_se_type_online' }
+            ]);
+          }, 600);
+          return;
+        }
+      }
+
+      // Express SE Type
+      if (value.startsWith('express_se_type_')) {
+        const type = value.replace('express_se_type_', '');
+        const typeMap = { 'freelance': 'Freelance/Consulting', 'business': 'Small Business', 'gig': 'Gig Work', 'online': 'Online Sales' };
+        extractedData.business.type = typeMap[type];
+        addMessage('user', typeMap[type]);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 3 of 7</span>
+          </div>
+          <strong>Annual self-employment income?</strong>`, [
+            { label: "Under $50k", value: 'express_se_inc_50k' },
+            { label: "$50k - $100k", value: 'express_se_inc_100k' },
+            { label: "$100k - $200k", value: 'express_se_inc_200k' },
+            { label: "$200k+", value: 'express_se_inc_200kplus' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Express SE Income
+      if (value.startsWith('express_se_inc_')) {
+        const incMap = { '50k': 35000, '100k': 75000, '200k': 150000, '200kplus': 300000 };
+        const incKey = value.replace('express_se_inc_', '');
+        extractedData.tax_profile.total_income = incMap[incKey];
+        extractedData.business.revenue = incMap[incKey];
+        const labelMap = { '50k': 'Under $50k', '100k': '$50k - $100k', '200k': '$100k - $200k', '200kplus': '$200k+' };
+        addMessage('user', labelMap[incKey]);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 4 of 7</span>
+          </div>
+          <strong>Common business expenses?</strong> <span style="color: var(--text-secondary);">(Select all)</span>`, [
+            { label: "🏠 Home office", value: 'express_se_exp_home' },
+            { label: "🚗 Vehicle/mileage", value: 'express_se_exp_vehicle' },
+            { label: "💻 Equipment/software", value: 'express_se_exp_equip' },
+            { label: "📱 Phone/internet", value: 'express_se_exp_phone' },
+            { label: "➡️ Continue", value: 'express_se_exp_done' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Express SE Expenses
+      if (value.startsWith('express_se_exp_')) {
+        const exp = value.replace('express_se_exp_', '');
+        if (exp === 'home') {
+          extractedData.business.home_office = true;
+          addMessage('user', '🏠 Home office');
+          return; // Allow multiple selections
+        } else if (exp === 'vehicle') {
+          extractedData.business.vehicle = true;
+          addMessage('user', '🚗 Vehicle/mileage');
+          return;
+        } else if (exp === 'equip') {
+          extractedData.business.equipment = true;
+          addMessage('user', '💻 Equipment/software');
+          return;
+        } else if (exp === 'phone') {
+          extractedData.business.phone_internet = true;
+          addMessage('user', '📱 Phone/internet');
+          return;
+        } else { // done
+          addMessage('user', 'Continue');
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+              <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 5 of 7</span>
+            </div>
+            <strong>Which state?</strong>`, [
+              { label: "California", value: 'express_se_state_CA' },
+              { label: "Texas", value: 'express_se_state_TX' },
+              { label: "New York", value: 'express_se_state_NY' },
+              { label: "Florida", value: 'express_se_state_FL' },
+              { label: "Other →", value: 'express_se_state_other' }
+            ]);
+          }, 600);
+        }
+        return;
+      }
+
+      // Express SE State
+      if (value.startsWith('express_se_state_')) {
+        const state = value.replace('express_se_state_', '');
+        if (state === 'other') {
+          addMessage('user', 'Other State');
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Select your state:</strong>`, [
+              { label: "Illinois", value: 'express_se_state_IL' },
+              { label: "Pennsylvania", value: 'express_se_state_PA' },
+              { label: "Washington", value: 'express_se_state_WA' },
+              { label: "Colorado", value: 'express_se_state_CO' },
+              { label: "Georgia", value: 'express_se_state_GA' }
+            ]);
+          }, 400);
+          return;
+        }
+        extractedData.tax_profile.state = state;
+        addMessage('user', state);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 6 of 7</span>
+          </div>
+          <strong>Do you pay quarterly estimated taxes?</strong>`, [
+            { label: "Yes, I pay quarterly", value: 'express_se_est_yes' },
+            { label: "No / Not sure", value: 'express_se_est_no' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Express SE Estimated Taxes
+      if (value.startsWith('express_se_est_')) {
+        const est = value.replace('express_se_est_', '');
+        extractedData.tax_profile.pays_estimated = est === 'yes';
+        addMessage('user', est === 'yes' ? 'Yes, I pay quarterly' : 'No / Not sure');
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 7 of 7</span>
+          </div>
+          <strong>Any retirement contributions (SEP-IRA, Solo 401k)?</strong>`, [
+            { label: "Yes", value: 'express_se_ret_yes' },
+            { label: "No, but interested", value: 'express_se_ret_interested' },
+            { label: "No", value: 'express_se_ret_no' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Express SE Retirement (Final)
+      if (value.startsWith('express_se_ret_')) {
+        const ret = value.replace('express_se_ret_', '');
+        if (ret === 'yes') {
+          extractedData.tax_items.has_retirement = true;
+          addMessage('user', 'Yes');
+        } else if (ret === 'interested') {
+          extractedData.tax_profile.retirement_interested = true;
+          addMessage('user', 'No, but interested');
+        } else {
+          addMessage('user', 'No');
+        }
+        showTyping();
+        setTimeout(async () => {
+          hideTyping();
+          addMessage('ai', `<div style="text-align: center; padding: 20px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
+            <div style="font-size: 20px; font-weight: 700; color: var(--accent-light); margin-bottom: 8px;">Self-Employment Profile Complete!</div>
+            <div style="color: var(--text-secondary); margin-bottom: 20px;">Finding your QBI deduction and business write-offs...</div>
+          </div>`, []);
+          await performTaxCalculation();
+        }, 800);
+        return;
+      }
+
+      // Express Homeowner Flow
+      if (value.startsWith('express_home_')) {
+        const homeKey = value.replace('express_home_', '');
+        if (homeKey === 'single' || homeKey === 'married' || homeKey === 'hoh') {
+          const statusMap = { 'single': 'Single', 'married': 'Married Filing Jointly', 'hoh': 'Head of Household' };
+          extractedData.tax_profile.filing_status = statusMap[homeKey];
+          addMessage('user', statusMap[homeKey]);
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+              <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 2 of 6</span>
+            </div>
+            <strong>Annual household income?</strong>`, [
+              { label: "Under $75k", value: 'express_hm_inc_75k' },
+              { label: "$75k - $150k", value: 'express_hm_inc_150k' },
+              { label: "$150k - $300k", value: 'express_hm_inc_300k' },
+              { label: "$300k+", value: 'express_hm_inc_300kplus' }
+            ]);
+          }, 600);
+          return;
+        }
+      }
+
+      // Express Homeowner Income
+      if (value.startsWith('express_hm_inc_')) {
+        const incMap = { '75k': 50000, '150k': 112500, '300k': 225000, '300kplus': 400000 };
+        const incKey = value.replace('express_hm_inc_', '');
+        extractedData.tax_profile.total_income = incMap[incKey];
+        const labelMap = { '75k': 'Under $75k', '150k': '$75k - $150k', '300k': '$150k - $300k', '300kplus': '$300k+' };
+        addMessage('user', labelMap[incKey]);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 3 of 6</span>
+          </div>
+          <strong>Annual mortgage interest paid?</strong>`, [
+            { label: "Under $5,000", value: 'express_hm_mort_5k' },
+            { label: "$5,000 - $15,000", value: 'express_hm_mort_15k' },
+            { label: "$15,000 - $30,000", value: 'express_hm_mort_30k' },
+            { label: "Over $30,000", value: 'express_hm_mort_30kplus' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Express Homeowner Mortgage
+      if (value.startsWith('express_hm_mort_')) {
+        const mortMap = { '5k': 3000, '15k': 10000, '30k': 22500, '30kplus': 40000 };
+        const mortKey = value.replace('express_hm_mort_', '');
+        extractedData.tax_items.mortgage_interest = mortMap[mortKey];
+        extractedData.tax_items.has_mortgage = true;
+        const labelMap = { '5k': 'Under $5,000', '15k': '$5,000 - $15,000', '30k': '$15,000 - $30,000', '30kplus': 'Over $30,000' };
+        addMessage('user', labelMap[mortKey]);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 4 of 6</span>
+          </div>
+          <strong>Annual property taxes paid?</strong>`, [
+            { label: "Under $3,000", value: 'express_hm_prop_3k' },
+            { label: "$3,000 - $8,000", value: 'express_hm_prop_8k' },
+            { label: "$8,000 - $15,000", value: 'express_hm_prop_15k' },
+            { label: "Over $15,000", value: 'express_hm_prop_15kplus' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Express Homeowner Property Tax
+      if (value.startsWith('express_hm_prop_')) {
+        const propMap = { '3k': 2000, '8k': 5500, '15k': 11500, '15kplus': 20000 };
+        const propKey = value.replace('express_hm_prop_', '');
+        extractedData.tax_items.property_tax = propMap[propKey];
+        const labelMap = { '3k': 'Under $3,000', '8k': '$3,000 - $8,000', '15k': '$8,000 - $15,000', '15kplus': 'Over $15,000' };
+        addMessage('user', labelMap[propKey]);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 5 of 6</span>
+          </div>
+          <strong>Which state?</strong>`, [
+            { label: "California", value: 'express_hm_state_CA' },
+            { label: "Texas", value: 'express_hm_state_TX' },
+            { label: "New York", value: 'express_hm_state_NY' },
+            { label: "Florida", value: 'express_hm_state_FL' },
+            { label: "New Jersey", value: 'express_hm_state_NJ' },
+            { label: "Other →", value: 'express_hm_state_other' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Express Homeowner State
+      if (value.startsWith('express_hm_state_')) {
+        const state = value.replace('express_hm_state_', '');
+        if (state === 'other') {
+          addMessage('user', 'Other State');
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Select your state:</strong>`, [
+              { label: "Illinois", value: 'express_hm_state_IL' },
+              { label: "Pennsylvania", value: 'express_hm_state_PA' },
+              { label: "Massachusetts", value: 'express_hm_state_MA' },
+              { label: "Connecticut", value: 'express_hm_state_CT' },
+              { label: "Maryland", value: 'express_hm_state_MD' },
+              { label: "Virginia", value: 'express_hm_state_VA' }
+            ]);
+          }, 400);
+          return;
+        }
+        extractedData.tax_profile.state = state;
+        addMessage('user', state);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 6 of 6</span>
+          </div>
+          <strong>Any dependents?</strong>`, [
+            { label: "No dependents", value: 'express_hm_deps_0' },
+            { label: "1-2 dependents", value: 'express_hm_deps_2' },
+            { label: "3+ dependents", value: 'express_hm_deps_3plus' }
+          ]);
+        }, 600);
+        return;
+      }
+
+      // Express Homeowner Dependents (Final)
+      if (value.startsWith('express_hm_deps_')) {
+        const depsMap = { '0': 0, '2': 2, '3plus': 3 };
+        const depsKey = value.replace('express_hm_deps_', '');
+        extractedData.tax_profile.dependents = depsMap[depsKey];
+        const labelMap = { '0': 'No dependents', '2': '1-2 dependents', '3plus': '3+ dependents' };
+        addMessage('user', labelMap[depsKey]);
+        showTyping();
+        setTimeout(async () => {
+          hideTyping();
+          addMessage('ai', `<div style="text-align: center; padding: 20px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
+            <div style="font-size: 20px; font-weight: 700; color: var(--accent-light); margin-bottom: 8px;">Homeowner Profile Complete!</div>
+            <div style="color: var(--text-secondary); margin-bottom: 20px;">Calculating your itemized deduction potential...</div>
+          </div>`, []);
+          await performTaxCalculation();
+        }, 800);
         return;
       }
 
@@ -6385,17 +7300,25 @@
 
       // Handle initial greeting responses
       } else if (value === 'yes_upload') {
-        console.log('Processing yes_upload action');
-        addMessage('user', 'Yes, let me upload my documents');
+        DevLogger.log('Processing yes_upload action');
+        addMessage('user', 'Upload my documents');
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `Perfect! I'm ready to review your documents. You can:<br><br>• <strong>Drag and drop</strong> files into the upload zone below<br>• <strong>Click to browse</strong> and select files from your computer<br><br>I'll instantly analyze W-2s, 1099s, and other tax documents using advanced OCR technology. What would you like to upload first?`, [
-            { label: '📎 Upload W-2', value: 'upload_w2' },
-            { label: '📎 Upload 1099', value: 'upload_1099' },
-            { label: '📎 Other document', value: 'upload_other' }
+          addMessage('ai', `<div style="background: linear-gradient(135deg, rgba(33, 150, 243, 0.1), rgba(76, 175, 80, 0.1)); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+            <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">📄 Smart Document Analysis</div>
+            <div style="font-size: 13px; color: var(--text-secondary);">I'll extract all tax data automatically using AI</div>
+          </div>
+          <strong>Supported documents:</strong> W-2, 1099, 1098, Prior Tax Returns<br><br>
+          <div style="text-align: center; margin: 16px 0;">
+            <button onclick="document.getElementById('fileInput').click()" style="padding: 16px 32px; background: var(--gradient); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 16px;">
+              📤 Select Files to Upload
+            </button>
+          </div>
+          <div style="font-size: 12px; color: var(--text-secondary); text-align: center;">Or drag & drop files anywhere on this page</div>`, [
+            { label: '💬 Skip upload, answer questions', value: 'no_manual' }
           ]);
-        }, 1500);
+        }, 800);
 
       } else if (value === 'no_manual') {
         addMessage('user', 'No, I\'d prefer to discuss my situation first');
@@ -6425,6 +7348,106 @@
       } else if (value === 'upload_w2' || value === 'upload_1099' || value === 'upload_other') {
         addMessage('user', 'I want to upload a document');
         document.getElementById('fileInput').click();
+
+      // Post-Upload Express Flow handlers
+      } else if (value.startsWith('post_upload_filing_')) {
+        const status = value.replace('post_upload_filing_', '');
+        const statusMap = { 'single': 'Single', 'married': 'Married Filing Jointly', 'hoh': 'Head of Household', 'mfs': 'Married Filing Separately' };
+        extractedData.tax_profile.filing_status = statusMap[status];
+        addMessage('user', statusMap[status]);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          // Check if state is needed
+          if (!extractedData.tax_profile.state) {
+            addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+              <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Quick Question 2</span>
+            </div>
+            <strong>Which state?</strong>`, [
+              { label: 'California', value: 'post_upload_state_CA' },
+              { label: 'Texas', value: 'post_upload_state_TX' },
+              { label: 'New York', value: 'post_upload_state_NY' },
+              { label: 'Florida', value: 'post_upload_state_FL' },
+              { label: 'Other →', value: 'post_upload_state_other' }
+            ]);
+          } else if (!extractedData.tax_profile.dependents && extractedData.tax_profile.dependents !== 0) {
+            addMessage('ai', `<strong>Any dependents?</strong>`, [
+              { label: 'No dependents', value: 'post_upload_deps_0' },
+              { label: '1-2 dependents', value: 'post_upload_deps_2' },
+              { label: '3+ dependents', value: 'post_upload_deps_3plus' }
+            ]);
+          } else {
+            // All done - generate report
+            addMessage('ai', `<div style="text-align: center; padding: 16px;">
+              <div style="font-size: 32px; margin-bottom: 12px;">✅</div>
+              <div style="font-size: 18px; font-weight: 600;">Ready to Generate Report!</div>
+            </div>`, [
+              { label: '📊 Generate My Tax Report', value: 'generate_report', primary: true }
+            ]);
+          }
+        }, 500);
+        return;
+
+      } else if (value.startsWith('post_upload_state_')) {
+        const state = value.replace('post_upload_state_', '');
+        if (state === 'other') {
+          addMessage('user', 'Other State');
+          showTyping();
+          setTimeout(() => {
+            hideTyping();
+            addMessage('ai', `<strong>Select your state:</strong>`, [
+              { label: 'Illinois', value: 'post_upload_state_IL' },
+              { label: 'Pennsylvania', value: 'post_upload_state_PA' },
+              { label: 'Ohio', value: 'post_upload_state_OH' },
+              { label: 'Georgia', value: 'post_upload_state_GA' },
+              { label: 'Washington', value: 'post_upload_state_WA' },
+              { label: 'Colorado', value: 'post_upload_state_CO' }
+            ]);
+          }, 300);
+          return;
+        }
+        extractedData.tax_profile.state = state;
+        addMessage('user', state);
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          if (!extractedData.tax_profile.dependents && extractedData.tax_profile.dependents !== 0) {
+            addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
+              <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Last Question</span>
+            </div>
+            <strong>Any dependents?</strong>`, [
+              { label: 'No dependents', value: 'post_upload_deps_0' },
+              { label: '1-2 dependents', value: 'post_upload_deps_2' },
+              { label: '3+ dependents', value: 'post_upload_deps_3plus' }
+            ]);
+          } else {
+            addMessage('ai', `<div style="text-align: center; padding: 16px;">
+              <div style="font-size: 32px; margin-bottom: 12px;">✅</div>
+              <div style="font-size: 18px; font-weight: 600;">Ready to Generate Report!</div>
+            </div>`, [
+              { label: '📊 Generate My Tax Report', value: 'generate_report', primary: true }
+            ]);
+          }
+        }, 500);
+        return;
+
+      } else if (value.startsWith('post_upload_deps_')) {
+        const depsMap = { '0': 0, '2': 2, '3plus': 3 };
+        const depsKey = value.replace('post_upload_deps_', '');
+        extractedData.tax_profile.dependents = depsMap[depsKey] || 0;
+        const labelMap = { '0': 'No dependents', '2': '1-2 dependents', '3plus': '3+ dependents' };
+        addMessage('user', labelMap[depsKey]);
+        showTyping();
+        setTimeout(async () => {
+          hideTyping();
+          addMessage('ai', `<div style="text-align: center; padding: 20px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
+            <div style="font-size: 20px; font-weight: 700; color: var(--accent-light); margin-bottom: 8px;">Profile Complete!</div>
+            <div style="color: var(--text-secondary); margin-bottom: 20px;">Generating your personalized tax analysis...</div>
+          </div>`, []);
+          await performTaxCalculation();
+        }, 600);
+        return;
 
       } else if (value.startsWith('filing_')) {
         const status = value.replace('filing_', '');
@@ -8051,7 +9074,7 @@
           extractedData.tax_profile.estimated_child_tax_credit = estimatedCTC;
           extractedData.tax_profile.has_child_tax_credit = estimatedCTC > 0;
 
-          console.log(`Estimated Child Tax Credit: $${estimatedCTC} for ${qualifyingChildren} qualifying children`);
+          DevLogger.log(`Estimated Child Tax Credit: $${estimatedCTC} for ${qualifyingChildren} qualifying children`);
         }
 
         extractedData.lead_data.score += 5;
@@ -8149,7 +9172,7 @@
           extractedData.tax_profile.dependent_care_credit = estimatedCredit;
           extractedData.tax_profile.has_dependent_care_credit = true;
 
-          console.log(`Estimated Dependent Care Credit: $${estimatedCredit}`);
+          DevLogger.log(`Estimated Dependent Care Credit: $${estimatedCredit}`);
         }
 
         extractedData.lead_data.score += 5;
@@ -10286,7 +11309,8 @@
         addMessage('ai', '⏳ Generating your PDF report...');
 
         // Call the advisory report API
-        const response = await fetch('/api/v1/advisory-reports/generate', {
+        // SECURITY: Use secureFetch for CSRF protection
+        const response = await secureFetch('/api/v1/advisory-reports/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -10321,7 +11345,7 @@
           throw new Error('Failed to generate report');
         }
       } catch (error) {
-        console.error('Report generation error:', error);
+        DevLogger.error('Report generation error:', error);
         addMessage('ai', `I encountered an issue generating the PDF. However, you can still <a href="/advisory-report-preview?session_id=${sessionId}" target="_blank" style="color: var(--primary);">view your report online here</a>.`);
       }
     }
@@ -10372,7 +11396,7 @@
           // Retry on server errors (5xx) or specific client errors
           if (!response.ok && attempt < maxRetries) {
             const delay = Math.min(1000 * Math.pow(2, attempt - 1), 8000); // Max 8s delay
-            console.log(`Retry attempt ${attempt} after ${delay}ms`);
+            DevLogger.log(`Retry attempt ${attempt} after ${delay}ms`);
             await new Promise(resolve => setTimeout(resolve, delay));
             continue;
           }
@@ -10389,7 +11413,7 @@
           // Retry on network errors
           if (attempt < maxRetries) {
             const delay = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
-            console.log(`Network error, retry attempt ${attempt} after ${delay}ms`);
+            DevLogger.log(`Network error, retry attempt ${attempt} after ${delay}ms`);
             await new Promise(resolve => setTimeout(resolve, delay));
             continue;
           }
@@ -10424,7 +11448,7 @@
             // If session creation fails, generate a temporary client-side ID
             // DON'T store temp IDs in sessionStorage - they shouldn't persist
             sessionId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-            console.warn('Using temporary session ID (will retry on next message):', sessionId);
+            DevLogger.warn('Using temporary session ID (will retry on next message):', sessionId);
           } else {
             const sessionData = await sessionResponse.json();
             const oldSessionId = sessionId;
@@ -10432,15 +11456,15 @@
             // Only store real session IDs
             sessionStorage.setItem('tax_session_id', sessionId);
             if (oldSessionId && oldSessionId.startsWith('temp-')) {
-              console.log('Upgraded from temporary session to real session:', sessionId);
+              DevLogger.log('Upgraded from temporary session to real session:', sessionId);
             }
           }
         } catch (error) {
-          console.error('Failed to create session:', error);
+          DevLogger.error('Failed to create session:', error);
           // Generate temporary client-side session ID as fallback
           // DON'T persist temp sessions - they will be retried on next message
           sessionId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-          console.warn('Using temporary session ID (will retry on next message):', sessionId);
+          DevLogger.warn('Using temporary session ID (will retry on next message):', sessionId);
         }
       }
 
@@ -10490,7 +11514,7 @@
 
         // Validate response data
         if (!data || typeof data !== 'object') {
-          console.error('Invalid API response:', data);
+          DevLogger.error('Invalid API response:', data);
           throw new Error('Received invalid response from server');
         }
 
@@ -10504,7 +11528,7 @@
         } else {
           // Just add user message if response was empty
           conversationHistory.push({ role: 'user', content: userMessage });
-          console.warn('Received empty response from API');
+          DevLogger.warn('Received empty response from API');
         }
 
         // Update local extracted data based on API response
@@ -10522,7 +11546,7 @@
           if (data.lead_score) {
             extractedData.lead_data.score = data.lead_score;
           }
-          console.log('API updated profile, completeness:', data.profile_completeness);
+          DevLogger.log('API updated profile, completeness:', data.profile_completeness);
           markUnsaved(); // Trigger auto-save
         }
 
@@ -10544,7 +11568,7 @@
           updateInsights(data.key_insights);
         }
         if (data.warnings && data.warnings.length > 0) {
-          data.warnings.forEach(w => console.warn('Tax warning:', w));
+          data.warnings.forEach(w => DevLogger.warn('Tax warning:', w));
         }
 
         // Save session data for recovery
@@ -10563,7 +11587,7 @@
 
       } catch (error) {
         hideTyping();
-        console.error('AI response error:', error);
+        DevLogger.error('AI response error:', error);
 
         // Handle specific error types
         let errorMessage = '';
@@ -10860,12 +11884,13 @@ If they're ready to move forward, suggest generating their comprehensive advisor
     // Save session progress to server
     async function saveSessionProgress() {
       if (!sessionId || sessionId.startsWith('temp-')) {
-        console.log('Skipping save - no valid session ID');
+        DevLogger.log('Skipping save - no valid session ID');
         return;
       }
 
       try {
-        const response = await fetch(`/api/sessions/${sessionId}/save`, {
+        // SECURITY: Use secureFetch for CSRF protection
+        const response = await secureFetch(`/api/sessions/${sessionId}/save`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -10880,13 +11905,13 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           lastSaveTime = new Date();
           hasUnsavedChanges = false;
           updateSaveIndicator('saved');
-          console.log('Session saved at:', lastSaveTime.toISOString());
+          DevLogger.log('Session saved at:', lastSaveTime.toISOString());
         } else {
-          console.warn('Save failed:', response.status);
+          DevLogger.warn('Save failed:', response.status);
           updateSaveIndicator('error');
         }
       } catch (error) {
-        console.error('Auto-save error:', error);
+        DevLogger.error('Auto-save error:', error);
         updateSaveIndicator('error');
       }
     }
@@ -10946,7 +11971,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           saveSessionProgress();
         }
       }, AUTO_SAVE_INTERVAL);
-      console.log('Auto-save started');
+      DevLogger.log('Auto-save started');
     }
 
     // Stop auto-save timer
@@ -10978,7 +12003,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           }
         }
       } catch (error) {
-        console.log('No existing session to restore');
+        DevLogger.log('No existing session to restore');
       }
       return null;
     }
@@ -11066,7 +12091,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         { label: 'Review my info', value: 'review_data' }
       ]);
 
-      console.log('Session restored:', sessionId);
+      DevLogger.log('Session restored:', sessionId);
     }
 
     // Dismiss resume banner and start fresh
@@ -11159,7 +12184,8 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       formData.append('session_id', sessionId);
 
       try {
-        const response = await fetch('/api/ai-chat/analyze-document', {
+        // SECURITY: Use secureFetch for CSRF protection
+        const response = await secureFetch('/api/ai-chat/analyze-document', {
           method: 'POST',
           body: formData
         });
@@ -11188,21 +12214,73 @@ If they're ready to move forward, suggest generating their comprehensive advisor
                             (data.extracted_data && Object.keys(data.extracted_data).length > 2);
 
         if (hasBasicData && (!data.quick_actions || data.quick_actions.length === 0)) {
-          // Offer to continue with questions to complete the profile
+          // Offer Express Mode completion after document upload
           setTimeout(() => {
-            addMessage('ai', `I've extracted information from your document. ${
-              extractedData.tax_profile.total_income ? `I see income of $${extractedData.tax_profile.total_income.toLocaleString()}.` : ''
-            } Would you like me to continue asking questions to complete your tax profile?`, [
-              { label: '✅ Yes, continue', value: 'continue_questioning' },
-              { label: '📄 Upload another document', value: 'yes_upload' },
-              { label: '📋 Review what I have', value: 'review_data' }
-            ]);
+            // Check what's missing and offer targeted follow-up
+            const missingFields = [];
+            if (!extractedData.tax_profile.filing_status) missingFields.push('filing_status');
+            if (!extractedData.tax_profile.state) missingFields.push('state');
+            if (!extractedData.tax_profile.dependents && extractedData.tax_profile.dependents !== 0) missingFields.push('dependents');
+
+            const incomeDisplay = extractedData.tax_profile.total_income
+              ? `<div style="background: rgba(76, 175, 80, 0.15); padding: 12px; border-radius: 8px; margin: 12px 0;">
+                  <span style="color: var(--accent-light);">✓ Income detected:</span>
+                  <strong>$${extractedData.tax_profile.total_income.toLocaleString()}</strong>
+                </div>`
+              : '';
+
+            if (missingFields.length > 0) {
+              // Ask the first missing question in Express style
+              if (!extractedData.tax_profile.filing_status) {
+                addMessage('ai', `<div style="font-size: 18px; font-weight: 600; margin-bottom: 12px;">📋 Document Analyzed!</div>
+                ${incomeDisplay}
+                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                  <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Quick Question 1 of ${missingFields.length}</span>
+                </div>
+                <strong>What's your filing status?</strong>`, [
+                  { label: 'Single', value: 'post_upload_filing_single' },
+                  { label: 'Married Filing Jointly', value: 'post_upload_filing_married' },
+                  { label: 'Head of Household', value: 'post_upload_filing_hoh' },
+                  { label: 'Married Filing Separately', value: 'post_upload_filing_mfs' }
+                ]);
+              } else if (!extractedData.tax_profile.state) {
+                addMessage('ai', `<div style="font-size: 18px; font-weight: 600; margin-bottom: 12px;">📋 Almost Done!</div>
+                ${incomeDisplay}
+                <strong>Which state do you live in?</strong>`, [
+                  { label: 'California', value: 'post_upload_state_CA' },
+                  { label: 'Texas', value: 'post_upload_state_TX' },
+                  { label: 'New York', value: 'post_upload_state_NY' },
+                  { label: 'Florida', value: 'post_upload_state_FL' },
+                  { label: 'Other →', value: 'post_upload_state_other' }
+                ]);
+              } else {
+                addMessage('ai', `<div style="font-size: 18px; font-weight: 600; margin-bottom: 12px;">📋 One More Question!</div>
+                ${incomeDisplay}
+                <strong>Any dependents?</strong>`, [
+                  { label: 'No dependents', value: 'post_upload_deps_0' },
+                  { label: '1-2 dependents', value: 'post_upload_deps_2' },
+                  { label: '3+ dependents', value: 'post_upload_deps_3plus' }
+                ]);
+              }
+            } else {
+              // All data present - offer to generate report
+              addMessage('ai', `<div style="text-align: center; padding: 16px;">
+                <div style="font-size: 32px; margin-bottom: 12px;">✅</div>
+                <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Document Analysis Complete!</div>
+                ${incomeDisplay}
+                <div style="color: var(--text-secondary);">I have everything needed for your analysis.</div>
+              </div>`, [
+                { label: '📊 Generate My Tax Report', value: 'generate_report', primary: true },
+                { label: '📄 Upload more documents', value: 'yes_upload' },
+                { label: '📋 Review extracted data', value: 'review_data' }
+              ]);
+            }
           }, 500);
         }
 
       } catch (error) {
         hideTyping();
-        console.error('Document upload error:', error);
+        DevLogger.error('Document upload error:', error);
         addMessage('ai', `I had trouble reading that document. Would you like to try again or enter the information manually?`, [
           { label: '🔄 Try again', value: 'yes_upload' },
           { label: '💬 Enter manually', value: 'no_manual' },
@@ -11383,7 +12461,8 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
     async function extractDataWithAI(userMessage) {
       try {
-        const response = await fetch('/api/ai-chat/chat', {
+        // SECURITY: Use secureFetch for CSRF protection
+        const response = await secureFetch('/api/ai-chat/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -11410,7 +12489,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           return data;
         }
       } catch (error) {
-        console.error('AI extraction error:', error);
+        DevLogger.error('AI extraction error:', error);
       }
       return null;
     }
@@ -11428,7 +12507,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       if (newData.mortgage) extractedData.tax_items.mortgage_interest = newData.mortgage;
       if (newData.charitable) extractedData.tax_items.charitable = newData.charitable;
 
-      console.log('Merged extracted data:', extractedData);
+      DevLogger.log('Merged extracted data:', extractedData);
     }
 
     function calculateLeadScore() {
@@ -11595,14 +12674,14 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
     async function getIntelligentAnalysis() {
       // Debug: Log current state
-      console.log('getIntelligentAnalysis called with:', {
+      DevLogger.log('getIntelligentAnalysis called with:', {
         filing_status: extractedData.tax_profile.filing_status,
         total_income: extractedData.tax_profile.total_income,
         dependents: extractedData.tax_profile.dependents
       });
 
       if (!extractedData.tax_profile.total_income || !extractedData.tax_profile.filing_status) {
-        console.warn('Missing required data:', {
+        DevLogger.warn('Missing required data:', {
           has_income: !!extractedData.tax_profile.total_income,
           has_filing_status: !!extractedData.tax_profile.filing_status
         });
@@ -11621,7 +12700,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       // Validate the filing status mapping
       const apiFilingStatus = statusMap[extractedData.tax_profile.filing_status];
       if (!apiFilingStatus) {
-        console.error('Invalid filing status:', extractedData.tax_profile.filing_status);
+        DevLogger.error('Invalid filing status:', extractedData.tax_profile.filing_status);
         // Try to recover by using the value directly if it looks like an API value
         const directValues = ['single', 'married_joint', 'married_separate', 'head_of_household', 'qualifying_widow'];
         if (!directValues.includes(extractedData.tax_profile.filing_status.toLowerCase())) {
@@ -11636,7 +12715,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       if (!sessionId) {
         sessionId = 'advisor-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         sessionStorage.setItem('tax_session_id', sessionId);
-        console.log('Created new session ID:', sessionId);
+        DevLogger.log('Created new session ID:', sessionId);
       }
 
       try {
@@ -11655,7 +12734,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           is_self_employed: extractedData.tax_profile.business_income > 0
         };
 
-        console.log('Sending to API:', profile);
+        DevLogger.log('Sending to API:', profile);
 
         const response = await fetchWithRetry('/api/advisor/chat', {
           method: 'POST',
@@ -11690,7 +12769,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           throw new Error(errorData.detail || `Server error: ${response.status}`);
         }
       } catch (error) {
-        console.error('Intelligent analysis error:', error);
+        DevLogger.error('Intelligent analysis error:', error);
 
         // Show error banner with retry option
         if (!navigator.onLine) {
@@ -11756,7 +12835,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
       // Safety check - if we've called this too many times, skip to summary
       if (questioningState.callCount > questioningState.maxCalls) {
-        console.warn('startIntelligentQuestioning exceeded max calls, skipping to summary');
+        DevLogger.warn('startIntelligentQuestioning exceeded max calls, skipping to summary');
         await showPreliminarySummary();
         return;
       }
@@ -12709,7 +13788,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         }
       } else {
         // Debug: Show what data we have
-        console.error('Analysis failed. Current data:', {
+        DevLogger.error('Analysis failed. Current data:', {
           filing_status: extractedData.tax_profile.filing_status,
           total_income: extractedData.tax_profile.total_income,
           dependents: extractedData.tax_profile.dependents
@@ -12810,7 +13889,8 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       }
 
       try {
-        const response = await fetch('/api/leads/create', {
+        // SECURITY: Use secureFetch for CSRF protection
+        const response = await secureFetch('/api/leads/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -12828,7 +13908,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
         return response.ok;
       } catch (error) {
-        console.error('Lead handoff error:', error);
+        DevLogger.error('Lead handoff error:', error);
         return false;
       }
     }
@@ -12925,9 +14005,9 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
     // Initialize on load
     window.addEventListener('DOMContentLoaded', () => {
-      console.log('Page loaded, initializing...');
+      DevLogger.log('Page loaded, initializing...');
       const messagesContainer = document.getElementById('messages');
-      console.log('Messages container found:', messagesContainer);
+      DevLogger.log('Messages container found:', messagesContainer);
 
       // Reset questioning state on page load for clean start
       resetQuestioningState();
@@ -12941,15 +14021,15 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
       // Attach event listeners to initial quick action buttons
       const initialButtons = document.querySelectorAll('#initialQuickActions button[data-action]');
-      console.log('Found initial buttons:', initialButtons.length);
+      DevLogger.log('Found initial buttons:', initialButtons.length);
 
       initialButtons.forEach(button => {
         button.addEventListener('click', function(e) {
           e.preventDefault();
           e.stopPropagation();
           const action = this.getAttribute('data-action');
-          console.log('Initial button clicked:', action);
-          console.log('Button element:', this);
+          DevLogger.log('Initial button clicked:', action);
+          DevLogger.log('Button element:', this);
 
           // Disable button temporarily to prevent double clicks
           this.disabled = true;
@@ -12966,7 +14046,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         if (e.target.classList.contains('quick-action') && e.target.dataset.action) {
           e.preventDefault();
           const action = e.target.dataset.action;
-          console.log('Delegated button clicked:', action);
+          DevLogger.log('Delegated button clicked:', action);
           handleQuickAction(action);
         }
       });
@@ -13562,7 +14642,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         try {
           return await uploadFileWithProgress(file);
         } catch (e) {
-          console.warn(`Upload attempt ${i + 1} failed:`, e.message);
+          DevLogger.warn(`Upload attempt ${i + 1} failed:`, e.message);
           if (i === maxRetries - 1) {
             showActionableError('upload_failed');
             throw e;

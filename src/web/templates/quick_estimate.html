@@ -603,10 +603,10 @@
         <div class="progress-inner">
             <div class="progress-header">
                 <span class="progress-title">Quick Tax Estimate</span>
-                <span class="progress-step" id="step-indicator">Step 1 of 3</span>
+                <span class="progress-step" id="step-indicator">Step 1 of 4</span>
             </div>
             <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill" style="width: 33%"></div>
+                <div class="progress-fill" id="progress-fill" style="width: 25%"></div>
             </div>
         </div>
     </div>
@@ -709,50 +709,98 @@
                     </div>
                 </div>
 
-                <!-- Question 3: Primary Concern -->
+                <!-- Question 3: Dependents -->
                 <div class="question-slide" data-step="3">
                     <div class="question-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                         </svg>
                     </div>
-                    <h2 class="question-title">What's your biggest tax concern?</h2>
-                    <p class="question-subtitle">We'll prioritize this in your personalized analysis</p>
+                    <h2 class="question-title">Any dependents?</h2>
+                    <p class="question-subtitle">Children under 17 may qualify for up to $2,000 each in tax credits</p>
 
                     <div class="options-grid">
-                        <div class="option-card" data-value="maximize_refund">
+                        <div class="option-card" data-value="0">
                             <div class="option-radio"><div class="option-radio-inner"></div></div>
                             <div class="option-content">
-                                <div class="option-label">Maximize my refund</div>
-                                <div class="option-description">Find every deduction I'm entitled to</div>
+                                <div class="option-label">No dependents</div>
+                                <div class="option-description">Filing for myself only</div>
                             </div>
-                            <div class="option-icon">💸</div>
+                            <div class="option-icon">👤</div>
                         </div>
-                        <div class="option-card" data-value="reduce_liability">
+                        <div class="option-card" data-value="1">
                             <div class="option-radio"><div class="option-radio-inner"></div></div>
                             <div class="option-content">
-                                <div class="option-label">Reduce what I owe</div>
-                                <div class="option-description">Lower my tax liability legally</div>
+                                <div class="option-label">1 child</div>
+                                <div class="option-description">Up to $2,000 in credits</div>
                             </div>
-                            <div class="option-icon">📉</div>
+                            <div class="option-icon">👶</div>
                         </div>
-                        <div class="option-card" data-value="business_taxes">
+                        <div class="option-card" data-value="2">
                             <div class="option-radio"><div class="option-radio-inner"></div></div>
                             <div class="option-content">
-                                <div class="option-label">Business tax optimization</div>
-                                <div class="option-description">Self-employed or business owner</div>
+                                <div class="option-label">2 children</div>
+                                <div class="option-description">Up to $4,000 in credits</div>
+                            </div>
+                            <div class="option-icon">👨‍👩‍👧</div>
+                        </div>
+                        <div class="option-card" data-value="3+">
+                            <div class="option-radio"><div class="option-radio-inner"></div></div>
+                            <div class="option-content">
+                                <div class="option-label">3+ children</div>
+                                <div class="option-description">Up to $6,000+ in credits</div>
+                            </div>
+                            <div class="option-icon">👨‍👩‍👧‍👦</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Question 4: Special Situations -->
+                <div class="question-slide" data-step="4">
+                    <div class="question-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </div>
+                    <h2 class="question-title">Any of these apply to you?</h2>
+                    <p class="question-subtitle">Select the most relevant - each unlocks potential savings</p>
+
+                    <div class="options-grid">
+                        <div class="option-card" data-value="homeowner">
+                            <div class="option-radio"><div class="option-radio-inner"></div></div>
+                            <div class="option-content">
+                                <div class="option-label">Homeowner</div>
+                                <div class="option-description">Mortgage interest deductions</div>
+                            </div>
+                            <div class="option-icon">🏠</div>
+                        </div>
+                        <div class="option-card" data-value="self_employed">
+                            <div class="option-radio"><div class="option-radio-inner"></div></div>
+                            <div class="option-content">
+                                <div class="option-label">Self-Employed / 1099</div>
+                                <div class="option-description">Business expense deductions</div>
                             </div>
                             <div class="option-icon">🏢</div>
                         </div>
-                        <div class="option-card" data-value="understand_situation">
+                        <div class="option-card" data-value="investments">
                             <div class="option-radio"><div class="option-radio-inner"></div></div>
                             <div class="option-content">
-                                <div class="option-label">Understand my situation</div>
-                                <div class="option-description">Get clarity on my tax position</div>
+                                <div class="option-label">Have investments</div>
+                                <div class="option-description">Capital gains optimization</div>
                             </div>
-                            <div class="option-icon">🔍</div>
+                            <div class="option-icon">📈</div>
+                        </div>
+                        <div class="option-card" data-value="none">
+                            <div class="option-radio"><div class="option-radio-inner"></div></div>
+                            <div class="option-content">
+                                <div class="option-label">None of these</div>
+                                <div class="option-description">Standard W-2 employee</div>
+                            </div>
+                            <div class="option-icon">💼</div>
                         </div>
                     </div>
                 </div>
@@ -765,13 +813,27 @@
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                                 <polyline points="22 4 12 14.01 9 11.01"/>
                             </svg>
-                            Estimate Ready
+                            Analysis Complete
                         </div>
                         <p class="results-title">Your Potential Tax Savings</p>
                         <div class="results-amount" id="savings-amount">$2,847</div>
                         <p class="results-range" id="savings-range">Estimated range: $1,800 - $4,200</p>
                     </div>
                     <div class="results-body">
+                        <!-- Opportunities Found -->
+                        <div id="opportunities-list" style="text-align: left; margin-bottom: 24px; padding: 16px; background: #f0fff4; border-radius: 12px; border: 1px solid #c6f6d5;">
+                            <div style="font-weight: 600; color: #276749; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                                Opportunities Found For You:
+                            </div>
+                            <ul id="opportunity-items" style="list-style: none; padding: 0; margin: 0; display: grid; gap: 8px;">
+                                <!-- Dynamically populated -->
+                            </ul>
+                        </div>
+
                         <div class="results-features">
                             <div class="feature-item">
                                 <div class="feature-icon">
@@ -781,7 +843,7 @@
                                     </svg>
                                 </div>
                                 <div class="feature-value" id="deductions-count">12+</div>
-                                <div class="feature-label">Potential Deductions</div>
+                                <div class="feature-label">Deductions</div>
                             </div>
                             <div class="feature-item">
                                 <div class="feature-icon">
@@ -793,7 +855,7 @@
                                     </svg>
                                 </div>
                                 <div class="feature-value" id="tax-bracket">22%</div>
-                                <div class="feature-label">Current Bracket</div>
+                                <div class="feature-label">Tax Bracket</div>
                             </div>
                             <div class="feature-item">
                                 <div class="feature-icon">
@@ -802,24 +864,46 @@
                                         <polyline points="12 6 12 12 16 14"/>
                                     </svg>
                                 </div>
-                                <div class="feature-value">~8 min</div>
-                                <div class="feature-label">Full Analysis Time</div>
+                                <div class="feature-value">3 min</div>
+                                <div class="feature-label">Full Analysis</div>
                             </div>
                         </div>
 
-                        <div class="results-cta">
-                            <a href="/login?next=/advisor&estimate=true" class="btn btn-primary btn-large">
-                                Get Your Detailed Analysis
+                        <!-- Email Capture -->
+                        <div id="email-capture" style="margin-bottom: 20px;">
+                            <div style="font-size: 0.95rem; color: var(--text); margin-bottom: 12px; font-weight: 500;">
+                                Get your detailed analysis sent to your email:
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="email" id="lead-email" placeholder="Enter your email"
+                                    style="flex: 1; padding: 14px 16px; border: 2px solid var(--border); border-radius: 10px; font-size: 1rem; outline: none; transition: border-color 0.2s;"
+                                    onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">
+                                <button onclick="captureLeadAndContinue()" class="btn btn-primary" style="white-space: nowrap;">
+                                    Get Analysis
+                                </button>
+                            </div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;">
+                                Free, no credit card required. We respect your privacy.
+                            </div>
+                        </div>
+
+                        <div class="results-cta" id="skip-email-cta">
+                            <a href="/signup?next=/advisor&estimate=true" class="btn btn-primary btn-large">
+                                Start Full Analysis Now
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="5" y1="12" x2="19" y2="12"/>
                                     <polyline points="12 5 19 12 12 19"/>
                                 </svg>
                             </a>
+                            <div style="margin-top: 12px;">
+                                <a href="/login?next=/advisor&estimate=true" style="color: var(--text-muted); font-size: 0.85rem; text-decoration: none;">
+                                    Already have an account? <span style="color: var(--primary); font-weight: 600;">Sign in</span>
+                                </a>
+                            </div>
                         </div>
 
                         <p class="results-disclaimer">
-                            This estimate uses real 2025 tax brackets and IRS calculations based on your inputs.
-                            Create a free account to get a detailed AI-powered analysis with personalized deductions and credits.
+                            Based on 2025 IRS tax brackets. Full analysis uses AI to find personalized deductions specific to your situation.
                         </p>
                     </div>
                 </div>
@@ -880,7 +964,7 @@
         // Quiz State
         const state = {
             currentStep: 1,
-            totalSteps: 3,
+            totalSteps: 4,
             answers: {}
         };
 
@@ -999,6 +1083,9 @@
                 document.getElementById('deductions-count').textContent = estimate.deductions + '+';
                 document.getElementById('tax-bracket').textContent = estimate.bracket + '%';
 
+                // Populate opportunities list
+                populateOpportunities(estimate.opportunities);
+
                 // Hide loading
                 loading.classList.remove('active');
 
@@ -1027,6 +1114,10 @@
                 document.getElementById('deductions-count').textContent = estimate.deductions + '+';
                 document.getElementById('tax-bracket').textContent = estimate.bracket + '%';
 
+                // Populate opportunities with fallback data
+                const fallbackOpps = buildOpportunities(state.answers[1], state.answers[2], state.answers[3], state.answers[4]);
+                populateOpportunities(fallbackOpps);
+
                 loading.classList.remove('active');
                 slides.forEach(s => s.classList.remove('active'));
                 resultsSlide.classList.add('active');
@@ -1041,11 +1132,24 @@
             }
         }
 
+        // Populate opportunities list in results
+        function populateOpportunities(opportunities) {
+            const list = document.getElementById('opportunity-items');
+            list.innerHTML = opportunities.map(opp => `
+                <li style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(39, 103, 73, 0.1);">
+                    <span style="font-size: 1.1rem;">${opp.icon}</span>
+                    <span style="flex: 1; color: var(--text);">${opp.text}</span>
+                    ${opp.amount ? `<span style="font-weight: 600; color: var(--success); font-size: 0.85rem;">${opp.amount}</span>` : ''}
+                </li>
+            `).join('');
+        }
+
         // Calculate Estimate using real API
         async function calculateEstimateFromAPI() {
             const filingStatus = state.answers[1];
             const incomeRange = state.answers[2];
-            const concern = state.answers[3];
+            const dependents = state.answers[3];
+            const situation = state.answers[4];
 
             // Map income range to midpoint wage value
             const incomeToWages = {
@@ -1063,6 +1167,10 @@
                 'head_household': 'head_of_household'
             };
 
+            // Map dependents
+            const depsMap = { '0': 0, '1': 1, '2': 2, '3+': 3 };
+            const numDeps = depsMap[dependents] || 0;
+
             const wages = incomeToWages[incomeRange] || 75000;
             const mappedFilingStatus = filingStatusMap[filingStatus] || 'single';
 
@@ -1079,7 +1187,7 @@
                     wages: wages,
                     withholding: withholding,
                     filing_status: mappedFilingStatus,
-                    num_dependents: 0
+                    num_dependents: numDeps
                 })
             });
 
@@ -1090,7 +1198,6 @@
             const data = await response.json();
 
             // Calculate potential savings based on real tax data
-            // Savings estimate: 5-15% of federal tax liability through deductions/credits
             const federalTax = data.federal_tax || 0;
             const effectiveRate = data.effective_rate || 0;
             const marginalRate = data.marginal_rate || 22;
@@ -1098,27 +1205,35 @@
             // Base savings: percentage of tax that can typically be reduced
             let savingsPercent = 0.08; // 8% baseline
 
-            // Adjust based on concern
-            if (concern === 'business_taxes') {
-                savingsPercent = 0.15; // Business owners have more deduction opportunities
-            } else if (concern === 'maximize_refund') {
-                savingsPercent = 0.12; // Active refund seekers find more
-            } else if (concern === 'reduce_liability') {
-                savingsPercent = 0.10;
+            // Adjust based on situation
+            if (situation === 'self_employed') {
+                savingsPercent = 0.18; // Self-employed have many deduction opportunities
+            } else if (situation === 'homeowner') {
+                savingsPercent = 0.12; // Mortgage interest, property tax
+            } else if (situation === 'investments') {
+                savingsPercent = 0.10; // Tax-loss harvesting, etc
             }
 
-            const baseSavings = Math.round(federalTax * savingsPercent);
+            // Add child tax credit potential
+            const childTaxCredit = numDeps * 2000;
+            let baseSavings = Math.round(federalTax * savingsPercent) + childTaxCredit;
+
             const variance = 0.25;
             const low = Math.round(baseSavings * (1 - variance));
             const high = Math.round(baseSavings * (1 + variance));
 
-            // Calculate deductions count based on income level and concern
+            // Calculate deductions count based on income level and situation
             let deductions = 8;
             if (incomeRange === '100000-250000') deductions = 15;
             else if (incomeRange === '250000+') deductions = 22;
             else if (incomeRange === '50000-100000') deductions = 12;
 
-            if (concern === 'business_taxes') deductions += 8;
+            if (situation === 'self_employed') deductions += 10;
+            else if (situation === 'homeowner') deductions += 5;
+            else if (situation === 'investments') deductions += 4;
+
+            // Build opportunities list
+            const opportunities = buildOpportunities(filingStatus, incomeRange, dependents, situation);
 
             return {
                 savings: baseSavings,
@@ -1126,6 +1241,7 @@
                 high: high,
                 bracket: Math.round(marginalRate),
                 deductions: deductions,
+                opportunities: opportunities,
                 // Store API response for detailed analysis later
                 apiResponse: {
                     federal_tax: federalTax,
@@ -1137,15 +1253,105 @@
                     is_refund: data.is_refund,
                     confidence: data.confidence,
                     wages: wages,
-                    filing_status: mappedFilingStatus
+                    filing_status: mappedFilingStatus,
+                    num_dependents: numDeps,
+                    situation: situation
                 }
             };
+        }
+
+        // Build personalized opportunities based on answers
+        function buildOpportunities(filing, income, deps, situation) {
+            const opps = [];
+
+            // Always applicable
+            opps.push({ icon: '📋', text: 'Standard deduction optimization', amount: null });
+
+            // Based on filing status
+            if (filing === 'married_joint') {
+                opps.push({ icon: '💑', text: 'Joint filing benefits analysis', amount: null });
+            }
+
+            // Based on dependents
+            const depsNum = parseInt(deps) || 0;
+            if (depsNum > 0) {
+                const ctcAmount = depsNum * 2000;
+                opps.push({ icon: '👶', text: `Child Tax Credit (${depsNum} ${depsNum === 1 ? 'child' : 'children'})`, amount: `Up to $${ctcAmount.toLocaleString()}` });
+                if (income === '0-50000' || income === '50000-100000') {
+                    opps.push({ icon: '🎓', text: 'Child & Dependent Care Credit', amount: 'Up to $3,000' });
+                }
+            }
+
+            // Based on situation
+            if (situation === 'homeowner') {
+                opps.push({ icon: '🏠', text: 'Mortgage interest deduction', amount: 'Up to $10,000' });
+                opps.push({ icon: '🏡', text: 'Property tax deduction', amount: null });
+            } else if (situation === 'self_employed') {
+                opps.push({ icon: '🏢', text: 'QBI deduction (20% of income)', amount: 'Significant' });
+                opps.push({ icon: '🚗', text: 'Business vehicle deduction', amount: '$0.67/mile' });
+                opps.push({ icon: '🏠', text: 'Home office deduction', amount: null });
+                opps.push({ icon: '💼', text: 'Self-employed health insurance', amount: '100% deductible' });
+            } else if (situation === 'investments') {
+                opps.push({ icon: '📉', text: 'Tax-loss harvesting', amount: 'Up to $3,000' });
+                opps.push({ icon: '💰', text: 'Long-term capital gains rates', amount: '0-20%' });
+            }
+
+            // Income-based
+            if (income === '0-50000') {
+                opps.push({ icon: '💵', text: 'Earned Income Tax Credit', amount: 'Up to $7,430' });
+                opps.push({ icon: '🎓', text: 'Saver\'s Credit', amount: 'Up to $2,000' });
+            }
+
+            // Always suggest retirement
+            opps.push({ icon: '🏦', text: 'Retirement contribution optimization', amount: 'Up to $23,000' });
+
+            return opps.slice(0, 6); // Limit to 6 most relevant
+        }
+
+        // Lead capture function
+        async function captureLeadAndContinue() {
+            const emailInput = document.getElementById('lead-email');
+            const email = emailInput.value.trim();
+
+            if (!email || !email.includes('@')) {
+                emailInput.style.borderColor = 'var(--error)';
+                emailInput.placeholder = 'Please enter a valid email';
+                return;
+            }
+
+            try {
+                // Send lead to API
+                await fetch('/api/leads/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        source: 'quick_estimate',
+                        filing_status: state.answers[1],
+                        income_range: state.answers[2],
+                        dependents: state.answers[3],
+                        situation: state.answers[4],
+                        estimated_savings: document.getElementById('savings-amount').textContent
+                    })
+                });
+
+                // Store email for signup page
+                sessionStorage.setItem('leadEmail', email);
+
+                // Redirect to signup
+                window.location.href = '/signup?next=/advisor&estimate=true&email=' + encodeURIComponent(email);
+            } catch (e) {
+                console.error('Lead capture error:', e);
+                // Still redirect on error
+                window.location.href = '/signup?next=/advisor&estimate=true';
+            }
         }
 
         // Fallback calculation if API fails
         function calculateEstimateFallback() {
             const income = state.answers[2];
-            const concern = state.answers[3];
+            const dependents = state.answers[3];
+            const situation = state.answers[4];
 
             let baseSavings, bracket, deductions;
 
@@ -1176,19 +1382,29 @@
                     deductions = 10;
             }
 
-            // Adjust based on concern
-            if (concern === 'business_taxes') {
-                baseSavings *= 1.4;
-                deductions += 8;
-            } else if (concern === 'maximize_refund') {
+            // Add child tax credit based on dependents
+            const depsNum = parseInt(dependents) || 0;
+            if (depsNum > 0) {
+                baseSavings += depsNum * 2000;
+            }
+
+            // Adjust based on situation
+            if (situation === 'self_employed') {
+                baseSavings *= 1.5;
+                deductions += 10;
+            } else if (situation === 'homeowner') {
                 baseSavings *= 1.2;
+                deductions += 5;
+            } else if (situation === 'investments') {
+                baseSavings *= 1.15;
+                deductions += 4;
             }
 
             // Add some variance for realism
-            const variance = 0.3;
+            const variance = 0.25;
             const low = Math.round(baseSavings * (1 - variance));
             const high = Math.round(baseSavings * (1 + variance));
-            const savings = Math.round(baseSavings + (Math.random() * 400 - 200));
+            const savings = Math.round(baseSavings);
 
             return {
                 savings,

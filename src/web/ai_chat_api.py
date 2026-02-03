@@ -14,7 +14,7 @@ This improved version includes:
 To use: Replace ai_chat_api.py with this file
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, status
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, status, Request as FastAPIRequest
 from pydantic import BaseModel, Field, validator
 from typing import Dict, List, Optional, Any
 from datetime import datetime
@@ -22,9 +22,295 @@ import logging
 import traceback
 import tempfile
 import os
+import re
+from uuid import UUID
 
-# Initialize logger early - before try blocks that use it
-logger = logging.getLogger(__name__)
+# ============================================================================
+# SECURITY: PII Redaction for Logs
+# ============================================================================
+
+# Patterns for PII that should be redacted from logs
+PII_PATTERNS = [
+    (r'\b\d{3}-\d{2}-\d{4}\b', '***-**-****'),  # SSN format XXX-XX-XXXX
+    (r'\b\d{9}\b', '*********'),  # SSN without dashes
+    (r'\b\d{2}-\d{7}\b', '**-*******'),  # EIN format XX-XXXXXXX
+    (r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[EMAIL]'),  # Email
+    (r'\b\d{10,11}\b', '[PHONE]'),  # Phone numbers
+    (r'\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b', '[CARD]'),  # Credit card
+    (r'\b\d{5}(-\d{4})?\b', '[ZIP]'),  # ZIP code
+]
+
+def redact_pii(text: str) -> str:
+    """Redact PII from text for safe logging."""
+    if not text:
+        return text
+    result = str(text)
+    for pattern, replacement in PII_PATTERNS:
+        result = re.sub(pattern, replacement, result)
+    return result
+
+def redact_dict_pii(data: dict, sensitive_keys: set = None) -> dict:
+    """Redact PII from dictionary values for safe logging."""
+    if sensitive_keys is None:
+        sensitive_keys = {'ssn', 'social_security', 'tax_id', 'ein', 'email', 'phone',
+                         'address', 'bank_account', 'routing_number', 'credit_card'}
+
+    if not isinstance(data, dict):
+        return data
+
+    result = {}
+    for key, value in data.items():
+        key_lower = key.lower()
+        if any(sk in key_lower for sk in sensitive_keys):
+            if isinstance(value, str) and len(value) > 4:
+                result[key] = value[:2] + '*' * (len(value) - 4) + value[-2:]
+            else:
+                result[key] = '[REDACTED]'
+        elif isinstance(value, dict):
+            result[key] = redact_dict_pii(value, sensitive_keys)
+        elif isinstance(value, str):
+            result[key] = redact_pii(value)
+        else:
+            result[key] = value
+    return result
+
+def validate_uuid_format(session_id: str) -> bool:
+    """Validate that session_id is a valid UUID format."""
+    try:
+        UUID(session_id)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
+# SECURITY: File magic bytes validation to prevent MIME type spoofing
+FILE_MAGIC_BYTES = {
+    # PDF
+    b'%PDF': 'application/pdf',
+    # PNG
+    b'\x89PNG\r\n\x1a\n': 'image/png',
+    # JPEG
+    b'\xff\xd8\xff': 'image/jpeg',
+    # HEIC/HEIF (ftyp box with heic/heif brand)
+    b'\x00\x00\x00': 'image/heic',  # Will need further validation
+}
+
+
+def validate_file_magic_bytes(contents: bytes) -> str:
+    """
+    Validate file content based on magic bytes.
+
+    SECURITY: Prevents MIME type spoofing attacks where attacker sets
+    Content-Type header to allowed type but uploads malicious content.
+
+    Args:
+        contents: File content bytes
+
+    Returns:
+        Detected MIME type if valid, None if not recognized
+    """
+    if not contents or len(contents) < 8:
+        return None
+
+    # Check PDF (starts with %PDF)
+    if contents[:4] == b'%PDF':
+        return 'application/pdf'
+
+    # Check PNG (magic bytes: 89 50 4E 47 0D 0A 1A 0A)
+    if contents[:8] == b'\x89PNG\r\n\x1a\n':
+        return 'image/png'
+
+    # Check JPEG (starts with FF D8 FF)
+    if contents[:3] == b'\xff\xd8\xff':
+        return 'image/jpeg'
+
+    # Check HEIC/HEIF (ISO Base Media File Format)
+    # Magic bytes: starts with ftyp at offset 4, then heic/heif/mif1
+    if len(contents) >= 12:
+        if contents[4:8] == b'ftyp':
+            brand = contents[8:12]
+            if brand in [b'heic', b'heif', b'mif1', b'heix', b'heim', b'heis', b'avci']:
+                return 'image/heic'
+
+    # Not a recognized file type
+    return None
+
+
+# ============================================================================
+# SECURITY: Mass Assignment Prevention - Field Whitelist
+# ============================================================================
+
+# Only these fields can be populated in extracted_data
+# This prevents attackers from setting arbitrary fields via crafted input
+ALLOWED_EXTRACTED_FIELDS = frozenset({
+    # Personal Information
+    'first_name', 'last_name', 'full_name', 'middle_name', 'suffix',
+    'ssn', 'social_security_number', 'date_of_birth', 'dob',
+
+    # Contact Information
+    'email', 'phone', 'phone_number',
+
+    # Address Fields
+    'address', 'street_address', 'city', 'state', 'zip_code', 'zip',
+    'address_line_1', 'address_line_2', 'county',
+
+    # Filing Information
+    'filing_status', 'tax_year', 'filing_year',
+
+    # Income Fields
+    'w2_wages', 'wages', 'total_wages', 'federal_withheld', 'federal_tax_withheld',
+    'state_withheld', 'state_tax_withheld', 'local_withheld',
+    'self_employment_income', 'business_income', 'rental_income',
+    'interest_income', 'dividend_income', 'capital_gains',
+    'unemployment_income', 'social_security_income', 'pension_income',
+    'other_income', 'total_income', 'gross_income', 'agi', 'adjusted_gross_income',
+
+    # W-2 Specific Fields
+    'employer_name', 'employer_ein', 'employer_address',
+    'box_1_wages', 'box_2_federal_withheld', 'box_3_social_security_wages',
+    'box_4_social_security_withheld', 'box_5_medicare_wages',
+    'box_6_medicare_withheld', 'box_12_codes', 'box_14_other',
+
+    # 1099 Fields
+    '1099_income', '1099_interest', '1099_dividends', '1099_misc',
+    '1099_nec', '1099_r', '1099_g',
+
+    # Deductions
+    'standard_deduction', 'itemized_deductions', 'mortgage_interest',
+    'property_tax', 'state_local_tax', 'charitable_contributions',
+    'medical_expenses', 'student_loan_interest',
+
+    # Credits
+    'child_tax_credit', 'earned_income_credit', 'eic', 'eitc',
+    'dependent_care_credit', 'education_credit', 'saver_credit',
+    'retirement_saver_credit', 'child_care_credit',
+
+    # Dependent Information
+    'num_dependents', 'number_of_dependents', 'dependents',
+    'dependent_1_name', 'dependent_1_ssn', 'dependent_1_relationship', 'dependent_1_dob',
+    'dependent_2_name', 'dependent_2_ssn', 'dependent_2_relationship', 'dependent_2_dob',
+    'dependent_3_name', 'dependent_3_ssn', 'dependent_3_relationship', 'dependent_3_dob',
+    'dependent_4_name', 'dependent_4_ssn', 'dependent_4_relationship', 'dependent_4_dob',
+
+    # Spouse Information
+    'spouse_first_name', 'spouse_last_name', 'spouse_ssn', 'spouse_dob',
+
+    # Tax Calculation Fields
+    'taxable_income', 'total_tax', 'tax_liability', 'tax_due',
+    'refund_amount', 'amount_owed', 'estimated_refund', 'estimated_tax_due',
+
+    # Payment & Refund
+    'refund_method', 'bank_name', 'routing_number', 'account_number',
+    'account_type', 'direct_deposit',
+
+    # Document Tracking
+    'has_w2', 'has_1099', 'has_1098', 'document_type', 'documents_uploaded',
+
+    # State Tax
+    'state_income', 'state_refund', 'state_tax_due',
+
+    # Divorce/Special Scenarios
+    'divorce_date', 'alimony_paid', 'alimony_received', 'custody_arrangement',
+
+    # Business Fields (for self-employed)
+    'business_name', 'business_ein', 'business_type', 'business_expenses',
+
+    # Phase tracking (internal)
+    'current_phase', 'completion_percentage',
+})
+
+
+def validate_extracted_field(field_name: str, value: Any) -> tuple:
+    """
+    Validate that a field is allowed and safe to store.
+
+    SECURITY: Prevents mass assignment attacks where attacker could
+    set arbitrary fields like 'is_admin', 'role', 'permissions', etc.
+
+    Args:
+        field_name: The field name to validate
+        value: The value to store
+
+    Returns:
+        tuple: (is_valid, sanitized_field_name, sanitized_value)
+    """
+    if not field_name:
+        return (False, None, None)
+
+    # Normalize field name (lowercase, underscores)
+    normalized_name = str(field_name).lower().strip().replace(' ', '_').replace('-', '_')
+
+    # Check against whitelist
+    if normalized_name not in ALLOWED_EXTRACTED_FIELDS:
+        # Log attempted mass assignment attack
+        _raw_logger.warning(f"SECURITY: Blocked non-whitelisted field: {normalized_name[:50]}")
+        return (False, None, None)
+
+    # Validate value type and length
+    if value is not None:
+        if isinstance(value, str) and len(value) > 10000:
+            # Truncate excessively long strings
+            value = value[:10000]
+        elif isinstance(value, (list, dict)):
+            # Limit collection sizes
+            if isinstance(value, list) and len(value) > 100:
+                value = value[:100]
+            elif isinstance(value, dict) and len(value) > 50:
+                value = dict(list(value.items())[:50])
+
+    return (True, normalized_name, value)
+
+
+def filter_extracted_data(data: dict) -> dict:
+    """
+    Filter a dictionary to only include whitelisted fields.
+
+    SECURITY: Use this when receiving extracted data from any source
+    to prevent mass assignment vulnerabilities.
+    """
+    if not isinstance(data, dict):
+        return {}
+
+    filtered = {}
+    for field_name, value in data.items():
+        is_valid, normalized_name, sanitized_value = validate_extracted_field(field_name, value)
+        if is_valid:
+            filtered[normalized_name] = sanitized_value
+
+    return filtered
+
+
+class SecureLogger:
+    """Logger wrapper that automatically redacts PII from log messages."""
+
+    def __init__(self, logger_instance):
+        self._logger = logger_instance
+
+    def _redact_message(self, msg: str) -> str:
+        return redact_pii(str(msg))
+
+    def _redact_extra(self, extra: dict) -> dict:
+        if not extra:
+            return extra
+        return redact_dict_pii(extra)
+
+    def info(self, msg, *args, extra=None, **kwargs):
+        self._logger.info(self._redact_message(msg), *args, extra=self._redact_extra(extra), **kwargs)
+
+    def debug(self, msg, *args, extra=None, **kwargs):
+        self._logger.debug(self._redact_message(msg), *args, extra=self._redact_extra(extra), **kwargs)
+
+    def warning(self, msg, *args, extra=None, **kwargs):
+        self._logger.warning(self._redact_message(msg), *args, extra=self._redact_extra(extra), **kwargs)
+
+    def error(self, msg, *args, extra=None, exc_info=False, **kwargs):
+        # Redact traceback info as well
+        self._logger.error(self._redact_message(msg), *args, extra=self._redact_extra(extra), exc_info=exc_info, **kwargs)
+
+
+# Initialize the secure logger
+_raw_logger = logging.getLogger(__name__)
+logger = SecureLogger(_raw_logger)
 
 try:
     from agent.intelligent_tax_agent import IntelligentTaxAgent, ExtractedEntity, ConversationContext
@@ -115,21 +401,27 @@ except ImportError:
     HISTORY_MANAGEMENT_AVAILABLE = False
     SLIDING_WINDOW_SIZE = 15
 
-# Rate limiting - track requests per session
+# Rate limiting - track requests per session AND IP
 _rate_limit_tracker: Dict[str, List[float]] = {}
+_ip_rate_limit_tracker: Dict[str, List[float]] = {}  # SECURITY: IP-based rate limiting
 RATE_LIMIT_WINDOW = 60  # seconds
-RATE_LIMIT_MAX_REQUESTS = 30  # max requests per window
+RATE_LIMIT_MAX_REQUESTS = 30  # max requests per window per session
+RATE_LIMIT_MAX_REQUESTS_PER_IP = 100  # max requests per window per IP (higher limit)
 
 
-def check_rate_limit(session_id: str) -> bool:
+def check_rate_limit(session_id: str, client_ip: str = None) -> bool:
     """
-    Check if session has exceeded rate limit.
+    Check if session or IP has exceeded rate limit.
     Returns True if within limits, False if exceeded.
+
+    SECURITY: Combines session-based and IP-based rate limiting.
+    Session limit prevents single session abuse.
+    IP limit prevents session rotation attacks.
     """
     import time
     now = time.time()
 
-    # Get request timestamps for this session
+    # Check session-based rate limit
     if session_id not in _rate_limit_tracker:
         _rate_limit_tracker[session_id] = []
 
@@ -138,13 +430,104 @@ def check_rate_limit(session_id: str) -> bool:
     # Remove old timestamps outside the window
     timestamps[:] = [ts for ts in timestamps if now - ts < RATE_LIMIT_WINDOW]
 
-    # Check if limit exceeded
+    # Check if session limit exceeded
     if len(timestamps) >= RATE_LIMIT_MAX_REQUESTS:
         return False
 
-    # Add current timestamp
+    # SECURITY: Also check IP-based rate limit to prevent session rotation attacks
+    if client_ip:
+        if client_ip not in _ip_rate_limit_tracker:
+            _ip_rate_limit_tracker[client_ip] = []
+
+        ip_timestamps = _ip_rate_limit_tracker[client_ip]
+        ip_timestamps[:] = [ts for ts in ip_timestamps if now - ts < RATE_LIMIT_WINDOW]
+
+        if len(ip_timestamps) >= RATE_LIMIT_MAX_REQUESTS_PER_IP:
+            logger.warning(f"IP rate limit exceeded for {client_ip}")
+            return False
+
+        ip_timestamps.append(now)
+
+    # Add current timestamp to session tracker
     timestamps.append(now)
     return True
+
+
+def get_client_ip(request) -> str:
+    """Extract client IP from request, handling proxies."""
+    # Check X-Forwarded-For header (behind proxy/load balancer)
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        # Take first IP (client IP) from comma-separated list
+        return forwarded.split(",")[0].strip()
+    # Check X-Real-IP (nginx)
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip.strip()
+    # Fall back to direct client
+    if hasattr(request, 'client') and request.client:
+        return request.client.host
+    return "unknown"
+
+
+# ============================================================================
+# SECURITY: Upload-Specific Rate Limiting (Stricter than general requests)
+# ============================================================================
+
+# Upload rate limiting - stricter limits for file uploads
+_upload_rate_limit_tracker: Dict[str, List[float]] = {}
+_upload_ip_rate_limit_tracker: Dict[str, List[float]] = {}
+UPLOAD_RATE_LIMIT_WINDOW = 60  # seconds
+UPLOAD_RATE_LIMIT_MAX_PER_SESSION = 10  # max uploads per minute per session
+UPLOAD_RATE_LIMIT_MAX_PER_IP = 20  # max uploads per minute per IP
+UPLOAD_MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB max file size
+
+
+def check_upload_rate_limit(session_id: str, client_ip: str = None) -> tuple:
+    """
+    Check if session or IP has exceeded upload rate limit.
+
+    SECURITY: File uploads are more expensive operations and potential attack vectors.
+    Stricter rate limiting prevents:
+    - DoS via large file uploads
+    - Storage abuse
+    - OCR resource exhaustion
+
+    Returns:
+        tuple: (is_allowed, error_message or None)
+    """
+    import time
+    now = time.time()
+
+    # Check session-based upload limit
+    if session_id not in _upload_rate_limit_tracker:
+        _upload_rate_limit_tracker[session_id] = []
+
+    session_timestamps = _upload_rate_limit_tracker[session_id]
+    session_timestamps[:] = [ts for ts in session_timestamps if now - ts < UPLOAD_RATE_LIMIT_WINDOW]
+
+    if len(session_timestamps) >= UPLOAD_RATE_LIMIT_MAX_PER_SESSION:
+        remaining_time = int(UPLOAD_RATE_LIMIT_WINDOW - (now - session_timestamps[0]))
+        return (False, f"Upload limit reached. Please wait {remaining_time} seconds before uploading more files.")
+
+    # Check IP-based upload limit
+    if client_ip:
+        if client_ip not in _upload_ip_rate_limit_tracker:
+            _upload_ip_rate_limit_tracker[client_ip] = []
+
+        ip_timestamps = _upload_ip_rate_limit_tracker[client_ip]
+        ip_timestamps[:] = [ts for ts in ip_timestamps if now - ts < UPLOAD_RATE_LIMIT_WINDOW]
+
+        if len(ip_timestamps) >= UPLOAD_RATE_LIMIT_MAX_PER_IP:
+            logger.warning(f"Upload IP rate limit exceeded for {client_ip}")
+            remaining_time = int(UPLOAD_RATE_LIMIT_WINDOW - (now - ip_timestamps[0]))
+            return (False, f"Upload limit reached. Please wait {remaining_time} seconds.")
+
+        ip_timestamps.append(now)
+
+    # Add timestamp to session tracker
+    session_timestamps.append(now)
+    return (True, None)
 
 
 # ============================================================================
@@ -160,10 +543,14 @@ class ChatMessageRequest(BaseModel):
 
     @validator('session_id')
     def validate_session_id(cls, v):
-        """Sanitize session ID"""
-        sanitized = sanitize_string(v, 100)
-        if not sanitized:
-            raise ValueError("Invalid session ID")
+        """Validate session ID is a valid UUID format to prevent session fixation attacks."""
+        if not v:
+            raise ValueError("Session ID is required")
+        # Strip and sanitize
+        sanitized = sanitize_string(v.strip(), 100)
+        # Enforce UUID format for security
+        if not validate_uuid_format(sanitized):
+            raise ValueError("Session ID must be a valid UUID format")
         return sanitized
 
     @validator('user_message')
@@ -264,7 +651,7 @@ async def process_chat_endpoint(request: ExtendedChatRequest):
 
 
 @router.post("/message", response_model=ChatMessageResponse)
-async def process_chat_message(request: ChatMessageRequest):
+async def process_chat_message(request: ChatMessageRequest, http_request: FastAPIRequest = None):
     """
     Process conversational message from user - IMPROVED.
 
@@ -274,12 +661,16 @@ async def process_chat_message(request: ChatMessageRequest):
     - Graceful error handling
     - Turn limit enforcement
     - Better logging
+    - IP-based rate limiting
     """
     request_id = f"CHAT-{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
 
+    # Get client IP for rate limiting
+    client_ip = get_client_ip(http_request) if http_request else None
+
     try:
-        # Rate limit check
-        if not check_rate_limit(request.session_id):
+        # Rate limit check (combines session + IP based limiting)
+        if not check_rate_limit(request.session_id, client_ip):
             logger.warning(f"[{request_id}] Rate limit exceeded for session {request.session_id}")
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -469,15 +860,20 @@ async def process_chat_message(request: ChatMessageRequest):
         if not isinstance(extracted_data, dict):
             extracted_data = {}
 
-        # Update session data with validation
+        # Update session data with validation and field whitelist
         for entity in extracted_entities:
             try:
                 if hasattr(entity, 'entity_type') and hasattr(entity, 'value'):
-                    # Sanitize string values
-                    if isinstance(entity.value, str):
-                        extracted_data[entity.entity_type] = sanitize_string(entity.value)
-                    else:
-                        extracted_data[entity.entity_type] = entity.value
+                    # SECURITY: Validate against field whitelist (mass assignment prevention)
+                    is_valid, field_name, value = validate_extracted_field(
+                        entity.entity_type, entity.value
+                    )
+                    if is_valid:
+                        # Sanitize string values
+                        if isinstance(value, str):
+                            extracted_data[field_name] = sanitize_string(value)
+                        else:
+                            extracted_data[field_name] = value
             except Exception as e:
                 logger.warning(f"[{request_id}] Failed to extract entity: {str(e)}")
                 continue
@@ -594,7 +990,8 @@ async def process_chat_message(request: ChatMessageRequest):
 @router.post("/upload", response_model=UploadResponse)
 async def upload_document(
     file: UploadFile = File(...),
-    session_id: str = Form(...)
+    session_id: str = Form(...),
+    request: FastAPIRequest = None
 ):
     """
     Process uploaded document (W-2, 1099, etc.) mid-conversation - IMPROVED.
@@ -605,10 +1002,41 @@ async def upload_document(
     - Temp file cleanup guarantee
     - Size limits
     - Mime type validation
+    - SECURITY: Upload rate limiting
+    - SECURITY: UUID session validation
     """
     request_id = f"UPLOAD-{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
 
     try:
+        # SECURITY: Validate session ID format (UUID)
+        if not validate_uuid_format(session_id):
+            logger.warning(f"[{request_id}] Invalid session ID format in upload: {session_id[:20]}...")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "error_type": "InvalidSessionId",
+                    "user_message": "Invalid session. Please refresh the page and try again.",
+                    "request_id": request_id
+                }
+            )
+
+        # SECURITY: Check upload rate limit
+        client_ip = get_client_ip(request) if request else None
+        is_allowed, rate_limit_message = check_upload_rate_limit(session_id, client_ip)
+        if not is_allowed:
+            logger.warning(f"[{request_id}] Upload rate limit exceeded", extra={
+                "session_id": session_id,
+                "client_ip": client_ip
+            })
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail={
+                    "error_type": "UploadRateLimitExceeded",
+                    "user_message": rate_limit_message,
+                    "request_id": request_id
+                }
+            )
+
         logger.info(f"[{request_id}] Document upload started", extra={
             "session_id": session_id,
             "filename": file.filename,
@@ -674,6 +1102,22 @@ async def upload_document(
                 ]
             )
 
+        # SECURITY: Validate file content matches expected type (magic bytes)
+        detected_type = validate_file_magic_bytes(contents)
+        if not detected_type:
+            logger.warning(f"[{request_id}] File content validation failed - magic bytes don't match any allowed type")
+            return UploadResponse(
+                success=False,
+                response="File content does not match expected format. Please upload a valid PDF or image file.",
+                quick_actions=[
+                    QuickAction(label="Try another file", value="upload_retry")
+                ]
+            )
+
+        # Log if declared type doesn't match detected type (potential spoofing attempt)
+        if file.content_type not in ['image/jpg', 'image/jpeg'] and file.content_type != detected_type:
+            logger.warning(f"[{request_id}] Content-Type mismatch: declared={file.content_type}, detected={detected_type}")
+
         # Process with OCR
         extracted_data = {}
         document_type = "unknown"
@@ -699,13 +1143,18 @@ async def upload_document(
                     tax_year=None,  # Auto-detect
                 )
 
-                # Extract data
+                # Extract data with whitelist validation
                 for field in result.extracted_fields:
-                    # Sanitize extracted values
-                    if isinstance(field.value, str):
-                        extracted_data[field.field_name] = sanitize_string(field.value)
-                    else:
-                        extracted_data[field.field_name] = field.value
+                    # SECURITY: Validate against field whitelist (mass assignment prevention)
+                    is_valid, field_name, value = validate_extracted_field(
+                        field.field_name, field.value
+                    )
+                    if is_valid:
+                        # Sanitize extracted values
+                        if isinstance(value, str):
+                            extracted_data[field_name] = sanitize_string(value)
+                        else:
+                            extracted_data[field_name] = value
 
                 document_type = result.document_type or "unknown"
                 success = result.status == "success"
@@ -859,7 +1308,8 @@ async def upload_document(
 @router.post("/analyze-document", response_model=AnalyzeDocumentResponse)
 async def analyze_document(
     file: UploadFile = File(...),
-    session_id: str = Form(...)
+    session_id: str = Form(...),
+    request: FastAPIRequest = None
 ):
     """
     Analyze uploaded document for intelligent advisor.
@@ -870,10 +1320,43 @@ async def analyze_document(
     - completion_percentage: Updated progress
     - extracted_summary: Summary for UI stats display
     - quick_actions: Suggested next actions
+
+    SECURITY: Includes upload rate limiting and UUID validation.
     """
     request_id = f"ANALYZE-{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
 
     try:
+        # SECURITY: Validate session ID format (UUID)
+        if not validate_uuid_format(session_id):
+            logger.warning(f"[{request_id}] Invalid session ID format in analyze: {session_id[:20]}...")
+            return AnalyzeDocumentResponse(
+                ai_response="Your session appears to be invalid. Please refresh the page and try again.",
+                quick_actions=[
+                    QuickAction(label="Refresh page", value="refresh")
+                ],
+                extracted_data={},
+                completion_percentage=0,
+                extracted_summary={}
+            )
+
+        # SECURITY: Check upload rate limit
+        client_ip = get_client_ip(request) if request else None
+        is_allowed, rate_limit_message = check_upload_rate_limit(session_id, client_ip)
+        if not is_allowed:
+            logger.warning(f"[{request_id}] Upload rate limit exceeded in analyze", extra={
+                "session_id": session_id,
+                "client_ip": client_ip
+            })
+            return AnalyzeDocumentResponse(
+                ai_response=rate_limit_message,
+                quick_actions=[
+                    QuickAction(label="Wait and retry", value="wait_retry")
+                ],
+                extracted_data={},
+                completion_percentage=0,
+                extracted_summary={}
+            )
+
         logger.info(f"[{request_id}] Document analysis started", extra={
             "session_id": session_id,
             "filename": file.filename,
@@ -935,16 +1418,21 @@ async def analyze_document(
                 tax_year=None  # Auto-detect
             )
 
-            # Extract data from result
+            # Extract data from result with whitelist validation
             for field in result.extracted_fields:
-                field_name = getattr(field, 'field_name', getattr(field, 'name', str(field)))
+                raw_field_name = getattr(field, 'field_name', getattr(field, 'name', str(field)))
                 field_value = getattr(field, 'value', getattr(field, 'normalized_value', None))
                 if field_value is not None:
-                    # Sanitize string values
-                    if isinstance(field_value, str):
-                        extracted_data[field_name] = sanitize_string(field_value)
-                    else:
-                        extracted_data[field_name] = field_value
+                    # SECURITY: Validate against field whitelist (mass assignment prevention)
+                    is_valid, field_name, value = validate_extracted_field(
+                        raw_field_name, field_value
+                    )
+                    if is_valid:
+                        # Sanitize string values
+                        if isinstance(value, str):
+                            extracted_data[field_name] = sanitize_string(value)
+                        else:
+                            extracted_data[field_name] = value
 
             document_type = result.document_type or "unknown"
             ocr_confidence = getattr(result, 'ocr_confidence', 0.85)

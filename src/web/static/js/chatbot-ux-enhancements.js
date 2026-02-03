@@ -10,6 +10,84 @@
  */
 
 // ============================================================================
+// SECURITY UTILITIES - XSS Prevention
+// ============================================================================
+
+/**
+ * Escape HTML entities to prevent XSS attacks.
+ * ALWAYS use this function when inserting user data into HTML via innerHTML.
+ * @param {string|number} str - The string to escape
+ * @returns {string} - HTML-escaped string
+ */
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
+ * Escape for use in HTML attributes.
+ * Use when inserting values into HTML attributes like onclick, data-*, etc.
+ * @param {string} str - The string to escape
+ * @returns {string} - Attribute-safe string
+ */
+function escapeAttribute(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\\/g, '&#92;');
+}
+
+/**
+ * Safe currency formatter - returns escaped HTML.
+ * @param {number} value - The currency value
+ * @returns {string} - Formatted and escaped currency string
+ */
+function formatCurrencySafe(value) {
+  if (value === null || value === undefined || isNaN(value)) return '$0';
+  const formatted = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0
+  }).format(value);
+  return escapeHtml(formatted);
+}
+
+// ============================================================================
+// PRODUCTION-SAFE LOGGER - Prevents debug info leakage in production
+// ============================================================================
+
+/**
+ * Production-safe logger configuration.
+ * Set UX_DEBUG_MODE to true for development debugging.
+ */
+const UX_DEBUG_MODE = false;
+
+const DevLogger = {
+  log: function(...args) {
+    if (UX_DEBUG_MODE) console.log('[UX-DEV]', ...args);
+  },
+  warn: function(...args) {
+    if (UX_DEBUG_MODE) console.warn('[UX-DEV]', ...args);
+  },
+  error: function(...args) {
+    if (UX_DEBUG_MODE) {
+      console.error('[UX-DEV]', ...args);
+    } else {
+      console.error('An error occurred.');
+    }
+  }
+};
+
+// ============================================================================
 // PROFILE EDITOR COMPONENT
 // ============================================================================
 
@@ -75,12 +153,17 @@ class ProfileEditor {
 
   renderField(key, label, displayValue, type, options = []) {
     const currentValue = this.data?.tax_profile?.[key] || '';
+    // SECURITY: Escape all user-controlled values to prevent XSS
+    const safeLabel = escapeHtml(label);
+    const safeDisplayValue = escapeHtml(displayValue || 'Not specified');
+    const safeKey = escapeAttribute(key);
+    const safeCurrentValue = escapeAttribute(currentValue);
 
     if (!this.isEditing) {
       return `
         <div class="profile-field">
-          <span class="field-label">${label}</span>
-          <span class="field-value ${!displayValue || displayValue === 'Not specified' ? 'empty' : ''}">${displayValue || 'Not specified'}</span>
+          <span class="field-label">${safeLabel}</span>
+          <span class="field-value ${!displayValue || displayValue === 'Not specified' ? 'empty' : ''}">${safeDisplayValue}</span>
         </div>
       `;
     }
@@ -89,10 +172,10 @@ class ProfileEditor {
     switch (type) {
       case 'select':
         input = `
-          <select class="field-input" data-key="${key}" onchange="profileEditor.handleChange('${key}', this.value)">
+          <select class="field-input" data-key="${safeKey}" onchange="profileEditor.handleChange('${safeKey}', this.value)">
             <option value="">Select...</option>
             ${options.map(opt => `
-              <option value="${opt.value}" ${currentValue === opt.value ? 'selected' : ''}>${opt.label}</option>
+              <option value="${escapeAttribute(opt.value)}" ${currentValue === opt.value ? 'selected' : ''}>${escapeHtml(opt.label)}</option>
             `).join('')}
           </select>
         `;
@@ -102,19 +185,19 @@ class ProfileEditor {
         input = `
           <div class="currency-input">
             <span class="currency-symbol">$</span>
-            <input type="number" class="field-input" data-key="${key}"
-                   value="${numValue}"
+            <input type="number" class="field-input" data-key="${safeKey}"
+                   value="${escapeAttribute(numValue)}"
                    placeholder="0"
-                   onchange="profileEditor.handleChange('${key}', parseFloat(this.value) || 0)">
+                   onchange="profileEditor.handleChange('${safeKey}', parseFloat(this.value) || 0)">
           </div>
         `;
         break;
       case 'number':
         input = `
-          <input type="number" class="field-input" data-key="${key}"
-                 value="${currentValue || 0}"
+          <input type="number" class="field-input" data-key="${safeKey}"
+                 value="${escapeAttribute(currentValue || 0)}"
                  min="0" max="20"
-                 onchange="profileEditor.handleChange('${key}', parseInt(this.value) || 0)">
+                 onchange="profileEditor.handleChange('${safeKey}', parseInt(this.value) || 0)">
         `;
         break;
       case 'state':
@@ -494,6 +577,7 @@ class TaxTermExplainer {
   }
 
   // Create clickable term links in text
+  // SECURITY: Use data attributes instead of inline onclick to prevent XSS
   linkifyTerms(text) {
     let result = text;
     Object.keys(TAX_TERMS).forEach(key => {
@@ -507,10 +591,23 @@ class TaxTermExplainer {
 
       patterns.forEach(pattern => {
         const regex = new RegExp(`\\b(${pattern})\\b`, 'gi');
-        result = result.replace(regex, `<span class="tax-term-link" onclick="taxTermExplainer.showTerm('${key}')">$1</span>`);
+        // SECURITY: Use data-term attribute instead of inline onclick with user data
+        result = result.replace(regex, `<span class="tax-term-link" data-term="${escapeAttribute(key)}">$1</span>`);
       });
     });
     return result;
+  }
+
+  // Initialize event delegation for tax term links
+  initTermLinks() {
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('tax-term-link')) {
+        const term = e.target.dataset.term;
+        if (term && TAX_TERMS[term]) {
+          this.showTerm(term);
+        }
+      }
+    });
   }
 }
 
@@ -620,10 +717,11 @@ class ComparisonView {
   }
 
   renderMetric(label, value, type = '') {
+    // SECURITY: Escape label and use safe currency formatter
     return `
-      <div class="metric-row ${type}">
-        <span class="metric-label">${label}</span>
-        <span class="metric-value">${this.formatCurrency(value)}</span>
+      <div class="metric-row ${escapeAttribute(type)}">
+        <span class="metric-label">${escapeHtml(label)}</span>
+        <span class="metric-value">${formatCurrencySafe(value)}</span>
       </div>
     `;
   }
@@ -701,13 +799,23 @@ class PDFPreviewModal {
     this.currentReportType = reportType;
 
     try {
+      // SECURITY: Validate sessionId format (UUID only)
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId)) {
+        throw new Error('Invalid session ID format');
+      }
+
       // Fetch HTML preview
-      const response = await fetch(`/api/advisor/universal-report/${sessionId}/html?tier=2`);
+      const response = await fetch(`/api/advisor/universal-report/${encodeURIComponent(sessionId)}/html?tier=2`);
       if (response.ok) {
         const html = await response.text();
+        // SECURITY: Use blob URL instead of srcdoc to avoid XSS
+        // Create a sandboxed iframe with strict CSP
+        const blob = new Blob([html], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+
         body.innerHTML = `
           <div class="preview-frame">
-            <iframe srcdoc="${this.escapeHtml(html)}" class="preview-iframe"></iframe>
+            <iframe src="${escapeAttribute(blobUrl)}" class="preview-iframe" sandbox="allow-same-origin" referrerpolicy="no-referrer"></iframe>
           </div>
           <div class="preview-sections">
             <h4>Report Includes:</h4>
@@ -723,23 +831,37 @@ class PDFPreviewModal {
             </ul>
           </div>
         `;
+
+        // Clean up blob URL when modal closes
+        this.currentBlobUrl = blobUrl;
       } else {
         throw new Error('Failed to load preview');
       }
     } catch (error) {
+      // SECURITY: Use data attributes for retry instead of inline onclick
       body.innerHTML = `
         <div class="preview-error">
           <span class="error-icon">⚠️</span>
           <p>Unable to load preview. The PDF will still generate correctly.</p>
-          <button class="retry-btn" onclick="pdfPreviewModal.show('${sessionId}', '${reportType}')">
+          <button class="retry-btn" data-session="${escapeAttribute(sessionId)}" data-type="${escapeAttribute(reportType)}">
             Retry
           </button>
         </div>
       `;
+      // Add event listener for retry button
+      body.querySelector('.retry-btn')?.addEventListener('click', (e) => {
+        const btn = e.target;
+        this.show(btn.dataset.session, btn.dataset.type);
+      });
     }
   }
 
   close() {
+    // SECURITY: Clean up blob URL to prevent memory leaks
+    if (this.currentBlobUrl) {
+      URL.revokeObjectURL(this.currentBlobUrl);
+      this.currentBlobUrl = null;
+    }
     document.getElementById('pdfPreviewModal')?.classList.remove('show');
   }
 
@@ -879,7 +1001,7 @@ function initializeUXEnhancements(extractedData, onProfileUpdate) {
   // Initialize tier comparison
   tierComparison = new TierComparison('tierComparisonContainer');
 
-  console.log('UX Enhancements initialized');
+  DevLogger.log('UX Enhancements initialized');
 }
 
 // Export for use in other modules

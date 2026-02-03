@@ -248,33 +248,45 @@ async def estimate_tax(request: Request):
     """
     Tax estimate for lead capture and chatbot.
 
-    Simplified calculation for quick estimates.
+    Simplified calculation for quick estimates using OnboardingBenefitEstimator.
     """
     try:
         body = await request.json()
 
-        income = _safe_float(body.get("income") or body.get("annual_income", 0))
+        # Support multiple income field names
+        wages = _safe_float(body.get("wages") or body.get("income") or body.get("annual_income", 0))
+        withholding = _safe_float(body.get("withholding", 0))
         filing_status = body.get("filing_status", "single")
+        num_dependents = int(body.get("num_dependents", 0))
+        state_code = body.get("state_code")
 
-        calculator = _get_calculator()
+        # Use the benefit estimator for accurate calculations
+        from onboarding.benefit_estimator import OnboardingBenefitEstimator
 
-        # Simple estimate
-        standard_deduction = calculator.get_standard_deduction(filing_status, 2025)
-        taxable_income = max(0, income - standard_deduction)
-        estimated_tax = calculator.calculate_tax(taxable_income, filing_status, 2025)
-
-        # Estimate effective rate
-        effective_rate = (estimated_tax / income * 100) if income > 0 else 0
+        estimator = OnboardingBenefitEstimator()
+        estimate = estimator.estimate_from_basics(
+            wages=wages,
+            withholding=withholding,
+            filing_status=filing_status,
+            num_dependents=num_dependents,
+            state_code=state_code,
+        )
 
         return JSONResponse({
             "status": "success",
+            "federal_tax": round(estimate.federal_tax, 2),
+            "state_tax": round(estimate.state_tax, 2),
+            "effective_rate": round(estimate.effective_rate, 1),
+            "marginal_rate": round(estimate.marginal_rate, 0),
+            "estimated_refund": round(estimate.estimated_refund, 2),
+            "estimated_owed": round(estimate.estimated_owed, 2),
+            "is_refund": estimate.is_refund,
+            "confidence": estimate.confidence,
             "estimate": {
-                "income": income,
+                "income": wages,
                 "filing_status": filing_status,
-                "standard_deduction": round(standard_deduction, 2),
-                "taxable_income": round(taxable_income, 2),
-                "estimated_tax": round(estimated_tax, 2),
-                "effective_rate": round(effective_rate, 1),
+                "federal_tax": round(estimate.federal_tax, 2),
+                "effective_rate": round(estimate.effective_rate, 1),
             },
             "disclaimer": "This is an estimate only. Actual tax may vary based on complete tax situation.",
         })
