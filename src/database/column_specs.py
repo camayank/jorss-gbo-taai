@@ -230,6 +230,42 @@ CPA_BRANDING_PUBLIC_COLUMNS = [
 # HELPER FUNCTIONS
 # =============================================================================
 
+import re
+
+# SECURITY: Whitelist of allowed table names to prevent SQL injection
+ALLOWED_TABLES = {
+    "tenants",
+    "session_states",
+    "session_tax_returns",
+    "document_processing",
+    "advisory_reports",
+    "scenarios",
+    "cpa_branding",
+    "domain_mappings",
+    "clients",
+    "users",
+    "leads",
+}
+
+# SECURITY: Pattern for valid SQL identifiers (alphanumeric + underscore only)
+VALID_IDENTIFIER_PATTERN = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+
+
+def _validate_identifier(name: str, identifier_type: str = "identifier") -> None:
+    """
+    Validate a SQL identifier to prevent injection.
+
+    Args:
+        name: The identifier to validate
+        identifier_type: Description for error messages
+
+    Raises:
+        ValueError: If identifier is invalid
+    """
+    if not name or not VALID_IDENTIFIER_PATTERN.match(name):
+        raise ValueError(f"Invalid {identifier_type}: {name!r}")
+
+
 def build_select_query(
     table: str,
     columns: List[str],
@@ -241,8 +277,10 @@ def build_select_query(
     """
     Build a SELECT query with explicit columns.
 
+    SECURITY: Table names are validated against whitelist, columns against pattern.
+
     Args:
-        table: Table name
+        table: Table name (must be in ALLOWED_TABLES whitelist)
         columns: List of column names to select
         where_clause: Optional WHERE clause (without WHERE keyword)
         order_by: Optional ORDER BY clause (without ORDER BY keyword)
@@ -251,6 +289,9 @@ def build_select_query(
 
     Returns:
         SQL query string
+
+    Raises:
+        ValueError: If table or column names are invalid
 
     Example:
         >>> query = build_select_query(
@@ -263,6 +304,14 @@ def build_select_query(
         >>> print(query)
         SELECT tenant_id, tenant_name, status, ... FROM tenants WHERE status = ? ORDER BY created_at DESC LIMIT 10
     """
+    # SECURITY: Validate table name against whitelist
+    if table not in ALLOWED_TABLES:
+        raise ValueError(f"Table '{table}' not in allowed tables whitelist")
+
+    # SECURITY: Validate all column names
+    for col in columns:
+        _validate_identifier(col, "column name")
+
     column_list = ", ".join(columns)
     query = f"SELECT {column_list} FROM {table}"
 
@@ -270,12 +319,23 @@ def build_select_query(
         query += f" WHERE {where_clause}"
 
     if order_by:
+        # SECURITY: Validate order_by components
+        # Only allow simple patterns like "column_name ASC/DESC"
+        order_parts = order_by.replace(",", " ").split()
+        for part in order_parts:
+            part_upper = part.upper()
+            if part_upper not in ("ASC", "DESC"):
+                _validate_identifier(part, "order by column")
         query += f" ORDER BY {order_by}"
 
     if limit is not None:
+        if not isinstance(limit, int) or limit < 0:
+            raise ValueError("LIMIT must be a non-negative integer")
         query += f" LIMIT {limit}"
 
     if offset is not None:
+        if not isinstance(offset, int) or offset < 0:
+            raise ValueError("OFFSET must be a non-negative integer")
         query += f" OFFSET {offset}"
 
     return query
@@ -285,13 +345,22 @@ def build_count_query(table: str, where_clause: str = None) -> str:
     """
     Build a COUNT query for pagination.
 
+    SECURITY: Table names are validated against whitelist.
+
     Args:
-        table: Table name
+        table: Table name (must be in ALLOWED_TABLES whitelist)
         where_clause: Optional WHERE clause
 
     Returns:
         SQL count query string
+
+    Raises:
+        ValueError: If table name is invalid
     """
+    # SECURITY: Validate table name against whitelist
+    if table not in ALLOWED_TABLES:
+        raise ValueError(f"Table '{table}' not in allowed tables whitelist")
+
     query = f"SELECT COUNT(*) FROM {table}"
 
     if where_clause:

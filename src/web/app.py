@@ -3503,6 +3503,7 @@ async def compare_filing_statuses(request: Request):
 
 
 @app.post("/api/optimize/credits")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
 async def analyze_tax_credits(request: Request):
     """
     Analyze available tax credits and identify unclaimed opportunities.
@@ -3554,6 +3555,7 @@ async def analyze_tax_credits(request: Request):
 
 
 @app.post("/api/optimize/deductions")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
 async def analyze_deductions(request: Request):
     """
     Analyze standard vs itemized deductions with detailed breakdown.
@@ -6166,8 +6168,15 @@ async def get_htmx_partial(partial_name: str, request: Request):
         severity = params.get('severity', 'info')
         message = params.get('message', '')
 
+        # SECURITY: Sanitize inputs to prevent XSS
+        import html as html_module
+        # Only allow known severity values
+        allowed_severities = {'info', 'warning', 'error', 'success'}
+        severity = severity if severity in allowed_severities else 'info'
         severity_class = f"validation-{severity}"
-        html = f'<div class="{severity_class}">{message}</div>'
+        # HTML escape user-provided message
+        safe_message = html_module.escape(message)
+        html = f'<div class="{severity_class}">{safe_message}</div>'
 
     elif partial_name == 'optimization-tips':
         # Would normally fetch from recommendation engine

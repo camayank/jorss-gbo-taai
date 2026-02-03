@@ -251,12 +251,22 @@ class AuditedTaxEngine:
         return hashlib.sha256(json_str.encode()).hexdigest()[:16]
 
     def _hash_ssn(self, ssn: str) -> str:
-        """Hash SSN for audit trail (never store plaintext)."""
+        """Hash SSN for audit trail (never store plaintext).
+
+        SECURITY: Uses HMAC-SHA256 with secret key to prevent rainbow table attacks.
+        See security/ssn_hash.py for full implementation details.
+        """
         if not ssn:
             return None
-        # Remove formatting
-        clean_ssn = ssn.replace("-", "").replace(" ", "")
-        return hashlib.sha256(clean_ssn.encode()).hexdigest()[:16]
+        try:
+            from security.ssn_hash import secure_hash_ssn
+            # Return truncated hash for audit display (full hash stored separately)
+            return secure_hash_ssn(ssn)[:16]
+        except (ValueError, RuntimeError) as e:
+            # Log error but don't expose SSN in case of failure
+            logger = __import__('logging').getLogger(__name__)
+            logger.warning(f"SSN hash failed: {type(e).__name__}")
+            return None
 
     def _log_calculation(
         self,

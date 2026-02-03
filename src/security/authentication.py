@@ -115,14 +115,18 @@ class RedisRevocationBackend(TokenRevocationBackend):
         """Check if token is revoked in Redis."""
         redis_client = self._get_redis()
         if redis_client is None:
-            return False  # Allow if Redis unavailable (fail open)
+            # SECURITY: Fail-closed - deny access if Redis unavailable
+            # This prevents attackers from bypassing revocation by attacking Redis
+            logger.warning("Redis unavailable - failing closed for security")
+            return True  # Deny if Redis unavailable (fail closed)
 
         try:
             key = f"revoked_token:{jti}"
             return redis_client.exists(key) > 0
         except Exception as e:
-            logger.error(f"Redis revocation check failed: {e}")
-            return False
+            # SECURITY: Fail-closed on errors
+            logger.error(f"Redis revocation check failed: {e} - denying access")
+            return True
 
     def revoke(self, jti: str, exp: int) -> None:
         """Revoke token in Redis with TTL."""
