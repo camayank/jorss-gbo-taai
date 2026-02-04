@@ -4,13 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Premium Tax Advisory | Individual Tax Strategy</title>
+  <link rel="stylesheet" href="/static/css/core/variables.css">
+  <link rel="stylesheet" href="/static/css/core/reset.css">
+  <link rel="stylesheet" href="/static/css/core/typography.css">
+  <link rel="stylesheet" href="/static/css/unified-theme.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
       /* Professional Tax Platform Theme - Clean & Trustworthy */
-      --primary: #1a365d;           /* Navy blue - trust, professionalism */
-      --primary-light: #2c5282;     /* Lighter navy */
+      --primary: #1e3a5f;           /* Navy blue - trust, professionalism */
+      --primary-light: #5387c1;     /* Lighter navy */
       --primary-dark: #0d2137;      /* Darker navy */
       --accent: #2b6cb0;            /* Professional blue */
       --accent-light: #4299e1;      /* Lighter blue */
@@ -24,14 +28,14 @@
       --surface: #ffffff;           /* White cards */
       --surface-light: #edf2f7;     /* Light gray surfaces */
       --surface-elevated: #e2e8f0;  /* Elevated surface */
-      --text: #1a202c;              /* Dark text */
+      --text: #0c1b2f;              /* Dark text */
       --text-secondary: #4a5568;    /* Secondary text */
       --text-muted: #718096;        /* Muted text */
       --border: #e2e8f0;            /* Light borders */
       --border-light: #cbd5e0;      /* Slightly darker borders */
-      --gradient: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+      --gradient: linear-gradient(135deg, #1e3a5f 0%, #5387c1 100%);
       --gradient-gold: linear-gradient(135deg, #c69214 0%, #975a16 100%);
-      --gradient-premium: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
+      --gradient-premium: linear-gradient(135deg, #5387c1 0%, #1e3a5f 100%);
       --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
       --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
       --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
@@ -69,7 +73,7 @@
       position: relative;
       z-index: 10;
       padding: 20px 40px;
-      background: #1a365d;
+      background: #1e3a5f;
       border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
@@ -203,12 +207,12 @@
       justify-content: center;
       font-size: 22px;
       flex-shrink: 0;
-      background: #1a365d;
+      background: #1e3a5f;
       box-shadow: var(--shadow-sm);
     }
 
     .message.user .avatar {
-      background: #2c5282;
+      background: #5387c1;
       box-shadow: var(--shadow-sm);
     }
 
@@ -239,11 +243,11 @@
     }
 
     .message.ai .bubble strong {
-      color: #1a365d;
+      color: #1e3a5f;
     }
 
     .message.user .bubble {
-      background: #1a365d;
+      background: #1e3a5f;
       color: white;
       border: none;
       box-shadow: var(--shadow-md);
@@ -276,11 +280,11 @@
 
     .quick-action {
       background: #ffffff;
-      border: 2px solid #1a365d;
+      border: 2px solid #1e3a5f;
       padding: 12px 22px;
       border-radius: 8px;
       font-size: 14px;
-      color: #1a365d;
+      color: #1e3a5f;
       cursor: pointer;
       transition: all 0.2s ease;
       position: relative;
@@ -291,7 +295,7 @@
     }
 
     .quick-action:hover {
-      background: #1a365d;
+      background: #1e3a5f;
       color: #ffffff;
       transform: translateY(-2px);
       box-shadow: var(--shadow-md);
@@ -485,7 +489,7 @@
 
     .file-preview-content h3 {
       margin: 0 0 16px 0;
-      color: #1a365d;
+      color: #1e3a5f;
     }
 
     .close-preview-btn {
@@ -548,7 +552,7 @@
     }
 
     .preview-confirm {
-      background: #1a365d;
+      background: #1e3a5f;
       color: white;
       border: none;
       padding: 10px 24px;
@@ -588,7 +592,7 @@
 
     .camera-content h3 {
       margin: 0 0 16px 0;
-      color: #1a365d;
+      color: #1e3a5f;
     }
 
     .close-camera-btn {
@@ -642,7 +646,7 @@
 
     .camera-btn.retake {
       background: #e2e8f0;
-      color: #1a365d;
+      color: #1e3a5f;
     }
 
     .camera-btn.use {
@@ -651,13 +655,13 @@
     }
 
     .quick-action.primary {
-      background: #1a365d;
+      background: #1e3a5f;
       border: none;
       color: white;
     }
 
     .quick-action.primary:hover {
-      background: #2c5282;
+      background: #5387c1;
       box-shadow: var(--shadow-md);
     }
 
@@ -683,26 +687,26 @@
     }
 
     .multi-select-option:hover {
-      border-color: #1a365d;
+      border-color: #1e3a5f;
       background: #f7fafc;
     }
 
     .multi-select-option.selected {
-      border-color: #1a365d;
+      border-color: #1e3a5f;
       background: #ebf8ff;
     }
 
     .multi-select-option input[type="checkbox"] {
       width: 20px;
       height: 20px;
-      accent-color: #1a365d;
+      accent-color: #1e3a5f;
       cursor: pointer;
     }
 
     .multi-select-option label {
       flex: 1;
       font-size: 14px;
-      color: #1a365d;
+      color: #1e3a5f;
       cursor: pointer;
       font-weight: 500;
     }
@@ -723,13 +727,13 @@
     }
 
     .multi-select-submit .submit-btn {
-      background: #1a365d;
+      background: #1e3a5f;
       color: white;
       border: none;
     }
 
     .multi-select-submit .submit-btn:hover {
-      background: #2c5282;
+      background: #5387c1;
     }
 
     .multi-select-submit .submit-btn:disabled {
@@ -769,19 +773,19 @@
     }
 
     .radio-option:hover {
-      border-color: #1a365d;
+      border-color: #1e3a5f;
       background: #f7fafc;
     }
 
     .radio-option.selected {
-      border-color: #1a365d;
+      border-color: #1e3a5f;
       background: #ebf8ff;
     }
 
     .radio-option input[type="radio"] {
       width: 20px;
       height: 20px;
-      accent-color: #1a365d;
+      accent-color: #1e3a5f;
       cursor: pointer;
       flex-shrink: 0;
     }
@@ -792,7 +796,7 @@
 
     .radio-option label {
       font-size: 15px;
-      color: #1a365d;
+      color: #1e3a5f;
       cursor: pointer;
       font-weight: 600;
       display: block;
@@ -814,7 +818,7 @@
       padding: 14px 18px;
       font-size: 15px;
       font-weight: 500;
-      color: #1a365d;
+      color: #1e3a5f;
       background: #ffffff;
       border: 2px solid #e2e8f0;
       border-radius: 10px;
@@ -828,12 +832,12 @@
     }
 
     .dropdown-select:hover {
-      border-color: #1a365d;
+      border-color: #1e3a5f;
     }
 
     .dropdown-select:focus {
       outline: none;
-      border-color: #1a365d;
+      border-color: #1e3a5f;
       box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
     }
 
@@ -843,7 +847,7 @@
 
     .dropdown-submit button {
       padding: 12px 28px;
-      background: #1a365d;
+      background: #1e3a5f;
       color: white;
       border: none;
       border-radius: 8px;
@@ -854,7 +858,7 @@
     }
 
     .dropdown-submit button:hover {
-      background: #2c5282;
+      background: #5387c1;
     }
 
     .dropdown-submit button:disabled {
@@ -889,7 +893,7 @@
     }
 
     .tooltip-icon:hover {
-      background: #1a365d;
+      background: #1e3a5f;
       color: white;
     }
 
@@ -1001,7 +1005,7 @@
 
     .quick-edit-title {
       font-weight: 600;
-      color: #1a365d;
+      color: #1e3a5f;
       font-size: 14px;
     }
 
@@ -1041,7 +1045,7 @@
     .quick-edit-value {
       font-size: 14px;
       font-weight: 600;
-      color: #1a365d;
+      color: #1e3a5f;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -1089,7 +1093,7 @@
     }
 
     .step.active .step-number {
-      background: #1a365d;
+      background: #1e3a5f;
       color: white;
       box-shadow: 0 0 0 4px rgba(26, 54, 93, 0.2);
     }
@@ -1106,7 +1110,7 @@
     }
 
     .step.active .step-label {
-      color: #1a365d;
+      color: #1e3a5f;
       font-weight: 600;
     }
 
@@ -1152,7 +1156,7 @@
 
     .currency-input:focus {
       outline: none;
-      border-color: #1a365d;
+      border-color: #1e3a5f;
       box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
     }
 
@@ -1170,7 +1174,7 @@
       text-align: center;
       font-size: 32px;
       font-weight: 700;
-      color: #1a365d;
+      color: #1e3a5f;
       margin-bottom: 16px;
     }
 
@@ -1188,7 +1192,7 @@
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      background: #1a365d;
+      background: #1e3a5f;
       cursor: pointer;
       box-shadow: 0 2px 8px rgba(26, 54, 93, 0.3);
       transition: transform 0.2s ease;
@@ -1284,7 +1288,7 @@
       display: inline-block;
       width: 2px;
       height: 1.2em;
-      background: #1a365d;
+      background: #1e3a5f;
       margin-left: 2px;
       animation: blink 1s infinite;
     }
@@ -1324,7 +1328,7 @@
       border: 1px solid #bfdbfe;
       border-radius: 8px;
       font-size: 13px;
-      color: #1e40af;
+      color: #1e3a5f;
       margin-top: 16px;
     }
 
@@ -1415,7 +1419,7 @@
 
     .input-box:focus-within {
       background: #ffffff;
-      border-color: #1a365d;
+      border-color: #1e3a5f;
       box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
     }
 
@@ -1459,12 +1463,12 @@
 
     .icon-btn:hover {
       background: #f7fafc;
-      border-color: #1a365d;
-      color: #1a365d;
+      border-color: #1e3a5f;
+      color: #1e3a5f;
     }
 
     .send-btn {
-      background: #1a365d;
+      background: #1e3a5f;
       color: white;
       border: none;
       padding: 16px 32px;
@@ -1478,7 +1482,7 @@
     }
 
     .send-btn:hover {
-      background: #2c5282;
+      background: #5387c1;
       transform: translateY(-1px);
       box-shadow: var(--shadow-lg);
     }
@@ -1513,7 +1517,7 @@
       font-size: 14px;
       font-weight: 700;
       margin-bottom: 20px;
-      color: #1a365d;
+      color: #1e3a5f;
       text-transform: uppercase;
       letter-spacing: 1px;
       display: flex;
@@ -1531,7 +1535,7 @@
 
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, #1a365d 0%, #2c5282 100%);
+      background: linear-gradient(90deg, #1e3a5f 0%, #5387c1 100%);
       transition: width 0.5s ease;
     }
 
@@ -1606,8 +1610,8 @@
     }
 
     .journey-step.active .step-icon {
-      background: #1a365d;
-      border-color: #1a365d;
+      background: #1e3a5f;
+      border-color: #1e3a5f;
       box-shadow: 0 2px 8px rgba(26, 54, 93, 0.25);
     }
 
@@ -1625,7 +1629,7 @@
     }
 
     .journey-step.active .step-label {
-      color: #1a365d;
+      color: #1e3a5f;
       font-weight: 600;
     }
 
@@ -1645,7 +1649,7 @@
       display: inline-block;
       font-size: 14px;
       font-weight: 600;
-      color: #1a365d;
+      color: #1e3a5f;
       padding: 6px 16px;
       background: rgba(26, 54, 93, 0.1);
       border-radius: 20px;
@@ -1721,7 +1725,7 @@
 
     .resume-btn.primary {
       background: white;
-      color: #1a365d;
+      color: #1e3a5f;
     }
 
     .resume-btn.primary:hover {
@@ -2326,7 +2330,7 @@
     .consent-content h2 {
       font-size: 24px;
       margin-bottom: 20px;
-      color: #1a365d;
+      color: #1e3a5f;
     }
 
     .consent-body {
@@ -2380,7 +2384,7 @@
       height: 20px;
       flex-shrink: 0;
       cursor: pointer;
-      accent-color: #1a365d;
+      accent-color: #1e3a5f;
     }
 
     .consent-actions {
@@ -2403,7 +2407,7 @@
 
     .consent-btn {
       padding: 14px 32px;
-      background: #1a365d;
+      background: #1e3a5f;
       color: white;
       border: none;
       border-radius: 8px;
@@ -2421,12 +2425,12 @@
     }
 
     .consent-btn:not(:disabled) {
-      background: #1a365d;
+      background: #1e3a5f;
       cursor: pointer;
     }
 
     .consent-btn:not(:disabled):hover {
-      background: #2c5282;
+      background: #5387c1;
       transform: translateY(-1px);
     }
 
@@ -2917,7 +2921,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%) scale(0);
-      background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+      background: linear-gradient(135deg, #1e3a5f 0%, #5387c1 100%);
       color: white;
       padding: 30px 50px;
       border-radius: 20px;
@@ -3208,7 +3212,7 @@
 
     /* Emotion-Adaptive Message Styles */
     .message.empathetic .bubble {
-      border-left: 3px solid #8b5cf6;
+      border-left: 3px solid #5387c1;
     }
 
     .message.encouraging .bubble {
@@ -3216,7 +3220,7 @@
     }
 
     .message.reassuring .bubble {
-      border-left: 3px solid #3b82f6;
+      border-left: 3px solid #5387c1;
     }
 
     /* Photo Capture Modal */
@@ -4566,7 +4570,7 @@
         overlay.className = 'celebration-overlay';
         document.body.appendChild(overlay);
 
-        const colors = ['#1a365d', '#2c5282', '#38a169', '#c69214', '#4299e1', '#68d391'];
+        const colors = ['#1e3a5f', '#5387c1', '#38a169', '#c69214', '#4299e1', '#68d391'];
 
         for (let i = 0; i < count; i++) {
           const confetti = document.createElement('div');
@@ -5326,7 +5330,7 @@
       } else if (type === 'success') {
         toast.style.background = '#10b981';
       } else {
-        toast.style.background = '#3b82f6';
+        toast.style.background = '#5387c1';
       }
 
       toast.textContent = message;
@@ -12575,7 +12579,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           <span style="background: ${priorityColor}; color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase;">${strategy.priority} priority</span>
         </div>
 
-        <div style="font-size: 18px; font-weight: 700; color: #1a365d; margin-bottom: 8px;">
+        <div style="font-size: 18px; font-weight: 700; color: #1e3a5f; margin-bottom: 8px;">
           ${strategy.title}
         </div>
 
@@ -12592,7 +12596,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
         ${strategy.action_steps && strategy.action_steps.length > 0 ? `
           <div style="background: #ebf8ff; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-            <div style="font-weight: 600; color: #1a365d; margin-bottom: 10px;">Action Steps:</div>
+            <div style="font-weight: 600; color: #1e3a5f; margin-bottom: 10px;">Action Steps:</div>
             <ol style="margin: 0; padding-left: 20px; color: #4a5568; font-size: 14px; line-height: 1.8;">
               ${strategy.action_steps.map(step => `<li>${step}</li>`).join('')}
             </ol>
@@ -12630,8 +12634,8 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       let strategyList = taxStrategies.map((s, i) => `
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: ${i % 2 === 0 ? '#f7fafc' : '#ffffff'}; border-bottom: 1px solid #e2e8f0;">
           <div style="display: flex; align-items: center; gap: 12px;">
-            <span style="width: 24px; height: 24px; background: #1a365d; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">${i + 1}</span>
-            <span style="font-size: 14px; color: #1a202c;">${s.title}</span>
+            <span style="width: 24px; height: 24px; background: #1e3a5f; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">${i + 1}</span>
+            <span style="font-size: 14px; color: #0c1b2f;">${s.title}</span>
           </div>
           <span style="font-weight: 700; color: #276749;">$${Math.round(s.estimated_savings).toLocaleString()}</span>
         </div>
@@ -12639,7 +12643,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
       addMessage('ai', `
         <div style="margin-bottom: 20px;">
-          <span style="font-size: 18px; font-weight: 700; color: #1a365d;">Your Tax Optimization Summary</span>
+          <span style="font-size: 18px; font-weight: 700; color: #1e3a5f;">Your Tax Optimization Summary</span>
         </div>
 
         <div class="insight-card" style="margin-bottom: 20px;">
@@ -12651,7 +12655,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         </div>
 
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
-          <div style="background: #1a365d; color: white; padding: 12px 16px; font-weight: 600; font-size: 14px;">
+          <div style="background: #1e3a5f; color: white; padding: 12px 16px; font-weight: 600; font-size: 14px;">
             Strategy Breakdown
           </div>
           ${strategyList}
@@ -13588,7 +13592,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
         additionalDetails += `
           <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
-            <div style="font-weight: 600; color: #1a365d; margin-bottom: 10px;">Business Details</div>
+            <div style="font-weight: 600; color: #1e3a5f; margin-bottom: 10px;">Business Details</div>
             ${profile.business_type ? `<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
               <span style="color: #4a5568;">Business Type:</span>
               <strong>${bizTypeLabels[profile.business_type] || profile.business_type}</strong>
@@ -13614,7 +13618,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
         additionalDetails += `
           <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
-            <div style="font-weight: 600; color: #1a365d; margin-bottom: 10px;">Investment Profile</div>
+            <div style="font-weight: 600; color: #1e3a5f; margin-bottom: 10px;">Investment Profile</div>
             ${profile.investment_type ? `<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
               <span style="color: #4a5568;">Investment Type:</span>
               <strong>${investLabels[profile.investment_type] || profile.investment_type}</strong>
@@ -13638,7 +13642,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       if (taxItemsList.length > 0) {
         additionalDetails += `
           <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
-            <div style="font-weight: 600; color: #1a365d; margin-bottom: 10px;">Deductions & Credits</div>
+            <div style="font-weight: 600; color: #1e3a5f; margin-bottom: 10px;">Deductions & Credits</div>
             ${taxItemsList.map(item => `<div style="color: #4a5568; font-size: 13px; margin-bottom: 4px;">• ${item}</div>`).join('')}
           </div>
         `;
@@ -13662,7 +13666,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
       addMessage('ai', `
         <div style="margin-bottom: 16px;">
-          <strong style="font-size: 18px; color: #1a365d;">Your Tax Profile Summary</strong>
+          <strong style="font-size: 18px; color: #1e3a5f;">Your Tax Profile Summary</strong>
           <div style="margin-top: 8px; display: inline-block; background: #ebf8ff; color: #2b6cb0; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">
             ${complexityIndicator} Tax Situation
           </div>
@@ -13737,7 +13741,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         // Phase 1: Show initial tax breakdown
         addMessage('ai', `
           <div style="margin-bottom: 20px;">
-            <span style="font-size: 18px; font-weight: 700; color: #1a365d;">Tax Analysis Complete</span>
+            <span style="font-size: 18px; font-weight: 700; color: #1e3a5f;">Tax Analysis Complete</span>
           </div>
 
           <div style="background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
@@ -13746,22 +13750,22 @@ If they're ready to move forward, suggest generating their comprehensive advisor
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
               <div>
                 <div style="font-size: 12px; color: #718096;">Federal Tax</div>
-                <div style="font-size: 22px; font-weight: 700; color: #1a365d;">$${Math.round(calc.federal_tax).toLocaleString()}</div>
+                <div style="font-size: 22px; font-weight: 700; color: #1e3a5f;">$${Math.round(calc.federal_tax).toLocaleString()}</div>
               </div>
               <div>
                 <div style="font-size: 12px; color: #718096;">State Tax</div>
-                <div style="font-size: 22px; font-weight: 700; color: #1a365d;">$${Math.round(calc.state_tax).toLocaleString()}</div>
+                <div style="font-size: 22px; font-weight: 700; color: #1e3a5f;">$${Math.round(calc.state_tax).toLocaleString()}</div>
               </div>
             </div>
 
             <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; display: flex; justify-content: space-between; align-items: center;">
               <div>
                 <div style="font-size: 12px; color: #718096;">Total Tax Liability</div>
-                <div style="font-size: 26px; font-weight: 800; color: #1a365d;">$${Math.round(calc.total_tax).toLocaleString()}</div>
+                <div style="font-size: 26px; font-weight: 800; color: #1e3a5f;">$${Math.round(calc.total_tax).toLocaleString()}</div>
               </div>
               <div style="text-align: right;">
                 <div style="font-size: 12px; color: #718096;">Effective Rate</div>
-                <div style="font-size: 20px; font-weight: 700; color: #2c5282;">${calc.effective_rate}%</div>
+                <div style="font-size: 20px; font-weight: 700; color: #5387c1;">${calc.effective_rate}%</div>
               </div>
             </div>
           </div>

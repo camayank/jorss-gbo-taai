@@ -9,6 +9,8 @@ from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, Query, Body
 from pydantic import BaseModel, Field
 import logging
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 # Import rental depreciation service
 try:
@@ -232,10 +234,10 @@ async def generate_depreciation_schedule(
         return [
             ScheduleEntryResponse(
                 year=entry.year,
-                beginning_basis=round(entry.beginning_basis, 2),
-                depreciation_amount=round(entry.depreciation_amount, 2),
-                ending_basis=round(entry.ending_basis, 2),
-                cumulative_depreciation=round(entry.cumulative_depreciation, 2),
+                beginning_basis=float(money(entry.beginning_basis)),
+                depreciation_amount=float(money(entry.depreciation_amount)),
+                ending_basis=float(money(entry.ending_basis)),
+                cumulative_depreciation=float(money(entry.cumulative_depreciation)),
                 rate_applied=round(entry.rate_applied, 3),
                 is_first_year=entry.is_first_year,
                 is_last_year=entry.is_last_year
@@ -450,10 +452,10 @@ async def get_total_depreciation(
     return {
         "session_id": session_id,
         "tax_year": tax_year,
-        "total_depreciation": round(total, 2),
+        "total_depreciation": float(money(total)),
         "property_count": len(properties),
         "properties": property_breakdowns,
-        "schedule_e_line_18": round(total, 2)
+        "schedule_e_line_18": float(money(total))
     }
 
 

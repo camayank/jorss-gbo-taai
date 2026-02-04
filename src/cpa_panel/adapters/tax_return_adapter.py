@@ -14,6 +14,8 @@ import logging
 import sqlite3
 import json
 import os
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -79,27 +81,27 @@ class TaxReturnSummary:
             "filing_status": self.filing_status,
             "taxpayer_name": self.taxpayer_name,
             "income": {
-                "total": round(self.total_income, 2),
-                "wages": round(self.wages, 2),
-                "interest": round(self.interest_income, 2),
-                "dividends": round(self.dividend_income, 2),
-                "business": round(self.business_income, 2),
-                "capital_gains": round(self.capital_gains, 2),
-                "other": round(self.other_income, 2),
+                "total": float(money(self.total_income)),
+                "wages": float(money(self.wages)),
+                "interest": float(money(self.interest_income)),
+                "dividends": float(money(self.dividend_income)),
+                "business": float(money(self.business_income)),
+                "capital_gains": float(money(self.capital_gains)),
+                "other": float(money(self.other_income)),
             },
             "deductions": {
-                "total": round(self.total_deductions, 2),
-                "standard": round(self.standard_deduction, 2),
-                "itemized": round(self.itemized_deductions, 2),
+                "total": float(money(self.total_deductions)),
+                "standard": float(money(self.standard_deduction)),
+                "itemized": float(money(self.itemized_deductions)),
                 "using_standard": self.using_standard_deduction,
             },
             "tax_calculation": {
-                "agi": round(self.adjusted_gross_income, 2),
-                "taxable_income": round(self.taxable_income, 2),
-                "tax_liability": round(self.tax_liability, 2),
-                "total_credits": round(self.total_credits, 2),
-                "total_payments": round(self.total_payments, 2),
-                "refund_or_owed": round(self.refund_or_owed, 2),
+                "agi": float(money(self.adjusted_gross_income)),
+                "taxable_income": float(money(self.taxable_income)),
+                "tax_liability": float(money(self.tax_liability)),
+                "total_credits": float(money(self.total_credits)),
+                "total_payments": float(money(self.total_payments)),
+                "refund_or_owed": float(money(self.refund_or_owed)),
             },
             "rates": {
                 "effective_rate": round(self.effective_rate, 4),
@@ -107,7 +109,7 @@ class TaxReturnSummary:
             },
             "state": {
                 "code": self.state,
-                "tax": round(self.state_tax, 2),
+                "tax": float(money(self.state_tax)),
             },
             "schedules": {
                 "has_schedule_c": self.has_schedule_c,

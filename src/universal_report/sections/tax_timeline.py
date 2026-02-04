@@ -267,7 +267,7 @@ class TaxTimelineRenderer:
 
     def render(self) -> str:
         """Render the complete tax timeline section."""
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
         accent = self.theme.accent_color if self.theme else "#10b981"
         warning = self.theme.warning_color if self.theme else "#f59e0b"
         danger = self.theme.danger_color if self.theme else "#ef4444"
@@ -352,7 +352,7 @@ class TaxTimelineRenderer:
             # Extension badge
             ext_badge = ""
             if deadline.extension_available:
-                ext_badge = '<span style="background: #dbeafe; color: #1d4ed8; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; margin-left: 8px;">EXTENSION AVAILABLE</span>'
+                ext_badge = '<span style="background: #eef3f9; color: #152b47; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; margin-left: 8px;">EXTENSION AVAILABLE</span>'
 
             items_html += f'''
 <div style="display: flex; margin-bottom: 16px;">

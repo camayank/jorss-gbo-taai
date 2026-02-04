@@ -134,7 +134,7 @@ class LogoHandler:
                 "website": self.theme.website_url,
             }
 
-        primary_color = self.theme.primary_color if self.theme else "#2563eb"
+        primary_color = self.theme.primary_color if self.theme else "#1e3a5f"
         muted_color = self.theme.muted_color if self.theme else "#6b7280"
 
         # Logo HTML

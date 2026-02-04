@@ -245,7 +245,7 @@ class RiskAssessmentRenderer:
 
     def render(self) -> str:
         """Render the complete risk assessment section."""
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
         warning_color = self.theme.warning_color if self.theme else "#f59e0b"
         danger_color = self.theme.danger_color if self.theme else "#ef4444"
         success_color = self.theme.accent_color if self.theme else "#10b981"

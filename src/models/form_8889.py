@@ -10,6 +10,8 @@ Reference: IRS Instructions for Form 8889
 from typing import Optional, List
 from pydantic import BaseModel, Field, field_validator, model_validator
 from enum import Enum
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class HSACoverageType(str, Enum):
@@ -332,7 +334,7 @@ class Form8889(BaseModel):
 
         pro_rated_limit = base_limit * (months / 12)
 
-        return round(pro_rated_limit, 2)
+        return float(money(pro_rated_limit))
 
     def calculate_deduction(
         self,
@@ -388,13 +390,13 @@ class Form8889(BaseModel):
         excess = max(0, total - limit)
 
         return {
-            'contribution_limit': round(limit, 2),
-            'taxpayer_contributions': round(taxpayer, 2),
-            'employer_contributions': round(employer, 2),
-            'total_contributions': round(total, 2),
-            'limited_contribution': round(limited_contribution, 2),
-            'hsa_deduction': round(deduction, 2),
-            'excess_contributions': round(excess, 2),
+            'contribution_limit': float(money(limit)),
+            'taxpayer_contributions': float(money(taxpayer)),
+            'employer_contributions': float(money(employer)),
+            'total_contributions': float(money(total)),
+            'limited_contribution': float(money(limited_contribution)),
+            'hsa_deduction': float(money(deduction)),
+            'excess_contributions': float(money(excess)),
             'is_eligible': True,
             'months_covered': self.months_with_hdhp_coverage,
             'used_last_month_rule': self.use_last_month_rule,
@@ -439,15 +441,15 @@ class Form8889(BaseModel):
         testing_penalty = testing_income * penalty_rate if testing_income > 0 else 0.0
 
         return {
-            'total_distributions': round(self.get_total_distributions(), 2),
-            'qualified_distributions': round(self.get_qualified_distributions(), 2),
-            'taxable_distributions': round(taxable, 2),
+            'total_distributions': float(money(self.get_total_distributions())),
+            'qualified_distributions': float(money(self.get_qualified_distributions())),
+            'taxable_distributions': float(money(taxable)),
             'is_penalty_exempt': is_exempt,
             'exemption_reason': exemption_reason,
-            'additional_tax_penalty': round(penalty, 2),
-            'testing_period_income': round(testing_income, 2),
-            'testing_period_penalty': round(testing_penalty, 2),
-            'total_additional_tax': round(penalty + testing_penalty, 2),
+            'additional_tax_penalty': float(money(penalty)),
+            'testing_period_income': float(money(testing_income)),
+            'testing_period_penalty': float(money(testing_penalty)),
+            'total_additional_tax': float(money(penalty + testing_penalty)),
         }
 
     def generate_form_8889_summary(

@@ -14,6 +14,8 @@ from typing import Dict, Optional, List
 from datetime import datetime
 import psutil
 import logging
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/health", tags=["health"])
@@ -98,7 +100,7 @@ def check_database() -> DependencyStatus:
         return DependencyStatus(
             name="database",
             status="up",
-            response_time_ms=round(response_time, 2),
+            response_time_ms=float(money(response_time)),
             message=f"SQLite OK ({table_count} tables)"
         )
 
@@ -189,9 +191,9 @@ def get_system_metrics() -> SystemMetrics:
         connections = len(psutil.net_connections())
 
         return SystemMetrics(
-            cpu_percent=round(cpu_percent, 2),
-            memory_percent=round(memory_percent, 2),
-            disk_percent=round(disk_percent, 2),
+            cpu_percent=float(money(cpu_percent)),
+            memory_percent=float(money(memory_percent)),
+            disk_percent=float(money(disk_percent)),
             active_connections=connections
         )
 
@@ -280,7 +282,7 @@ async def readiness_check():
             status=overall_status,
             timestamp=datetime.now().isoformat(),
             version="1.0.0",
-            uptime_seconds=round(uptime, 2),
+            uptime_seconds=float(money(uptime)),
             dependencies=dependencies,
             metrics=metrics
         )

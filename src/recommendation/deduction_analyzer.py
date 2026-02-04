@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any, TYPE_CHECKING
 from enum import Enum
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 if TYPE_CHECKING:
     from models.tax_return import TaxReturn
@@ -154,7 +156,7 @@ class DeductionAnalyzer:
         "single": 15750,
         "married_joint": 31500,
         "married_separate": 15750,
-        "head_of_household": 23625,
+        "head_of_household": 23850,
         "qualifying_widow": 31500,
     }
 
@@ -229,8 +231,8 @@ class DeductionAnalyzer:
             itemized_breakdown=itemized_breakdown,
             total_itemized_deductions=total_itemized,
             recommended_strategy=recommended_strategy,
-            deduction_difference=round(deduction_difference, 2),
-            tax_savings_estimate=round(tax_savings, 2),
+            deduction_difference=float(money(deduction_difference)),
+            tax_savings_estimate=float(money(tax_savings)),
             marginal_rate=marginal_rate,
             itemized_categories=categories,
             optimization_opportunities=opportunities,
@@ -674,13 +676,13 @@ class DeductionAnalyzer:
 
         return {
             "is_beneficial": True,
-            "two_year_savings": round(two_year_savings, 2),
+            "two_year_savings": float(money(two_year_savings)),
             "recommended_approach": "bunching",
             "year1_strategy": "itemized",
-            "year1_deductions": round(year1_itemized, 2),
+            "year1_deductions": float(money(year1_itemized)),
             "year2_strategy": "standard",
-            "year2_deductions": round(standard, 2),
-            "controllable_deductions": round(controllable, 2),
+            "year2_deductions": float(money(standard)),
+            "controllable_deductions": float(money(controllable)),
             "explanation": (
                 f"Bunching strategy could save ${two_year_savings:,.0f} over two years. "
                 f"In Year 1, double your charitable giving and prepay property taxes "

@@ -17,6 +17,8 @@ import json
 import logging
 import io
 import zipfile
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 try:
     from rbac.dependencies import require_auth, AuthContext
@@ -386,10 +388,10 @@ class FilingPackageGenerator:
 
         return {
             "taxable_income": taxable_income,
-            "tax_liability": round(tax_liability, 2),
+            "tax_liability": float(money(tax_liability)),
             "credits_applied": credits.get("total", 0),
             "se_tax": 0,  # Would need Schedule SE data
-            "total_tax": round(max(0, tax_liability - credits.get("total", 0)), 2),
+            "total_tax": float(money(max(0, tax_liability - credits.get("total", 0)))),
         }
 
     def _extract_payments(self) -> Dict[str, Any]:
@@ -417,7 +419,7 @@ class FilingPackageGenerator:
         return {
             "total_tax": taxes["total_tax"],
             "total_payments": payments["total"],
-            "amount": round(abs(difference), 2),
+            "amount": float(money(abs(difference))),
             "is_refund": difference >= 0,
         }
 

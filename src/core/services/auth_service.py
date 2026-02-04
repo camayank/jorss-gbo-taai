@@ -21,14 +21,14 @@ from typing import Optional, Dict, Any, Tuple
 from uuid import uuid4
 import logging
 
+import jwt as pyjwt
+
 from pydantic import BaseModel, EmailStr, Field
 
 from ..models.user import UnifiedUser, UserType, UserContext, CPARole
+from admin_panel.auth.password import hash_password as bcrypt_hash, verify_password as bcrypt_verify
 
 logger = logging.getLogger(__name__)
-
-# Database mode flag - set to True to use database, False for mock data (dev)
-USE_DATABASE = os.environ.get("AUTH_USE_DATABASE", "false").lower() == "true"
 
 
 # =============================================================================
@@ -38,6 +38,11 @@ USE_DATABASE = os.environ.get("AUTH_USE_DATABASE", "false").lower() == "true"
 # Environment detection
 _ENVIRONMENT = os.environ.get("APP_ENVIRONMENT", "development")
 _IS_PRODUCTION = _ENVIRONMENT in ("production", "prod", "staging")
+
+# Database mode flag
+# In production, default to database mode; in dev, default to mock mode
+_USE_DB_DEFAULT = "true" if _IS_PRODUCTION else "false"
+USE_DATABASE = os.environ.get("AUTH_USE_DATABASE", _USE_DB_DEFAULT).lower() == "true"
 
 
 def _get_password_salt() -> str:
@@ -306,19 +311,28 @@ class CoreAuthService:
     # =========================================================================
 
     def _hash_password(self, password: str) -> str:
-        """
-        Hash a password using SHA-256 with secure salt.
-
-        Note: For production systems handling real user data,
-        consider upgrading to bcrypt for password hashing:
-        bcrypt.hashpw(password.encode(), bcrypt.gensalt(self.config.BCRYPT_ROUNDS))
-        """
-        salt = AuthConfig.get_password_salt()
-        return hashlib.sha256(f"{password}{salt}".encode()).hexdigest()
+        """Hash a password using bcrypt via admin_panel.auth.password."""
+        return bcrypt_hash(password)
 
     def _verify_password(self, password: str, password_hash: str) -> bool:
-        """Verify a password against its hash."""
-        return self._hash_password(password) == password_hash
+        """
+        Verify a password against its hash.
+
+        Supports bcrypt (preferred) and legacy SHA-256 hashes for migration.
+        On successful SHA-256 verification, the caller should rehash with bcrypt.
+        """
+        # Try bcrypt first (new format)
+        if bcrypt_verify(password, password_hash):
+            return True
+
+        # Fallback: try legacy SHA-256 for migration
+        salt = AuthConfig.get_password_salt()
+        legacy_hash = hashlib.sha256(f"{password}{salt}".encode()).hexdigest()
+        if legacy_hash == password_hash:
+            logger.info("Legacy SHA-256 password matched - should be rehashed to bcrypt")
+            return True
+
+        return False
 
     def _validate_password(self, password: str) -> Tuple[bool, str]:
         """Validate password meets requirements."""
@@ -337,10 +351,7 @@ class CoreAuthService:
     # =========================================================================
 
     def _generate_access_token(self, user: UnifiedUser) -> str:
-        """Generate JWT access token."""
-        import base64
-        import json
-
+        """Generate a properly signed JWT access token."""
         now = datetime.utcnow()
         payload = {
             "sub": user.id,
@@ -348,15 +359,12 @@ class CoreAuthService:
             "user_type": user.user_type.value if isinstance(user.user_type, UserType) else user.user_type,
             "firm_id": user.firm_id,
             "permissions": user.permissions,
-            "exp": (now + timedelta(minutes=self.config.ACCESS_TOKEN_EXPIRE_MINUTES)).isoformat(),
-            "iat": now.isoformat(),
-            "jti": str(uuid4())
+            "exp": now + timedelta(minutes=self.config.ACCESS_TOKEN_EXPIRE_MINUTES),
+            "iat": now,
+            "jti": str(uuid4()),
         }
 
-        # Simple base64 encoding for development (use proper JWT in production)
-        payload_json = json.dumps(payload)
-        token = base64.urlsafe_b64encode(payload_json.encode()).decode()
-        return f"core_{token}"
+        return pyjwt.encode(payload, AuthConfig.get_jwt_secret(), algorithm="HS256")
 
     def _generate_refresh_token(self, user: UnifiedUser) -> str:
         """Generate refresh token."""
@@ -384,23 +392,18 @@ class CoreAuthService:
         return token
 
     def validate_access_token(self, token: str) -> Optional[UserContext]:
-        """Validate access token and return user context."""
-        import base64
-        import json
-
-        if not token or not token.startswith("core_"):
+        """Validate a signed JWT access token and return user context."""
+        if not token:
             return None
 
-        try:
-            # Decode token
-            encoded = token[5:]  # Remove "core_" prefix
-            payload_json = base64.urlsafe_b64decode(encoded.encode()).decode()
-            payload = json.loads(payload_json)
+        # Support legacy "core_" prefixed tokens during migration
+        if token.startswith("core_"):
+            token = token[5:]
 
-            # Check expiration
-            exp = datetime.fromisoformat(payload["exp"])
-            if datetime.utcnow() > exp:
-                return None
+        try:
+            payload = pyjwt.decode(
+                token, AuthConfig.get_jwt_secret(), algorithms=["HS256"]
+            )
 
             # Get user
             user = self._users_db.get(payload["sub"])
@@ -409,7 +412,10 @@ class CoreAuthService:
 
             return UserContext.from_user(user, request_id=payload.get("jti"))
 
-        except Exception as e:
+        except pyjwt.ExpiredSignatureError:
+            logger.debug("Token expired")
+            return None
+        except pyjwt.InvalidTokenError as e:
             logger.warning(f"Token validation failed: {e}")
             return None
 
@@ -440,6 +446,11 @@ class CoreAuthService:
                 success=False,
                 message="Invalid email or password"
             )
+
+        # Rehash legacy SHA-256 passwords to bcrypt on successful login
+        if not user.password_hash.startswith("$2"):
+            user.password_hash = self._hash_password(request.password)
+            logger.info(f"Rehashed legacy password to bcrypt for {request.email}")
 
         # Check if user is active
         if not user.is_active:

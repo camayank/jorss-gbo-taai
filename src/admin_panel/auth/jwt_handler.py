@@ -257,7 +257,7 @@ def get_token_expiry(token: str) -> Optional[datetime]:
         payload = jwt.decode(token, options={"verify_signature": False})
         exp = payload.get("exp")
         return datetime.fromtimestamp(exp) if exp else None
-    except Exception:
+    except (jwt.DecodeError, jwt.InvalidTokenError, ValueError, TypeError):
         return None
 
 

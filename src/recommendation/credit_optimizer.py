@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any, Tuple, TYPE_CHECKING
 from enum import Enum
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 if TYPE_CHECKING:
     from models.tax_return import TaxReturn
@@ -349,13 +351,13 @@ class CreditOptimizer:
             tax_liability_before_credits=tax_liability,
             eligible_credits=eligible_credits,
             ineligible_credits=ineligible_credits,
-            total_refundable_credits=round(total_refundable, 2),
-            total_nonrefundable_credits=round(total_nonrefundable, 2),
-            total_credits_claimed=round(total_claimed, 2),
-            nonrefundable_applied=round(nonrefundable_applied, 2),
-            refundable_applied=round(refundable_applied, 2),
-            unused_nonrefundable=round(unused_nonrefundable, 2),
-            unclaimed_potential=round(unclaimed, 2),
+            total_refundable_credits=float(money(total_refundable)),
+            total_nonrefundable_credits=float(money(total_nonrefundable)),
+            total_credits_claimed=float(money(total_claimed)),
+            nonrefundable_applied=float(money(nonrefundable_applied)),
+            refundable_applied=float(money(refundable_applied)),
+            unused_nonrefundable=float(money(unused_nonrefundable)),
+            unclaimed_potential=float(money(unclaimed)),
             near_miss_credits=near_miss,
         )
 
@@ -373,7 +375,7 @@ class CreditOptimizer:
 
         return CreditRecommendation(
             analysis=analysis,
-            total_credit_benefit=round(total_claimed, 2),
+            total_credit_benefit=float(money(total_claimed)),
             confidence_score=confidence,
             summary=summary,
             immediate_actions=immediate,
@@ -608,7 +610,7 @@ class CreditOptimizer:
             credit_type="refundable",
             is_eligible=True,
             potential_amount=max_credit,
-            actual_amount=round(actual, 2),
+            actual_amount=float(money(actual)),
             eligibility_reason=f"Eligible with {qualifying_children} qualifying child(ren)",
             requirements=[
                 "Valid Social Security Number",
@@ -692,7 +694,7 @@ class CreditOptimizer:
             credit_type="nonrefundable",
             is_eligible=True,
             potential_amount=expense_limit * 0.35,  # Max at 35% rate
-            actual_amount=round(actual, 2),
+            actual_amount=float(money(actual)),
             eligibility_reason=f"{qualifying} qualifying dependent(s), {credit_rate}% rate",
             requirements=[
                 "Work-related expenses",
@@ -780,9 +782,9 @@ class CreditOptimizer:
             credit_type="partially_refundable",
             is_eligible=True,
             potential_amount=params["max_credit"],
-            actual_amount=round(actual, 2),
+            actual_amount=float(money(actual)),
             eligibility_reason="Qualified education expenses present",
-            phase_out_applied=round(phase_out, 2),
+            phase_out_applied=float(money(phase_out)),
             requirements=[
                 "Student in first 4 years of postsecondary education",
                 "Enrolled at least half-time",
@@ -860,9 +862,9 @@ class CreditOptimizer:
             credit_type="nonrefundable",
             is_eligible=True,
             potential_amount=params["max_credit"],
-            actual_amount=round(actual, 2),
+            actual_amount=float(money(actual)),
             eligibility_reason="Qualified education expenses present",
-            phase_out_applied=round(phase_out, 2),
+            phase_out_applied=float(money(phase_out)),
             requirements=[
                 "Enrolled in eligible educational institution",
                 "Expenses for courses to acquire/improve job skills",
@@ -937,7 +939,7 @@ class CreditOptimizer:
             credit_type="nonrefundable",
             is_eligible=True,
             potential_amount=params["max_contribution"] * 0.50,  # Max at 50%
-            actual_amount=round(actual, 2),
+            actual_amount=float(money(actual)),
             eligibility_reason=f"{credit_rate}% rate on ${qualified_contribution:,.0f} contributions",
             requirements=[
                 "Age 18 or older",
@@ -1058,7 +1060,7 @@ class CreditOptimizer:
             credit_type="nonrefundable",
             is_eligible=True,
             potential_amount=total_expenses * params["rate"],
-            actual_amount=round(actual, 2),
+            actual_amount=float(money(actual)),
             eligibility_reason=f"${total_expenses:,.0f} in clean energy expenses",
             requirements=[
                 "Equipment installed at your main or second home",

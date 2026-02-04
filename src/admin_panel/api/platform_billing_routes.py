@@ -167,7 +167,8 @@ async def get_revenue_metrics(
         mrr = float(row[0] or 0)
         active_subs = row[1] or 0
         total_cpas = row[2] or 0
-    except Exception:
+    except (TypeError, ValueError, AttributeError) as e:
+        logger.warning(f"Failed to fetch billing stats: {e}")
         mrr = 0
         active_subs = 0
         total_cpas = 0
@@ -197,7 +198,8 @@ async def get_revenue_metrics(
                 "count": row[1],
                 "mrr": float(row[2] or 0),
             }
-    except Exception:
+    except (TypeError, ValueError, AttributeError) as e:
+        logger.warning(f"Failed to fetch tier breakdown: {e}")
         by_tier = {"starter": {"count": 0, "mrr": 0}}
 
     # Calculate growth (mock for now)
@@ -415,8 +417,8 @@ async def record_manual_payment(
             }),
             "created_at": now.isoformat(),
         })
-    except Exception:
-        pass  # Log table may not exist
+    except (TypeError, ValueError, KeyError) as e:
+        logger.debug(f"Audit log insert failed (table may not exist): {e}")
 
     await session.commit()
 

@@ -581,7 +581,7 @@ class SmartDocumentProcessor:
             cleaned = re.sub(r'[$,\s]', '', value)
             try:
                 return Decimal(cleaned)
-            except:
+            except (ValueError, TypeError, ArithmeticError):
                 return Decimal("0")
 
         return Decimal("0")

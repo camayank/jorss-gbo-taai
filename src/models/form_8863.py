@@ -39,6 +39,8 @@ from enum import Enum
 from typing import Optional, List, Dict, Any, Tuple
 from pydantic import BaseModel, Field, computed_field, model_validator
 from datetime import date
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class AcademicPeriod(str, Enum):
@@ -385,14 +387,14 @@ class Form8863Part1(BaseModel):
     @property
     def line_7_aotc_after_phaseout(self) -> float:
         """Line 7: AOTC after income phaseout."""
-        return round(self.line_1_tentative_aotc_total * self.line_6_ratio, 2)
+        return float(money(self.line_1_tentative_aotc_total * self.line_6_ratio))
 
     # Line 8: Refundable portion (40% of Line 7)
     @computed_field
     @property
     def line_8_refundable_aotc(self) -> float:
         """Line 8: Refundable American Opportunity Credit (40% of Line 7)."""
-        return round(self.line_7_aotc_after_phaseout * 0.40, 2)
+        return float(money(self.line_7_aotc_after_phaseout * 0.40))
 
 
 class Form8863Part2(BaseModel):
@@ -470,7 +472,7 @@ class Form8863Part2(BaseModel):
     @property
     def line_18_llc_after_phaseout(self) -> float:
         """Line 18: LLC after income phaseout."""
-        return round(self.line_12_tentative_llc * self.line_17_ratio, 2)
+        return float(money(self.line_12_tentative_llc * self.line_17_ratio))
 
     # Line 19: Total nonrefundable education credits
     @computed_field

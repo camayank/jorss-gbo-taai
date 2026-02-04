@@ -77,8 +77,8 @@
 .form-select:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: var(--input-border-focus);
-  box-shadow: 0 0 0 3px var(--color-primary-100);
+  border-color: var(--color-accent-500);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
 }
 
 .form-input:disabled,

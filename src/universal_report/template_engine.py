@@ -90,7 +90,7 @@ class UniversalReportEngine:
             source_type='chatbot',
             source_id='session_123',
             source_data=session_data,
-            cpa_profile={'firm_name': 'Acme Tax', 'primary_color': '#1e40af'},
+            cpa_profile={'firm_name': 'Acme Tax', 'primary_color': '#1e3a5f'},
             output_format='html',
         )
     """
@@ -321,7 +321,7 @@ class UniversalReportEngine:
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: linear-gradient(135deg, #1e3a5f, #152b47);
     color: white;
     padding: 20px 40px;
     border-radius: 12px;
@@ -481,7 +481,7 @@ def generate_universal_report(
         report = generate_universal_report(
             source_type='chatbot',
             source_data=session_data,
-            cpa_profile={'firm_name': 'My Firm', 'primary_color': '#1e40af'},
+            cpa_profile={'firm_name': 'My Firm', 'primary_color': '#1e3a5f'},
             output_format='html',
         )
 

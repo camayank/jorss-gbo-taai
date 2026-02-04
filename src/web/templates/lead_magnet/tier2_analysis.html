@@ -9,6 +9,10 @@
     {% if cpa.favicon_url %}
     <link rel="icon" href="{{ cpa.favicon_url }}">
     {% endif %}
+    <link rel="stylesheet" href="/static/css/core/variables.css">
+    <link rel="stylesheet" href="/static/css/core/reset.css">
+    <link rel="stylesheet" href="/static/css/core/typography.css">
+    <link rel="stylesheet" href="/static/css/unified-theme.css">
     <style>
         * {
             margin: 0;
@@ -17,8 +21,8 @@
         }
 
         :root {
-            --primary-color: {{ cpa.primary_color or '#2563eb' }};
-            --secondary-color: {{ cpa.secondary_color or '#1d4ed8' }};
+            --primary-color: {{ cpa.primary_color or '#1e3a5f' }};
+            --secondary-color: {{ cpa.secondary_color or '#152b47' }};
             --accent-color: {{ cpa.accent_color or '#10b981' }};
             --text-dark: #1f2937;
             --text-muted: #6b7280;

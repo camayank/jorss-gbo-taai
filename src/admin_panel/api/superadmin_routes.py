@@ -1227,8 +1227,8 @@ async def get_partner_details(
         "contact_phone": "555-0200",
         "branding": {
             "logo_url": "/partners/taxpartner/logo.png",
-            "primary_color": "#8b5cf6",
-            "secondary_color": "#6366f1",
+            "primary_color": "#0d9488",
+            "secondary_color": "#1e3a5f",
         },
         "firms_count": 42,
         "users_count": 384,

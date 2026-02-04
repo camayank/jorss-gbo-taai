@@ -23,6 +23,13 @@ import uuid
 import logging
 from datetime import datetime
 
+# File upload security validation
+from web.utils.file_validation import (
+    validate_upload,
+    FileValidationError,
+    ALLOWED_MIME_TYPES,
+)
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["Documents"])
@@ -85,31 +92,25 @@ async def upload_document(
                 content={"status": "error", "error": "No file provided"}
             )
 
-        # Check file size (max 20MB)
+        # Read file content
         content = await file.read()
-        if len(content) > 20 * 1024 * 1024:
+
+        # Validate file using magic bytes (prevents .exe renamed to .pdf attacks)
+        try:
+            safe_filename, mime_type, extension = validate_upload(
+                content=content,
+                filename=file.filename or "document",
+                max_size_bytes=20 * 1024 * 1024,  # 20MB limit
+            )
+        except FileValidationError as e:
+            logger.warning(f"File validation failed: {e}")
             return JSONResponse(
-                status_code=413,
-                content={"status": "error", "error": "File too large (max 20MB)"}
+                status_code=400,
+                content={"status": "error", "error": str(e)}
             )
 
-        # Process document (sync method - no await)
-        # Determine mime type from filename
-        mime_type = "application/pdf"  # Default
-        if file.filename:
-            ext = file.filename.lower().rsplit('.', 1)[-1] if '.' in file.filename else ''
-            mime_map = {
-                'pdf': 'application/pdf',
-                'png': 'image/png',
-                'jpg': 'image/jpeg',
-                'jpeg': 'image/jpeg',
-                'tiff': 'image/tiff',
-                'tif': 'image/tiff',
-            }
-            mime_type = mime_map.get(ext, 'application/pdf')
-
         processor = _get_document_processor()
-        result = processor.process_bytes(content, mime_type, file.filename or "document")
+        result = processor.process_bytes(content, mime_type, safe_filename)
 
         # Check if processing succeeded (status is "success" or "completed_with_warnings")
         if result.status in ("success", "completed_with_warnings", "needs_review"):
@@ -189,11 +190,18 @@ async def upload_document_async(
         # Read file content
         content = await file.read()
 
-        # Check file size
-        if len(content) > 20 * 1024 * 1024:
+        # Validate file using magic bytes (prevents .exe renamed to .pdf attacks)
+        try:
+            safe_filename, mime_type, extension = validate_upload(
+                content=content,
+                filename=file.filename or "document",
+                max_size_bytes=20 * 1024 * 1024,  # 20MB limit
+            )
+        except FileValidationError as e:
+            logger.warning(f"File validation failed: {e}")
             return JSONResponse(
-                status_code=413,
-                content={"status": "error", "error": "File too large (max 20MB)"}
+                status_code=400,
+                content={"status": "error", "error": str(e)}
             )
 
         # Submit to Celery
@@ -206,7 +214,7 @@ async def upload_document_async(
 
             task = process_document_task.delay(
                 content_b64=content_b64,
-                filename=file.filename,
+                filename=safe_filename,
                 session_id=session_id,
             )
 

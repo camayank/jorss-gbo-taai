@@ -16,7 +16,7 @@ A comprehensive AI-powered agent system for preparing US tax returns (Form 1040)
    - `TaxReturn`: Complete tax return data structure
 
 2. **Tax Calculator** (`src/calculator/`)
-   - Progressive tax bracket calculations (2024 rates)
+   - Progressive tax bracket calculations (2025 rates)
    - Supports all filing statuses
    - Calculates AGI, taxable income, and tax liability
 
@@ -43,7 +43,7 @@ A comprehensive AI-powered agent system for preparing US tax returns (Form 1040)
 - Information validation
 
 ✅ **Tax Calculations**
-- 2024 federal tax brackets
+- 2025 federal tax brackets
 - Standard and itemized deductions
 - Tax credits (EITC, Child Tax Credit)
 - Refund/amount owed calculations
@@ -61,20 +61,25 @@ A comprehensive AI-powered agent system for preparing US tax returns (Form 1040)
 ## File Structure
 
 ```
-Jorss-Gbo/
+jorss-gbo-taai/
 ├── src/
-│   ├── models/          # Data models
-│   ├── calculator/      # Tax calculation engine
-│   ├── agent/           # AI agent
-│   ├── parser/          # Document parsing
+│   ├── models/          # Data models (taxpayer, income, deductions, credits, tax_return, forms)
+│   ├── calculator/      # Federal and state tax calculation engines
+│   ├── agent/           # AI conversational agent
+│   ├── parser/          # Document parsing (W-2, 1099)
 │   ├── forms/           # Form generation
-│   └── main.py          # Application entry point
-├── run.py               # Main execution script
+│   ├── export/          # PDF/JSON export
+│   └── web/             # Web interface (FastAPI app)
+├── tests/               # Automated tests
+├── docs/                # Additional documentation
+├── data/                # Reference data files
+├── run.py               # CLI entry point
+├── run_web.py           # Web server entry point
 ├── example.py           # Example usage
 ├── requirements.txt     # Dependencies
 ├── README.md            # Documentation
 ├── USAGE.md             # Usage guide
-└── .gitignore          # Git ignore rules
+└── .gitignore           # Git ignore rules
 ```
 
 ## Key Technologies
@@ -118,7 +123,7 @@ Currently configured for **Tax Year 2025** (filing in 2026):
 - Tax laws change annually
 - Some calculations are simplified
 - Complex scenarios may require additional schedules
-- State taxes not included (federal only)
+- State tax support exists but may be simplified for certain states
 
 ⚠️ **Security**
 - SSN and sensitive data should be handled securely

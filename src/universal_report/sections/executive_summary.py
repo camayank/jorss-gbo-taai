@@ -32,7 +32,7 @@ class ExecutiveSummaryRenderer:
 
     def render(self) -> str:
         """Render the complete executive summary."""
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
         accent = self.theme.accent_color if self.theme else "#10b981"
         warning = self.theme.warning_color if self.theme else "#f59e0b"
         danger = self.theme.danger_color if self.theme else "#ef4444"
@@ -91,7 +91,7 @@ class ExecutiveSummaryRenderer:
   <!-- AGI -->
   <div style="background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border: 1px solid #c4b5fd; border-radius: 12px; padding: 16px; text-align: center;">
     <div style="font-size: 0.7rem; color: #6b7280; text-transform: uppercase; letter-spacing: 1px;">Adjusted Gross</div>
-    <div style="font-size: 1.5rem; font-weight: 700; color: #7c3aed; margin-top: 8px;">${agi:,.0f}</div>
+    <div style="font-size: 1.5rem; font-weight: 700; color: #0d9488; margin-top: 8px;">${agi:,.0f}</div>
   </div>
 
   <!-- Tax Liability -->

@@ -7,6 +7,8 @@ SPEC-006: Core data models for tax recommendations.
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
 from enum import Enum
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 
 class RecommendationCategory(str, Enum):
@@ -69,7 +71,7 @@ class UnifiedRecommendation:
         return {
             "title": self.title,
             "description": self.description,
-            "potential_savings": round(self.potential_savings, 2),
+            "potential_savings": float(money(self.potential_savings)),
             "priority": self.priority,
             "category": self.category,
             "confidence": self.confidence,
@@ -127,7 +129,7 @@ class RecommendationResult:
             "lead_score": self.lead_score,
             "urgency_level": self.urgency_level,
             "deadline_info": self.deadline_info,
-            "total_potential_savings": round(self.total_potential_savings, 2),
+            "total_potential_savings": float(money(self.total_potential_savings)),
             "count": len(self.recommendations),
             "processing_time_ms": self.processing_time_ms,
             "sources_used": self.sources_used,

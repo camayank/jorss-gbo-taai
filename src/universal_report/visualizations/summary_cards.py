@@ -30,8 +30,8 @@ class SummaryCards:
     def _get_color(self, color_name: str) -> str:
         """Get color from theme or default."""
         defaults = {
-            "primary": "#2563eb",
-            "secondary": "#1d4ed8",
+            "primary": "#1e3a5f",
+            "secondary": "#152b47",
             "accent": "#10b981",
             "warning": "#f59e0b",
             "danger": "#ef4444",
@@ -641,8 +641,8 @@ class SummaryCards:
             irs_html = f'''
         <span style="
           display: inline-block;
-          background: #dbeafe;
-          color: #1d4ed8;
+          background: #eef3f9;
+          color: #152b47;
           padding: 4px 10px;
           border-radius: 12px;
           font-size: 10px;

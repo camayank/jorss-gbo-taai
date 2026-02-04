@@ -23,6 +23,7 @@ from decimal import Decimal
 from pathlib import Path
 from io import BytesIO
 import tempfile
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -326,18 +327,18 @@ def calculate_lead_platform_fee(
 
     return PlatformFeeCalculation(
         engagement_value=engagement_value,
-        lead_revenue_share=round(lead_revenue_share, 2),
+        lead_revenue_share=float(money(lead_revenue_share)),
         lead_revenue_share_percent=revenue_share_percent,
-        stripe_processing_fee=round(stripe_fee, 2),
+        stripe_processing_fee=float(money(stripe_fee)),
         stripe_processing_percent=stripe_percent,
-        total_platform_fee=round(total_fee, 2),
-        net_to_cpa=round(net_to_cpa, 2),
+        total_platform_fee=float(money(total_fee)),
+        net_to_cpa=float(money(net_to_cpa)),
         breakdown={
             "engagement_value": engagement_value,
-            "lead_revenue_share": round(lead_revenue_share, 2),
-            "stripe_fee": round(stripe_fee, 2),
-            "total_fee": round(total_fee, 2),
-            "net_to_cpa": round(net_to_cpa, 2),
+            "lead_revenue_share": float(money(lead_revenue_share)),
+            "stripe_fee": float(money(stripe_fee)),
+            "total_fee": float(money(total_fee)),
+            "net_to_cpa": float(money(net_to_cpa)),
         }
     )
 
@@ -718,7 +719,7 @@ Best regards,
                 temp_color = "#f59e0b"
             else:
                 temperature = "INTERESTED"
-                temp_color = "#3b82f6"
+                temp_color = "#1e3a5f"
 
             subject = f"[{temperature}] New Lead: {lead_name} - ${total_savings:,.0f} potential savings"
 
@@ -763,7 +764,7 @@ Best regards,
                         <li>Schedule an initial consultation</li>
                     </ol>
 
-                    <a href="#view-lead" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">View Lead in Dashboard</a>
+                    <a href="#view-lead" style="display: inline-block; background: #1e3a5f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">View Lead in Dashboard</a>
 
                     <p style="margin-top: 24px; color: #6b7280; font-size: 12px;">Lead ID: {lead_id}</p>
                 </div>

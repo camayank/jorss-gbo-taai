@@ -9,6 +9,8 @@ Provides:
 
 Usage:
     from core.caching import cache, cached
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
     # Manual cache operations
     cache.set("key", value, ttl=60)
@@ -206,7 +208,7 @@ class MemoryCache:
                 **self._stats,
                 "size": len(self._cache),
                 "max_size": self._max_size,
-                "hit_rate_percent": round(hit_rate, 2),
+                "hit_rate_percent": float(money(hit_rate)),
             }
 
 

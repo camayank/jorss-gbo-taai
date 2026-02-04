@@ -64,7 +64,7 @@ class CPABrandConfig:
         brand = CPABrandConfig(
             firm_name="Smith & Associates CPA",
             logo_path="/path/to/logo.png",
-            primary_color="#1a365d",
+            primary_color="#1e3a5f",
             advisor_name="John Smith, CPA",
             advisor_credentials=["CPA", "CFP", "MST"],
             contact_email="john@smithcpa.com",
@@ -90,7 +90,7 @@ class CPABrandConfig:
 
     # Branding colors (hex codes)
     primary_color: str = "#2c5aa0"
-    secondary_color: str = "#1a365d"
+    secondary_color: str = "#1e3a5f"
     accent_color: str = "#10b981"
 
     # Footer settings

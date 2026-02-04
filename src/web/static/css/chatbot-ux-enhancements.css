@@ -23,9 +23,9 @@
 
 :root {
   /* Colors - Map to Core System */
-  --ux-primary: var(--color-primary-800, #1e40af);
-  --ux-primary-light: var(--color-primary-700, #1d4ed8);
-  --ux-accent: var(--color-primary-600, #2563eb);
+  --ux-primary: var(--color-primary-800, #11233b);
+  --ux-primary-light: var(--color-primary-700, #152b47);
+  --ux-accent: var(--color-primary-600, #1a3253);
   --ux-success: var(--color-success-500, #10b981);
   --ux-success-dark: var(--color-success-600, #059669);
   --ux-warning: var(--color-warning-500, #f59e0b);

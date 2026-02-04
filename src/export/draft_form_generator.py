@@ -66,7 +66,7 @@ class DraftFormPDFGenerator:
             'SectionHeader',
             parent=self.styles['Heading2'],
             fontSize=12,
-            textColor=colors.HexColor('#2c5282'),
+            textColor=colors.HexColor('#5387c1'),
             spaceBefore=12,
             spaceAfter=6,
             borderWidth=1,

@@ -424,8 +424,8 @@ class CPABranding:
 # Pre-built theme configurations
 THEME_PRESETS = {
     ThemePreset.PROFESSIONAL_BLUE: {
-        'primary_color': '#1e40af',
-        'secondary_color': '#3b82f6',
+        'primary_color': '#1e3a5f',
+        'secondary_color': '#5387c1',
         'accent_color': '#60a5fa',
         'text_color': '#1f2937',
         'background_color': '#ffffff',
@@ -451,7 +451,7 @@ THEME_PRESETS = {
         'header_color': '#ffffff',
     },
     ThemePreset.BOUTIQUE_PURPLE: {
-        'primary_color': '#7c3aed',
+        'primary_color': '#0d9488',
         'secondary_color': '#a78bfa',
         'accent_color': '#c4b5fd',
         'text_color': '#1f2937',
@@ -460,8 +460,8 @@ THEME_PRESETS = {
         'header_color': '#ffffff',
     },
     ThemePreset.CLASSIC_NAVY: {
-        'primary_color': '#1e3a8a',
-        'secondary_color': '#3b82f6',
+        'primary_color': '#0c1b2f',
+        'secondary_color': '#5387c1',
         'accent_color': '#60a5fa',
         'text_color': '#1f2937',
         'background_color': '#ffffff',

@@ -12,10 +12,13 @@ Uses Claude (Anthropic) for intelligent compliance review including:
 import os
 import json
 import asyncio
+import logging
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 try:
     from anthropic import Anthropic

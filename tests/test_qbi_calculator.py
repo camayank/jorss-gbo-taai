@@ -185,6 +185,72 @@ class TestQBISSTB:
         assert breakdown.qbi_deduction > 0
 
 
+    def test_sstb_above_threshold_no_deduction(self):
+        """SSTB with income well above threshold should get $0 QBI deduction."""
+        engine = FederalTaxEngine(TaxYearConfig.for_2025())
+
+        # SSTB income well above threshold (~$197,300 single + $100K phaseout)
+        k1 = ScheduleK1(
+            k1_type=K1SourceType.PARTNERSHIP,
+            entity_name="Consulting Firm LLP",
+            entity_ein="55-5555555",
+            ordinary_business_income=500000.0,
+            qbi_ordinary_income=500000.0,
+            is_sstb=True,
+        )
+
+        tr = TaxReturn(
+            tax_year=2025,
+            taxpayer=TaxpayerInfo(
+                first_name="Rich",
+                last_name="Consultant",
+                filing_status=FilingStatus.SINGLE,
+            ),
+            income=Income(schedule_k1_forms=[k1]),
+            deductions=Deductions(use_standard_deduction=True),
+            credits=TaxCredits(),
+        )
+
+        breakdown = engine.calculate(tr)
+
+        # Above the threshold + phaseout range, SSTB gets $0 QBI
+        assert breakdown.qbi_deduction == 0.0
+
+    def test_sstb_in_phaseout_range_reduced_deduction(self):
+        """SSTB income in phaseout range should get reduced QBI deduction."""
+        engine = FederalTaxEngine(TaxYearConfig.for_2025())
+
+        # SSTB income putting taxable income in the phaseout range
+        # Single threshold ~$197,300, phaseout ends ~$247,300
+        k1 = ScheduleK1(
+            k1_type=K1SourceType.PARTNERSHIP,
+            entity_name="Accounting Firm LLP",
+            entity_ein="66-6666666",
+            ordinary_business_income=230000.0,
+            qbi_ordinary_income=230000.0,
+            is_sstb=True,
+        )
+
+        tr = TaxReturn(
+            tax_year=2025,
+            taxpayer=TaxpayerInfo(
+                first_name="Mid",
+                last_name="Accountant",
+                filing_status=FilingStatus.SINGLE,
+            ),
+            income=Income(schedule_k1_forms=[k1]),
+            deductions=Deductions(use_standard_deduction=True),
+            credits=TaxCredits(),
+        )
+
+        breakdown = engine.calculate(tr)
+
+        # In phaseout range, SSTB gets reduced but non-zero QBI
+        full_qbi = 230000.0 * 0.20
+        assert breakdown.qbi_deduction > 0
+        assert breakdown.qbi_deduction < full_qbi
+
+
 class TestQBIWageLimitation:
     """Tests for W-2 wage and UBIA limitations."""
 

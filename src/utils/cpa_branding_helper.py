@@ -145,7 +145,7 @@ def get_cpa_branding_for_html_report(cpa_id: str) -> Optional[Dict[str, Any]]:
         'email': branding['contact_email'],
         'phone': branding['contact_phone'],
         'address': branding['contact_address'],
-        'primary_color': branding['accent_color'] or "#2563eb",
+        'primary_color': branding['accent_color'] or "#1e3a5f",
         'logo_url': branding['logo_url'],
         'tagline': branding['firm_tagline'],
         'preset': 'professional',

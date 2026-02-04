@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any, TYPE_CHECKING
 from enum import Enum
 from datetime import date
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 if TYPE_CHECKING:
     from models.tax_return import TaxReturn
@@ -219,15 +221,15 @@ class TaxStrategyAdvisor:
         return TaxStrategyReport(
             filing_status=filing_status,
             tax_year=2025,
-            current_tax_liability=round(tax_liability, 2),
-            current_effective_rate=round(effective_rate, 2),
+            current_tax_liability=float(money(tax_liability)),
+            current_effective_rate=float(money(effective_rate)),
             retirement_analysis=retirement_analysis,
             investment_analysis=investment_analysis,
             immediate_strategies=immediate[:5],  # Top 5 per category
             current_year_strategies=current_year[:5],
             next_year_strategies=next_year[:5],
             long_term_strategies=long_term[:5],
-            total_potential_savings=round(total_savings, 2),
+            total_potential_savings=float(money(total_savings)),
             top_three_recommendations=top_three,
             confidence_score=confidence,
             warnings=warnings,
@@ -319,10 +321,10 @@ class TaxStrategyAdvisor:
             catch_up_eligible=catch_up_eligible,
             catch_up_amount=catch_up_amount,
             roth_vs_traditional_recommendation=roth_rec,
-            employer_match_captured=round(employer_match_captured, 2),
-            employer_match_available=round(employer_match_available, 2),
-            additional_contribution_potential=round(additional_potential, 2),
-            tax_savings_if_maxed=round(tax_savings, 2),
+            employer_match_captured=float(money(employer_match_captured)),
+            employer_match_available=float(money(employer_match_available)),
+            additional_contribution_potential=float(money(additional_potential)),
+            tax_savings_if_maxed=float(money(tax_savings)),
         )
 
     def _analyze_investments(
@@ -379,7 +381,7 @@ class TaxStrategyAdvisor:
             tax_loss_harvesting_potential=loss_potential,
             qualified_dividend_amount=qualified_dividends,
             long_term_vs_short_term_gains={"long_term": lt_gains, "short_term": st_gains},
-            estimated_niit_exposure=round(niit_exposure, 2),
+            estimated_niit_exposure=float(money(niit_exposure)),
             tax_efficient_placement_recommendations=recommendations,
         )
 

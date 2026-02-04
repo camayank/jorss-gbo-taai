@@ -27,6 +27,7 @@ from typing import Optional, List, Dict, Any, ClassVar
 from pydantic import BaseModel, Field
 from enum import Enum
 from datetime import date
+from models._decimal_utils import money
 
 
 class FilingStatusChange(BaseModel):
@@ -355,12 +356,12 @@ class Form1040X(BaseModel):
 
         # Net position after accounting for prior settlements
         net_position = corrected_difference - already_settled
-        result['net_tax_change'] = round(net_position, 2)
+        result['net_tax_change'] = float(money(net_position))
 
         if net_position > 0:
-            result['refund_due'] = round(net_position, 2)
+            result['refund_due'] = float(money(net_position))
         elif net_position < 0:
-            result['amount_owed'] = round(abs(net_position), 2)
+            result['amount_owed'] = float(money(abs(net_position)))
 
         return result
 

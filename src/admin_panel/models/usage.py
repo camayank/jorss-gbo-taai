@@ -20,6 +20,8 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from database.models import Base, JSONB
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 
 class UsageMetrics(Base):
@@ -171,7 +173,7 @@ class UsageMetrics(Base):
                 "created": self.returns_created,
                 "filed": self.returns_filed,
                 "total_by_complexity": self.total_returns,
-                "avg_complexity": round(self.avg_complexity, 2),
+                "avg_complexity": float(money(self.avg_complexity)),
             },
             "analysis": {
                 "scenarios": self.scenarios_analyzed,

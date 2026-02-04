@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 # ============================================================================
 
 COLORS = {
-    "primary": "#2563eb",
+    "primary": "#1e3a5f",
     "success": "#059669",
     "warning": "#d97706",
     "danger": "#dc2626",
@@ -118,7 +118,7 @@ def generate_tax_bracket_chart(
         ax.set_title("Your Tax Bracket Position", fontsize=14, fontweight='bold', pad=20)
         ax.set_yticks([])
         ax.spines['top'].set_visible(False)
-        ax.spines('right'].set_visible(False)
+        ax.spines['right'].set_visible(False)
         ax.spines['left'].set_visible(False)
 
         # Format x-axis
@@ -218,7 +218,7 @@ def generate_income_breakdown_pie_chart(income_sources: Dict[str, float]) -> str
         values = list(income_sources.values())
 
         # Custom colors
-        colors = ['#2563eb', '#059669', '#d97706', '#dc2626', '#6366f1', '#8b5cf6']
+        colors = ['#1e3a5f', '#059669', '#d97706', '#dc2626', '#5387c1', '#7ea5d1']
 
         wedges, texts, autotexts = ax.pie(
             values, labels=labels, autopct='%1.1f%%',
@@ -308,7 +308,7 @@ def generate_executive_summary_html(
                 line-height: 1.6;
             }}
             .header {{
-                background: linear-gradient(135deg, {COLORS['primary']} 0%, #1d4ed8 100%);
+                background: linear-gradient(135deg, {COLORS['primary']} 0%, #152b47 100%);
                 color: white;
                 padding: 40px;
                 border-radius: 12px;

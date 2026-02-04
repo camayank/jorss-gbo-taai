@@ -5,6 +5,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Dict, Optional, TYPE_CHECKING
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 if TYPE_CHECKING:
     from models.tax_return import TaxReturn
@@ -152,7 +154,7 @@ class BaseStateCalculator(ABC):
             return 0.0
 
         if self.config.is_flat_tax:
-            return round(taxable_income * (self.config.flat_rate or 0.0), 2)
+            return float(money(taxable_income * (self.config.flat_rate or 0.0)))
 
         brackets = self.config.get_brackets(filing_status)
         if not brackets:
@@ -170,7 +172,7 @@ class BaseStateCalculator(ABC):
             amount = min(max(taxable_income - floor, 0.0), next_floor - floor)
             tax += amount * rate
 
-        return round(tax, 2)
+        return float(money(tax))
 
     def calculate_local_tax(
         self,
@@ -201,7 +203,7 @@ class BaseStateCalculator(ABC):
             amount = min(max(taxable_income - floor, 0.0), next_floor - floor)
             tax += amount * rate
 
-        return round(tax, 2)
+        return float(money(tax))
 
     def calculate_state_eitc(self, federal_eitc: float) -> float:
         """
@@ -210,7 +212,7 @@ class BaseStateCalculator(ABC):
         Many states provide a state EITC as a percentage of the federal credit.
         """
         if self.config.eitc_percentage and federal_eitc > 0:
-            return round(federal_eitc * self.config.eitc_percentage, 2)
+            return float(money(federal_eitc * self.config.eitc_percentage))
         return 0.0
 
     def calculate_state_child_tax_credit(
@@ -224,7 +226,7 @@ class BaseStateCalculator(ABC):
         Override in subclasses for states with more complex credit rules.
         """
         if self.config.child_tax_credit_amount and num_children > 0:
-            return round(num_children * self.config.child_tax_credit_amount, 2)
+            return float(money(num_children * self.config.child_tax_credit_amount))
         return 0.0
 
     def get_state_withholding(self, tax_return: "TaxReturn") -> float:

@@ -383,7 +383,7 @@ class TaxEducationRenderer:
             return ""
 
         strategy = self.knowledge_base[strategy_id]
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
         accent = self.theme.accent_color if self.theme else "#10b981"
 
         # Build sections
@@ -512,7 +512,7 @@ class TaxEducationRenderer:
 
     def render_education_section(self, relevant_strategies: List[str] = None) -> str:
         """Render full education section with multiple strategies."""
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
 
         # Determine which strategies to include
         if relevant_strategies:

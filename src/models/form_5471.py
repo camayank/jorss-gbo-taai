@@ -26,6 +26,8 @@ from pydantic import BaseModel, Field
 from enum import Enum
 from datetime import date
 from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class FilingCategory(str, Enum):
@@ -454,9 +456,9 @@ class Form5471(BaseModel):
 
             # Pro-rata share based on ownership
             ownership_decimal = self.shareholder_ownership_percent() / 100
-            result['pro_rata_share'] = round(
-                result['net_subpart_f_income'] * ownership_decimal, 2
-            )
+            result['pro_rata_share'] = float(money(
+                result['net_subpart_f_income'] * ownership_decimal
+            ))
             result['inclusion_in_income'] = result['pro_rata_share']
 
         return result
@@ -496,7 +498,7 @@ class Form5471(BaseModel):
 
             # Pro-rata share
             ownership_decimal = self.shareholder_ownership_percent() / 100
-            result['gilti_before_deduction'] = round(gilti * ownership_decimal, 2)
+            result['gilti_before_deduction'] = float(money(gilti * ownership_decimal))
 
             # Section 250 deduction (50% for C-corps, 37.5% for 2026+)
             # For individuals, there's no Section 250 deduction
@@ -623,12 +625,12 @@ def calculate_cfc_income_inclusion(
     ownership_decimal = ownership_percent / 100
 
     # Subpart F inclusion
-    result['subpart_f_pro_rata'] = round(subpart_f_income * ownership_decimal, 2)
+    result['subpart_f_pro_rata'] = float(money(subpart_f_income * ownership_decimal))
 
     # GILTI inclusion
     deemed_tangible_return = qbai * 0.10
     gilti = max(0.0, tested_income - deemed_tangible_return)
-    result['gilti_pro_rata'] = round(gilti * ownership_decimal, 2)
+    result['gilti_pro_rata'] = float(money(gilti * ownership_decimal))
 
     result['total_inclusion'] = result['subpart_f_pro_rata'] + result['gilti_pro_rata']
 

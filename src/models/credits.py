@@ -1,6 +1,9 @@
 from typing import Optional, Tuple, List, TYPE_CHECKING
+from decimal import Decimal, ROUND_HALF_UP
 from pydantic import BaseModel, Field
 from enum import Enum
+
+from models._decimal_utils import money
 
 if TYPE_CHECKING:
     from calculator.tax_year_config import TaxYearConfig
@@ -1040,10 +1043,10 @@ class TaxCredits(BaseModel):
                 breakdown['used_vehicles_qualified'] += 1
                 breakdown['used_vehicles'].append(vehicle_info)
 
-        breakdown['total_new_credit'] = round(total_new_credit, 2)
-        breakdown['total_used_credit'] = round(total_used_credit, 2)
+        breakdown['total_new_credit'] = float(money(total_new_credit))
+        breakdown['total_used_credit'] = float(money(total_used_credit))
 
-        return round(total_new_credit, 2), round(total_used_credit, 2), breakdown
+        return float(money(total_new_credit)), float(money(total_used_credit)), breakdown
 
     def calculate_adoption_credit(
         self,
@@ -1101,7 +1104,7 @@ class TaxCredits(BaseModel):
         else:
             phaseout_pct = (magi - phaseout_start) / (phaseout_end - phaseout_start)
 
-        breakdown['phaseout_percentage'] = round(phaseout_pct * 100, 2)
+        breakdown['phaseout_percentage'] = float(money(phaseout_pct * 100))
 
         total_credit_before = 0.0
         total_carryforward = 0.0
@@ -1144,36 +1147,36 @@ class TaxCredits(BaseModel):
                 # Regular adoption: credit based on actual expenses
                 qualified_expenses = adoption.get_expenses_net_of_benefits()
 
-            adoption_info['qualified_expenses'] = round(qualified_expenses, 2)
+            adoption_info['qualified_expenses'] = float(money(qualified_expenses))
 
             # Credit is capped at max per child
             credit_for_child = min(qualified_expenses, max_credit)
-            adoption_info['credit_before_phaseout'] = round(credit_for_child, 2)
+            adoption_info['credit_before_phaseout'] = float(money(credit_for_child))
 
             # Apply income phaseout
             credit_after_phaseout = credit_for_child * (1 - phaseout_pct)
-            adoption_info['credit_after_phaseout'] = round(credit_after_phaseout, 2)
+            adoption_info['credit_after_phaseout'] = float(money(credit_after_phaseout))
 
             total_credit_before += credit_for_child
 
             # Include prior year carryforward
             if adoption.prior_year_carryforward > 0:
                 carryforward_after_phaseout = adoption.prior_year_carryforward * (1 - phaseout_pct)
-                adoption_info['carryforward_used'] = round(carryforward_after_phaseout, 2)
+                adoption_info['carryforward_used'] = float(money(carryforward_after_phaseout))
                 total_carryforward += carryforward_after_phaseout
 
             adoption_info['qualified'] = True
             breakdown['children_qualified'] += 1
             breakdown['adoptions'].append(adoption_info)
 
-        breakdown['total_credit_before_phaseout'] = round(total_credit_before, 2)
-        breakdown['total_carryforward_used'] = round(total_carryforward, 2)
+        breakdown['total_credit_before_phaseout'] = float(money(total_credit_before))
+        breakdown['total_carryforward_used'] = float(money(total_carryforward))
 
         # Apply phaseout to total
         total_credit_after = total_credit_before * (1 - phaseout_pct) + total_carryforward
-        breakdown['total_credit_after_phaseout'] = round(total_credit_after, 2)
+        breakdown['total_credit_after_phaseout'] = float(money(total_credit_after))
 
-        return round(total_credit_after, 2), breakdown
+        return float(money(total_credit_after)), breakdown
 
     def calculate_elderly_disabled_credit(
         self,
@@ -1332,13 +1335,13 @@ class TaxCredits(BaseModel):
         breakdown['agi_excess_reduction'] = agi_reduction
 
         amount_after_reductions = max(0, amount_after_nontaxable - agi_reduction)
-        breakdown['amount_after_reductions'] = round(amount_after_reductions, 2)
+        breakdown['amount_after_reductions'] = float(money(amount_after_reductions))
 
         # Calculate credit: 15% of remaining amount
         credit = amount_after_reductions * 0.15
-        breakdown['credit_amount'] = round(credit, 2)
+        breakdown['credit_amount'] = float(money(credit))
 
-        return round(credit, 2), breakdown
+        return float(money(credit)), breakdown
 
     def calculate_wotc(
         self,
@@ -1441,7 +1444,7 @@ class TaxCredits(BaseModel):
                 emp_detail['qualified_wages'] = min(employee.first_year_wages, employee.get_wage_limit())
                 first_year_total += credit
 
-            emp_detail['credit'] = round(credit, 2)
+            emp_detail['credit'] = float(money(credit))
             emp_detail['qualified'] = True
             total_credit += credit
             breakdown['employees_qualified'] += 1
@@ -1461,19 +1464,19 @@ class TaxCredits(BaseModel):
             breakdown['employees'].append(emp_detail)
 
         # Populate summary
-        breakdown['total_credit'] = round(total_credit, 2)
-        breakdown['total_first_year_credit'] = round(first_year_total, 2)
-        breakdown['total_second_year_credit'] = round(second_year_total, 2)
+        breakdown['total_credit'] = float(money(total_credit))
+        breakdown['total_first_year_credit'] = float(money(first_year_total))
+        breakdown['total_second_year_credit'] = float(money(second_year_total))
         breakdown['by_target_group'] = {
             k: {
                 'count': v['count'],
-                'total_credit': round(v['total_credit'], 2),
-                'total_wages': round(v['total_wages'], 2),
+                'total_credit': float(money(v['total_credit'])),
+                'total_wages': float(money(v['total_wages'])),
             }
             for k, v in target_group_totals.items()
         }
 
-        return round(total_credit, 2), breakdown
+        return float(money(total_credit)), breakdown
 
     def calculate_small_employer_health_credit(
         self,
@@ -1545,7 +1548,7 @@ class TaxCredits(BaseModel):
 
         # Calculate average wages
         avg_wages = info.get_average_annual_wages()
-        breakdown['average_wages'] = round(avg_wages, 2)
+        breakdown['average_wages'] = float(money(avg_wages))
 
         # Check wage threshold
         if avg_wages >= wage_threshold:
@@ -1589,17 +1592,17 @@ class TaxCredits(BaseModel):
             max_premiums = info.state_average_premium * info.fte_count
             premiums_for_credit = min(premiums_for_credit, max_premiums)
             breakdown['state_average_premium_applied'] = True
-            breakdown['max_premiums_after_state_limit'] = round(max_premiums, 2)
+            breakdown['max_premiums_after_state_limit'] = float(money(max_premiums))
 
         credit_before_phaseout = premiums_for_credit * base_rate
-        breakdown['credit_before_phase_out'] = round(credit_before_phaseout, 2)
+        breakdown['credit_before_phase_out'] = float(money(credit_before_phaseout))
 
         # Apply phase-out
         credit = credit_before_phaseout * combined_factor
-        breakdown['credit_amount'] = round(credit, 2)
+        breakdown['credit_amount'] = float(money(credit))
         breakdown['qualified'] = True
 
-        return round(credit, 2), breakdown
+        return float(money(credit)), breakdown
 
     def calculate_disabled_access_credit(
         self,
@@ -1649,7 +1652,7 @@ class TaxCredits(BaseModel):
             'min_threshold': min_expenditure,
             'max_threshold': max_expenditure,
             'credit_rate': credit_rate,
-            'max_credit': round((max_expenditure - min_expenditure) * credit_rate, 2),
+            'max_credit': float(money((max_expenditure - min_expenditure) * credit_rate)),
             'prior_year_gross_receipts': 0.0,
             'prior_year_employees': 0,
             'meets_gross_receipts_test': False,
@@ -1678,7 +1681,7 @@ class TaxCredits(BaseModel):
 
         # Get total expenditures
         total_expenditures = info.get_total_expenditures()
-        breakdown['total_expenditures'] = round(total_expenditures, 2)
+        breakdown['total_expenditures'] = float(money(total_expenditures))
 
         # Check minimum threshold
         if total_expenditures <= min_expenditure:
@@ -1689,7 +1692,7 @@ class TaxCredits(BaseModel):
 
         # Calculate eligible amount (between $250 and $10,250)
         eligible_amount = info.calculate_eligible_amount(min_expenditure, max_expenditure)
-        breakdown['eligible_expenditures'] = round(eligible_amount, 2)
+        breakdown['eligible_expenditures'] = float(money(eligible_amount))
 
         # Record itemized expenditures if available
         if info.expenditures:
@@ -1704,10 +1707,10 @@ class TaxCredits(BaseModel):
 
         # Calculate credit (50% of eligible expenditures)
         credit = eligible_amount * credit_rate
-        breakdown['credit_amount'] = round(credit, 2)
+        breakdown['credit_amount'] = float(money(credit))
         breakdown['qualified'] = True
 
-        return round(credit, 2), breakdown
+        return float(money(credit)), breakdown
 
     def calculate_eitc(self, earned_income: float, agi: float, filing_status: str, num_children: int) -> float:
         """
@@ -1881,7 +1884,7 @@ class TaxCredits(BaseModel):
             total_nonrefundable += nonrefundable
             total_refundable += refundable
 
-        return round(total_nonrefundable, 2), round(total_refundable, 2)
+        return float(money(total_nonrefundable)), float(money(total_refundable))
 
     def calculate_llc(
         self,
@@ -1941,7 +1944,7 @@ class TaxCredits(BaseModel):
         # Apply phaseout
         credit = credit * phaseout_pct
 
-        return round(credit, 2)
+        return float(money(credit))
 
     def calculate_best_education_credit(
         self,
@@ -2084,8 +2087,8 @@ class TaxCredits(BaseModel):
                 total_ptc += monthly_ptc
 
         # Round to whole dollars
-        total_ptc = round(total_ptc, 0)
-        total_aptc = round(total_aptc, 0)
+        total_ptc = float(money(total_ptc).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        total_aptc = float(money(total_aptc).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
         # Net PTC (positive = additional credit, negative = repayment)
         net_ptc = total_ptc - total_aptc
@@ -2189,7 +2192,7 @@ class TaxCredits(BaseModel):
             )
             allowable_credit += additional_from_carryforward
 
-        return round(allowable_credit, 2), round(carryforward, 2)
+        return float(money(allowable_credit)), float(money(carryforward))
 
     def can_use_simplified_ftc(
         self,
@@ -2279,7 +2282,7 @@ class TaxCredits(BaseModel):
         else:
             rate = 0.0
 
-        return round(contribution_basis * rate, 2)
+        return float(money(contribution_basis * rate))
 
     def _get_dependent_care_rate(self, agi: float) -> float:
         """
@@ -2369,7 +2372,7 @@ class TaxCredits(BaseModel):
         # Determine credit rate based on AGI
         rate = self._get_dependent_care_rate(agi)
 
-        return round(qualified_expenses * rate, 2)
+        return float(money(qualified_expenses * rate))
 
     def calculate_residential_energy_credit(
         self,
@@ -2451,4 +2454,4 @@ class TaxCredits(BaseModel):
 
         home_improvement_credit = standard_improvement_credit + heat_pump_credit
 
-        return (round(clean_energy_credit, 2), round(home_improvement_credit, 2))
+        return (float(money(clean_energy_credit)), float(money(home_improvement_credit)))

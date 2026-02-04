@@ -20,9 +20,9 @@
 
 :root {
     /* Primary Colors - Using Advisor Theme (Navy Blue) */
-    --primary: var(--color-primary-800, #1e40af);
-    --primary-light: var(--color-primary-700, #1d4ed8);
-    --primary-dark: var(--color-primary-900, #1e3a8a);
+    --primary: var(--color-primary-800, #11233b);
+    --primary-light: var(--color-primary-700, #152b47);
+    --primary-dark: var(--color-primary-900, #0c1b2f);
 
     /* Advisory-specific aliases (for backward compatibility) */
     --advisory-primary: var(--primary);
@@ -45,7 +45,7 @@
     --danger-light: var(--color-error-500, #ef4444);
 
     /* Info Colors - Using Core Info */
-    --info: var(--color-info-500, #3b82f6);
+    --info: var(--color-info-500, #5387c1);
     --info-light: var(--color-info-400, #60a5fa);
 
     /* Neutral Colors - Using Core Grays */
@@ -1119,7 +1119,7 @@ table tr:last-child td {
     }
 
     .amount {
-        color: #1a365d !important;
+        color: #1e3a5f !important;
     }
 
     /* Page breaks */

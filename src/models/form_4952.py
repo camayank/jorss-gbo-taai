@@ -36,6 +36,8 @@ Per IRS Form 4952 Instructions, Publication 550, and IRC Section 163(d).
 
 from typing import Optional, List, Dict, Any, ClassVar
 from pydantic import BaseModel, Field
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class InvestmentIncomeElection(BaseModel):
@@ -221,7 +223,7 @@ class Form4952(BaseModel):
             elected_cg +
             elected_qd
         )
-        result['total_investment_income'] = round(total, 2)
+        result['total_investment_income'] = float(money(total))
 
         return result
 
@@ -240,7 +242,7 @@ class Form4952(BaseModel):
         }
 
         net = max(0.0, income['total_investment_income'] - self.investment_expenses)
-        result['net_investment_income'] = round(net, 2)
+        result['net_investment_income'] = float(money(net))
 
         return result
 
@@ -282,7 +284,7 @@ class Form4952(BaseModel):
 
         # Line 3: Total investment interest
         total_interest = self.investment_interest_paid + self.prior_year_carryforward
-        result['line_3_total_investment_interest'] = round(total_interest, 2)
+        result['line_3_total_investment_interest'] = float(money(total_interest))
 
         # Investment income breakdown
         income = self.calculate_investment_income()
@@ -298,12 +300,12 @@ class Form4952(BaseModel):
         # Allowable deduction (limited to net investment income)
         net_inv_income = net_income['net_investment_income']
         allowable = min(total_interest, net_inv_income)
-        result['line_8_allowable_deduction'] = round(allowable, 2)
+        result['line_8_allowable_deduction'] = float(money(allowable))
 
         # Disallowed (carryforward)
         disallowed = max(0.0, total_interest - net_inv_income)
-        result['line_7_disallowed_interest'] = round(disallowed, 2)
-        result['carryforward_to_next_year'] = round(disallowed, 2)
+        result['line_7_disallowed_interest'] = float(money(disallowed))
+        result['carryforward_to_next_year'] = float(money(disallowed))
 
         return result
 

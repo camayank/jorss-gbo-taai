@@ -115,7 +115,7 @@ class TestJWTAuthentication:
         response = test_client.get("/api/returns", headers=headers)
 
         # Should succeed if JWT is valid
-        assert response.status_code in [200, 500]  # 500 if other issues
+        assert response.status_code == 200
 
     @requires_jwt
     def test_malformed_jwt_rejected(self, test_client, csrf_headers):
@@ -150,7 +150,7 @@ class TestRBACPermissions:
             response = test_client.get("/api/returns", headers=admin_headers)
 
         # Admin should have access
-        assert response.status_code in [200, 500]
+        assert response.status_code == 200
 
     @requires_jwt
     def test_cpa_staff_access(self, test_client, auth_headers):
@@ -165,7 +165,7 @@ class TestRBACPermissions:
             response = test_client.get("/api/returns", headers=auth_headers)
 
         # Staff should have access to returns
-        assert response.status_code in [200, 500]
+        assert response.status_code == 200
 
     @requires_jwt
     def test_client_limited_access(self, test_client, csrf_headers):
@@ -227,7 +227,7 @@ class TestMultiTenantIsolation:
 
         # Tenant B should not see tenant A's data
         # (Implementation may vary - this tests the concept)
-        assert list_response.status_code in [200, 500]
+        assert list_response.status_code == 200
 
 
 class TestSecurityHeaders:

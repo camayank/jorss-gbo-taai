@@ -285,6 +285,77 @@ def get_tax_parameter(param_name: str, tax_year: int, filing_status: Optional[st
     return loader.get_parameter(param_name, tax_year, filing_status)
 
 
+def get_standard_deductions(tax_year: int = 2025) -> dict:
+    """
+    Get standard deduction amounts for all filing statuses.
+
+    Returns dict like:
+        {"single": 15750, "married_joint": 31500, "married_separate": 15750,
+         "head_of_household": 23850, "qualifying_widow": 31500}
+    """
+    loader = get_config_loader()
+    config = loader.load_config(tax_year)
+    return config.get("standard_deduction", {})
+
+
+def get_retirement_limits(tax_year: int = 2025) -> dict:
+    """
+    Get retirement contribution limits assembled from YAML config keys.
+
+    Returns dict like:
+        {"401k_limit": 23500, "401k_catch_up": 7500, "ira_limit": 7000,
+         "ira_catch_up": 1000, "hsa_self": 4300, "hsa_family": 8550,
+         "hsa_catch_up": 1000, "sep_ira_max": 69000, "sep_ira_pct": 0.25}
+    """
+    loader = get_config_loader()
+    config = loader.load_config(tax_year)
+    return {
+        "401k_limit": config.get("k401_contribution_limit", 23500),
+        "401k_catch_up": config.get("k401_catchup_50_plus", 7500),
+        "401k_catch_up_60_63": config.get("k401_catchup_60_64", 11250),
+        "ira_limit": config.get("ira_contribution_limit", 7000),
+        "ira_catch_up": config.get("ira_catchup_50_plus", 1000),
+        "hsa_self": config.get("hsa_individual_limit", 4300),
+        "hsa_family": config.get("hsa_family_limit", 8550),
+        "hsa_catch_up": config.get("hsa_catchup_55_plus", 1000),
+        "sep_ira_pct": 0.25,
+        "sep_ira_max": config.get("sep_ira_limit", 69000),
+    }
+
+
+def get_credit_limits(tax_year: int = 2025) -> dict:
+    """
+    Get tax credit limits and phase-out thresholds from YAML config.
+
+    Returns dict with child_tax_credit, education credits, saver's credit, etc.
+    """
+    loader = get_config_loader()
+    config = loader.load_config(tax_year)
+    return {
+        "child_tax_credit_amount": config.get("child_tax_credit_amount", 2000),
+        "child_tax_credit_refundable": config.get("child_tax_credit_refundable", 1700),
+        "ctc_phaseout_start": config.get("child_tax_credit_phaseout_start", {}),
+        "aotc_max": config.get("aotc_max_credit", 2500),
+        "llc_max": config.get("llc_max_credit", 2000),
+        "savers_credit_max_contribution": config.get("savers_credit_max_contribution", 2000),
+    }
+
+
+def get_eitc_limits(tax_year: int = 2025) -> dict:
+    """
+    Get EITC income limits and max amounts from YAML config.
+
+    Returns dict with 'income_limits' and 'max_credit' sub-dicts.
+    """
+    loader = get_config_loader()
+    config = loader.load_config(tax_year)
+    return {
+        "income_limits": config.get("eitc_income_limits", {}),
+        "max_credit": config.get("eitc_max_credit", {}),
+        "investment_income_limit": config.get("eitc_investment_income_limit", 11950),
+    }
+
+
 def clear_config_cache() -> None:
     """Clear the configuration cache (useful for testing)."""
     get_tax_parameter.cache_clear()

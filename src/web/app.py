@@ -27,6 +27,8 @@ from fastapi import FastAPI, Request, Response, UploadFile, File, Form, HTTPExce
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 # Pagination helpers for consistent API responses
 try:
@@ -110,11 +112,20 @@ app = FastAPI(title="US Tax Preparation Agent (Tax Year 2025)")
 cors_origins_str = os.environ.get("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000,http://127.0.0.1:8000")
 cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
 
-# Add wildcard for development if needed
+# Add explicit localhost origins for development (avoid wildcard for security)
 _environment = os.environ.get("APP_ENVIRONMENT", "development")
-if _environment == "development" and "*" not in cors_origins:
-    # Allow all origins in development for easier testing
-    cors_origins = ["*"]
+if _environment == "development":
+    # Use explicit localhost origins instead of wildcard "*"
+    # This maintains security while enabling local development
+    dev_origins = [
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8000",
+        "http://localhost:5173",  # Vite default
+        "http://127.0.0.1:5173",
+    ]
+    cors_origins = list(set(cors_origins + dev_origins))
 
 app.add_middleware(
     CORSMiddleware,
@@ -136,6 +147,8 @@ try:
     app.add_middleware(SecurityHeadersMiddleware)
     logger.info("Security headers middleware enabled")
 except Exception as e:
+    if _is_production:
+        raise RuntimeError(f"CRITICAL: Security headers middleware failed to load: {e}")
     logger.warning(f"Security headers middleware failed: {e}")
 
 # 2. Rate Limiting (60 requests/minute per IP)
@@ -148,6 +161,8 @@ try:
     )
     logger.info("Rate limiting middleware enabled")
 except Exception as e:
+    if _is_production:
+        raise RuntimeError(f"CRITICAL: Rate limiting middleware failed to load: {e}")
     logger.warning(f"Rate limiting middleware failed: {e}")
 
 # 3. Request Validation (size limits, content type)
@@ -158,6 +173,8 @@ try:
     )
     logger.info("Request validation middleware enabled")
 except Exception as e:
+    if _is_production:
+        raise RuntimeError(f"CRITICAL: Request validation middleware failed to load: {e}")
     logger.warning(f"Request validation middleware failed: {e}")
 
 # 4. CSRF Protection (for state-changing operations)
@@ -252,8 +269,10 @@ def generate_csrf_token() -> str:
     The same token should be stored in cookie and included in requests.
     """
     if not _csrf_secret_key:
-        logger.warning("[CSRF] No secret key available, returning empty token")
-        return ""
+        # In development, generate a temporary token instead of returning empty
+        import secrets as _dev_secrets
+        logger.warning("[CSRF] No secret key configured, using temporary development token")
+        return f"dev:{_dev_secrets.token_hex(32)}"
 
     import secrets as _secrets
     import hmac as _hmac
@@ -418,347 +437,88 @@ def require_import(critical: bool = False):
 
 
 # =============================================================================
-# WORKSPACE API (Phase 1-2: Multi-Client Management)
+# DATA-DRIVEN ROUTER REGISTRY
 # =============================================================================
-try:
-    from web.workspace_api import router as workspace_router
-    app.include_router(workspace_router)
-    logger.info("Workspace API enabled")
-except ImportError as e:
-    logger.warning(f"Workspace API not available: {e}")
+# Each entry: (module_path, router_attr, prefix_or_none, label)
+# Special entries with multiple routers use a list of (attr, prefix) pairs.
 
+import importlib
 
-# =============================================================================
-# CONFIGURATION & RULES API
-# =============================================================================
+_ROUTER_REGISTRY = [
+    # Core platform routers
+    ("web.workspace_api", "router", None, "Workspace API"),
+    ("cpa_panel.api", "cpa_router", "/api", "CPA Panel API"),
+    ("admin_panel.api", "admin_router", "/api/v1", "Admin Panel API"),
+    ("core", "core_router", None, "Core Platform API"),
+    # Tax preparation routers
+    ("web.smart_tax_api", "router", "/api", "Smart Tax API"),
+    ("web.unified_filing_api", "router", None, "Unified Filing API"),
+    ("web.guided_filing_api", "router", None, "Guided Filing API"),
+    ("web.sessions_api", "router", None, "Session Management API"),
+    ("web.auto_save_api", "router", None, "Auto-Save API"),
+    # Advisory & intelligence routers
+    ("web.advisory_api", "router", None, "Advisory Reports API"),
+    ("web.unified_advisor_api", "router", None, "Unified Tax Advisor API"),
+    ("web.ai_chat_api", "router", None, "AI Chat API"),
+    ("web.intelligent_advisor_api", "router", None, "Intelligent Advisor API"),
+    # Compliance & audit routers
+    ("web.audit_api", "router", None, "Audit Trail API"),
+    ("web.mfa_api", "router", None, "MFA API"),
+    # Specialized tax form routers
+    ("web.capital_gains_api", "router", None, "Capital Gains API"),
+    ("web.k1_basis_api", "router", None, "K-1 Basis Tracking API"),
+    ("web.rental_depreciation_api", "router", None, "Rental Depreciation API"),
+    ("web.draft_forms_api", "router", None, "Draft Forms API"),
+    # CPA-specific routers
+    ("cpa_panel.api.funnel_routes", "funnel_router", "/api/cpa", "Funnel Orchestration API"),
+    ("web.cpa_branding_api", "router", None, "CPA Branding API"),
+    ("web.cpa_dashboard_pages", "cpa_dashboard_router", None, "CPA Dashboard Pages"),
+    # Consumer-facing routers
+    ("web.lead_magnet_pages", "lead_magnet_pages_router", None, "Lead Magnet Pages"),
+    ("web.filing_package_api", "router", None, "Filing Package API"),
+    ("web.custom_domain_api", "router", None, "Custom Domain API"),
+    # Modular routers (extracted from app.py)
+    ("web.routers.scenarios", "router", None, "Scenarios API"),
+    ("web.routers.health", "router", None, "Health Check API"),
+    ("web.routers.returns", "router", None, "Returns API"),
+    ("web.routers.calculations", "router", None, "Calculations API"),
+    ("web.routers.validation", "router", None, "Validation API"),
+    ("webhooks.router", "router", None, "Webhooks API"),
+    # Admin routers
+    ("web.routers.support_api", "router", None, "Support Tickets API"),
+    ("web.routers.admin_impersonation_api", "router", None, "Admin Impersonation API"),
+    ("web.routers.admin_api_keys_api", "router", None, "Admin API Keys API"),
+    ("web.routers.admin_refunds_api", "router", None, "Admin Refunds API"),
+    ("web.routers.admin_compliance_api", "router", None, "Admin Compliance API"),
+]
+
+# Special case: config_api exports two routers
 try:
     from web.config_api import router as config_router, rules_router
     app.include_router(config_router)
     app.include_router(rules_router)
-    logger.info("Configuration API enabled")
+    logger.info("Registered: Configuration API (2 routers)")
 except ImportError as e:
-    logger.warning(f"Configuration API not available: {e}")
+    logger.debug(f"Configuration API not available: {e}")
 
+# Register all routers from the registry
+_registered_count = 0
+for _module_path, _router_attr, _prefix, _label in _ROUTER_REGISTRY:
+    try:
+        _module = importlib.import_module(_module_path)
+        _router = getattr(_module, _router_attr)
+        if _prefix:
+            app.include_router(_router, prefix=_prefix)
+        else:
+            app.include_router(_router)
+        _registered_count += 1
+        logger.debug(f"Registered: {_label}")
+    except ImportError as e:
+        logger.debug(f"{_label} not available: {e}")
+    except AttributeError as e:
+        logger.warning(f"{_label} missing router attribute '{_router_attr}': {e}")
 
-# =============================================================================
-# CPA PANEL API - CPA Decision Intelligence & Advisory Platform
-# =============================================================================
-try:
-    from cpa_panel.api import cpa_router
-    app.include_router(cpa_router, prefix="/api")
-    logger.info("CPA Panel API enabled")
-except ImportError as e:
-    logger.warning(f"CPA Panel API not available: {e}")
-
-
-# =============================================================================
-# ADMIN PANEL API - Firm & Platform Administration
-# =============================================================================
-try:
-    from admin_panel.api import admin_router
-    app.include_router(admin_router, prefix="/api/v1")
-    logger.info("Admin Panel API enabled")
-except ImportError as e:
-    logger.warning(f"Admin Panel API not available: {e}")
-
-
-# =============================================================================
-# CORE PLATFORM API - Unified API for All User Types
-# =============================================================================
-try:
-    from core import core_router
-    app.include_router(core_router)
-    logger.info("Core Platform API enabled at /api/core")
-except ImportError as e:
-    logger.warning(f"Core Platform API not available: {e}")
-
-
-# =============================================================================
-# SMART TAX API - Document-First Tax Preparation
-# =============================================================================
-try:
-    from web.smart_tax_api import router as smart_tax_router
-    app.include_router(smart_tax_router, prefix="/api")
-    logger.info("Smart Tax API enabled at /api/smart-tax")
-except ImportError as e:
-    logger.warning(f"Smart Tax API not available: {e}")
-
-# Unified Filing API (Express Lane, Smart Tax, AI Chat, Guided workflows)
-try:
-    from web.unified_filing_api import router as unified_filing_router
-    app.include_router(unified_filing_router)
-    logger.info("Unified Filing API enabled at /api/filing")
-except ImportError as e:
-    logger.warning(f"Unified Filing API not available: {e}")
-
-# Guided Filing API (Step-by-step tax filing workflow)
-try:
-    from web.guided_filing_api import router as guided_filing_router
-    app.include_router(guided_filing_router)
-    logger.info("Guided Filing API enabled at /api/filing/guided")
-except ImportError as e:
-    logger.warning(f"Guided Filing API not available: {e}")
-
-# Session Management API (Phase 2.2: Session endpoints for resume, transfer, etc.)
-try:
-    from web.sessions_api import router as sessions_router
-    app.include_router(sessions_router)
-    logger.info("Session Management API enabled at /api/sessions")
-except ImportError as e:
-    logger.warning(f"Session Management API not available: {e}")
-
-# Register Auto-Save API
-try:
-    from web.auto_save_api import router as auto_save_router
-    app.include_router(auto_save_router)
-    logger.info("Auto-Save API enabled at /api/auto-save")
-except ImportError as e:
-    logger.warning(f"Auto-Save API not available: {e}")
-
-# Register Advisory Reports API
-try:
-    from web.advisory_api import router as advisory_router
-    app.include_router(advisory_router)
-    logger.info("Advisory Reports API enabled at /api/v1/advisory-reports")
-except ImportError as e:
-    logger.warning(f"Advisory Reports API not available: {e}")
-
-# Register Audit Trail API (Compliance logging for all data changes)
-try:
-    from web.audit_api import router as audit_router
-    app.include_router(audit_router)
-    logger.info("Audit Trail API enabled at /api/v1/audit")
-except ImportError as e:
-    logger.warning(f"Audit Trail API not available: {e}")
-
-# Register Capital Gains / Form 8949 API
-try:
-    from web.capital_gains_api import router as capital_gains_router
-    app.include_router(capital_gains_router)
-    logger.info("Capital Gains API enabled at /api/v1/capital-gains")
-except ImportError as e:
-    logger.warning(f"Capital Gains API not available: {e}")
-
-# Register K-1 Basis Tracking API
-try:
-    from web.k1_basis_api import router as k1_basis_router
-    app.include_router(k1_basis_router)
-    logger.info("K-1 Basis Tracking API enabled at /api/v1/k1-basis")
-except ImportError as e:
-    logger.warning(f"K-1 Basis Tracking API not available: {e}")
-
-# Register Rental Property Depreciation API
-try:
-    from web.rental_depreciation_api import router as rental_depreciation_router
-    app.include_router(rental_depreciation_router)
-    logger.info("Rental Depreciation API enabled at /api/v1/rental-depreciation")
-except ImportError as e:
-    logger.warning(f"Rental Depreciation API not available: {e}")
-
-# Register Draft Forms PDF API
-try:
-    from web.draft_forms_api import router as draft_forms_router
-    app.include_router(draft_forms_router)
-    logger.info("Draft Forms API enabled at /api/v1/draft-forms")
-except ImportError as e:
-    logger.warning(f"Draft Forms API not available: {e}")
-
-# Register Unified Tax Advisor API - THE CORE INTELLIGENCE
-try:
-    from web.unified_advisor_api import router as unified_advisor_router
-    app.include_router(unified_advisor_router)
-    logger.info("Unified Tax Advisor API enabled at /api/v1/advisor")
-except ImportError as e:
-    logger.warning(f"Unified Tax Advisor API not available: {e}")
-
-# Register AI Chat API
-try:
-    from web.ai_chat_api import router as ai_chat_router
-    app.include_router(ai_chat_router)
-    logger.info("AI Chat API enabled at /api/ai-chat")
-except ImportError as e:
-    logger.warning(f"AI Chat API not available: {e}")
-
-# Register Intelligent Advisor API (World-Class Tax Chatbot)
-try:
-    from web.intelligent_advisor_api import router as intelligent_advisor_router
-    app.include_router(intelligent_advisor_router)
-    logger.info("Intelligent Advisor API enabled at /api/advisor")
-except ImportError as e:
-    logger.warning(f"Intelligent Advisor API not available: {e}")
-
-# Register Scenarios API (What-If Analysis) - Modular Router
-try:
-    from web.routers.scenarios import router as scenarios_router
-    app.include_router(scenarios_router)
-    logger.info("Scenarios API enabled at /api/scenarios")
-except ImportError as e:
-    logger.warning(f"Scenarios API not available: {e}")
-
-# Register Lead Magnet Pages (HTML Templates)
-try:
-    from web.lead_magnet_pages import lead_magnet_pages_router
-    app.include_router(lead_magnet_pages_router)
-    logger.info("Lead Magnet Pages enabled at /lead-magnet")
-except ImportError as e:
-    logger.warning(f"Lead Magnet Pages not available: {e}")
-
-# Register CPA Dashboard Pages (HTML Templates)
-try:
-    from web.cpa_dashboard_pages import cpa_dashboard_router
-    app.include_router(cpa_dashboard_router)
-    logger.info("CPA Dashboard Pages enabled at /cpa")
-except ImportError as e:
-    logger.warning(f"CPA Dashboard Pages not available: {e}")
-
-# Register Funnel Orchestration API (CONVERT + MATCH + FACILITATE)
-try:
-    from cpa_panel.api.funnel_routes import funnel_router
-    app.include_router(funnel_router, prefix="/api/cpa")
-    logger.info("Funnel Orchestration API enabled at /api/cpa/funnel")
-except ImportError as e:
-    logger.warning(f"Funnel Orchestration API not available: {e}")
-
-# Register CPA Branding API (Personal branding for CPAs/Staff)
-try:
-    from web.cpa_branding_api import router as cpa_branding_router
-    app.include_router(cpa_branding_router)
-    logger.info("CPA Branding API enabled at /api/cpa/branding")
-except ImportError as e:
-    logger.warning(f"CPA Branding API not available: {e}")
-
-# Register Filing Package Export API (Structured data export for tax software)
-try:
-    from web.filing_package_api import router as filing_package_router
-    app.include_router(filing_package_router)
-    logger.info("Filing Package API enabled at /api/filing-package")
-except ImportError as e:
-    logger.warning(f"Filing Package API not available: {e}")
-
-# Register Custom Domain API (DNS verification flow)
-try:
-    from web.custom_domain_api import router as custom_domain_router
-    app.include_router(custom_domain_router)
-    logger.info("Custom Domain API enabled at /api/custom-domain")
-except ImportError as e:
-    logger.warning(f"Custom Domain API not available: {e}")
-
-# Register MFA/2FA API (TOTP-based two-factor authentication)
-try:
-    from web.mfa_api import router as mfa_router
-    app.include_router(mfa_router)
-    logger.info("MFA API enabled at /api/mfa")
-except ImportError as e:
-    logger.warning(f"MFA API not available: {e}")
-
-# Register Health Check and Monitoring Routes
-try:
-    from web.routers.health import router as health_router
-    app.include_router(health_router)
-    logger.info("Health check endpoints enabled at /health")
-except ImportError as e:
-    logger.warning(f"Health check routes not available: {e}")
-
-# =============================================================================
-# SPEC-005: MODULAR ROUTERS (Extracted from app.py)
-# =============================================================================
-
-# Register Pages Router (HTML UI pages)
-# DISABLED: pages.py routes duplicate app.py routes and lack proper context (branding, etc.)
-# All page routes are defined directly in app.py with full functionality
-# try:
-#     from web.routers.pages import router as pages_router, set_templates
-#     app.include_router(pages_router)
-#     logger.info("Pages router enabled")
-# except ImportError as e:
-#     logger.warning(f"Pages router not available: {e}")
-logger.info("Pages router disabled - using app.py routes")
-
-# DISABLED: Documents router duplicates routes in app.py which have proper auth/rate limiting
-# The app.py routes at /api/upload, /api/upload/async, etc. should be used instead
-# try:
-#     from web.routers.documents import router as documents_router
-#     app.include_router(documents_router)
-#     logger.info("Documents router enabled at /api/documents")
-# except ImportError as e:
-#     logger.warning(f"Documents router not available: {e}")
-logger.info("Documents router disabled - using app.py document routes")
-
-# Register Returns Router (Tax return CRUD/workflow)
-try:
-    from web.routers.returns import router as returns_router
-    app.include_router(returns_router)
-    logger.info("Returns router enabled at /api/returns")
-except ImportError as e:
-    logger.warning(f"Returns router not available: {e}")
-
-# Register Calculations Router (Tax calculations)
-try:
-    from web.routers.calculations import router as calculations_router
-    app.include_router(calculations_router)
-    logger.info("Calculations router enabled at /api/calculate")
-except ImportError as e:
-    logger.warning(f"Calculations router not available: {e}")
-
-# Register Validation Router (Field validation)
-try:
-    from web.routers.validation import router as validation_router
-    app.include_router(validation_router)
-    logger.info("Validation router enabled at /api/validate")
-except ImportError as e:
-    logger.warning(f"Validation router not available: {e}")
-
-# Register Webhooks Router (Enterprise feature)
-try:
-    from webhooks.router import router as webhooks_router
-    app.include_router(webhooks_router)
-    logger.info("Webhooks router enabled at /api/webhooks")
-except ImportError as e:
-    logger.warning(f"Webhooks router not available: {e}")
-
-# =============================================================================
-# NEW API ROUTERS - UI/Backend Gap Implementation
-# =============================================================================
-
-# Register Support Tickets API (CPA Firms)
-try:
-    from web.routers.support_api import router as support_router
-    app.include_router(support_router)
-    logger.info("Support Tickets API enabled at /api/cpa/support")
-except ImportError as e:
-    logger.warning(f"Support Tickets API not available: {e}")
-
-# Register Admin Impersonation API (Platform Admins)
-try:
-    from web.routers.admin_impersonation_api import router as impersonation_router
-    app.include_router(impersonation_router)
-    logger.info("Admin Impersonation API enabled at /api/admin/impersonation")
-except ImportError as e:
-    logger.warning(f"Admin Impersonation API not available: {e}")
-
-# Register Admin API Keys API (Firm Partners)
-try:
-    from web.routers.admin_api_keys_api import router as api_keys_router
-    app.include_router(api_keys_router)
-    logger.info("Admin API Keys API enabled at /api/admin/api-keys")
-except ImportError as e:
-    logger.warning(f"Admin API Keys API not available: {e}")
-
-# Register Admin Refunds API (Platform Admins)
-try:
-    from web.routers.admin_refunds_api import router as refunds_router
-    app.include_router(refunds_router)
-    logger.info("Admin Refunds API enabled at /api/admin/refunds")
-except ImportError as e:
-    logger.warning(f"Admin Refunds API not available: {e}")
-
-# Register Admin Compliance API (Platform Admins)
-try:
-    from web.routers.admin_compliance_api import router as compliance_router
-    app.include_router(compliance_router)
-    logger.info("Admin Compliance API enabled at /api/admin/compliance")
-except ImportError as e:
-    logger.warning(f"Admin Compliance API not available: {e}")
+logger.info(f"Registered {_registered_count}/{len(_ROUTER_REGISTRY)} optional routers")
 
 
 # =============================================================================
@@ -912,7 +672,7 @@ def _create_html_error_page(status_code: int, message: str, detail: str = "") ->
             .error-code {{
                 font-size: 72px;
                 font-weight: 700;
-                color: #1e40af;
+                color: #1e3a5f;
                 line-height: 1;
                 margin-bottom: 16px;
             }}
@@ -930,14 +690,14 @@ def _create_html_error_page(status_code: int, message: str, detail: str = "") ->
             .btn {{
                 display: inline-block;
                 padding: 12px 24px;
-                background: #1e40af;
+                background: #1e3a5f;
                 color: white;
                 text-decoration: none;
                 border-radius: 8px;
                 font-weight: 500;
                 transition: background 0.2s;
             }}
-            .btn:hover {{ background: #1d4ed8; }}
+            .btn:hover {{ background: #152b47; }}
             .btn-secondary {{
                 background: #f3f4f6;
                 color: #374151;
@@ -1022,7 +782,7 @@ def safe_float(value: Any, default: float = 0.0, min_val: float = 0.0, max_val: 
             return min_val
         if result > max_val:
             return max_val
-        return round(result, 2)  # Consistent 2 decimal places for currency
+        return float(money(result))  # Consistent 2 decimal places for currency
     except (ValueError, TypeError):
         logger.warning(f"Invalid float value: {value}, using default {default}")
         return default
@@ -1045,16 +805,16 @@ def safe_int(value: Any, default: int = 0, min_val: int = 0, max_val: int = 100)
 
 
 def validate_ssn(ssn: str) -> tuple[bool, str]:
-    """Validate SSN format. Returns (is_valid, cleaned_ssn)."""
+    """Validate SSN format. Returns (is_valid, cleaned_ssn_or_original).
+
+    Delegates to web.validation_helpers.validate_ssn for validation rules.
+    """
+    from web.validation_helpers import validate_ssn as _canonical_validate_ssn
     if not ssn:
         return True, ""  # Empty is allowed
     cleaned = re.sub(r'[^0-9]', '', ssn)
-    if len(cleaned) != 9:
-        return False, ssn
-    # Invalid SSN patterns per IRS rules
-    if cleaned.startswith('000') or cleaned.startswith('666') or cleaned.startswith('9'):
-        return False, ssn
-    if cleaned[3:5] == '00' or cleaned[5:] == '0000':
+    is_valid, _error = _canonical_validate_ssn(ssn)
+    if not is_valid:
         return False, ssn
     # Format as XXX-XX-XXXX
     formatted = f"{cleaned[:3]}-{cleaned[3:5]}-{cleaned[5:]}"
@@ -1062,11 +822,16 @@ def validate_ssn(ssn: str) -> tuple[bool, str]:
 
 
 def validate_ein(ein: str) -> tuple[bool, str]:
-    """Validate EIN format. Returns (is_valid, cleaned_ein)."""
+    """Validate EIN format. Returns (is_valid, cleaned_ein_or_original).
+
+    Delegates to web.validation_helpers.validate_ein for validation rules.
+    """
+    from web.validation_helpers import validate_ein as _canonical_validate_ein
     if not ein:
         return True, ""  # Empty is allowed
     cleaned = re.sub(r'[^0-9]', '', ein)
-    if len(cleaned) != 9:
+    is_valid, _error = _canonical_validate_ein(ein)
+    if not is_valid:
         return False, ein
     # Format as XX-XXXXXXX
     formatted = f"{cleaned[:2]}-{cleaned[2:]}"
@@ -1074,15 +839,9 @@ def validate_ein(ein: str) -> tuple[bool, str]:
 
 
 def validate_state_code(code: str) -> bool:
-    """Validate US state code."""
-    valid_states = {
-        'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', 'GA',
-        'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA',
-        'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY',
-        'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX',
-        'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
-    }
-    return code.upper() in valid_states if code else True
+    """Validate US state code. Delegates to validation_helpers."""
+    from web.validation_helpers import validate_state_code as _canonical_validate_state
+    return _canonical_validate_state(code)
 
 
 def validate_date(date_str: str) -> tuple[bool, Optional[str]]:
@@ -1977,6 +1736,17 @@ def unified_client_portal(request: Request):
             "meta_description": branding.meta_description,
         }
     })
+
+
+@app.get("/admin/api-keys", response_class=HTMLResponse)
+def admin_api_keys_page(request: Request):
+    """
+    API Keys Management - Platform Admin.
+
+    Dedicated page for managing API keys, tokens, and integrations.
+    Separate from main admin SPA for focused key management workflow.
+    """
+    return templates.TemplateResponse("admin_api_keys.html", {"request": request})
 
 
 @app.get("/admin", response_class=HTMLResponse)
@@ -3988,13 +3758,13 @@ async def calculate_tax_advisory(request: Request):
 
         # Standard deduction thresholds (2025)
         standard_deductions = {
-            "single": 15000,
-            "married_joint": 30000,
-            "head_of_household": 22500,
-            "married_separate": 15000,
-            "qualifying_widow": 30000
+            "single": 15750,
+            "married_joint": 31500,
+            "head_of_household": 23850,
+            "married_separate": 15750,
+            "qualifying_widow": 31500
         }
-        standard_ded = standard_deductions.get(filing_status, 15000)
+        standard_ded = standard_deductions.get(filing_status, 15750)
 
         # Estimate savings from itemizing if applicable
         total_itemized = mortgage_interest + charitable
@@ -4019,7 +3789,7 @@ async def calculate_tax_advisory(request: Request):
             "state_tax": estimate.estimated_state_tax,
             "effective_rate": estimate.effective_rate,
             "marginal_rate": estimate.marginal_rate,
-            "potential_savings": round(potential_savings, 2),
+            "potential_savings": float(money(potential_savings)),
             "estimated_refund": estimate.estimated_amount if estimate.estimate_type.value == "refund" else 0,
             "estimated_owed": estimate.estimated_amount if estimate.estimate_type.value == "owed" else 0,
             "is_refund": estimate.estimate_type.value == "refund",
@@ -4045,14 +3815,14 @@ async def calculate_tax_advisory(request: Request):
             tax = 40199 + (taxable_income - 197300) * 0.32
 
         return JSONResponse({
-            "total_tax": round(tax, 2),
-            "federal_tax": round(tax, 2),
+            "total_tax": float(money(tax)),
+            "federal_tax": float(money(tax)),
             "state_tax": 0,
-            "effective_rate": round((tax / wages * 100) if wages > 0 else 0, 2),
+            "effective_rate": float(money((tax / wages * 100) if wages > 0 else 0)),
             "marginal_rate": 22,
-            "potential_savings": round(wages * 0.05, 2),  # Estimate 5% savings opportunity
+            "potential_savings": float(money(wages * 0.05)),  # Estimate 5% savings opportunity
             "estimated_refund": 0,
-            "estimated_owed": round(tax, 2),
+            "estimated_owed": float(money(tax)),
             "is_refund": False,
             "confidence": "low"
         })
@@ -5164,20 +4934,20 @@ async def calculate_delta(session_id: str, request: Request):
             "refund_or_owed": current_refund,
         },
         "after": {
-            "adjusted_gross_income": round(estimated_new_agi, 2),
-            "taxable_income": round(estimated_new_taxable, 2),
-            "tax_liability": round(estimated_new_liability, 2),
-            "refund_or_owed": round(estimated_new_refund, 2),
+            "adjusted_gross_income": float(money(estimated_new_agi)),
+            "taxable_income": float(money(estimated_new_taxable)),
+            "tax_liability": float(money(estimated_new_liability)),
+            "refund_or_owed": float(money(estimated_new_refund)),
         },
         "delta_metrics": {
-            "agi_change": round(estimated_new_agi - current_agi, 2),
-            "taxable_change": round(estimated_new_taxable - current_taxable, 2),
-            "liability_change": round(estimated_tax_change, 2),
-            "refund_change": round(estimated_new_refund - current_refund, 2),
+            "agi_change": float(money(estimated_new_agi - current_agi)),
+            "taxable_change": float(money(estimated_new_taxable - current_taxable)),
+            "liability_change": float(money(estimated_tax_change)),
+            "refund_change": float(money(estimated_new_refund - current_refund)),
         },
         "percentage_changes": {
-            "liability_pct": round((estimated_tax_change / current_liability) * 100, 2) if current_liability else 0,
-            "refund_pct": round(((estimated_new_refund - current_refund) / abs(current_refund)) * 100, 2) if current_refund else 0,
+            "liability_pct": float(money((estimated_tax_change / current_liability) * 100)) if current_liability else 0,
+            "refund_pct": float(money(((estimated_new_refund - current_refund) / abs(current_refund)) * 100)) if current_refund else 0,
         },
         "marginal_rate_used": marginal_rate,
         "visualization": {
@@ -5413,17 +5183,17 @@ async def get_tax_drivers(session_id: str, request: Request):
         else:
             # Standard deduction
             standard_amounts = {
-                "single": 15000, "married_joint": 30000, "married_separate": 15000,
-                "head_of_household": 22500, "widow": 30000
+                "single": 15750, "married_joint": 31500, "married_separate": 15750,
+                "head_of_household": 23850, "widow": 31500
             }
             status = tax_return.taxpayer.filing_status.value if tax_return.taxpayer else "single"
             deduction_impact = {
                 "type": "standard",
-                "amount": standard_amounts.get(status, 15000),
+                "amount": standard_amounts.get(status, 15750),
             }
 
     marginal_rate = _get_marginal_rate(tax_return)
-    deduction_impact["tax_savings"] = round(deduction_impact["amount"] * marginal_rate, 2)
+    deduction_impact["tax_savings"] = float(money(deduction_impact["amount"] * marginal_rate))
 
     # Credit utilization
     credits = tax_return.credits
@@ -5508,8 +5278,8 @@ async def get_tax_drivers(session_id: str, request: Request):
             "tax_liability": tax_return.tax_liability or 0,
             "total_deductions": deduction_impact["amount"],
             "total_credits": total_credits,
-            "effective_rate": round(effective_rate * 100, 2),
-            "marginal_rate": round(marginal_rate * 100, 2),
+            "effective_rate": float(money(effective_rate * 100)),
+            "marginal_rate": float(money(marginal_rate * 100)),
         },
         "income_breakdown": income_breakdown,
         "deduction_impact": deduction_impact,
@@ -5587,16 +5357,16 @@ async def compare_scenarios(session_id: str, request: Request):
 
         scenarios.append({
             "name": name,
-            "adjusted_gross_income": round(base_case["adjusted_gross_income"] + agi_delta, 2),
-            "taxable_income": round(base_case["taxable_income"] + taxable_delta, 2),
-            "tax_liability": round(base_case["tax_liability"] + tax_change, 2),
-            "refund_or_owed": round(base_case["refund_or_owed"] - tax_change, 2),
+            "adjusted_gross_income": float(money(base_case["adjusted_gross_income"] + agi_delta)),
+            "taxable_income": float(money(base_case["taxable_income"] + taxable_delta)),
+            "tax_liability": float(money(base_case["tax_liability"] + tax_change)),
+            "refund_or_owed": float(money(base_case["refund_or_owed"] - tax_change)),
             "adjustments": adjustments,
             "delta_from_base": {
-                "agi": round(agi_delta, 2),
-                "taxable": round(taxable_delta, 2),
-                "tax": round(tax_change, 2),
-                "refund": round(-tax_change, 2),
+                "agi": float(money(agi_delta)),
+                "taxable": float(money(taxable_delta)),
+                "tax": float(money(tax_change)),
+                "refund": float(money(-tax_change)),
             }
         })
 
@@ -5613,7 +5383,7 @@ async def compare_scenarios(session_id: str, request: Request):
             "best_tax": best_scenario["tax_liability"],
             "worst_scenario": worst_scenario["name"],
             "worst_tax": worst_scenario["tax_liability"],
-            "max_savings": round(worst_scenario["tax_liability"] - best_scenario["tax_liability"], 2),
+            "max_savings": float(money(worst_scenario["tax_liability"] - best_scenario["tax_liability"])),
         },
         "marginal_rate_used": marginal_rate,
         "visualization": {
@@ -6521,28 +6291,28 @@ async def analyze_retirement(request_body: RetirementAnalysisRequest, request: R
                 "name": "+Max 401k",
                 "total_contributions": limit_401k + request_body.current_ira + request_body.current_hsa,
                 "additional_contribution": room_401k,
-                "tax_savings": round(room_401k * marginal_rate, 2),
+                "tax_savings": float(money(room_401k * marginal_rate)),
                 "is_current": False
             },
             {
                 "name": "+Add IRA",
                 "total_contributions": request_body.current_401k + limit_ira + request_body.current_hsa,
                 "additional_contribution": room_ira,
-                "tax_savings": round(room_ira * marginal_rate, 2),
+                "tax_savings": float(money(room_ira * marginal_rate)),
                 "is_current": False
             },
             {
                 "name": "+Max HSA",
                 "total_contributions": request_body.current_401k + request_body.current_ira + limit_hsa,
                 "additional_contribution": room_hsa,
-                "tax_savings": round(room_hsa * marginal_rate, 2),
+                "tax_savings": float(money(room_hsa * marginal_rate)),
                 "is_current": False
             },
             {
                 "name": "+Max All",
                 "total_contributions": limit_401k + limit_ira + limit_hsa,
                 "additional_contribution": room_401k + room_ira + room_hsa,
-                "tax_savings": round((room_401k + room_ira + room_hsa) * marginal_rate, 2),
+                "tax_savings": float(money((room_401k + room_ira + room_hsa) * marginal_rate)),
                 "is_current": False,
                 "is_recommended": True
             }
@@ -6568,7 +6338,7 @@ async def analyze_retirement(request_body: RetirementAnalysisRequest, request: R
                 }
             },
             "total_room": room_401k + room_ira + room_hsa,
-            "max_tax_savings": round((room_401k + room_ira + room_hsa) * marginal_rate, 2),
+            "max_tax_savings": float(money((room_401k + room_ira + room_hsa) * marginal_rate)),
             "marginal_rate": marginal_rate,
             "scenarios": scenarios,
             "roth_vs_traditional": {
@@ -6788,7 +6558,7 @@ async def get_smart_insights(request: Request):
         return JSONResponse({
             "success": True,
             "insights": insights,
-            "total_potential_savings": round(total_savings, 2),
+            "total_potential_savings": float(money(total_savings)),
             "insight_count": len(insights),
             "warnings": warnings[:3],  # Top 3 warnings
             "warning_count": len(warnings),

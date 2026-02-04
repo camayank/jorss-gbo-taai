@@ -252,7 +252,7 @@ class TaxYearConfig:
             "single": 15750.0,
             "married_joint": 31500.0,
             "married_separate": 15750.0,
-            "head_of_household": 23625.0,
+            "head_of_household": 23850.0,
             "qualifying_widow": 31500.0,
         }
 

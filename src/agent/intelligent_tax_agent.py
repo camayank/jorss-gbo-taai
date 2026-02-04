@@ -15,12 +15,15 @@ Resolves Gap #1: AI Intake Intelligence
 import os
 import re
 import json
+import logging
 from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, date
 from enum import Enum
 
 from openai import OpenAI
+
+logger = logging.getLogger(__name__)
 
 from models.tax_return import TaxReturn
 from models.taxpayer import TaxpayerInfo, FilingStatus, Dependent
@@ -185,7 +188,9 @@ def calculate_entity_confidence(entity_type: str, value: Any) -> ExtractionConfi
         # Default: return medium confidence for unvalidated fields
         return ExtractionConfidence.MEDIUM
 
-    except Exception:
+    except (ValueError, TypeError, AttributeError, KeyError) as e:
+        import logging
+        logging.getLogger(__name__).debug(f"Entity confidence check failed: {e}")
         return ExtractionConfidence.UNCERTAIN
 
 
@@ -624,9 +629,12 @@ Let's start with the basics. What's your first name?"""
 
                 return entities
 
-        except Exception as e:
-            print(f"AI extraction failed: {e}")
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            logger.warning(f"AI extraction failed, using fallback: {e}")
             # Fallback to basic extraction
+            return self._basic_extraction_fallback(user_input)
+        except Exception as e:
+            logger.exception(f"Unexpected error in AI extraction: {e}")
             return self._basic_extraction_fallback(user_input)
 
         return []
@@ -958,8 +966,8 @@ Let's start with the basics. What's your first name?"""
                 # Run SSTB classification whenever we have business info
                 self._classify_sstb()
 
-        except (ValueError, AttributeError) as e:
-            print(f"Error applying entity {entity.entity_type}: {e}")
+        except (ValueError, AttributeError, TypeError) as e:
+            logger.warning(f"Error applying entity {entity.entity_type}: {e}")
 
     def _classify_sstb(self):
         """
@@ -1070,8 +1078,11 @@ Let's start with the basics. What's your first name?"""
 
             return result
 
+        except (ValueError, TypeError, KeyError) as e:
+            logger.warning(f"Error calculating running estimate: {e}")
+            return None
         except Exception as e:
-            print(f"Error calculating running estimate: {e}")
+            logger.exception(f"Unexpected error in running estimate calculation: {e}")
             return None
 
     def get_running_estimate_message(self) -> Optional[str]:

@@ -22,15 +22,19 @@ Usage:
         return {"client_id": ...}
 """
 
+import logging
 from typing import Optional, Set, Union, Callable
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import jwt
 
 from .roles import Role, PLATFORM_ROLES
 from .permissions import Permission
 from .context import AuthContext, UserType
+
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -115,7 +119,20 @@ async def get_auth_context(
         request.state.auth_context = ctx
         return ctx
 
-    except Exception:
+    except jwt.ExpiredSignatureError:
+        # Token expired - this is expected, return anonymous
+        return AuthContext.anonymous()
+    except jwt.InvalidTokenError as e:
+        # Invalid token format/signature - log for monitoring
+        logger.debug(f"Invalid JWT token: {e}")
+        return AuthContext.anonymous()
+    except (ValueError, KeyError, TypeError) as e:
+        # Malformed token payload - log for debugging
+        logger.debug(f"Malformed token payload: {e}")
+        return AuthContext.anonymous()
+    except (AttributeError, UnicodeDecodeError) as e:
+        # Structural token issues not covered above
+        logger.warning(f"Unexpected token structure error in auth context: {type(e).__name__}: {e}")
         return AuthContext.anonymous()
 
 

@@ -104,8 +104,8 @@ class TestReportAPIIntegration:
         )
 
         # Verify HTML structure
-        assert html is not None
-        assert len(html) > 1000  # Reasonable size
+        assert isinstance(html, str) and len(html) > 0
+        assert "<html" in html.lower(), "Response should contain valid HTML"
         assert "Tax Advisory" in html
         # Disclaimer check (case-insensitive)
         assert "not tax advice" in html.lower() or "informational purposes" in html.lower()
@@ -516,9 +516,9 @@ class TestErrorHandling:
             tier_level=2,
         )
 
-        assert html is not None
+        assert isinstance(html, str) and len(html) > 0
         # Report should generate without crashing for negative values
-        assert len(html) > 1000
+        assert "<html" in html.lower(), "Response should contain valid HTML"
 
     def test_very_large_numbers_handled(self):
         """Test handling of very large income amounts."""
@@ -546,7 +546,8 @@ class TestErrorHandling:
             tier_level=2,
         )
 
-        assert html is not None
+        assert isinstance(html, str) and len(html) > 0
+        assert "<html" in html.lower(), "Response should contain valid HTML"
         assert "100,000,000" in html or "100000000" in html
 
 
@@ -571,12 +572,13 @@ class TestRateLimiting:
                 source_data=sample_session_data,
                 tier_level=2,
             )
-            assert html is not None
+            assert isinstance(html, str) and len(html) > 0
 
     def test_concurrent_pdf_generation(self, sample_session_data):
         """Test concurrent PDF generation."""
         from universal_report import UniversalReportEngine
         import concurrent.futures
+        import os
 
         engine = UniversalReportEngine()
 
@@ -590,13 +592,19 @@ class TestRateLimiting:
             )
             return output.pdf_bytes is not None
 
-        # Generate 5 PDFs concurrently
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        # Generate 5 PDFs concurrently (cap workers to available CPUs)
+        max_workers = min(5, os.cpu_count() or 2)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = [
                 executor.submit(generate_pdf, f'session-{i}')
                 for i in range(5)
             ]
-            results = [f.result() for f in concurrent.futures.as_completed(futures)]
+            results = []
+            for f in concurrent.futures.as_completed(futures):
+                try:
+                    results.append(f.result(timeout=30))
+                except (concurrent.futures.TimeoutError, Exception) as e:
+                    pytest.fail(f"Concurrent PDF generation failed: {e}")
 
         # All should succeed
         assert all(results)

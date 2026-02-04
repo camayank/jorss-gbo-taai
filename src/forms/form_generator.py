@@ -4,6 +4,8 @@ Generate tax forms (Form 1040 and schedules) from completed tax return
 from __future__ import annotations
 
 from typing import Dict, Any, TYPE_CHECKING
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 if TYPE_CHECKING:
     from models.tax_return import TaxReturn
@@ -240,17 +242,17 @@ class FormGenerator:
             # Expenses (simplified breakdown)
             "line_5_advertising": 0.0,
             "line_6_auto_travel": 0.0,
-            "line_7_cleaning_maintenance": round(rental_expenses * 0.15, 2) if rental_expenses > 0 else 0.0,
+            "line_7_cleaning_maintenance": float(money(rental_expenses * 0.15)) if rental_expenses > 0 else 0.0,
             "line_8_commissions": 0.0,
-            "line_9_insurance": round(rental_expenses * 0.10, 2) if rental_expenses > 0 else 0.0,
+            "line_9_insurance": float(money(rental_expenses * 0.10)) if rental_expenses > 0 else 0.0,
             "line_10_legal_professional": 0.0,
-            "line_11_management_fees": round(rental_expenses * 0.10, 2) if rental_expenses > 0 else 0.0,
-            "line_12_mortgage_interest": round(rental_expenses * 0.30, 2) if rental_expenses > 0 else 0.0,
+            "line_11_management_fees": float(money(rental_expenses * 0.10)) if rental_expenses > 0 else 0.0,
+            "line_12_mortgage_interest": float(money(rental_expenses * 0.30)) if rental_expenses > 0 else 0.0,
             "line_13_other_interest": 0.0,
-            "line_14_repairs": round(rental_expenses * 0.15, 2) if rental_expenses > 0 else 0.0,
+            "line_14_repairs": float(money(rental_expenses * 0.15)) if rental_expenses > 0 else 0.0,
             "line_15_supplies": 0.0,
-            "line_16_taxes": round(rental_expenses * 0.15, 2) if rental_expenses > 0 else 0.0,
-            "line_17_utilities": round(rental_expenses * 0.05, 2) if rental_expenses > 0 else 0.0,
+            "line_16_taxes": float(money(rental_expenses * 0.15)) if rental_expenses > 0 else 0.0,
+            "line_17_utilities": float(money(rental_expenses * 0.05)) if rental_expenses > 0 else 0.0,
             "line_18_depreciation": 0.0,  # Would need cost basis and placed-in-service date
             "line_19_other": 0.0,
             "line_20_total_expenses": rental_expenses,
@@ -339,26 +341,26 @@ class FormGenerator:
             "line_7_gross_income": gross_receipts,
 
             # Part II - Expenses (simplified)
-            "line_8_advertising": round(total_expenses * 0.05, 2) if total_expenses > 0 else 0.0,
-            "line_9_car_truck": round(total_expenses * 0.10, 2) if total_expenses > 0 else 0.0,
+            "line_8_advertising": float(money(total_expenses * 0.05)) if total_expenses > 0 else 0.0,
+            "line_9_car_truck": float(money(total_expenses * 0.10)) if total_expenses > 0 else 0.0,
             "line_10_commissions": 0.0,
-            "line_11_contract_labor": round(total_expenses * 0.15, 2) if total_expenses > 0 else 0.0,
+            "line_11_contract_labor": float(money(total_expenses * 0.15)) if total_expenses > 0 else 0.0,
             "line_12_depletion": 0.0,
-            "line_13_depreciation": round(total_expenses * 0.10, 2) if total_expenses > 0 else 0.0,
+            "line_13_depreciation": float(money(total_expenses * 0.10)) if total_expenses > 0 else 0.0,
             "line_14_employee_benefits": 0.0,
-            "line_15_insurance": round(total_expenses * 0.05, 2) if total_expenses > 0 else 0.0,
+            "line_15_insurance": float(money(total_expenses * 0.05)) if total_expenses > 0 else 0.0,
             "line_16a_mortgage_interest": 0.0,
             "line_16b_other_interest": 0.0,
-            "line_17_legal_professional": round(total_expenses * 0.05, 2) if total_expenses > 0 else 0.0,
-            "line_18_office_expense": round(total_expenses * 0.10, 2) if total_expenses > 0 else 0.0,
+            "line_17_legal_professional": float(money(total_expenses * 0.05)) if total_expenses > 0 else 0.0,
+            "line_18_office_expense": float(money(total_expenses * 0.10)) if total_expenses > 0 else 0.0,
             "line_19_pension_plans": 0.0,
             "line_20a_rent_vehicles": 0.0,
-            "line_20b_rent_other": round(total_expenses * 0.10, 2) if total_expenses > 0 else 0.0,
-            "line_21_repairs": round(total_expenses * 0.05, 2) if total_expenses > 0 else 0.0,
-            "line_22_supplies": round(total_expenses * 0.10, 2) if total_expenses > 0 else 0.0,
-            "line_23_taxes_licenses": round(total_expenses * 0.05, 2) if total_expenses > 0 else 0.0,
-            "line_24a_travel": round(total_expenses * 0.05, 2) if total_expenses > 0 else 0.0,
-            "line_24b_meals": round(total_expenses * 0.05, 2) if total_expenses > 0 else 0.0,
+            "line_20b_rent_other": float(money(total_expenses * 0.10)) if total_expenses > 0 else 0.0,
+            "line_21_repairs": float(money(total_expenses * 0.05)) if total_expenses > 0 else 0.0,
+            "line_22_supplies": float(money(total_expenses * 0.10)) if total_expenses > 0 else 0.0,
+            "line_23_taxes_licenses": float(money(total_expenses * 0.05)) if total_expenses > 0 else 0.0,
+            "line_24a_travel": float(money(total_expenses * 0.05)) if total_expenses > 0 else 0.0,
+            "line_24b_meals": float(money(total_expenses * 0.05)) if total_expenses > 0 else 0.0,
             "line_25_utilities": 0.0,
             "line_26_wages": 0.0,
             "line_27a_other_expenses": 0.0,

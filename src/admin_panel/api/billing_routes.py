@@ -12,6 +12,7 @@ All routes use database-backed queries.
 
 import json
 import logging
+import os
 from typing import Optional, List
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -30,6 +31,7 @@ from ..auth.rbac import (
 )
 from ..models.user import UserPermission
 from database.async_engine import get_async_session
+from calculator.decimal_math import money, to_decimal
 
 router = APIRouter(prefix="/billing", tags=["Billing"])
 logger = logging.getLogger(__name__)
@@ -361,7 +363,7 @@ async def get_usage_metrics(
         },
         api_calls=None if not features.get("api_access") else {"this_period": 0, "limit": None},
         storage={
-            "used_gb": round(storage_used, 2),
+            "used_gb": float(money(storage_used)),
             "limit_gb": storage_limit,
             "percent_used": calc_percent(storage_used, storage_limit),
         },
@@ -563,8 +565,8 @@ async def preview_upgrade(
     return PlanComparison(
         current_plan=current_plan,
         target_plan=target_plan,
-        price_difference=round(price_difference, 2),
-        prorated_amount=round(prorated_amount, 2),
+        price_difference=float(money(price_difference)),
+        prorated_amount=float(money(prorated_amount)),
         effective_date=datetime.utcnow() if price_difference > 0 else period_end or datetime.utcnow(),
         features_gained=features_gained,
         features_lost=features_lost,
@@ -685,7 +687,7 @@ async def upgrade_plan(
         "details": json.dumps({
             "from_plan": current_row[1],
             "to_plan": target_plan_code,
-            "prorated_charge": round(prorated_charge, 2),
+            "prorated_charge": float(money(prorated_charge)),
         }),
         "created_at": now.isoformat(),
     })
@@ -693,14 +695,21 @@ async def upgrade_plan(
     await session.commit()
     logger.info(f"Plan upgraded for firm {firm_id} to {target_plan_code} by {user.email}")
 
-    # TODO: Trigger Stripe charge for prorated amount
+    # Stripe charge for prorated amount
+    stripe_key = os.environ.get("STRIPE_SECRET_KEY")
+    if stripe_key and prorated_charge > 0:
+        logger.warning(
+            f"Stripe charge not yet integrated: ${prorated_charge:.2f} for firm {firm_id}. "
+            f"Manual billing required."
+        )
 
     return {
         "status": "success",
         "message": "Plan upgraded successfully",
         "new_plan": target_plan_code,
         "effective_immediately": True,
-        "prorated_charge": round(prorated_charge, 2),
+        "prorated_charge": float(money(prorated_charge)),
+        "billing_note": "Stripe billing integration pending" if not stripe_key else None,
     }
 
 
@@ -992,10 +1001,13 @@ async def update_payment_method(
             detail="No active subscription found",
         )
 
-    # Store payment method reference (actual Stripe call would happen here)
-    # TODO: Integrate with Stripe to attach payment method to customer
-    # stripe.PaymentMethod.attach(payment_method_id, customer=sub_row[1])
-    # stripe.Customer.modify(sub_row[1], invoice_settings={'default_payment_method': payment_method_id})
+    # Stripe payment method attachment
+    stripe_key = os.environ.get("STRIPE_SECRET_KEY")
+    if stripe_key:
+        logger.warning(
+            f"Stripe payment method attachment not yet integrated for firm {firm_id}. "
+            f"Payment method stored locally only."
+        )
 
     # For now, store the payment method ID in the subscription
     update_query = text("""

@@ -5,13 +5,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Smart Tax - Quick & Easy Tax Filing</title>
+  <link rel="stylesheet" href="/static/css/core/variables.css">
+  <link rel="stylesheet" href="/static/css/core/reset.css">
+  <link rel="stylesheet" href="/static/css/core/typography.css">
+  <link rel="stylesheet" href="/static/css/unified-theme.css">
   <style>
     :root {
       /* Primary Colors - Indigo (Unified Design System) */
-      --primary: #6366f1;
-      --primary-dark: #4f46e5;
-      --primary-light: #818cf8;
-      --primary-50: #eef2ff;
+      --primary: #1e3a5f;
+      --primary-dark: #152b47;
+      --primary-light: #5387c1;
+      --primary-50: #eef3f9;
 
       /* Accent - Success Green for positive outcomes */
       --accent: #10b981;
@@ -36,8 +40,8 @@
       --warning-light: #fef3c7;
       --error: #ef4444;
       --error-light: #fee2e2;
-      --info: #3b82f6;
-      --info-light: #dbeafe;
+      --info: #5387c1;
+      --info-light: #eef3f9;
 
       /* Layout */
       --max-width: 800px;
@@ -538,7 +542,7 @@
 
     .alert-info {
       background: var(--info-light);
-      color: #1e40af;
+      color: #1e3a5f;
     }
 
     .alert-success {
@@ -1076,7 +1080,7 @@
         position: fixed; bottom: 20px; right: 20px; padding: 12px 24px;
         border-radius: 8px; color: white; font-weight: 500; z-index: 10000;
         animation: slideIn 0.3s ease; max-width: 400px;
-        background: ${type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : type === 'warning' ? '#f59e0b' : '#3b82f6'};
+        background: ${type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : type === 'warning' ? '#f59e0b' : '#5387c1'};
       `;
       document.body.appendChild(toast);
       setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 4000);
@@ -1665,10 +1669,10 @@
                 <span style="font-size: 1.5em;">{{ icon('sparkles') }}</span> Tax Planning Insights
               </h3>
               ${planning.optimization_potential > 0 ? `
-                <div class="card" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-left: 4px solid #3b82f6; padding: 16px; margin-bottom: 16px;">
+                <div class="card" style="background: linear-gradient(135deg, #eff6ff 0%, #eef3f9 100%); border-left: 4px solid #5387c1; padding: 16px; margin-bottom: 16px;">
                   <p style="margin: 0;">
                     <strong>Optimization Potential:</strong> You could save up to
-                    <span style="font-size: 1.25em; font-weight: 700; color: #2563eb;">$${planning.optimization_potential?.toLocaleString() || '0'}</span>
+                    <span style="font-size: 1.25em; font-weight: 700; color: #1e3a5f;">$${planning.optimization_potential?.toLocaleString() || '0'}</span>
                     with the right strategies.
                   </p>
                 </div>
@@ -1812,7 +1816,7 @@
                   const urgencyColors = {
                     immediate: { bg: '#fef2f2', border: '#dc2626', icon: '🚨' },
                     soon: { bg: '#fffbeb', border: '#f59e0b', icon: '{{ icon('clock') }}' },
-                    quarterly: { bg: '#eff6ff', border: '#3b82f6', icon: '{{ icon('chart-bar') }}' },
+                    quarterly: { bg: '#eff6ff', border: '#5387c1', icon: '{{ icon('chart-bar') }}' },
                     year_end: { bg: '#f0fdf4', border: '#22c55e', icon: '{{ icon('sparkles') }}' },
                     future: { bg: '#f9fafb', border: '#6b7280', icon: '{{ icon('star') }}' }
                   };

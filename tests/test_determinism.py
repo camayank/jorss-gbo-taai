@@ -86,7 +86,7 @@ class TestRecommendationDeterminism:
             'recommendation', 'recommendation_engine.py'
         )
 
-        with open(source_path, 'r') as f:
+        with open(source_path, 'r', encoding='utf-8') as f:
             source = f.read()
 
         # Verify sorted() is used instead of list()
@@ -105,7 +105,7 @@ class TestModelDeterminism:
             'models', 'schedule_b.py'
         )
 
-        with open(source_path, 'r') as f:
+        with open(source_path, 'r', encoding='utf-8') as f:
             source = f.read()
 
         # Verify sorted() is used
@@ -142,7 +142,7 @@ class TestScenarioDeterminism:
             'services', 'scenario_service.py'
         )
 
-        with open(source_path, 'r') as f:
+        with open(source_path, 'r', encoding='utf-8') as f:
             source = f.read()
 
         # No random imports
@@ -191,7 +191,7 @@ class TestNoRandomInCalculations:
         calc_path = Path(__file__).parent.parent / 'src' / 'calculator'
 
         for py_file in calc_path.rglob('*.py'):
-            with open(py_file, 'r') as f:
+            with open(py_file, 'r', encoding='utf-8') as f:
                 content = f.read()
                 # Allow 'random' only as part of larger words (e.g., 'random_state')
                 lines = content.split('\n')
@@ -207,7 +207,7 @@ class TestNoRandomInCalculations:
         calc_path = Path(__file__).parent.parent / 'src' / 'calculator'
 
         for py_file in calc_path.rglob('*.py'):
-            with open(py_file, 'r') as f:
+            with open(py_file, 'r', encoding='utf-8') as f:
                 content = f.read()
                 # Check for time-based function calls
                 if 'datetime.now()' in content or 'datetime.today()' in content:

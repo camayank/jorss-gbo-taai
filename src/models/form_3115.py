@@ -35,6 +35,7 @@ from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, computed_field, model_validator
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class ChangeType(str, Enum):
@@ -248,7 +249,7 @@ class Section481aAdjustment(BaseModel):
         """Amount of adjustment to recognize each year."""
         if self.spread_period == 0:
             return 0.0
-        return round(self.gross_adjustment / self.spread_period, 2)
+        return float(money(self.gross_adjustment / self.spread_period))
 
     def get_adjustment_for_year(self, tax_year: int) -> float:
         """
@@ -811,7 +812,7 @@ class Form3115(BaseModel):
         if self.schedule_e:
             total += self.schedule_e.section_481a_adjustment
 
-        return round(total, 2)
+        return float(money(total))
 
     @computed_field
     @property
@@ -853,7 +854,7 @@ class Form3115(BaseModel):
         """Annual amount of 481(a) adjustment to recognize."""
         if self.spread_period == 0:
             return 0.0
-        return round(self.section_481a_adjustment / self.spread_period, 2)
+        return float(money(self.section_481a_adjustment / self.spread_period))
 
     def get_481a_schedule(self) -> Dict[int, float]:
         """Get the full 481(a) spread schedule by year."""

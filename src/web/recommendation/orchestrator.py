@@ -30,6 +30,7 @@ def _load_generators():
     if _generators_loaded:
         return
 
+    # Core generators
     try:
         from .generators.core import (
             get_credit_optimizer_recs,
@@ -42,6 +43,7 @@ def _load_generators():
     except ImportError as e:
         logger.warning(f"Could not load core generators: {e}")
 
+    # Retirement generators
     try:
         from .generators.retirement import (
             get_retirement_optimizer_recs,
@@ -55,6 +57,126 @@ def _load_generators():
         _generators["social_security"] = get_social_security_recs
     except ImportError as e:
         logger.warning(f"Could not load retirement generators: {e}")
+
+    # Credits generators
+    try:
+        from .generators.credits import get_education_savings_recs
+        _generators["education_savings"] = get_education_savings_recs
+    except ImportError as e:
+        logger.warning(f"Could not load credits generators: {e}")
+
+    # Deductions generators
+    try:
+        from .generators.deductions import (
+            get_qbi_optimizer_recs,
+            get_smart_deduction_detector_recs,
+        )
+        _generators["qbi_optimizer"] = get_qbi_optimizer_recs
+        _generators["smart_deductions"] = get_smart_deduction_detector_recs
+    except ImportError as e:
+        logger.warning(f"Could not load deductions generators: {e}")
+
+    # Investments generators
+    try:
+        from .generators.investments import get_opportunity_detector_recs
+        _generators["opportunity_detector"] = get_opportunity_detector_recs
+    except ImportError as e:
+        logger.warning(f"Could not load investments generators: {e}")
+
+    # Real estate generators
+    try:
+        from .generators.real_estate import (
+            get_home_sale_exclusion_recs,
+            get_1031_exchange_recs,
+            get_installment_sale_recs,
+            get_passive_activity_loss_recs,
+            get_rental_depreciation_recs,
+        )
+        _generators["home_sale"] = get_home_sale_exclusion_recs
+        _generators["1031_exchange"] = get_1031_exchange_recs
+        _generators["installment_sale"] = get_installment_sale_recs
+        _generators["passive_activity_loss"] = get_passive_activity_loss_recs
+        _generators["rental_depreciation"] = get_rental_depreciation_recs
+    except ImportError as e:
+        logger.warning(f"Could not load real estate generators: {e}")
+
+    # Lifecycle generators
+    try:
+        from .generators.lifecycle import (
+            get_filing_status_optimizer_recs,
+            get_timing_strategy_recs,
+            get_charitable_strategy_recs,
+        )
+        _generators["filing_status"] = get_filing_status_optimizer_recs
+        _generators["timing_strategy"] = get_timing_strategy_recs
+        _generators["charitable_strategy"] = get_charitable_strategy_recs
+    except ImportError as e:
+        logger.warning(f"Could not load lifecycle generators: {e}")
+
+    # Penalties generators
+    try:
+        from .generators.penalties import (
+            get_amt_risk_recs,
+            get_estimated_tax_penalty_recs,
+        )
+        _generators["amt_risk"] = get_amt_risk_recs
+        _generators["estimated_tax_penalty"] = get_estimated_tax_penalty_recs
+    except ImportError as e:
+        logger.warning(f"Could not load penalties generators: {e}")
+
+    # Entity generators
+    try:
+        from .generators.entity import (
+            get_entity_optimizer_recs,
+            get_cpa_opportunities,
+        )
+        _generators["entity_optimizer"] = get_entity_optimizer_recs
+        _generators["cpa_opportunities"] = get_cpa_opportunities
+    except ImportError as e:
+        logger.warning(f"Could not load entity generators: {e}")
+
+    # International generators
+    try:
+        from .generators.international import get_foreign_tax_credit_recs
+        _generators["foreign_tax_credit"] = get_foreign_tax_credit_recs
+    except ImportError as e:
+        logger.warning(f"Could not load international generators: {e}")
+
+    # Strategy generators
+    try:
+        from .generators.strategy import (
+            get_withholding_optimizer_recs,
+            get_tax_impact_recs,
+            get_refund_estimator_recs,
+            get_tax_strategy_advisor_recs,
+            get_planning_insights_recs,
+        )
+        _generators["withholding_optimizer"] = get_withholding_optimizer_recs
+        _generators["tax_impact"] = get_tax_impact_recs
+        _generators["refund_estimator"] = get_refund_estimator_recs
+        _generators["tax_strategy_advisor"] = get_tax_strategy_advisor_recs
+        _generators["planning_insights"] = get_planning_insights_recs
+    except ImportError as e:
+        logger.warning(f"Could not load strategy generators: {e}")
+
+    # Analytics generators
+    try:
+        from .generators.analytics import (
+            get_tax_drivers_recs,
+            get_complexity_router_recs,
+            get_rules_based_recs,
+            get_realtime_estimator_recs,
+            get_cpa_knowledge_recs,
+            get_adaptive_question_recs,
+        )
+        _generators["tax_drivers"] = get_tax_drivers_recs
+        _generators["complexity_router"] = get_complexity_router_recs
+        _generators["rules_based"] = get_rules_based_recs
+        _generators["realtime_estimator"] = get_realtime_estimator_recs
+        _generators["cpa_knowledge"] = get_cpa_knowledge_recs
+        _generators["adaptive_questions"] = get_adaptive_question_recs
+    except ImportError as e:
+        logger.warning(f"Could not load analytics generators: {e}")
 
     _generators_loaded = True
 

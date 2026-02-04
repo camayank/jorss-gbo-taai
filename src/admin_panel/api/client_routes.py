@@ -31,6 +31,8 @@ from ..auth.rbac import (
 )
 from ..models.user import UserPermission
 from database.async_engine import get_async_session
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 
 router = APIRouter(tags=["Client Management"])
@@ -879,10 +881,10 @@ async def get_client_revenue_summary(
 
     return {
         "period": period,
-        "total_revenue": round(total_revenue, 2),
+        "total_revenue": float(money(total_revenue)),
         "top_clients": top_clients,
         "by_service": by_service,
-        "avg_revenue_per_client": round(avg_revenue, 2),
+        "avg_revenue_per_client": float(money(avg_revenue)),
     }
 
 
@@ -999,16 +1001,42 @@ async def export_clients(
 
     logger.info(f"Client export requested by {user.email}: {client_count} clients, format={format}")
 
-    # TODO: Generate actual export file and return download URL
-    expires_at = datetime.utcnow()
+    # Generate CSV export
+    import csv
+    import io
+    import tempfile
 
-    return {
-        "status": "success",
-        "format": format,
-        "client_count": client_count,
-        "download_url": f"/api/v1/admin/clients/export/download/clients-{firm_id}.{format}",
-        "expires_at": expires_at.isoformat(),
-    }
+    columns = ["client_id", "first_name", "last_name", "email", "phone", "status", "created_at"]
+    if include_sensitive:
+        columns.extend(["ssn_last4", "address"])
+
+    cols_sql = ", ".join(f"c.{col}" for col in columns if col != "ssn_last4" and col != "address")
+    export_query = text(f"""
+        SELECT {cols_sql} FROM clients c
+        JOIN users u ON c.preparer_id = u.user_id
+        WHERE u.firm_id = :firm_id
+        ORDER BY c.last_name, c.first_name
+    """)
+    export_result = await session.execute(export_query, {"firm_id": firm_id})
+    rows = export_result.fetchall()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(columns)
+    for row in rows:
+        writer.writerow(row)
+
+    csv_content = output.getvalue()
+    output.close()
+
+    from fastapi.responses import StreamingResponse
+    return StreamingResponse(
+        io.BytesIO(csv_content.encode("utf-8")),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=clients-{firm_id}.csv",
+        },
+    )
 
 
 # =============================================================================

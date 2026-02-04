@@ -25,6 +25,8 @@ import logging
 import uuid
 import json
 import threading
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -1154,11 +1156,11 @@ class IntelligentChatEngine:
 
     # Standard Deductions 2025
     STANDARD_DEDUCTIONS_2025 = {
-        "single": 15000,
-        "married_joint": 30000,
-        "head_of_household": 22500,
-        "married_separate": 15000,
-        "qualifying_widow": 30000
+        "single": 15750,
+        "married_joint": 31500,
+        "head_of_household": 23850,
+        "married_separate": 15750,
+        "qualifying_widow": 31500
     }
 
     # Additional standard deduction for 65+ or blind
@@ -1686,43 +1688,43 @@ class IntelligentChatEngine:
             rental_net = profile.get("rental_income", 0) or 0
 
         return TaxCalculationResult(
-            gross_income=round(income, 2),
-            adjustments=round(adjustments, 2),
-            agi=round(agi, 2),
-            deductions=round(deduction, 2),
+            gross_income=float(money(income)),
+            adjustments=float(money(adjustments)),
+            agi=float(money(agi)),
+            deductions=float(money(deduction)),
             deduction_type=deduction_type,
-            taxable_income=round(taxable_income, 2),
-            federal_tax=round(federal_tax, 2),
-            state_tax=round(state_tax, 2),
-            self_employment_tax=round(se_tax, 2),
-            total_tax=round(total_tax, 2),
-            effective_rate=round(effective_rate, 2),
+            taxable_income=float(money(taxable_income)),
+            federal_tax=float(money(federal_tax)),
+            state_tax=float(money(state_tax)),
+            self_employment_tax=float(money(se_tax)),
+            total_tax=float(money(total_tax)),
+            effective_rate=float(money(effective_rate)),
             marginal_rate=marginal_rate,
-            refund_or_owed=round(refund_or_owed, 2),
+            refund_or_owed=float(money(refund_or_owed)),
             is_refund=refund_or_owed > 0,
             # Enhanced breakdown
-            amt_tax=round(amt, 2),
-            niit_tax=round(niit, 2),
-            child_tax_credit=round(ctc, 2),
-            qbi_deduction=round(qbi_deduction, 2),
+            amt_tax=float(money(amt)),
+            niit_tax=float(money(niit)),
+            child_tax_credit=float(money(ctc)),
+            qbi_deduction=float(money(qbi_deduction)),
             itemized_breakdown=itemized_breakdown if deduction_type == "itemized" else None,
             tax_bracket_detail=f"{marginal_rate}% bracket",
             tax_notices=tax_notices,
             # Capital gains breakdown
-            short_term_gains=round(short_term_gains, 2),
-            long_term_gains=round(long_term_gains, 2),
-            capital_gains_tax=round(capital_gains_tax, 2),
+            short_term_gains=float(money(short_term_gains)),
+            long_term_gains=float(money(long_term_gains)),
+            capital_gains_tax=float(money(capital_gains_tax)),
             capital_loss_deduction=0.0,
-            net_investment_income=round(net_investment_income, 2),
+            net_investment_income=float(money(net_investment_income)),
             # K-1 and pass-through breakdown
-            k1_ordinary_income_taxable=round(k1_ordinary, 2),
-            k1_qbi_eligible=round(k1_qbi, 2),
-            guaranteed_payments=round(profile.get("k1_guaranteed_payments", 0) or 0, 2),
+            k1_ordinary_income_taxable=float(money(k1_ordinary)),
+            k1_qbi_eligible=float(money(k1_qbi)),
+            guaranteed_payments=float(money(profile.get("k1_guaranteed_payments", 0) or 0)),
             passive_loss_allowed=0.0,  # Would need full PAL calc
             passive_loss_suspended=0.0,
             # Rental breakdown
-            rental_net_income=round(rental_net, 2),
-            rental_depreciation_claimed=round(profile.get("rental_depreciation", 0) or 0, 2),
+            rental_net_income=float(money(rental_net)),
+            rental_depreciation_claimed=float(money(profile.get("rental_depreciation", 0) or 0)),
             rental_loss_allowed=0.0,  # Would need PAL calc
         )
 
@@ -1749,7 +1751,7 @@ class IntelligentChatEngine:
                 detailed_explanation=f"""Your 401(k) contributions reduce your taxable income dollar-for-dollar.
 At your {calculation.marginal_rate}% marginal tax rate, every $1,000 you contribute saves you ${marginal_rate * 1000:,.0f} in taxes immediately,
 while building your retirement wealth tax-deferred.""",
-                estimated_savings=round(savings, 2),
+                estimated_savings=float(money(savings)),
                 confidence="high",
                 priority="high" if savings > 2000 else "medium",
                 action_steps=[
@@ -1802,7 +1804,7 @@ contributions are NOT tax-deductible. However, you can use the Backdoor Roth IRA
 3. Enjoy tax-free growth and tax-free withdrawals in retirement
 
 This is a legal strategy used by high earners to access Roth benefits despite income limits.""",
-                    estimated_savings=round(remaining_ira * marginal_rate * 0.5, 2),  # Future tax-free growth
+                    estimated_savings=float(money(remaining_ira * marginal_rate * 0.5)),  # Future tax-free growth
                     confidence="high",
                     priority="high",
                     action_steps=[
@@ -1824,7 +1826,7 @@ This is a legal strategy used by high earners to access Roth benefits despite in
                     detailed_explanation=f"""At ${total_income:,.0f} income without a workplace retirement plan,
 you may still be able to deduct Traditional IRA contributions. However, with your high income,
 consider whether tax-free growth in a Roth IRA might benefit you more long-term.""",
-                    estimated_savings=round(savings, 2),
+                    estimated_savings=float(money(savings)),
                     confidence="medium",
                     priority="medium",
                     action_steps=[
@@ -1844,7 +1846,7 @@ consider whether tax-free growth in a Roth IRA might benefit you more long-term.
                     summary=f"Contribute ${remaining_ira:,.0f} to a Traditional IRA for ${savings:,.0f} tax savings.",
                     detailed_explanation=f"""Traditional IRA contributions are tax-deductible at your income level.
 At your {calculation.marginal_rate}% marginal tax rate, every $1,000 you contribute saves you ${marginal_rate * 1000:,.0f} in taxes immediately.""",
-                    estimated_savings=round(savings, 2),
+                    estimated_savings=float(money(savings)),
                     confidence="high",
                     priority="medium",
                     action_steps=[
@@ -1872,7 +1874,7 @@ At your {calculation.marginal_rate}% marginal tax rate, every $1,000 you contrib
 4. The 2025 total 401(k) limit is $69,000 (including employer match)
 
 This could add ${mega_contribution:,.0f} more per year to tax-free retirement savings.""",
-                estimated_savings=round(mega_future_value * 0.25, 2),  # Estimated future tax savings
+                estimated_savings=float(money(mega_future_value * 0.25)),  # Estimated future tax savings
                 confidence="medium",
                 priority="high",
                 action_steps=[
@@ -1905,7 +1907,7 @@ This could add ${mega_contribution:,.0f} more per year to tax-free retirement sa
 3. Tax-free withdrawals for medical expenses
 
 After age 65, HSA funds can be used for any purpose (just taxed as ordinary income, like an IRA).""",
-                    estimated_savings=round(savings, 2),
+                    estimated_savings=float(money(savings)),
                     confidence="high",
                     priority="high",
                     action_steps=[
@@ -1927,7 +1929,7 @@ After age 65, HSA funds can be used for any purpose (just taxed as ordinary inco
                 detailed_explanation=f"""With the $15,000 standard deduction, many people can't itemize.
 By 'bunching' multiple years of charitable donations into a single year, you can exceed the standard deduction
 and get a larger tax benefit. Consider a Donor-Advised Fund (DAF) for flexibility.""",
-                estimated_savings=round(charitable * 0.3 * marginal_rate, 2),
+                estimated_savings=float(money(charitable * 0.3 * marginal_rate)),
                 confidence="medium",
                 priority="medium" if charitable > 5000 else "low",
                 action_steps=[
@@ -1954,7 +1956,7 @@ and get a larger tax benefit. Consider a Donor-Advised Fund (DAF) for flexibilit
                     detailed_explanation=f"""As a sole proprietor, you pay 15.3% self-employment tax on all net earnings.
 With an S-Corp, you pay yourself a 'reasonable salary' (SE tax applies), but remaining profits
 are distributions (no SE tax). At ${business_income:,.0f} income, this can mean significant savings.""",
-                    estimated_savings=round(se_savings, 2),
+                    estimated_savings=float(money(se_savings)),
                     confidence="high",
                     priority="high" if se_savings > 3000 else "medium",
                     action_steps=[
@@ -1979,7 +1981,7 @@ are distributions (no SE tax). At ${business_income:,.0f} income, this can mean 
                     detailed_explanation="""If you use part of your home regularly and exclusively for business,
 you can deduct home office expenses. The simplified method allows $5 per square foot (up to 300 sq ft = $1,500).
 The regular method may yield higher deductions but requires more recordkeeping.""",
-                    estimated_savings=round(savings, 2),
+                    estimated_savings=float(money(savings)),
                     confidence="high",
                     priority="medium",
                     action_steps=[
@@ -2002,7 +2004,7 @@ The regular method may yield higher deductions but requires more recordkeeping."
                     summary=f"Claim up to ${qbi_deduction:,.0f} QBI deduction (20% pass-through).",
                     detailed_explanation="""The QBI deduction allows you to deduct up to 20% of qualified business income
 from pass-through entities (sole proprietorships, S-corps, partnerships). Income limits may apply.""",
-                    estimated_savings=round(savings, 2),
+                    estimated_savings=float(money(savings)),
                     confidence="high",
                     priority="high",
                     action_steps=[
@@ -2100,7 +2102,7 @@ Phase-out begins at $200,000 (single) or $400,000 (MFJ).""",
 3. **Carry Forward**: Unused losses carry forward indefinitely{niit_note}
 
 Estimated tax savings: **${savings:,.0f}**""",
-                estimated_savings=round(savings, 2),
+                estimated_savings=float(money(savings)),
                 confidence="high" if total_cap_gains > 0 else "medium",
                 priority="high" if total_cap_gains > 10000 or has_niit_exposure else "medium",
                 action_steps=[
@@ -4126,9 +4128,9 @@ async def full_analysis(request: FullAnalysisRequest):
             projected_income = (profile.get("total_income", 0) or 0) * growth_factor
             projected_tax = calculation.total_tax * growth_factor
             five_year[str(year)] = {
-                "income": round(projected_income, 2),
-                "tax": round(projected_tax, 2),
-                "savings_if_optimized": round(total_savings * growth_factor, 2)
+                "income": float(money(projected_income)),
+                "tax": float(money(projected_tax)),
+                "savings_if_optimized": float(money(total_savings * growth_factor))
             }
 
         # Executive summary

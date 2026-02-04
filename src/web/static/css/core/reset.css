@@ -134,7 +134,7 @@ legend {
 
 /* Focus visible for accessibility */
 :focus-visible {
-  outline: 2px solid var(--color-primary-500, #3b82f6);
+  outline: 2px solid var(--color-primary-500, #1e3a5f);
   outline-offset: 2px;
 }
 
@@ -145,8 +145,8 @@ legend {
 
 /* Selection styling */
 ::selection {
-  background-color: var(--color-primary-100, #dbeafe);
-  color: var(--color-primary-900, #1e3a8a);
+  background-color: var(--color-primary-100, #d4e1f0);
+  color: var(--color-primary-900, #0c1b2f);
 }
 
 /* Scrollbar styling (webkit) */

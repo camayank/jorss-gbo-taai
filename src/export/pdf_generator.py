@@ -498,7 +498,7 @@ class TaxReturnPDFGenerator:
             "single": 15750,
             "married_joint": 31500,
             "married_separate": 15750,
-            "head_of_household": 23625,
+            "head_of_household": 23850,
         }
 
         standard = standard_amounts.get(filing_status, 15750)

@@ -22,6 +22,39 @@ logger = logging.getLogger(__name__)
 # SSN/EIN Validation
 # =============================================================================
 
+# Regex for SSN format (with or without dashes): XXX-XX-XXXX
+SSN_PATTERN = re.compile(r'^\d{3}-?\d{2}-?\d{4}$')
+
+# Complete list of US state/territory codes
+VALID_STATE_CODES = {
+    # 50 states
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+    "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+    "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+    "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+    "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+    # DC + territories
+    "DC", "PR", "VI", "GU", "AS", "MP",
+}
+
+
+def validate_state_code(code: str) -> bool:
+    """
+    Validate US state/territory code.
+
+    Accepts 50 states + DC + PR, VI, GU, AS, MP.
+
+    Args:
+        code: Two-letter state code
+
+    Returns:
+        True if valid
+    """
+    if not code:
+        return True  # Empty is allowed (optional field)
+    return code.upper().strip() in VALID_STATE_CODES
+
+
 def validate_ssn(ssn: str) -> Tuple[bool, Optional[str]]:
     """
     Validate Social Security Number format.

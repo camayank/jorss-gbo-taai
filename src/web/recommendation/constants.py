@@ -14,11 +14,11 @@ TAX_YEAR = 2025
 
 # Standard Deductions (2025)
 STANDARD_DEDUCTIONS = {
-    "single": 15000,
-    "married_filing_jointly": 30000,
-    "married_filing_separately": 15000,
-    "head_of_household": 22500,
-    "qualifying_widow": 30000,
+    "single": 15750,
+    "married_filing_jointly": 31500,
+    "married_filing_separately": 15750,
+    "head_of_household": 23850,
+    "qualifying_widow": 31500,
 }
 
 # Additional Standard Deduction (Age 65+ or Blind)

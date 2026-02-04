@@ -22,6 +22,13 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger(__name__)
 
+# Trusted proxy IPs - only trust X-Forwarded-For from these sources
+TRUSTED_PROXIES = set(
+    ip.strip()
+    for ip in os.environ.get("TRUSTED_PROXY_IPS", "127.0.0.1,::1").split(",")
+    if ip.strip()
+)
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
@@ -199,7 +206,8 @@ class CSRFCookieMiddleware(BaseHTTPMiddleware):
             token_data, signature = token.split(":", 1)
             expected_sig = hmac.new(self.secret_key, token_data.encode(), hashlib.sha256).hexdigest()
             return hmac.compare_digest(signature, expected_sig)
-        except Exception:
+        except (ValueError, TypeError, AttributeError) as e:
+            logger.debug(f"CSRF token validation error: {e}")
             return False
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
@@ -344,8 +352,7 @@ class RedisRateLimitBackend(RateLimitBackend):
         """Check rate limit using Redis with Lua script for atomicity."""
         redis_client = self._get_redis()
         if redis_client is None:
-            # Fallback to in-memory if Redis unavailable
-            return True  # Allow request if Redis fails
+            return self._fallback_check(client_ip, requests_per_minute)
 
         try:
             key = f"rate_limit:{client_ip}"
@@ -364,7 +371,30 @@ class RedisRateLimitBackend(RateLimitBackend):
 
         except Exception as e:
             logger.error(f"Redis rate limit check failed: {e}")
-            return True  # Allow request if Redis fails
+            return self._fallback_check(client_ip, requests_per_minute)
+
+    def _fallback_check(self, client_ip: str, requests_per_minute: int) -> bool:
+        """In-memory token bucket fallback when Redis is unavailable."""
+        now = time.time()
+        fallback_rpm = min(requests_per_minute, 30)  # Stricter limit during fallback
+
+        if not hasattr(self, "_fallback_buckets"):
+            self._fallback_buckets: Dict[str, list] = {}
+
+        # Clean old entries
+        if client_ip in self._fallback_buckets:
+            self._fallback_buckets[client_ip] = [
+                ts for ts in self._fallback_buckets[client_ip]
+                if now - ts < 60
+            ]
+        else:
+            self._fallback_buckets[client_ip] = []
+
+        if len(self._fallback_buckets[client_ip]) >= fallback_rpm:
+            return False
+
+        self._fallback_buckets[client_ip].append(now)
+        return True
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -445,19 +475,18 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
     def _get_client_ip(self, request: Request) -> str:
-        """Get client IP, accounting for proxies."""
-        # Check X-Forwarded-For header (from reverse proxy)
-        forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
+        """Get client IP, only trusting proxy headers from known proxies."""
+        direct_ip = request.client.host if request.client else "unknown"
 
-        # Check X-Real-IP header
-        real_ip = request.headers.get("X-Real-IP")
-        if real_ip:
-            return real_ip
+        if direct_ip in TRUSTED_PROXIES:
+            forwarded = request.headers.get("X-Forwarded-For")
+            if forwarded:
+                return forwarded.split(",")[0].strip()
+            real_ip = request.headers.get("X-Real-IP")
+            if real_ip:
+                return real_ip
 
-        # Fall back to direct client
-        return request.client.host if request.client else "unknown"
+        return direct_ip
 
 
 class CSRFMiddleware(BaseHTTPMiddleware):
@@ -569,7 +598,22 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             )
 
         self._csrf_successes += 1
-        return await call_next(request)
+        response = await call_next(request)
+
+        # Rotate CSRF token after successful state-changing requests
+        if request.method in ("POST", "PUT", "DELETE", "PATCH") and 200 <= response.status_code < 300:
+            new_token = self.generate_token()
+            response.set_cookie(
+                key=self.token_name,
+                value=new_token,
+                httponly=False,
+                samesite="lax",
+                path="/",
+                max_age=86400,
+            )
+            response.headers["X-CSRF-Token"] = new_token
+
+        return response
 
     async def _get_form_token(self, request: Request) -> Optional[str]:
         """Extract CSRF token from form data."""
@@ -577,8 +621,8 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             if request.headers.get("content-type", "").startswith("application/x-www-form-urlencoded"):
                 form = await request.form()
                 return form.get(self.token_name)
-        except Exception:
-            pass
+        except (ValueError, RuntimeError, KeyError) as e:
+            logger.debug(f"Form token extraction failed: {e}")
         return None
 
     def _verify_token(self, session_token: str, request_token: str) -> bool:
@@ -822,8 +866,8 @@ class IPWhitelistMiddleware(BaseHTTPMiddleware):
                     role = payload.get("role", "")
                     if role in ("super_admin", "platform_admin", "support"):
                         return await call_next(request)
-            except Exception:
-                pass
+            except (ImportError, ValueError, KeyError) as e:
+                logger.debug(f"JWT decode failed for IP whitelist: {e}")
 
         # Try from session cookie
         if not tenant_id:
@@ -835,8 +879,8 @@ class IPWhitelistMiddleware(BaseHTTPMiddleware):
                     session = persistence.load_session(session_id)
                     if session:
                         tenant_id = session.tenant_id
-                except Exception:
-                    pass
+                except (ImportError, AttributeError, ValueError) as e:
+                    logger.debug(f"Session lookup failed for IP whitelist: {e}")
 
         # No tenant context, allow request (public access)
         if not tenant_id:

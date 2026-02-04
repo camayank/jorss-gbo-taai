@@ -12,19 +12,92 @@ Key naming conventions:
 - sessions:tenant:{tenant_id} - Set of session IDs per tenant
 - sessions:user:{user_id} - Set of session IDs per user
 - return_status:{session_id} - Return approval workflow status
+
+SECURITY NOTE: Agent state is serialized using RestrictedUnpickler which only
+allows safe built-in types. This prevents arbitrary code execution (RCE) attacks
+if Redis data is compromised.
 """
 
 from __future__ import annotations
 
 import base64
+import io
 import json
 import logging
 import pickle
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from decimal import Decimal
+from typing import Any, Dict, List, Optional, Set, FrozenSet
 from dataclasses import dataclass, asdict
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# SECURITY: Restricted Unpickler to prevent RCE attacks
+# =============================================================================
+
+# Allowed types for unpickling - only safe built-in types
+SAFE_PICKLE_TYPES: Dict[str, Set[str]] = {
+    "builtins": {
+        "dict", "list", "tuple", "set", "frozenset",
+        "str", "bytes", "bytearray",
+        "int", "float", "complex", "bool",
+        "NoneType", "range", "slice",
+    },
+    "datetime": {"datetime", "date", "time", "timedelta", "timezone"},
+    "decimal": {"Decimal"},
+    "uuid": {"UUID"},
+    "collections": {"OrderedDict", "defaultdict", "Counter", "deque"},
+}
+
+
+class RestrictedUnpickler(pickle.Unpickler):
+    """
+    Restricted unpickler that only allows safe built-in types.
+
+    SECURITY: This prevents pickle-based RCE attacks by rejecting
+    any attempt to unpickle dangerous types like:
+    - os, subprocess, sys modules
+    - Custom classes with __reduce__ methods
+    - Any type not explicitly allowed
+
+    See: https://docs.python.org/3/library/pickle.html#restricting-globals
+    """
+
+    def find_class(self, module: str, name: str) -> Any:
+        """Only allow safe types to be unpickled."""
+        if module in SAFE_PICKLE_TYPES:
+            if name in SAFE_PICKLE_TYPES[module]:
+                # Import and return the safe type
+                import importlib
+                mod = importlib.import_module(module)
+                return getattr(mod, name)
+
+        # Log attempted attack and raise error
+        logger.warning(
+            f"SECURITY: Blocked unsafe pickle type: {module}.{name}. "
+            f"This may indicate a pickle deserialization attack."
+        )
+        raise pickle.UnpicklingError(
+            f"Unsafe type blocked for security: {module}.{name}"
+        )
+
+
+def safe_pickle_loads(data: bytes) -> Any:
+    """
+    Safely deserialize pickled data using RestrictedUnpickler.
+
+    Args:
+        data: Pickled bytes
+
+    Returns:
+        Deserialized object (only if composed of safe types)
+
+    Raises:
+        pickle.UnpicklingError: If data contains unsafe types
+    """
+    return RestrictedUnpickler(io.BytesIO(data)).load()
 
 # Default session TTL (24 hours)
 DEFAULT_SESSION_TTL_SECONDS = 86400
@@ -535,9 +608,9 @@ class RedisSessionPersistence:
             if not encoded:
                 return None
 
-            # Decode and unpickle
+            # Decode and safely unpickle (RestrictedUnpickler blocks RCE attacks)
             pickled = base64.b64decode(encoded.encode("ascii"))
-            return pickle.loads(pickled)
+            return safe_pickle_loads(pickled)
 
         except Exception as e:
             logger.error(f"Failed to load agent state for {session_id}: {e}")

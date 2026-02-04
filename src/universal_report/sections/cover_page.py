@@ -35,9 +35,9 @@ class CoverPageRenderer:
 
     def render(self) -> str:
         """Render the complete cover page HTML."""
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
         accent = self.theme.accent_color if self.theme else "#10b981"
-        secondary = self.theme.secondary_color if self.theme else "#1d4ed8"
+        secondary = self.theme.secondary_color if self.theme else "#152b47"
 
         # Header with logo
         header_html = self._render_header()
@@ -79,7 +79,7 @@ class CoverPageRenderer:
 
         # Fallback header
         firm_name = self.theme.firm_name if self.theme else "Tax Advisory"
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
 
         return f'''
 <header style="padding-bottom: 20px; border-bottom: 2px solid {primary}; margin-bottom: 30px;">

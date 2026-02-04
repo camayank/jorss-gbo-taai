@@ -1,16 +1,17 @@
 """
 Tax Return Service - Application service for tax return operations.
 
-This service orchestrates tax return lifecycle:
+Provides synchronous tax return operations:
 - Creating and updating tax returns
-- Performing calculations
-- Managing prior year data
+- Performing calculations (federal + state)
+- Managing prior year data and carryovers
 - Persisting and retrieving returns
 
-This is an APPLICATION SERVICE - it orchestrates domain operations
-but contains no business logic itself.
-"""
+Used by:
+- ScenarioService for what-if scenario calculations
 
+For async operations, see: async_tax_return_service.py
+"""
 import time
 from datetime import datetime
 from typing import Optional, Dict, Any, List

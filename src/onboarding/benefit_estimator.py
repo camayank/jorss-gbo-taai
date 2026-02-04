@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any, TYPE_CHECKING
 from enum import Enum
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 if TYPE_CHECKING:
     from onboarding.taxpayer_profile import TaxpayerProfile
@@ -196,7 +198,7 @@ class OnboardingBenefitEstimator:
             "deduction_type": estimate.deduction_type,
             "deduction_amount": estimate.deduction_amount,
             "taxable_income": estimate.estimated_taxable_income,
-            "potential_savings": round(estimate.estimated_total_tax * 0.08, 2),  # ~8% potential savings
+            "potential_savings": float(money(estimate.estimated_total_tax * 0.08)),  # ~8% potential savings
             "recommendations": estimate.potential_improvements[:3] if estimate.potential_improvements else [],
         }
         return summary
@@ -281,19 +283,19 @@ class OnboardingBenefitEstimator:
 
         estimate = TaxEstimate(
             estimate_type=estimate_type,
-            estimated_amount=abs(round(result, 2)),
+            estimated_amount=abs(float(money(result))),
             confidence=confidence,
-            estimated_federal_tax=round(federal_tax_after_credits, 2),
-            estimated_state_tax=round(state_tax, 2),
-            estimated_total_tax=round(total_tax, 2),
-            estimated_withholding=round(withholding, 2),
-            effective_rate=round(effective_rate, 2),
+            estimated_federal_tax=float(money(federal_tax_after_credits)),
+            estimated_state_tax=float(money(state_tax)),
+            estimated_total_tax=float(money(total_tax)),
+            estimated_withholding=float(money(withholding)),
+            effective_rate=float(money(effective_rate)),
             marginal_rate=marginal_rate,
-            estimated_agi=round(agi, 2),
-            estimated_taxable_income=round(taxable_income, 2),
+            estimated_agi=float(money(agi)),
+            estimated_taxable_income=float(money(taxable_income)),
             deduction_type=deduction_type,
-            deduction_amount=round(deduction_amount, 2),
-            estimated_credits=round(total_credits + refundable_credits, 2),
+            deduction_amount=float(money(deduction_amount)),
+            estimated_credits=float(money(total_credits + refundable_credits)),
             income_sources=income_sources,
             deductions_breakdown=deductions_breakdown,
             credits_breakdown=credits_breakdown,
@@ -355,7 +357,7 @@ class OnboardingBenefitEstimator:
             highlights.append(BenefitHighlight(
                 title="Retirement Contribution Savings",
                 description=f"Your 401(k) contributions reduced taxable income",
-                estimated_value=round(tax_savings, 2),
+                estimated_value=float(money(tax_savings)),
                 category="deductions",
                 is_potential=False,
             ))
@@ -380,7 +382,7 @@ class OnboardingBenefitEstimator:
             highlights.append(BenefitHighlight(
                 title="Mortgage Interest Deduction",
                 description="Deduction for home mortgage interest",
-                estimated_value=round(tax_savings, 2),
+                estimated_value=float(money(tax_savings)),
                 category="deductions",
                 is_potential=False,
             ))
@@ -394,7 +396,7 @@ class OnboardingBenefitEstimator:
             highlights.append(BenefitHighlight(
                 title="Charitable Deduction",
                 description="Deduction for donations to charity",
-                estimated_value=round(tax_savings, 2),
+                estimated_value=float(money(tax_savings)),
                 category="deductions",
                 is_potential=False,
             ))
@@ -420,7 +422,7 @@ class OnboardingBenefitEstimator:
             highlights.append(BenefitHighlight(
                 title="Business Expense Deductions",
                 description="Deductions reduce both income and self-employment tax",
-                estimated_value=round(se_tax_savings, 2),
+                estimated_value=float(money(se_tax_savings)),
                 category="deductions",
                 is_potential=False,
             ))
@@ -434,7 +436,7 @@ class OnboardingBenefitEstimator:
             highlights.append(BenefitHighlight(
                 title="QBI Deduction",
                 description="20% deduction for qualified business income",
-                estimated_value=round(qbi_savings, 2),
+                estimated_value=float(money(qbi_savings)),
                 category="deductions",
                 is_potential=True,
                 action_required="Self-employed may qualify for additional deduction",
@@ -449,7 +451,7 @@ class OnboardingBenefitEstimator:
             highlights.append(BenefitHighlight(
                 title="Home Office Deduction",
                 description="Deduction for dedicated home workspace",
-                estimated_value=round(savings, 2),
+                estimated_value=float(money(savings)),
                 category="deductions",
                 is_potential=False,
             ))
@@ -474,7 +476,7 @@ class OnboardingBenefitEstimator:
             highlights.append(BenefitHighlight(
                 title="Residential Clean Energy Credit",
                 description="30% credit for solar installation",
-                estimated_value=round(solar_credit, 2),
+                estimated_value=float(money(solar_credit)),
                 category="credits",
                 is_potential=False,
             ))
@@ -516,9 +518,9 @@ class OnboardingBenefitEstimator:
 
         return {
             "trend": trend,
-            "change": round(change, 2),
-            "initial": round(first, 2),
-            "current": round(last, 2),
+            "change": float(money(change)),
+            "initial": float(money(first)),
+            "current": float(money(last)),
             "data_points": len(estimates),
         }
 

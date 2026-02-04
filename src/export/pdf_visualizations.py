@@ -60,9 +60,9 @@ except ImportError:
 
 # Color scheme matching Universal Report theme
 COLORS = {
-    'primary': '#1a365d',
-    'primary_light': '#2c5282',
-    'accent': '#2563eb',
+    'primary': '#1e3a5f',
+    'primary_light': '#5387c1',
+    'accent': '#1e3a5f',
     'success': '#10b981',
     'success_dark': '#059669',
     'warning': '#f59e0b',
@@ -89,12 +89,12 @@ BRACKET_COLORS = [
 
 # Income category colors
 INCOME_COLORS = [
-    '#2563eb',  # Blue - W-2
-    '#7c3aed',  # Purple - Business
+    '#1e3a5f',  # Blue - W-2
+    '#0d9488',  # Teal - Business
     '#10b981',  # Green - Investment
     '#f59e0b',  # Amber - Rental
     '#ef4444',  # Red - Capital Gains
-    '#6366f1',  # Indigo - Other
+    '#1e3a5f',  # Indigo - Other
 ]
 
 

@@ -288,7 +288,7 @@ class TestBranding:
 
         theme = BrandTheme()
 
-        assert theme.primary_color == '#2563eb'
+        assert theme.primary_color == '#1e3a5f'
         assert theme.accent_color == '#10b981'
         assert theme.firm_name == 'Tax Advisory'
 
@@ -353,7 +353,7 @@ class TestBranding:
         theme = manager.from_cpa_profile(cpa_profile)
 
         # Invalid color should use default
-        assert theme.primary_color == '#2563eb'  # Default
+        assert theme.primary_color == '#1e3a5f'  # Default
         assert theme.accent_color == '#10b981'   # Custom valid color
 
 
@@ -677,7 +677,7 @@ class TestNewSections:
         renderer = RiskAssessmentRenderer(data)
         html = renderer.render()
 
-        assert html is not None
+        assert isinstance(html, str) and len(html) > 0
         assert 'Audit Risk Assessment' in html
         assert 'Risk Level' in html
         # Should identify high income risk
@@ -716,7 +716,7 @@ class TestNewSections:
         renderer = TaxTimelineRenderer(data)
         html = renderer.render()
 
-        assert html is not None
+        assert isinstance(html, str) and len(html) > 0
         assert 'Important Tax Deadlines' in html
         assert 'April 15' in html
         assert 'October 15' in html  # Extension deadline
@@ -766,7 +766,7 @@ class TestNewSections:
         renderer = DocumentChecklistRenderer(data)
         html = renderer.render()
 
-        assert html is not None
+        assert isinstance(html, str) and len(html) > 0
         assert 'Document Checklist' in html
         assert 'W-2' in html
         assert 'Social Security' in html
@@ -819,7 +819,7 @@ class TestNewSections:
         renderer = TaxEducationRenderer(data)
         html = renderer.render()
 
-        assert html is not None
+        assert isinstance(html, str) and len(html) > 0
         assert 'Understanding Your Tax Strategies' in html or 'Tax Strategies' in html
 
     def test_tax_education_strategy_selection(self):
@@ -887,7 +887,7 @@ class TestNewSections:
         renderer = ExecutiveSummaryRenderer(data)
         html = renderer.render()
 
-        assert html is not None
+        assert isinstance(html, str) and len(html) > 0
         assert 'Executive Summary' in html
         assert '$150,000' in html or '150,000' in html  # Gross income
         assert '$25,000' in html or '25,000' in html  # Tax liability
@@ -919,7 +919,7 @@ class TestNewSections:
         renderer = CoverPageRenderer(data, theme)
         html = renderer.render()
 
-        assert html is not None
+        assert isinstance(html, str) and len(html) > 0
         assert 'John Smith' in html
         assert 'Smith Tax Advisory' in html or 'Personalized Tax Strategy Report' in html
         assert 'Sarah Smith' in html
@@ -960,7 +960,7 @@ class TestDetailedRecommendations:
             ],
         )
 
-        assert html is not None
+        assert isinstance(html, str) and len(html) > 0
         assert 'Maximize 401(k)' in html
         assert '$4,500' in html
         assert 'Implementation Steps' in html
@@ -982,7 +982,7 @@ class TestDetailedRecommendations:
             highlight_row=1,  # Highlight itemized
         )
 
-        assert html is not None
+        assert isinstance(html, str) and len(html) > 0
         assert 'Deduction Comparison' in html
         assert 'Standard Deduction' in html
         assert 'Itemized Deductions' in html
@@ -1000,7 +1000,7 @@ class TestDetailedRecommendations:
             improvement='-4.3%',
         )
 
-        assert html is not None
+        assert isinstance(html, str) and len(html) > 0
         assert 'Effective Tax Rate' in html
         assert '22.5%' in html
         assert '18.2%' in html

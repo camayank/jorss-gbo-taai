@@ -27,6 +27,8 @@ Per IRS Form 8615 Instructions and IRC Section 1(g).
 from typing import Optional, List, Dict, Any, ClassVar
 from pydantic import BaseModel, Field
 from enum import Enum
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class ParentFilingStatus(str, Enum):
@@ -284,7 +286,7 @@ class Form8615(BaseModel):
 
         # Line 5: Net unearned income
         net_unearned = max(0.0, adjusted_unearned - deduction)
-        result['line_5_net_unearned_income'] = round(net_unearned, 2)
+        result['line_5_net_unearned_income'] = float(money(net_unearned))
 
         return result
 
@@ -317,7 +319,7 @@ class Form8615(BaseModel):
             remaining -= bracket_income
             prev_threshold = threshold
 
-        return round(tax, 2)
+        return float(money(tax))
 
     def calculate_tax_at_parent_rate(
         self,
@@ -364,14 +366,14 @@ class Form8615(BaseModel):
 
         # Additional tax from children's unearned income
         additional = max(0.0, tax_on_combined - self.parent_info.tax_before_credits)
-        result['additional_tax'] = round(additional, 2)
+        result['additional_tax'] = float(money(additional))
 
         # This child's share (pro-rata if multiple children)
         if total_children > 0:
             this_child_share = additional * (net_unearned_income / total_children)
         else:
             this_child_share = 0.0
-        result['this_child_share'] = round(this_child_share, 2)
+        result['this_child_share'] = float(money(this_child_share))
 
         return result
 
@@ -444,7 +446,7 @@ class Form8615(BaseModel):
             remaining -= bracket_income
             prev_threshold = threshold
 
-        return round(tax, 2)
+        return float(money(tax))
 
     def calculate_kiddie_tax(self) -> dict:
         """
@@ -527,12 +529,12 @@ class Form8615(BaseModel):
 
         # Total child's tax = tax at child rate + tax at parent rate
         total_tax = tax_at_child_rate + parent_rate_calc['this_child_share']
-        result['total_child_tax'] = round(total_tax, 2)
+        result['total_child_tax'] = float(money(total_tax))
 
         # Kiddie tax increase
-        result['kiddie_tax_increase'] = round(
-            max(0.0, total_tax - child_tax_normal), 2
-        )
+        result['kiddie_tax_increase'] = float(money(
+            max(0.0, total_tax - child_tax_normal)
+        ))
 
         return result
 

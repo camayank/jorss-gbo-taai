@@ -265,14 +265,14 @@
                         <div class="color-input-wrapper">
                             <div style="position: relative;">
                                 <input type="color" class="color-input" id="primaryColor"
-                                       value="{{ cpa.primary_color or '#2563eb' }}"
+                                       value="{{ cpa.primary_color or '#1e3a5f' }}"
                                        onchange="updateColorPreview('primary', this.value)">
                                 <div class="color-preview" id="primaryPreview"
-                                     style="background: {{ cpa.primary_color or '#2563eb' }}"
+                                     style="background: {{ cpa.primary_color or '#1e3a5f' }}"
                                      onclick="document.getElementById('primaryColor').click()"></div>
                             </div>
                             <input type="text" class="color-hex" id="primaryHex"
-                                   value="{{ cpa.primary_color or '#2563eb' }}"
+                                   value="{{ cpa.primary_color or '#1e3a5f' }}"
                                    onchange="updateColorFromHex('primary', this.value)">
                         </div>
                     </div>
@@ -282,14 +282,14 @@
                         <div class="color-input-wrapper">
                             <div style="position: relative;">
                                 <input type="color" class="color-input" id="secondaryColor"
-                                       value="{{ cpa.secondary_color or '#1d4ed8' }}"
+                                       value="{{ cpa.secondary_color or '#152b47' }}"
                                        onchange="updateColorPreview('secondary', this.value)">
                                 <div class="color-preview" id="secondaryPreview"
-                                     style="background: {{ cpa.secondary_color or '#1d4ed8' }}"
+                                     style="background: {{ cpa.secondary_color or '#152b47' }}"
                                      onclick="document.getElementById('secondaryColor').click()"></div>
                             </div>
                             <input type="text" class="color-hex" id="secondaryHex"
-                                   value="{{ cpa.secondary_color or '#1d4ed8' }}"
+                                   value="{{ cpa.secondary_color or '#152b47' }}"
                                    onchange="updateColorFromHex('secondary', this.value)">
                         </div>
                     </div>
@@ -433,8 +433,8 @@
     }
 
     function resetColors() {
-        updateColorPreview('primary', '#2563eb');
-        updateColorPreview('secondary', '#1d4ed8');
+        updateColorPreview('primary', '#1e3a5f');
+        updateColorPreview('secondary', '#152b47');
         updateColorPreview('accent', '#10b981');
     }
 

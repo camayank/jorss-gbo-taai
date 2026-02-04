@@ -11,6 +11,8 @@ from typing import Optional, List
 from pydantic import BaseModel, Field, field_validator
 from enum import Enum
 from datetime import date, datetime
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class SecurityType(str, Enum):
@@ -330,11 +332,11 @@ class SecurityTransaction(BaseModel):
             'description': self.description,
             'date_acquired': self.date_acquired,
             'date_sold': self.date_sold,
-            'proceeds': round(self.proceeds, 2),
-            'cost_basis': round(self.cost_basis, 2),
+            'proceeds': float(money(self.proceeds)),
+            'cost_basis': float(money(self.cost_basis)),
             'adjustment_codes': self.get_adjustment_code_string(),
-            'adjustment_amount': round(self.adjustment_amount, 2),
-            'gain_loss': round(self.calculate_adjusted_gain_loss(), 2),
+            'adjustment_amount': float(money(self.adjustment_amount)),
+            'gain_loss': float(money(self.calculate_adjusted_gain_loss())),
             'form_8949_box': box.value,
             'is_long_term': self.is_long_term(),
         }
@@ -661,39 +663,39 @@ class SecuritiesPortfolio(BaseModel):
 
         return {
             # Form 8949 Part I totals (short-term)
-            'form_8949_box_a_gain_loss': round(summary.box_a_gain_loss, 2),
-            'form_8949_box_b_gain_loss': round(summary.box_b_gain_loss, 2),
-            'form_8949_box_c_gain_loss': round(summary.box_c_gain_loss, 2),
+            'form_8949_box_a_gain_loss': float(money(summary.box_a_gain_loss)),
+            'form_8949_box_b_gain_loss': float(money(summary.box_b_gain_loss)),
+            'form_8949_box_c_gain_loss': float(money(summary.box_c_gain_loss)),
 
             # Form 8949 Part II totals (long-term)
-            'form_8949_box_d_gain_loss': round(summary.box_d_gain_loss, 2),
-            'form_8949_box_e_gain_loss': round(summary.box_e_gain_loss, 2),
-            'form_8949_box_f_gain_loss': round(summary.box_f_gain_loss, 2),
+            'form_8949_box_d_gain_loss': float(money(summary.box_d_gain_loss)),
+            'form_8949_box_e_gain_loss': float(money(summary.box_e_gain_loss)),
+            'form_8949_box_f_gain_loss': float(money(summary.box_f_gain_loss)),
 
             # Schedule D Part I (short-term)
-            'schedule_d_line_1b': round(summary.box_a_gain_loss, 2),  # Box A total
-            'schedule_d_line_2': round(summary.box_b_gain_loss, 2),   # Box B total
-            'schedule_d_line_3': round(summary.box_c_gain_loss, 2),   # Box C total
-            'schedule_d_line_6': round(self.short_term_loss_carryforward, 2),  # Prior year ST carryover
-            'schedule_d_line_7': round(net_st, 2),  # Net short-term
+            'schedule_d_line_1b': float(money(summary.box_a_gain_loss)),  # Box A total
+            'schedule_d_line_2': float(money(summary.box_b_gain_loss)),   # Box B total
+            'schedule_d_line_3': float(money(summary.box_c_gain_loss)),   # Box C total
+            'schedule_d_line_6': float(money(self.short_term_loss_carryforward)),  # Prior year ST carryover
+            'schedule_d_line_7': float(money(net_st)),  # Net short-term
 
             # Schedule D Part II (long-term)
-            'schedule_d_line_8b': round(summary.box_d_gain_loss, 2),  # Box D total
-            'schedule_d_line_9': round(summary.box_e_gain_loss, 2),   # Box E total
-            'schedule_d_line_10': round(summary.box_f_gain_loss, 2),  # Box F total
-            'schedule_d_line_14': round(self.long_term_loss_carryforward, 2),  # Prior year LT carryover
-            'schedule_d_line_15': round(net_lt, 2),  # Net long-term
+            'schedule_d_line_8b': float(money(summary.box_d_gain_loss)),  # Box D total
+            'schedule_d_line_9': float(money(summary.box_e_gain_loss)),   # Box E total
+            'schedule_d_line_10': float(money(summary.box_f_gain_loss)),  # Box F total
+            'schedule_d_line_14': float(money(self.long_term_loss_carryforward)),  # Prior year LT carryover
+            'schedule_d_line_15': float(money(net_lt)),  # Net long-term
 
             # Schedule D Part III (summary)
-            'schedule_d_line_16': round(overall_net, 2),  # Combined net gain/loss
-            'capital_loss_deduction': round(capital_loss_deduction, 2),
-            'new_short_term_carryforward': round(new_st_carryforward, 2),
-            'new_long_term_carryforward': round(new_lt_carryforward, 2),
+            'schedule_d_line_16': float(money(overall_net)),  # Combined net gain/loss
+            'capital_loss_deduction': float(money(capital_loss_deduction)),
+            'new_short_term_carryforward': float(money(new_st_carryforward)),
+            'new_long_term_carryforward': float(money(new_lt_carryforward)),
 
             # Additional tracking
-            'total_wash_sale_disallowed': round(summary.total_wash_sale_disallowed, 2),
-            'total_qsbs_exclusion': round(summary.total_qsbs_exclusion, 2),
-            'total_section_1244_ordinary_loss': round(summary.total_section_1244_ordinary_loss, 2),
+            'total_wash_sale_disallowed': float(money(summary.total_wash_sale_disallowed)),
+            'total_qsbs_exclusion': float(money(summary.total_qsbs_exclusion)),
+            'total_section_1244_ordinary_loss': float(money(summary.total_section_1244_ordinary_loss)),
             'transaction_count': summary.get_transaction_count(),
         }
 
@@ -786,63 +788,63 @@ class SecuritiesPortfolio(BaseModel):
                 'box_a': {
                     'transactions': part_i['A'],
                     'totals': {
-                        'proceeds': round(summary.box_a_proceeds, 2),
-                        'cost_basis': round(summary.box_a_cost_basis, 2),
-                        'adjustments': round(summary.box_a_adjustments, 2),
-                        'gain_loss': round(summary.box_a_gain_loss, 2),
+                        'proceeds': float(money(summary.box_a_proceeds)),
+                        'cost_basis': float(money(summary.box_a_cost_basis)),
+                        'adjustments': float(money(summary.box_a_adjustments)),
+                        'gain_loss': float(money(summary.box_a_gain_loss)),
                     }
                 },
                 'box_b': {
                     'transactions': part_i['B'],
                     'totals': {
-                        'proceeds': round(summary.box_b_proceeds, 2),
-                        'cost_basis': round(summary.box_b_cost_basis, 2),
-                        'adjustments': round(summary.box_b_adjustments, 2),
-                        'gain_loss': round(summary.box_b_gain_loss, 2),
+                        'proceeds': float(money(summary.box_b_proceeds)),
+                        'cost_basis': float(money(summary.box_b_cost_basis)),
+                        'adjustments': float(money(summary.box_b_adjustments)),
+                        'gain_loss': float(money(summary.box_b_gain_loss)),
                     }
                 },
                 'box_c': {
                     'transactions': part_i['C'],
                     'totals': {
-                        'proceeds': round(summary.box_c_proceeds, 2),
-                        'cost_basis': round(summary.box_c_cost_basis, 2),
-                        'adjustments': round(summary.box_c_adjustments, 2),
-                        'gain_loss': round(summary.box_c_gain_loss, 2),
+                        'proceeds': float(money(summary.box_c_proceeds)),
+                        'cost_basis': float(money(summary.box_c_cost_basis)),
+                        'adjustments': float(money(summary.box_c_adjustments)),
+                        'gain_loss': float(money(summary.box_c_gain_loss)),
                     }
                 },
-                'total_short_term': round(summary.get_total_short_term_gain_loss(), 2),
+                'total_short_term': float(money(summary.get_total_short_term_gain_loss())),
             },
             'part_ii_long_term': {
                 'box_d': {
                     'transactions': part_ii['D'],
                     'totals': {
-                        'proceeds': round(summary.box_d_proceeds, 2),
-                        'cost_basis': round(summary.box_d_cost_basis, 2),
-                        'adjustments': round(summary.box_d_adjustments, 2),
-                        'gain_loss': round(summary.box_d_gain_loss, 2),
+                        'proceeds': float(money(summary.box_d_proceeds)),
+                        'cost_basis': float(money(summary.box_d_cost_basis)),
+                        'adjustments': float(money(summary.box_d_adjustments)),
+                        'gain_loss': float(money(summary.box_d_gain_loss)),
                     }
                 },
                 'box_e': {
                     'transactions': part_ii['E'],
                     'totals': {
-                        'proceeds': round(summary.box_e_proceeds, 2),
-                        'cost_basis': round(summary.box_e_cost_basis, 2),
-                        'adjustments': round(summary.box_e_adjustments, 2),
-                        'gain_loss': round(summary.box_e_gain_loss, 2),
+                        'proceeds': float(money(summary.box_e_proceeds)),
+                        'cost_basis': float(money(summary.box_e_cost_basis)),
+                        'adjustments': float(money(summary.box_e_adjustments)),
+                        'gain_loss': float(money(summary.box_e_gain_loss)),
                     }
                 },
                 'box_f': {
                     'transactions': part_ii['F'],
                     'totals': {
-                        'proceeds': round(summary.box_f_proceeds, 2),
-                        'cost_basis': round(summary.box_f_cost_basis, 2),
-                        'adjustments': round(summary.box_f_adjustments, 2),
-                        'gain_loss': round(summary.box_f_gain_loss, 2),
+                        'proceeds': float(money(summary.box_f_proceeds)),
+                        'cost_basis': float(money(summary.box_f_cost_basis)),
+                        'adjustments': float(money(summary.box_f_adjustments)),
+                        'gain_loss': float(money(summary.box_f_gain_loss)),
                     }
                 },
-                'total_long_term': round(summary.get_total_long_term_gain_loss(), 2),
+                'total_long_term': float(money(summary.get_total_long_term_gain_loss())),
             },
-            'wash_sales_disallowed': round(summary.total_wash_sale_disallowed, 2),
-            'qsbs_exclusion': round(summary.total_qsbs_exclusion, 2),
-            'section_1244_ordinary_loss': round(summary.total_section_1244_ordinary_loss, 2),
+            'wash_sales_disallowed': float(money(summary.total_wash_sale_disallowed)),
+            'qsbs_exclusion': float(money(summary.total_qsbs_exclusion)),
+            'section_1244_ordinary_loss': float(money(summary.total_section_1244_ordinary_loss)),
         }

@@ -5,6 +5,7 @@ FastAPI WebSocket endpoints for real-time updates.
 """
 
 import logging
+import os
 from typing import Optional
 from uuid import UUID
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPException, status
@@ -26,13 +27,38 @@ websocket_router = APIRouter(prefix="/ws", tags=["WebSocket"])
 
 async def verify_websocket_token(token: str) -> Optional[dict]:
     """
-    Verify a WebSocket authentication token.
+    Verify a WebSocket authentication token via JWT.
 
-    In production, this would validate JWT tokens.
+    Uses the rbac.jwt module for proper JWT verification.
+    Falls back to simple token format only in development.
     Returns user info if valid, None otherwise.
     """
-    # TODO: Implement actual JWT verification
-    # For now, parse a simple token format: user_id:firm_id:email:role
+    # Try JWT verification first (production path)
+    try:
+        from rbac.jwt import decode_token
+        payload = decode_token(token)
+        return {
+            "user_id": UUID(str(payload.get("sub", payload.get("user_id", "")))),
+            "firm_id": UUID(str(payload.get("firm_id", payload.get("tenant_id", "")))),
+            "email": payload.get("email", ""),
+            "role": payload.get("role", "user"),
+        }
+    except ImportError:
+        logger.warning("rbac.jwt module not available, JWT verification disabled")
+    except Exception as e:
+        # Token failed JWT validation — in dev, fall through to simple format
+        is_dev = os.environ.get("ENVIRONMENT", "").lower() in ("development", "dev", "test")
+        if not is_dev:
+            logger.warning(f"WebSocket JWT verification failed: {e}")
+            return None
+        logger.debug(f"JWT decode failed in dev mode, trying simple format: {e}")
+
+    # Dev-only fallback: simple token format user_id:firm_id:email:role
+    # SECURITY: Only enabled when ENVIRONMENT is explicitly set to a dev value
+    is_dev = os.environ.get("ENVIRONMENT", "").lower() in ("development", "dev", "test")
+    if not is_dev:
+        return None
+
     try:
         parts = token.split(":")
         if len(parts) >= 4:
@@ -43,7 +69,7 @@ async def verify_websocket_token(token: str) -> Optional[dict]:
                 "role": parts[3],
             }
     except Exception as e:
-        logger.warning(f"Invalid WebSocket token: {e}")
+        logger.warning(f"Invalid WebSocket token (dev fallback): {e}")
 
     return None
 

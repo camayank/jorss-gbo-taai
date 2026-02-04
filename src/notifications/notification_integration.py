@@ -13,6 +13,8 @@ Usage:
         setup_notification_delivery,
         NotificationDeliveryService,
     )
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
     # Setup email delivery for all notifications
     setup_notification_delivery()
@@ -307,7 +309,7 @@ Tax Filing Platform
             "total": total,
             "success": success,
             "failed": failed,
-            "success_rate": round(success / total * 100, 2) if total > 0 else 0.0,
+            "success_rate": float(money(success / total * 100)) if total > 0 else 0.0,
             "by_type": self._count_by_type(),
         }
 

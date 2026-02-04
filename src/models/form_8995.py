@@ -26,6 +26,8 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class BusinessType(str, Enum):
@@ -186,13 +188,13 @@ class Form8995(BaseModel):
         return {
             'business_count': len(self.businesses),
             'businesses': business_details,
-            'total_qbi_before_carryforward': round(total_qbi, 2),
+            'total_qbi_before_carryforward': float(money(total_qbi)),
             'prior_year_carryforward': self.prior_year_loss_carryforward,
-            'net_qbi': round(net_qbi, 2),
-            'total_reit_dividends': round(total_reit, 2),
-            'total_ptp_income': round(total_ptp, 2),
-            'total_w2_wages': round(total_w2_wages, 2),
-            'total_ubia': round(total_ubia, 2),
+            'net_qbi': float(money(net_qbi)),
+            'total_reit_dividends': float(money(total_reit)),
+            'total_ptp_income': float(money(total_ptp)),
+            'total_w2_wages': float(money(total_w2_wages)),
+            'total_ubia': float(money(total_ubia)),
         }
 
     def calculate_simplified_deduction(self) -> Dict[str, Any]:
@@ -235,16 +237,16 @@ class Form8995(BaseModel):
             'below_threshold': True,
 
             # Line items
-            'line_1_total_qbi': round(net_qbi, 2),
-            'line_2_qbi_component': round(qbi_component, 2),
-            'line_3_reit_ptp_component': round(reit_ptp_component, 2),
-            'line_4_total_before_limit': round(total_before_limit, 2),
-            'line_5_income_limitation': round(income_limitation, 2),
-            'line_6_qbi_deduction': round(qbi_deduction, 2),
+            'line_1_total_qbi': float(money(net_qbi)),
+            'line_2_qbi_component': float(money(qbi_component)),
+            'line_3_reit_ptp_component': float(money(reit_ptp_component)),
+            'line_4_total_before_limit': float(money(total_before_limit)),
+            'line_5_income_limitation': float(money(income_limitation)),
+            'line_6_qbi_deduction': float(money(qbi_deduction)),
 
             # Summary
-            'qbi_deduction': round(qbi_deduction, 2),
-            'new_loss_carryforward': round(new_carryforward, 2),
+            'qbi_deduction': float(money(qbi_deduction)),
+            'new_loss_carryforward': float(money(new_carryforward)),
 
             # Supporting details
             'qbi_totals': qbi_totals,
@@ -320,9 +322,9 @@ class Form8995(BaseModel):
             business_calcs.append({
                 'name': biz.business_name,
                 'original_qbi': qbi,
-                'applicable_qbi': round(applicable_qbi, 2),
+                'applicable_qbi': float(money(applicable_qbi)),
                 'is_sstb': biz.is_sstb,
-                'component': round(biz_component, 2),
+                'component': float(money(biz_component)),
             })
 
         # Apply prior year carryforward
@@ -353,19 +355,19 @@ class Form8995(BaseModel):
             # Phase-in information
             'threshold': threshold,
             'phase_in_range': phase_in,
-            'excess_over_threshold': round(excess_over_threshold, 2),
+            'excess_over_threshold': float(money(excess_over_threshold)),
             'sstb_applicable_pct': round(sstb_applicable_pct * 100, 1),
             'wage_ubia_applicable_pct': round(wage_ubia_applicable_pct * 100, 1),
 
             # Components
-            'qbi_component': round(total_qbi_component, 2),
-            'reit_ptp_component': round(reit_ptp_component, 2),
-            'total_before_limit': round(total_before_limit, 2),
-            'income_limitation': round(income_limitation, 2),
-            'qbi_deduction': round(qbi_deduction, 2),
+            'qbi_component': float(money(total_qbi_component)),
+            'reit_ptp_component': float(money(reit_ptp_component)),
+            'total_before_limit': float(money(total_before_limit)),
+            'income_limitation': float(money(income_limitation)),
+            'qbi_deduction': float(money(qbi_deduction)),
 
             # Carryforward
-            'new_loss_carryforward': round(new_carryforward, 2),
+            'new_loss_carryforward': float(money(new_carryforward)),
 
             # Business details
             'business_calculations': business_calcs,

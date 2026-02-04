@@ -264,7 +264,7 @@ Tax Advisory Platform
     ) -> str:
         """Generate HTML email for new lead notification."""
         temperature = lead_data.get("lead_temperature", "warm")
-        temp_color = {"hot": "#dc2626", "warm": "#f59e0b", "cold": "#3b82f6"}.get(temperature, "#f59e0b")
+        temp_color = {"hot": "#dc2626", "warm": "#f59e0b", "cold": "#5387c1"}.get(temperature, "#f59e0b")
 
         return f"""
 <!DOCTYPE html>
@@ -276,7 +276,7 @@ Tax Advisory Platform
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f3f4f6; margin: 0; padding: 20px;">
     <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
         <!-- Header -->
-        <div style="background: {'linear-gradient(135deg, #dc2626, #f97316)' if is_hot else 'linear-gradient(135deg, #1e40af, #3b82f6)'}; padding: 24px; text-align: center;">
+        <div style="background: {'linear-gradient(135deg, #dc2626, #f97316)' if is_hot else 'linear-gradient(135deg, #1e3a5f, #5387c1)'}; padding: 24px; text-align: center;">
             <h1 style="color: white; margin: 0; font-size: 24px;">
                 {'🔥 New HOT Lead!' if is_hot else '📋 New Lead Captured'}
             </h1>
@@ -320,7 +320,7 @@ Tax Advisory Platform
 
             <!-- CTA Button -->
             <div style="text-align: center; margin: 24px 0;">
-                <a href="{lead_data.get('dashboard_url', '/cpa/dashboard')}" style="display: inline-block; background: #1e40af; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+                <a href="{lead_data.get('dashboard_url', '/cpa/dashboard')}" style="display: inline-block; background: #1e3a5f; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
                     View Lead in Dashboard
                 </a>
             </div>
@@ -437,7 +437,7 @@ Best regards,
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f3f4f6; margin: 0; padding: 20px;">
     <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
         <!-- Header -->
-        <div style="background: linear-gradient(135deg, #1e40af, #3b82f6); padding: 24px; text-align: center;">
+        <div style="background: linear-gradient(135deg, #1e3a5f, #5387c1); padding: 24px; text-align: center;">
             <h1 style="color: white; margin: 0; font-size: 24px;">Your FREE Tax Advisory Report</h1>
             <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px;">Prepared by {cpa_name}</p>
         </div>

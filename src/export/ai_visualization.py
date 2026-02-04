@@ -153,7 +153,7 @@ class ChartConfiguration:
         """Get color palette for the scheme."""
         palettes = {
             ColorScheme.PROFESSIONAL_BLUE: [
-                "#1e3a5f", "#2c5282", "#3182ce", "#4299e1",
+                "#1e3a5f", "#5387c1", "#3182ce", "#4299e1",
                 "#63b3ed", "#90cdf4", "#bee3f8", "#e6f3ff",
             ],
             ColorScheme.TAX_GREEN: [
@@ -161,7 +161,7 @@ class ChartConfiguration:
                 "#48bb78", "#68d391", "#9ae6b4", "#c6f6d5",
             ],
             ColorScheme.NEUTRAL_GRAY: [
-                "#1a202c", "#2d3748", "#4a5568", "#718096",
+                "#0c1b2f", "#2d3748", "#4a5568", "#718096",
                 "#a0aec0", "#cbd5e0", "#e2e8f0", "#f7fafc",
             ],
             ColorScheme.HIGH_CONTRAST: [
@@ -214,7 +214,7 @@ class AIVisualizationGenerator:
     """
 
     # Standard color palettes
-    INCOME_COLORS = ["#2c5282", "#3182ce", "#4299e1", "#63b3ed", "#90cdf4"]
+    INCOME_COLORS = ["#5387c1", "#3182ce", "#4299e1", "#63b3ed", "#90cdf4"]
     DEDUCTION_COLORS = ["#276749", "#38a169", "#48bb78", "#68d391", "#9ae6b4"]
     TAX_COLORS = ["#9b2c2c", "#c53030", "#e53e3e", "#fc8181", "#feb2b2"]
     SAVINGS_COLORS = ["#2f855a", "#38a169", "#48bb78", "#68d391"]
@@ -476,7 +476,7 @@ class AIVisualizationGenerator:
             ChartConfiguration for entity comparison
         """
         data_points = []
-        colors = ["#2c5282", "#38a169", "#805ad5", "#d69e2e"]
+        colors = ["#5387c1", "#38a169", "#805ad5", "#d69e2e"]
 
         for i, (entity_type, data) in enumerate(entity_data.items()):
             total_tax = data.get("total_tax", 0)

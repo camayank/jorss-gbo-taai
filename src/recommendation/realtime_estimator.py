@@ -18,6 +18,7 @@ from typing import Dict, Any, List, Optional, Tuple
 from decimal import Decimal, ROUND_HALF_UP
 from enum import Enum
 from datetime import datetime
+from calculator.decimal_math import money, to_decimal
 
 
 class EstimateConfidence(str, Enum):
@@ -58,19 +59,19 @@ class TaxEstimate:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "refund_or_owed": round(self.refund_or_owed, 2),
-            "likely_amount": round(self.likely_amount, 2),
+            "refund_or_owed": float(money(self.refund_or_owed)),
+            "likely_amount": float(money(self.likely_amount)),
             "confidence_band": {
-                "low": round(self.low_estimate, 2),
-                "likely": round(self.likely_amount, 2),
-                "high": round(self.high_estimate, 2),
+                "low": float(money(self.low_estimate)),
+                "likely": float(money(self.likely_amount)),
+                "high": float(money(self.high_estimate)),
             },
             "confidence_score": round(self.confidence_score, 1),
             "confidence_level": self.confidence_level.value,
             "breakdown": {
-                "estimated_tax": round(self.estimated_tax, 2),
-                "total_withholding": round(self.total_withholding, 2),
-                "estimated_credits": round(self.estimated_credits, 2),
+                "estimated_tax": float(money(self.estimated_tax)),
+                "total_withholding": float(money(self.total_withholding)),
+                "estimated_credits": float(money(self.estimated_credits)),
             },
             "data_completeness": round(self.data_completeness, 1),
             "assumptions_made": self.assumptions_made,

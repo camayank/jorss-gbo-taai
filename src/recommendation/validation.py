@@ -24,6 +24,8 @@ from enum import Enum
 import logging
 import re
 import html
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -298,7 +300,7 @@ def validate_savings(value: Any) -> tuple:
     if not (SAVINGS_MIN <= sanitized <= SAVINGS_MAX):
         return False, sanitized, f"Savings must be between {SAVINGS_MIN} and {SAVINGS_MAX}"
 
-    return True, round(sanitized, 2), None
+    return True, float(money(sanitized)), None
 
 
 def validate_description(value: Any) -> tuple:

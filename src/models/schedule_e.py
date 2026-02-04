@@ -19,6 +19,8 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class PropertyType(str, Enum):
@@ -247,10 +249,10 @@ class ScheduleE(BaseModel):
                 'type': prop.property_type.value,
                 'fair_rental_days': prop.fair_rental_days,
                 'personal_use_days': prop.personal_use_days,
-                'income': round(income, 2),
-                'expenses': round(expenses, 2),
-                'depreciation': round(prop.depreciation, 2),
-                'net': round(net, 2),
+                'income': float(money(income)),
+                'expenses': float(money(expenses)),
+                'depreciation': float(money(prop.depreciation)),
+                'net': float(money(net)),
             })
 
         net_rental = total_income - total_expenses
@@ -283,15 +285,15 @@ class ScheduleE(BaseModel):
         return {
             'property_count': len(self.rental_properties),
             'properties': property_details,
-            'total_income': round(total_income, 2),
-            'total_expenses': round(total_expenses, 2),
-            'total_depreciation': round(total_depreciation, 2),
-            'net_rental_before_pal': round(net_rental, 2),
+            'total_income': float(money(total_income)),
+            'total_expenses': float(money(total_expenses)),
+            'total_depreciation': float(money(total_depreciation)),
+            'net_rental_before_pal': float(money(net_rental)),
             'is_active_participant': self.is_active_participant,
             'is_real_estate_professional': self.is_real_estate_professional,
-            'pal_allowance_used': round(abs(allowed_loss), 2) if allowed_loss < 0 else 0.0,
-            'allowed_rental_income_loss': round(allowed_loss, 2),
-            'suspended_passive_loss': round(suspended_loss, 2),
+            'pal_allowance_used': float(money(abs(allowed_loss))) if allowed_loss < 0 else 0.0,
+            'allowed_rental_income_loss': float(money(allowed_loss)),
+            'suspended_passive_loss': float(money(suspended_loss)),
         }
 
     def calculate_part_ii_partnerships(self) -> Dict[str, Any]:
@@ -332,7 +334,7 @@ class ScheduleE(BaseModel):
                 'ordinary': k1.ordinary_income_loss,
                 'guaranteed': k1.guaranteed_payments,
                 'rental': rental,
-                'total': round(total_from_entity, 2),
+                'total': float(money(total_from_entity)),
                 'se_income': k1.self_employment_income,
                 'qbi': k1.qbi_income,
             })
@@ -343,14 +345,14 @@ class ScheduleE(BaseModel):
         return {
             'k1_count': len(self.partnership_scorp_k1s),
             'k1s': k1_details,
-            'total_passive_income': round(total_passive_income, 2),
-            'total_passive_loss': round(total_passive_loss, 2),
-            'net_passive': round(net_passive, 2),
-            'total_nonpassive_income': round(total_nonpassive_income, 2),
-            'total_nonpassive_loss': round(total_nonpassive_loss, 2),
-            'net_nonpassive': round(net_nonpassive, 2),
-            'total_self_employment': round(total_se_income, 2),
-            'total_qbi': round(total_qbi, 2),
+            'total_passive_income': float(money(total_passive_income)),
+            'total_passive_loss': float(money(total_passive_loss)),
+            'net_passive': float(money(net_passive)),
+            'total_nonpassive_income': float(money(total_nonpassive_income)),
+            'total_nonpassive_loss': float(money(total_nonpassive_loss)),
+            'net_nonpassive': float(money(net_nonpassive)),
+            'total_self_employment': float(money(total_se_income)),
+            'total_qbi': float(money(total_qbi)),
         }
 
     def calculate_part_iii_estates_trusts(self) -> Dict[str, Any]:
@@ -386,15 +388,15 @@ class ScheduleE(BaseModel):
                 'interest': k1.interest_income,
                 'dividends': k1.ordinary_dividends,
                 'capital_gains': k1.net_short_term_gain + k1.net_long_term_gain,
-                'total': round(total_from_entity, 2),
+                'total': float(money(total_from_entity)),
             })
 
         return {
             'k1_count': len(self.estate_trust_k1s),
             'k1s': k1_details,
-            'total_income': round(total_income, 2),
-            'total_loss': round(total_loss, 2),
-            'net_income_loss': round(total_income - total_loss, 2),
+            'total_income': float(money(total_income)),
+            'total_loss': float(money(total_loss)),
+            'net_income_loss': float(money(total_income - total_loss)),
         }
 
     def calculate_schedule_e(self) -> Dict[str, Any]:
@@ -424,7 +426,7 @@ class ScheduleE(BaseModel):
             'part_iv_remic_total': self.remic_income,
 
             # Combined total
-            'total_supplemental_income': round(total_schedule_e, 2),
+            'total_supplemental_income': float(money(total_schedule_e)),
 
             # Self-employment (flows to Schedule SE)
             'self_employment_income': part_ii['total_self_employment'],

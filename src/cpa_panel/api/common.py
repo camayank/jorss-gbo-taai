@@ -15,6 +15,8 @@ import os
 import time
 import uuid
 import re
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -415,7 +417,7 @@ def log_api_event(
     if tenant_id:
         log_data["tenant_id"] = tenant_id
     if duration_ms is not None:
-        log_data["duration_ms"] = round(duration_ms, 2)
+        log_data["duration_ms"] = float(money(duration_ms))
     log_data.update(extra)
 
     logger.info(message, extra=log_data)

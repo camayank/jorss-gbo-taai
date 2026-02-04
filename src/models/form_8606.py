@@ -21,6 +21,8 @@ from enum import Enum
 from typing import Optional, List
 from pydantic import BaseModel, Field, field_validator
 from datetime import date
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class IRAType(str, Enum):
@@ -425,13 +427,13 @@ class Form8606(BaseModel):
 
         # Line 11: Nontaxable portion of distributions
         # (Line 7 + Line 8) × Line 10 percentage
-        nontaxable_amount = round(total_withdrawn * nontaxable_pct, 2)
+        nontaxable_amount = float(money(total_withdrawn * nontaxable_pct))
 
         # Line 13: Taxable portion
-        taxable_amount = round(total_withdrawn - nontaxable_amount, 2)
+        taxable_amount = float(money(total_withdrawn - nontaxable_amount))
 
         # Line 14: Remaining basis for next year
-        remaining_basis = round(total_basis - nontaxable_amount, 2)
+        remaining_basis = float(money(total_basis - nontaxable_amount))
 
         return {
             'line_1_nondeductible_contributions': self.nondeductible_contributions_current_year,
@@ -465,8 +467,8 @@ class Form8606(BaseModel):
         nontaxable_pct = self.calculate_nontaxable_percentage()
 
         # Calculate portions
-        nontaxable_conversion = round(self.roth_conversion_amount * nontaxable_pct, 2)
-        taxable_conversion = round(self.roth_conversion_amount - nontaxable_conversion, 2)
+        nontaxable_conversion = float(money(self.roth_conversion_amount * nontaxable_pct))
+        taxable_conversion = float(money(self.roth_conversion_amount - nontaxable_conversion))
 
         return {
             'conversion_amount': self.roth_conversion_amount,
@@ -535,7 +537,7 @@ class Form8606(BaseModel):
             if self._has_recent_conversion(current_year):
                 # 10% penalty on conversion amount if under 59½
                 if self.taxpayer_age < 59:
-                    penalty_amount += round(from_conversions * 0.10, 2)
+                    penalty_amount += float(money(from_conversions * 0.10))
 
         # Step 3: Earnings (taxable and 10% penalty if non-qualified)
         if remaining > 0:
@@ -543,7 +545,7 @@ class Form8606(BaseModel):
 
             # 10% penalty on earnings if under 59½
             if self.taxpayer_age < 59 and not self._has_penalty_exception():
-                penalty_amount += round(from_earnings * 0.10, 2)
+                penalty_amount += float(money(from_earnings * 0.10))
 
         return {
             'total_distribution': self.roth_ira_distributions,
@@ -631,7 +633,7 @@ class Form8606(BaseModel):
             if self.traditional_ira_distributions > 0:
                 # 10% on taxable portion
                 taxable = self.calculate_taxable_traditional_distribution()
-                total_penalty += round(taxable * 0.10, 2)
+                total_penalty += float(money(taxable * 0.10))
 
         # Roth IRA penalties (from Part III calculation)
         roth_result = self.calculate_part_iii_roth(current_year)

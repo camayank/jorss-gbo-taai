@@ -20,6 +20,8 @@ from .payment_models import (
     PaymentMethod,
     PaymentLink,
 )
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -618,7 +620,7 @@ class PaymentService:
 
     def _calculate_platform_fee(self, amount: float) -> float:
         """Calculate platform fee for a payment."""
-        return round(amount * PLATFORM_FEE_PERCENT + PLATFORM_FEE_FIXED, 2)
+        return float(money(amount * PLATFORM_FEE_PERCENT + PLATFORM_FEE_FIXED))
 
     def _generate_invoice_payment_link(self, invoice: Invoice) -> str:
         """Generate a payment link for an invoice."""

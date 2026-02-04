@@ -74,11 +74,18 @@ def _get_ssn_hash_secret() -> bytes:
             "[SECURITY] SSN_HASH_SECRET not set. Using derived development key. "
             "Set SSN_HASH_SECRET for production security."
         )
-        # Derive from common dev secrets to maintain consistency
-        app_secret = os.environ.get("APP_SECRET_KEY", "dev-only-insecure-key")
-        _ssn_hash_secret = hashlib.sha256(
-            f"ssn-hash-dev:{app_secret}".encode()
-        ).digest()
+        # Derive from APP_SECRET_KEY if available, otherwise use random key
+        app_secret = os.environ.get("APP_SECRET_KEY")
+        if app_secret:
+            _ssn_hash_secret = hashlib.sha256(
+                f"ssn-hash-dev:{app_secret}".encode()
+            ).digest()
+        else:
+            logger.warning(
+                "[SECURITY] Neither SSN_HASH_SECRET nor APP_SECRET_KEY set. "
+                "Using random key (SSN hashes will not persist across restarts)."
+            )
+            _ssn_hash_secret = secrets.token_bytes(32)
 
     return _ssn_hash_secret
 

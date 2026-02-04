@@ -75,16 +75,13 @@ Increased standard deduction amounts:
    - Updated refundable amount to $1,800
    - Updated EITC phaseout thresholds for 2025
 
-5. **src/main.py**
-   - Updated display text to show "Tax Year 2025"
-
-6. **src/agent/tax_agent.py**
+5. **src/agent/tax_agent.py**
    - Updated prompts to reference tax year 2025
 
-7. **src/forms/form_generator.py**
+6. **src/forms/form_generator.py**
    - Updated form summary headers to show 2025
 
-8. **Documentation Files**
+7. **Documentation Files**
    - README.md
    - USAGE.md
    - PROJECT_SUMMARY.md

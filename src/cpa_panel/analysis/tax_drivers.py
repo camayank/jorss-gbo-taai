@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 import logging
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +41,8 @@ class IncomeSource:
         """Convert to dictionary."""
         return {
             "source": self.source,
-            "amount": round(self.amount, 2),
-            "percentage_of_total": round(self.percentage_of_total, 2),
+            "amount": float(money(self.amount)),
+            "percentage_of_total": float(money(self.percentage_of_total)),
             "icon": self.icon,
             "tax_treatment": self.tax_treatment,
         }
@@ -58,9 +60,9 @@ class DeductionImpact:
         """Convert to dictionary."""
         return {
             "type": self.type,
-            "amount": round(self.amount, 2),
-            "tax_savings": round(self.tax_savings, 2),
-            "breakdown": {k: round(v, 2) for k, v in self.breakdown.items()},
+            "amount": float(money(self.amount)),
+            "tax_savings": float(money(self.tax_savings)),
+            "breakdown": {k: float(money(v)) for k, v in self.breakdown.items()},
         }
 
 
@@ -76,9 +78,9 @@ class CreditUtilization:
         """Convert to dictionary."""
         return {
             "name": self.name,
-            "amount": round(self.amount, 2),
+            "amount": float(money(self.amount)),
             "refundable": self.is_refundable,
-            "percentage_of_total": round(self.percentage_of_total, 2),
+            "percentage_of_total": float(money(self.percentage_of_total)),
         }
 
 
@@ -99,7 +101,7 @@ class TaxDriver:
             "factor": self.factor,
             "impact": self.impact,
             "direction": self.direction.value,
-            "dollar_amount": round(self.dollar_amount, 2) if self.dollar_amount else None,
+            "dollar_amount": float(money(self.dollar_amount)) if self.dollar_amount else None,
             "explanation": self.explanation,
         }
 
@@ -140,11 +142,11 @@ class TaxDriversAnalyzer:
 
     # 2025 standard deduction amounts
     STANDARD_DEDUCTIONS = {
-        "single": 15000,
-        "married_joint": 30000,
-        "married_separate": 15000,
-        "head_of_household": 22500,
-        "widow": 30000,
+        "single": 15750,
+        "married_joint": 31500,
+        "married_separate": 15750,
+        "head_of_household": 23850,
+        "widow": 31500,
     }
 
     # Income source icons
@@ -225,8 +227,8 @@ class TaxDriversAnalyzer:
             "tax_liability": liability,
             "total_deductions": deduction_impact.amount,
             "total_credits": sum(c.amount for c in credit_breakdown),
-            "effective_rate": round(effective_rate * 100, 2),
-            "marginal_rate": round(marginal_rate * 100, 2),
+            "effective_rate": float(money(effective_rate * 100)),
+            "marginal_rate": float(money(marginal_rate * 100)),
         }
 
         # Generate top drivers

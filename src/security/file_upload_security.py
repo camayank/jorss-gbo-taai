@@ -10,6 +10,8 @@ Comprehensive file upload validation and security:
 
 Usage:
     from security.file_upload_security import validate_upload, SecureUpload
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
     # In your endpoint
     @app.post("/api/upload")
@@ -54,7 +56,7 @@ MAGIC_BYTES: Dict[str, List[bytes]] = {
     "webp": [b"RIFF", b"WEBP"],  # RIFF....WEBP
     "bmp": [b"BM"],
     "ico": [b"\x00\x00\x01\x00"],
-    "svg": [b"<?xml", b"<svg"],  # SVG can start with XML declaration or svg tag
+    # SVG removed - XSS risk via embedded scripts/event handlers
 
     # Documents
     "pdf": [b"%PDF"],
@@ -96,7 +98,6 @@ MIME_TYPES: Dict[str, str] = {
     "webp": "image/webp",
     "bmp": "image/bmp",
     "ico": "image/x-icon",
-    "svg": "image/svg+xml",
     "pdf": "application/pdf",
     "doc": "application/msword",
     "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -114,6 +115,7 @@ MIME_TYPES: Dict[str, str] = {
 
 # Dangerous file types that should never be allowed
 DANGEROUS_EXTENSIONS = {
+    "svg",  # XSS risk - contains executable scripts/event handlers
     "exe", "com", "bat", "cmd", "sh", "bash", "ps1", "psm1",
     "vbs", "vbe", "js", "jse", "ws", "wsf", "wsc", "wsh",
     "msi", "msp", "scr", "pif", "hta", "cpl", "msc", "jar",
@@ -343,7 +345,7 @@ async def validate_upload(
             message=f"File too large. Maximum size: {max_size_mb} MB",
             details={
                 "filename": original_filename,
-                "size_mb": round(size_bytes / (1024 * 1024), 2),
+                "size_mb": float(money(size_bytes / (1024 * 1024))),
                 "max_size_mb": max_size_mb
             }
         )
@@ -460,7 +462,7 @@ async def validate_uploads(
             code=ErrorCode.VALIDATION_FILE_TOO_LARGE,
             message=f"Total upload size too large. Maximum: {max_total_size_mb} MB",
             details={
-                "total_size_mb": round(total_size / (1024 * 1024), 2),
+                "total_size_mb": float(money(total_size / (1024 * 1024))),
                 "max_total_size_mb": max_total_size_mb
             }
         )

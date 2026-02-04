@@ -292,7 +292,7 @@ class SectionRenderer:
 
     def render_cover_page(self) -> str:
         """Render the report cover page."""
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
         accent = self.theme.accent_color if self.theme else "#10b981"
 
         # Header with logo
@@ -352,7 +352,7 @@ class SectionRenderer:
 
     def render_executive_summary(self) -> str:
         """Render executive summary section."""
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
 
         # Key insights
         insights_html = ""
@@ -417,7 +417,7 @@ class SectionRenderer:
             confidence=self.data.savings_confidence or 0.85,
         )
 
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
 
         return f'''
 <section class="savings-section">
@@ -446,7 +446,7 @@ class SectionRenderer:
 
     def render_income_analysis(self) -> str:
         """Render income analysis section with pie chart."""
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
 
         # Income breakdown chart
         chart_html = ""
@@ -506,7 +506,7 @@ class SectionRenderer:
 
     def render_deductions_analysis(self) -> str:
         """Render deductions analysis section."""
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
 
         # Deduction comparison chart
         chart_html = ""
@@ -570,7 +570,7 @@ class SectionRenderer:
         if not self.data.taxable_income:
             return ""
 
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
 
         chart_svg = self.charts.tax_bracket_visualization(
             taxable_income=self.data.taxable_income,
@@ -601,7 +601,7 @@ class SectionRenderer:
         if not self.data.recommendations:
             return ""
 
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
         accent = self.theme.accent_color if self.theme else "#10b981"
 
         # Sort by savings
@@ -654,7 +654,7 @@ class SectionRenderer:
         if not self.data.scenarios:
             return ""
 
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
 
         chart_svg = self.charts.scenario_comparison(
             self.data.scenarios,
@@ -679,7 +679,7 @@ class SectionRenderer:
         if not self.data.entity_comparison:
             return ""
 
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
 
         # Build comparison table
         entities = self.data.entity_comparison.get("entity_comparison", {})
@@ -728,7 +728,7 @@ class SectionRenderer:
         if not self.data.multi_year_projection:
             return ""
 
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
 
         projection = self.data.multi_year_projection
         yearly_data = projection.get("yearly_data", [])
@@ -785,7 +785,7 @@ class SectionRenderer:
 
     def render_action_items(self) -> str:
         """Render prioritized action items."""
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
 
         # Get immediate actions from recommendations
         immediate = self.data.get_immediate_actions()

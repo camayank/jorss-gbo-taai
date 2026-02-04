@@ -1,5 +1,8 @@
 from typing import Optional
+from decimal import Decimal, ROUND_HALF_UP
 from pydantic import BaseModel, Field
+
+from models._decimal_utils import money, to_decimal
 
 
 class ItemizedDeductions(BaseModel):
@@ -85,8 +88,8 @@ class ItemizedDeductions(BaseModel):
         # Apply proportional limitation
         # Limited Interest = Interest × (Debt Limit / Principal)
         limitation_ratio = debt_limit / self.mortgage_principal
-        limited_interest = round(self.mortgage_interest * limitation_ratio, 2)
-        limited_points = round(self.points_paid * limitation_ratio, 2)
+        limited_interest = float(money(self.mortgage_interest * limitation_ratio))
+        limited_points = float(money(self.points_paid * limitation_ratio))
 
         return limited_interest + limited_points
 
@@ -198,7 +201,7 @@ class Deductions(BaseModel):
             phaseout_range = phaseout_end - phaseout_start
             excess = magi - phaseout_start
             reduction_ratio = excess / phaseout_range
-            return round(base_deduction * (1 - reduction_ratio), 2)
+            return float(money(base_deduction * (1 - reduction_ratio)))
 
     def get_ira_deduction(
         self,
@@ -283,7 +286,7 @@ class Deductions(BaseModel):
             # Per IRS Publication 590-A: round up to nearest $10, minimum $200
             if reduced > 0 and reduced < 200:
                 return 200.0
-            return round(reduced / 10) * 10  # Round to nearest $10
+            return float(to_decimal(reduced).quantize(Decimal("10"), rounding=ROUND_HALF_UP))
 
     def _get_ira_phaseout_covered(self, filing_status: str) -> tuple:
         """Get IRA phaseout thresholds when taxpayer is covered by employer plan."""
@@ -378,7 +381,7 @@ class Deductions(BaseModel):
             # Per IRS Publication 590-A: round up to nearest $10, minimum $200
             if reduced > 0 and reduced < 200:
                 return 200.0
-            return round(reduced / 10) * 10  # Round to nearest $10
+            return float(to_decimal(reduced).quantize(Decimal("10"), rounding=ROUND_HALF_UP))
 
     def _get_roth_ira_phaseout(self, filing_status: str) -> tuple:
         """Get Roth IRA phaseout thresholds based on filing status."""
@@ -518,7 +521,7 @@ class Deductions(BaseModel):
             "single": 15750.0,
             "married_joint": 31500.0,
             "married_separate": 15750.0,
-            "head_of_household": 23625.0,
+            "head_of_household": 23850.0,
             "qualifying_widow": 31500.0,
         }
 

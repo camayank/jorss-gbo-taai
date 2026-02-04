@@ -16,17 +16,22 @@ if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
 
-@pytest.fixture(autouse=True)
-def reset_database_globals():
-    """Reset database module globals before each test."""
-    yield
-    # Clean up after test
+def _reset_db_modules():
+    """Reset database module globals to ensure clean state."""
     try:
         import database.async_engine as module
         module._async_engine = None
         module._async_session_factory = None
     except ImportError:
         pass
+
+
+@pytest.fixture(autouse=True)
+def reset_database_globals():
+    """Reset database module globals before and after each test."""
+    _reset_db_modules()
+    yield
+    _reset_db_modules()
 
 
 @pytest.fixture

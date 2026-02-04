@@ -12,9 +12,34 @@ The same API serves:
 - Platform administrators
 """
 
-from fastapi import APIRouter
+import os
+import logging
+from fastapi import APIRouter, HTTPException, Depends
+
+logger = logging.getLogger(__name__)
+
+# Environment detection for test data endpoints
+_ENVIRONMENT = os.environ.get("APP_ENVIRONMENT", "development")
+_IS_PRODUCTION = _ENVIRONMENT in ("production", "prod", "staging")
+
+
+def _require_test_mode():
+    """
+    Dependency that blocks test data endpoints in production.
+
+    SECURITY: Test data endpoints expose sensitive information and must
+    never be accessible in production environments.
+    """
+    if _IS_PRODUCTION:
+        logger.warning(f"Blocked test data endpoint access in {_ENVIRONMENT} environment")
+        raise HTTPException(
+            status_code=403,
+            detail="Test data endpoints are disabled in production"
+        )
+    return True
 
 from .auth_routes import router as auth_router
+from .oauth_routes import router as oauth_router  # OAuth2 Google/Microsoft login
 from .tax_returns_routes import router as tax_returns_router
 from .documents_routes import router as documents_router
 from .scenarios_routes import router as scenarios_router
@@ -32,6 +57,7 @@ core_router = APIRouter(prefix="/api/core")
 
 # Include all sub-routers
 core_router.include_router(auth_router)
+core_router.include_router(oauth_router)  # OAuth2 endpoints for Google/Microsoft
 core_router.include_router(tax_returns_router)
 core_router.include_router(documents_router)
 core_router.include_router(scenarios_router)
@@ -59,6 +85,7 @@ async def health_check():
         "version": "1.0.0",
         "services": {
             "auth": "operational",
+            "oauth": "operational",
             "users": "operational",
             "tax_returns": "operational",
             "documents": "operational",
@@ -71,13 +98,14 @@ async def health_check():
     }
 
 
-@core_router.post("/test-data/init")
+@core_router.post("/test-data/init", dependencies=[Depends(_require_test_mode)])
 async def init_test_data():
     """
     Initialize comprehensive test data.
 
     Creates test users, firms, tax returns, documents, scenarios, and recommendations.
-    Only available in testing mode.
+
+    SECURITY: Only available in development/test mode. Blocked in production.
 
     Returns:
         Initialization results for each data type.
@@ -89,15 +117,18 @@ async def init_test_data():
         results["message"] = "Test data initialized successfully"
         return results
     except Exception as e:
+        logger.exception("Failed to initialize test data")
         return {"error": str(e), "message": "Failed to initialize test data"}
 
 
-@core_router.get("/test-data/users")
+@core_router.get("/test-data/users", dependencies=[Depends(_require_test_mode)])
 async def get_test_users():
     """
     Get list of test user credentials.
 
     Returns all test users with their emails and passwords for testing.
+
+    SECURITY: Only available in development/test mode. Blocked in production.
     """
     from core.services.test_data_init import get_test_user_credentials
     return {
@@ -106,10 +137,12 @@ async def get_test_users():
     }
 
 
-@core_router.get("/test-data/summary")
+@core_router.get("/test-data/summary", dependencies=[Depends(_require_test_mode)])
 async def get_test_data_summary():
     """
     Get summary of current test data in the system.
+
+    SECURITY: Only available in development/test mode. Blocked in production.
     """
     from core.api import tax_returns_routes, documents_routes, scenarios_routes, recommendations_routes
     from core.services.auth_service import CoreAuthService

@@ -424,19 +424,19 @@
     }
 
     .spinner-animation {
-      color: var(--primary, #6366f1);
+      color: var(--primary, var(--color-primary-500, #1e3a5f));
     }
 
     .loading-status {
       font-size: 14px;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-muted, var(--color-gray-500, #6b7280));
     }
 
     .loading-progress-container {
       width: 100%;
       max-width: 200px;
       height: 4px;
-      background: var(--border, #e2e8f0);
+      background: var(--border-color, var(--color-gray-200, #e5e7eb));
       border-radius: 2px;
       overflow: hidden;
     }
@@ -444,7 +444,7 @@
     .loading-progress {
       height: 100%;
       width: 0%;
-      background: var(--primary, #6366f1);
+      background: var(--primary, var(--color-primary-500, #1e3a5f));
       border-radius: 2px;
       transition: width 0.3s ease;
     }
@@ -456,7 +456,7 @@
       align-items: center;
       gap: 8px;
       padding: 20px;
-      color: var(--error, #ef4444);
+      color: var(--error, var(--color-error-500, #ef4444));
     }
 
     .error-icon {
@@ -470,7 +470,7 @@
 
     .retry-btn {
       padding: 8px 16px;
-      background: var(--primary, #6366f1);
+      background: var(--primary, var(--color-primary-500, #1e3a5f));
       color: white;
       border: none;
       border-radius: 6px;
@@ -483,7 +483,7 @@
     }
 
     .retry-btn:focus {
-      outline: 2px solid var(--primary, #6366f1);
+      outline: 2px solid var(--primary, var(--color-primary-500, #1e3a5f));
       outline-offset: 2px;
     }
 
@@ -499,7 +499,7 @@
 
     .skeleton-line {
       height: 16px;
-      background: var(--surface-light, #e2e8f0);
+      background: var(--border-color, var(--color-gray-200, #e5e7eb));
       border-radius: 4px;
       margin-bottom: 8px;
     }
@@ -513,7 +513,7 @@
     .skeleton-avatar {
       width: 48px;
       height: 48px;
-      background: var(--surface-light, #e2e8f0);
+      background: var(--border-color, var(--color-gray-200, #e5e7eb));
       border-radius: 50%;
       flex-shrink: 0;
     }
@@ -530,7 +530,7 @@
 
     .skeleton-cell {
       height: 20px;
-      background: var(--surface-light, #e2e8f0);
+      background: var(--border-color, var(--color-gray-200, #e5e7eb));
       border-radius: 4px;
     }
   `;

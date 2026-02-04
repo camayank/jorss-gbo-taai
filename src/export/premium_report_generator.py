@@ -15,6 +15,8 @@ Design Rules:
 
 Usage:
     from export.premium_report_generator import PremiumReportGenerator, ReportTier
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
     generator = PremiumReportGenerator()
     report = generator.generate(session_id="abc123", tier=ReportTier.PREMIUM, format="html")
@@ -640,7 +642,7 @@ class PremiumReportGenerator:
             "total_withholding": withholding,
             "refund_or_owed": refund_or_owed,
             "result_type": "refund" if refund_or_owed > 0 else "owed",
-            "effective_tax_rate": round(effective_rate, 2),
+            "effective_tax_rate": float(money(effective_rate)),
             "filing_status": self._get_filing_status(tax_return),
         }
 
@@ -714,7 +716,7 @@ class PremiumReportGenerator:
             "summary_metrics": {
                 "total_income": agi,
                 "total_tax": tax_liability,
-                "effective_rate": round(effective_rate, 2),
+                "effective_rate": float(money(effective_rate)),
                 "refund_or_owed": refund_or_owed,
             },
             "recommendations_count": 0,  # Will be populated by action items
@@ -917,8 +919,8 @@ class PremiumReportGenerator:
 
             projections.append({
                 "year": 2025 + year_offset,
-                "projected_agi": round(projected_agi, 2),
-                "projected_tax": round(projected_tax, 2),
+                "projected_agi": float(money(projected_agi)),
+                "projected_tax": float(money(projected_tax)),
                 "assumptions": f"{growth_rate * 100}% income growth",
             })
 
@@ -1159,8 +1161,8 @@ class PremiumReportGenerator:
             <title>Tax Advisory Report - {report.taxpayer_name}</title>
             <style>
                 :root {{
-                    --primary: #6366f1;
-                    --primary-dark: #4f46e5;
+                    --primary: #1e3a5f;
+                    --primary-dark: #152b47;
                     --success: #10b981;
                     --warning: #f59e0b;
                     --danger: #ef4444;

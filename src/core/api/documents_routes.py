@@ -21,6 +21,7 @@ import logging
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError, ProgrammingError, OperationalError
 
 from .auth_routes import get_current_user
 from ..models.user import UserContext, UserType
@@ -342,9 +343,11 @@ async def _get_document_request(session: AsyncSession, request_id: str) -> Optio
                 "created_at": _parse_dt(row[11]) or datetime.utcnow(),
                 "updated_at": _parse_dt(row[12]) or datetime.utcnow(),
             }
-    except Exception:
-        # Table may not exist
-        pass
+    except (ProgrammingError, OperationalError) as e:
+        # Table may not exist yet
+        logger.debug(f"document_requests table query failed (may not exist): {e}")
+    except SQLAlchemyError as e:
+        logger.warning(f"Database error fetching document request {request_id}: {e}")
     return None
 
 
@@ -563,8 +566,10 @@ async def upload_document(
                     "document_id": document_id,
                     "updated_at": now.isoformat(),
                 })
-            except Exception:
-                pass  # Table may not exist
+            except (ProgrammingError, OperationalError) as e:
+                logger.debug(f"Could not update document_requests (table may not exist): {e}")
+            except SQLAlchemyError as e:
+                logger.warning(f"Failed to update document request {metadata.request_id}: {e}")
 
     await session.commit()
 
@@ -917,8 +922,12 @@ async def get_pending_document_requests(
                 updated_at=_parse_dt(row[12]) or datetime.utcnow(),
             ))
         return results
-    except Exception:
+    except (ProgrammingError, OperationalError) as e:
         # Table may not exist, return empty list
+        logger.debug(f"document_requests table not available: {e}")
+        return []
+    except SQLAlchemyError as e:
+        logger.warning(f"Database error listing document requests: {e}")
         return []
 
 
@@ -1072,9 +1081,11 @@ async def get_document_analytics(
         req_query = text(f"SELECT COUNT(*) FROM document_requests dr WHERE {req_where}")
         req_result = await session.execute(req_query, req_params)
         pending_requests = req_result.scalar() or 0
-    except Exception:
+    except (ProgrammingError, OperationalError) as e:
         # Table may not exist
-        pass
+        logger.debug(f"document_requests table not available for stats: {e}")
+    except SQLAlchemyError as e:
+        logger.warning(f"Database error counting pending requests: {e}")
 
     return {
         "total_documents": total_documents,

@@ -8,18 +8,22 @@ Handles webhook delivery with:
 - Delivery logging
 """
 
+import asyncio
 import hashlib
 import hmac
 import json
 import logging
-import threading
 import time
 from datetime import datetime, timedelta
-from queue import Queue, Empty
 from typing import Dict, Any, Optional, List
 from uuid import uuid4
 
-import requests
+try:
+    import httpx
+    _HAS_HTTPX = True
+except ImportError:
+    import requests
+    _HAS_HTTPX = False
 
 logger = logging.getLogger(__name__)
 
@@ -99,9 +103,10 @@ class WebhookService:
                        If None, will use session from database module.
         """
         self._db_session = db_session
-        self._event_queue: Queue = Queue()
-        self._worker_thread: Optional[threading.Thread] = None
+        self._event_queue: asyncio.Queue = asyncio.Queue()
+        self._worker_task: Optional[asyncio.Task] = None
         self._running = False
+        self._http_client: Optional[Any] = None
 
     def _get_session(self):
         """
@@ -381,20 +386,20 @@ class WebhookService:
     # EVENT DELIVERY
     # =========================================================================
 
-    def queue_event(self, event: "WebhookEvent") -> None:
+    async def queue_event(self, event: "WebhookEvent") -> None:
         """
         Queue an event for asynchronous delivery.
 
         Args:
             event: WebhookEvent to deliver
         """
-        self._event_queue.put(event)
+        await self._event_queue.put(event)
 
         # Start worker if not running
         if not self._running:
-            self.start_worker()
+            await self.start_worker()
 
-    def deliver_event(self, event: "WebhookEvent") -> Dict[str, Any]:
+    async def deliver_event(self, event: "WebhookEvent") -> Dict[str, Any]:
         """
         Deliver an event to all registered endpoints synchronously.
 
@@ -416,12 +421,12 @@ class WebhookService:
 
         for endpoint in endpoints:
             if endpoint.should_receive_event(event.event_type):
-                result = self._deliver_to_endpoint(endpoint, event)
+                result = await self._deliver_to_endpoint(endpoint, event)
                 results[str(endpoint.endpoint_id)] = result
 
         return results
 
-    def _deliver_to_endpoint(
+    async def _deliver_to_endpoint(
         self,
         endpoint: "WebhookEndpoint",
         event: "WebhookEvent",
@@ -489,24 +494,39 @@ class WebhookService:
         )
 
         try:
-            # Make HTTP request
-            response = requests.post(
-                endpoint.url,
-                data=payload_json,
-                headers=headers,
-                timeout=DELIVERY_TIMEOUT,
-            )
+            # Make HTTP request (prefer httpx async, fall back to requests sync)
+            if _HAS_HTTPX:
+                if not self._http_client:
+                    self._http_client = httpx.AsyncClient(timeout=DELIVERY_TIMEOUT)
+                response = await self._http_client.post(
+                    endpoint.url,
+                    content=payload_json,
+                    headers=headers,
+                )
+                response_status = response.status_code
+                response_headers = dict(response.headers)
+                response_text = response.text
+            else:
+                response = requests.post(
+                    endpoint.url,
+                    data=payload_json,
+                    headers=headers,
+                    timeout=DELIVERY_TIMEOUT,
+                )
+                response_status = response.status_code
+                response_headers = dict(response.headers)
+                response_text = response.text
 
             duration_ms = int((time.time() - start_time) * 1000)
 
             # Record response
-            delivery.response_status_code = response.status_code
-            delivery.response_headers = dict(response.headers)
-            delivery.response_body = response.text[:10000]  # Limit stored response
+            delivery.response_status_code = response_status
+            delivery.response_headers = response_headers
+            delivery.response_body = response_text[:10000]  # Limit stored response
             delivery.duration_ms = duration_ms
 
             # Check success (2xx status codes)
-            if 200 <= response.status_code < 300:
+            if 200 <= response_status < 300:
                 delivery.status = DeliveryStatus.DELIVERED.value
                 delivery.delivered_at = datetime.utcnow()
 
@@ -517,32 +537,32 @@ class WebhookService:
 
                 logger.info(
                     f"[WEBHOOK] Delivered | endpoint={endpoint.endpoint_id} | "
-                    f"event={event.event_type} | status={response.status_code} | "
+                    f"event={event.event_type} | status={response_status} | "
                     f"duration={duration_ms}ms"
                 )
 
                 result = {
                     "success": True,
-                    "status_code": response.status_code,
+                    "status_code": response_status,
                     "duration_ms": duration_ms,
                 }
 
             else:
                 # Non-2xx response
                 delivery.status = DeliveryStatus.FAILED.value
-                delivery.error_message = f"HTTP {response.status_code}: {response.text[:500]}"
+                delivery.error_message = f"HTTP {response_status}: {response_text[:500]}"
 
                 endpoint.total_deliveries += 1
                 endpoint.failed_deliveries += 1
 
                 logger.warning(
                     f"[WEBHOOK] Failed | endpoint={endpoint.endpoint_id} | "
-                    f"event={event.event_type} | status={response.status_code}"
+                    f"event={event.event_type} | status={response_status}"
                 )
 
                 result = {
                     "success": False,
-                    "status_code": response.status_code,
+                    "status_code": response_status,
                     "error": delivery.error_message,
                 }
 
@@ -550,38 +570,35 @@ class WebhookService:
                 if attempt < endpoint.max_retries:
                     self._schedule_retry(delivery, endpoint, event, attempt)
 
-        except requests.Timeout:
-            delivery.status = DeliveryStatus.FAILED.value
-            delivery.error_message = f"Request timed out after {DELIVERY_TIMEOUT}s"
-            delivery.error_code = "TIMEOUT"
+        except (httpx.TimeoutException if _HAS_HTTPX else type(None), Exception) as e:
+            if "timeout" in str(type(e).__name__).lower() or "Timeout" in str(e):
+                delivery.status = DeliveryStatus.FAILED.value
+                delivery.error_message = f"Request timed out after {DELIVERY_TIMEOUT}s"
+                delivery.error_code = "TIMEOUT"
 
-            endpoint.total_deliveries += 1
-            endpoint.failed_deliveries += 1
+                endpoint.total_deliveries += 1
+                endpoint.failed_deliveries += 1
 
-            logger.warning(
-                f"[WEBHOOK] Timeout | endpoint={endpoint.endpoint_id} | "
-                f"event={event.event_type}"
-            )
+                logger.warning(
+                    f"[WEBHOOK] Timeout | endpoint={endpoint.endpoint_id} | "
+                    f"event={event.event_type}"
+                )
 
-            result = {"success": False, "error": "Request timed out"}
+                result = {"success": False, "error": "Request timed out"}
+            else:
+                delivery.status = DeliveryStatus.FAILED.value
+                delivery.error_message = str(e)[:500]
+                delivery.error_code = "REQUEST_ERROR"
 
-            if attempt < endpoint.max_retries:
-                self._schedule_retry(delivery, endpoint, event, attempt)
+                endpoint.total_deliveries += 1
+                endpoint.failed_deliveries += 1
 
-        except requests.RequestException as e:
-            delivery.status = DeliveryStatus.FAILED.value
-            delivery.error_message = str(e)[:500]
-            delivery.error_code = "REQUEST_ERROR"
+                logger.error(
+                    f"[WEBHOOK] Error | endpoint={endpoint.endpoint_id} | "
+                    f"event={event.event_type} | error={e}"
+                )
 
-            endpoint.total_deliveries += 1
-            endpoint.failed_deliveries += 1
-
-            logger.error(
-                f"[WEBHOOK] Error | endpoint={endpoint.endpoint_id} | "
-                f"event={event.event_type} | error={e}"
-            )
-
-            result = {"success": False, "error": str(e)}
+                result = {"success": False, "error": str(e)}
 
             if attempt < endpoint.max_retries:
                 self._schedule_retry(delivery, endpoint, event, attempt)
@@ -802,41 +819,46 @@ class WebhookService:
     # BACKGROUND WORKER
     # =========================================================================
 
-    def start_worker(self) -> None:
-        """Start the background delivery worker."""
+    async def start_worker(self) -> None:
+        """Start the background delivery worker as an asyncio task."""
         if self._running:
             return
 
         self._running = True
-        self._worker_thread = threading.Thread(
-            target=self._worker_loop,
-            daemon=True,
-            name="webhook-worker"
-        )
-        self._worker_thread.start()
-        logger.info("[WEBHOOK] Background worker started")
+        self._worker_task = asyncio.create_task(self._worker_loop())
+        logger.info("[WEBHOOK] Background worker started (async)")
 
-    def stop_worker(self) -> None:
+    async def stop_worker(self) -> None:
         """Stop the background delivery worker."""
         self._running = False
-        if self._worker_thread:
-            self._worker_thread.join(timeout=5)
+        if self._worker_task and not self._worker_task.done():
+            self._worker_task.cancel()
+            try:
+                await self._worker_task
+            except asyncio.CancelledError:
+                pass
+        if self._http_client and _HAS_HTTPX:
+            await self._http_client.aclose()
+            self._http_client = None
         logger.info("[WEBHOOK] Background worker stopped")
 
-    def _worker_loop(self) -> None:
-        """Background worker main loop."""
+    async def _worker_loop(self) -> None:
+        """Background worker main loop (async)."""
         while self._running:
             try:
                 # Get event from queue (with timeout to allow clean shutdown)
-                event = self._event_queue.get(timeout=1)
-                self.deliver_event(event)
-            except Empty:
+                event = await asyncio.wait_for(self._event_queue.get(), timeout=1.0)
+                await self.deliver_event(event)
+            except asyncio.TimeoutError:
                 # No events in queue, check for retries
-                self._process_retries()
+                await self._process_retries()
+            except asyncio.CancelledError:
+                logger.info("[WEBHOOK] Worker cancelled, shutting down gracefully")
+                break
             except Exception as e:
                 logger.error(f"[WEBHOOK] Worker error: {e}")
 
-    def _process_retries(self) -> None:
+    async def _process_retries(self) -> None:
         """Process pending retries."""
         from webhooks.models import WebhookEndpoint, WebhookDelivery, DeliveryStatus
 
@@ -877,7 +899,7 @@ class WebhookService:
                 )
 
                 # Attempt delivery
-                self._deliver_to_endpoint(
+                await self._deliver_to_endpoint(
                     endpoint,
                     event,
                     attempt=delivery.attempt_number + 1

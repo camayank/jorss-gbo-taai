@@ -346,8 +346,10 @@ class TenantIsolationMiddleware(BaseHTTPMiddleware):
                     user_role=payload.get("role"),
                     is_platform_admin=payload.get("user_type") == "platform_admin",
                 )
-            except Exception:
-                pass  # Invalid token, no context
+            except ImportError:
+                pass  # rbac.jwt not available
+            except (ValueError, KeyError, TypeError) as e:
+                logger.debug(f"Token extraction failed in tenant middleware: {type(e).__name__}")
 
         # Check session/cookie
         session_id = request.cookies.get("session_id")

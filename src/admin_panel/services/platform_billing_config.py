@@ -14,6 +14,8 @@ import os
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
 from enum import Enum
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 
 class PaymentMethod(str, Enum):
@@ -171,12 +173,12 @@ class PlatformBillingConfig:
         """Calculate platform fee for a transaction."""
         fee_percent = amount * (self.platform_fee_percent / 100)
         fee_fixed = self.platform_fee_fixed
-        total_fee = round(fee_percent + fee_fixed, 2)
-        net_amount = round(amount - total_fee, 2)
+        total_fee = float(money(fee_percent + fee_fixed))
+        net_amount = float(money(amount - total_fee))
 
         return {
             "gross_amount": amount,
-            "fee_percent": round(fee_percent, 2),
+            "fee_percent": float(money(fee_percent)),
             "fee_fixed": fee_fixed,
             "total_fee": total_fee,
             "net_amount": net_amount,

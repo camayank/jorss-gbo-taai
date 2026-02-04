@@ -24,8 +24,8 @@ class BrandTheme:
     for white-label report generation.
     """
     # Colors
-    primary_color: str = "#2563eb"      # Main accent (buttons, headers)
-    secondary_color: str = "#1d4ed8"    # Secondary accent
+    primary_color: str = "#1e3a5f"      # Main accent (buttons, headers)
+    secondary_color: str = "#152b47"    # Secondary accent
     accent_color: str = "#10b981"       # Success/savings (green)
     warning_color: str = "#f59e0b"      # Warnings (amber)
     danger_color: str = "#ef4444"       # Risks/alerts (red)
@@ -112,15 +112,15 @@ class ThemeManager:
     PRESETS = {
         "default": BrandTheme(),
         "corporate": BrandTheme(
-            primary_color="#1e40af",
-            secondary_color="#1e3a8a",
+            primary_color="#1e3a5f",
+            secondary_color="#0c1b2f",
             accent_color="#059669",
             heading_font="'Roboto', Arial, sans-serif",
             body_font="'Roboto', Arial, sans-serif",
         ),
         "modern": BrandTheme(
-            primary_color="#6366f1",
-            secondary_color="#4f46e5",
+            primary_color="#1e3a5f",
+            secondary_color="#152b47",
             accent_color="#22c55e",
             heading_font="'Poppins', sans-serif",
             body_font="'Inter', sans-serif",

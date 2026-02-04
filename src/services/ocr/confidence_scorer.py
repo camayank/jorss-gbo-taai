@@ -16,6 +16,7 @@ from typing import Dict, Any, List, Optional, Tuple
 from decimal import Decimal
 from enum import Enum
 import re
+from calculator.decimal_math import money, to_decimal
 
 
 class ConfidenceLevel(str, Enum):
@@ -589,12 +590,12 @@ def get_confidence_band(
     adjusted_high = likely_estimate + (current_high_diff * band_width_multiplier)
 
     return {
-        "low": round(adjusted_low, 2),
-        "likely": round(likely_estimate, 2),
-        "high": round(adjusted_high, 2),
+        "low": float(money(adjusted_low)),
+        "likely": float(money(likely_estimate)),
+        "high": float(money(adjusted_high)),
         "confidence_score": confidence_score,
         "confidence_level": ConfidenceScorer()._determine_level(confidence_score).value,
-        "band_width": round(adjusted_high - adjusted_low, 2),
+        "band_width": float(money(adjusted_high - adjusted_low)),
         "disclaimer": _get_estimate_disclaimer(confidence_score),
     }
 

@@ -30,14 +30,14 @@ class ReportCharts:
 
     # Color palettes
     DEFAULT_PALETTE = [
-        "#2563eb",  # Blue
+        "#1e3a5f",  # Navy
         "#10b981",  # Green
         "#f59e0b",  # Yellow
         "#ef4444",  # Red
-        "#8b5cf6",  # Purple
+        "#0d9488",  # Teal
         "#06b6d4",  # Cyan
         "#ec4899",  # Pink
-        "#6366f1",  # Indigo
+        "#1e3a5f",  # Indigo
     ]
 
     def __init__(self, theme: Optional["BrandTheme"] = None):

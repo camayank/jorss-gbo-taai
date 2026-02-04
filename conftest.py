@@ -18,6 +18,20 @@ if src_str in sys.path:
 sys.path.insert(0, src_str)
 
 
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _reset_service_registry():
+    """Reset the service registry between tests for isolation."""
+    yield
+    try:
+        from core.service_registry import services
+        services.reset_all()
+    except ImportError:
+        pass
+
+
 def pytest_configure(config):
     """Additional path setup during pytest configuration."""
     # Double-check the path is set

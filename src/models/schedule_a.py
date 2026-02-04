@@ -17,6 +17,8 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class MortgageType(str, Enum):
@@ -196,8 +198,8 @@ class ScheduleA(BaseModel):
             'total_expenses': self.medical_expenses_total,
             'agi': self.agi_for_medical,
             'floor_percentage': 0.075,
-            'floor_amount': round(floor_amount, 2),
-            'deductible_amount': round(deductible, 2)
+            'floor_amount': float(money(floor_amount)),
+            'deductible_amount': float(money(deductible))
         }
 
     def calculate_taxes_paid_deduction(self) -> Dict[str, float]:
@@ -227,10 +229,10 @@ class ScheduleA(BaseModel):
             'real_estate_taxes': self.real_estate_taxes,
             'personal_property_taxes': self.personal_property_taxes,
             'other_taxes': self.other_taxes,
-            'total_before_cap': round(total_salt, 2),
+            'total_before_cap': float(money(total_salt)),
             'salt_cap': cap,
-            'deductible_amount': round(deductible, 2),
-            'amount_over_cap': round(max(0, total_salt - cap), 2)
+            'deductible_amount': float(money(deductible)),
+            'amount_over_cap': float(money(max(0, total_salt - cap)))
         }
 
     def calculate_interest_deduction(self) -> Dict[str, float]:
@@ -282,15 +284,15 @@ class ScheduleA(BaseModel):
         total_deductible = deductible_interest + deductible_points + self.investment_interest
 
         return {
-            'mortgage_interest': round(total_mortgage_interest, 2),
-            'points': round(total_points, 2),
+            'mortgage_interest': float(money(total_mortgage_interest)),
+            'points': float(money(total_points)),
             'investment_interest': self.investment_interest,
-            'grandfathered_debt': round(grandfathered_debt, 2),
-            'new_debt': round(new_debt, 2),
-            'total_debt': round(total_debt, 2),
-            'deductible_mortgage_interest': round(deductible_interest, 2),
-            'deductible_points': round(deductible_points, 2),
-            'total_deductible': round(total_deductible, 2)
+            'grandfathered_debt': float(money(grandfathered_debt)),
+            'new_debt': float(money(new_debt)),
+            'total_debt': float(money(total_debt)),
+            'deductible_mortgage_interest': float(money(deductible_interest)),
+            'deductible_points': float(money(deductible_points)),
+            'total_deductible': float(money(total_deductible))
         }
 
     def calculate_charitable_deduction(self) -> Dict[str, float]:
@@ -335,13 +337,13 @@ class ScheduleA(BaseModel):
         carryforward = max(0, total_with_carryover - total_deductible)
 
         return {
-            'cash_contributions': round(cash_contributions, 2),
-            'property_contributions': round(property_contributions, 2),
-            'appreciated_contributions': round(appreciated_contributions, 2),
-            'total_contributions': round(total_contributions, 2),
-            'carryover_used': round(min(self.carryover_from_prior_year, total_deductible), 2),
-            'deductible_amount': round(total_deductible, 2),
-            'new_carryforward': round(carryforward, 2)
+            'cash_contributions': float(money(cash_contributions)),
+            'property_contributions': float(money(property_contributions)),
+            'appreciated_contributions': float(money(appreciated_contributions)),
+            'total_contributions': float(money(total_contributions)),
+            'carryover_used': float(money(min(self.carryover_from_prior_year, total_deductible))),
+            'deductible_amount': float(money(total_deductible)),
+            'new_carryforward': float(money(carryforward))
         }
 
     def calculate_other_deductions(self) -> Dict[str, float]:
@@ -360,9 +362,9 @@ class ScheduleA(BaseModel):
             'casualty_loss': self.casualty_loss_amount,
             'gambling_losses': self.gambling_losses,
             'gambling_winnings': self.gambling_winnings,
-            'deductible_gambling_losses': round(deductible_gambling, 2),
+            'deductible_gambling_losses': float(money(deductible_gambling)),
             'other_deductions': self.other_deductions,
-            'total_other': round(total_other, 2)
+            'total_other': float(money(total_other))
         }
 
     def calculate_schedule_a(self) -> Dict[str, Any]:
@@ -414,7 +416,7 @@ class ScheduleA(BaseModel):
             'line_15_casualty_loss': other['casualty_loss'],
             'line_16_other_deductions': other['total_other'],
 
-            'line_17_total_itemized': round(total_itemized, 2),
+            'line_17_total_itemized': float(money(total_itemized)),
 
             # Breakdown summaries
             'medical_breakdown': medical,
@@ -424,7 +426,7 @@ class ScheduleA(BaseModel):
             'other_breakdown': other,
 
             # Comparison
-            'total_itemized_deductions': round(total_itemized, 2),
+            'total_itemized_deductions': float(money(total_itemized)),
         }
 
     def get_schedule_a_summary(self) -> Dict[str, Any]:

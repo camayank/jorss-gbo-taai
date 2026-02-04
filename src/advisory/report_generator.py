@@ -19,6 +19,7 @@ from datetime import datetime, date
 from decimal import Decimal
 from enum import Enum
 import logging
+from calculator.decimal_math import money, to_decimal
 
 if TYPE_CHECKING:
     from models.tax_return import TaxReturn
@@ -567,7 +568,7 @@ class AdvisoryReportGenerator:
         """Calculate effective tax rate."""
         agi = float(tax_return.adjusted_gross_income or 1)
         total_tax = float((tax_return.tax_liability or 0) + (tax_return.state_tax_liability or 0))
-        return round((total_tax / agi * 100), 2) if agi > 0 else 0.0
+        return float(money((total_tax / agi * 100))) if agi > 0 else 0.0
 
     def _tax_return_to_projection_data(self, tax_return: "TaxReturn") -> Dict[str, Any]:
         """Convert TaxReturn to dict for projection engine."""

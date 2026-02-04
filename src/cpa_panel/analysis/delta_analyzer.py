@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 import logging
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +47,12 @@ class TaxMetrics:
     def to_dict(self) -> Dict[str, float]:
         """Convert to dictionary."""
         return {
-            "adjusted_gross_income": round(self.adjusted_gross_income, 2),
-            "taxable_income": round(self.taxable_income, 2),
-            "tax_liability": round(self.tax_liability, 2),
-            "total_credits": round(self.total_credits, 2),
-            "total_payments": round(self.total_payments, 2),
-            "refund_or_owed": round(self.refund_or_owed, 2),
+            "adjusted_gross_income": float(money(self.adjusted_gross_income)),
+            "taxable_income": float(money(self.taxable_income)),
+            "tax_liability": float(money(self.tax_liability)),
+            "total_credits": float(money(self.total_credits)),
+            "total_payments": float(money(self.total_payments)),
+            "refund_or_owed": float(money(self.refund_or_owed)),
             "effective_rate": round(self.effective_rate, 4),
             "marginal_rate": round(self.marginal_rate, 4),
         }
@@ -69,11 +71,11 @@ class DeltaMetrics:
     def to_dict(self) -> Dict[str, float]:
         """Convert to dictionary."""
         return {
-            "agi_change": round(self.agi_change, 2),
-            "taxable_change": round(self.taxable_change, 2),
-            "liability_change": round(self.liability_change, 2),
-            "credits_change": round(self.credits_change, 2),
-            "refund_change": round(self.refund_change, 2),
+            "agi_change": float(money(self.agi_change)),
+            "taxable_change": float(money(self.taxable_change)),
+            "liability_change": float(money(self.liability_change)),
+            "credits_change": float(money(self.credits_change)),
+            "refund_change": float(money(self.refund_change)),
             "effective_rate_change": round(self.effective_rate_change, 4),
         }
 
@@ -93,9 +95,9 @@ class PercentageChanges:
     def to_dict(self) -> Dict[str, float]:
         """Convert to dictionary."""
         return {
-            "liability_pct": round(self.liability_pct, 2),
-            "refund_pct": round(self.refund_pct, 2),
-            "agi_pct": round(self.agi_pct, 2),
+            "liability_pct": float(money(self.liability_pct)),
+            "refund_pct": float(money(self.refund_pct)),
+            "agi_pct": float(money(self.agi_pct)),
         }
 
 
@@ -370,8 +372,8 @@ class DeltaAnalyzer:
             tax_change = 0
 
         return {
-            "estimated_tax_change": round(tax_change, 2),
-            "new_estimated_liability": round(current_liability + tax_change, 2),
+            "estimated_tax_change": float(money(tax_change)),
+            "new_estimated_liability": float(money(current_liability + tax_change)),
             "marginal_rate_used": marginal_rate,
             "is_beneficial": tax_change < 0,
         }
@@ -565,7 +567,7 @@ class DeltaAnalyzer:
                 "metric": "adjusted_gross_income",
                 "severity": "high",
                 "change_pct": round(pct.agi_pct, 1),
-                "change_amount": round(delta.agi_change, 2),
+                "change_amount": float(money(delta.agi_change)),
                 "recommendation": "Document reason for significant income change",
             })
         elif abs(pct.agi_pct) > 10:
@@ -573,7 +575,7 @@ class DeltaAnalyzer:
                 "metric": "adjusted_gross_income",
                 "severity": "medium",
                 "change_pct": round(pct.agi_pct, 1),
-                "change_amount": round(delta.agi_change, 2),
+                "change_amount": float(money(delta.agi_change)),
                 "recommendation": "Note income change for client discussion",
             })
 
@@ -583,7 +585,7 @@ class DeltaAnalyzer:
                 "metric": "tax_liability",
                 "severity": "high",
                 "change_pct": round(pct.liability_pct, 1),
-                "change_amount": round(delta.liability_change, 2),
+                "change_amount": float(money(delta.liability_change)),
                 "recommendation": "Review all changes that drove liability variance",
             })
         elif abs(pct.liability_pct) > 20:
@@ -591,7 +593,7 @@ class DeltaAnalyzer:
                 "metric": "tax_liability",
                 "severity": "medium",
                 "change_pct": round(pct.liability_pct, 1),
-                "change_amount": round(delta.liability_change, 2),
+                "change_amount": float(money(delta.liability_change)),
                 "recommendation": "Verify liability change aligns with income changes",
             })
 
@@ -600,7 +602,7 @@ class DeltaAnalyzer:
             variances.append({
                 "metric": "total_credits",
                 "severity": "medium",
-                "change_amount": round(delta.credits_change, 2),
+                "change_amount": float(money(delta.credits_change)),
                 "recommendation": "Verify credit eligibility requirements are met",
             })
 

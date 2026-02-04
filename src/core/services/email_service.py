@@ -210,12 +210,12 @@ class EmailService:
 <html>
 <head>
     <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a202c; }}
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #0c1b2f; }}
         .container {{ max-width: 600px; margin: 0 auto; padding: 40px 20px; }}
         .header {{ text-align: center; margin-bottom: 30px; }}
-        .logo {{ font-size: 24px; font-weight: 700; color: #1a365d; }}
+        .logo {{ font-size: 24px; font-weight: 700; color: #1e3a5f; }}
         .content {{ background: #f7fafc; border-radius: 12px; padding: 30px; }}
-        .button {{ display: inline-block; background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; }}
+        .button {{ display: inline-block; background: linear-gradient(135deg, #1e3a5f 0%, #5387c1 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; }}
         .footer {{ text-align: center; margin-top: 30px; font-size: 12px; color: #718096; }}
     </style>
 </head>
@@ -284,12 +284,12 @@ If you didn't request this, you can safely ignore this email. Your password will
 <html>
 <head>
     <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a202c; }}
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #0c1b2f; }}
         .container {{ max-width: 600px; margin: 0 auto; padding: 40px 20px; }}
         .header {{ text-align: center; margin-bottom: 30px; }}
-        .logo {{ font-size: 24px; font-weight: 700; color: #1a365d; }}
+        .logo {{ font-size: 24px; font-weight: 700; color: #1e3a5f; }}
         .content {{ background: #f7fafc; border-radius: 12px; padding: 30px; }}
-        .button {{ display: inline-block; background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; }}
+        .button {{ display: inline-block; background: linear-gradient(135deg, #1e3a5f 0%, #5387c1 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; }}
         .footer {{ text-align: center; margin-top: 30px; font-size: 12px; color: #718096; }}
     </style>
 </head>
@@ -355,12 +355,12 @@ If you didn't request this link, you can safely ignore this email.
 <html>
 <head>
     <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a202c; }}
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #0c1b2f; }}
         .container {{ max-width: 600px; margin: 0 auto; padding: 40px 20px; }}
         .header {{ text-align: center; margin-bottom: 30px; }}
-        .logo {{ font-size: 24px; font-weight: 700; color: #1a365d; }}
+        .logo {{ font-size: 24px; font-weight: 700; color: #1e3a5f; }}
         .content {{ background: #f7fafc; border-radius: 12px; padding: 30px; }}
-        .button {{ display: inline-block; background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; }}
+        .button {{ display: inline-block; background: linear-gradient(135deg, #1e3a5f 0%, #5387c1 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; }}
         .features {{ margin: 20px 0; }}
         .feature {{ display: flex; align-items: center; margin: 10px 0; }}
         .footer {{ text-align: center; margin-top: 30px; font-size: 12px; color: #718096; }}

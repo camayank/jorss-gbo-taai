@@ -20,6 +20,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any, Tuple
 from enum import Enum
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 
 class EntityType(Enum):
@@ -353,9 +355,9 @@ class EntityStructureOptimizer:
             notes.append("Salary seems low relative to business income - review industry standards")
 
         return ReasonableSalaryAnalysis(
-            recommended_salary=round(recommended, 2),
-            salary_range_low=round(range_low, 2),
-            salary_range_high=round(range_high, 2),
+            recommended_salary=float(money(recommended)),
+            salary_range_low=float(money(range_low)),
+            salary_range_high=float(money(range_high)),
             methodology="Percentage of net income with market-rate adjustments",
             factors_considered=factors,
             irs_risk_level=risk_level,
@@ -419,17 +421,17 @@ class EntityStructureOptimizer:
         qbi_difference = sole_prop_qbi - scorp_qbi
 
         return {
-            "sole_prop_se_tax": round(sole_prop_se_tax, 2),
-            "sole_prop_se_deduction": round(sole_prop_se_deduction, 2),
-            "sole_prop_qbi_deduction": round(sole_prop_qbi, 2),
-            "scorp_employer_payroll": round(employer_payroll, 2),
-            "scorp_employee_payroll": round(employee_payroll, 2),
-            "scorp_total_payroll": round(total_payroll_tax, 2),
-            "scorp_k1_distribution": round(k1_distribution, 2),
-            "scorp_qbi_deduction": round(scorp_qbi, 2),
-            "se_tax_savings": round(se_tax_savings, 2),
-            "qbi_difference": round(qbi_difference, 2),
-            "net_tax_savings": round(se_tax_savings - qbi_difference * 0.22, 2),  # Approx tax on QBI diff
+            "sole_prop_se_tax": float(money(sole_prop_se_tax)),
+            "sole_prop_se_deduction": float(money(sole_prop_se_deduction)),
+            "sole_prop_qbi_deduction": float(money(sole_prop_qbi)),
+            "scorp_employer_payroll": float(money(employer_payroll)),
+            "scorp_employee_payroll": float(money(employee_payroll)),
+            "scorp_total_payroll": float(money(total_payroll_tax)),
+            "scorp_k1_distribution": float(money(k1_distribution)),
+            "scorp_qbi_deduction": float(money(scorp_qbi)),
+            "se_tax_savings": float(money(se_tax_savings)),
+            "qbi_difference": float(money(qbi_difference)),
+            "net_tax_savings": float(money(se_tax_savings - qbi_difference * 0.22)),  # Approx tax on QBI diff
             "reasonable_salary_used": reasonable_salary,
         }
 
@@ -481,15 +483,15 @@ class EntityStructureOptimizer:
             gross_revenue=gross_revenue,
             business_expenses=expenses,
             net_business_income=net_income,
-            self_employment_tax=round(se_tax, 2),
-            income_tax_on_business=round(income_tax, 2),
-            se_tax_deduction=round(se_deduction, 2),
-            qbi_deduction=round(qbi_deduction, 2),
-            total_business_tax=round(total_tax, 2),
-            effective_tax_rate=round(total_tax / net_income * 100, 2) if net_income > 0 else 0,
+            self_employment_tax=float(money(se_tax)),
+            income_tax_on_business=float(money(income_tax)),
+            se_tax_deduction=float(money(se_deduction)),
+            qbi_deduction=float(money(qbi_deduction)),
+            total_business_tax=float(money(total_tax)),
+            effective_tax_rate=float(money(total_tax / net_income * 100)) if net_income > 0 else 0,
             formation_cost=0.0,
             annual_compliance_cost=200.0,  # Basic Schedule C
-            total_annual_cost=round(total_tax + 200, 2),
+            total_annual_cost=float(money(total_tax + 200)),
             recommendation_notes=[
                 "Simplest structure with minimal compliance",
                 "All net income subject to self-employment tax",
@@ -532,15 +534,15 @@ class EntityStructureOptimizer:
             gross_revenue=gross_revenue,
             business_expenses=expenses,
             net_business_income=net_income,
-            self_employment_tax=round(se_tax, 2),
-            income_tax_on_business=round(income_tax, 2),
-            se_tax_deduction=round(se_deduction, 2),
-            qbi_deduction=round(qbi_deduction, 2),
-            total_business_tax=round(total_tax, 2),
-            effective_tax_rate=round(total_tax / net_income * 100, 2) if net_income > 0 else 0,
+            self_employment_tax=float(money(se_tax)),
+            income_tax_on_business=float(money(income_tax)),
+            se_tax_deduction=float(money(se_deduction)),
+            qbi_deduction=float(money(qbi_deduction)),
+            total_business_tax=float(money(total_tax)),
+            effective_tax_rate=float(money(total_tax / net_income * 100)) if net_income > 0 else 0,
             formation_cost=formation_cost,
             annual_compliance_cost=annual_cost,
-            total_annual_cost=round(total_tax + annual_cost, 2),
+            total_annual_cost=float(money(total_tax + annual_cost)),
             recommendation_notes=[
                 "Provides liability protection",
                 "Same tax treatment as Sole Prop (disregarded entity)",
@@ -600,16 +602,16 @@ class EntityStructureOptimizer:
             business_expenses=expenses,
             net_business_income=net_income,
             owner_salary=salary,
-            k1_distribution=round(k1_distribution, 2),
-            payroll_taxes=round(employer_payroll + employee_payroll, 2),
-            income_tax_on_business=round(income_tax, 2),
-            qbi_deduction=round(qbi_deduction, 2),
-            total_business_tax=round(total_tax, 2),
-            effective_tax_rate=round(total_tax / net_income * 100, 2) if net_income > 0 else 0,
+            k1_distribution=float(money(k1_distribution)),
+            payroll_taxes=float(money(employer_payroll + employee_payroll)),
+            income_tax_on_business=float(money(income_tax)),
+            qbi_deduction=float(money(qbi_deduction)),
+            total_business_tax=float(money(total_tax)),
+            effective_tax_rate=float(money(total_tax / net_income * 100)) if net_income > 0 else 0,
             formation_cost=formation,
             annual_compliance_cost=total_compliance,
             payroll_service_cost=payroll,
-            total_annual_cost=round(total_tax + total_compliance, 2),
+            total_annual_cost=float(money(total_tax + total_compliance)),
             recommendation_notes=[
                 f"Salary: ${salary:,.0f} (subject to payroll taxes)",
                 f"K-1 Distribution: ${k1_distribution:,.0f} (no SE tax)",

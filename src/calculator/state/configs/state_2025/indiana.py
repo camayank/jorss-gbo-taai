@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 if TYPE_CHECKING:
     from models.tax_return import TaxReturn
@@ -167,13 +169,13 @@ class IndianaCalculator(BaseStateCalculator):
             dependent_exemptions=dependent_exemptions,
             exemption_amount=exemption_amount,
             state_taxable_income=in_taxable_income,
-            state_tax_before_credits=round(tax_before_credits, 2),
+            state_tax_before_credits=float(money(tax_before_credits)),
             state_credits=credits,
-            total_state_credits=round(total_credits, 2),
-            local_tax=round(local_tax, 2),
-            state_tax_liability=round(state_tax_liability, 2),
-            state_withholding=round(state_withholding, 2),
-            state_refund_or_owed=round(state_refund_or_owed, 2),
+            total_state_credits=float(money(total_credits)),
+            local_tax=float(money(local_tax)),
+            state_tax_liability=float(money(state_tax_liability)),
+            state_withholding=float(money(state_withholding)),
+            state_refund_or_owed=float(money(state_refund_or_owed)),
         )
 
     def calculate_state_subtractions(self, tax_return: "TaxReturn") -> float:
@@ -231,7 +233,7 @@ class IndianaCalculator(BaseStateCalculator):
         All 92 counties have local income tax (0.5% - 3.0%).
         Using average rate of 1.5% as default.
         """
-        return round(in_taxable_income * self._county_rate, 2)
+        return float(money(in_taxable_income * self._county_rate))
 
     def _calculate_unified_credit(
         self,
@@ -257,7 +259,7 @@ class IndianaCalculator(BaseStateCalculator):
 
         # Credit equals tax liability on income below threshold
         credit = in_agi * self.config.flat_rate
-        return round(credit * 0.5, 2)  # 50% of tax as credit
+        return float(money(credit * 0.5))  # 50% of tax as credit
 
     def _calculate_federal_eitc_estimate(
         self,

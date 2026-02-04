@@ -130,7 +130,7 @@ class SecureSerializer:
             signed_data = f"{signature}:{json_str}"
             return base64.b64encode(signed_data.encode("utf-8")).decode("utf-8")
 
-        except Exception as e:
+        except (TypeError, ValueError, OverflowError) as e:
             logger.error(f"Serialization failed: {e}")
             raise SerializationError(f"Failed to serialize object: {e}") from e
 
@@ -159,8 +159,8 @@ class SecureSerializer:
             # Decode base64
             try:
                 decoded = base64.b64decode(signed_data).decode("utf-8")
-            except Exception:
-                raise IntegrityError("Invalid base64 encoding")
+            except (ValueError, UnicodeDecodeError) as exc:
+                raise IntegrityError("Invalid base64 encoding") from exc
 
             # Split signature and data
             if ":" not in decoded:
@@ -200,7 +200,7 @@ class SecureSerializer:
             raise
         except DeserializationError:
             raise
-        except Exception as e:
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError) as e:
             logger.error(f"Deserialization failed: {e}")
             raise DeserializationError(f"Failed to deserialize: {e}") from e
 

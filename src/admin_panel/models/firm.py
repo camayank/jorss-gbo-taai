@@ -55,7 +55,7 @@ class Firm(Base):
     # Branding
     logo_url = Column(String(500), nullable=True)
     primary_color = Column(String(7), default="#059669", comment="Hex color code")
-    secondary_color = Column(String(7), default="#1e40af")
+    secondary_color = Column(String(7), default="#1e3a5f")
     custom_domain = Column(String(255), nullable=True, unique=True, comment="Enterprise only")
 
     # Subscription Info (denormalized for quick access)

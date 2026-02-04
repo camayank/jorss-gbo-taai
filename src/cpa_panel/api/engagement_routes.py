@@ -338,7 +338,7 @@ async def download_letter_pdf(
 
         # Get branding from request headers (optional)
         branding = {
-            "primary_color": request.headers.get("X-Primary-Color", "#1e40af"),
+            "primary_color": request.headers.get("X-Primary-Color", "#1e3a5f"),
         }
 
         pdf_bytes = pdf_generator.generate_pdf(letter_content, branding)

@@ -80,7 +80,7 @@ class BrandingSettings(BaseModel):
     """Firm branding settings."""
     logo_url: Optional[str]
     primary_color: str = "#059669"
-    secondary_color: str = "#1e40af"
+    secondary_color: str = "#1e3a5f"
     custom_domain: Optional[str] = None  # Enterprise only
     email_signature: Optional[str] = None
     disclaimer_text: Optional[str] = None
@@ -209,7 +209,7 @@ async def get_all_settings(
         branding=BrandingSettings(
             logo_url=branding.get("logo_url"),
             primary_color=branding.get("primary_color", "#059669"),
-            secondary_color=branding.get("secondary_color", "#1e40af"),
+            secondary_color=branding.get("secondary_color", "#1e3a5f"),
             custom_domain=branding.get("custom_domain"),
             email_signature=branding.get("email_signature"),
             disclaimer_text=branding.get("disclaimer_text"),
@@ -339,7 +339,7 @@ async def get_branding_settings(
     return BrandingSettings(
         logo_url=branding.get("logo_url"),
         primary_color=branding.get("primary_color", "#059669"),
-        secondary_color=branding.get("secondary_color", "#1e40af"),
+        secondary_color=branding.get("secondary_color", "#1e3a5f"),
         custom_domain=branding.get("custom_domain"),
         email_signature=branding.get("email_signature"),
         disclaimer_text=branding.get("disclaimer_text"),
@@ -394,7 +394,7 @@ async def update_branding_settings(
     return BrandingSettings(
         logo_url=branding.get("logo_url"),
         primary_color=branding.get("primary_color", "#059669"),
-        secondary_color=branding.get("secondary_color", "#1e40af"),
+        secondary_color=branding.get("secondary_color", "#1e3a5f"),
         custom_domain=branding.get("custom_domain"),
         email_signature=branding.get("email_signature"),
         disclaimer_text=branding.get("disclaimer_text"),

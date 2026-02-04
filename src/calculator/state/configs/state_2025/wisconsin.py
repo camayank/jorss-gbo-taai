@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 if TYPE_CHECKING:
     from models.tax_return import TaxReturn
@@ -200,13 +202,13 @@ class WisconsinCalculator(BaseStateCalculator):
             dependent_exemptions=dependent_exemptions,
             exemption_amount=exemption_amount,
             state_taxable_income=wi_taxable_income,
-            state_tax_before_credits=round(tax_before_credits, 2),
+            state_tax_before_credits=float(money(tax_before_credits)),
             state_credits=credits,
-            total_state_credits=round(total_credits, 2),
+            total_state_credits=float(money(total_credits)),
             local_tax=0.0,
-            state_tax_liability=round(state_tax_liability, 2),
-            state_withholding=round(state_withholding, 2),
-            state_refund_or_owed=round(state_refund_or_owed, 2),
+            state_tax_liability=float(money(state_tax_liability)),
+            state_withholding=float(money(state_withholding)),
+            state_refund_or_owed=float(money(state_refund_or_owed)),
         )
 
     def _calculate_sliding_deduction(
@@ -297,7 +299,7 @@ class WisconsinCalculator(BaseStateCalculator):
         else:
             percentage = 0.34
 
-        return round(federal_eitc * percentage, 2)
+        return float(money(federal_eitc * percentage))
 
     def _calculate_homestead_credit(
         self,
@@ -319,7 +321,7 @@ class WisconsinCalculator(BaseStateCalculator):
             if property_tax > 0:
                 # Credit based on excess property tax over income threshold
                 credit = min(1168, property_tax * 0.10)
-                return round(credit, 2)
+                return float(money(credit))
         return 0.0
 
     def _calculate_federal_eitc_estimate(

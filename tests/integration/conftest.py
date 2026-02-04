@@ -298,14 +298,8 @@ def sample_document_data():
 # CLEANUP FIXTURES
 # =============================================================================
 
-@pytest.fixture(autouse=True)
-def reset_globals():
-    """
-    Reset any global state between tests.
-    """
-    yield
-
-    # Reset persistence globals
+def _reset_integration_globals():
+    """Reset global state for integration tests."""
     try:
         from web.routers import returns
         returns._persistence = None
@@ -313,13 +307,20 @@ def reset_globals():
     except (ImportError, AttributeError):
         pass
 
-    # Reset database engine globals
     try:
         import database.async_engine as module
         module._async_engine = None
         module._async_session_factory = None
     except (ImportError, AttributeError):
         pass
+
+
+@pytest.fixture(autouse=True)
+def reset_globals():
+    """Reset any global state before and after tests."""
+    _reset_integration_globals()
+    yield
+    _reset_integration_globals()
 
 
 # =============================================================================

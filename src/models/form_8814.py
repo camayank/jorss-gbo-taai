@@ -24,6 +24,8 @@ from __future__ import annotations
 
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class ChildIncome(BaseModel):
@@ -191,24 +193,24 @@ class Form8814(BaseModel):
             'qualifies': True,
 
             # Line items
-            'line_1a_interest': round(line_1a, 2),
-            'line_1b_exempt_interest': round(line_1b, 2),
-            'line_2a_ordinary_dividends': round(line_2a, 2),
-            'line_2b_qualified_dividends': round(line_2b, 2),
-            'line_3_capital_gains': round(line_3, 2),
-            'line_4_total_income': round(line_4, 2),
+            'line_1a_interest': float(money(line_1a)),
+            'line_1b_exempt_interest': float(money(line_1b)),
+            'line_2a_ordinary_dividends': float(money(line_2a)),
+            'line_2b_qualified_dividends': float(money(line_2b)),
+            'line_3_capital_gains': float(money(line_3)),
+            'line_4_total_income': float(money(line_4)),
             'line_5_base_amount': line_5,
-            'line_6_over_base': round(line_6, 2),
-            'line_7_tax_at_10_pct': round(line_7, 2),
-            'line_8_excluded': round(line_8, 2),
-            'line_9_to_include': round(line_9, 2),
+            'line_6_over_base': float(money(line_6)),
+            'line_7_tax_at_10_pct': float(money(line_7)),
+            'line_8_excluded': float(money(line_8)),
+            'line_9_to_include': float(money(line_9)),
 
             # Amounts for parent's return
-            'amount_to_include': round(line_9, 2),
-            'child_tax': round(line_7, 2),
-            'qualified_dividends_to_include': round(qualified_dividends_to_include, 2),
-            'capital_gains_to_include': round(capital_gains_to_include, 2),
-            'ordinary_income_to_include': round(ordinary_income_to_include, 2),
+            'amount_to_include': float(money(line_9)),
+            'child_tax': float(money(line_7)),
+            'qualified_dividends_to_include': float(money(qualified_dividends_to_include)),
+            'capital_gains_to_include': float(money(capital_gains_to_include)),
+            'ordinary_income_to_include': float(money(ordinary_income_to_include)),
         }
 
     def calculate_form_8814(self) -> Dict[str, Any]:
@@ -244,18 +246,18 @@ class Form8814(BaseModel):
             'qualifying_children': qualifying_children,
 
             # Totals for parent's return
-            'total_to_include_in_income': round(total_to_include, 2),
-            'total_qualified_dividends': round(total_qualified_dividends, 2),
-            'total_capital_gains': round(total_capital_gains, 2),
-            'total_ordinary_income': round(total_ordinary_income, 2),
-            'total_child_tax': round(total_child_tax, 2),
+            'total_to_include_in_income': float(money(total_to_include)),
+            'total_qualified_dividends': float(money(total_qualified_dividends)),
+            'total_capital_gains': float(money(total_capital_gains)),
+            'total_ordinary_income': float(money(total_ordinary_income)),
+            'total_child_tax': float(money(total_child_tax)),
 
             # Form 1040 lines
-            'add_to_line_2b_interest': round(total_ordinary_income, 2),  # Interest portion
-            'add_to_line_3a_qualified_div': round(total_qualified_dividends, 2),
-            'add_to_line_3b_ordinary_div': round(total_to_include - total_capital_gains, 2),
-            'add_to_line_7_capital_gain': round(total_capital_gains, 2),
-            'add_to_tax': round(total_child_tax, 2),
+            'add_to_line_2b_interest': float(money(total_ordinary_income)),  # Interest portion
+            'add_to_line_3a_qualified_div': float(money(total_qualified_dividends)),
+            'add_to_line_3b_ordinary_div': float(money(total_to_include - total_capital_gains)),
+            'add_to_line_7_capital_gain': float(money(total_capital_gains)),
+            'add_to_tax': float(money(total_child_tax)),
 
             # Child details
             'child_calculations': child_calculations,
@@ -308,9 +310,9 @@ class Form8814(BaseModel):
         form_8814_tax += form_8814_result['total_to_include_in_income'] * parent_marginal_rate
 
         return {
-            'form_8814_total_tax': round(form_8814_tax, 2),
-            'form_8615_estimated_tax': round(total_8615_tax, 2),
-            'difference': round(form_8814_tax - total_8615_tax, 2),
+            'form_8814_total_tax': float(money(form_8814_tax)),
+            'form_8615_estimated_tax': float(money(total_8615_tax)),
+            'difference': float(money(form_8814_tax - total_8615_tax)),
             'recommendation': 'Form 8814' if form_8814_tax <= total_8615_tax else 'Form 8615 (file separately)',
         }
 

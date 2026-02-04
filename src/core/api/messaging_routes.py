@@ -21,6 +21,7 @@ import logging
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError
 
 from .auth_routes import get_current_user
 from ..models.user import UserContext, UserType
@@ -151,12 +152,14 @@ def _str_to_user_type(s: str) -> UserType:
 
 async def _ensure_messaging_tables(session: AsyncSession):
     """Create messaging tables if they don't exist."""
+    from sqlalchemy.exc import SQLAlchemyError, ProgrammingError, OperationalError
+
     # Check if conversations table exists
     try:
         check_query = text("SELECT 1 FROM conversations LIMIT 1")
         await session.execute(check_query)
-    except Exception:
-        # Create conversations table
+    except (ProgrammingError, OperationalError):
+        # Table doesn't exist - create it
         create_conversations = text("""
             CREATE TABLE IF NOT EXISTS conversations (
                 conversation_id UUID PRIMARY KEY,
@@ -174,14 +177,16 @@ async def _ensure_messaging_tables(session: AsyncSession):
         try:
             await session.execute(create_conversations)
             await session.commit()
-        except Exception:
-            pass
+            logger.info("Created conversations table")
+        except SQLAlchemyError as e:
+            logger.warning(f"Failed to create conversations table: {e}")
+            await session.rollback()
 
     # Check if messages table exists
     try:
         check_query = text("SELECT 1 FROM messages LIMIT 1")
         await session.execute(check_query)
-    except Exception:
+    except (ProgrammingError, OperationalError):
         create_messages = text("""
             CREATE TABLE IF NOT EXISTS messages (
                 message_id UUID PRIMARY KEY,
@@ -200,14 +205,16 @@ async def _ensure_messaging_tables(session: AsyncSession):
         try:
             await session.execute(create_messages)
             await session.commit()
-        except Exception:
-            pass
+            logger.info("Created messages table")
+        except SQLAlchemyError as e:
+            logger.warning(f"Failed to create messages table: {e}")
+            await session.rollback()
 
     # Check if notifications table exists
     try:
         check_query = text("SELECT 1 FROM notifications LIMIT 1")
         await session.execute(check_query)
-    except Exception:
+    except (ProgrammingError, OperationalError):
         create_notifications = text("""
             CREATE TABLE IF NOT EXISTS notifications (
                 notification_id UUID PRIMARY KEY,
@@ -224,8 +231,10 @@ async def _ensure_messaging_tables(session: AsyncSession):
         try:
             await session.execute(create_notifications)
             await session.commit()
-        except Exception:
-            pass
+            logger.info("Created notifications table")
+        except SQLAlchemyError as e:
+            logger.warning(f"Failed to create notifications table: {e}")
+            await session.rollback()
 
 
 def _row_to_conversation(row, messages_data: Optional[dict] = None) -> Conversation:
@@ -251,8 +260,8 @@ def _row_to_conversation(row, messages_data: Optional[dict] = None) -> Conversat
                 created_at=_parse_dt(last_msg_data.get("created_at")) or datetime.utcnow(),
                 edited_at=_parse_dt(last_msg_data.get("edited_at")),
             )
-        except Exception:
-            pass
+        except (KeyError, TypeError, ValueError) as e:
+            logger.debug(f"Could not parse last message data: {e}")
 
     return Conversation(
         id=str(row[0]),
@@ -501,7 +510,8 @@ async def create_conversation(
                 else:
                     name = f"User {pid}"
                     user_type = UserType.CONSUMER
-            except Exception:
+            except (SQLAlchemyError, AttributeError) as e:
+                logger.debug(f"Could not lookup user {pid}: {e}")
                 name = f"User {pid}"
                 user_type = UserType.CONSUMER
 

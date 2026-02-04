@@ -28,6 +28,7 @@ from audit.audit_logger import (
     AuditEventType,
     AuditSeverity,
 )
+from calculator.decimal_math import money, to_decimal
 
 
 class AuditedTaxEngine:
@@ -295,7 +296,7 @@ class AuditedTaxEngine:
                 "calculation_number": self._calculation_count,
                 "input_hash": input_hash,
                 "output_hash": output_hash,
-                "duration_ms": round(duration_ms, 2),
+                "duration_ms": float(money(duration_ms)),
                 "tax_year": inputs.get("tax_year"),
                 "filing_status": inputs.get("filing_status"),
                 **(metadata or {}),

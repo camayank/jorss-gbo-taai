@@ -357,6 +357,29 @@ class CalculationBreakdown:
     military_combat_pay_breakdown: Dict[str, Any] = field(default_factory=dict)
 
 
+
+    def __setattr__(self, name: str, value):
+        """Auto-convert Decimal values to float to prevent Decimal/float mixing errors."""
+        if isinstance(value, Decimal):
+            value = float(value)
+        object.__setattr__(self, name, value)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert breakdown to dict for JSON serialization."""
+        from dataclasses import asdict
+
+        def _convert(obj):
+            if isinstance(obj, Decimal):
+                return float(obj)
+            if isinstance(obj, dict):
+                return {k: _convert(v) for k, v in obj.items()}
+            if isinstance(obj, (list, tuple)):
+                return [_convert(v) for v in obj]
+            return obj
+
+        return _convert(asdict(self))
+
+
 class FederalTaxEngine:
     """
     Comprehensive federal tax calculation engine for Tax Year 2025.
@@ -495,7 +518,7 @@ class FederalTaxEngine:
             filing_status=filing_status,
             config=self.config,
         )
-        breakdown.qbi_deduction = float(qbi_result.final_qbi_deduction)
+        breakdown.qbi_deduction = qbi_result.final_qbi_deduction
 
         # Adjust taxable income for QBI deduction
         breakdown.taxable_income = max(0, breakdown.taxable_income - breakdown.qbi_deduction)
@@ -1044,7 +1067,7 @@ class FederalTaxEngine:
         if not tax_return.income.form_5329 and breakdown.form_1099r_early_distribution_penalty > 0:
             additional_1099r_penalty = breakdown.form_1099r_early_distribution_penalty
 
-        breakdown.total_tax_before_credits = round(
+        breakdown.total_tax_before_credits = float(money(
             breakdown.ordinary_income_tax +
             breakdown.preferential_income_tax +
             breakdown.self_employment_tax +
@@ -1056,9 +1079,8 @@ class FederalTaxEngine:
             breakdown.form_5329_total_additional_tax +
             additional_1099r_penalty +
             breakdown.form_1099q_penalty +  # 10% penalty on non-qualified 529/Coverdell distributions
-            breakdown.form_4137_total_tax,  # SS/Medicare tax on unreported tips (Form 4137)
-            2
-        )
+            breakdown.form_4137_total_tax  # SS/Medicare tax on unreported tips (Form 4137)
+        ))
 
         # Calculate credits
         breakdown.credit_breakdown = self._calculate_credits(tax_return, breakdown)
@@ -1078,16 +1100,15 @@ class FederalTaxEngine:
             breakdown.total_tax_before_credits - breakdown.nonrefundable_credits
         )
         # Add PTC repayment to tax owed (BR-0901 to BR-0920)
-        breakdown.total_tax = round(
-            income_tax_after_nonrefundable - breakdown.refundable_credits + breakdown.ptc_repayment,
-            2
-        )
+        breakdown.total_tax = float(money(
+            income_tax_after_nonrefundable - breakdown.refundable_credits + breakdown.ptc_repayment
+        ))
 
         # Payments
         breakdown.total_payments = self._calculate_total_payments(tax_return)
 
         # Refund or amount owed
-        breakdown.refund_or_owed = round(breakdown.total_tax - breakdown.total_payments, 2)
+        breakdown.refund_or_owed = float(money(breakdown.total_tax - breakdown.total_payments))
 
         # Estimated tax penalty (Form 2210)
         penalty_result = self._calculate_estimated_tax_penalty(
@@ -1103,7 +1124,7 @@ class FederalTaxEngine:
 
         # Effective and marginal rates
         if breakdown.agi > 0:
-            breakdown.effective_tax_rate = round(breakdown.total_tax / breakdown.agi * 100, 2)
+            breakdown.effective_tax_rate = float(money(breakdown.total_tax / breakdown.agi * 100))
         breakdown.marginal_tax_rate = self._get_marginal_rate(breakdown.taxable_income, filing_status)
 
         # Restore original adjustments
@@ -1152,26 +1173,26 @@ class FederalTaxEngine:
         # Social Security portion (12.4%) - capped at wage base minus W-2 wages
         remaining_ss_base = max(0, self.config.ss_wage_base - w2_wages)
         ss_taxable_se = min(se_earnings, remaining_ss_base)
-        ss_tax = round(ss_taxable_se * self.config.ss_rate, 2)
+        ss_tax = float(money(ss_taxable_se * self.config.ss_rate))
 
         # Medicare portion (2.9%) - no cap
-        medicare_tax = round(se_earnings * self.config.medicare_rate, 2)
+        medicare_tax = float(money(se_earnings * self.config.medicare_rate))
 
         total_se_tax = ss_tax + medicare_tax
-        se_tax_deduction = round(total_se_tax / 2.0, 2)
+        se_tax_deduction = float(money(total_se_tax / 2.0))
 
         return {
-            'net_self_employment_income': round(net_se, 2),
-            'schedule_c_income': round(schedule_c_se, 2),
-            'k1_self_employment_income': round(k1_se_earnings, 2),
-            'se_earnings_subject_to_tax': round(se_earnings, 2),
+            'net_self_employment_income': float(money(net_se)),
+            'schedule_c_income': float(money(schedule_c_se)),
+            'k1_self_employment_income': float(money(k1_se_earnings)),
+            'se_earnings_subject_to_tax': float(money(se_earnings)),
             'ss_wage_base': self.config.ss_wage_base,
-            'w2_wages': round(w2_wages, 2),
-            'remaining_ss_base': round(remaining_ss_base, 2),
-            'ss_taxable_se_earnings': round(ss_taxable_se, 2),
+            'w2_wages': float(money(w2_wages)),
+            'remaining_ss_base': float(money(remaining_ss_base)),
+            'ss_taxable_se_earnings': float(money(ss_taxable_se)),
             'social_security_tax': ss_tax,
             'medicare_tax': medicare_tax,
-            'total_se_tax': round(total_se_tax, 2),
+            'total_se_tax': float(money(total_se_tax)),
             'se_tax_deduction': se_tax_deduction,
             'schedule_c_businesses': inc.get_schedule_c_summary(),
         }
@@ -1208,7 +1229,7 @@ class FederalTaxEngine:
         se_over_threshold = max(0, se_earnings - se_threshold)
         amt_on_se = se_over_threshold * rate
 
-        return round(amt_on_wages + amt_on_se, 2)
+        return float(money(amt_on_wages + amt_on_se))
 
     def _calculate_niit(
         self,
@@ -1279,7 +1300,7 @@ class FederalTaxEngine:
         # Tax on lesser of NII or excess MAGI
         taxable_amount = min(nii, magi_over_threshold)
 
-        return round(taxable_amount * rate, 2)
+        return float(money(taxable_amount * rate))
 
     def _calculate_amt(
         self,
@@ -1563,7 +1584,7 @@ class FederalTaxEngine:
 
         # Calculate credit limit: regular tax can be reduced to TMT, not below
         credit_limit = max(0, regular_tax - tmt)
-        result['credit_limit'] = round(credit_limit, 2)
+        result['credit_limit'] = float(money(credit_limit))
 
         # Use Form 8801 if available
         if income.form_8801:
@@ -1603,10 +1624,10 @@ class FederalTaxEngine:
 
         # Credit allowed is lesser of available and limit
         credit_allowed = min(prior_credit, credit_limit)
-        result['credit_allowed'] = round(credit_allowed, 2)
+        result['credit_allowed'] = float(money(credit_allowed))
 
         # Carryforward is unused credit
-        result['carryforward'] = round(prior_credit - credit_allowed, 2)
+        result['carryforward'] = float(money(prior_credit - credit_allowed))
 
         return result
 
@@ -1771,7 +1792,7 @@ class FederalTaxEngine:
                 rental_loss_allowance = max(0, base_allowance - reduction)
                 result['qualifies_for_25k_allowance'] = rental_loss_allowance > 0
 
-        result['rental_loss_allowance_after_phaseout'] = round(rental_loss_allowance, 2)
+        result['rental_loss_allowance_after_phaseout'] = float(money(rental_loss_allowance))
 
         # ============================================
         # Step 8: Calculate Passive Loss Netting
@@ -1809,9 +1830,9 @@ class FederalTaxEngine:
             allowable_loss = min(allowable_loss, passive_loss_amount)
             suspended = max(0, passive_loss_amount - allowable_loss)
 
-            result['allowable_passive_loss'] = round(allowable_loss, 2)
-            result['suspended_current_year'] = round(suspended, 2)
-            result['new_suspended_carryforward'] = round(suspended, 2)
+            result['allowable_passive_loss'] = float(money(allowable_loss))
+            result['suspended_current_year'] = float(money(suspended))
+            result['new_suspended_carryforward'] = float(money(suspended))
 
         return result
 
@@ -1924,7 +1945,7 @@ class FederalTaxEngine:
                 # Can't exceed business basis
                 section_179_for_asset = min(asset.section_179_amount, available_179, business_basis)
                 total_section_179 += section_179_for_asset
-                asset_detail['section_179'] = round(section_179_for_asset, 2)
+                asset_detail['section_179'] = float(money(section_179_for_asset))
 
             # Reduce basis for Section 179
             remaining_basis = business_basis - section_179_for_asset
@@ -1943,11 +1964,11 @@ class FederalTaxEngine:
                         # Calculate bonus at current rate
                         bonus_for_asset = remaining_basis * config.bonus_depreciation_rate
                     total_bonus += bonus_for_asset
-                    asset_detail['bonus_depreciation'] = round(bonus_for_asset, 2)
+                    asset_detail['bonus_depreciation'] = float(money(bonus_for_asset))
 
             # Reduce basis for bonus depreciation
             remaining_basis -= bonus_for_asset
-            asset_detail['depreciable_basis'] = round(remaining_basis, 2)
+            asset_detail['depreciable_basis'] = float(money(remaining_basis))
 
             # ============================================
             # MACRS Depreciation
@@ -1994,19 +2015,19 @@ class FederalTaxEngine:
                     # After recovery period, no more depreciation
 
                 total_macrs += macrs_for_asset
-                asset_detail['macrs_depreciation'] = round(macrs_for_asset, 2)
+                asset_detail['macrs_depreciation'] = float(money(macrs_for_asset))
 
             # Total depreciation for this asset
             total_for_asset = section_179_for_asset + bonus_for_asset + macrs_for_asset
-            asset_detail['total_depreciation'] = round(total_for_asset, 2)
+            asset_detail['total_depreciation'] = float(money(total_for_asset))
             result['asset_details'].append(asset_detail)
 
         # Populate summary totals
-        result['total_section_179'] = round(total_section_179, 2)
-        result['section_179_used'] = round(total_section_179, 2)
-        result['total_bonus_depreciation'] = round(total_bonus, 2)
-        result['total_macrs_depreciation'] = round(total_macrs, 2)
-        result['total_depreciation'] = round(total_section_179 + total_bonus + total_macrs, 2)
+        result['total_section_179'] = float(money(total_section_179))
+        result['section_179_used'] = float(money(total_section_179))
+        result['total_bonus_depreciation'] = float(money(total_bonus))
+        result['total_macrs_depreciation'] = float(money(total_macrs))
+        result['total_depreciation'] = float(money(total_section_179 + total_bonus + total_macrs))
 
         return result
 
@@ -2040,8 +2061,8 @@ class FederalTaxEngine:
                         'bracket': f'{rate*100:.0f}%',
                         'floor': floor,
                         'ceiling': None,
-                        'income_in_bracket': round(amount, 2),
-                        'tax': round(bracket_tax, 2),
+                        'income_in_bracket': float(money(amount)),
+                        'tax': float(money(bracket_tax)),
                         'rate': rate
                     })
                 break
@@ -2056,14 +2077,14 @@ class FederalTaxEngine:
                     'bracket': f'{rate*100:.0f}%',
                     'floor': floor,
                     'ceiling': next_floor,
-                    'income_in_bracket': round(amount, 2),
-                    'tax': round(bracket_tax, 2),
+                    'income_in_bracket': float(money(amount)),
+                    'tax': float(money(bracket_tax)),
                     'rate': rate
                 })
 
         if return_breakdown:
-            return round(tax, 2), breakdown
-        return round(tax, 2)
+            return float(money(tax)), breakdown
+        return float(money(tax))
 
     def _maybe_compute_taxable_social_security(self, tax_return: TaxReturn) -> None:
         """
@@ -2142,7 +2163,7 @@ class FederalTaxEngine:
             # Cap at 85% of total benefits
             taxable = min(taxable, 0.85 * inc.social_security_benefits)
 
-        inc.taxable_social_security = round(max(0.0, min(taxable, inc.social_security_benefits)), 2)
+        inc.taxable_social_security = float(money(max(0.0, min(taxable, inc.social_security_benefits))))
 
     def _split_taxable_income(self, tax_return: TaxReturn) -> tuple[float, float]:
         """
@@ -2174,7 +2195,7 @@ class FederalTaxEngine:
 
         pref = max(0.0, min(pref, ti))
         ordinary = max(0.0, ti - pref)
-        return round(ordinary, 2), round(pref, 2)
+        return float(money(ordinary)), float(money(pref))
 
     def _compute_preferential_tax(
         self,
@@ -2219,7 +2240,7 @@ class FederalTaxEngine:
         if remaining > 0:
             tax += remaining * 0.20
 
-        return round(tax, 2)
+        return float(money(tax))
 
     def _calculate_credits(
         self,
@@ -2312,7 +2333,7 @@ class FederalTaxEngine:
                     excess_thousands = (int(excess) + 999) // 1000
                     reduction = excess_thousands * 50
                     odc_amount = max(0, odc_amount - reduction)
-            result['other_dependent_credit'] = round(odc_amount, 2)
+            result['other_dependent_credit'] = float(money(odc_amount))
 
         # Earned Income Credit (refundable) - uses proper QC validation (BR-0023 to BR-0027)
         eitc = self._calculate_eitc(tax_return, filing_status, taxpayer_agi)
@@ -2532,7 +2553,7 @@ class FederalTaxEngine:
         result['other_refundable'] = 0.0
 
         # Sum totals
-        result['total_nonrefundable'] = round(
+        result['total_nonrefundable'] = float(money(
             result['child_tax_credit'] +
             result['other_dependent_credit'] +
             result['child_care_credit'] +
@@ -2548,17 +2569,15 @@ class FederalTaxEngine:
             result['wotc_credit'] +
             result['small_employer_health_credit'] +
             result['disabled_access_credit'] +
-            result['other_nonrefundable'],
-            2
-        )
-        result['total_refundable'] = round(
+            result['other_nonrefundable']
+        ))
+        result['total_refundable'] = float(money(
             result['additional_child_tax_credit'] +
             result['earned_income_credit'] +
             result['education_credit_refundable'] +
             result['premium_tax_credit'] +
-            result['other_refundable'],
-            2
-        )
+            result['other_refundable']
+        ))
 
         return result
 
@@ -2625,7 +2644,7 @@ class FederalTaxEngine:
         reduction_pct = excess / phaseout_range if phaseout_range > 0 else 1
         credit = max_credit * (1 - reduction_pct)
 
-        return round(max(0, credit), 2)
+        return float(money(max(0, credit)))
 
     def _calculate_total_payments(self, tax_return: TaxReturn) -> float:
         """
@@ -2645,7 +2664,7 @@ class FederalTaxEngine:
             getattr(inc, 'amount_paid_with_extension', 0) +
             getattr(inc, 'excess_social_security_withholding', 0)
         )
-        return round(payments, 2)
+        return float(money(payments))
 
     def _calculate_estimated_tax_penalty(
         self,
@@ -2713,8 +2732,8 @@ class FederalTaxEngine:
             return {
                 'penalty': 0.0,
                 'safe_harbor_met': True,  # Effectively met by threshold
-                'required_payment': round(required_annual_payment, 2),
-                'underpayment': round(underpayment, 2)
+                'required_payment': float(money(required_annual_payment)),
+                'underpayment': float(money(underpayment))
             }
 
         # If safe harbor met, no penalty
@@ -2722,7 +2741,7 @@ class FederalTaxEngine:
             return {
                 'penalty': 0.0,
                 'safe_harbor_met': True,
-                'required_payment': round(required_annual_payment, 2),
+                'required_payment': float(money(required_annual_payment)),
                 'underpayment': 0.0
             }
 
@@ -2730,10 +2749,10 @@ class FederalTaxEngine:
         penalty = underpayment * cfg.estimated_tax_penalty_rate
 
         return {
-            'penalty': round(penalty, 2),
+            'penalty': float(money(penalty)),
             'safe_harbor_met': False,
-            'required_payment': round(required_annual_payment, 2),
-            'underpayment': round(underpayment, 2)
+            'required_payment': float(money(required_annual_payment)),
+            'underpayment': float(money(underpayment))
         }
 
     def _get_marginal_rate(self, taxable_income: float, filing_status: str) -> float:

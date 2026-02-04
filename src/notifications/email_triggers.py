@@ -27,6 +27,8 @@ from .email_provider import (
     DeliveryResult,
     send_email,
 )
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -363,15 +365,15 @@ Thank you,
 
         priority_colors = {
             "low": "#22c55e",
-            "normal": "#3b82f6",
+            "normal": "#1e3a5f",
             "high": "#f97316",
             "urgent": "#ef4444",
         }
-        color = priority_colors.get(priority.lower(), "#3b82f6")
+        color = priority_colors.get(priority.lower(), "#1e3a5f")
 
         body_html = f"""
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-    <h2 style="color: #3b82f6;">New Task Assigned</h2>
+    <h2 style="color: #1e3a5f;">New Task Assigned</h2>
     <p>Hello {recipient_name},</p>
     <p>A new task has been assigned to you by <strong>{assigned_by}</strong>.</p>
 
@@ -591,7 +593,7 @@ Thank you,
 
         body_html = f"""
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-    <h2 style="color: #3b82f6;">Documents Needed</h2>
+    <h2 style="color: #1e3a5f;">Documents Needed</h2>
     <p>Hello {recipient_name},</p>
     <p><strong>{cpa_name}</strong> is requesting the following documents for your tax preparation:</p>
 
@@ -605,7 +607,7 @@ Thank you,
 
     {f'<div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 20px 0;"><p style="margin: 0; font-style: italic;">"{message}"</p><p style="margin: 8px 0 0 0; color: #6b7280;">- {cpa_name}</p></div>' if message else ''}
 
-    {f'<a href="{upload_link}" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 16px;">Upload Documents</a>' if upload_link else '<p>Please log in to your client portal to upload the documents.</p>'}
+    {f'<a href="{upload_link}" style="display: inline-block; background: #1e3a5f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 16px;">Upload Documents</a>' if upload_link else '<p>Please log in to your client portal to upload the documents.</p>'}
 
     <p>Thank you,<br>{self._from_name}</p>
 </div>
@@ -700,7 +702,7 @@ Thank you,
             trigger = EmailTriggerType.TICKET_CREATED
             subject = f"Ticket #{ticket_number} Created: {ticket_subject}"
             heading = "Support Ticket Created"
-            color = "#3b82f6"
+            color = "#1e3a5f"
         elif update_type == "resolved":
             trigger = EmailTriggerType.TICKET_RESOLVED
             subject = f"Ticket #{ticket_number} Resolved: {ticket_subject}"
@@ -795,12 +797,12 @@ Thank you,
 
         body_html = f"""
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-    <h1 style="color: #3b82f6; text-align: center;">Welcome!</h1>
+    <h1 style="color: #1e3a5f; text-align: center;">Welcome!</h1>
     <p>Hello {recipient_name},</p>
     <p>Welcome to <strong>{firm_name}</strong>! Your account has been created and you're ready to get started.</p>
 
     <div style="text-align: center; margin: 30px 0;">
-        {f'<a href="{login_link}" style="display: inline-block; background: #3b82f6; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-size: 16px;">Log In to Your Account</a>' if login_link else ''}
+        {f'<a href="{login_link}" style="display: inline-block; background: #1e3a5f; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-size: 16px;">Log In to Your Account</a>' if login_link else ''}
     </div>
 
     {f'<p style="text-align: center;"><a href="{setup_guide_link}">View Getting Started Guide</a></p>' if setup_guide_link else ''}
@@ -853,7 +855,7 @@ Thank you,
 
         body_html = f"""
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-    <h2 style="color: #3b82f6;">You're Invited!</h2>
+    <h2 style="color: #1e3a5f;">You're Invited!</h2>
     <p>Hello{f' {recipient_name}' if recipient_name else ''},</p>
     <p><strong>{inviter_name}</strong> has invited you to join <strong>{firm_name}</strong> as a <strong>{role}</strong>.</p>
 
@@ -971,7 +973,7 @@ Thank you,
             "total": total,
             "sent": sent,
             "failed": failed,
-            "success_rate": round(sent / total * 100, 2) if total > 0 else 0,
+            "success_rate": float(money(sent / total * 100)) if total > 0 else 0,
             "by_trigger": by_trigger,
         }
 

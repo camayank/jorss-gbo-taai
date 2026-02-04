@@ -17,12 +17,14 @@ Usage:
     print(summaries.tweet)      # Tweet-length summary
 """
 
+import hashlib
 import logging
 import json
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +107,29 @@ class AIReportSummarizer:
             ai_service: UnifiedAIService instance (lazy-loaded if not provided)
         """
         self._ai_service = ai_service
+        self._cache: Dict[str, Any] = {}
+        self._cache_ttl: int = 3600
+
+    def _cache_key(self, *args) -> str:
+        """Create a SHA256 hash key from the given arguments."""
+        raw = json.dumps(args, sort_keys=True, default=str)
+        return hashlib.sha256(raw.encode()).hexdigest()
+
+    def _get_cached(self, key: str) -> Optional[Any]:
+        """Return cached value if present and not expired, otherwise None."""
+        entry = self._cache.get(key)
+        if entry is not None:
+            timestamp, value = entry
+            if time.time() - timestamp < self._cache_ttl:
+                logger.debug(f"Cache hit for key {key[:12]}...")
+                return value
+            # Expired -- remove stale entry
+            del self._cache[key]
+        return None
+
+    def _set_cached(self, key: str, value: Any) -> None:
+        """Store a value in the cache with the current timestamp."""
+        self._cache[key] = (time.time(), value)
 
     @property
     def ai_service(self):
@@ -129,6 +154,11 @@ class AIReportSummarizer:
         Returns:
             MultiLevelSummaries with all summary levels
         """
+        cache_key = self._cache_key("all_summaries", report_data, taxpayer_name)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
         # Extract key metrics for consistent reference
         key_metrics = self._extract_key_metrics(report_data)
 
@@ -142,13 +172,16 @@ class AIReportSummarizer:
             report_data, key_metrics, taxpayer_name
         )
 
-        return MultiLevelSummaries(
+        result = MultiLevelSummaries(
             one_liner=one_liner,
             tweet=tweet,
             executive=executive,
             detailed=detailed,
             key_metrics=key_metrics,
         )
+
+        self._set_cached(cache_key, result)
+        return result
 
     async def generate_one_liner(
         self,
@@ -167,6 +200,11 @@ class AIReportSummarizer:
         Returns:
             One-liner summary string
         """
+        cache_key = self._cache_key("one_liner", report_data)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
         if key_metrics is None:
             key_metrics = self._extract_key_metrics(report_data)
 
@@ -205,6 +243,7 @@ Generate ONLY the one-liner, no explanation:"""
             if len(words) > 20:
                 content = " ".join(words[:15]) + "..."
 
+            self._set_cached(cache_key, content)
             return content
 
         except Exception as e:
@@ -226,6 +265,11 @@ Generate ONLY the one-liner, no explanation:"""
         Returns:
             Tweet-length summary string
         """
+        cache_key = self._cache_key("tweet_summary", report_data)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
         if key_metrics is None:
             key_metrics = self._extract_key_metrics(report_data)
 
@@ -261,6 +305,7 @@ Generate ONLY the tweet text:"""
             if len(content) > 280:
                 content = content[:277] + "..."
 
+            self._set_cached(cache_key, content)
             return content
 
         except Exception as e:
@@ -284,6 +329,11 @@ Generate ONLY the tweet text:"""
         Returns:
             Executive summary string
         """
+        cache_key = self._cache_key("executive_summary", report_data, taxpayer_name)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
         if key_metrics is None:
             key_metrics = self._extract_key_metrics(report_data)
 
@@ -326,7 +376,9 @@ Generate the executive summary:"""
                 max_tokens=500,
             )
 
-            return response.content.strip()
+            result = response.content.strip()
+            self._set_cached(cache_key, result)
+            return result
 
         except Exception as e:
             logger.error(f"Failed to generate executive summary: {e}")
@@ -349,6 +401,11 @@ Generate the executive summary:"""
         Returns:
             Detailed summary string
         """
+        cache_key = self._cache_key("detailed_summary", report_data, taxpayer_name)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
         if key_metrics is None:
             key_metrics = self._extract_key_metrics(report_data)
 
@@ -404,7 +461,9 @@ Generate the detailed summary:"""
                 max_tokens=1200,
             )
 
-            return response.content.strip()
+            result = response.content.strip()
+            self._set_cached(cache_key, result)
+            return result
 
         except Exception as e:
             logger.error(f"Failed to generate detailed summary: {e}")
@@ -425,6 +484,11 @@ Generate the detailed summary:"""
         Returns:
             Email-ready summary
         """
+        cache_key = self._cache_key("email_summary", report_data, recipient_type)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
         key_metrics = self._extract_key_metrics(report_data)
 
         if recipient_type == "internal":
@@ -470,7 +534,9 @@ Keep under 200 words. Warm but professional tone."""
                 max_tokens=400,
             )
 
-            return response.content.strip()
+            result = response.content.strip()
+            self._set_cached(cache_key, result)
+            return result
 
         except Exception as e:
             logger.error(f"Failed to generate email summary: {e}")

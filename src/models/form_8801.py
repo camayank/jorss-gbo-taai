@@ -36,6 +36,8 @@ IRC References:
 from typing import Optional, List, Dict, ClassVar
 from pydantic import BaseModel, Field
 from enum import Enum
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class AMTItemType(str, Enum):
@@ -352,11 +354,11 @@ class Form8801(BaseModel):
         else:
             tmt = (threshold_28 * self.RATE_26) + \
                   ((amt_taxable - threshold_28) * self.RATE_28)
-        result['line_13_exclusion_tmt'] = round(tmt, 2)
+        result['line_13_exclusion_tmt'] = float(money(tmt))
 
         # Line 17: Net minimum tax on exclusion items
         # This is the TMT attributable only to exclusion items
-        result['line_17_net_min_tax_exclusion'] = round(tmt, 2)
+        result['line_17_net_min_tax_exclusion'] = float(money(tmt))
 
         return result
 
@@ -440,10 +442,10 @@ class Form8801(BaseModel):
 
         # Credit allowed is lesser of total MTC or credit limit
         credit_allowed = min(total_mtc, credit_limit)
-        result['credit_allowed'] = round(credit_allowed, 2)
+        result['credit_allowed'] = float(money(credit_allowed))
 
         # Carryforward is unused MTC
-        result['carryforward_to_next_year'] = round(total_mtc - credit_allowed, 2)
+        result['carryforward_to_next_year'] = float(money(total_mtc - credit_allowed))
 
         return result
 
@@ -557,7 +559,7 @@ def calculate_mtc_from_amt(
         'total_amt': total_amt,
         'deferral_portion': deferral_total,
         'exclusion_portion': exclusion_total,
-        'mtc_generated': round(mtc_generated, 2),
+        'mtc_generated': float(money(mtc_generated)),
         'deferral_percentage': round(deferral_total / (deferral_total + exclusion_total) * 100, 1) if (deferral_total + exclusion_total) > 0 else 100.0,
     }
 
@@ -732,9 +734,9 @@ def reconcile_amt_to_mtc(
         'deferral_adjustments': deferral_total,
         'exclusion_adjustments': exclusion_total,
         'exclusion_amti': exclusion_amti,
-        'total_tmt': round(total_tmt, 2),
-        'exclusion_tmt': round(exclusion_tmt, 2),
-        'total_amt': round(total_amt, 2),
-        'exclusion_amt': round(exclusion_amt, 2),
-        'mtc_generated': round(mtc_generated, 2),
+        'total_tmt': float(money(total_tmt)),
+        'exclusion_tmt': float(money(exclusion_tmt)),
+        'total_amt': float(money(total_amt)),
+        'exclusion_amt': float(money(exclusion_amt)),
+        'mtc_generated': float(money(mtc_generated)),
     }

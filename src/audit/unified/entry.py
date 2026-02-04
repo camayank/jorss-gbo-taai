@@ -24,10 +24,30 @@ from .event_types import AuditEventType, AuditSeverity, AuditSource
 
 
 # HMAC key for signature verification
+_is_production = os.environ.get("APP_ENVIRONMENT", "").lower() in ("production", "prod", "staging")
+
+
 def _get_hmac_key() -> bytes:
-    """Get HMAC key from environment or generate default."""
-    key = os.environ.get("AUDIT_HMAC_KEY", "audit-trail-default-key-change-in-production")
-    return key.encode("utf-8")
+    """Get HMAC key from environment. Required in production."""
+    key = os.environ.get("AUDIT_HMAC_KEY")
+    if key:
+        if len(key) < 32:
+            raise ValueError("AUDIT_HMAC_KEY must be at least 32 characters")
+        return key.encode("utf-8")
+
+    if _is_production:
+        raise RuntimeError(
+            "CRITICAL: AUDIT_HMAC_KEY environment variable is required in production. "
+            "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+        )
+
+    import warnings
+    warnings.warn(
+        "AUDIT_HMAC_KEY not set - using insecure development default. "
+        "Set AUDIT_HMAC_KEY for production.",
+        UserWarning
+    )
+    return b"audit-trail-dev-only-insecure-key"
 
 
 @dataclass

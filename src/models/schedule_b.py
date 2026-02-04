@@ -17,6 +17,8 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class InterestType(str, Enum):
@@ -234,15 +236,15 @@ class ScheduleB(BaseModel):
         return {
             'payer_count': len(self.interest_payers),
             'payers': payer_details,
-            'line_1_total_interest': round(total_taxable, 2),
+            'line_1_total_interest': float(money(total_taxable)),
             'line_2_nominee_interest': self.nominee_interest,
-            'line_3_subtotal': round(total_taxable - self.nominee_interest, 2),
+            'line_3_subtotal': float(money(total_taxable - self.nominee_interest)),
             'line_4_us_bond_exclusion': self.us_savings_bond_exclusion,
-            'taxable_interest': round(max(0, adjusted_taxable), 2),
-            'tax_exempt_interest': round(total_tax_exempt, 2),
-            'us_savings_bond_interest': round(total_us_bonds, 2),
-            'early_withdrawal_penalty': round(total_early_withdrawal, 2),
-            'foreign_tax_paid': round(total_foreign_tax, 2),
+            'taxable_interest': float(money(max(0, adjusted_taxable))),
+            'tax_exempt_interest': float(money(total_tax_exempt)),
+            'us_savings_bond_interest': float(money(total_us_bonds)),
+            'early_withdrawal_penalty': float(money(total_early_withdrawal)),
+            'foreign_tax_paid': float(money(total_foreign_tax)),
             'requires_schedule_b': total_taxable > self.FILING_THRESHOLD,
         }
 
@@ -282,15 +284,15 @@ class ScheduleB(BaseModel):
         return {
             'payer_count': len(self.dividend_payers),
             'payers': payer_details,
-            'line_5_total_ordinary': round(total_ordinary, 2),
+            'line_5_total_ordinary': float(money(total_ordinary)),
             'line_6_nominee_dividends': self.nominee_dividends,
-            'ordinary_dividends': round(max(0, adjusted_ordinary), 2),
-            'qualified_dividends': round(total_qualified, 2),
-            'capital_gain_distributions': round(total_capital_gain, 2),
-            'section_199a_dividends': round(total_section_199a, 2),
-            'exempt_interest_dividends': round(total_exempt, 2),
-            'foreign_tax_paid': round(total_foreign_tax, 2),
-            'federal_tax_withheld': round(total_withheld, 2),
+            'ordinary_dividends': float(money(max(0, adjusted_ordinary))),
+            'qualified_dividends': float(money(total_qualified)),
+            'capital_gain_distributions': float(money(total_capital_gain)),
+            'section_199a_dividends': float(money(total_section_199a)),
+            'exempt_interest_dividends': float(money(total_exempt)),
+            'foreign_tax_paid': float(money(total_foreign_tax)),
+            'federal_tax_withheld': float(money(total_withheld)),
             'requires_schedule_b': total_ordinary > self.FILING_THRESHOLD,
         }
 
@@ -314,7 +316,7 @@ class ScheduleB(BaseModel):
             'has_foreign_accounts': self.has_foreign_accounts or len(self.foreign_accounts) > 0,
             'account_count': len(self.foreign_accounts),
             'countries': countries,
-            'total_maximum_value': round(total_foreign_value, 2),
+            'total_maximum_value': float(money(total_foreign_value)),
             'requires_fbar': requires_fbar,
             'fbar_threshold': self.FBAR_THRESHOLD,
             'received_foreign_trust': self.received_foreign_trust_distribution,

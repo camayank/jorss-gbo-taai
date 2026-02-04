@@ -26,6 +26,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 from pydantic import BaseModel, Field, field_validator
 import logging
+from models._decimal_utils import money, to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -803,7 +804,7 @@ class Form4562(BaseModel):
 
                 depreciation = min(depreciation, max_dep)
 
-        return round(depreciation, 2)
+        return float(money(depreciation))
 
     def calculate_all_macrs_depreciation(self) -> Dict[str, Any]:
         """

@@ -36,6 +36,8 @@ from enum import Enum
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, computed_field, field_validator
 from datetime import date
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class IRAType(str, Enum):
@@ -381,7 +383,7 @@ class IRAContributionLimits(BaseModel):
             reduction_pct = (magi - start) / (end - start)
             reduced = base_limit * (1 - reduction_pct)
             # Round up to nearest $10
-            return max(0, round(reduced / 10) * 10)
+            return max(0, float(to_decimal(reduced).quantize(Decimal("10"), rounding=ROUND_HALF_UP)))
 
     def calculate_traditional_deduction_limit(
         self,
@@ -425,7 +427,7 @@ class IRAContributionLimits(BaseModel):
         else:
             reduction_pct = (magi - start) / (end - start)
             reduced = base_limit * (1 - reduction_pct)
-            return max(0, round(reduced / 10) * 10)
+            return max(0, float(to_decimal(reduced).quantize(Decimal("10"), rounding=ROUND_HALF_UP)))
 
 
 class IRASummary(BaseModel):
@@ -670,6 +672,6 @@ def calculate_rmd(
         "account_balance": account_balance,
         "age": owner_age,
         "life_expectancy_factor": factor,
-        "rmd_amount": round(rmd_amount, 2),
+        "rmd_amount": float(money(rmd_amount)),
         "deadline": "April 1 (first year) or December 31",
     }

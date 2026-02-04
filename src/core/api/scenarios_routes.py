@@ -25,6 +25,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .auth_routes import get_current_user
 from ..models.user import UserContext, UserType
 from database.async_engine import get_async_session
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -358,12 +360,12 @@ def _calculate_projection(variables: List[ScenarioVariable], baseline: TaxProjec
         gross_income=baseline.gross_income,
         adjusted_gross_income=new_agi,
         taxable_income=new_taxable,
-        federal_tax=round(federal, 2),
-        state_tax=round(state, 2),
-        total_tax=round(total, 2),
+        federal_tax=float(money(federal)),
+        state_tax=float(money(state)),
+        total_tax=float(money(total)),
         effective_rate=round((total / baseline.gross_income) * 100, 1) if baseline.gross_income > 0 else 0,
         marginal_rate=marginal,
-        refund_or_due=round(baseline.refund_or_due + (baseline.total_tax - total), 2)
+        refund_or_due=float(money(baseline.refund_or_due + (baseline.total_tax - total)))
     )
 
 
@@ -932,7 +934,7 @@ async def calculate_scenario(
 
     # Calculate projection
     scenario.projected = _calculate_projection(scenario.variables, scenario.baseline)
-    scenario.savings = round(scenario.baseline.total_tax - scenario.projected.total_tax, 2)
+    scenario.savings = float(money(scenario.baseline.total_tax - scenario.projected.total_tax))
     scenario.status = ScenarioStatus.CALCULATED
     scenario.updated_at = datetime.utcnow()
 

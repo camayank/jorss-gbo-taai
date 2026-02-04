@@ -23,6 +23,8 @@ References:
 from enum import Enum
 from typing import Optional, List
 from pydantic import BaseModel, Field
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class EarlyDistributionExceptionCode(str, Enum):
@@ -223,7 +225,7 @@ class ExcessContribution(BaseModel):
     def calculate_excise_tax(self, rate: float = 0.06) -> float:
         """Calculate 6% excise tax on excess contributions."""
         excess = self.calculate_total_excess()
-        return round(excess * rate, 2)
+        return float(money(excess * rate))
 
 
 class RMDFailure(BaseModel):
@@ -286,7 +288,7 @@ class RMDFailure(BaseModel):
             return 0.0
 
         rate = 0.10 if self.is_corrected_timely else 0.25
-        return round(shortfall * rate, 2)
+        return float(money(shortfall * rate))
 
 
 class Form5329(BaseModel):
@@ -410,12 +412,12 @@ class Form5329(BaseModel):
             total_distributions = self.total_early_distributions_from_1099r
 
         amount_subject_to_penalty = max(0.0, total_distributions - total_exceptions)
-        penalty = round(amount_subject_to_penalty * 0.10, 2)
+        penalty = float(money(amount_subject_to_penalty * 0.10))
 
         return {
-            'line_1_total_distributions': round(total_distributions, 2),
-            'line_2_exceptions': round(total_exceptions, 2),
-            'line_3_subject_to_penalty': round(amount_subject_to_penalty, 2),
+            'line_1_total_distributions': float(money(total_distributions)),
+            'line_2_exceptions': float(money(total_exceptions)),
+            'line_3_subject_to_penalty': float(money(amount_subject_to_penalty)),
             'line_4_penalty': penalty,
             'exception_details': exception_details,
         }
@@ -441,7 +443,7 @@ class Form5329(BaseModel):
                 self.traditional_ira_excess.recharacterized_amount +
                 self.traditional_ira_excess.applied_to_prior_year
             ),
-            'excess_amount': round(excess, 2),
+            'excess_amount': float(money(excess)),
             'excise_tax': tax,
         }
 
@@ -465,7 +467,7 @@ class Form5329(BaseModel):
                 self.roth_ira_excess.excess_withdrawn +
                 self.roth_ira_excess.recharacterized_amount
             ),
-            'excess_amount': round(excess, 2),
+            'excess_amount': float(money(excess)),
             'excise_tax': tax,
         }
 
@@ -475,7 +477,7 @@ class Form5329(BaseModel):
             return {'excess_amount': 0.0, 'excise_tax': 0.0}
 
         return {
-            'excess_amount': round(self.coverdell_esa_excess.calculate_total_excess(), 2),
+            'excess_amount': float(money(self.coverdell_esa_excess.calculate_total_excess())),
             'excise_tax': self.coverdell_esa_excess.calculate_excise_tax(),
         }
 
@@ -485,7 +487,7 @@ class Form5329(BaseModel):
             return {'excess_amount': 0.0, 'excise_tax': 0.0}
 
         return {
-            'excess_amount': round(self.archer_msa_excess.calculate_total_excess(), 2),
+            'excess_amount': float(money(self.archer_msa_excess.calculate_total_excess())),
             'excise_tax': self.archer_msa_excess.calculate_excise_tax(),
         }
 
@@ -495,7 +497,7 @@ class Form5329(BaseModel):
             return {'excess_amount': 0.0, 'excise_tax': 0.0}
 
         return {
-            'excess_amount': round(self.hsa_excess.calculate_total_excess(), 2),
+            'excess_amount': float(money(self.hsa_excess.calculate_total_excess())),
             'excise_tax': self.hsa_excess.calculate_excise_tax(),
         }
 
@@ -505,7 +507,7 @@ class Form5329(BaseModel):
             return {'excess_amount': 0.0, 'excise_tax': 0.0}
 
         return {
-            'excess_amount': round(self.able_excess.calculate_total_excess(), 2),
+            'excess_amount': float(money(self.able_excess.calculate_total_excess())),
             'excise_tax': self.able_excess.calculate_excise_tax(),
         }
 
@@ -539,8 +541,8 @@ class Form5329(BaseModel):
             })
 
         return {
-            'total_shortfall': round(total_shortfall, 2),
-            'total_penalty': round(total_penalty, 2),
+            'total_shortfall': float(money(total_shortfall)),
+            'total_penalty': float(money(total_penalty)),
             'failure_details': failure_details,
         }
 
@@ -550,7 +552,7 @@ class Form5329(BaseModel):
             return {'excess_amount': 0.0, 'excise_tax': 0.0}
 
         return {
-            'excess_amount': round(self.section_529_excess.calculate_total_excess(), 2),
+            'excess_amount': float(money(self.section_529_excess.calculate_total_excess())),
             'excise_tax': self.section_529_excess.calculate_excise_tax(),
         }
 
@@ -594,7 +596,7 @@ class Form5329(BaseModel):
         part_ix = self.calculate_part_ix_529_excess()
         total += part_ix['excise_tax']
 
-        return round(total, 2)
+        return float(money(total))
 
     def generate_form_5329_summary(self) -> dict:
         """Generate complete Form 5329 summary."""
@@ -746,4 +748,4 @@ def calculate_roth_contribution_limit(
         # Round to nearest $10, minimum $200
         if reduced > 0 and reduced < 200:
             return 200.0
-        return round(reduced / 10) * 10
+        return float(to_decimal(reduced).quantize(Decimal("10"), rounding=ROUND_HALF_UP))

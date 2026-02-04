@@ -196,7 +196,7 @@ class PDFExporter:
                 name='CustomTitle',
                 parent=styles['Heading1'],
                 fontSize=24,
-                textColor=colors.HexColor(self.theme.primary_color if self.theme else '#2563eb'),
+                textColor=colors.HexColor(self.theme.primary_color if self.theme else '#1e3a5f'),
                 spaceAfter=20,
                 alignment=TA_CENTER,
             ))
@@ -204,7 +204,7 @@ class PDFExporter:
                 name='CustomHeading',
                 parent=styles['Heading2'],
                 fontSize=16,
-                textColor=colors.HexColor(self.theme.primary_color if self.theme else '#2563eb'),
+                textColor=colors.HexColor(self.theme.primary_color if self.theme else '#1e3a5f'),
                 spaceAfter=12,
                 spaceBefore=20,
             ))

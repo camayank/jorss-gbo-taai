@@ -41,14 +41,16 @@ def _get_jwt_secret() -> str:
                 "CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required in production. "
                 "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
             )
-        # Development fallback - logged for visibility
+        # Development fallback - use cryptographically secure random secret
+        # This is unique per process start but unpredictable
         import warnings
+        import secrets as _secrets
         warnings.warn(
-            "JWT_SECRET not set - using insecure development default. "
+            "JWT_SECRET not set - using generated development secret. "
             "Set JWT_SECRET environment variable for production.",
             UserWarning
         )
-        return "DEV-ONLY-INSECURE-SECRET-" + str(os.getpid())
+        return f"DEV-ONLY-{_secrets.token_hex(32)}"
 
     # Validate secret strength
     if len(secret) < 32:

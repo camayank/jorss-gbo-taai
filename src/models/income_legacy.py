@@ -1,6 +1,8 @@
 from typing import Optional, List, Tuple
 from pydantic import BaseModel, Field
 from enum import Enum
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 from models.schedule_c import ScheduleCBusiness
 from models.form_8949 import SecuritiesPortfolio
@@ -845,7 +847,7 @@ class Form1099Q(BaseModel):
         excess_distribution = self.gross_distribution - adjusted_qee
         if self.gross_distribution > 0:
             taxable_ratio = excess_distribution / self.gross_distribution
-            return round(self.earnings * taxable_ratio, 2)
+            return float(money(self.earnings * taxable_ratio))
         return 0.0
 
     def get_penalty_amount(self, penalty_rate: float = 0.10) -> float:
@@ -862,7 +864,7 @@ class Form1099Q(BaseModel):
         - Attendance at US military academy
         """
         taxable = self.get_taxable_amount()
-        return round(taxable * penalty_rate, 2)
+        return float(money(taxable * penalty_rate))
 
 
 class StateTaxRefund(BaseModel):
@@ -1316,12 +1318,12 @@ class Form4137(BaseModel):
         # SS tax only applies up to wage base
         ss_room = max(0, self.ss_wage_base - self.wages_subject_to_ss)
         taxable_for_ss = min(unreported, ss_room)
-        return round(taxable_for_ss * self.ss_tax_rate, 2)
+        return float(money(taxable_for_ss * self.ss_tax_rate))
 
     def calculate_medicare_tax(self) -> float:
         """Calculate Medicare tax on unreported tips (no wage cap)."""
         unreported = self.get_unreported_tips()
-        return round(unreported * self.medicare_tax_rate, 2)
+        return float(money(unreported * self.medicare_tax_rate))
 
     def get_total_tax(self) -> float:
         """Get total Social Security + Medicare tax on unreported tips."""

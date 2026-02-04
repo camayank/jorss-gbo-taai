@@ -4,6 +4,7 @@ Password Utilities - Secure password hashing and validation.
 Uses bcrypt for password hashing with configurable work factor.
 """
 
+import os
 import re
 from typing import Tuple, List
 import logging
@@ -16,6 +17,8 @@ except ImportError:
     import hashlib
 
 logger = logging.getLogger(__name__)
+
+_IS_PRODUCTION = os.environ.get("APP_ENVIRONMENT", "").lower() in ("production", "prod", "staging")
 
 # bcrypt work factor (12 is a good balance of security and performance)
 BCRYPT_ROUNDS = 12
@@ -55,8 +58,13 @@ def hash_password(password: str) -> str:
         hashed = bcrypt.hashpw(password.encode("utf-8"), salt)
         return hashed.decode("utf-8")
     else:
-        # Fallback to SHA-256 with salt (less secure, use bcrypt in production)
-        logger.warning("bcrypt not available, using SHA-256 fallback")
+        if _IS_PRODUCTION:
+            raise RuntimeError(
+                "CRITICAL: bcrypt is required in production for password hashing. "
+                "Install with: pip install bcrypt"
+            )
+        # Development-only fallback to SHA-256 with salt
+        logger.warning("bcrypt not available, using SHA-256 fallback (DEVELOPMENT ONLY)")
         import secrets
         salt = secrets.token_hex(16)
         hash_input = f"{salt}:{password}"
@@ -185,9 +193,8 @@ def generate_temporary_password(length: int = 16) -> str:
         secrets.choice(all_chars) for _ in range(length - len(password_chars))
     )
 
-    # Shuffle to avoid predictable positions
-    import random
-    random.shuffle(password_chars)
+    # Shuffle to avoid predictable positions using cryptographically secure sort
+    password_chars.sort(key=lambda _: secrets.randbelow(len(password_chars) * 10))
 
     return "".join(password_chars)
 

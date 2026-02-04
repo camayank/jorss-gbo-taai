@@ -32,6 +32,7 @@ from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, computed_field, model_validator
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class PenaltyWaiverReason(str, Enum):
@@ -305,7 +306,7 @@ class Form2210ShortMethod(BaseModel):
 
         # IRS short method uses simplified factor
         # Approximate: 0.04 for half-year average underpayment
-        return round(self.line_12_underpayment * self.penalty_rate * 0.5, 2)
+        return float(money(self.line_12_underpayment * self.penalty_rate * 0.5))
 
 
 class Form2210RegularMethod(BaseModel):
@@ -357,7 +358,7 @@ class Form2210RegularMethod(BaseModel):
 
         # Penalty = underpayment × rate × (days / 365)
         penalty = quarter.underpayment * self.penalty_rate * (days / 365)
-        return round(penalty, 2)
+        return float(money(penalty))
 
     @computed_field
     @property
@@ -602,7 +603,7 @@ class Form2210(BaseModel):
         # Short method: simplified annual calculation
         # Average underpayment period is approximately 6 months
         penalty = shortfall * self.penalty_rate * 0.5
-        return round(penalty, 2)
+        return float(money(penalty))
 
     @computed_field
     @property
@@ -610,7 +611,7 @@ class Form2210(BaseModel):
         """Approximate penalty if evenly distributed across quarters."""
         if not self.penalty_applies:
             return 0.0
-        return round(self.penalty_amount / 4, 2)
+        return float(money(self.penalty_amount / 4))
 
     @computed_field
     @property
@@ -685,14 +686,14 @@ class Form2210(BaseModel):
             "requires_110_percent": self.requires_110_percent,
 
             # Safe harbor
-            "safe_harbor_current_year": round(self.safe_harbor_current_year, 2),
-            "safe_harbor_prior_year": round(self.safe_harbor_prior_year, 2) if self.safe_harbor_prior_year != float('inf') else None,
-            "required_annual_payment": round(self.required_annual_payment, 2),
+            "safe_harbor_current_year": float(money(self.safe_harbor_current_year)),
+            "safe_harbor_prior_year": float(money(self.safe_harbor_prior_year)) if self.safe_harbor_prior_year != float('inf') else None,
+            "required_annual_payment": float(money(self.required_annual_payment)),
             "safe_harbor_met": self.safe_harbor_met,
             "safe_harbor_reason": self.safe_harbor_reason,
 
             # Underpayment
-            "underpayment_amount": round(self.underpayment_amount, 2),
+            "underpayment_amount": float(money(self.underpayment_amount)),
             "under_threshold": self.under_threshold,
 
             # Penalty
@@ -882,10 +883,10 @@ def check_safe_harbor(
     return {
         "safe_harbor_met": safe_harbor_met,
         "total_payments": total_payments,
-        "required_payment": round(required_payment, 2),
-        "current_year_threshold": round(current_year_threshold, 2),
-        "prior_year_threshold": round(prior_year_threshold, 2) if prior_year_threshold != float('inf') else None,
+        "required_payment": float(money(required_payment)),
+        "current_year_threshold": float(money(current_year_threshold)),
+        "prior_year_threshold": float(money(prior_year_threshold)) if prior_year_threshold != float('inf') else None,
         "prior_year_pct": prior_year_pct * 100,
-        "shortfall": max(0, round(required_payment - total_payments, 2)),
-        "excess": max(0, round(total_payments - required_payment, 2))
+        "shortfall": max(0, float(money(required_payment - total_payments))),
+        "excess": max(0, float(money(total_payments - required_payment)))
     }

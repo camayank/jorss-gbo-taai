@@ -40,6 +40,7 @@ from src.web.validation_helpers import (
 # Import database persistence
 from src.database.unified_session import UnifiedFilingSession, FilingState, WorkflowType
 from src.database.session_persistence import get_session_persistence
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/tax-returns", tags=["express-lane"])
@@ -299,10 +300,10 @@ async def submit_express_lane(submission: ExpressLaneSubmission):
 
     except Exception as e:
         # Catch-all for unexpected errors
-        logger.error(f"[{request_id}] Unexpected error in Express Lane", extra={
-            "error": str(e),
-            "traceback": traceback.format_exc()
-        })
+        logger.error(
+            f"[{request_id}] Unexpected error in Express Lane: {e}",
+            exc_info=True
+        )
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -610,7 +611,7 @@ def _calculate_confidence_score(final_data: Dict[str, Any], original_data: Dict[
         (1 - edit_penalty) * 0.2
     )
 
-    return round(confidence, 2)
+    return float(money(confidence))
 
 
 def _get_total_withheld(data: Dict[str, Any]) -> Decimal:

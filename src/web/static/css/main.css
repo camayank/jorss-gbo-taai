@@ -1,0 +1,72 @@
+/**
+ * Main CSS Entry Point
+ *
+ * This file imports all CSS modules in the correct order for bundling.
+ * Use a CSS bundler (PostCSS, Vite, etc.) to process this file.
+ *
+ * Build command: npx postcss src/web/static/css/main.css -o dist/css/main.min.css
+ *
+ * Import Order:
+ * 1. Core (reset, variables, typography, layout, animations)
+ * 2. Components (buttons, cards, forms, modals, navigation, tables, toast)
+ * 3. Pages (advisor, cpa-dashboard, tax-form)
+ * 4. Themes (admin, advisor, cpa)
+ * 5. Feature-specific (advisory-report, chatbot-ux-enhancements)
+ */
+
+/* =============================================================================
+   CORE STYLES
+   Reset, CSS variables, typography, layout, and animations
+   ============================================================================= */
+
+@import 'core/reset.css';
+@import 'core/variables.css';
+@import 'core/typography.css';
+@import 'core/layout.css';
+@import 'core/animations.css';
+
+/* =============================================================================
+   COMPONENT STYLES
+   Reusable UI components
+   ============================================================================= */
+
+@import 'components/buttons.css';
+@import 'components/cards.css';
+@import 'components/forms.css';
+@import 'components/modals.css';
+@import 'components/navigation.css';
+@import 'components/tables.css';
+@import 'components/toast.css';
+
+/* =============================================================================
+   PAGE STYLES
+   Page-specific layouts and styles
+   ============================================================================= */
+
+@import 'pages/advisor.css';
+@import 'pages/cpa-dashboard.css';
+@import 'pages/tax-form.css';
+
+/* =============================================================================
+   UNIFIED THEME
+   Bridges variable naming and provides consistent component styling
+   ============================================================================= */
+
+@import './unified-theme.css';
+
+/* =============================================================================
+   THEME STYLES
+   Theme variations for different user types
+   ============================================================================= */
+
+@import 'themes/admin.css';
+@import 'themes/advisor.css';
+@import 'themes/cpa.css';
+
+/* =============================================================================
+   FEATURE STYLES
+   Feature-specific enhancements
+   ============================================================================= */
+
+@import './advisory-report.css';
+@import './chatbot-ux-enhancements.css';

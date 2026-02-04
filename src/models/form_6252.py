@@ -22,6 +22,8 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 from enum import Enum
 from datetime import datetime
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class PropertyCategory(str, Enum):
@@ -413,10 +415,9 @@ class Form6252(BaseModel):
             result['line_20_payments_received'] = obligation.get_current_year_principal()
 
         # Line 21: Installment sale income
-        result['line_21_installment_income'] = round(
-            result['line_20_payments_received'] * gp_percentage,
-            2
-        )
+        result['line_21_installment_income'] = float(money(
+            result['line_20_payments_received'] * gp_percentage
+        ))
 
         # Section 1250 gain allocation
         if obligation.unrecaptured_1250_gain > 0:
@@ -424,13 +425,12 @@ class Form6252(BaseModel):
             total_remaining = obligation.seller_financing - obligation.total_payments_prior_years
             if total_remaining > 0:
                 payment_ratio = result['line_20_payments_received'] / total_remaining
-                result['line_24_section_1250_at_25'] = round(
+                result['line_24_section_1250_at_25'] = float(money(
                     min(
                         obligation.unrecaptured_1250_gain * payment_ratio,
                         result['line_21_installment_income']
-                    ),
-                    2
-                )
+                    )
+                ))
 
         # Remaining capital gain
         result['line_25_capital_gain'] = max(
@@ -533,10 +533,9 @@ class Form6252(BaseModel):
         result['deferred_tax_liability'] = remaining_gain * 0.20
 
         # Interest charge on deferred tax
-        result['interest_charge'] = round(
-            result['deferred_tax_liability'] * self.section_453a_interest_rate,
-            2
-        )
+        result['interest_charge'] = float(money(
+            result['deferred_tax_liability'] * self.section_453a_interest_rate
+        ))
 
         return result
 
@@ -560,10 +559,9 @@ class Form6252(BaseModel):
 
         # Gain triggered = amount pledged × gross profit percentage
         gp_percentage = obligation.get_gross_profit_percentage()
-        result['triggered_gain'] = round(
-            obligation.amount_pledged * gp_percentage,
-            2
-        )
+        result['triggered_gain'] = float(money(
+            obligation.amount_pledged * gp_percentage
+        ))
 
         return result
 

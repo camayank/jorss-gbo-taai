@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 from typing import TYPE_CHECKING
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 if TYPE_CHECKING:
     from models.tax_return import TaxReturn
 
@@ -71,7 +73,7 @@ class KentuckyCalculator(BaseStateCalculator):
         state_tax_liability = max(0.0, tax_before_credits - total_credits)
 
         # Local occupational tax (simplified - average 2%)
-        local_tax = round(tax_return.income.get_total_wages() * 0.02, 2)
+        local_tax = float(money(tax_return.income.get_total_wages() * 0.02))
 
         state_withholding = self.get_state_withholding(tax_return)
         state_refund_or_owed = state_withholding - state_tax_liability
@@ -89,11 +91,11 @@ class KentuckyCalculator(BaseStateCalculator):
             deduction_amount=deduction_amount, personal_exemptions=personal_exemptions,
             dependent_exemptions=dependent_exemptions, exemption_amount=0.0,
             state_taxable_income=ky_taxable_income,
-            state_tax_before_credits=round(tax_before_credits, 2), state_credits=credits,
-            total_state_credits=round(total_credits, 2), local_tax=local_tax,
-            state_tax_liability=round(state_tax_liability, 2),
-            state_withholding=round(state_withholding, 2),
-            state_refund_or_owed=round(state_refund_or_owed, 2),
+            state_tax_before_credits=float(money(tax_before_credits)), state_credits=credits,
+            total_state_credits=float(money(total_credits)), local_tax=local_tax,
+            state_tax_liability=float(money(state_tax_liability)),
+            state_withholding=float(money(state_withholding)),
+            state_refund_or_owed=float(money(state_refund_or_owed)),
         )
 
     def calculate_state_subtractions(self, tax_return: "TaxReturn") -> float:

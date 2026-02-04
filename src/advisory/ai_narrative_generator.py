@@ -17,12 +17,14 @@ Usage:
     )
 """
 
+import hashlib
 import logging
 import json
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +110,29 @@ class AINarrativeGenerator:
             ai_service: UnifiedAIService instance (lazy-loaded if not provided)
         """
         self._ai_service = ai_service
+        self._cache: Dict[str, Any] = {}
+        self._cache_ttl: int = 3600
+
+    def _cache_key(self, *args) -> str:
+        """Create a SHA256 hash key from the given arguments."""
+        raw = json.dumps(args, sort_keys=True, default=str)
+        return hashlib.sha256(raw.encode()).hexdigest()
+
+    def _get_cached(self, key: str) -> Optional[Any]:
+        """Return cached value if present and not expired, otherwise None."""
+        entry = self._cache.get(key)
+        if entry is not None:
+            timestamp, value = entry
+            if time.time() - timestamp < self._cache_ttl:
+                logger.debug(f"Cache hit for key {key[:12]}...")
+                return value
+            # Expired -- remove stale entry
+            del self._cache[key]
+        return None
+
+    def _set_cached(self, key: str, value: Any) -> None:
+        """Store a value in the cache with the current timestamp."""
+        self._cache[key] = (time.time(), value)
 
     @property
     def ai_service(self):

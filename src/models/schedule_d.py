@@ -20,6 +20,8 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class GainLossType(str, Enum):
@@ -203,13 +205,13 @@ class ScheduleD(BaseModel):
         net_short_term = line_1b + line_2 + line_3 + line_4 + line_5 + line_6
 
         return {
-            'line_1b_box_a': round(line_1b, 2),
-            'line_2_box_b': round(line_2, 2),
-            'line_3_box_c': round(line_3, 2),
-            'line_4_other_st_gain': round(line_4, 2),
-            'line_5_passthrough': round(line_5, 2),
-            'line_6_st_carryover': round(line_6, 2),
-            'line_7_net_short_term': round(net_short_term, 2),
+            'line_1b_box_a': float(money(line_1b)),
+            'line_2_box_b': float(money(line_2)),
+            'line_3_box_c': float(money(line_3)),
+            'line_4_other_st_gain': float(money(line_4)),
+            'line_5_passthrough': float(money(line_5)),
+            'line_6_st_carryover': float(money(line_6)),
+            'line_7_net_short_term': float(money(net_short_term)),
         }
 
     def calculate_part_ii_long_term(self) -> Dict[str, float]:
@@ -248,14 +250,14 @@ class ScheduleD(BaseModel):
         )
 
         return {
-            'line_8b_box_d': round(line_8b, 2),
-            'line_9_box_e': round(line_9, 2),
-            'line_10_box_f': round(line_10, 2),
-            'line_11_other_lt_gain': round(line_11, 2),
-            'line_12_passthrough': round(line_12, 2),
-            'line_13_cap_gain_dist': round(line_13, 2),
-            'line_14_lt_carryover': round(line_14, 2),
-            'line_15_net_long_term': round(net_long_term, 2),
+            'line_8b_box_d': float(money(line_8b)),
+            'line_9_box_e': float(money(line_9)),
+            'line_10_box_f': float(money(line_10)),
+            'line_11_other_lt_gain': float(money(line_11)),
+            'line_12_passthrough': float(money(line_12)),
+            'line_13_cap_gain_dist': float(money(line_13)),
+            'line_14_lt_carryover': float(money(line_14)),
+            'line_15_net_long_term': float(money(net_long_term)),
         }
 
     def calculate_part_iii_summary(self) -> Dict[str, Any]:
@@ -322,19 +324,19 @@ class ScheduleD(BaseModel):
         )
 
         return {
-            'line_16_combined': round(line_16, 2),
+            'line_16_combined': float(money(line_16)),
             'is_net_gain': line_16 >= 0,
             'is_net_loss': line_16 < 0,
 
             # Tax computation amounts
-            'net_capital_gain': round(net_capital_gain, 2),
-            'capital_loss_deduction': round(capital_loss_deduction, 2),
+            'net_capital_gain': float(money(net_capital_gain)),
+            'capital_loss_deduction': float(money(capital_loss_deduction)),
             'loss_limit': loss_limit,
 
             # Carryover to next year
-            'new_st_carryover': round(new_st_carryover, 2),
-            'new_lt_carryover': round(new_lt_carryover, 2),
-            'total_new_carryover': round(new_st_carryover + new_lt_carryover, 2),
+            'new_st_carryover': float(money(new_st_carryover)),
+            'new_lt_carryover': float(money(new_lt_carryover)),
+            'total_new_carryover': float(money(new_st_carryover + new_lt_carryover)),
 
             # Special rate income
             'unrecaptured_1250_gain': self.unrecaptured_1250_gain,
@@ -383,9 +385,9 @@ class ScheduleD(BaseModel):
 
             # Tax computation
             'use_qualified_dividends_worksheet': part_iii['use_preferential_worksheet'],
-            'preferential_income': round(
-                part_iii['net_capital_gain'] + self.qualified_dividends, 2
-            ),
+            'preferential_income': float(money(
+                part_iii['net_capital_gain'] + self.qualified_dividends
+            )),
 
             # Detailed breakdowns
             'part_i': part_i,

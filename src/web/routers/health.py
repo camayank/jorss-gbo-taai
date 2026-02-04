@@ -22,6 +22,8 @@ import threading
 
 from fastapi import APIRouter, Response, Request
 from fastapi.responses import JSONResponse
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +111,7 @@ def get_request_metrics() -> Dict[str, Any]:
         avg_latencies = {}
         for endpoint, latencies in _request_latencies.items():
             if latencies:
-                avg_latencies[endpoint] = round(sum(latencies) / len(latencies), 2)
+                avg_latencies[endpoint] = float(money(sum(latencies) / len(latencies)))
 
         return {
             "request_counts": dict(_request_counts),
@@ -128,9 +130,9 @@ def get_calculation_metrics() -> Dict[str, Any]:
         # Calculate cache hit rate
         total = metrics["total_calculations"]
         if total > 0:
-            metrics["cache_hit_rate"] = round(
-                metrics["cache_hits"] / total * 100, 2
-            )
+            metrics["cache_hit_rate"] = float(money(
+                metrics["cache_hits"] / total * 100
+            ))
         else:
             metrics["cache_hit_rate"] = 0.0
         return metrics
@@ -174,7 +176,7 @@ async def _check_database() -> Dict[str, Any]:
 
         return {
             "status": "healthy",
-            "latency_ms": round(latency_ms, 2),
+            "latency_ms": float(money(latency_ms)),
             "tables": table_count,
             "lead_count": lead_count,
         }
@@ -243,20 +245,20 @@ def _check_disk_space() -> Dict[str, Any]:
                         "status": "warning",
                         "usage_percent": round(usage_percent, 1),
                         "available_mb": round(available_mb, 0),
-                        "db_size_mb": round(db_size_mb, 2),
+                        "db_size_mb": float(money(db_size_mb)),
                     }
 
                 return {
                     "status": "healthy",
                     "usage_percent": round(usage_percent, 1),
                     "available_mb": round(available_mb, 0),
-                    "db_size_mb": round(db_size_mb, 2),
+                    "db_size_mb": float(money(db_size_mb)),
                 }
             except (OSError, AttributeError):
                 # Windows or other OS without statvfs
                 return {
                     "status": "healthy",
-                    "db_size_mb": round(db_size_mb, 2),
+                    "db_size_mb": float(money(db_size_mb)),
                 }
 
         return {"status": "healthy", "db_size_mb": 0}
@@ -383,7 +385,7 @@ async def basic_metrics() -> JSONResponse:
         "calculations": {
             "total": calc_metrics["total_calculations"],
             "cache_hit_rate": calc_metrics["cache_hit_rate"],
-            "average_ms": round(calc_metrics["average_calculation_ms"], 2),
+            "average_ms": float(money(calc_metrics["average_calculation_ms"])),
         },
         "collected_at": datetime.utcnow().isoformat() + "Z",
     }

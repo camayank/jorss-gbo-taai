@@ -1,18 +1,18 @@
 """
 Calculation Pipeline - Domain service for orchestrated tax calculations.
 
-Implements a pipeline pattern for tax calculations:
+This is the CORE calculation pipeline providing the underlying implementation for:
+- CachedCalculationPipeline (adds Redis caching)
+- AsyncCalculationPipeline (adds async support)
+
+Pipeline steps:
 1. Validate inputs
 2. Prepare (load prior year, apply carryovers)
 3. Calculate federal taxes
 4. Calculate state taxes
 5. Validate outputs
 6. Store results
-
-This is a DOMAIN SERVICE - it contains business logic for calculation
-orchestration that spans multiple aggregates.
 """
-
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field

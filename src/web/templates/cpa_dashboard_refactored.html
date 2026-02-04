@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1e40af">
+  <meta name="theme-color" content="#1e3a5f">
   <meta name="description" content="CA4CPA GLOBAL LLC - Tax Advisory Intelligence">
   <meta name="csrf-token" content="{{ request.state.csrf_token if request and request.state and request.state.csrf_token else (csrf_token() if csrf_token else '') }}">
   <title>CA4CPA GLOBAL | Tax Advisory Dashboard</title>
@@ -29,6 +29,9 @@
   <link rel="stylesheet" href="/static/css/components/tables.css">
   <link rel="stylesheet" href="/static/css/components/navigation.css">
   <link rel="stylesheet" href="/static/css/components/toast.css">
+
+  <!-- Unified Theme -->
+  <link rel="stylesheet" href="/static/css/unified-theme.css">
 
   <!-- Theme CSS -->
   <link rel="stylesheet" href="/static/css/themes/cpa.css">
@@ -60,7 +63,7 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <div class="logo-mark" style="background: linear-gradient(135deg, #1e40af, #3b82f6);">CA</div>
+          <div class="logo-mark" style="background: linear-gradient(135deg, #1e3a5f, #5387c1);">CA</div>
           <div>
             <div class="logo-text">CA4CPA GLOBAL</div>
             <div class="logo-subtitle">Tax Advisory Intelligence</div>

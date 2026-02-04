@@ -42,8 +42,8 @@ TIER_1_TEMPLATE = """
     <title>Tax Advisory Report - {client_name}</title>
     <style>
         :root {{
-            --primary: #1e40af;
-            --primary-light: #dbeafe;
+            --primary: #1e3a5f;
+            --primary-light: #eef3f9;
             --secondary: #059669;
             --secondary-light: #d1fae5;
             --accent: #f59e0b;
@@ -73,7 +73,7 @@ TIER_1_TEMPLATE = """
         }}
 
         .header {{
-            background: linear-gradient(135deg, var(--primary), #3b82f6);
+            background: linear-gradient(135deg, var(--primary), #5387c1);
             color: white;
             padding: 40px;
             text-align: center;
@@ -262,7 +262,7 @@ TIER_1_TEMPLATE = """
         }}
 
         .cta-section {{
-            background: linear-gradient(135deg, var(--primary), #3b82f6);
+            background: linear-gradient(135deg, var(--primary), #5387c1);
             padding: 40px;
             text-align: center;
             color: white;
@@ -430,8 +430,8 @@ TIER_2_TEMPLATE = """
     <title>Complete Tax Advisory Report - {client_name}</title>
     <style>
         :root {{
-            --primary: #1e40af;
-            --primary-light: #dbeafe;
+            --primary: #1e3a5f;
+            --primary-light: #eef3f9;
             --secondary: #059669;
             --secondary-light: #d1fae5;
             --accent: #f59e0b;
@@ -462,7 +462,7 @@ TIER_2_TEMPLATE = """
         }}
 
         .header {{
-            background: linear-gradient(135deg, var(--primary), #3b82f6);
+            background: linear-gradient(135deg, var(--primary), #5387c1);
             color: white;
             padding: 40px;
             display: flex;
@@ -775,7 +775,7 @@ TIER_2_TEMPLATE = """
 
         .next-steps {{
             padding: 40px;
-            background: linear-gradient(135deg, var(--primary), #3b82f6);
+            background: linear-gradient(135deg, var(--primary), #5387c1);
             color: white;
             text-align: center;
         }}

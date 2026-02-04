@@ -467,7 +467,7 @@ def generate_projection_timeline_data(result: MultiYearProjectionResult) -> Dict
             {
                 "label": "Total Income",
                 "data": [float(p.total_income) for p in result.yearly_projections],
-                "color": "#2563eb",
+                "color": "#1e3a5f",
                 "type": "line"
             },
             {

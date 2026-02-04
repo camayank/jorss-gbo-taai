@@ -41,6 +41,8 @@ from enum import Enum
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, computed_field
 from datetime import date
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class HomeOfficeMethod(str, Enum):
@@ -93,7 +95,7 @@ class Form8829Part1(BaseModel):
         """Line 3: Business use percentage."""
         if self.line_2_total_area <= 0:
             return 0.0
-        return round((self.line_1_business_area / self.line_2_total_area) * 100, 2)
+        return float(money((self.line_1_business_area / self.line_2_total_area) * 100))
 
     # Line 4: Hours home used for daycare (if applicable)
     line_4_daycare_hours: float = Field(
@@ -114,7 +116,7 @@ class Form8829Part1(BaseModel):
         """Line 6: Daycare time percentage (Line 4 / Line 5)."""
         if self.line_4_daycare_hours <= 0:
             return 0.0
-        return round((self.line_4_daycare_hours / self.line_5_total_hours) * 100, 2)
+        return float(money((self.line_4_daycare_hours / self.line_5_total_hours) * 100))
 
     # Line 7: Business percentage for daycare
     @computed_field
@@ -122,7 +124,7 @@ class Form8829Part1(BaseModel):
     def line_7_daycare_business_pct(self) -> float:
         """Line 7: Daycare business percentage (Line 3 × Line 6 / 100)."""
         if self.line_4_daycare_hours > 0:
-            return round(self.line_3_business_percentage * self.line_6_daycare_percentage / 100, 2)
+            return float(money(self.line_3_business_percentage * self.line_6_daycare_percentage / 100))
         return self.line_3_business_percentage
 
 
@@ -183,7 +185,7 @@ class Form8829Part2(BaseModel):
     @property
     def line_20_business_portion(self) -> float:
         """Line 20: Business portion of casualty/mortgage/taxes."""
-        return round(self.line_19_total_casualty_mortgage_taxes * (self.business_percentage / 100), 2)
+        return float(money(self.line_19_total_casualty_mortgage_taxes * (self.business_percentage / 100)))
 
     # Line 21: Carryover from prior year (Form 8829, line 44)
     line_21_carryover_operating: float = Field(
@@ -261,7 +263,7 @@ class Form8829Part2(BaseModel):
     @property
     def line_31_business_other_indirect(self) -> float:
         """Line 31: Business portion of other indirect."""
-        return round(self.line_30_total_other_indirect * (self.business_percentage / 100), 2)
+        return float(money(self.line_30_total_other_indirect * (self.business_percentage / 100)))
 
     # Line 32: Carryover from prior year (operating)
     line_32_carryover_other: float = Field(
@@ -368,7 +370,7 @@ class Form8829Part3(BaseModel):
     @property
     def line_40_business_basis(self) -> float:
         """Line 40: Business basis of building."""
-        return round(self.line_38_building_basis * (self.line_39_business_pct / 100), 2)
+        return float(money(self.line_38_building_basis * (self.line_39_business_pct / 100)))
 
     # Line 41: Depreciation percentage (residential = 39 years SL = 2.564%)
     line_41_depreciation_pct: float = Field(
@@ -381,7 +383,7 @@ class Form8829Part3(BaseModel):
     @property
     def line_42_depreciation_allowable(self) -> float:
         """Line 42: Depreciation allowable."""
-        return round(self.line_40_business_basis * (self.line_41_depreciation_pct / 100), 2)
+        return float(money(self.line_40_business_basis * (self.line_41_depreciation_pct / 100)))
 
 
 class Form8829Part4(BaseModel):

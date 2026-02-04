@@ -49,7 +49,7 @@ The agent will guide you through collecting:
 ## Example Conversation
 
 ```
-Agent: Hello! I'm here to help you prepare your 2024 US tax return.
+Agent: Hello! I'm here to help you prepare your 2025 US tax return.
        What is your first name?
 
 You: John
@@ -85,10 +85,15 @@ Agent: [Displays tax summary]
 
 ## Document Upload
 
-To parse W-2 or 1099 forms from PDF/images, use the document parser:
+To parse W-2 or 1099 forms from PDF/images, use the document parser.
+Make sure `src/` is on your `PYTHONPATH`, for example:
+
+```bash
+PYTHONPATH=".:src" python your_script.py
+```
 
 ```python
-from src.parser.document_parser import DocumentParser
+from parser.document_parser import DocumentParser
 
 parser = DocumentParser()
 w2_info = parser.parse_w2("path/to/w2.pdf")
@@ -96,10 +101,12 @@ w2_info = parser.parse_w2("path/to/w2.pdf")
 
 ## Programmatic Usage
 
+Ensure `src/` is on your `PYTHONPATH` when running these examples.
+
 ```python
-from src.agent.tax_agent import TaxAgent
-from src.calculator.tax_calculator import TaxCalculator
-from src.forms.form_generator import FormGenerator
+from agent.tax_agent import TaxAgent
+from calculator.tax_calculator import TaxCalculator
+from forms.form_generator import FormGenerator
 
 # Initialize
 agent = TaxAgent(api_key="your_key")

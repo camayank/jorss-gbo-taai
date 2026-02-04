@@ -16,6 +16,8 @@ from datetime import datetime
 import logging
 
 from .common import format_success_response, format_error_response, get_tenant_id
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -151,7 +153,7 @@ async def get_aggregated_insights(
                 client_summaries.append({
                     "session_id": session_id,
                     "client_name": client_name,
-                    "total_savings": round(client_savings, 2),
+                    "total_savings": float(money(client_savings)),
                 })
 
         # Sort insights by savings (descending)
@@ -167,7 +169,7 @@ async def get_aggregated_insights(
         client_summaries.sort(key=lambda x: x["total_savings"], reverse=True)
 
         return format_success_response({
-            "total_savings_potential": round(total_savings, 2),
+            "total_savings_potential": float(money(total_savings)),
             "total_clients_analyzed": len(all_session_ids),
             "total_insights": len(all_insights),
             "insights": top_insights,
@@ -256,7 +258,7 @@ async def get_insights_by_category(
         # Update client counts
         for cat_key in categories:
             categories[cat_key]["client_count"] = len(clients_by_category[cat_key])
-            categories[cat_key]["total_savings"] = round(categories[cat_key]["total_savings"], 2)
+            categories[cat_key]["total_savings"] = float(money(categories[cat_key]["total_savings"]))
             # Sort insights by savings
             categories[cat_key]["insights"].sort(key=lambda x: x.get("savings", 0), reverse=True)
             # Limit to top 10 per category
@@ -353,7 +355,7 @@ async def get_client_insights(
         return format_success_response({
             "session_id": session_id,
             "client_name": client_name,
-            "total_savings_potential": round(total_savings, 2),
+            "total_savings_potential": float(money(total_savings)),
             "insights": insights,
             "insight_count": len(insights),
         })
@@ -445,17 +447,17 @@ async def get_insights_summary(
                 logger.warning(f"Error processing {session_id}: {e}")
 
         return format_success_response({
-            "total_savings_identified": round(total_savings, 2),
+            "total_savings_identified": float(money(total_savings)),
             "total_opportunities": total_opportunities,
             "high_priority_alerts": high_priority_count,
             "clients_with_savings": clients_with_savings,
             "total_clients": len(sessions),
             "category_breakdown": {
-                "retirement": round(category_totals["retirement"], 2),
-                "deductions": round(category_totals["deductions"], 2),
-                "credits": round(category_totals["credits"], 2),
-                "investment": round(category_totals["investment"], 2),
-                "qbi": round(category_totals["qbi"], 2),
+                "retirement": float(money(category_totals["retirement"])),
+                "deductions": float(money(category_totals["deductions"])),
+                "credits": float(money(category_totals["credits"])),
+                "investment": float(money(category_totals["investment"])),
+                "qbi": float(money(category_totals["qbi"])),
             },
         })
 
@@ -493,6 +495,6 @@ def _calculate_category_breakdown(insights: List[Dict]) -> Dict[str, Any]:
 
     # Round totals
     for cat in breakdown:
-        breakdown[cat]["total_savings"] = round(breakdown[cat]["total_savings"], 2)
+        breakdown[cat]["total_savings"] = float(money(breakdown[cat]["total_savings"]))
 
     return breakdown

@@ -5,9 +5,12 @@ Manages feature access based on subscription tiers.
 Critical for monetization - gates premium advisory reports.
 """
 
+import logging
 from enum import Enum
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 
 class SubscriptionTier(str, Enum):
@@ -344,14 +347,37 @@ def get_user_tier(user_id: Optional[str]) -> SubscriptionTier:
     """
     Get subscription tier for a user.
 
-    TODO: Integrate with payment system (Stripe, etc.)
-    For now, returns FREE for anonymous, checks database for authenticated.
+    Returns FREE for anonymous users. For authenticated users, checks
+    the subscription database. Falls back to FREE if no subscription found.
     """
     if not user_id:
         return SubscriptionTier.FREE
 
-    # TODO: Query subscription database
-    # For now, return FREE (implement payment integration later)
+    try:
+        from database.session_manager import get_db_session
+        from sqlalchemy import text
+
+        with get_db_session() as session:
+            result = session.execute(
+                text("SELECT plan_code FROM subscriptions WHERE user_id = :uid AND status = 'active' LIMIT 1"),
+                {"uid": user_id},
+            )
+            row = result.fetchone()
+            if row:
+                plan_code = row[0].upper()
+                tier_map = {
+                    "FREE": SubscriptionTier.FREE,
+                    "BASIC": SubscriptionTier.BASIC,
+                    "PREMIUM": SubscriptionTier.PREMIUM,
+                    "PROFESSIONAL": SubscriptionTier.PROFESSIONAL,
+                    "CPA_FIRM": SubscriptionTier.CPA_FIRM,
+                }
+                return tier_map.get(plan_code, SubscriptionTier.FREE)
+    except ImportError:
+        logger.debug("Database not available for tier lookup")
+    except Exception as e:
+        logger.warning(f"Tier lookup failed for user {user_id}: {e}")
+
     return SubscriptionTier.FREE
 
 

@@ -739,7 +739,7 @@ class RulesBasedRecommender:
                 else:
                     date_obj = agreement_date
                 is_pre_2019 = date_obj.year < 2019
-            except:
+            except (ValueError, TypeError, AttributeError):
                 pass
 
         if pays_alimony:

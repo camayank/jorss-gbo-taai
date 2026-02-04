@@ -39,6 +39,8 @@ from typing import Optional, List, Dict, Any, ClassVar
 from pydantic import BaseModel, Field
 from enum import Enum
 from datetime import date
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class HouseholdEmployeeType(str, Enum):
@@ -288,32 +290,31 @@ class ScheduleH(BaseModel):
 
             # Calculate taxes
             ss_tax = ss_wages * self.SOCIAL_SECURITY_RATE
-            emp_detail['ss_tax'] = round(ss_tax, 2)
+            emp_detail['ss_tax'] = float(money(ss_tax))
             result['social_security_tax'] += ss_tax
 
             medicare_tax = medicare_wages * self.MEDICARE_RATE
-            emp_detail['medicare_tax'] = round(medicare_tax, 2)
+            emp_detail['medicare_tax'] = float(money(medicare_tax))
             result['medicare_tax'] += medicare_tax
 
             # Additional Medicare (employee portion only, above $200k)
             if medicare_wages > self.ADDITIONAL_MEDICARE_THRESHOLD:
                 excess = medicare_wages - self.ADDITIONAL_MEDICARE_THRESHOLD
                 add_medicare = excess * self.ADDITIONAL_MEDICARE_RATE
-                emp_detail['additional_medicare'] = round(add_medicare, 2)
+                emp_detail['additional_medicare'] = float(money(add_medicare))
                 result['additional_medicare_tax'] += add_medicare
 
             result['employee_details'].append(emp_detail)
 
         # Round totals
-        result['social_security_tax'] = round(result['social_security_tax'], 2)
-        result['medicare_tax'] = round(result['medicare_tax'], 2)
-        result['additional_medicare_tax'] = round(result['additional_medicare_tax'], 2)
-        result['total_tax'] = round(
+        result['social_security_tax'] = float(money(result['social_security_tax']))
+        result['medicare_tax'] = float(money(result['medicare_tax']))
+        result['additional_medicare_tax'] = float(money(result['additional_medicare_tax']))
+        result['total_tax'] = float(money(
             result['social_security_tax'] +
             result['medicare_tax'] +
-            result['additional_medicare_tax'],
-            2
-        )
+            result['additional_medicare_tax']
+        ))
 
         return result
 
@@ -362,26 +363,26 @@ class ScheduleH(BaseModel):
 
             # Gross FUTA tax
             futa_tax = futa_wages * self.FUTA_RATE
-            emp_detail['futa_tax'] = round(futa_tax, 2)
+            emp_detail['futa_tax'] = float(money(futa_tax))
             result['gross_futa_tax'] += futa_tax
 
             result['employee_details'].append(emp_detail)
 
         # Calculate credit (5.4% standard, reduced if state has issues)
         credit_rate = self.FUTA_CREDIT_RATE - self.credit_reduction_rate
-        result['state_credit'] = round(result['futa_wages'] * credit_rate, 2)
+        result['state_credit'] = float(money(result['futa_wages'] * credit_rate))
 
         # Credit reduction if applicable
         if self.state_has_credit_reduction:
-            result['credit_reduction'] = round(
-                result['futa_wages'] * self.credit_reduction_rate, 2
-            )
+            result['credit_reduction'] = float(money(
+                result['futa_wages'] * self.credit_reduction_rate
+            ))
 
         # Net FUTA tax
-        result['gross_futa_tax'] = round(result['gross_futa_tax'], 2)
-        result['net_futa_tax'] = round(
-            result['gross_futa_tax'] - result['state_credit'], 2
-        )
+        result['gross_futa_tax'] = float(money(result['gross_futa_tax']))
+        result['net_futa_tax'] = float(money(
+            result['gross_futa_tax'] - result['state_credit']
+        ))
 
         return result
 
@@ -470,27 +471,26 @@ class ScheduleH(BaseModel):
         result['total_futa_tax'] = futa['net_futa_tax']
 
         # Total household employment taxes
-        result['total_household_employment_tax'] = round(
-            result['total_ss_medicare_tax'] + result['total_futa_tax'], 2
-        )
+        result['total_household_employment_tax'] = float(money(
+            result['total_ss_medicare_tax'] + result['total_futa_tax']
+        ))
 
         # Federal income tax withheld (passed through to Form 1040)
         withheld = self.calculate_total_withheld()
         result['federal_income_tax_withheld'] = withheld['federal_income_tax']
 
         # Total (taxes + withheld FIT)
-        result['total_taxes_and_withholding'] = round(
+        result['total_taxes_and_withholding'] = float(money(
             result['total_household_employment_tax'] +
-            result['federal_income_tax_withheld'],
-            2
-        )
+            result['federal_income_tax_withheld']
+        ))
 
         # Balance due or overpayment
         balance = result['total_taxes_and_withholding'] - self.prior_period_taxes_paid
         if balance > 0:
-            result['amount_owed'] = round(balance, 2)
+            result['amount_owed'] = float(money(balance))
         else:
-            result['overpayment'] = round(abs(balance), 2)
+            result['overpayment'] = float(money(abs(balance)))
 
         return result
 

@@ -8,6 +8,8 @@ Reference: IRS Instructions for Schedule C (Form 1040)
 """
 
 from typing import Optional, List
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 from pydantic import BaseModel, Field
 from enum import Enum
 from decimal import Decimal
@@ -667,13 +669,13 @@ class ScheduleCBusiness(BaseModel):
             'materially_participated': self.materially_participated,
 
             # Income
-            'gross_receipts': round(self.gross_receipts, 2),
-            'returns_and_allowances': round(self.returns_and_allowances, 2),
-            'net_receipts': round(self.gross_receipts - self.returns_and_allowances, 2),
-            'cost_of_goods_sold': round(self.get_cogs(), 2),
-            'gross_income': round(self.calculate_gross_income(), 2),
-            'other_income': round(self.other_income, 2),
-            'gross_profit': round(self.calculate_gross_profit(), 2),
+            'gross_receipts': float(money(self.gross_receipts)),
+            'returns_and_allowances': float(money(self.returns_and_allowances)),
+            'net_receipts': float(money(self.gross_receipts - self.returns_and_allowances)),
+            'cost_of_goods_sold': float(money(self.get_cogs())),
+            'gross_income': float(money(self.calculate_gross_income())),
+            'other_income': float(money(self.other_income)),
+            'gross_profit': float(money(self.calculate_gross_profit())),
 
             # Expenses breakdown
             'expenses': {
@@ -700,17 +702,17 @@ class ScheduleCBusiness(BaseModel):
                 'other': self.expenses.get_total_other_expenses(),
                 'home_office': self.expenses.home_office_deduction,
             },
-            'total_expenses': round(self.get_total_expenses(), 2),
+            'total_expenses': float(money(self.get_total_expenses())),
 
             # Results
-            'net_profit_or_loss': round(self.calculate_net_profit_loss(), 2),
+            'net_profit_or_loss': float(money(self.calculate_net_profit_loss())),
             'is_loss': self.is_loss(),
-            'se_income': round(self.get_se_income(), 2),
-            'qbi_income': round(self.get_qbi_income(), 2),
+            'se_income': float(money(self.get_se_income())),
+            'qbi_income': float(money(self.get_qbi_income())),
 
             # Vehicle summary
             'vehicle_count': len(self.vehicles),
-            'total_vehicle_expenses': round(vehicle_expenses, 2),
+            'total_vehicle_expenses': float(money(vehicle_expenses)),
             'total_business_miles': sum(v.business_miles for v in self.vehicles),
         }
 

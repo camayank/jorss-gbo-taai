@@ -11,6 +11,8 @@ they get valuable, personalized insights.
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 from enum import Enum
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 
 class RecommendationCategory(str, Enum):
@@ -144,7 +146,7 @@ class TaxRecommendationEngine:
 
         return RecommendationsResult(
             recommendations=recommendations,
-            total_potential_savings=round(total_savings, 2),
+            total_potential_savings=float(money(total_savings)),
             summary=summary,
         )
 
@@ -177,7 +179,7 @@ class TaxRecommendationEngine:
                     title="Maximize Your IRA Contribution",
                     description=f"You can still contribute up to ${remaining_ira:,.0f} to a Traditional IRA for 2025. "
                                f"This could reduce your taxable income and save you approximately ${potential_savings:,.0f} in taxes.",
-                    potential_savings=round(potential_savings, 2),
+                    potential_savings=float(money(potential_savings)),
                     action_items=[
                         f"Contribute up to ${remaining_ira:,.0f} to your Traditional IRA",
                         "Deadline: April 15, 2026 for 2025 tax year",
@@ -201,7 +203,7 @@ class TaxRecommendationEngine:
                         title="Maximize HSA Contributions",
                         description=f"Health Savings Accounts offer triple tax benefits. "
                                    f"You may be able to contribute up to ${remaining_hsa:,.0f} more.",
-                        potential_savings=round(potential_savings, 2),
+                        potential_savings=float(money(potential_savings)),
                         action_items=[
                             "Check your HSA eligibility (requires HDHP)",
                             f"Consider contributing up to ${remaining_hsa:,.0f} more",

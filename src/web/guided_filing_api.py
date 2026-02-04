@@ -13,6 +13,8 @@ from datetime import datetime
 from enum import Enum
 import uuid
 import logging
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 try:
     from rbac.dependencies import require_auth, AuthContext, optional_auth
@@ -457,9 +459,9 @@ async def get_summary(
                 "total_deduction": total_deduction,
                 "deduction_method": deduction_method,
                 "taxable_income": taxable_income,
-                "estimated_tax": round(estimated_tax, 2),
+                "estimated_tax": float(money(estimated_tax)),
                 "total_withheld": withheld,
-                "refund_or_owed": round(refund_or_owed, 2),
+                "refund_or_owed": float(money(refund_or_owed)),
                 "is_refund": refund_or_owed >= 0,
             },
             "filing_status": filing_status,

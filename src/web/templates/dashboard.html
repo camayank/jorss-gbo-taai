@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#4f46e5">
+  <meta name="theme-color" content="#1e3a5f">
   <meta name="description" content="CPA Workspace for managing tax clients and decisions">
   <title>CPA Workspace - Tax Decision Intelligence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,6 +11,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- Core Design System -->
   <link rel="stylesheet" href="/static/css/core/variables.css">
+  <link rel="stylesheet" href="/static/css/core/reset.css">
+  <link rel="stylesheet" href="/static/css/core/typography.css">
+  <link rel="stylesheet" href="/static/css/unified-theme.css">
   <style>
     :root {
       /* =========================
@@ -18,9 +21,9 @@
          Legacy variables for backward compatibility
          ========================= */
       /* Primary Colors - Using Core Indigo */
-      --primary: var(--color-primary-500, #3b82f6);
-      --primary-dark: var(--color-primary-600, #2563eb);
-      --primary-hover: var(--color-primary-600, #2563eb);
+      --primary: var(--color-primary-500, #5387c1);
+      --primary-dark: var(--color-primary-600, #1a3253);
+      --primary-hover: var(--color-primary-600, #1a3253);
       --primary-light: var(--color-primary-50, #eff6ff);
       --primary-50: var(--color-primary-50, #eff6ff);
 
@@ -55,8 +58,8 @@
       --warning: var(--color-warning-500, #f59e0b);
       --warning-light: var(--color-warning-100, #fef3c7);
       --error: var(--color-error-500, #ef4444);
-      --info: var(--color-info-500, #3b82f6);
-      --info-light: var(--color-info-100, #dbeafe);
+      --info: var(--color-info-500, #5387c1);
+      --info-light: var(--color-info-100, #eef3f9);
 
       /* Shadows - Map to Core */
       --shadow-sm: var(--shadow-xs, 0 1px 2px 0 rgb(0 0 0 / 0.05));
@@ -299,7 +302,7 @@
     }
     .status-delivered {
       background: #f3e8ff;
-      color: #7c3aed;
+      color: #5387c1;
     }
     .status-archived {
       background: var(--bg-tertiary);

@@ -28,6 +28,8 @@ from enum import Enum
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, computed_field, field_validator
 from datetime import date
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class TransactionType(str, Enum):
@@ -159,7 +161,7 @@ class Form1099K(BaseModel):
         active_months = sum(1 for v in self.monthly_amounts.values() if v > 0)
         if active_months == 0:
             return 0.0
-        return round(self.box_1a_gross_amount / active_months, 2)
+        return float(money(self.box_1a_gross_amount / active_months))
 
     @computed_field
     @property
@@ -167,7 +169,7 @@ class Form1099K(BaseModel):
         """Average amount per transaction."""
         if self.box_3_transaction_count == 0:
             return 0.0
-        return round(self.box_1a_gross_amount / self.box_3_transaction_count, 2)
+        return float(money(self.box_1a_gross_amount / self.box_3_transaction_count))
 
     @computed_field
     @property
@@ -181,7 +183,7 @@ class Form1099K(BaseModel):
         """Percentage of in-person transactions."""
         if self.box_1a_gross_amount == 0:
             return 0.0
-        return round((self.card_present_transactions / self.box_1a_gross_amount) * 100, 2)
+        return float(money((self.card_present_transactions / self.box_1a_gross_amount) * 100))
 
 
 class Form1099KAdjustments(BaseModel):
@@ -441,9 +443,9 @@ def calculate_1099k_taxable_income(
         "adjusted_gross_receipts": adjustments.adjusted_gross_receipts,
         "gross_profit": adjustments.net_profit_before_expenses,
         "net_taxable_income": adjustments.net_taxable_income,
-        "effective_rate": round(
-            adjustments.net_taxable_income / gross_1099k * 100, 2
-        ) if gross_1099k > 0 else 0,
+        "effective_rate": float(money(
+            adjustments.net_taxable_income / gross_1099k * 100
+        )) if gross_1099k > 0 else 0,
     }
 
 

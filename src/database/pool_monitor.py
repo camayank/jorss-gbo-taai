@@ -18,6 +18,8 @@ from typing import Any, Dict, Optional
 from dataclasses import dataclass, field
 from datetime import datetime
 from contextlib import asynccontextmanager
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -58,9 +60,9 @@ class PoolMetrics:
             "checked_out": self.checked_out,
             "overflow": self.overflow,
             "available_connections": self.available_connections,
-            "utilization_percent": round(self.utilization_percent, 2),
+            "utilization_percent": float(money(self.utilization_percent)),
             "is_exhausted": self.is_exhausted,
-            "avg_checkout_time_ms": round(self.avg_checkout_time_ms, 2),
+            "avg_checkout_time_ms": float(money(self.avg_checkout_time_ms)),
             "total_checkouts": self.total_checkouts,
             "failed_checkouts": self.failed_checkouts,
         }

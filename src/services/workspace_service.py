@@ -341,19 +341,22 @@ class WorkspaceService:
             else:
                 query = query.order_by(asc(order_col))
 
-            # Apply pagination
-            clients = query.offset(offset).limit(limit).all()
+            # Apply pagination with eager loading to prevent N+1 queries
+            from database.query_helpers import client_with_sessions
+            clients = query.options(
+                *client_with_sessions()
+            ).offset(offset).limit(limit).all()
 
-            # Get session info for each client
+            # Build session lookup from eagerly loaded data (no additional queries)
             client_list = []
             for client in clients:
                 client_dict = self._client_to_dict(client)
 
-                # Get current session for tax year
-                sess = session.query(ClientSessionRecord).filter(
-                    ClientSessionRecord.client_id == client.client_id,
-                    ClientSessionRecord.tax_year == tax_year
-                ).first()
+                # Find session for tax year from already-loaded sessions (N+1 fix)
+                sess = next(
+                    (s for s in client.sessions if s.tax_year == tax_year),
+                    None
+                )
 
                 if sess:
                     client_dict["session"] = self._session_to_dict(sess)

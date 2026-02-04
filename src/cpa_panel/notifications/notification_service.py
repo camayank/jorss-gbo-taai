@@ -146,14 +146,14 @@ This is an automated notification. Please do not reply to this email.
 
 <p><strong>Great news!</strong> Your {tax_year} federal tax return has been reviewed and approved by {cpa_name}.</p>
 
-<h3 style="color: #2c5282;">What's Next</h3>
+<h3 style="color: #5387c1;">What's Next</h3>
 <ul>
 <li>Your return will be filed with the IRS</li>
 <li>You will receive confirmation once the IRS accepts your return</li>
 <li>If you have any questions, please contact your CPA</li>
 </ul>
 
-<h3 style="color: #2c5282;">CPA Contact</h3>
+<h3 style="color: #5387c1;">CPA Contact</h3>
 <p>
 {cpa_name}<br>
 {cpa_firm}<br>

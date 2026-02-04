@@ -218,8 +218,8 @@ class Settings(BaseSettings):
     # Security
     # CRITICAL: Must be set via APP_SECRET_KEY environment variable in production
     # Generate with: python -c "import secrets; print(secrets.token_hex(32))"
-    secret_key: str = Field(
-        default="change-me-in-production-INSECURE",
+    secret_key: Optional[str] = Field(
+        default=None,
         description="Secret key for signing - MUST be set in production"
     )
 
@@ -261,22 +261,35 @@ class Settings(BaseSettings):
     enable_background_tasks: bool = Field(default=True, description="Enable Celery tasks")
     enable_dual_write: bool = Field(default=False, description="Enable dual-write migration")
 
-    # Nested settings (loaded separately)
+    # Nested settings (cached to avoid creating new instances on every access)
+    _redis_cached: Optional[RedisSettings] = None
+    _celery_cached: Optional[CelerySettings] = None
+    _resilience_cached: Optional[ResilienceSettings] = None
+    _email_cached: Optional[EmailSettings] = None
+
     @property
     def redis(self) -> RedisSettings:
-        return RedisSettings()
+        if self._redis_cached is None:
+            object.__setattr__(self, "_redis_cached", RedisSettings())
+        return self._redis_cached
 
     @property
     def celery(self) -> CelerySettings:
-        return CelerySettings()
+        if self._celery_cached is None:
+            object.__setattr__(self, "_celery_cached", CelerySettings())
+        return self._celery_cached
 
     @property
     def resilience(self) -> ResilienceSettings:
-        return ResilienceSettings()
+        if self._resilience_cached is None:
+            object.__setattr__(self, "_resilience_cached", ResilienceSettings())
+        return self._resilience_cached
 
     @property
     def email(self) -> EmailSettings:
-        return EmailSettings()
+        if self._email_cached is None:
+            object.__setattr__(self, "_email_cached", EmailSettings())
+        return self._email_cached
 
     @property
     def is_production(self) -> bool:
@@ -296,7 +309,7 @@ class Settings(BaseSettings):
             return errors
 
         # Check APP_SECRET_KEY
-        if "INSECURE" in self.secret_key or self.secret_key == "change-me-in-production":
+        if not self.secret_key:
             errors.append(
                 "APP_SECRET_KEY: Must be set in production. "
                 "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""

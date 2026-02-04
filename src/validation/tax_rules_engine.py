@@ -296,18 +296,15 @@ class TaxRulesEngine:
     def _register_personal_rules(self) -> None:
         """Register personal information validation rules."""
 
-        # Rule 1: SSN format validation
+        # Rule 1: SSN format validation — delegates to canonical validator
         def validate_ssn(ctx: TaxContext) -> ValidationResult:
             if not ctx.ssn:
                 return ValidationResult(False, "Social Security Number is required",
                                         ValidationSeverity.ERROR, "ssn")
-            ssn_clean = re.sub(r'[^0-9]', '', ctx.ssn)
-            if len(ssn_clean) != 9:
-                return ValidationResult(False, "SSN must be 9 digits",
-                                        ValidationSeverity.ERROR, "ssn")
-            # Check for invalid SSNs (000, 666, 900-999 in first 3)
-            if ssn_clean[:3] in ('000', '666') or ssn_clean[:1] == '9':
-                return ValidationResult(False, "Invalid SSN format",
+            from web.validation_helpers import validate_ssn as _ssn_check
+            is_valid, error_msg = _ssn_check(ctx.ssn)
+            if not is_valid:
+                return ValidationResult(False, error_msg or "Invalid SSN format",
                                         ValidationSeverity.ERROR, "ssn")
             return ValidationResult(True)
 

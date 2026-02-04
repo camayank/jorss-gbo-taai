@@ -130,7 +130,7 @@ class DataEncryptor:
             # Return base64 encoded
             return base64.b64encode(combined).decode("utf-8")
 
-        except Exception as e:
+        except (ValueError, TypeError, OverflowError) as e:
             logger.error(f"Encryption failed: {type(e).__name__}")
             raise EncryptionError("Failed to encrypt data") from e
 
@@ -166,7 +166,7 @@ class DataEncryptor:
 
             return plaintext.decode("utf-8")
 
-        except Exception as e:
+        except (ValueError, TypeError, UnicodeDecodeError) as e:
             logger.error(f"Decryption failed: {type(e).__name__}")
             raise DecryptionError("Failed to decrypt data - possible tampering") from e
 

@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any, TYPE_CHECKING
 from enum import Enum
 from copy import deepcopy
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 if TYPE_CHECKING:
     from models.tax_return import TaxReturn
@@ -129,7 +131,7 @@ class FilingStatusOptimizer:
         return FilingStatusRecommendation(
             recommended_status=recommended_status,
             current_status=current_status,
-            potential_savings=round(potential_savings, 2),
+            potential_savings=float(money(potential_savings)),
             analyses=analyses,
             recommendation_reason=recommendation_reason,
             confidence_score=confidence_score,
@@ -210,12 +212,12 @@ class FilingStatusOptimizer:
 
             return FilingStatusAnalysis(
                 filing_status=status,
-                federal_tax=round(federal_tax, 2),
-                state_tax=round(state_tax, 2),
-                total_tax=round(total_tax, 2),
-                effective_rate=round(effective_rate, 2),
+                federal_tax=float(money(federal_tax)),
+                state_tax=float(money(state_tax)),
+                total_tax=float(money(total_tax)),
+                effective_rate=float(money(effective_rate)),
                 marginal_rate=marginal_rate,
-                refund_or_owed=round(refund_or_owed, 2),
+                refund_or_owed=float(money(refund_or_owed)),
                 is_eligible=True,
                 benefits=benefits,
                 drawbacks=drawbacks,

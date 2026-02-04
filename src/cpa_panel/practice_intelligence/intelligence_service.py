@@ -23,6 +23,8 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 from enum import Enum
 import logging
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +96,7 @@ class ComplexityDistribution:
         return {
             "distribution": self.distribution,
             "total_returns": self.total_returns,
-            "average_complexity_score": round(self.average_complexity_score, 2),
+            "average_complexity_score": float(money(self.average_complexity_score)),
             "percentages": self._calculate_percentages(),
             "insight": self._generate_insight(),
         }
@@ -146,22 +148,22 @@ class YoYValueSurface:
             "current_year": self.current_year,
             "prior_year": self.prior_year,
             "refund_comparison": {
-                "current_avg": round(self.avg_refund_current, 2),
-                "prior_avg": round(self.avg_refund_prior, 2),
+                "current_avg": float(money(self.avg_refund_current)),
+                "prior_avg": float(money(self.avg_refund_prior)),
                 "change_pct": self._safe_pct_change(
                     self.avg_refund_current, self.avg_refund_prior
                 ),
             },
             "tax_liability_comparison": {
-                "current_avg": round(self.avg_tax_liability_current, 2),
-                "prior_avg": round(self.avg_tax_liability_prior, 2),
+                "current_avg": float(money(self.avg_tax_liability_current)),
+                "prior_avg": float(money(self.avg_tax_liability_prior)),
                 "change_pct": self._safe_pct_change(
                     self.avg_tax_liability_current, self.avg_tax_liability_prior
                 ),
             },
             "deductions_comparison": {
-                "current_avg": round(self.avg_deductions_current, 2),
-                "prior_avg": round(self.avg_deductions_prior, 2),
+                "current_avg": float(money(self.avg_deductions_current)),
+                "prior_avg": float(money(self.avg_deductions_prior)),
                 "change_pct": self._safe_pct_change(
                     self.avg_deductions_current, self.avg_deductions_prior
                 ),

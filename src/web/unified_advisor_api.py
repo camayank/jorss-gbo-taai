@@ -17,6 +17,8 @@ from pydantic import BaseModel, Field
 import logging
 import tempfile
 import os
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 # Import unified advisor
 try:
@@ -548,10 +550,10 @@ async def get_2025_tax_limits():
             ]
         },
         "standard_deductions": {
-            "single": 15000,
-            "married_filing_jointly": 30000,
-            "married_filing_separately": 15000,
-            "head_of_household": 22500,
+            "single": 15750,
+            "married_filing_jointly": 31500,
+            "married_filing_separately": 15750,
+            "head_of_household": 23850,
             "additional_65_or_blind_single": 1950,
             "additional_65_or_blind_married": 1550
         },
@@ -632,17 +634,17 @@ def _format_advisory_response(report: AdvisoryReport) -> AdvisoryResponse:
         taxpayer_name=report.taxpayer_name,
         filing_status=report.filing_status,
         complexity=report.complexity.value,
-        gross_income=round(report.gross_income, 2),
-        adjusted_gross_income=round(report.adjusted_gross_income, 2),
-        taxable_income=round(report.taxable_income, 2),
-        federal_tax=round(report.federal_tax, 2),
-        self_employment_tax=round(report.self_employment_tax, 2),
-        total_tax=round(report.total_tax, 2),
-        total_payments=round(report.total_payments, 2),
-        refund_or_due=round(report.refund_or_due, 2),
+        gross_income=float(money(report.gross_income)),
+        adjusted_gross_income=float(money(report.adjusted_gross_income)),
+        taxable_income=float(money(report.taxable_income)),
+        federal_tax=float(money(report.federal_tax)),
+        self_employment_tax=float(money(report.self_employment_tax)),
+        total_tax=float(money(report.total_tax)),
+        total_payments=float(money(report.total_payments)),
+        refund_or_due=float(money(report.refund_or_due)),
         effective_tax_rate=round(report.effective_tax_rate, 4),
         marginal_tax_rate=round(report.marginal_tax_rate, 4),
-        total_potential_savings=round(report.total_potential_savings, 2),
+        total_potential_savings=float(money(report.total_potential_savings)),
         insights_count=len(report.insights),
         insights=[
             InsightResponse(
@@ -652,8 +654,8 @@ def _format_advisory_response(report: AdvisoryReport) -> AdvisoryResponse:
                 title=i.title,
                 summary=i.summary,
                 detailed_explanation=i.detailed_explanation,
-                estimated_savings=round(i.estimated_savings, 2),
-                confidence=round(i.confidence, 2),
+                estimated_savings=float(money(i.estimated_savings)),
+                confidence=float(money(i.confidence)),
                 irs_reference=i.irs_reference,
                 action_required=i.action_required,
                 requires_professional=i.requires_professional,

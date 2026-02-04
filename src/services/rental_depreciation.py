@@ -16,6 +16,7 @@ from enum import Enum
 from typing import Optional, List, Dict, Any
 from decimal import Decimal, ROUND_HALF_UP
 import uuid
+from calculator.decimal_math import money, to_decimal
 
 
 class PropertyType(str, Enum):
@@ -233,7 +234,7 @@ class RentalDepreciationCalculator:
         depreciation = depreciation * (business_use_percentage / 100)
 
         # Round to cents
-        depreciation = round(depreciation, 2)
+        depreciation = float(money(depreciation))
 
         # Check against remaining basis
         remaining_basis = depreciable_basis - prior_depreciation
@@ -473,9 +474,9 @@ class RentalPropertyDepreciation:
             "property_id": self.property_id,
             "property_address": self.property_address,
             "tax_year": tax_year,
-            "total_depreciation": round(total_depreciation, 2),
-            "total_prior_depreciation": round(self.total_prior_depreciation, 2),
-            "total_adjusted_basis": round(self.total_adjusted_basis, 2),
+            "total_depreciation": float(money(total_depreciation)),
+            "total_prior_depreciation": float(money(self.total_prior_depreciation)),
+            "total_adjusted_basis": float(money(self.total_adjusted_basis)),
             "asset_count": len(asset_details),
             "assets": asset_details
         }

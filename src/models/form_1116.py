@@ -28,6 +28,8 @@ from typing import Optional, List, Dict, Any, ClassVar
 from pydantic import BaseModel, Field
 from enum import Enum
 from dataclasses import dataclass
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class ForeignIncomeCategory(str, Enum):
@@ -424,11 +426,11 @@ class Form1116(BaseModel):
 
         # Calculate net foreign income for this category
         net_income = category.get_net_foreign_income()
-        result['net_foreign_income'] = round(net_income, 2)
+        result['net_foreign_income'] = float(money(net_income))
 
         # Get foreign taxes paid
         taxes_paid = category.get_total_foreign_taxes()
-        result['foreign_taxes_paid'] = round(taxes_paid, 2)
+        result['foreign_taxes_paid'] = float(money(taxes_paid))
 
         if net_income <= 0 or self.total_taxable_income <= 0:
             # No limitation if no foreign income or total income
@@ -446,15 +448,15 @@ class Form1116(BaseModel):
 
         # Limitation = Total Tax × Ratio
         limitation = self.total_tax_before_credits * income_ratio
-        result['limitation'] = round(limitation, 2)
+        result['limitation'] = float(money(limitation))
 
         # Credit is lesser of taxes paid or limitation
         credit_before_carryover = min(taxes_paid, limitation)
-        result['credit_before_carryover'] = round(credit_before_carryover, 2)
+        result['credit_before_carryover'] = float(money(credit_before_carryover))
 
         # Calculate excess limitation (room for carryovers)
         excess_limitation = max(0.0, limitation - taxes_paid)
-        result['excess_limitation'] = round(excess_limitation, 2)
+        result['excess_limitation'] = float(money(excess_limitation))
 
         # Apply carryovers (FIFO - oldest first)
         current_year = 2025  # Would be passed in production
@@ -475,15 +477,15 @@ class Form1116(BaseModel):
                 carryover_used += use_amount
                 remaining_limitation -= use_amount
 
-        result['carryover_used'] = round(carryover_used, 2)
+        result['carryover_used'] = float(money(carryover_used))
 
         # Total credit allowed
         credit_allowed = credit_before_carryover + carryover_used
-        result['credit_allowed'] = round(credit_allowed, 2)
+        result['credit_allowed'] = float(money(credit_allowed))
 
         # Calculate excess taxes for carryforward
         if taxes_paid > limitation:
-            result['excess_taxes'] = round(taxes_paid - limitation, 2)
+            result['excess_taxes'] = float(money(taxes_paid - limitation))
 
         return result
 
@@ -524,7 +526,7 @@ class Form1116(BaseModel):
         # Round totals
         for key in result:
             if isinstance(result[key], float):
-                result[key] = round(result[key], 2)
+                result[key] = float(money(result[key]))
 
         return result
 
@@ -566,10 +568,10 @@ class Form1116(BaseModel):
                 self.amt_foreign_source_income / self.total_taxable_income
             )
             amt_limitation = self.tentative_minimum_tax * income_ratio
-            result['amt_ftc_limitation'] = round(amt_limitation, 2)
-            result['amt_foreign_tax_credit'] = round(
-                min(foreign_taxes, amt_limitation), 2
-            )
+            result['amt_ftc_limitation'] = float(money(amt_limitation))
+            result['amt_foreign_tax_credit'] = float(money(
+                min(foreign_taxes, amt_limitation)
+            ))
 
         return result
 

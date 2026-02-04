@@ -27,13 +27,21 @@ logger = logging.getLogger(__name__)
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
-    Rate limiting middleware to prevent API abuse.
+    In-memory rate limiting middleware (FALLBACK).
+
+    NOTE: This is the fallback rate limiter for when Redis is unavailable.
+    For production deployments, use RedisRateLimitMiddleware from web.rate_limiter
+    which provides distributed rate limiting across multiple app instances.
 
     Features:
     - Per-IP rate limiting
     - Per-endpoint rate limiting
     - Configurable limits and windows
     - Automatic cleanup of old records
+
+    Limitations:
+    - In-memory only (not shared across instances)
+    - State lost on restart
     """
 
     def __init__(self, app, requests_per_minute: int = 60, requests_per_hour: int = 1000):
@@ -60,7 +68,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         now = datetime.now()
 
         # Cleanup old records every 5 minutes
-        if (now - self.last_cleanup).seconds > 300:
+        if (now - self.last_cleanup).total_seconds() > 300:
             self._cleanup_old_records()
             self.last_cleanup = now
 
@@ -100,7 +108,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if minute_key in self.minute_buckets:
             recent_requests = [
                 ts for ts in self.minute_buckets[minute_key]
-                if (now - ts).seconds < 60
+                if (now - ts).total_seconds() < 60
             ]
 
             if len(recent_requests) >= self.requests_per_minute:
@@ -115,7 +123,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if hour_key in self.hour_buckets:
             recent_requests = [
                 ts for ts in self.hour_buckets[hour_key]
-                if (now - ts).seconds < 3600
+                if (now - ts).total_seconds() < 3600
             ]
 
             if len(recent_requests) >= self.requests_per_hour:
@@ -151,7 +159,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return limit
 
         bucket = self.minute_buckets if window == "minute" else self.hour_buckets
-        recent_requests = [ts for ts in bucket[key] if (now - ts).seconds < seconds]
+        recent_requests = [ts for ts in bucket[key] if (now - ts).total_seconds() < seconds]
 
         return max(0, limit - len(recent_requests))
 
@@ -164,7 +172,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         for key in list(self.minute_buckets.keys()):
             self.minute_buckets[key] = [
                 ts for ts in self.minute_buckets[key]
-                if (now - ts).seconds < 120  # Keep last 2 minutes
+                if (now - ts).total_seconds() < 120  # Keep last 2 minutes
             ]
             if not self.minute_buckets[key]:
                 del self.minute_buckets[key]
@@ -173,7 +181,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         for key in list(self.hour_buckets.keys()):
             self.hour_buckets[key] = [
                 ts for ts in self.hour_buckets[key]
-                if (now - ts).seconds < 7200  # Keep last 2 hours
+                if (now - ts).total_seconds() < 7200  # Keep last 2 hours
             ]
             if not self.hour_buckets[key]:
                 del self.hour_buckets[key]
@@ -454,12 +462,24 @@ def setup_middleware(app, enable_rate_limiting: bool = True, enable_timeout: boo
     if enable_timeout:
         app.add_middleware(TimeoutMiddleware, default_timeout=30)
 
-    # 5. Rate limiting
+    # 5. Rate limiting (prefer Redis-backed for distributed deployments)
     if enable_rate_limiting:
-        app.add_middleware(
-            RateLimitMiddleware,
-            requests_per_minute=60,
-            requests_per_hour=1000
-        )
+        try:
+            from web.rate_limiter import RedisRateLimitMiddleware
+            app.add_middleware(
+                RedisRateLimitMiddleware,
+                requests_per_minute=60,
+                requests_per_hour=1000,
+                exempt_paths={"/health", "/api/health", "/metrics", "/static"},
+            )
+            logger.info("Redis rate limiter enabled (with in-memory fallback)")
+        except ImportError:
+            # Fallback to in-memory rate limiter
+            app.add_middleware(
+                RateLimitMiddleware,
+                requests_per_minute=60,
+                requests_per_hour=1000
+            )
+            logger.info("In-memory rate limiter enabled")
 
     logger.info("Middleware setup complete")

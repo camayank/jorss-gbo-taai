@@ -1,15 +1,15 @@
 """
 Centralized Recommendation Helper
 
-Unifies all recommendation sources in the platform:
-1. CreditOptimizer - Tax credits with phase-out calculations
-2. DeductionAnalyzer - Standard vs itemized optimization
-3. EntityOptimizer - S-Corp analysis for self-employed
-4. RentalDepreciation - Depreciation for landlords
-5. TaxOpportunityDetector - AI-powered opportunities
-6. CPAIntelligenceService - Urgency-based recommendations
+DEPRECATED: Prefer the modular web.recommendation package instead:
+    from web.recommendation import get_recommendations, get_recommendations_sync
+    from web.recommendation.models import UnifiedRecommendation, RecommendationResult
+from calculator.decimal_math import money, to_decimal
 
-Usage:
+This file is maintained for backward compatibility. New generator functions
+should be added to web/recommendation/generators/ modules.
+
+Legacy usage (still works):
     from web.recommendation_helper import get_recommendations, get_recommendations_sync
 
     # Async (preferred)
@@ -37,11 +37,11 @@ TAX_YEAR = 2025
 
 # Standard Deductions
 STANDARD_DEDUCTIONS = {
-    "single": 15000,
-    "married_joint": 30000,
-    "married_separate": 15000,
-    "head_of_household": 22500,
-    "qualifying_widow": 30000,
+    "single": 15750,
+    "married_joint": 31500,
+    "married_separate": 15750,
+    "head_of_household": 23850,
+    "qualifying_widow": 31500,
 }
 
 # Additional standard deduction for 65+
@@ -6193,7 +6193,8 @@ def _sort_recommendations(recs: List[UnifiedRecommendation], urgency_level: str)
             tiebreaker = s
 
             return (primary, tiebreaker)
-        except Exception:
+        except (TypeError, ValueError, AttributeError, KeyError) as e:
+            logger.debug(f"Scoring calculation error: {e}")
             return (0.0, 0.0)
 
     try:
@@ -6373,10 +6374,10 @@ def _get_smart_deduction_detector_recs(profile: Dict[str, Any]) -> List[UnifiedR
 
         # Standard deduction amounts 2025
         std_deductions = {
-            "single": 15000, "married_joint": 30000, "married_separate": 15000,
-            "head_of_household": 22500, "qualifying_widow": 30000
+            "single": 15750, "married_joint": 31500, "married_separate": 15750,
+            "head_of_household": 23850, "qualifying_widow": 31500
         }
-        std_ded = std_deductions.get(filing_status, 15000)
+        std_ded = std_deductions.get(filing_status, 15750)
 
         # Calculate itemized total
         salt = min(10000, property_taxes + state_tax)  # SALT cap
@@ -6526,10 +6527,10 @@ def _get_planning_insights_recs(profile: Dict[str, Any]) -> List[UnifiedRecommen
 
         # Calculate estimated tax liability
         std_deductions = {
-            "single": 15000, "married_joint": 30000, "married_separate": 15000,
-            "head_of_household": 22500, "qualifying_widow": 30000
+            "single": 15750, "married_joint": 31500, "married_separate": 15750,
+            "head_of_household": 23850, "qualifying_widow": 31500
         }
-        std_ded = std_deductions.get(filing_status, 15000)
+        std_ded = std_deductions.get(filing_status, 15750)
         taxable = max(0, total_income - std_ded)
         estimated_tax = taxable * 0.22  # Rough estimate
 
@@ -7101,7 +7102,7 @@ def _get_realtime_estimator_recs(profile: Dict[str, Any]) -> List[UnifiedRecomme
         except ImportError:
             # Fallback: rule-based quick wins
             # Over-withholding check
-            std_ded = {"single": 15000, "married_joint": 30000, "head_of_household": 22500}.get(filing_status, 15000)
+            std_ded = {"single": 15750, "married_joint": 31500, "head_of_household": 23850}.get(filing_status, 15750)
             taxable = max(0, wages - std_ded)
             est_tax = taxable * 0.18  # Rough average rate
 
@@ -8059,7 +8060,7 @@ async def get_recommendations(
 
     return RecommendationResult(
         recommendations=sorted_recs,
-        total_potential_savings=round(total_savings, 2),
+        total_potential_savings=float(money(total_savings)),
         urgency_level=urgency_level,
         urgency_message=urgency_message,
         days_to_deadline=days_to_deadline,

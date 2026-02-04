@@ -12,10 +12,13 @@ Uses OpenAI for intelligent fraud detection including:
 import os
 import json
 import hashlib
+import logging
 from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 try:
     from openai import OpenAI

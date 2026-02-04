@@ -12,9 +12,12 @@ Usage:
 """
 
 import os
+import logging
 from dataclasses import dataclass, field
 from typing import Dict, Optional
 import json
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -28,8 +31,8 @@ class BrandingConfig:
     firm_credentials: str = "Comprehensive Tax Advisory Services"
 
     # Visual Branding
-    primary_color: str = "#3b82f6"
-    secondary_color: str = "#2563eb"
+    primary_color: str = "#1e3a5f"
+    secondary_color: str = "#1e3a5f"
     accent_color: str = "#f59e0b"  # For highlights, badges, etc.
     logo_url: Optional[str] = None
     favicon_url: Optional[str] = None
@@ -111,8 +114,8 @@ def load_branding_from_env() -> BrandingConfig:
         tagline=os.getenv('PLATFORM_TAGLINE', 'CPA-Grade Tax Analysis & Optimization'),
         firm_credentials=os.getenv('FIRM_CREDENTIALS', 'Comprehensive Tax Advisory Services'),
 
-        primary_color=os.getenv('BRAND_PRIMARY_COLOR', '#3b82f6'),
-        secondary_color=os.getenv('BRAND_SECONDARY_COLOR', '#2563eb'),
+        primary_color=os.getenv('BRAND_PRIMARY_COLOR', '#1e3a5f'),
+        secondary_color=os.getenv('BRAND_SECONDARY_COLOR', '#1e3a5f'),
         accent_color=os.getenv('BRAND_ACCENT_COLOR', '#f59e0b'),
         logo_url=os.getenv('BRAND_LOGO_URL'),
         favicon_url=os.getenv('BRAND_FAVICON_URL'),
@@ -153,10 +156,10 @@ def load_branding_from_file(config_path: str) -> BrandingConfig:
             config_data = json.load(f)
         return BrandingConfig(**config_data)
     except FileNotFoundError:
-        print(f"Warning: Branding config file not found at {config_path}. Using defaults.")
+        logger.warning(f"Branding config file not found at {config_path}. Using defaults.")
         return BrandingConfig()
     except json.JSONDecodeError as e:
-        print(f"Warning: Invalid JSON in branding config: {e}. Using defaults.")
+        logger.warning(f"Invalid JSON in branding config: {e}. Using defaults.")
         return BrandingConfig()
 
 
@@ -199,8 +202,8 @@ EXAMPLE_CONFIGS = {
         "platform_name": "CA4CPA Tax Platform",
         "company_name": "CA4CPA GLOBAL LLC",
         "tagline": "Enterprise Tax Solutions",
-        "primary_color": "#1e40af",
-        "secondary_color": "#7c3aed",
+        "primary_color": "#1e3a5f",
+        "secondary_color": "#5387c1",
         "support_email": "support@ca4cpa.com",
         "filing_time_claim": "5 Minutes",
         "security_claim": "Enterprise-grade security",
@@ -260,6 +263,8 @@ def create_example_config_file(config_type: str = "generic_cpa", output_path: st
     with open(output_path, 'w') as f:
         json.dump(EXAMPLE_CONFIGS[config_type], f, indent=2)
 
+    logger.info(f"Created example config at {output_path}")
+    # CLI output for users (print is appropriate for CLI tools)
     print(f"Created example config at {output_path}")
     print(f"To use: export BRANDING_CONFIG_PATH={output_path}")
 

@@ -27,6 +27,7 @@ from models.tax_return import TaxReturn
 from models.taxpayer import TaxpayerInfo, FilingStatus
 from models.income import Income, W2Info
 from models.deductions import Deductions, ItemizedDeductions
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/scenarios", tags=["scenarios"])
@@ -279,10 +280,10 @@ async def compare_filing_statuses(request: FilingStatusScenarioRequest):
 
                 results.append(FilingStatusResult(
                     filing_status=status.value,
-                    taxable_income=round(taxable_income, 2),
-                    total_tax=round(total_tax, 2),
-                    effective_rate=round((total_tax / request.total_income * 100), 2) if request.total_income > 0 else 0,
-                    marginal_rate=round(marginal_rate * 100, 2),
+                    taxable_income=float(money(taxable_income)),
+                    total_tax=float(money(total_tax)),
+                    effective_rate=float(money((total_tax / request.total_income * 100))) if request.total_income > 0 else 0,
+                    marginal_rate=float(money(marginal_rate * 100)),
                     is_best_option=False,
                     savings_vs_baseline=0
                 ))
@@ -309,7 +310,7 @@ async def compare_filing_statuses(request: FilingStatusScenarioRequest):
 
         for result in results:
             result.is_best_option = (result.total_tax == min_tax)
-            result.savings_vs_baseline = round(baseline_tax - result.total_tax, 2) if baseline_tax else 0
+            result.savings_vs_baseline = float(money(baseline_tax - result.total_tax)) if baseline_tax else 0
 
         best_option_name = next(r.filing_status for r in results if r.is_best_option)
 
@@ -321,7 +322,7 @@ async def compare_filing_statuses(request: FilingStatusScenarioRequest):
         return FilingStatusScenarioResponse(
             scenarios=results,
             best_option=best_option_name,
-            max_savings=round(max_savings, 2)
+            max_savings=float(money(max_savings))
         )
 
     except HTTPException:
@@ -403,13 +404,13 @@ async def analyze_deduction_bunching(request: DeductionBunchingRequest):
         logger.info(f"[{request_id}] Bunching analysis complete: savings = ${savings:,.2f}")
 
         return DeductionBunchingResponse(
-            standard_approach_2yr=round(standard_2yr_total, 2),
-            bunching_approach_2yr=round(bunching_2yr_total, 2),
-            savings=round(savings, 2),
+            standard_approach_2yr=float(money(standard_2yr_total)),
+            bunching_approach_2yr=float(money(bunching_2yr_total)),
+            savings=float(money(savings)),
             year1_strategy="Itemize" if year1_bunching_ded > standard_deduction else "Standard",
             year2_strategy="Standard",
-            year1_deductions=round(year1_bunching_ded, 2),
-            year2_deductions=round(year2_bunching_ded, 2)
+            year1_deductions=float(money(year1_bunching_ded)),
+            year2_deductions=float(money(year2_bunching_ded))
         )
 
     except Exception as e:
@@ -495,22 +496,22 @@ async def compare_entity_structures(request: EntityStructureRequest):
         return EntityStructureResponse(
             sole_prop=EntityResult(
                 entity_type="Sole Proprietorship",
-                total_tax=round(total_tax_sole, 2),
-                se_payroll_tax=round(se_tax, 2),
-                income_tax=round(income_tax_sole, 2),
-                qbi_deduction=round(qbi_sole, 2),
-                net_after_tax=round(net_income - total_tax_sole, 2)
+                total_tax=float(money(total_tax_sole)),
+                se_payroll_tax=float(money(se_tax)),
+                income_tax=float(money(income_tax_sole)),
+                qbi_deduction=float(money(qbi_sole)),
+                net_after_tax=float(money(net_income - total_tax_sole))
             ),
             s_corp=EntityResult(
                 entity_type="S-Corporation",
-                total_tax=round(total_tax_scorp, 2),
-                se_payroll_tax=round(payroll_tax, 2),
-                income_tax=round(income_tax_scorp, 2),
-                qbi_deduction=round(qbi_scorp, 2),
-                net_after_tax=round(net_income - total_tax_scorp, 2)
+                total_tax=float(money(total_tax_scorp)),
+                se_payroll_tax=float(money(payroll_tax)),
+                income_tax=float(money(income_tax_scorp)),
+                qbi_deduction=float(money(qbi_scorp)),
+                net_after_tax=float(money(net_income - total_tax_scorp))
             ),
             recommended=recommended,
-            annual_savings=round(abs(annual_savings), 2),
+            annual_savings=float(money(abs(annual_savings))),
             breakeven_income=45000
         )
 
@@ -574,13 +575,13 @@ async def optimize_retirement_contributions(request: RetirementOptimizationReque
         logger.info(f"[{request_id}] Retirement optimization complete: tax savings = ${tax_savings:,.2f}")
 
         return RetirementOptimizationResponse(
-            without_contributions_tax=round(tax_without, 2),
-            with_contributions_tax=round(tax_with, 2),
-            tax_savings=round(tax_savings, 2),
-            total_contributions=round(total_contributions, 2),
-            employer_match=round(employer_match, 2),
-            net_cost=round(net_cost, 2),
-            roi_percent=round(roi_percent, 2)
+            without_contributions_tax=float(money(tax_without)),
+            with_contributions_tax=float(money(tax_with)),
+            tax_savings=float(money(tax_savings)),
+            total_contributions=float(money(total_contributions)),
+            employer_match=float(money(employer_match)),
+            net_cost=float(money(net_cost)),
+            roi_percent=float(money(roi_percent))
         )
 
     except HTTPException:

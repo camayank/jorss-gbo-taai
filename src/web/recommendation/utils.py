@@ -84,7 +84,7 @@ def safe_decimal(value: Any, default: float = 0.0) -> Decimal:
         if value is None:
             return Decimal(str(default))
         return Decimal(str(value))
-    except:
+    except (ValueError, TypeError, ArithmeticError):
         return Decimal(str(default))
 
 

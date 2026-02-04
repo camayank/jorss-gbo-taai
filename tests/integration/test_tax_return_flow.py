@@ -101,13 +101,11 @@ class TestTaxReturnCRUD:
             headers=csrf_headers,
         )
 
-        # May return 200 or 500 depending on persistence layer implementation
-        assert response.status_code in [200, 500]
-        if response.status_code == 200:
-            data = response.json()
-            assert data["status"] == "success"
-            assert "returns" in data
-            assert isinstance(data["returns"], list)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+        assert "returns" in data
+        assert isinstance(data["returns"], list)
 
     def test_list_returns_with_pagination(self, test_client, csrf_headers):
         """Should support pagination parameters."""
@@ -116,12 +114,10 @@ class TestTaxReturnCRUD:
             headers=csrf_headers,
         )
 
-        # May return 200 or 500 depending on persistence layer implementation
-        assert response.status_code in [200, 500]
-        if response.status_code == 200:
-            data = response.json()
-            assert data["limit"] == 10
-            assert data["offset"] == 0
+        assert response.status_code == 200
+        data = response.json()
+        assert data["limit"] == 10
+        assert data["offset"] == 0
 
     def test_delete_return(
         self, test_client, csrf_headers, sample_tax_return_data

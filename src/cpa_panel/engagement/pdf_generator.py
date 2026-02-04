@@ -75,7 +75,7 @@ class EngagementLetterPDFGenerator:
             fontName='Helvetica-Bold',
             spaceBefore=16,
             spaceAfter=8,
-            textColor=colors.HexColor("#1e40af"),
+            textColor=colors.HexColor("#1e3a5f"),
         ))
 
         # Body text style
@@ -165,7 +165,7 @@ class EngagementLetterPDFGenerator:
 
         # Primary color from branding
         primary_color = colors.HexColor(
-            branding.get("primary_color", "#1e40af") if branding else "#1e40af"
+            branding.get("primary_color", "#1e3a5f") if branding else "#1e3a5f"
         )
 
         # Firm Header

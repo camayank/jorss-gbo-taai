@@ -4,21 +4,22 @@ This document shows EXACTLY how every file connects and integrates into the comp
 
 ---
 
-## Complete File Structure
+## Complete File Structure (Current)
+
+> Note: This section has been updated to match the current `jorss-gbo-taai` repo layout. Older references to `Jorss-Gbo/` and `app_complete.py` have been replaced with the actual structure and `app.py` entrypoint.
 
 ```
-Jorss-Gbo/
+jorss-gbo-taai/
 │
 ├── src/
 │   ├── web/
-│   │   ├── app_complete.py ⭐ MAIN ENTRY POINT (500 lines)
-│   │   │   │
+│   │   ├── app.py ⭐ MAIN FASTAPI ENTRY POINT
 │   │   │   ├─→ Registers all APIs
-│   │   │   ├─→ Configures all middleware
-│   │   │   ├─→ Serves all templates
-│   │   │   └─→ Defines all routes
+│   │   │   ├─→ Configures middleware and security
+│   │   │   ├─→ Serves templates
+│   │   │   └─→ Defines core routes
 │   │   │
-│   │   ├── admin_tenant_api.py ✅ (570 lines)
+│   │   ├── admin_tenant_api.py ✅
 │   │   │   └─→ 12 endpoints for tenant management
 │   │   │
 │   │   ├── admin_user_management_api.py ✅ (570 lines)
@@ -30,12 +31,11 @@ Jorss-Gbo/
 │   │   ├── feature_access_api.py ✅ (330 lines)
 │   │   │   └─→ 7 endpoints for feature access
 │   │   │
-│   │   ├── unified_filing_api.py ✅ (620 lines)
-│   │   │   └─→ 8 endpoints for all filing workflows
-│   │   │       (replaces express_lane, smart_tax, ai_chat)
+│   │   ├── unified_filing_api.py ✅
+│   │   │   └─→ Unified Express Lane and filing endpoints
 │   │   │
-│   │   ├── master_app_integration.py ✅ (790 lines)
-│   │   │   └─→ Integration helper functions
+│   │   ├── intelligent_advisor_api.py ✅
+│   │   │   └─→ Advisory/AI-driven tax analysis endpoints
 │   │   │
 │   │   ├── templates/
 │   │   │   ├── dashboard_unified.html ✅ (450 lines)

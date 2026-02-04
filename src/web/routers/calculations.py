@@ -19,6 +19,7 @@ from fastapi.responses import JSONResponse
 from typing import Optional, Dict, Any
 import logging
 from decimal import Decimal
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ def _safe_decimal(value: Any, default: Decimal = Decimal("0")) -> Decimal:
         return default
     try:
         return Decimal(str(value))
-    except:
+    except (ValueError, TypeError, ArithmeticError):
         return default
 
 
@@ -141,30 +142,30 @@ async def calculate_complete(request: Request):
             "tax_year": tax_year,
             "filing_status": filing_status,
             "income": {
-                "gross_income": round(gross_income, 2),
-                "adjustments": round(adjustments, 2),
-                "agi": round(agi, 2),
+                "gross_income": float(money(gross_income)),
+                "adjustments": float(money(adjustments)),
+                "agi": float(money(agi)),
             },
             "deductions": {
-                "standard_deduction": round(standard_deduction, 2),
-                "itemized_deduction": round(itemized_total, 2),
+                "standard_deduction": float(money(standard_deduction)),
+                "itemized_deduction": float(money(itemized_total)),
                 "deduction_used": "itemized" if use_itemized else "standard",
-                "total_deductions": round(total_deductions, 2),
+                "total_deductions": float(money(total_deductions)),
             },
             "tax": {
-                "taxable_income": round(taxable_income, 2),
-                "tax_liability": round(tax_liability, 2),
-                "total_credits": round(total_credits, 2),
-                "tax_after_credits": round(tax_after_credits, 2),
+                "taxable_income": float(money(taxable_income)),
+                "tax_liability": float(money(tax_liability)),
+                "total_credits": float(money(total_credits)),
+                "tax_after_credits": float(money(tax_after_credits)),
             },
             "payments": {
-                "federal_withheld": round(federal_withheld, 2),
-                "estimated_payments": round(estimated_payments, 2),
-                "total_payments": round(total_payments, 2),
+                "federal_withheld": float(money(federal_withheld)),
+                "estimated_payments": float(money(estimated_payments)),
+                "total_payments": float(money(total_payments)),
             },
             "result": {
-                "refund_or_owed": round(refund_or_owed, 2),
-                "effective_tax_rate": round(effective_rate, 2),
+                "refund_or_owed": float(money(refund_or_owed)),
+                "effective_tax_rate": float(money(effective_rate)),
                 "is_refund": refund_or_owed >= 0,
             },
         }
@@ -225,12 +226,12 @@ async def calculate_tax_quick(request: Request):
                 "tax_year": tax_year,
             },
             "calculation": {
-                "standard_deduction": round(standard_deduction, 2),
-                "deductions_used": round(total_deductions, 2),
-                "taxable_income": round(taxable_income, 2),
-                "tax_liability": round(tax_liability, 2),
-                "withholdings": round(withholdings, 2),
-                "refund_or_owed": round(refund_or_owed, 2),
+                "standard_deduction": float(money(standard_deduction)),
+                "deductions_used": float(money(total_deductions)),
+                "taxable_income": float(money(taxable_income)),
+                "tax_liability": float(money(tax_liability)),
+                "withholdings": float(money(withholdings)),
+                "refund_or_owed": float(money(refund_or_owed)),
             },
             "is_refund": refund_or_owed >= 0,
         })
@@ -274,18 +275,18 @@ async def estimate_tax(request: Request):
 
         return JSONResponse({
             "status": "success",
-            "federal_tax": round(estimate.federal_tax, 2),
-            "state_tax": round(estimate.state_tax, 2),
+            "federal_tax": float(money(estimate.federal_tax)),
+            "state_tax": float(money(estimate.state_tax)),
             "effective_rate": round(estimate.effective_rate, 1),
             "marginal_rate": round(estimate.marginal_rate, 0),
-            "estimated_refund": round(estimate.estimated_refund, 2),
-            "estimated_owed": round(estimate.estimated_owed, 2),
+            "estimated_refund": float(money(estimate.estimated_refund)),
+            "estimated_owed": float(money(estimate.estimated_owed)),
             "is_refund": estimate.is_refund,
             "confidence": estimate.confidence,
             "estimate": {
                 "income": wages,
                 "filing_status": filing_status,
-                "federal_tax": round(estimate.federal_tax, 2),
+                "federal_tax": float(money(estimate.federal_tax)),
                 "effective_rate": round(estimate.effective_rate, 1),
             },
             "disclaimer": "This is an estimate only. Actual tax may vary based on complete tax situation.",
@@ -361,7 +362,7 @@ async def optimize_filing_status(request: Request):
 
                 results.append({
                     "filing_status": status,
-                    "estimated_tax": round(tax, 2),
+                    "estimated_tax": float(money(tax)),
                 })
         else:
             # Single or HOH
@@ -373,7 +374,7 @@ async def optimize_filing_status(request: Request):
 
                 results.append({
                     "filing_status": status,
-                    "estimated_tax": round(tax, 2),
+                    "estimated_tax": float(money(tax)),
                 })
 
         # Find best option
@@ -383,7 +384,7 @@ async def optimize_filing_status(request: Request):
             "status": "success",
             "analysis": results,
             "recommended": best["filing_status"],
-            "potential_savings": round(max(r["estimated_tax"] for r in results) - best["estimated_tax"], 2),
+            "potential_savings": float(money(max(r["estimated_tax"] for r in results) - best["estimated_tax"])),
         })
 
     except Exception as e:
@@ -425,7 +426,7 @@ async def optimize_credits(request: Request):
             cdcc_amount = min(childcare_expenses, max_expenses) * credit_rate
             credits_available.append({
                 "credit": "Child and Dependent Care Credit",
-                "amount": round(cdcc_amount, 2),
+                "amount": float(money(cdcc_amount)),
                 "description": "Credit for childcare expenses while working",
             })
 
@@ -435,7 +436,7 @@ async def optimize_credits(request: Request):
             aoc_amount = min(education_expenses, 2500)
             credits_available.append({
                 "credit": "American Opportunity Credit",
-                "amount": round(aoc_amount, 2),
+                "amount": float(money(aoc_amount)),
                 "description": "Up to $2,500 for first 4 years of college",
             })
 
@@ -452,7 +453,7 @@ async def optimize_credits(request: Request):
         return JSONResponse({
             "status": "success",
             "credits_available": credits_available,
-            "total_potential_credits": round(total_potential, 2),
+            "total_potential_credits": float(money(total_potential)),
             "note": "Actual credit amounts depend on income limits and eligibility",
         })
 
@@ -490,14 +491,14 @@ async def optimize_deductions(request: Request):
         if itemized_total > standard_deduction:
             recommendations.append({
                 "recommendation": "Itemize deductions",
-                "savings": round(itemized_total - standard_deduction, 2),
+                "savings": float(money(itemized_total - standard_deduction)),
                 "description": "Your itemized deductions exceed the standard deduction",
             })
         else:
             shortfall = standard_deduction - itemized_total
             recommendations.append({
                 "recommendation": "Take standard deduction",
-                "savings": round(standard_deduction - itemized_total, 2) if itemized_total > 0 else 0,
+                "savings": float(money(standard_deduction - itemized_total)) if itemized_total > 0 else 0,
                 "description": f"Standard deduction saves more. Shortfall: ${shortfall:,.0f}",
             })
 
@@ -511,16 +512,16 @@ async def optimize_deductions(request: Request):
         return JSONResponse({
             "status": "success",
             "analysis": {
-                "standard_deduction": round(standard_deduction, 2),
-                "itemized_total": round(itemized_total, 2),
+                "standard_deduction": float(money(standard_deduction)),
+                "itemized_total": float(money(itemized_total)),
                 "recommended": "itemized" if itemized_total > standard_deduction else "standard",
             },
             "breakdown": {
-                "mortgage_interest": round(mortgage_interest, 2),
-                "state_local_taxes": round(state_local_taxes, 2),
-                "charitable": round(charitable, 2),
-                "medical": round(medical, 2),
-                "other": round(other, 2),
+                "mortgage_interest": float(money(mortgage_interest)),
+                "state_local_taxes": float(money(state_local_taxes)),
+                "charitable": float(money(charitable)),
+                "medical": float(money(medical)),
+                "other": float(money(other)),
             },
             "recommendations": recommendations,
         })

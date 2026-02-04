@@ -58,7 +58,7 @@ class SavingsGauge:
             SVG string for the gauge
         """
         # Default colors if no theme
-        primary_color = theme.primary_color if theme else "#2563eb"
+        primary_color = theme.primary_color if theme else "#1e3a5f"
         accent_color = theme.accent_color if theme else "#10b981"
         danger_color = theme.danger_color if theme else "#ef4444"
 

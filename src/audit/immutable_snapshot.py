@@ -45,10 +45,14 @@ def _get_snapshot_secret() -> str:
                 "CRITICAL SECURITY ERROR: SNAPSHOT_SECRET_KEY environment variable is required in production. "
                 "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
             )
+        import secrets
+        generated = secrets.token_urlsafe(32)
         logger.warning(
-            "SNAPSHOT_SECRET_KEY not set - using insecure development default."
+            "SNAPSHOT_SECRET_KEY not set - generated ephemeral key for development. "
+            "Snapshots signed with this key will NOT survive process restarts. "
+            "Set SNAPSHOT_SECRET_KEY env var for persistent signing."
         )
-        return "development-only-snapshot-secret-key"
+        return generated
 
     if len(secret) < 32:
         raise ValueError("SNAPSHOT_SECRET_KEY must be at least 32 characters")

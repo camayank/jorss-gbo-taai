@@ -318,14 +318,17 @@ class TaxReturnRecord(Base):
     validation_results = Column(JSONB, nullable=True, comment="Validation check results")
 
     # Relationships
-    taxpayer = relationship("TaxpayerRecord", back_populates="tax_returns", uselist=False)
-    income_records = relationship("IncomeRecord", back_populates="tax_return", cascade="all, delete-orphan")
-    w2_records = relationship("W2Record", back_populates="tax_return", cascade="all, delete-orphan")
-    form1099_records = relationship("Form1099Record", back_populates="tax_return", cascade="all, delete-orphan")
-    deduction_records = relationship("DeductionRecord", back_populates="tax_return", cascade="all, delete-orphan")
-    credit_records = relationship("CreditRecord", back_populates="tax_return", cascade="all, delete-orphan")
-    dependent_records = relationship("DependentRecord", back_populates="tax_return", cascade="all, delete-orphan")
-    state_returns = relationship("StateReturnRecord", back_populates="tax_return", cascade="all, delete-orphan")
+    # N+1 Fix: Use lazy="selectin" for commonly accessed relationships
+    # selectin loading issues one SELECT per relationship type (efficient batching)
+    taxpayer = relationship("TaxpayerRecord", back_populates="tax_returns", uselist=False, lazy="selectin")
+    income_records = relationship("IncomeRecord", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin")
+    w2_records = relationship("W2Record", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin")
+    form1099_records = relationship("Form1099Record", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin")
+    deduction_records = relationship("DeductionRecord", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin")
+    credit_records = relationship("CreditRecord", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin")
+    dependent_records = relationship("DependentRecord", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin")
+    state_returns = relationship("StateReturnRecord", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin")
+    # Keep audit_logs and worksheets as lazy load (not commonly needed in list views)
     audit_logs = relationship("AuditLogRecord", back_populates="tax_return", cascade="all, delete-orphan")
     computation_worksheets = relationship("ComputationWorksheet", back_populates="tax_return", cascade="all, delete-orphan")
     amended_returns = relationship("TaxReturnRecord", backref="original_return", remote_side=[return_id])
@@ -1351,8 +1354,9 @@ class ClientRecord(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
+    # N+1 Fix: Use lazy="selectin" for commonly accessed relationships
     preparer = relationship("PreparerRecord", back_populates="clients")
-    sessions = relationship("ClientSessionRecord", back_populates="client")
+    sessions = relationship("ClientSessionRecord", back_populates="client", lazy="selectin")
 
     __table_args__ = (
         Index('ix_client_preparer', 'preparer_id', 'is_active'),

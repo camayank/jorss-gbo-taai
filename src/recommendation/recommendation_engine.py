@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any, TYPE_CHECKING
 from datetime import datetime
 import json
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 if TYPE_CHECKING:
     from models.tax_return import TaxReturn
@@ -266,19 +268,19 @@ class TaxRecommendationEngine:
             generated_at=datetime.now().isoformat(),
             taxpayer_name=taxpayer_name,
             filing_status=filing_status,
-            current_federal_tax=round(current_federal, 2),
-            current_state_tax=round(current_state, 2),
-            current_total_tax=round(current_total, 2),
-            current_effective_rate=round(current_effective, 2),
+            current_federal_tax=float(money(current_federal)),
+            current_state_tax=float(money(current_state)),
+            current_total_tax=float(money(current_total)),
+            current_effective_rate=float(money(current_effective)),
             current_marginal_rate=current_marginal,
-            optimized_federal_tax=round(optimized_federal, 2),
-            optimized_state_tax=round(optimized_state, 2),
-            optimized_total_tax=round(optimized_total, 2),
-            optimized_effective_rate=round(optimized_effective, 2),
-            total_potential_savings=round(total_savings, 2),
-            immediate_action_savings=round(immediate_savings, 2),
-            current_year_savings=round(current_year_savings, 2),
-            long_term_annual_savings=round(long_term_savings, 2),
+            optimized_federal_tax=float(money(optimized_federal)),
+            optimized_state_tax=float(money(optimized_state)),
+            optimized_total_tax=float(money(optimized_total)),
+            optimized_effective_rate=float(money(optimized_effective)),
+            total_potential_savings=float(money(total_savings)),
+            immediate_action_savings=float(money(immediate_savings)),
+            current_year_savings=float(money(current_year_savings)),
+            long_term_annual_savings=float(money(long_term_savings)),
             filing_status_recommendation=filing_rec,
             deduction_recommendation=deduction_rec,
             credit_recommendation=credit_rec,

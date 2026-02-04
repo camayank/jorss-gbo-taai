@@ -202,25 +202,25 @@ class ProfileEditor {
         break;
       case 'state':
         input = `
-          <select class="field-input" data-key="${key}" onchange="profileEditor.handleChange('${key}', this.value)">
+          <select class="field-input" data-key="${safeKey}" onchange="profileEditor.handleChange('${safeKey}', this.value)">
             <option value="">Select state...</option>
             ${this.getStateOptions().map(state => `
-              <option value="${state}" ${currentValue === state ? 'selected' : ''}>${state}</option>
+              <option value="${escapeAttribute(state)}" ${currentValue === state ? 'selected' : ''}>${escapeHtml(state)}</option>
             `).join('')}
           </select>
         `;
         break;
       default:
         input = `
-          <input type="text" class="field-input" data-key="${key}"
-                 value="${currentValue || ''}"
-                 onchange="profileEditor.handleChange('${key}', this.value)">
+          <input type="text" class="field-input" data-key="${safeKey}"
+                 value="${safeCurrentValue}"
+                 onchange="profileEditor.handleChange('${safeKey}', this.value)">
         `;
     }
 
     return `
       <div class="profile-field editing">
-        <label class="field-label">${label}</label>
+        <label class="field-label">${safeLabel}</label>
         ${input}
       </div>
     `;
@@ -334,7 +334,7 @@ class SavingsGauge {
             <!-- Background arc (gray) -->
             <path d="M 20 100 A 80 80 0 0 1 180 100"
                   fill="none"
-                  stroke="#e2e8f0"
+                  stroke="var(--color-gray-200, #e5e7eb)"
                   stroke-width="16"
                   stroke-linecap="round"/>
 
@@ -350,38 +350,38 @@ class SavingsGauge {
             <!-- Gradient definition -->
             <defs>
               <linearGradient id="savingsGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#10b981"/>
-                <stop offset="50%" stop-color="#059669"/>
-                <stop offset="100%" stop-color="#047857"/>
+                <stop offset="0%" stop-color="var(--color-success-500, #10b981)"/>
+                <stop offset="50%" stop-color="var(--color-success-600, #059669)"/>
+                <stop offset="100%" stop-color="var(--color-success-700, #047857)"/>
               </linearGradient>
             </defs>
 
             <!-- Needle -->
             <g transform="translate(100, 100)">
               <line x1="0" y1="0" x2="0" y2="-60"
-                    stroke="#1a365d"
+                    stroke="var(--color-primary-500, #1e3a5f)"
                     stroke-width="3"
                     stroke-linecap="round"
                     transform="rotate(${needleRotation})"
                     class="gauge-needle"/>
-              <circle r="8" fill="#1a365d"/>
+              <circle r="8" fill="var(--color-primary-500, #1e3a5f)"/>
               <circle r="4" fill="#ffffff"/>
             </g>
 
             <!-- Labels -->
-            <text x="20" y="115" font-size="10" fill="#6b7280" text-anchor="start">$0</text>
-            <text x="180" y="115" font-size="10" fill="#6b7280" text-anchor="end">${this.formatCurrency(currentTax)}</text>
+            <text x="20" y="115" font-size="10" fill="var(--color-gray-500, #6b7280)" text-anchor="start">$0</text>
+            <text x="180" y="115" font-size="10" fill="var(--color-gray-500, #6b7280)" text-anchor="end">${escapeHtml(this.formatCurrency(currentTax))}</text>
           </svg>
         </div>
 
         <div class="gauge-values">
           <div class="gauge-current">
             <span class="gauge-label">Current Tax</span>
-            <span class="gauge-amount tax">${this.formatCurrency(currentTax)}</span>
+            <span class="gauge-amount tax">${escapeHtml(this.formatCurrency(currentTax))}</span>
           </div>
           <div class="gauge-savings">
             <span class="gauge-label">Potential Savings</span>
-            <span class="gauge-amount savings">${this.formatCurrency(potentialSavings)}</span>
+            <span class="gauge-amount savings">${escapeHtml(this.formatCurrency(potentialSavings))}</span>
           </div>
         </div>
 

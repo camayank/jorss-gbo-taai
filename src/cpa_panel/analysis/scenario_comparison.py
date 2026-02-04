@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 import logging
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -76,10 +78,10 @@ class ScenarioMetrics:
     def to_dict(self) -> Dict[str, float]:
         """Convert to dictionary."""
         return {
-            "adjusted_gross_income": round(self.adjusted_gross_income, 2),
-            "taxable_income": round(self.taxable_income, 2),
-            "tax_liability": round(self.tax_liability, 2),
-            "refund_or_owed": round(self.refund_or_owed, 2),
+            "adjusted_gross_income": float(money(self.adjusted_gross_income)),
+            "taxable_income": float(money(self.taxable_income)),
+            "tax_liability": float(money(self.tax_liability)),
+            "refund_or_owed": float(money(self.refund_or_owed)),
         }
 
 
@@ -94,10 +96,10 @@ class ScenarioDelta:
     def to_dict(self) -> Dict[str, float]:
         """Convert to dictionary."""
         return {
-            "agi": round(self.agi, 2),
-            "taxable": round(self.taxable, 2),
-            "tax": round(self.tax, 2),
-            "refund": round(self.refund, 2),
+            "agi": float(money(self.agi)),
+            "taxable": float(money(self.taxable)),
+            "tax": float(money(self.tax)),
+            "refund": float(money(self.refund)),
         }
 
 
@@ -136,10 +138,10 @@ class ComparisonSummary:
         """Convert to dictionary."""
         return {
             "best_scenario": self.best_scenario,
-            "best_tax": round(self.best_tax, 2),
+            "best_tax": float(money(self.best_tax)),
             "worst_scenario": self.worst_scenario,
-            "worst_tax": round(self.worst_tax, 2),
-            "max_savings": round(self.max_savings, 2),
+            "worst_tax": float(money(self.worst_tax)),
+            "max_savings": float(money(self.max_savings)),
         }
 
 
@@ -435,9 +437,9 @@ class ScenarioComparator:
                 tax_change -= value
 
         return {
-            "base_liability": round(base_liability, 2),
-            "estimated_new_liability": round(base_liability + tax_change, 2),
-            "estimated_change": round(tax_change, 2),
+            "base_liability": float(money(base_liability)),
+            "estimated_new_liability": float(money(base_liability + tax_change)),
+            "estimated_change": float(money(tax_change)),
             "is_beneficial": tax_change < 0,
-            "savings": round(-tax_change, 2) if tax_change < 0 else 0,
+            "savings": float(money(-tax_change)) if tax_change < 0 else 0,
         }

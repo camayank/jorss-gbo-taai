@@ -33,6 +33,7 @@ from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, computed_field
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money
 
 
 class Quarter(str, Enum):
@@ -285,7 +286,7 @@ class Form1040ESWorksheet(BaseModel):
         required = self.required_annual_payment - self.line_15_withholding
         if required <= 0:
             return 0.0
-        return round(required / 4, 2)
+        return float(money(required / 4))
 
     @computed_field
     @property
@@ -585,7 +586,7 @@ def calculate_penalty_estimate(
 
     return {
         "underpayment": underpayment,
-        "penalty": round(penalty, 2),
+        "penalty": float(money(penalty)),
         "days_late": penalty_days,
         "annual_rate": annual_rate * 100,
     }

@@ -939,7 +939,7 @@ def create_profile_from_tax_return(tax_return) -> TaxpayerProfile:
         try:
             birth_date = datetime.strptime(str(tax_return.taxpayer.date_of_birth), "%Y-%m-%d")
             profile.age = (datetime.now() - birth_date).days // 365
-        except:
+        except (ValueError, TypeError):
             pass
 
     # Income from W-2s
@@ -981,7 +981,7 @@ def create_profile_from_tax_return(tax_return) -> TaxpayerProfile:
                         profile.has_children_under_17 = True
                     if age < 13:
                         profile.has_children_under_13 = True
-                except:
+                except (ValueError, TypeError):
                     pass
 
     # Home ownership

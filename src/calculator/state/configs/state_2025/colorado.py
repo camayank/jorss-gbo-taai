@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 if TYPE_CHECKING:
     from models.tax_return import TaxReturn
@@ -149,13 +151,13 @@ class ColoradoCalculator(BaseStateCalculator):
             dependent_exemptions=len(tax_return.taxpayer.dependents),
             exemption_amount=0.0,
             state_taxable_income=co_taxable_income,
-            state_tax_before_credits=round(tax_before_credits, 2),
+            state_tax_before_credits=float(money(tax_before_credits)),
             state_credits=credits,
-            total_state_credits=round(total_credits, 2),
+            total_state_credits=float(money(total_credits)),
             local_tax=0.0,
-            state_tax_liability=round(state_tax_liability, 2),
-            state_withholding=round(state_withholding, 2),
-            state_refund_or_owed=round(state_refund_or_owed, 2),
+            state_tax_liability=float(money(state_tax_liability)),
+            state_withholding=float(money(state_withholding)),
+            state_refund_or_owed=float(money(state_refund_or_owed)),
         )
 
     def calculate_state_subtractions(self, tax_return: "TaxReturn") -> float:
@@ -230,7 +232,7 @@ class ColoradoCalculator(BaseStateCalculator):
             phase_out_pct = min(1.0, (co_taxable_income - income_limit) / (income_limit * 0.5))
             credit_per_child = 1100 * (1 - phase_out_pct)
 
-        return round(num_children * credit_per_child, 2)
+        return float(money(num_children * credit_per_child))
 
     def _calculate_federal_eitc_estimate(
         self,

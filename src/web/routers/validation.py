@@ -9,11 +9,20 @@ Routes:
 - POST /api/suggestions - Get field suggestions/autocomplete
 """
 
+import json
+import re
+from typing import Optional, Dict, Any, List
+
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
-from typing import Optional, Dict, Any, List
-import re
 import logging
+
+from web.validation_helpers import (
+    validate_ssn as _canonical_validate_ssn,
+    validate_ein as _canonical_validate_ein,
+    validate_state_code,
+    VALID_STATE_CODES,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -21,60 +30,23 @@ router = APIRouter(prefix="/api", tags=["Validation"])
 
 
 # =============================================================================
-# VALIDATION HELPERS
+# VALIDATION HELPERS — delegating to canonical web.validation_helpers
 # =============================================================================
 
 def validate_ssn(ssn: str) -> tuple[bool, str]:
-    """Validate SSN format."""
+    """Validate SSN format. Delegates to validation_helpers."""
     if not ssn:
         return False, "SSN is required"
-
-    # Remove dashes and spaces
-    clean_ssn = ssn.replace("-", "").replace(" ", "")
-
-    if not clean_ssn.isdigit():
-        return False, "SSN must contain only digits"
-
-    if len(clean_ssn) != 9:
-        return False, "SSN must be 9 digits"
-
-    # Check for invalid patterns
-    if clean_ssn.startswith("000") or clean_ssn.startswith("666"):
-        return False, "Invalid SSN format"
-
-    if clean_ssn[3:5] == "00" or clean_ssn[5:] == "0000":
-        return False, "Invalid SSN format"
-
-    return True, "Valid SSN"
+    is_valid, error = _canonical_validate_ssn(ssn)
+    return (True, "Valid SSN") if is_valid else (False, error or "Invalid SSN format")
 
 
 def validate_ein(ein: str) -> tuple[bool, str]:
-    """Validate EIN format."""
+    """Validate EIN format. Delegates to validation_helpers."""
     if not ein:
         return False, "EIN is required"
-
-    clean_ein = ein.replace("-", "").replace(" ", "")
-
-    if not clean_ein.isdigit():
-        return False, "EIN must contain only digits"
-
-    if len(clean_ein) != 9:
-        return False, "EIN must be 9 digits"
-
-    return True, "Valid EIN"
-
-
-def validate_state_code(code: str) -> bool:
-    """Validate US state code."""
-    valid_states = {
-        "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
-        "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
-        "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
-        "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
-        "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
-        "DC", "PR", "VI", "GU", "AS", "MP"
-    }
-    return code.upper() in valid_states
+    is_valid, error = _canonical_validate_ein(ein)
+    return (True, "Valid EIN") if is_valid else (False, error or "Invalid EIN format")
 
 
 def validate_zip_code(zip_code: str) -> tuple[bool, str]:
@@ -226,11 +198,16 @@ async def validate_fields(request: Request):
             "error_count": sum(1 for r in results.values() if not r["valid"]),
         })
 
-    except Exception as e:
-        logger.exception(f"Field validation error: {e}")
+    except (json.JSONDecodeError, ValueError, KeyError) as e:
+        return JSONResponse(
+            status_code=400,
+            content={"status": "error", "error": f"Invalid request: {e}"}
+        )
+    except TypeError as e:
+        logger.exception(f"Field validation type error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "Internal validation error"}
         )
 
 
@@ -260,11 +237,16 @@ async def validate_single_field(field_name: str, request: Request):
             "value": value,
         })
 
-    except Exception as e:
-        logger.exception(f"Single field validation error: {e}")
+    except (json.JSONDecodeError, ValueError, KeyError) as e:
+        return JSONResponse(
+            status_code=400,
+            content={"status": "error", "error": f"Invalid request: {e}"}
+        )
+    except TypeError as e:
+        logger.exception(f"Single field validation type error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "Internal validation error"}
         )
 
 
@@ -337,9 +319,14 @@ async def get_suggestions(request: Request):
             "suggestions": suggestions[:10],  # Limit to 10
         })
 
-    except Exception as e:
-        logger.exception(f"Suggestions error: {e}")
+    except (json.JSONDecodeError, ValueError, KeyError) as e:
+        return JSONResponse(
+            status_code=400,
+            content={"status": "error", "error": f"Invalid request: {e}"}
+        )
+    except TypeError as e:
+        logger.exception(f"Suggestions type error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "Internal suggestion error"}
         )

@@ -45,6 +45,7 @@ from config.ai_providers import (
     get_model_for_capability,
     estimate_cost,
 )
+from services.ai.rate_limiter import get_ai_rate_limiter, RateLimitExceededError
 
 logger = logging.getLogger(__name__)
 
@@ -731,6 +732,13 @@ class UnifiedAIService:
         messages.append(AIMessage(role="user", content=prompt))
 
         try:
+            # Enforce rate limits
+            config = get_provider_config(provider)
+            limiter = get_ai_rate_limiter()
+            if config and not limiter.check_rate_limit(provider.value, config.rate_limit_rpm):
+                wait = limiter.wait_time(provider.value, config.rate_limit_rpm)
+                raise RateLimitExceededError(provider.value, wait)
+
             adapter = self._get_adapter(provider)
             response = await adapter.complete(
                 messages=messages,
@@ -742,6 +750,8 @@ class UnifiedAIService:
             self._record_usage(provider, model, response)
             return response
 
+        except RateLimitExceededError:
+            raise
         except Exception as e:
             self._record_usage(provider, model, error=str(e))
             logger.error(f"Completion failed with {provider.value}: {e}")

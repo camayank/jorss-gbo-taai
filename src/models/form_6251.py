@@ -32,6 +32,8 @@ IRC References:
 from typing import Optional, List, Dict, ClassVar
 from pydantic import BaseModel, Field
 from enum import Enum
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class AMTAdjustmentType(str, Enum):
@@ -578,10 +580,10 @@ class Form6251(BaseModel):
             tmt = (threshold_28 * self.RATE_26) + \
                   ((amt_taxable - threshold_28) * self.RATE_28)
 
-        result['line_9_tmt_before_foreign_tax_credit'] = round(tmt, 2)
+        result['line_9_tmt_before_foreign_tax_credit'] = float(money(tmt))
 
         # For now, no FTC calculation (would need Form 1116 integration)
-        result['line_11_tentative_minimum_tax'] = round(tmt, 2)
+        result['line_11_tentative_minimum_tax'] = float(money(tmt))
 
         return result
 
@@ -634,14 +636,14 @@ class Form6251(BaseModel):
             amt_on_ordinary = (threshold_28 * self.RATE_26) + \
                             ((amt_ordinary - threshold_28) * self.RATE_28)
 
-        result['amt_on_ordinary_income'] = round(amt_on_ordinary, 2)
+        result['amt_on_ordinary_income'] = float(money(amt_on_ordinary))
 
         # Capital gains taxed at preferential rates (0%/15%/20%)
         # Plus 25% on unrecaptured 1250 and 28% on collectibles
         # Simplified: use same rates as regular tax
-        result['amt_on_capital_gains'] = round(regular_tax_capital_gains, 2)
+        result['amt_on_capital_gains'] = float(money(regular_tax_capital_gains))
 
-        result['total_amt'] = round(amt_on_ordinary + regular_tax_capital_gains, 2)
+        result['total_amt'] = float(money(amt_on_ordinary + regular_tax_capital_gains))
 
         return result
 
@@ -692,9 +694,9 @@ class Form6251(BaseModel):
 
         result = {
             # Summary
-            'amt': round(amt, 2),
-            'amt_after_credit': round(amt_after_credit, 2),
-            'prior_year_credit_used': round(credit_used, 2),
+            'amt': float(money(amt)),
+            'amt_after_credit': float(money(amt_after_credit)),
+            'prior_year_credit_used': float(money(credit_used)),
 
             # Key figures
             'amti': amti,
@@ -830,9 +832,9 @@ def calculate_tentative_minimum_tax(
         'threshold_28': threshold_28,
         'income_at_26': min(amt_taxable_income, threshold_28),
         'income_at_28': max(0, amt_taxable_income - threshold_28),
-        'tax_at_26': round(tax_26, 2),
-        'tax_at_28': round(tax_28, 2),
-        'tmt': round(tax_26 + tax_28, 2),
+        'tax_at_26': float(money(tax_26)),
+        'tax_at_28': float(money(tax_28)),
+        'tmt': float(money(tax_26 + tax_28)),
     }
 
 
@@ -890,7 +892,7 @@ def check_amt_likely(
         'estimated_amti': estimated_amti,
         'exemption': exemption,
         'estimated_amt_taxable': est_amt_taxable,
-        'estimated_tmt': round(est_tmt, 2),
+        'estimated_tmt': float(money(est_tmt)),
         'risk_factors': risk_factors,
         'likely_amt': len(risk_factors) >= 2 or (iso_spread > 50000),
         'recommendation': (

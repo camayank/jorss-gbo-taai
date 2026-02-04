@@ -29,6 +29,8 @@ from typing import Optional, List, Dict, Any, ClassVar
 from pydantic import BaseModel, Field, field_validator
 from enum import Enum
 from datetime import date
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class QualificationTest(str, Enum):
@@ -278,7 +280,7 @@ class Form2555(BaseModel):
         """
         daily_exclusion = self.MAX_EXCLUSION_2025 / 365
         prorated = daily_exclusion * self.qualifying_days_in_year
-        return round(prorated, 2)
+        return float(money(prorated))
 
     def calculate_housing_amounts(self) -> dict:
         """
@@ -312,7 +314,7 @@ class Form2555(BaseModel):
         # Base housing amount (16% of max, prorated)
         daily_base = (self.MAX_EXCLUSION_2025 * self.HOUSING_BASE_PERCENT) / 365
         base_amount = daily_base * self.qualifying_days_in_year
-        result['base_housing_amount'] = round(base_amount, 2)
+        result['base_housing_amount'] = float(money(base_amount))
 
         # Housing expense limit (30% of max, adjusted for high-cost locations)
         daily_limit = (self.MAX_EXCLUSION_2025 * self.HOUSING_LIMIT_PERCENT) / 365
@@ -322,12 +324,12 @@ class Form2555(BaseModel):
         if self.foreign_country.is_high_cost_location:
             limit_amount *= self.foreign_country.housing_limit_multiplier
 
-        result['housing_expense_limit'] = round(limit_amount, 2)
+        result['housing_expense_limit'] = float(money(limit_amount))
 
         # Qualifying housing expenses = Total - Base, limited to cap
         excess_housing = max(0.0, total_expenses - base_amount)
         qualifying = min(excess_housing, limit_amount - base_amount)
-        result['qualifying_housing_expenses'] = round(qualifying, 2)
+        result['qualifying_housing_expenses'] = float(money(qualifying))
 
         # Determine exclusion vs deduction based on income type
         employer_total = (
@@ -339,13 +341,13 @@ class Form2555(BaseModel):
         # Housing exclusion (employee portion)
         if employer_total > 0:
             # Exclusion is the lesser of qualifying expenses or employer-provided
-            result['housing_exclusion'] = round(min(qualifying, employer_total), 2)
+            result['housing_exclusion'] = float(money(min(qualifying, employer_total)))
 
         # Housing deduction (self-employed portion)
         if self.self_employment_income > 0:
             # Deduction for expenses not covered by employer
             remaining = qualifying - result['housing_exclusion']
-            result['housing_deduction'] = round(max(0.0, remaining), 2)
+            result['housing_deduction'] = float(money(max(0.0, remaining)))
 
         return result
 
@@ -415,7 +417,7 @@ class Form2555(BaseModel):
 
         # Foreign earned income exclusion (lesser of income or limit)
         feie = min(total_income, prorated_limit)
-        result['foreign_earned_income_exclusion'] = round(feie, 2)
+        result['foreign_earned_income_exclusion'] = float(money(feie))
 
         # Calculate housing amounts
         housing = self.calculate_housing_amounts()
@@ -425,11 +427,11 @@ class Form2555(BaseModel):
 
         # Total exclusion
         total_exclusion = feie + housing['housing_exclusion']
-        result['total_exclusion'] = round(total_exclusion, 2)
+        result['total_exclusion'] = float(money(total_exclusion))
 
         # Remaining taxable income
         remaining = max(0.0, total_income - total_exclusion)
-        result['remaining_taxable_foreign_income'] = round(remaining, 2)
+        result['remaining_taxable_foreign_income'] = float(money(remaining))
 
         # Self-employment income after exclusion (for SE tax calculation)
         if self.self_employment_income > 0:
@@ -437,9 +439,9 @@ class Form2555(BaseModel):
             # This is the income that would be subject to US income tax
             se_ratio = self.self_employment_income / total_income if total_income > 0 else 0
             se_excluded = feie * se_ratio
-            result['se_income_after_exclusion'] = round(
-                self.self_employment_income - se_excluded, 2
-            )
+            result['se_income_after_exclusion'] = float(money(
+                self.self_employment_income - se_excluded
+            ))
 
         return result
 

@@ -316,7 +316,7 @@ class PremiumReportsWidget {
             margin-bottom: 2rem;
           }
           .prw-header h2 {
-            color: #4f46e5;
+            color: var(--primary, #1e3a5f);
             margin: 0 0 0.5rem 0;
           }
           .prw-tiers {
@@ -325,18 +325,18 @@ class PremiumReportsWidget {
             gap: 1.5rem;
           }
           .prw-tier {
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
+            background: var(--bg-light, #f9fafb);
+            border: 2px solid var(--border-color, #e5e7eb);
             border-radius: 12px;
             padding: 1.5rem;
             transition: all 0.2s ease;
           }
           .prw-tier:hover {
-            border-color: #6366f1;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+            border-color: var(--primary, #1e3a5f);
+            box-shadow: 0 4px 12px rgba(30, 58, 95, 0.1);
           }
           .prw-tier.recommended {
-            border-color: #6366f1;
+            border-color: var(--primary, #1e3a5f);
             position: relative;
           }
           .prw-tier.recommended::before {
@@ -345,7 +345,7 @@ class PremiumReportsWidget {
             top: -12px;
             left: 50%;
             transform: translateX(-50%);
-            background: #6366f1;
+            background: var(--primary, #1e3a5f);
             color: white;
             padding: 4px 12px;
             border-radius: 12px;
@@ -360,16 +360,16 @@ class PremiumReportsWidget {
           .prw-tier-price {
             font-size: 2rem;
             font-weight: 700;
-            color: #6366f1;
+            color: var(--primary, #1e3a5f);
             margin: 0.5rem 0;
           }
           .prw-tier-price span {
             font-size: 1rem;
             font-weight: 400;
-            color: #64748b;
+            color: var(--text-muted, #6b7280);
           }
           .prw-tier-desc {
-            color: #64748b;
+            color: var(--text-muted, #6b7280);
             margin-bottom: 1rem;
             font-size: 0.9rem;
           }
@@ -388,7 +388,7 @@ class PremiumReportsWidget {
           }
           .prw-features li::before {
             content: '\\2713';
-            color: #10b981;
+            color: var(--success, #10b981);
             margin-right: 0.5rem;
             font-weight: bold;
           }
@@ -404,18 +404,18 @@ class PremiumReportsWidget {
             transition: all 0.2s ease;
           }
           .prw-btn-primary {
-            background: #6366f1;
+            background: var(--primary, #1e3a5f);
             color: white;
           }
           .prw-btn-primary:hover {
-            background: #4f46e5;
+            background: var(--primary-dark, #152b47);
           }
           .prw-btn-secondary {
-            background: #e2e8f0;
-            color: #475569;
+            background: var(--border-color, #e5e7eb);
+            color: var(--gray-600, #4b5563);
           }
           .prw-btn-secondary:hover {
-            background: #cbd5e1;
+            background: var(--gray-300, #d1d5db);
           }
           .prw-btn:disabled {
             opacity: 0.5;
@@ -424,11 +424,11 @@ class PremiumReportsWidget {
           .prw-loading {
             text-align: center;
             padding: 2rem;
-            color: #64748b;
+            color: var(--text-muted, #6b7280);
           }
           .prw-error {
-            background: #fef2f2;
-            color: #dc2626;
+            background: var(--error-light, #fee2e2);
+            color: var(--error, #ef4444);
             padding: 1rem;
             border-radius: 8px;
             text-align: center;
@@ -437,7 +437,7 @@ class PremiumReportsWidget {
             margin-top: 2rem;
             padding: 1.5rem;
             background: white;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--border-color, #e5e7eb);
             border-radius: 12px;
           }
           .prw-report-preview iframe {

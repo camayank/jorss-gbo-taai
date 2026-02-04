@@ -11,8 +11,8 @@
    Using core design system colors
    ========================= */
 :root {
-  --advisor-gradient: linear-gradient(135deg, var(--color-primary-900, #1e3a8a) 0%, var(--color-primary-700, #1d4ed8) 100%);
-  --advisor-gradient-premium: linear-gradient(135deg, var(--color-primary-700, #1d4ed8) 0%, var(--color-primary-900, #1e3a8a) 100%);
+  --advisor-gradient: linear-gradient(135deg, var(--color-primary-900, #0c1b2f) 0%, var(--color-primary-700, #152b47) 100%);
+  --advisor-gradient-premium: linear-gradient(135deg, var(--color-primary-700, #152b47) 0%, var(--color-primary-900, #0c1b2f) 100%);
   --advisor-gradient-gold: linear-gradient(135deg, var(--color-warning-600, #d97706) 0%, var(--color-warning-700, #b45309) 100%);
 }
 

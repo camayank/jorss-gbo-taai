@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from decimal import Decimal, ROUND_HALF_UP
+from calculator.decimal_math import money, to_decimal
 
 if TYPE_CHECKING:
     from models.tax_return import TaxReturn
@@ -214,13 +216,13 @@ class ConnecticutCalculator(BaseStateCalculator):
             dependent_exemptions=dependent_exemptions,
             exemption_amount=exemption_amount,
             state_taxable_income=ct_taxable_income,
-            state_tax_before_credits=round(tax_before_credits, 2),
+            state_tax_before_credits=float(money(tax_before_credits)),
             state_credits=credits,
-            total_state_credits=round(total_credits, 2),
+            total_state_credits=float(money(total_credits)),
             local_tax=0.0,
-            state_tax_liability=round(state_tax_liability, 2),
-            state_withholding=round(state_withholding, 2),
-            state_refund_or_owed=round(state_refund_or_owed, 2),
+            state_tax_liability=float(money(state_tax_liability)),
+            state_withholding=float(money(state_withholding)),
+            state_refund_or_owed=float(money(state_refund_or_owed)),
         )
 
     def calculate_state_subtractions(self, tax_return: "TaxReturn") -> float:
@@ -301,7 +303,7 @@ class ConnecticutCalculator(BaseStateCalculator):
 
         # 3% recapture on income over threshold
         excess = ct_agi - threshold
-        return round(excess * 0.03, 2)
+        return float(money(excess * 0.03))
 
     def _calculate_child_tax_credit(
         self,

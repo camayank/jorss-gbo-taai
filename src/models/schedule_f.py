@@ -19,6 +19,8 @@ from enum import Enum
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 import logging
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -260,16 +262,16 @@ class ScheduleF(BaseModel):
         )
 
         return {
-            'line_1a_livestock_resale_gross': round(line_1a, 2),
-            'line_1b_livestock_resale_cost': round(line_1b, 2),
-            'line_1c_livestock_resale_profit': round(line_1c, 2),
-            'line_2_raised_sales': round(line_2, 2),
-            'line_3_coop_distributions': round(line_3, 2),
-            'line_4_ag_program_payments': round(line_4a + line_4b, 2),
-            'line_5_crop_insurance': round(line_5a, 2),
-            'line_6_custom_hire': round(line_6, 2),
-            'line_7_other_income': round(line_7, 2),
-            'line_9_gross_income': round(line_9, 2),
+            'line_1a_livestock_resale_gross': float(money(line_1a)),
+            'line_1b_livestock_resale_cost': float(money(line_1b)),
+            'line_1c_livestock_resale_profit': float(money(line_1c)),
+            'line_2_raised_sales': float(money(line_2)),
+            'line_3_coop_distributions': float(money(line_3)),
+            'line_4_ag_program_payments': float(money(line_4a + line_4b)),
+            'line_5_crop_insurance': float(money(line_5a)),
+            'line_6_custom_hire': float(money(line_6)),
+            'line_7_other_income': float(money(line_7)),
+            'line_9_gross_income': float(money(line_9)),
         }
 
     def calculate_expenses(self) -> Dict[str, float]:
@@ -304,7 +306,7 @@ class ScheduleF(BaseModel):
             'line_30_utilities': exp.utilities,
             'line_31_veterinary': exp.veterinary_breeding,
             'line_32_other': exp.other_expenses,
-            'line_33_total_expenses': round(exp.total(), 2),
+            'line_33_total_expenses': float(money(exp.total())),
         }
 
     def calculate_net_profit_loss(self) -> Dict[str, Any]:
@@ -343,14 +345,14 @@ class ScheduleF(BaseModel):
             logger.warning(at_risk_warning)
 
         return {
-            'gross_income': round(line_9, 2),
-            'total_expenses': round(line_33, 2),
-            'line_34_net_profit_loss': round(line_34, 2),
+            'gross_income': float(money(line_9)),
+            'total_expenses': float(money(line_33)),
+            'line_34_net_profit_loss': float(money(line_34)),
             'is_profit': line_34 >= 0,
             'is_loss': line_34 < 0,
-            'self_employment_income': round(se_income, 2),
+            'self_employment_income': float(money(se_income)),
             'materially_participated': self.materially_participated,
-            'at_risk_amount': round(at_risk_amount, 2),
+            'at_risk_amount': float(money(at_risk_amount)),
             'at_risk_warning': at_risk_warning,
         }
 

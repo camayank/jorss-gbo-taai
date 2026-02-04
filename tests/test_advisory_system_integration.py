@@ -11,6 +11,7 @@ Tests the complete end-to-end flow:
 import pytest
 import sys
 import os
+import importlib.util
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -22,7 +23,10 @@ from models.deductions import Deductions
 from models.credits import TaxCredits
 
 from advisory import generate_advisory_report, ReportType
-from export import export_advisory_report_to_pdf
+
+_has_reportlab = importlib.util.find_spec("reportlab") is not None
+if _has_reportlab:
+    from export import export_advisory_report_to_pdf
 
 
 @pytest.fixture
@@ -111,6 +115,10 @@ class TestReportGeneration:
         assert len(json_str) > 0
 
 
+@pytest.mark.skipif(
+    not _has_reportlab,
+    reason="reportlab not installed"
+)
 class TestPDFExport:
     """Test PDF export functionality."""
 
@@ -167,6 +175,10 @@ class TestPDFExport:
         assert Path(result_path).exists()
 
 
+@pytest.mark.skipif(
+    not _has_reportlab,
+    reason="reportlab not installed"
+)
 class TestEndToEndFlow:
     """Test complete end-to-end workflow."""
 

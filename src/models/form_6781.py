@@ -25,6 +25,8 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
+from decimal import Decimal, ROUND_HALF_UP
+from models._decimal_utils import money, to_decimal
 
 
 class ContractType(str, Enum):
@@ -187,9 +189,9 @@ class Form6781(BaseModel):
             contract_details.append({
                 'description': contract.description,
                 'type': contract.contract_type.value,
-                'realized': round(realized, 2),
-                'unrealized_adjustment': round(unrealized, 2),
-                'total': round(total, 2),
+                'realized': float(money(realized)),
+                'unrealized_adjustment': float(money(unrealized)),
+                'total': float(money(total)),
             })
 
         # Line 1: Gain or loss from 1099-B
@@ -237,20 +239,20 @@ class Form6781(BaseModel):
             'contracts': contract_details,
 
             # Line items
-            'line_1_1099b_gain_loss': round(line_1, 2),
-            'line_2_unrealized_current': round(line_2, 2),
-            'line_3_unrealized_prior': round(line_3, 2),
-            'line_4_net_gain_loss': round(line_4, 2),
-            'line_6_combined': round(line_6, 2),
-            'line_7_loss_carryover': round(line_7, 2),
-            'line_8_net_section_1256': round(line_8, 2),
+            'line_1_1099b_gain_loss': float(money(line_1)),
+            'line_2_unrealized_current': float(money(line_2)),
+            'line_3_unrealized_prior': float(money(line_3)),
+            'line_4_net_gain_loss': float(money(line_4)),
+            'line_6_combined': float(money(line_6)),
+            'line_7_loss_carryover': float(money(line_7)),
+            'line_8_net_section_1256': float(money(line_8)),
 
             # 60/40 split
-            'line_9_short_term_40_pct': round(short_term_portion, 2),
-            'line_10_long_term_60_pct': round(long_term_portion, 2),
+            'line_9_short_term_40_pct': float(money(short_term_portion)),
+            'line_10_long_term_60_pct': float(money(long_term_portion)),
 
             # Loss carryback/carryover
-            'net_loss_available': round(net_loss_for_carryback, 2),
+            'net_loss_available': float(money(net_loss_for_carryback)),
             'elect_carryback': self.elect_loss_carryback,
         }
 
@@ -273,10 +275,10 @@ class Form6781(BaseModel):
             straddle_details.append({
                 'description': straddle.description,
                 'type': straddle.straddle_type.value,
-                'gain': round(straddle.gain_on_disposition, 2),
-                'loss': round(straddle.loss_on_disposition, 2),
-                'unrecognized': round(straddle.unrecognized_loss_current, 2),
-                'net': round(net, 2),
+                'gain': float(money(straddle.gain_on_disposition)),
+                'loss': float(money(straddle.loss_on_disposition)),
+                'unrecognized': float(money(straddle.unrecognized_loss_current)),
+                'net': float(money(net)),
             })
 
         net_straddle_gain_loss = total_gains - total_losses
@@ -284,10 +286,10 @@ class Form6781(BaseModel):
         return {
             'straddle_count': len(self.straddles),
             'straddles': straddle_details,
-            'total_gains': round(total_gains, 2),
-            'total_losses': round(total_losses, 2),
-            'total_unrecognized_loss': round(total_unrecognized, 2),
-            'net_straddle_gain_loss': round(net_straddle_gain_loss, 2),
+            'total_gains': float(money(total_gains)),
+            'total_losses': float(money(total_losses)),
+            'total_unrecognized_loss': float(money(total_unrecognized)),
+            'net_straddle_gain_loss': float(money(net_straddle_gain_loss)),
         }
 
     def calculate_loss_carryback(self) -> Dict[str, float]:
@@ -319,8 +321,8 @@ class Form6781(BaseModel):
             'carryback_year_1': min(self.carryback_year_1, net_loss),
             'carryback_year_2': min(self.carryback_year_2, max(0, net_loss - self.carryback_year_1)),
             'carryback_year_3': min(self.carryback_year_3, max(0, net_loss - self.carryback_year_1 - self.carryback_year_2)),
-            'total_carryback': round(actual_carryback, 2),
-            'remaining_carryforward': round(remaining, 2),
+            'total_carryback': float(money(actual_carryback)),
+            'remaining_carryforward': float(money(remaining)),
         }
 
     def calculate_form_6781(self) -> Dict[str, Any]:
@@ -350,8 +352,8 @@ class Form6781(BaseModel):
             'straddle_net': part_ii['net_straddle_gain_loss'],
 
             # Schedule D flows
-            'schedule_d_short_term': round(short_term_total, 2),
-            'schedule_d_long_term': round(long_term_total, 2),
+            'schedule_d_short_term': float(money(short_term_total)),
+            'schedule_d_long_term': float(money(long_term_total)),
 
             # Carryback/carryforward
             'loss_carryback': carryback,

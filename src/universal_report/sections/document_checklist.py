@@ -445,7 +445,7 @@ class DocumentChecklistRenderer:
 
     def render(self) -> str:
         """Render the document checklist section."""
-        primary = self.theme.primary_color if self.theme else "#2563eb"
+        primary = self.theme.primary_color if self.theme else "#1e3a5f"
         accent = self.theme.accent_color if self.theme else "#10b981"
 
         # Get personalized documents

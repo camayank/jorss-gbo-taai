@@ -971,10 +971,10 @@ async def process_chat_message(request: ChatMessageRequest, http_request: FastAP
         raise  # Re-raise formatted exceptions
 
     except Exception as e:
-        logger.error(f"[{request_id}] Unexpected error in chat processing", extra={
-            "error": str(e),
-            "traceback": traceback.format_exc()
-        })
+        logger.error(
+            f"[{request_id}] Unexpected error in chat processing: {e}",
+            exc_info=True
+        )
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -1879,7 +1879,7 @@ def _calculate_personal_info_quality(extracted_data: Dict[str, Any], validators_
                 from web.validation_helpers import validate_name
                 is_valid, _ = validate_name(first_name, "First name")
                 fields["first_name"] = {"value": first_name, "valid": is_valid, "score": 100 if is_valid else 50}
-            except:
+            except (ImportError, AttributeError, ValueError):
                 fields["first_name"] = {"value": first_name, "valid": True, "score": 100}
         else:
             fields["first_name"] = {"value": first_name, "valid": len(first_name) >= 2, "score": 100 if len(first_name) >= 2 else 50}
@@ -1905,7 +1905,7 @@ def _calculate_personal_info_quality(extracted_data: Dict[str, Any], validators_
                 from web.validation_helpers import validate_ssn
                 is_valid, error = validate_ssn(ssn)
                 fields["ssn"] = {"value": f"***-**-{ssn[-4:]}" if len(ssn) >= 4 else "***", "valid": is_valid, "score": 100 if is_valid else 30}
-            except:
+            except (ImportError, AttributeError, ValueError):
                 fields["ssn"] = {"value": "***", "valid": True, "score": 80}
         else:
             fields["ssn"] = {"value": "***", "valid": len(ssn.replace("-", "")) == 9, "score": 100 if len(ssn.replace("-", "")) == 9 else 30}

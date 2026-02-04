@@ -30,10 +30,8 @@ def get_scenario_service():
     from .scenario_service import ScenarioService
     return ScenarioService()
 
-def get_advisory_service():
-    """Get AdvisoryService instance."""
-    from .advisory_service import AdvisoryService
-    return AdvisoryService()
+# NOTE: get_advisory_service() removed - use recommendation_helper.py instead
+# The advisory_service.py was unused and has been deleted.
 
 def get_validation_service():
     """Get ValidationService instance for input/output validation.
@@ -114,7 +112,7 @@ __all__ = [
     # Service Factories
     "get_tax_return_service",
     "get_scenario_service",
-    "get_advisory_service",
+    # "get_advisory_service",  # Removed - use recommendation_helper.py
     "get_validation_service",
     "get_cached_calculation_pipeline",
     "create_cached_calculation_pipeline",

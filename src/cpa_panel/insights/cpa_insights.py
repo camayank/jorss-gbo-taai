@@ -476,10 +476,10 @@ class CPAInsightsEngine:
             status = tax_return.taxpayer.filing_status.value if tax_return.taxpayer else "single"
 
             standard_amounts = {
-                "single": 15000, "married_joint": 30000, "married_separate": 15000,
-                "head_of_household": 22500, "widow": 30000
+                "single": 15750, "married_joint": 31500, "married_separate": 15750,
+                "head_of_household": 23850, "widow": 31500
             }
-            standard = standard_amounts.get(status, 15000)
+            standard = standard_amounts.get(status, 15750)
 
             if deductions.itemized:
                 itemized_total = deductions.itemized.get_total_itemized()

@@ -5,6 +5,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Platform Admin - TaxFlow</title>
+  <link rel="stylesheet" href="/static/css/core/variables.css">
+  <link rel="stylesheet" href="/static/css/core/reset.css">
+  <link rel="stylesheet" href="/static/css/core/typography.css">
+  <link rel="stylesheet" href="/static/css/unified-theme.css">
   <style>
     :root {
       /* =========================
@@ -12,13 +16,13 @@
          ========================= */
 
       /* Primary Colors - Indigo */
-      --primary: #6366f1;
-      --primary-dark: #4f46e5;
-      --primary-light: #818cf8;
-      --primary-50: #eef2ff;
+      --primary: #1e3a5f;
+      --primary-dark: #152b47;
+      --primary-light: #5387c1;
+      --primary-50: #eef3f9;
 
       /* Accent Colors - Cyan (Admin-specific) */
-      --accent: #0ea5e9;
+      --accent: #0d9488;
       --accent-light: #38bdf8;
 
       /* Grayscale */
@@ -40,9 +44,9 @@
       --warning-light: #fef3c7;
       --error: #ef4444;
       --error-light: #fee2e2;
-      --info: #3b82f6;
-      --info-light: #dbeafe;
-      --purple: #8b5cf6;
+      --info: #5387c1;
+      --info-light: #eef3f9;
+      --purple: #5387c1;
 
       /* Layout */
       --sidebar-width: 260px;
@@ -386,7 +390,7 @@
       font-size: 18px;
     }
 
-    .stat-icon.blue { background: #dbeafe; color: var(--info); }
+    .stat-icon.blue { background: #eef3f9; color: var(--info); }
     .stat-icon.green { background: #d1fae5; color: var(--success); }
     .stat-icon.yellow { background: #fef3c7; color: var(--warning); }
     .stat-icon.purple { background: #ede9fe; color: var(--purple); }
@@ -664,9 +668,9 @@
     .badge-success { background: #d1fae5; color: #047857; }
     .badge-warning { background: #fef3c7; color: #b45309; }
     .badge-error { background: #fee2e2; color: #dc2626; }
-    .badge-info { background: #dbeafe; color: #1d4ed8; }
+    .badge-info { background: #eef3f9; color: #1e3a5f; }
     .badge-gray { background: var(--gray-100); color: var(--gray-600); }
-    .badge-purple { background: #ede9fe; color: #7c3aed; }
+    .badge-purple { background: #ede9fe; color: #5387c1; }
 
     /* Tier Badges */
     .tier-badge {
@@ -678,7 +682,7 @@
     }
 
     .tier-starter { background: var(--gray-100); color: var(--gray-600); }
-    .tier-professional { background: #dbeafe; color: #1d4ed8; }
+    .tier-professional { background: #eef3f9; color: #1e3a5f; }
     .tier-enterprise { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: white; }
 
     /* Avatar */
@@ -860,7 +864,7 @@
 
     .activity-icon.success { background: #d1fae5; color: var(--success); }
     .activity-icon.warning { background: #fef3c7; color: var(--warning); }
-    .activity-icon.info { background: #dbeafe; color: var(--info); }
+    .activity-icon.info { background: #eef3f9; color: var(--info); }
     .activity-icon.error { background: #fee2e2; color: var(--error); }
 
     .activity-content {
@@ -3169,7 +3173,7 @@
      * Get consistent color for a name
      */
     function getColorForName(name) {
-      const colors = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
+      const colors = ['#5387c1', '#10b981', '#5387c1', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
       let hash = 0;
       for (let i = 0; i < (name?.length || 0); i++) {
         hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -3598,7 +3602,7 @@
         success: { bg: '#10b981', border: '#059669' },
         error: { bg: '#ef4444', border: '#dc2626' },
         warning: { bg: '#f59e0b', border: '#d97706' },
-        info: { bg: '#6366f1', border: '#4f46e5' }
+        info: { bg: '#1e3a5f', border: '#152b47' }
       };
       const color = colors[type] || colors.info;
 
@@ -4196,8 +4200,8 @@
               <div>
                 <label style="display: block; margin-bottom: 6px; font-size: 14px; color: var(--gray-600);">Secondary Color</label>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <input type="color" id="secondary-color" value="${escapeHtml(branding.secondary_color || '#1e40af')}" style="width: 50px; height: 36px; border: none; cursor: pointer;">
-                  <input type="text" id="secondary-color-text" value="${escapeHtml(branding.secondary_color || '#1e40af')}" style="flex: 1; padding: 8px; border: 1px solid var(--gray-200); border-radius: 6px;" pattern="^#[0-9A-Fa-f]{6}$">
+                  <input type="color" id="secondary-color" value="${escapeHtml(branding.secondary_color || '#1e3a5f')}" style="width: 50px; height: 36px; border: none; cursor: pointer;">
+                  <input type="text" id="secondary-color-text" value="${escapeHtml(branding.secondary_color || '#1e3a5f')}" style="flex: 1; padding: 8px; border: 1px solid var(--gray-200); border-radius: 6px;" pattern="^#[0-9A-Fa-f]{6}$">
                 </div>
               </div>
             </div>
@@ -4238,7 +4242,7 @@
                 <p id="preview-welcome" style="margin: 0 0 16px 0; font-size: 18px; color: var(--gray-900);">${escapeHtml(branding.welcome_message || 'Welcome to our tax portal')}</p>
                 <div style="display: flex; gap: 12px; margin-bottom: 16px;">
                   <button id="preview-btn-primary" style="padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; color: white; background: ${escapeHtml(branding.primary_color || '#059669')};">Primary Button</button>
-                  <button id="preview-btn-secondary" style="padding: 8px 16px; border: 2px solid ${escapeHtml(branding.secondary_color || '#1e40af')}; border-radius: 6px; cursor: pointer; font-weight: 500; background: white; color: ${escapeHtml(branding.secondary_color || '#1e40af')};">Secondary Button</button>
+                  <button id="preview-btn-secondary" style="padding: 8px 16px; border: 2px solid ${escapeHtml(branding.secondary_color || '#1e3a5f')}; border-radius: 6px; cursor: pointer; font-weight: 500; background: white; color: ${escapeHtml(branding.secondary_color || '#1e3a5f')};">Secondary Button</button>
                 </div>
                 <p style="margin: 0; font-size: 14px; color: var(--gray-600);">
                   Sample text with a <a id="preview-link" href="#" style="color: ${escapeHtml(branding.primary_color || '#059669')}; text-decoration: none;">primary link</a> and some content.
