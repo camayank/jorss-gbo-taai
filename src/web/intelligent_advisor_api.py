@@ -3598,15 +3598,19 @@ class ConversationContext:
     def get_contextual_follow_up(cls, extracted: dict, current_profile: dict, session: dict = None) -> str:
         """
         Get a contextual follow-up question based on what was just discussed.
+        Returns the question and marks it as asked so it won't repeat.
         """
-        # Check what was just extracted and suggest relevant follow-ups
+        if session is None:
+            return None
+
+        asked = set(session.get("asked_follow_ups", []))
+
         for field, follow_ups in cls.FOLLOW_UPS.items():
-            # Check if this topic was mentioned
             if field in extracted or extracted.get(f"has_{field}"):
-                # Check if we've already asked these
-                asked = session.get("asked_follow_ups", set()) if session else set()
                 for question in follow_ups:
                     if question not in asked:
+                        asked.add(question)
+                        session["asked_follow_ups"] = list(asked)
                         return question
 
         return None
@@ -4372,6 +4376,16 @@ async def intelligent_chat(request: ChatRequest):
         "skip_student_loans": {"_asked_student_loans": True},
         # Skip deep dive entirely
         "skip_deep_dive": {"_skip_deep_dive": True},
+        # Phase 1: Dependents quick actions
+        "0_dependents": {"dependents": 0},
+        "1_dependent": {"dependents": 1},
+        "2_dependents": {"dependents": 2},
+        "3plus_dependents": {"dependents": 3},
+        # Phase 1: Income type quick actions
+        "w2_employee": {"income_type": "w2", "is_self_employed": False},
+        "self_employed": {"income_type": "self_employed", "is_self_employed": True},
+        "business_owner": {"income_type": "business", "is_self_employed": True},
+        "retired": {"income_type": "retired", "is_self_employed": False},
     }
 
     if msg_lower in _quick_action_map:
