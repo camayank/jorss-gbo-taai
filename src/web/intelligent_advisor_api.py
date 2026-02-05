@@ -280,15 +280,28 @@ def build_tax_return_from_profile(profile: Dict[str, Any]) -> "TaxReturn":
         state=taxpayer_data.get("state"),
     )
 
-    # Build income with K-1 and all mapped fields
+    # Build income with K-1 aggregated into Form 1040 line items
+    # Per IRS rules: K-1 income flows to the same lines as direct income
+    # - K-1 Box 5 (interest) → Schedule B → Form 1040 Line 2b
+    # - K-1 Box 6 (dividends) → Schedule B → Form 1040 Line 3b
+    # - K-1 Box 2/3 (rental) → Schedule E Part II → Form 1040 Line 5
+    # - K-1 Box 7 (royalties) → Schedule E Part II → Form 1040 Line 5
+    # - K-1 Box 1 (ordinary) + Box 4 (guaranteed) → Schedule E / Schedule SE
+    k1_ordinary = income_data.get("k1_ordinary_income", 0) or 0
+    k1_guaranteed = income_data.get("k1_guaranteed_payments", 0) or 0
+    k1_interest = income_data.get("k1_interest_income", 0) or 0
+    k1_dividend = income_data.get("k1_dividend_income", 0) or 0
+    k1_rental = income_data.get("k1_rental_income", 0) or 0
+    k1_royalty = income_data.get("k1_royalty_income", 0) or 0
+
     income_kwargs = {
-        "self_employment_income": income_data.get("self_employment_income", 0),
+        "self_employment_income": (income_data.get("self_employment_income", 0) or 0) + k1_ordinary + k1_guaranteed,
         "self_employment_expenses": income_data.get("self_employment_expenses", 0),
-        "interest_income": income_data.get("interest_income", 0),
-        "dividend_income": income_data.get("dividend_income", 0),
-        "rental_income": income_data.get("rental_income", 0),
+        "interest_income": (income_data.get("interest_income", 0) or 0) + k1_interest,
+        "dividend_income": (income_data.get("dividend_income", 0) or 0) + k1_dividend,
+        "rental_income": (income_data.get("rental_income", 0) or 0) + k1_rental,
         "long_term_capital_gains": income_data.get("capital_gains", 0),
-        "royalty_income": income_data.get("k1_royalty_income", 0),
+        "royalty_income": k1_royalty,
     }
 
     income = Income(**income_kwargs)
@@ -497,6 +510,9 @@ class TaxCalculationResult(BaseModel):
 
     # Tax bracket info
     tax_bracket_detail: Optional[str] = None  # e.g., "22% bracket"
+
+    # Calculation method
+    used_fallback: Optional[bool] = False  # True if fallback calculator was used instead of main engine
 
     # Warnings/notices
     tax_notices: Optional[List[str]] = []  # e.g., "AMT applies", "SALT cap reached"
@@ -1879,6 +1895,7 @@ class IntelligentChatEngine:
             rental_net_income=float(money(rental_net)),
             rental_depreciation_claimed=float(money(profile.get("rental_depreciation", 0) or 0)),
             rental_loss_allowed=0.0,  # Would need PAL calc
+            used_fallback=True,
         )
 
     async def get_tax_strategies(self, profile: Dict[str, Any], calculation: TaxCalculationResult) -> List[StrategyRecommendation]:

@@ -3881,6 +3881,24 @@ async def create_lead(request: Request):
             metadata=lead_metadata,
         )
         logger.info(f"Lead persisted to DB: {lead_id} - Score: {lead_score}, State: {initial_state}")
+
+        # Fire lead notification for CPA alerts
+        if lead_score >= 70:
+            try:
+                from notifications.notification_integration import NotificationDeliveryService
+                notifier = NotificationDeliveryService()
+                contact_name = lead_metadata.get("name", "Unknown")
+                notifier.send_lead_notification(
+                    notification_type="lead_hot_alert",
+                    recipient_email=os.getenv("CPA_ALERT_EMAIL", ""),
+                    recipient_name="CPA Team",
+                    subject=f"Hot Lead Alert: {contact_name} (Score: {lead_score})",
+                    body=f"New high-value lead captured.\n\nName: {contact_name}\nEmail: {lead_metadata.get('email', 'N/A')}\nFiling Status: {lead_metadata.get('filing_status', 'N/A')}\nEstimated Savings: ${estimated_savings:,.0f}\nLead Score: {lead_score}",
+                    data={"lead_id": lead_id, "lead_score": lead_score, "session_id": session_id},
+                )
+                logger.info(f"Hot lead notification sent for {lead_id}")
+            except Exception as notify_err:
+                logger.warning(f"Lead notification failed (non-blocking): {notify_err}")
     except Exception as db_err:
         # Log but don't fail - lead capture should be resilient
         logger.error(f"Failed to persist lead {lead_id}: {db_err}")

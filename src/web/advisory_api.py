@@ -119,7 +119,7 @@ class ReportListResponse(BaseModel):
 
 
 # ============================================================================
-# IN-MEMORY STORAGE (Replace with database in production)
+# IN-MEMORY STORAGE (with DB fallback for persistence across restarts)
 # ============================================================================
 
 # Store generated reports (report_id -> AdvisoryReportResult)
@@ -133,6 +133,66 @@ _session_reports: dict[str, List[str]] = {}
 
 # Store reverse mapping (report_id -> session_id)
 _report_session: dict[str, str] = {}
+
+
+def _hydrate_from_db(report_id: str) -> Optional[AdvisoryReportResult]:
+    """Load a report from DB into memory cache. Returns None if not found."""
+    try:
+        db_session = SessionLocal()
+        try:
+            db_report = get_advisory_report_by_id(report_id, db_session)
+            if not db_report:
+                return None
+
+            # Re-cache in memory stores
+            report_data = db_report.report_data or {}
+            report = AdvisoryReportResult(**report_data) if report_data else None
+            if report:
+                _report_store[report_id] = report
+                _report_session[report_id] = db_report.session_id
+                if db_report.session_id not in _session_reports:
+                    _session_reports[db_report.session_id] = []
+                if report_id not in _session_reports[db_report.session_id]:
+                    _session_reports[db_report.session_id].append(report_id)
+                if db_report.pdf_path and db_report.pdf_generated:
+                    _pdf_store[report_id] = db_report.pdf_path
+
+            return report
+        finally:
+            db_session.close()
+    except Exception as e:
+        logger.warning(f"DB hydration failed for report {report_id}: {e}")
+        return None
+
+
+def _hydrate_session_from_db(session_id: str) -> List[str]:
+    """Load all reports for a session from DB into memory cache."""
+    try:
+        db_session = SessionLocal()
+        try:
+            db_reports = get_advisory_reports_by_session(session_id, db_session)
+            report_ids = []
+            for db_report in db_reports:
+                rid = db_report.report_id
+                report_ids.append(rid)
+                if rid not in _report_store:
+                    report_data = db_report.report_data or {}
+                    try:
+                        report = AdvisoryReportResult(**report_data)
+                        _report_store[rid] = report
+                        _report_session[rid] = session_id
+                        if db_report.pdf_path and db_report.pdf_generated:
+                            _pdf_store[rid] = db_report.pdf_path
+                    except Exception:
+                        pass
+            if report_ids:
+                _session_reports[session_id] = report_ids
+            return report_ids
+        finally:
+            db_session.close()
+    except Exception as e:
+        logger.warning(f"DB session hydration failed for {session_id}: {e}")
+        return []
 
 
 # ============================================================================
@@ -427,7 +487,7 @@ async def get_report_status(report_id: str):
 
     Check if PDF is ready for download.
     """
-    report = _report_store.get(report_id)
+    report = _report_store.get(report_id) or _hydrate_from_db(report_id)
 
     if not report:
         if STANDARD_ERRORS_AVAILABLE:
@@ -472,6 +532,11 @@ async def download_pdf(report_id: str):
     """
     pdf_path = _pdf_store.get(report_id)
 
+    # Try DB fallback if not in memory
+    if not pdf_path:
+        _hydrate_from_db(report_id)
+        pdf_path = _pdf_store.get(report_id)
+
     if not pdf_path or not Path(pdf_path).exists():
         raise HTTPException(
             status_code=404,
@@ -496,7 +561,7 @@ async def get_report_data(report_id: str):
 
     Returns full report structure for frontend display.
     """
-    report = _report_store.get(report_id)
+    report = _report_store.get(report_id) or _hydrate_from_db(report_id)
 
     if not report:
         if STANDARD_ERRORS_AVAILABLE:
@@ -516,6 +581,10 @@ async def list_session_reports(session_id: str):
     List all reports for a session.
     """
     report_ids = _session_reports.get(session_id, [])
+
+    # Fall back to DB if no reports in memory for this session
+    if not report_ids:
+        report_ids = _hydrate_session_from_db(session_id)
 
     reports = []
     for report_id in report_ids:
