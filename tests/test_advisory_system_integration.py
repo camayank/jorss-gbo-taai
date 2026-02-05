@@ -26,7 +26,7 @@ from advisory import generate_advisory_report, ReportType
 
 _has_reportlab = importlib.util.find_spec("reportlab") is not None
 if _has_reportlab:
-    from export import export_advisory_report_to_pdf
+    from export.advisory_pdf_exporter import export_advisory_report_to_pdf
 
 
 @pytest.fixture

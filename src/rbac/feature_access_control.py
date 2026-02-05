@@ -19,8 +19,8 @@ import inspect
 
 from .enhanced_permissions import Permission, Permissions, get_permissions_for_role
 from .dependencies import AuthContext
-from ..database.tenant_persistence import get_tenant_persistence
-from ..database.tenant_models import SubscriptionTier
+from database.tenant_persistence import get_tenant_persistence
+from database.tenant_models import SubscriptionTier
 
 
 # =============================================================================
@@ -643,7 +643,7 @@ def enable_feature_for_tenant(
 
     if success:
         # Audit log
-        from ..audit.audit_logger import get_audit_logger, AuditEventType, AuditSeverity
+        from audit.audit_logger import get_audit_logger, AuditEventType, AuditSeverity
         logger = get_audit_logger()
         logger.log(
             event_type=AuditEventType.TENANT_FEATURES_UPDATE,
@@ -685,7 +685,7 @@ def disable_feature_for_tenant(
 
     if success:
         # Audit log
-        from ..audit.audit_logger import get_audit_logger, AuditEventType, AuditSeverity
+        from audit.audit_logger import get_audit_logger, AuditEventType, AuditSeverity
         logger = get_audit_logger()
         logger.log(
             event_type=AuditEventType.TENANT_FEATURES_UPDATE,

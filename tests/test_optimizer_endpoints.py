@@ -20,7 +20,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from web.app import app
-from conftest import CSRF_BYPASS_HEADERS
+from tests.conftest import CSRF_BYPASS_HEADERS
 
 
 class CSRFTestClient(TestClient):

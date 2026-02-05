@@ -9,9 +9,10 @@ from unittest.mock import Mock, patch
 from uuid import UUID
 
 import sys
-sys.path.insert(0, '/Users/rakeshanita/Jorss-Gbo')
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from src.rbac.feature_access_control import (
+from rbac.feature_access_control import (
     Feature,
     Features,
     FeatureCategory,
@@ -22,9 +23,9 @@ from src.rbac.feature_access_control import (
     disable_feature_for_tenant,
     FeatureAccessDenied
 )
-from src.rbac.roles import Role
-from src.rbac.dependencies import AuthContext
-from src.database.tenant_models import SubscriptionTier, Tenant, TenantFeatureFlags, TenantBranding
+from rbac.roles import Role
+from rbac.dependencies import AuthContext
+from database.tenant_models import SubscriptionTier, Tenant, TenantFeatureFlags, TenantBranding
 
 
 # =============================================================================

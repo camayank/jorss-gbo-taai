@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 # Import the app
 from web.app import app
-from conftest import CSRF_BYPASS_HEADERS
+from tests.conftest import CSRF_BYPASS_HEADERS
 
 
 class TestHealthEndpoints:

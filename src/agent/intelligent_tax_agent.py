@@ -16,12 +16,14 @@ import os
 import re
 import json
 import logging
+import time
 from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, date
 from enum import Enum
 
 from openai import OpenAI
+import openai
 
 logger = logging.getLogger(__name__)
 
@@ -264,12 +266,13 @@ class IntelligentTaxAgent:
         if not api_key:
             raise ValueError("OpenAI API key required. Set OPENAI_API_KEY environment variable.")
 
-        self.client = OpenAI(api_key=api_key)
+        self.client = OpenAI(api_key=api_key, timeout=30.0)
         self.model = os.getenv("OPENAI_MODEL", "gpt-4o")  # gpt-4o for structured outputs
         self.use_ocr = use_ocr
         self.session_id = session_id or str(uuid.uuid4())
 
         # Core state
+        self.MAX_CONVERSATION_HISTORY = 50  # Keep last N messages to prevent unbounded growth
         self.tax_return: Optional[TaxReturn] = None
         self.messages: List[Dict[str, str]] = []
         self.context = ConversationContext(
@@ -497,6 +500,12 @@ Let's start with the basics. What's your first name?"""
         # Add assistant message
         self.messages.append({"role": "assistant", "content": assistant_message})
 
+        # Prune conversation history to prevent unbounded growth
+        if len(self.messages) > self.MAX_CONVERSATION_HISTORY:
+            # Keep system message (first) + last N-1 messages
+            system_msgs = [m for m in self.messages[:1] if m.get("role") == "system"]
+            self.messages = system_msgs + self.messages[-(self.MAX_CONVERSATION_HISTORY - len(system_msgs)):]
+
         return assistant_message
 
     def _extract_entities_with_ai(self, user_input: str) -> List[ExtractedEntity]:
@@ -575,21 +584,47 @@ Let's start with the basics. What's your first name?"""
         }
 
         try:
-            # Call OpenAI with function calling for structured extraction
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": self.system_prompt},
-                    {"role": "user", "content": f"Extract all tax-related information from this message:\n\n{user_input}"}
-                ],
-                functions=[extraction_schema],
-                function_call={"name": "extract_tax_entities"},
-                temperature=0.1  # Low temperature for reliable extraction
-            )
+            # Call OpenAI with tool calling for structured extraction (with retry)
+            response = None
+            max_retries = 2
+            for attempt in range(max_retries + 1):
+                try:
+                    response = self.client.chat.completions.create(
+                        model=self.model,
+                        messages=[
+                            {"role": "system", "content": self.system_prompt},
+                            {"role": "user", "content": f"Extract all tax-related information from this message:\n\n{user_input}"}
+                        ],
+                        tools=[{"type": "function", "function": extraction_schema}],
+                        tool_choice={"type": "function", "function": {"name": "extract_tax_entities"}},
+                        temperature=0.1  # Low temperature for reliable extraction
+                    )
+                    break  # Success
+                except openai.APITimeoutError as e:
+                    logger.warning(f"OpenAI timeout on entity extraction (attempt {attempt + 1}/{max_retries + 1}): {e}")
+                    if attempt < max_retries:
+                        time.sleep(2 ** attempt)
+                        continue
+                    return []
+                except openai.RateLimitError as e:
+                    logger.warning(f"OpenAI rate limit on entity extraction (attempt {attempt + 1}/{max_retries + 1}): {e}")
+                    if attempt < max_retries:
+                        time.sleep(2 ** attempt)
+                        continue
+                    return []
+                except openai.APIError as e:
+                    logger.warning(f"OpenAI API error on entity extraction (attempt {attempt + 1}/{max_retries + 1}): {e}")
+                    if attempt < max_retries:
+                        time.sleep(2 ** attempt)
+                        continue
+                    return []
 
-            # Parse function call result
-            if response.choices[0].message.function_call:
-                result = json.loads(response.choices[0].message.function_call.arguments)
+            if response is None:
+                return []
+
+            # Parse tool call result
+            if response.choices[0].message.tool_calls:
+                result = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
 
                 # Update context with detected forms and life events
                 self.context.detected_forms.extend(result.get("detected_forms", []))
@@ -1544,14 +1579,40 @@ CRITICAL GUIDELINES FOR THIS RESPONSE:
 
 Keep responses conversational, friendly, and professional. Always acknowledge what they just shared before moving forward."""
 
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=self.messages + [
-                    {"role": "system", "content": system_prompt}
-                ],
-                temperature=0.6,  # Reduced from 0.7 for more consistent responses
-                max_tokens=500
-            )
+            response = None
+            max_retries = 2
+            for attempt in range(max_retries + 1):
+                try:
+                    response = self.client.chat.completions.create(
+                        model=self.model,
+                        messages=self.messages + [
+                            {"role": "system", "content": system_prompt}
+                        ],
+                        temperature=0.6,  # Reduced from 0.7 for more consistent responses
+                        max_tokens=500
+                    )
+                    break  # Success
+                except openai.APITimeoutError as e:
+                    logger.warning(f"OpenAI timeout on response generation (attempt {attempt + 1}/{max_retries + 1}): {e}")
+                    if attempt < max_retries:
+                        time.sleep(2 ** attempt)
+                        continue
+                    return "I'm having trouble processing that right now. Could you rephrase or try again?"
+                except openai.RateLimitError as e:
+                    logger.warning(f"OpenAI rate limit on response generation (attempt {attempt + 1}/{max_retries + 1}): {e}")
+                    if attempt < max_retries:
+                        time.sleep(2 ** attempt)
+                        continue
+                    return "I'm having trouble processing that right now. Could you rephrase or try again?"
+                except openai.APIError as e:
+                    logger.warning(f"OpenAI API error on response generation (attempt {attempt + 1}/{max_retries + 1}): {e}")
+                    if attempt < max_retries:
+                        time.sleep(2 ** attempt)
+                        continue
+                    return "I'm having trouble processing that right now. Could you rephrase or try again?"
+
+            if response is None:
+                return "I'm having trouble processing that right now. Could you rephrase or try again?"
 
             response_text = response.choices[0].message.content
 

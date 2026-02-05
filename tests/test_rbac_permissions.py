@@ -11,9 +11,10 @@ from dataclasses import dataclass
 
 # Import RBAC system
 import sys
-sys.path.insert(0, '/Users/rakeshanita/Jorss-Gbo')
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from src.rbac.enhanced_permissions import (
+from rbac.enhanced_permissions import (
     Permission,
     Permissions,
     PermissionScope,
@@ -22,15 +23,15 @@ from src.rbac.enhanced_permissions import (
     get_permissions_for_role,
     has_permission,
 )
-from src.rbac.roles import Role
-from src.rbac.dependencies import AuthContext
-from src.rbac.feature_access_control import (
+from rbac.roles import Role
+from rbac.dependencies import AuthContext
+from rbac.feature_access_control import (
     Features,
     check_feature_access,
     get_user_features,
     FeatureCategory
 )
-from src.database.tenant_models import SubscriptionTier
+from database.tenant_models import SubscriptionTier
 
 
 # =============================================================================

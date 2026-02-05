@@ -4317,7 +4317,7 @@
           const savedData = JSON.parse(storedData);
 
           // Verify session still exists on server
-          const response = await fetch(`/api/sessions/${storedSessionId}/status`);
+          const response = await fetch(`/api/sessions/${storedSessionId}/restore`);
           if (response.ok) {
             sessionId = storedSessionId;
 
@@ -4490,7 +4490,7 @@
     // =========== MESSAGE QUEUE MANAGEMENT ===========
 
     const messageQueue = [];
-    let isProcessingQueue = false;
+    // Reuses isProcessingQueue declared above (line ~4069)
 
     async function addToMessageQueue(message) {
       messageQueue.push({
@@ -4513,7 +4513,7 @@
         const item = messageQueue[0];
 
         try {
-          await processAIResponseInternal(item.message);
+          await processAIResponse(item.message);
           messageQueue.shift(); // Remove processed message
         } catch (error) {
           item.retries++;
@@ -5732,7 +5732,20 @@
         text += getConfidenceDisclaimer(includeIRS);
       }
 
-      bubble.innerHTML = text;
+      // Sanitize HTML to prevent XSS from API responses
+      if (type === 'ai') {
+        const sanitized = text
+          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+          .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+          .replace(/javascript\s*:/gi, '')
+          .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+          .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
+          .replace(/<embed\b[^>]*>/gi, '')
+          .replace(/<form\b[^<]*(?:(?!<\/form>)<[^<]*)*<\/form>/gi, '');
+        bubble.innerHTML = sanitized;
+      } else {
+        bubble.textContent = text;
+      }
 
       // Add copy button for AI messages
       if (type === 'ai') {
@@ -10857,12 +10870,23 @@
         updateProgress(95);
 
         showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<strong>Generating your personalized tax advisory report...</strong><br><br>I'm analyzing your information and creating strategic recommendations tailored to your unique situation.<br><br>Your report will include:<br>• Comprehensive tax analysis<br>• Optimization strategies<br>• Estimated savings opportunities<br>• Action plan with timelines<br>• Filing strategy recommendations<br><br><em>Please wait while I prepare your report...</em>`);
+        addMessage('ai', `<strong>Generating your personalized tax advisory report...</strong><br><br>I'm analyzing your information and creating strategic recommendations tailored to your unique situation.<br><br>Your report will include:<br>• Comprehensive tax analysis<br>• Optimization strategies<br>• Estimated savings opportunities<br>• Action plan with timelines<br>• Filing strategy recommendations<br><br><em>Please wait while I prepare your report...</em>`);
 
-          // Simulate report generation
-          setTimeout(() => {
+        // Actually generate the report via API
+        try {
+          const reportResponse = await fetch(`/api/advisor/report`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(window.csrfToken ? {'X-CSRF-Token': window.csrfToken} : {})
+            },
+            body: JSON.stringify({ session_id: sessionId })
+          });
+
+          hideTyping();
+
+          if (reportResponse.ok) {
+            const reportData = await reportResponse.json();
             updateProgress(100);
             addMessage('ai', `<div class="insight-card"><div class="insight-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;"><span style="font-size: 32px;">🎉</span><strong style="font-size: 20px;">Your Tax Advisory Report is Ready!</strong></div><div style="color: var(--text-secondary); line-height: 1.6;">I've completed a comprehensive analysis of your tax situation. Your personalized report includes strategic recommendations that could save you thousands of dollars.</div></div><br><strong>What would you like to do next?</strong>`, [
               { label: '📥 Download Full Report (PDF)', value: 'download_report' },
@@ -10870,8 +10894,21 @@
               { label: '📧 Email Report to Me', value: 'email_report' },
               { label: '📞 Schedule CPA Consultation', value: 'schedule_consult' }
             ]);
-          }, 3000);
-        }, 1000);
+          } else {
+            updateProgress(90);
+            addMessage('ai', `<strong>Report generation encountered an issue.</strong><br><br>Don't worry — your data is saved. Please try again or download a quick summary.`, [
+              { label: '🔄 Try Again', value: 'generate_report' },
+              { label: '📄 Quick Summary', value: 'show_strategies' }
+            ]);
+          }
+        } catch (error) {
+          hideTyping();
+          console.error('Report generation failed:', error);
+          addMessage('ai', `<strong>Connection issue while generating report.</strong><br><br>Your data is saved. Please check your connection and try again.`, [
+            { label: '🔄 Retry', value: 'generate_report' },
+            { label: '📄 View Strategies', value: 'show_strategies' }
+          ]);
+        }
 
       } else if (value === 'download_report') {
         addMessage('user', 'Download my report as PDF');
@@ -11365,14 +11402,42 @@
       addMessage('user', `Send to: ${email}`);
       showTyping();
 
-      setTimeout(() => {
+      try {
+        const response = await fetch('/api/advisor/report/email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(window.csrfToken ? {'X-CSRF-Token': window.csrfToken} : {})
+          },
+          body: JSON.stringify({
+            session_id: sessionId,
+            email: email
+          })
+        });
+
         hideTyping();
-        addMessage('ai', `<strong>✅ Report sent successfully!</strong><br><br>I've emailed your comprehensive tax advisory report to <strong>${email}</strong>.<br><br>Please check your inbox (and spam folder) within the next few minutes. The email will include:<br>• PDF attachment of your full report<br>• Summary of key findings<br>• Personalized action items<br>• Link to schedule a consultation<br><br><strong>What would you like to do next?</strong>`, [
-          { label: '📥 Also download PDF', value: 'download_report' },
-          { label: '📞 Schedule consultation', value: 'schedule_consult' },
-          { label: '✅ I\'m all set', value: 'finish_satisfied' }
+
+        if (response.ok) {
+          addMessage('ai', `<strong>Report sent!</strong><br><br>Your tax advisory report has been emailed to <strong>${email}</strong>. Please check your inbox (and spam folder).<br><br><strong>What would you like to do next?</strong>`, [
+            { label: '📥 Also download PDF', value: 'download_report' },
+            { label: '📞 Schedule consultation', value: 'schedule_consult' },
+            { label: '✅ I\'m all set', value: 'finish_satisfied' }
+          ]);
+        } else {
+          // Email service not available — offer PDF download instead
+          addMessage('ai', `<strong>Email delivery is not available at this time.</strong><br><br>You can download your report as a PDF instead — it contains all the same information.<br><br><strong>What would you like to do?</strong>`, [
+            { label: '📥 Download PDF Report', value: 'download_report' },
+            { label: '📞 Schedule consultation', value: 'schedule_consult' }
+          ]);
+        }
+      } catch (error) {
+        hideTyping();
+        console.error('Email send failed:', error);
+        addMessage('ai', `<strong>Unable to send email right now.</strong><br><br>Please download the PDF report instead. You can then email it manually or share it with your CPA.`, [
+          { label: '📥 Download PDF Report', value: 'download_report' },
+          { label: '🔄 Try Again', value: 'email_report' }
         ]);
-      }, 2000);
+      }
     }
 
     // Retry helper with exponential backoff
@@ -12121,13 +12186,17 @@ If they're ready to move forward, suggest generating their comprehensive advisor
     // Save before page unload
     window.addEventListener('beforeunload', (event) => {
       if (hasUnsavedChanges && sessionId && !sessionId.startsWith('temp-')) {
-        // Attempt sync save
-        navigator.sendBeacon(`/api/sessions/${sessionId}/save`, JSON.stringify({
+        // Attempt sync save (must use Blob with correct Content-Type for FastAPI)
+        const saveData = JSON.stringify({
           extracted_data: extractedData,
           conversation_history: conversationHistory.slice(-30),
           current_phase: getCurrentPhase(),
           completion_percentage: getCompletionPercentage()
-        }));
+        });
+        navigator.sendBeacon(
+          `/api/sessions/${sessionId}/save`,
+          new Blob([saveData], { type: 'application/json' })
+        );
       }
     });
 

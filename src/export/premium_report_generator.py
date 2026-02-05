@@ -1246,40 +1246,143 @@ class PremiumReportGenerator:
         return "".join(html_parts)
 
     def _render_pdf(self, report: GeneratedReport) -> bytes:
-        """Render report to PDF bytes."""
-        # Generate text representation (actual PDF would use reportlab/weasyprint)
-        lines = [
-            "=" * 80,
-            f"TAX ADVISORY REPORT - {report.tier.value.upper()}",
-            "=" * 80,
-            f"Taxpayer: {report.taxpayer_name}",
-            f"Tax Year: {report.tax_year}",
-            f"Generated: {report.generated_at}",
-            f"Report ID: {report.report_id}",
-            "=" * 80,
-            "",
-        ]
+        """Render report to PDF bytes using ReportLab (with text fallback)."""
+        try:
+            from reportlab.lib.pagesizes import letter
+            from reportlab.pdfgen import canvas
+            from reportlab.lib.units import inch
+            from reportlab.lib.colors import HexColor
+            import io
 
-        for section in report.sections:
-            lines.append("-" * 60)
-            lines.append(section.title.upper())
-            lines.append("-" * 60)
-            lines.append(self._content_to_text(section.content))
-            lines.append("")
+            buffer = io.BytesIO()
+            c = canvas.Canvas(buffer, pagesize=letter)
+            width, height = letter
+            navy = HexColor("#1e3a5f")
 
-        if report.action_items:
-            lines.append("=" * 60)
-            lines.append("PRIORITIZED ACTION ITEMS")
-            lines.append("=" * 60)
-            for i, item in enumerate(report.action_items, 1):
-                lines.append(f"\n{i}. [{item.priority}] {item.title}")
-                lines.append(f"   {item.description}")
-                if item.potential_savings:
-                    lines.append(f"   Potential Savings: ${item.potential_savings:,.0f}")
-                if item.deadline:
-                    lines.append(f"   Deadline: {item.deadline}")
+            # --- Cover Page ---
+            c.setFillColor(navy)
+            c.rect(0, height - 2.5*inch, width, 2.5*inch, fill=1)
+            c.setFillColor(HexColor("#ffffff"))
+            c.setFont("Helvetica-Bold", 28)
+            c.drawCentredString(width/2, height - 1.2*inch, "Tax Advisory Report")
+            c.setFont("Helvetica", 16)
+            c.drawCentredString(width/2, height - 1.7*inch, report.tier.value.upper())
 
-        return "\n".join(lines).encode('utf-8')
+            c.setFillColor(HexColor("#333333"))
+            c.setFont("Helvetica", 14)
+            y = height - 3.2*inch
+            c.drawString(1*inch, y, f"Prepared for: {report.taxpayer_name}")
+            y -= 0.35*inch
+            c.drawString(1*inch, y, f"Tax Year: {report.tax_year}")
+            y -= 0.35*inch
+            c.drawString(1*inch, y, f"Generated: {report.generated_at}")
+            y -= 0.35*inch
+            c.setFont("Helvetica-Oblique", 10)
+            c.drawString(1*inch, y, f"Report ID: {report.report_id}")
+
+            c.setFont("Helvetica-Oblique", 9)
+            c.setFillColor(HexColor("#666666"))
+            c.drawCentredString(width/2, 0.75*inch, "Confidential - For intended recipient only")
+            c.showPage()
+
+            # --- Section Pages ---
+            for section in report.sections:
+                c.setFillColor(navy)
+                c.rect(0, height - 0.8*inch, width, 0.8*inch, fill=1)
+                c.setFillColor(HexColor("#ffffff"))
+                c.setFont("Helvetica-Bold", 18)
+                c.drawString(0.75*inch, height - 0.55*inch, section.title.upper())
+
+                c.setFillColor(HexColor("#333333"))
+                c.setFont("Helvetica", 11)
+                y = height - 1.3*inch
+                text_content = self._content_to_text(section.content)
+                for line in text_content.split("\n"):
+                    if y < 1*inch:
+                        c.showPage()
+                        y = height - 1*inch
+                    c.drawString(0.75*inch, y, line[:90])  # Truncate long lines
+                    y -= 0.2*inch
+                c.showPage()
+
+            # --- Action Items Page ---
+            if report.action_items:
+                c.setFillColor(navy)
+                c.rect(0, height - 0.8*inch, width, 0.8*inch, fill=1)
+                c.setFillColor(HexColor("#ffffff"))
+                c.setFont("Helvetica-Bold", 18)
+                c.drawString(0.75*inch, height - 0.55*inch, "PRIORITIZED ACTION ITEMS")
+
+                c.setFillColor(HexColor("#333333"))
+                y = height - 1.3*inch
+                for i, item in enumerate(report.action_items, 1):
+                    if y < 1.5*inch:
+                        c.showPage()
+                        y = height - 1*inch
+                    c.setFont("Helvetica-Bold", 12)
+                    c.drawString(0.75*inch, y, f"{i}. [{item.priority}] {item.title}")
+                    y -= 0.25*inch
+                    c.setFont("Helvetica", 10)
+                    # Wrap description
+                    desc = item.description[:120]
+                    c.drawString(1*inch, y, desc)
+                    y -= 0.2*inch
+                    if item.potential_savings:
+                        c.setFont("Helvetica-Bold", 10)
+                        c.drawString(1*inch, y, f"Potential Savings: ${item.potential_savings:,.0f}")
+                        y -= 0.2*inch
+                    if item.deadline:
+                        c.setFont("Helvetica-Oblique", 10)
+                        c.drawString(1*inch, y, f"Deadline: {item.deadline}")
+                        y -= 0.2*inch
+                    y -= 0.15*inch  # Extra spacing between items
+                c.showPage()
+
+            # --- Disclaimer footer on last page ---
+            c.setFont("Helvetica-Oblique", 8)
+            c.setFillColor(HexColor("#999999"))
+            c.drawCentredString(width/2, 0.5*inch,
+                "This report is for informational purposes only. Consult a licensed tax professional for official filing.")
+            c.showPage()
+
+            c.save()
+            buffer.seek(0)
+            return buffer.read()
+
+        except ImportError:
+            # Fallback to text-based PDF representation
+            lines = [
+                "=" * 80,
+                f"TAX ADVISORY REPORT - {report.tier.value.upper()}",
+                "=" * 80,
+                f"Taxpayer: {report.taxpayer_name}",
+                f"Tax Year: {report.tax_year}",
+                f"Generated: {report.generated_at}",
+                f"Report ID: {report.report_id}",
+                "=" * 80,
+                "",
+            ]
+
+            for section in report.sections:
+                lines.append("-" * 60)
+                lines.append(section.title.upper())
+                lines.append("-" * 60)
+                lines.append(self._content_to_text(section.content))
+                lines.append("")
+
+            if report.action_items:
+                lines.append("=" * 60)
+                lines.append("PRIORITIZED ACTION ITEMS")
+                lines.append("=" * 60)
+                for i, item in enumerate(report.action_items, 1):
+                    lines.append(f"\n{i}. [{item.priority}] {item.title}")
+                    lines.append(f"   {item.description}")
+                    if item.potential_savings:
+                        lines.append(f"   Potential Savings: ${item.potential_savings:,.0f}")
+                    if item.deadline:
+                        lines.append(f"   Deadline: {item.deadline}")
+
+            return "\n".join(lines).encode('utf-8')
 
     def _content_to_text(self, content: Dict[str, Any]) -> str:
         """Convert content to plain text."""

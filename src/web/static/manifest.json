@@ -1,8 +1,8 @@
 {
-  "name": "TaxFlow - Smart Tax Filing",
-  "short_name": "TaxFlow",
-  "description": "File your taxes easily with AI-powered assistance",
-  "start_url": "/",
+  "name": "CA4CPA Tax Advisory",
+  "short_name": "CA4CPA",
+  "description": "AI-powered tax advisory and planning platform",
+  "start_url": "/landing",
   "display": "standalone",
   "background_color": "#1e3a5f",
   "theme_color": "#1e3a5f",
@@ -60,27 +60,12 @@
       "purpose": "any maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/static/screenshot-mobile.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow"
-    }
-  ],
   "shortcuts": [
     {
-      "name": "Start New Return",
-      "short_name": "New Return",
-      "description": "Start a new tax return",
-      "url": "/?action=new",
-      "icons": [{ "src": "/static/icon-96.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "Continue Return",
-      "short_name": "Continue",
-      "description": "Continue your saved return",
-      "url": "/?action=continue",
+      "name": "Start Tax Analysis",
+      "short_name": "Start",
+      "description": "Start a new tax analysis",
+      "url": "/landing",
       "icons": [{ "src": "/static/icon-96.png", "sizes": "96x96" }]
     }
   ],

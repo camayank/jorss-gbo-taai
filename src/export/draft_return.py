@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from models.tax_return import TaxReturn
     from calculator.engine import CalculationBreakdown
 
-from export.computation_statement import TaxComputationStatement, AssumptionCategory
+from .computation_statement import TaxComputationStatement, AssumptionCategory
 
 
 class CompletionStatus(Enum):

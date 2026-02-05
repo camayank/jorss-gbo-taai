@@ -17,7 +17,7 @@ from .enhanced_permissions import (
     has_permission
 )
 from .dependencies import require_auth, AuthContext
-from ..database.tenant_persistence import get_tenant_persistence
+from database.tenant_persistence import get_tenant_persistence
 
 
 class PermissionDeniedError(HTTPException):

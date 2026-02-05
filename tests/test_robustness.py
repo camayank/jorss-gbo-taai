@@ -11,7 +11,7 @@ Tests validation helpers and error handling:
 import pytest
 from decimal import Decimal
 
-from conftest import CSRF_BYPASS_HEADERS
+from tests.conftest import CSRF_BYPASS_HEADERS
 
 
 # =============================================================================

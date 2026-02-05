@@ -113,37 +113,74 @@ def convert_profile_to_tax_return(profile: Dict[str, Any], session_id: str = Non
     investment_income = profile.get("investment_income", 0) or 0
     rental_income = profile.get("rental_income", 0) or 0
 
-    # If only total_income provided, assume it's W-2
+    # K-1 income fields (GAP #6)
+    k1_ordinary = profile.get("k1_ordinary_income", 0) or 0
+    k1_rental = profile.get("k1_rental_income", 0) or 0
+    k1_interest = profile.get("k1_interest_income", 0) or 0
+    k1_dividend = profile.get("k1_dividend_income", 0) or 0
+    k1_royalty = profile.get("k1_royalty_income", 0) or 0
+    k1_guaranteed = profile.get("k1_guaranteed_payments", 0) or 0
+    k1_total = k1_ordinary + k1_rental + k1_interest + k1_dividend + k1_royalty + k1_guaranteed
+
+    # If only total_income provided, assume it's W-2 (minus known other sources)
     if total_income > 0 and w2_income == 0 and business_income == 0:
-        w2_income = total_income - investment_income - rental_income
+        w2_income = total_income - investment_income - rental_income - k1_total
+
+    # Age → is_over_65 (GAP #8)
+    age = profile.get("age")
+    is_over_65 = False
+    if age is not None:
+        try:
+            is_over_65 = int(age) >= 65
+        except (ValueError, TypeError):
+            pass
 
     # Calculate deductions
     mortgage_interest = profile.get("mortgage_interest", 0) or 0
     property_taxes = profile.get("property_taxes", 0) or 0
     state_income_tax = profile.get("state_income_tax", 0) or 0
     charitable = profile.get("charitable_donations", 0) or 0
+    student_loan_interest = profile.get("student_loan_interest", 0) or 0
+    medical_expenses = profile.get("medical_expenses", 0) or 0
 
     # SALT cap at $10,000
     salt = min(property_taxes + state_income_tax, 10000)
-    total_itemized = mortgage_interest + salt + charitable
+    total_itemized = mortgage_interest + salt + charitable + medical_expenses
 
     # Determine if itemizing makes sense
     standard_deductions = {
         "SINGLE": 15000,
+        "MARRIED_JOINT": 30000,
         "MARRIED_FILING_JOINTLY": 30000,
         "HEAD_OF_HOUSEHOLD": 22500,
+        "MARRIED_SEPARATE": 15000,
         "MARRIED_FILING_SEPARATELY": 15000,
         "QUALIFYING_WIDOW": 30000
     }
+    # Additional standard deduction for age 65+ ($1,950 single/HOH, $1,550 married)
     standard_ded = standard_deductions.get(tax_filing_status, 15000)
+    if is_over_65:
+        if tax_filing_status in ("SINGLE", "HEAD_OF_HOUSEHOLD"):
+            standard_ded += 1950
+        else:
+            standard_ded += 1550
+
     use_standard = total_itemized < standard_ded
 
     # Calculate credits
     dependents = profile.get("dependents", 0) or 0
     child_tax_credit = dependents * 2000  # $2000 per child
 
+    # Estimated tax payments
+    estimated_payments = profile.get("estimated_payments", 0) or 0
+
     # Estimate withholding (rough estimate: 20% of W-2)
     federal_withholding = profile.get("federal_withholding", 0) or (w2_income * 0.20)
+
+    # Retirement / above-the-line deductions
+    retirement_401k = profile.get("retirement_401k", 0) or 0
+    retirement_ira = profile.get("retirement_ira", 0) or 0
+    hsa_contributions = profile.get("hsa_contributions", 0) or 0
 
     return {
         "taxpayer": {
@@ -152,7 +189,9 @@ def convert_profile_to_tax_return(profile: Dict[str, Any], session_id: str = Non
             "ssn": profile.get("ssn", "000-00-0000"),
             "filing_status": tax_filing_status,
             "state": profile.get("state", ""),
-            "dependents": dependents
+            "dependents": dependents,
+            "is_over_65": is_over_65,
+            "age": age,
         },
         "income": {
             "w2_wages": float(w2_income),
@@ -163,7 +202,14 @@ def convert_profile_to_tax_return(profile: Dict[str, Any], session_id: str = Non
             "capital_gains": float(profile.get("capital_gains_long", 0) or profile.get("capital_gains", 0) or 0),
             "rental_income": float(rental_income),
             "dividend_income": float(profile.get("dividend_income", 0) or 0),
-            "interest_income": float(profile.get("interest_income", 0) or 0)
+            "interest_income": float(profile.get("interest_income", 0) or 0),
+            # K-1 fields (GAP #6)
+            "k1_ordinary_income": float(k1_ordinary),
+            "k1_rental_income": float(k1_rental),
+            "k1_interest_income": float(k1_interest),
+            "k1_dividend_income": float(k1_dividend),
+            "k1_royalty_income": float(k1_royalty),
+            "k1_guaranteed_payments": float(k1_guaranteed),
         },
         "deductions": {
             "use_standard_deduction": use_standard,
@@ -171,17 +217,22 @@ def convert_profile_to_tax_return(profile: Dict[str, Any], session_id: str = Non
             "state_local_taxes": float(salt),
             "mortgage_interest": float(mortgage_interest),
             "charitable_contributions": float(charitable),
-            "medical_expenses": float(profile.get("medical_expenses", 0) or 0)
+            "medical_expenses": float(medical_expenses),
+            "student_loan_interest": float(student_loan_interest),
         },
         "credits": {
             "child_tax_credit": float(child_tax_credit),
             "education_credits": 0.0,
             "retirement_savers_credit": 0.0
         },
+        "payments": {
+            "estimated_payments": float(estimated_payments),
+            "federal_withholding": float(federal_withholding),
+        },
         "retirement": {
-            "traditional_401k": float(profile.get("retirement_401k", 0) or 0),
-            "traditional_ira": float(profile.get("retirement_ira", 0) or 0),
-            "hsa_contributions": float(profile.get("hsa_contributions", 0) or 0)
+            "traditional_401k": float(retirement_401k),
+            "traditional_ira": float(retirement_ira),
+            "hsa_contributions": float(hsa_contributions),
         }
     }
 
@@ -225,37 +276,65 @@ def build_tax_return_from_profile(profile: Dict[str, Any]) -> "TaxReturn":
         last_name=taxpayer_data.get("last_name", "Client"),
         ssn=taxpayer_data.get("ssn", "000-00-0000"),
         filing_status=filing_status,
+        is_over_65=taxpayer_data.get("is_over_65", False),
+        state=taxpayer_data.get("state"),
     )
 
-    income = Income(
-        w2_wages=income_data.get("w2_wages", 0),
-        federal_withholding=income_data.get("federal_withholding", 0),
-        self_employment_income=income_data.get("self_employment_income", 0),
-        self_employment_expenses=income_data.get("self_employment_expenses", 0),
-        investment_income=income_data.get("investment_income", 0),
-        capital_gains=income_data.get("capital_gains", 0),
-        rental_income=income_data.get("rental_income", 0),
-    )
+    # Build income with K-1 and all mapped fields
+    income_kwargs = {
+        "self_employment_income": income_data.get("self_employment_income", 0),
+        "self_employment_expenses": income_data.get("self_employment_expenses", 0),
+        "interest_income": income_data.get("interest_income", 0),
+        "dividend_income": income_data.get("dividend_income", 0),
+        "rental_income": income_data.get("rental_income", 0),
+        "long_term_capital_gains": income_data.get("capital_gains", 0),
+        "royalty_income": income_data.get("k1_royalty_income", 0),
+    }
+
+    income = Income(**income_kwargs)
+
+    # Add W-2 if present
+    w2_wages = income_data.get("w2_wages", 0)
+    if w2_wages > 0:
+        from models.income import W2Info
+        income.w2_forms.append(W2Info(
+            employer_name="Primary Employer",
+            wages=w2_wages,
+            federal_withholding=income_data.get("federal_withholding", 0),
+        ))
 
     deductions = Deductions(
         use_standard_deduction=deductions_data.get("use_standard_deduction", True),
-        itemized_deductions=deductions_data.get("itemized_deductions", 0),
-        state_local_taxes=deductions_data.get("state_local_taxes", 0),
-        mortgage_interest=deductions_data.get("mortgage_interest", 0),
-        charitable_contributions=deductions_data.get("charitable_contributions", 0),
+        student_loan_interest=deductions_data.get("student_loan_interest", 0),
     )
+
+    # Set itemized deduction details if itemizing
+    if not deductions_data.get("use_standard_deduction", True):
+        from models.deductions import ItemizedDeductions
+        deductions.itemized = ItemizedDeductions(
+            state_local_income_tax=deductions_data.get("state_local_taxes", 0),
+            mortgage_interest=deductions_data.get("mortgage_interest", 0),
+            charitable_cash=deductions_data.get("charitable_contributions", 0),
+            medical_expenses=deductions_data.get("medical_expenses", 0),
+        )
 
     credits = TaxCredits(
         child_tax_credit=credits_data.get("child_tax_credit", 0),
     )
 
-    return TaxReturn(
+    # Retirement data
+    retirement_data = return_data.get("retirement", {})
+
+    tax_return = TaxReturn(
         tax_year=2025,
         taxpayer=taxpayer,
         income=income,
         deductions=deductions,
         credits=credits,
+        state_of_residence=taxpayer_data.get("state"),
     )
+
+    return tax_return
 
 
 # =============================================================================
@@ -515,9 +594,18 @@ class IntelligentChatEngine:
     3. Automatically loaded from database if not in memory
     """
 
+    # Maximum in-memory sessions before cleanup triggers
+    MAX_IN_MEMORY_SESSIONS = 500
+    # Sessions idle longer than this (seconds) are evicted from memory
+    SESSION_IDLE_TIMEOUT = 3600  # 1 hour
+    # Maximum conversation history messages per session before pruning
+    MAX_CONVERSATION_HISTORY = 100
+
     def __init__(self):
         # In-memory cache for fast access
         self.sessions: Dict[str, Dict[str, Any]] = {}
+        # Track last access time for memory eviction
+        self._session_access_times: Dict[str, datetime] = {}
         # Lock for thread-safe operations
         self._lock = threading.Lock()
         # Database persistence layer
@@ -528,6 +616,39 @@ class IntelligentChatEngine:
                 logger.info("Intelligent Advisor: Database persistence enabled")
             except Exception as e:
                 logger.warning(f"Could not initialize persistence: {e}")
+
+    def _cleanup_stale_sessions(self) -> None:
+        """Evict idle sessions from memory (they remain in database)."""
+        if len(self.sessions) < self.MAX_IN_MEMORY_SESSIONS:
+            return
+
+        now = datetime.now()
+        to_evict = []
+        for sid, last_access in self._session_access_times.items():
+            elapsed = (now - last_access).total_seconds()
+            if elapsed > self.SESSION_IDLE_TIMEOUT:
+                to_evict.append(sid)
+
+        for sid in to_evict:
+            if sid in self.sessions:
+                self._save_session_to_db(sid, self.sessions[sid])
+                del self.sessions[sid]
+            self._session_access_times.pop(sid, None)
+
+        if to_evict:
+            logger.info(f"Evicted {len(to_evict)} idle sessions from memory, {len(self.sessions)} remain")
+
+    @staticmethod
+    def _prune_conversation(conversation: list) -> list:
+        """Prune conversation history if it exceeds MAX_CONVERSATION_HISTORY.
+
+        Keeps the first 2 messages (welcome + first user message for context)
+        and the most recent messages up to the limit.
+        """
+        limit = IntelligentChatEngine.MAX_CONVERSATION_HISTORY
+        if len(conversation) <= limit:
+            return conversation
+        return conversation[:2] + conversation[-(limit - 2):]
 
     def _serialize_session_for_db(self, session: Dict[str, Any]) -> Dict[str, Any]:
         """Serialize session data for database storage."""
@@ -605,8 +726,12 @@ class IntelligentChatEngine:
         4. Save new sessions to database
         """
         with self._lock:
+            # Periodically clean up stale in-memory sessions
+            self._cleanup_stale_sessions()
+
             # Fast path: check in-memory cache
             if session_id in self.sessions:
+                self._session_access_times[session_id] = datetime.now()
                 # Touch the session in DB to extend expiry
                 if self._persistence:
                     try:
@@ -619,6 +744,7 @@ class IntelligentChatEngine:
             loaded_session = self._load_session_from_db(session_id)
             if loaded_session:
                 self.sessions[session_id] = loaded_session
+                self._session_access_times[session_id] = datetime.now()
                 return loaded_session
 
             # Create new session with FULL checkpoint support for multi-turn undo
@@ -649,6 +775,7 @@ class IntelligentChatEngine:
                 # }
             }
             self.sessions[session_id] = new_session
+            self._session_access_times[session_id] = datetime.now()
 
             # Save to database
             self._save_session_to_db(session_id, new_session)
@@ -761,25 +888,51 @@ class IntelligentChatEngine:
         }
 
     def calculate_profile_completeness(self, profile: Dict[str, Any]) -> float:
-        """Calculate how complete the user's profile is."""
-        required_fields = [
-            "filing_status", "total_income", "dependents", "state"
+        """
+        Calculate how complete the user's profile is.
+
+        Three tiers:
+        - Core (40%): filing_status, total_income, state, dependents, income_type
+        - Financial (40%): deductions, retirement, investments, age
+        - Detail (20%): specific amounts, K-1, rental, HSA, student loans
+        """
+        # Core fields (must have for any calculation)
+        core_fields = ["filing_status", "total_income", "state", "dependents"]
+        core_count = sum(1 for f in core_fields if profile.get(f) is not None and profile.get(f) != "")
+        has_income_type = bool(profile.get("income_type") or profile.get("is_self_employed"))
+        core_score = ((core_count + (1 if has_income_type else 0)) / 5) * 0.40
+
+        # Financial context (asked or answered — skips count as answered)
+        financial_fields = [
+            # Field or its "asked" flag
+            ("age", "_asked_age"),
+            ("retirement_401k", "_asked_retirement"),
+            ("mortgage_interest", "_asked_deductions"),
+            ("investment_income", "_asked_investments"),
+            ("k1_ordinary_income", "_asked_k1"),
+            ("rental_income", "_asked_rental"),
         ]
-        optional_fields = [
-            "w2_income", "business_income", "mortgage_interest",
-            "charitable_donations", "retirement_401k"
+        financial_count = sum(
+            1 for field, asked_flag in financial_fields
+            if profile.get(field) is not None or profile.get(asked_flag)
+        )
+        financial_score = (financial_count / len(financial_fields)) * 0.40
+
+        # Detail fields (nice to have for comprehensive report)
+        detail_fields = [
+            ("hsa_contributions", "_asked_hsa"),
+            ("charitable_donations", "_asked_charitable_amount"),
+            ("student_loan_interest", "_asked_student_loans"),
+            ("estimated_payments", "_asked_estimated"),
+            ("business_income", "_asked_business"),
         ]
+        detail_count = sum(
+            1 for field, asked_flag in detail_fields
+            if profile.get(field) is not None or profile.get(asked_flag)
+        )
+        detail_score = (detail_count / len(detail_fields)) * 0.20
 
-        required_count = sum(1 for f in required_fields if profile.get(f))
-        optional_count = sum(1 for f in optional_fields if profile.get(f))
-
-        required_weight = 0.6
-        optional_weight = 0.4
-
-        required_score = (required_count / len(required_fields)) * required_weight
-        optional_score = (optional_count / len(optional_fields)) * optional_weight
-
-        return min(1.0, required_score + optional_score)
+        return min(1.0, core_score + financial_score + detail_score)
 
     def calculate_lead_score(self, profile: Dict[str, Any]) -> int:
         """Calculate lead quality score for CPA handoff."""
@@ -2302,7 +2455,10 @@ def parse_user_message(message: str, current_profile: dict) -> dict:
         try:
             updates["business_income"] = float(biz_match.group(1).replace(',', ''))
         except ValueError:
-            pass
+            updates["_clarification_needed"] = {
+                "field": "business_income",
+                "message": "I couldn't quite understand that amount. Could you tell me just the number? For example: $75,000"
+            }
 
     # Rental Income
     if re.search(r'\brental|\bland\s*lord|\bproperty\s*income|\btenant', msg_lower):
@@ -2312,7 +2468,10 @@ def parse_user_message(message: str, current_profile: dict) -> dict:
             try:
                 updates["rental_income"] = float(rental_match.group(1).replace(',', ''))
             except ValueError:
-                pass
+                updates["_clarification_needed"] = {
+                    "field": "rental_income",
+                    "message": "I couldn't quite understand that amount. Could you tell me just the number? For example: $24,000"
+                }
 
     # Investment Income
     if re.search(r'\binvestment|\bdividend|\bcapital\s*gain|\bstock|\bcrypto|\btrading', msg_lower):
@@ -2322,7 +2481,10 @@ def parse_user_message(message: str, current_profile: dict) -> dict:
             try:
                 updates["investment_income"] = float(inv_match.group(1).replace(',', ''))
             except ValueError:
-                pass
+                updates["_clarification_needed"] = {
+                    "field": "investment_income",
+                    "message": "I couldn't quite understand that amount. Could you tell me just the number? For example: $10,000"
+                }
 
     # Retirement Income
     if re.search(r'\bretired|\bpension|\bsocial\s*security|\b401k\s*withdraw|\bira\s*distribut', msg_lower):
@@ -2411,7 +2573,10 @@ def parse_user_message(message: str, current_profile: dict) -> dict:
         try:
             updates["mortgage_interest"] = float(mort_match.group(1).replace(',', ''))
         except ValueError:
-            pass
+            updates["_clarification_needed"] = {
+                "field": "mortgage_interest",
+                "message": "I couldn't quite understand that amount. Could you tell me just the number? For example: $12,000"
+            }
     elif re.search(r'\bmortgage\b|\bhome\s*loan\b|\bhomeowner\b', msg_lower):
         updates["has_mortgage"] = True
 
@@ -2421,7 +2586,10 @@ def parse_user_message(message: str, current_profile: dict) -> dict:
         try:
             updates["property_taxes"] = float(prop_match.group(1).replace(',', ''))
         except ValueError:
-            pass
+            updates["_clarification_needed"] = {
+                "field": "property_taxes",
+                "message": "I couldn't quite understand that amount. Could you tell me just the number? For example: $5,000"
+            }
 
     # Charitable donations
     char_match = re.search(r'(?:donat|charit|contribut)\w*\s*(?:of\s*)?\$?\s*([\d,]+)', msg_lower)
@@ -2429,7 +2597,10 @@ def parse_user_message(message: str, current_profile: dict) -> dict:
         try:
             updates["charitable_donations"] = float(char_match.group(1).replace(',', ''))
         except ValueError:
-            pass
+            updates["_clarification_needed"] = {
+                "field": "charitable_donations",
+                "message": "I couldn't quite understand that amount. Could you tell me just the number? For example: $5,000"
+            }
     elif re.search(r'\bdonat|\bcharit|\bcontribut|\btithe|\bgive\s*to\s*church', msg_lower):
         updates["has_charitable"] = True
 
@@ -2439,7 +2610,10 @@ def parse_user_message(message: str, current_profile: dict) -> dict:
         try:
             updates["medical_expenses"] = float(med_match.group(1).replace(',', ''))
         except ValueError:
-            pass
+            updates["_clarification_needed"] = {
+                "field": "medical_expenses",
+                "message": "I couldn't quite understand that amount. Could you tell me just the number? For example: $8,000"
+            }
 
     # Student loan interest
     student_match = re.search(r'student\s*loan\s*(?:interest)?\s*(?:of\s*)?\$?\s*([\d,]+)', msg_lower)
@@ -2447,7 +2621,10 @@ def parse_user_message(message: str, current_profile: dict) -> dict:
         try:
             updates["student_loan_interest"] = min(float(student_match.group(1).replace(',', '')), 2500)
         except ValueError:
-            pass
+            updates["_clarification_needed"] = {
+                "field": "student_loan_interest",
+                "message": "I couldn't quite understand that amount. Could you tell me just the number? For example: $2,000"
+            }
     elif re.search(r'\bstudent\s*loan\b', msg_lower):
         updates["has_student_loans"] = True
 
@@ -2461,7 +2638,10 @@ def parse_user_message(message: str, current_profile: dict) -> dict:
         try:
             updates["retirement_401k"] = min(float(k401_match.group(1).replace(',', '')), 30500)
         except ValueError:
-            pass
+            updates["_clarification_needed"] = {
+                "field": "retirement_401k",
+                "message": "I couldn't quite understand that amount. Could you tell me just the number? For example: $20,000"
+            }
     elif re.search(r'\b401\s*k\b', msg_lower):
         updates["has_401k"] = True
 
@@ -2471,7 +2651,10 @@ def parse_user_message(message: str, current_profile: dict) -> dict:
         try:
             updates["retirement_ira"] = min(float(ira_match.group(1).replace(',', '')), 8000)
         except ValueError:
-            pass
+            updates["_clarification_needed"] = {
+                "field": "retirement_ira",
+                "message": "I couldn't quite understand that amount. Could you tell me just the number? For example: $6,500"
+            }
 
     # HSA
     hsa_match = re.search(r'hsa\s*(?:contribut)?\s*(?:of\s*)?\$?\s*([\d,]+)', msg_lower)
@@ -2479,7 +2662,10 @@ def parse_user_message(message: str, current_profile: dict) -> dict:
         try:
             updates["hsa_contributions"] = min(float(hsa_match.group(1).replace(',', '')), 8550)
         except ValueError:
-            pass
+            updates["_clarification_needed"] = {
+                "field": "hsa_contributions",
+                "message": "I couldn't quite understand that amount. Could you tell me just the number? For example: $3,850"
+            }
     elif re.search(r'\bhsa\b|\bhealth\s*savings\b', msg_lower):
         updates["has_hsa"] = True
 
@@ -2527,10 +2713,10 @@ def parse_user_message(message: str, current_profile: dict) -> dict:
     # 10. AGE DETECTION
     # =========================================================================
 
-    age_match = re.search(r'(?:i\'m|i\s*am|age)\s*(\d{2})\s*(?:years?\s*old)?', msg_lower)
+    age_match = re.search(r'(?:i\'m|i\s*am|age)\s*(\d{1,3})\s*(?:years?\s*old)?', msg_lower)
     if age_match:
         age = int(age_match.group(1))
-        if 18 <= age <= 100:
+        if 0 <= age <= 120:
             updates["age"] = age
 
     # Over 65 check
@@ -2887,6 +3073,59 @@ class EnhancedParser:
                     "action": "consider_hoh"
                 })
 
+        # Validate deduction/credit amounts: $0 to $1,000,000
+        deduction_fields = [
+            ("mortgage_interest", "mortgage interest"),
+            ("property_taxes", "property taxes"),
+            ("charitable_donations", "charitable donations"),
+            ("medical_expenses", "medical expenses"),
+            ("student_loan_interest", "student loan interest"),
+        ]
+        for field_key, field_label in deduction_fields:
+            val = extracted.get(field_key)
+            if val is not None:
+                if val < 0:
+                    result["auto_corrections"][field_key] = abs(val)
+                    result["warnings"].append({
+                        "field": field_key,
+                        "message": f"{field_label.title()} cannot be negative. Corrected to ${abs(val):,.0f}.",
+                        "auto_corrected": True
+                    })
+                elif val > 1000000:
+                    result["warnings"].append({
+                        "field": field_key,
+                        "message": f"${val:,.0f} for {field_label} seems unusually high.",
+                        "suggestion": f"Please confirm your {field_label} amount is correct.",
+                        "possible_correction": None
+                    })
+                    result["valid"] = False
+
+        # Validate age: 0 to 120
+        age = extracted.get("age")
+        if age is not None:
+            if age < 0 or age > 120:
+                result["warnings"].append({
+                    "field": "age",
+                    "message": f"Age {age} is outside the valid range (0-120).",
+                    "suggestion": "Please provide your correct age."
+                })
+                result["valid"] = False
+            elif age < 16:
+                result["warnings"].append({
+                    "field": "age",
+                    "message": f"Age {age} is unusual for a tax filer.",
+                    "suggestion": "Please confirm your age is correct."
+                })
+
+        # Validate dependents: 0 to 20
+        if dependents is not None and dependents > 20:
+            result["auto_corrections"]["dependents"] = 20
+            result["warnings"].append({
+                "field": "dependents",
+                "message": f"{dependents} dependents exceeds the maximum (20). Capped at 20.",
+                "auto_corrected": True
+            })
+
         # Check spouse-related conflicts
         if extracted.get("filing_status") == "single":
             spouse_words = ["spouse", "wife", "husband", "married"]
@@ -3183,6 +3422,16 @@ def enhanced_parse_user_message(message: str, current_profile: dict, session: di
         if field in standard_extracted:
             result["extracted"][field] = standard_extracted[field]
 
+    # 5b. Propagate clarification request if parser could not understand an amount
+    if "_clarification_needed" in standard_extracted:
+        clarification = standard_extracted["_clarification_needed"]
+        result["needs_confirmation"].append({
+            "field": clarification["field"],
+            "value": None,
+            "message": clarification["message"]
+        })
+        result["extracted"].pop("_clarification_needed", None)
+
     # 6. Check for ambiguous amounts
     ambiguous = EnhancedParser.detect_ambiguous_amounts(message)
     result["ambiguous"] = ambiguous
@@ -3378,8 +3627,15 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None) -> tu
     """
     Dynamically determine the next question based on what's missing.
     Returns (question_text, quick_actions)
+
+    Three phases:
+      Phase 1 - Basics: filing status, income, state, dependents, income type
+      Phase 2 - Deep dive: deductions, retirement, investments, age, etc.
+      Phase 3 - Done: return (None, None) to trigger calculation
     """
-    # Priority order for questions
+    # =========================================================================
+    # PHASE 1: Core basics (must have before anything else)
+    # =========================================================================
     if not profile.get("filing_status"):
         return (
             "What's your filing status for this tax year?",
@@ -3424,7 +3680,6 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None) -> tu
             ]
         )
 
-    # If we have basics, ask about income type
     if not profile.get("income_type") and not profile.get("is_self_employed"):
         return (
             "What's your primary source of income?",
@@ -3436,7 +3691,176 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None) -> tu
             ]
         )
 
-    # All basics collected - ready for analysis
+    # =========================================================================
+    # PHASE 2: Deep dive - context-aware follow-ups for a complete profile
+    # User can skip any question with "Skip" button to move forward
+    # =========================================================================
+
+    # If user has already opted to skip deep dive, go straight to calculation
+    if profile.get("_skip_deep_dive"):
+        return (None, None)
+
+    total_income = profile.get("total_income", 0) or 0
+
+    # --- Age (affects standard deduction for 65+) ---
+    if not profile.get("age") and not profile.get("_asked_age"):
+        return (
+            "What is your age? This helps determine your standard deduction and eligibility for certain credits.",
+            [
+                {"label": "Under 50", "value": "age_under_50"},
+                {"label": "50-64", "value": "age_50_64"},
+                {"label": "65 or older", "value": "age_65_plus"},
+                {"label": "Skip", "value": "skip_age"}
+            ]
+        )
+
+    # --- Self-employment / Business deep dive ---
+    if profile.get("is_self_employed") or profile.get("income_type") in ("self_employed", "business_owner"):
+        if not profile.get("business_income") and not profile.get("_asked_business"):
+            return (
+                "What's your approximate net business income (after expenses)?",
+                [
+                    {"label": "Under $50K", "value": "biz_under_50k"},
+                    {"label": "$50K - $100K", "value": "biz_50_100k"},
+                    {"label": "$100K - $200K", "value": "biz_100_200k"},
+                    {"label": "Over $200K", "value": "biz_over_200k"},
+                    {"label": "Skip", "value": "skip_business"}
+                ]
+            )
+        if not profile.get("home_office_sqft") and not profile.get("_asked_home_office"):
+            return (
+                "Do you use part of your home exclusively for business? If so, approximately how many square feet?",
+                [
+                    {"label": "Yes, I have a home office", "value": "has_home_office"},
+                    {"label": "No home office", "value": "no_home_office"},
+                    {"label": "Skip", "value": "skip_home_office"}
+                ]
+            )
+
+    # --- K-1 / Partnership / S-Corp income ---
+    if not profile.get("k1_ordinary_income") and not profile.get("_asked_k1"):
+        return (
+            "Do you receive any K-1 income from partnerships, S-corporations, or trusts?",
+            [
+                {"label": "Yes, I have K-1 income", "value": "has_k1_income"},
+                {"label": "No K-1 income", "value": "no_k1_income"},
+                {"label": "Skip", "value": "skip_k1"}
+            ]
+        )
+
+    # --- Investment income (dividends, capital gains) ---
+    if not profile.get("investment_income") and not profile.get("capital_gains_long") and not profile.get("_asked_investments"):
+        return (
+            "Do you have any investment income? This includes stock sales, dividends, interest, or cryptocurrency.",
+            [
+                {"label": "Yes, I have investments", "value": "has_investments"},
+                {"label": "No investment income", "value": "no_investments"},
+                {"label": "Skip", "value": "skip_investments"}
+            ]
+        )
+
+    # --- Rental income ---
+    if not profile.get("rental_income") and not profile.get("_asked_rental"):
+        return (
+            "Do you own any rental properties?",
+            [
+                {"label": "Yes, I have rental income", "value": "has_rental"},
+                {"label": "No rental properties", "value": "no_rental"},
+                {"label": "Skip", "value": "skip_rental"}
+            ]
+        )
+
+    # --- Retirement contributions (401k, IRA, HSA) ---
+    if not profile.get("retirement_401k") and not profile.get("retirement_ira") and not profile.get("_asked_retirement"):
+        return (
+            "Are you contributing to any retirement accounts? This can significantly reduce your taxes.",
+            [
+                {"label": "401(k) / 403(b)", "value": "has_401k"},
+                {"label": "IRA (Traditional or Roth)", "value": "has_ira"},
+                {"label": "Both 401(k) and IRA", "value": "has_both_retirement"},
+                {"label": "No retirement contributions", "value": "no_retirement"},
+                {"label": "Skip", "value": "skip_retirement"}
+            ]
+        )
+
+    # --- HSA contributions ---
+    if not profile.get("hsa_contributions") and not profile.get("_asked_hsa"):
+        if profile.get("retirement_401k") or profile.get("retirement_ira"):
+            # Already asked about retirement, now ask HSA separately
+            return (
+                "Do you have a Health Savings Account (HSA)? Contributions are triple tax-advantaged.",
+                [
+                    {"label": "Yes, I have an HSA", "value": "has_hsa"},
+                    {"label": "No HSA", "value": "no_hsa"},
+                    {"label": "Skip", "value": "skip_hsa"}
+                ]
+            )
+
+    # --- Major deductions (mortgage, charitable, medical) ---
+    if not profile.get("mortgage_interest") and not profile.get("_asked_deductions"):
+        return (
+            "Let's check your deductions. Do you have any of these? Select all that apply.",
+            [
+                {"label": "Mortgage interest", "value": "has_mortgage"},
+                {"label": "Charitable donations", "value": "has_charitable"},
+                {"label": "High medical expenses", "value": "has_medical"},
+                {"label": "None of these / Standard deduction", "value": "no_itemized_deductions"},
+                {"label": "Skip", "value": "skip_deductions"}
+            ]
+        )
+
+    # --- Mortgage follow-up ---
+    if profile.get("_has_mortgage") and not profile.get("mortgage_interest") and not profile.get("_asked_mortgage_amount"):
+        return (
+            "Approximately how much mortgage interest did you pay this year? (Check your Form 1098)",
+            [
+                {"label": "Under $5,000", "value": "mortgage_under_5k"},
+                {"label": "$5,000 - $15,000", "value": "mortgage_5_15k"},
+                {"label": "$15,000 - $30,000", "value": "mortgage_15_30k"},
+                {"label": "Over $30,000", "value": "mortgage_over_30k"},
+                {"label": "Skip", "value": "skip_mortgage_amount"}
+            ]
+        )
+
+    # --- Charitable follow-up ---
+    if profile.get("_has_charitable") and not profile.get("charitable_donations") and not profile.get("_asked_charitable_amount"):
+        return (
+            "Approximately how much did you donate to charity this year?",
+            [
+                {"label": "Under $1,000", "value": "charity_under_1k"},
+                {"label": "$1,000 - $5,000", "value": "charity_1_5k"},
+                {"label": "$5,000 - $20,000", "value": "charity_5_20k"},
+                {"label": "Over $20,000", "value": "charity_over_20k"},
+                {"label": "Skip", "value": "skip_charitable_amount"}
+            ]
+        )
+
+    # --- Estimated tax payments ---
+    if total_income > 100000 and not profile.get("estimated_payments") and not profile.get("_asked_estimated"):
+        return (
+            "Have you made any estimated tax payments for this year?",
+            [
+                {"label": "Yes", "value": "has_estimated_payments"},
+                {"label": "No", "value": "no_estimated_payments"},
+                {"label": "Skip", "value": "skip_estimated"}
+            ]
+        )
+
+    # --- Student loan interest ---
+    if not profile.get("student_loan_interest") and not profile.get("_asked_student_loans"):
+        if total_income < 180000:  # Phase-out threshold
+            return (
+                "Did you pay any student loan interest this year? (Up to $2,500 may be deductible)",
+                [
+                    {"label": "Yes", "value": "has_student_loans"},
+                    {"label": "No student loans", "value": "no_student_loans"},
+                    {"label": "Skip", "value": "skip_student_loans"}
+                ]
+            )
+
+    # =========================================================================
+    # PHASE 3: All deep-dive questions answered or skipped - ready for analysis
+    # =========================================================================
     return (None, None)
 
 
@@ -3764,6 +4188,128 @@ async def intelligent_chat(request: ChatRequest):
         profile = session["profile"]
 
     # =========================================================================
+    # QUICK ACTION VALUE HANDLER (Phase 2 deep-dive buttons)
+    # Maps button clicks directly to profile updates before NLU parsing
+    # =========================================================================
+    _quick_action_handled = False
+    _quick_action_map = {
+        # Age quick actions
+        "age_under_50": {"age": 35},
+        "age_50_64": {"age": 57},
+        "age_65_plus": {"age": 67},
+        "skip_age": {"_asked_age": True},
+        # Business deep dive
+        "biz_under_50k": {"business_income": 25000},
+        "biz_50_100k": {"business_income": 75000},
+        "biz_100_200k": {"business_income": 150000},
+        "biz_over_200k": {"business_income": 300000},
+        "skip_business": {"_asked_business": True},
+        "has_home_office": {"home_office_sqft": 200},  # Reasonable default, will ask to refine
+        "no_home_office": {"home_office_sqft": 0, "_asked_home_office": True},
+        "skip_home_office": {"_asked_home_office": True},
+        # K-1 income
+        "has_k1_income": {"_has_k1": True},
+        "no_k1_income": {"_asked_k1": True, "k1_ordinary_income": 0},
+        "skip_k1": {"_asked_k1": True},
+        # Investment income
+        "has_investments": {"_has_investments": True},
+        "no_investments": {"_asked_investments": True, "investment_income": 0},
+        "skip_investments": {"_asked_investments": True},
+        # Rental income
+        "has_rental": {"_has_rental": True},
+        "no_rental": {"_asked_rental": True, "rental_income": 0},
+        "skip_rental": {"_asked_rental": True},
+        # Retirement
+        "has_401k": {"_has_401k": True, "retirement_401k": 23000},  # Max contribution as default
+        "has_ira": {"_has_ira": True, "retirement_ira": 7000},
+        "has_both_retirement": {"retirement_401k": 23000, "retirement_ira": 7000},
+        "no_retirement": {"_asked_retirement": True, "retirement_401k": 0, "retirement_ira": 0},
+        "skip_retirement": {"_asked_retirement": True},
+        # HSA
+        "has_hsa": {"hsa_contributions": 4150},  # 2025 individual limit
+        "no_hsa": {"_asked_hsa": True, "hsa_contributions": 0},
+        "skip_hsa": {"_asked_hsa": True},
+        # Deductions
+        "has_mortgage": {"_has_mortgage": True, "_asked_deductions": True},
+        "has_charitable": {"_has_charitable": True, "_asked_deductions": True},
+        "has_medical": {"_has_medical": True, "_asked_deductions": True},
+        "no_itemized_deductions": {"_asked_deductions": True, "mortgage_interest": 0, "charitable_donations": 0},
+        "skip_deductions": {"_asked_deductions": True},
+        # Mortgage amount follow-up
+        "mortgage_under_5k": {"mortgage_interest": 3000},
+        "mortgage_5_15k": {"mortgage_interest": 10000},
+        "mortgage_15_30k": {"mortgage_interest": 22000},
+        "mortgage_over_30k": {"mortgage_interest": 35000},
+        "skip_mortgage_amount": {"_asked_mortgage_amount": True, "mortgage_interest": 10000},
+        # Charitable amount follow-up
+        "charity_under_1k": {"charitable_donations": 500},
+        "charity_1_5k": {"charitable_donations": 3000},
+        "charity_5_20k": {"charitable_donations": 12000},
+        "charity_over_20k": {"charitable_donations": 25000},
+        "skip_charitable_amount": {"_asked_charitable_amount": True, "charitable_donations": 2000},
+        # Estimated payments
+        "has_estimated_payments": {"_has_estimated_payments": True},
+        "no_estimated_payments": {"_asked_estimated": True, "estimated_payments": 0},
+        "skip_estimated": {"_asked_estimated": True},
+        # Student loans
+        "has_student_loans": {"student_loan_interest": 2500},  # Max deductible
+        "no_student_loans": {"_asked_student_loans": True, "student_loan_interest": 0},
+        "skip_student_loans": {"_asked_student_loans": True},
+        # Skip deep dive entirely
+        "skip_deep_dive": {"_skip_deep_dive": True},
+    }
+
+    if msg_lower in _quick_action_map:
+        updates = _quick_action_map[msg_lower]
+        profile.update(updates)
+        session = chat_engine.update_session(request.session_id, {"profile": profile})
+        _quick_action_handled = True
+
+        # Create checkpoint for undo
+        real_fields = [k for k in updates.keys() if not k.startswith("_")]
+        if real_fields:
+            chat_engine.create_checkpoint(request.session_id, msg_original, real_fields)
+
+        # Acknowledge and move to next question
+        next_q, next_actions = _get_dynamic_next_question(profile)
+
+        if next_q:
+            # Build a brief acknowledgment based on what was just set
+            ack = ""
+            if "age" in updates:
+                ack = f"Got it, age {updates['age']}. "
+            elif "business_income" in updates:
+                ack = f"Noted — ${updates['business_income']:,.0f} business income. "
+            elif "retirement_401k" in updates or "retirement_ira" in updates:
+                amounts = []
+                if updates.get("retirement_401k"):
+                    amounts.append(f"401(k): ${updates['retirement_401k']:,.0f}")
+                if updates.get("retirement_ira"):
+                    amounts.append(f"IRA: ${updates['retirement_ira']:,.0f}")
+                ack = f"Great — {', '.join(amounts)}. " if amounts else "Noted. "
+            elif "mortgage_interest" in updates and updates["mortgage_interest"] > 0:
+                ack = f"Got it — ${updates['mortgage_interest']:,.0f} in mortgage interest. "
+            elif "charitable_donations" in updates and updates["charitable_donations"] > 0:
+                ack = f"Noted — ${updates['charitable_donations']:,.0f} in charitable donations. "
+            elif "hsa_contributions" in updates and updates["hsa_contributions"] > 0:
+                ack = f"Great — ${updates['hsa_contributions']:,.0f} HSA contribution. "
+            elif any(k.startswith("_asked") or k.startswith("skip") for k in updates):
+                ack = ""  # Silent skip
+            elif any(updates.get(k) == 0 for k in ["k1_ordinary_income", "investment_income", "rental_income"]):
+                ack = ""  # "No" answers don't need acknowledgment
+
+            return ChatResponse(
+                session_id=request.session_id,
+                response=ack + next_q,
+                response_type="question",
+                profile_completeness=chat_engine.calculate_profile_completeness(profile),
+                lead_score=chat_engine.calculate_lead_score(profile),
+                complexity=chat_engine.determine_complexity(profile),
+                quick_actions=next_actions
+            )
+        # else: fall through to calculation below
+
+    # =========================================================================
     # ENHANCED PARSING with confidence scoring, fuzzy matching, validation
     # =========================================================================
     correction_made = False
@@ -3773,7 +4319,7 @@ async def intelligent_chat(request: ChatRequest):
     detected_conflicts = []
     validation_warnings = []
 
-    if request.message:
+    if request.message and not _quick_action_handled:
         # Use enhanced parser for robustness
         parse_result = enhanced_parse_user_message(request.message, profile, session)
 
@@ -3816,6 +4362,7 @@ async def intelligent_chat(request: ChatRequest):
             extracted.pop("_is_correction", None)
             extracted.pop("_changed_field", None)
             extracted.pop("_response_type", None)
+            extracted.pop("_clarification_needed", None)
 
             # CREATE CHECKPOINT BEFORE applying changes (for undo capability)
             if extracted_fields:
@@ -3832,6 +4379,38 @@ async def intelligent_chat(request: ChatRequest):
             # Log with confidence scores
             confidence_info = parse_result.get("confidence", {})
             logger.info(f"Enhanced extraction: {extracted} (confidence: {confidence_info})")
+
+            # Wire contextual follow-ups: detect topics mentioned and use them
+            # to drive the deep-dive question flow
+            if request.message:
+                detected_topics = ConversationContext.detect_topic(request.message)
+                for topic in detected_topics:
+                    # Map detected topics to profile flags that drive follow-up questions
+                    topic_flag_map = {
+                        "rental_income": "_has_rental",
+                        "business_income": "is_self_employed",
+                        "investment_income": "_has_investments",
+                        "self_employed": "is_self_employed",
+                        "retirement": "_has_retirement",
+                        "mortgage": "_has_mortgage",
+                        "charitable": "_has_charitable",
+                        "medical": "_has_medical",
+                        "education": "_has_education",
+                    }
+                    flag = topic_flag_map.get(topic)
+                    if flag and not profile.get(flag):
+                        profile[flag] = True
+                        session = chat_engine.update_session(
+                            request.session_id, {"profile": profile}
+                        )
+
+                # Use contextual follow-up from ConversationContext (was dead code)
+                contextual_followup = ConversationContext.get_contextual_follow_up(
+                    extracted, profile, session
+                )
+                if contextual_followup:
+                    # Store as a hint for response building
+                    session["_contextual_followup"] = contextual_followup
 
     # Calculate metrics
     completeness = chat_engine.calculate_profile_completeness(profile)
@@ -3953,8 +4532,36 @@ async def intelligent_chat(request: ChatRequest):
             warnings=[warning.get("message", "")]
         )
 
+    # Check if there are still deep-dive questions to ask before calculating
+    has_basics = profile.get("total_income") and profile.get("filing_status") and profile.get("state")
+    next_deep_q, next_deep_actions = _get_dynamic_next_question(profile)
+
+    # If basics are done but deep-dive questions remain, ask them first
+    if has_basics and next_deep_q:
+        # Include a "Skip to Results" option so user isn't trapped
+        if next_deep_actions and not any(a.get("value") == "skip_deep_dive" for a in next_deep_actions):
+            next_deep_actions.append({"label": "Skip to Results", "value": "skip_deep_dive"})
+
+        # Use contextual follow-up if available (from topic detection)
+        contextual = session.get("_contextual_followup")
+        if contextual:
+            response_text = f"{correction_prefix}{contextual}"
+            session.pop("_contextual_followup", None)
+        else:
+            response_text = f"{correction_prefix}{next_deep_q}"
+
+        return ChatResponse(
+            session_id=request.session_id,
+            response=response_text,
+            response_type="question",
+            profile_completeness=completeness,
+            lead_score=lead_score,
+            complexity=complexity,
+            quick_actions=next_deep_actions
+        )
+
     # If we have enough data, calculate taxes
-    if profile.get("total_income") and profile.get("filing_status") and profile.get("state"):
+    if has_basics:
         tax_calculation = await chat_engine.get_tax_calculation(profile)
 
         # Get strategies
@@ -3978,7 +4585,21 @@ async def intelligent_chat(request: ChatRequest):
         state_display = f" in {profile.get('state')}" if profile.get('state') else ""
         dependents_display = f" with {profile.get('dependents')} dependent(s)" if profile.get('dependents') else ""
 
-        response_text = f"""{correction_prefix}Based on your profile ({filing_display}, {income_display}{state_display}{dependents_display}):
+        # Show richer profile summary in calculation response
+        extra_info = []
+        if profile.get("retirement_401k"):
+            extra_info.append(f"401(k): ${profile['retirement_401k']:,.0f}")
+        if profile.get("mortgage_interest") and profile["mortgage_interest"] > 0:
+            extra_info.append(f"Mortgage interest: ${profile['mortgage_interest']:,.0f}")
+        if profile.get("charitable_donations") and profile["charitable_donations"] > 0:
+            extra_info.append(f"Charitable: ${profile['charitable_donations']:,.0f}")
+        if profile.get("business_income") and profile["business_income"] > 0:
+            extra_info.append(f"Business income: ${profile['business_income']:,.0f}")
+        extra_display = ""
+        if extra_info:
+            extra_display = "\n\n**Profile Details:** " + " | ".join(extra_info)
+
+        response_text = f"""{correction_prefix}Based on your profile ({filing_display}, {income_display}{state_display}{dependents_display}):{extra_display}
 
 **Your Tax Position:**
 • Federal Tax: **${tax_calculation.federal_tax:,.0f}**
@@ -3986,7 +4607,7 @@ async def intelligent_chat(request: ChatRequest):
 • Total Tax: **${tax_calculation.total_tax:,.0f}**
 • Effective Rate: **{tax_calculation.effective_rate:.1f}%**
 
-**🎯 I found ${total_savings:,.0f} in potential savings across {len(strategies)} strategies!**"""
+**I found ${total_savings:,.0f} in potential savings across {len(strategies)} strategies!**"""
 
         if strategies:
             response_text += f"\n\nYour top opportunity: **{strategies[0].title}** could save you **${strategies[0].estimated_savings:,.0f}**."
@@ -3994,7 +4615,7 @@ async def intelligent_chat(request: ChatRequest):
         response_text += "\n\nWould you like me to explain your top strategies, generate your full advisory report, or update any information?"
 
         quick_actions = [
-            {"label": "Show Top Strategies →", "value": "show_strategies", "primary": True},
+            {"label": "Show Top Strategies", "value": "show_strategies", "primary": True},
             {"label": "Generate Full Report", "value": "generate_report"},
             {"label": "Update My Info", "value": "update_info"},
             {"label": "Connect with CPA", "value": "connect_cpa"}
@@ -4048,6 +4669,12 @@ async def intelligent_chat(request: ChatRequest):
         warnings.append(f"⚠️ {urgency_message}")
     elif urgency_level == "HIGH":
         key_insights.insert(0, f"📅 {urgency_message}")
+
+    # Record conversation messages and prune if needed
+    conversation = session.get("conversation", [])
+    conversation.append({"role": "user", "content": msg_original, "timestamp": datetime.now().isoformat()})
+    conversation.append({"role": "assistant", "content": response_text, "timestamp": datetime.now().isoformat()})
+    session["conversation"] = chat_engine._prune_conversation(conversation)
 
     try:
         return ChatResponse(

@@ -392,6 +392,113 @@ async def check_prior_year():
         }
 
 
+@router.get("/{session_id}/pdf")
+async def download_express_lane_pdf(session_id: str):
+    """Download PDF report for an Express Lane result."""
+    try:
+        persistence = get_session_persistence()
+        session = persistence.get_unified_session(session_id)
+
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        results = session.calculated_results or {}
+        user_data = session.user_confirmed_data or {}
+
+        # Try ReportLab PDF generation
+        try:
+            from reportlab.lib.pagesizes import letter
+            from reportlab.pdfgen import canvas
+            from reportlab.lib.units import inch
+            import io
+
+            buffer = io.BytesIO()
+            c = canvas.Canvas(buffer, pagesize=letter)
+            width, height = letter
+
+            c.setFont("Helvetica-Bold", 20)
+            c.drawString(1*inch, height - 1*inch, "Tax Return Summary")
+
+            c.setFont("Helvetica", 12)
+            y = height - 1.5*inch
+
+            name = f"{user_data.get('first_name', '')} {user_data.get('last_name', '')}".strip() or "Taxpayer"
+            c.drawString(1*inch, y, f"Prepared for: {name}")
+            y -= 0.3*inch
+            c.drawString(1*inch, y, f"Tax Year: {session.tax_year or 2025}")
+            y -= 0.3*inch
+            c.drawString(1*inch, y, f"Session: {session_id}")
+            y -= 0.5*inch
+
+            c.setFont("Helvetica-Bold", 14)
+            c.drawString(1*inch, y, "Calculation Results")
+            y -= 0.4*inch
+
+            c.setFont("Helvetica", 12)
+            total_tax = results.get("total_tax", 0)
+            effective_rate = results.get("effective_rate", 0)
+            refund = results.get("refund")
+            tax_due = results.get("tax_due")
+
+            c.drawString(1*inch, y, f"Total Tax: ${total_tax:,.2f}")
+            y -= 0.3*inch
+            c.drawString(1*inch, y, f"Effective Rate: {effective_rate:.1f}%")
+            y -= 0.3*inch
+
+            if refund:
+                c.drawString(1*inch, y, f"Estimated Refund: ${refund:,.2f}")
+            elif tax_due:
+                c.drawString(1*inch, y, f"Estimated Tax Due: ${tax_due:,.2f}")
+            y -= 0.5*inch
+
+            c.setFont("Helvetica-Oblique", 9)
+            c.drawString(1*inch, 1*inch, "This is an estimate only. Consult a tax professional for official filing.")
+
+            c.save()
+            buffer.seek(0)
+
+            from fastapi.responses import StreamingResponse
+            return StreamingResponse(
+                buffer,
+                media_type="application/pdf",
+                headers={"Content-Disposition": f"attachment; filename=tax-summary-{session_id}.pdf"}
+            )
+
+        except ImportError:
+            from fastapi.responses import Response
+
+            text_lines = [
+                "TAX RETURN SUMMARY",
+                "=" * 40,
+                f"Session: {session_id}",
+                f"Tax Year: {session.tax_year or 2025}",
+                "",
+                f"Total Tax: ${results.get('total_tax', 0):,.2f}",
+                f"Effective Rate: {results.get('effective_rate', 0):.1f}%",
+            ]
+
+            if results.get("refund"):
+                text_lines.append(f"Estimated Refund: ${results['refund']:,.2f}")
+            elif results.get("tax_due"):
+                text_lines.append(f"Estimated Tax Due: ${results['tax_due']:,.2f}")
+
+            text_lines.append("")
+            text_lines.append("This is an estimate only. Consult a tax professional for official filing.")
+
+            content = "\n".join(text_lines)
+            return Response(
+                content=content,
+                media_type="text/plain",
+                headers={"Content-Disposition": f"attachment; filename=tax-summary-{session_id}.txt"}
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"PDF generation failed for session {session_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate PDF report")
+
+
 # =============================================================================
 # Improved Helper Functions
 # =============================================================================

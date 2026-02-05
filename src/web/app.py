@@ -142,6 +142,10 @@ logger.info(f"CORS middleware enabled for origins: {cors_origins}")
 # SECURITY MIDDLEWARE CONFIGURATION (ORDER MATTERS - Last added = First executed)
 # =============================================================================
 
+# Define environment detection BEFORE middleware blocks so it's always available
+_environment = os.environ.get("APP_ENVIRONMENT", "development")
+_is_production = _environment in ("production", "prod", "staging")
+
 # 1. Security Headers (HSTS, CSP, X-Frame-Options, etc.)
 try:
     app.add_middleware(SecurityHeadersMiddleware)
@@ -178,9 +182,6 @@ except Exception as e:
     logger.warning(f"Request validation middleware failed: {e}")
 
 # 4. CSRF Protection (for state-changing operations)
-# Define environment detection BEFORE try block so it's always available
-_environment = os.environ.get("APP_ENVIRONMENT", "development")
-_is_production = _environment in ("production", "prod", "staging")
 
 try:
     # Get or generate secret key for CSRF tokens
@@ -1160,12 +1161,12 @@ def _get_or_create_session_agent(session_id: Optional[str]) -> tuple[str, TaxAge
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     """
-    Main entry point - redirects to modern intelligent advisor interface.
+    Main entry point - redirects to landing page for new visitors.
 
-    The intelligent_advisor.html provides a premium, modern UI experience.
+    The landing page provides the proper funnel: landing → quick estimate → signup → advisor.
     """
     from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/file", status_code=302)
+    return RedirectResponse(url="/landing", status_code=302)
 
 
 
@@ -3852,33 +3853,43 @@ async def create_lead(request: Request):
     source = body.get("source", "intelligent_advisor")
     status = body.get("status", "new")
 
-    # Create lead record (in production, save to database)
-    lead_data = {
-        "id": f"lead-{session_id[-8:]}" if session_id else f"lead-{secrets.token_hex(4)}",
-        "created_at": datetime.now().isoformat(),
-        "contact": {
-            "name": contact.get("name", ""),
-            "email": contact.get("email", ""),
-            "phone": contact.get("phone", "")
-        },
-        "tax_profile": {
-            "filing_status": tax_profile.get("filing_status", ""),
-            "total_income": tax_profile.get("total_income", 0),
-            "dependents": tax_profile.get("dependents", 0)
-        },
+    # Create lead record
+    lead_id = f"lead-{session_id[-8:]}" if session_id else f"lead-{secrets.token_hex(4)}"
+    lead_metadata = {
+        "name": contact.get("name", ""),
+        "email": contact.get("email", ""),
+        "phone": contact.get("phone", ""),
+        "filing_status": tax_profile.get("filing_status", ""),
+        "total_income": tax_profile.get("total_income", 0),
+        "dependents": tax_profile.get("dependents", 0),
         "lead_score": lead_score,
         "complexity": complexity,
         "estimated_savings": estimated_savings,
         "source": source,
-        "status": status
     }
 
-    # Log the lead for now (in production, save to database)
-    logger.info(f"New lead created: {lead_data['id']} - Score: {lead_score}, Savings: ${estimated_savings}")
+    # Persist lead to database
+    try:
+        from database.lead_state_persistence import LeadStatePersistence
+        persistence = LeadStatePersistence()
+        initial_state = "CURIOUS" if lead_score >= 50 else "BROWSING"
+        persistence.save_lead(
+            lead_id=lead_id,
+            session_id=session_id,
+            tenant_id="default",
+            current_state=initial_state,
+            metadata=lead_metadata,
+        )
+        logger.info(f"Lead persisted to DB: {lead_id} - Score: {lead_score}, State: {initial_state}")
+    except Exception as db_err:
+        # Log but don't fail - lead capture should be resilient
+        logger.error(f"Failed to persist lead {lead_id}: {db_err}")
+
+    logger.info(f"New lead created: {lead_id} - Score: {lead_score}, Savings: ${estimated_savings}")
 
     return JSONResponse({
         "success": True,
-        "lead_id": lead_data["id"],
+        "lead_id": lead_id,
         "message": "Lead captured successfully"
     })
 
