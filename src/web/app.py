@@ -54,6 +54,56 @@ from forms.form_generator import FormGenerator
 from services.ocr import DocumentProcessor, ProcessingResult
 import re
 import logging
+import json as _json_mod
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+_log_level_name = os.environ.get("LOG_LEVEL", "INFO").upper()
+_log_level = getattr(logging, _log_level_name, logging.INFO)
+_log_env = os.environ.get("APP_ENVIRONMENT", "production")
+
+
+class _JSONFormatter(logging.Formatter):
+    """Compact JSON log formatter for production."""
+
+    def format(self, record):
+        log_entry = {
+            "ts": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "logger": record.name,
+            "msg": record.getMessage(),
+        }
+        if record.exc_info and record.exc_info[0]:
+            log_entry["exception"] = self.formatException(record.exc_info)
+        return _json_mod.dumps(log_entry, default=str)
+
+
+def _configure_logging():
+    """Configure root logger: JSON for production, human-readable for dev."""
+    root = logging.getLogger()
+    root.setLevel(_log_level)
+    # Remove default handlers
+    root.handlers.clear()
+
+    handler = logging.StreamHandler()
+    handler.setLevel(_log_level)
+
+    if _log_env in ("production", "prod", "staging"):
+        handler.setFormatter(_JSONFormatter())
+    else:
+        handler.setFormatter(logging.Formatter(
+            "%(asctime)s %(levelname)-8s [%(name)s] %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        ))
+
+    root.addHandler(handler)
+    # Quiet noisy third-party loggers
+    for noisy in ("uvicorn.access", "httpcore", "httpx", "openai"):
+        logging.getLogger(noisy).setLevel(max(_log_level, logging.WARNING))
+
+
+_configure_logging()
 
 # =============================================================================
 # SECURITY IMPORTS - CRITICAL FOR PRODUCTION
@@ -109,14 +159,15 @@ app = FastAPI(title="US Tax Preparation Agent (Tax Year 2025)")
 # =============================================================================
 
 # Get CORS origins from environment (comma-separated list)
-cors_origins_str = os.environ.get("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000,http://127.0.0.1:8000")
+# Default to empty in production so only explicitly configured origins are allowed
+_environment = os.environ.get("APP_ENVIRONMENT", "production")
+_is_dev = _environment not in ("production", "prod", "staging")
+
+cors_origins_str = os.environ.get("CORS_ORIGINS", "")
 cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
 
-# Add explicit localhost origins for development (avoid wildcard for security)
-_environment = os.environ.get("APP_ENVIRONMENT", "development")
-if _environment == "development":
-    # Use explicit localhost origins instead of wildcard "*"
-    # This maintains security while enabling local development
+if _is_dev:
+    # Add explicit localhost origins for development (avoid wildcard for security)
     dev_origins = [
         "http://localhost:3000",
         "http://localhost:8000",
@@ -126,6 +177,9 @@ if _environment == "development":
         "http://127.0.0.1:5173",
     ]
     cors_origins = list(set(cors_origins + dev_origins))
+    logger.warning("CORS: Dev origins active (APP_ENVIRONMENT=%s). Set APP_ENVIRONMENT=production for prod.", _environment)
+elif not cors_origins:
+    logger.warning("CORS: No origins configured. Set CORS_ORIGINS env var for your production domain(s).")
 
 app.add_middleware(
     CORSMiddleware,
@@ -135,16 +189,15 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["X-Request-ID", "X-Correlation-ID"],
 )
-logger.info(f"CORS middleware enabled for origins: {cors_origins}")
+logger.info(f"CORS middleware enabled for {len(cors_origins)} origin(s) [env={_environment}]")
 
 
 # =============================================================================
 # SECURITY MIDDLEWARE CONFIGURATION (ORDER MATTERS - Last added = First executed)
 # =============================================================================
 
-# Define environment detection BEFORE middleware blocks so it's always available
-_environment = os.environ.get("APP_ENVIRONMENT", "development")
-_is_production = _environment in ("production", "prod", "staging")
+# Environment detection already defined above (CORS section)
+_is_production = not _is_dev
 
 # 1. Security Headers (HSTS, CSP, X-Frame-Options, etc.)
 try:
@@ -3046,6 +3099,43 @@ async def database_status():
 
 
 @app.on_event("startup")
+async def startup_banner():
+    """Print startup banner and validate required environment variables."""
+    _app_version = os.environ.get("APP_VERSION", "1.0.0")
+    _port = os.environ.get("PORT", "8000")
+
+    logger.info("=" * 60)
+    logger.info(f"  Jorss-GBO CPA TAI  v{_app_version}")
+    logger.info(f"  Environment : {_environment}")
+    logger.info(f"  Log level   : {_log_level_name}")
+    logger.info(f"  Port        : {_port}")
+    logger.info("=" * 60)
+
+    # Check critical env vars
+    _required_in_prod = {
+        "OPENAI_API_KEY": "AI features will not work",
+        "JWT_SECRET": "Authentication tokens cannot be signed",
+    }
+    missing = []
+    for var, reason in _required_in_prod.items():
+        val = os.environ.get(var, "")
+        if not val or val.startswith("REPLACE_"):
+            missing.append(f"  - {var}: {reason}")
+
+    if missing and _is_production:
+        msg = "Missing required environment variables:\n" + "\n".join(missing)
+        logger.error(msg)
+        raise RuntimeError(msg)
+    elif missing:
+        logger.warning("Missing env vars (non-critical in dev):\n" + "\n".join(missing))
+
+    # Warn if JWT secret is weak
+    jwt_secret = os.environ.get("JWT_SECRET", "")
+    if jwt_secret and len(jwt_secret) < 32 and _is_production:
+        raise RuntimeError("JWT_SECRET must be at least 32 characters in production")
+
+
+@app.on_event("startup")
 async def startup_security_validation():
     """
     Validate security configuration at application startup.
@@ -3682,7 +3772,11 @@ async def get_real_time_estimate(request: Request):
         logger.error(f"Estimate calculation error: {e}")
         raise HTTPException(status_code=500, detail="Failed to calculate estimate")
 
+    # Generate estimate_id for lead linking (GAP #1)
+    estimate_id = f"est-{secrets.token_hex(6)}"
+
     return JSONResponse({
+        "estimate_id": estimate_id,
         "estimated_refund": estimate.estimated_refund,
         "estimated_owed": estimate.estimated_owed,
         "is_refund": estimate.is_refund,
@@ -3842,7 +3936,7 @@ async def create_lead(request: Request):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
 
-    # Extract lead data
+    # Extract lead data - supports BOTH nested (chatbot) and flat (quick_estimate) formats
     contact = body.get("contact", {})
     tax_profile = body.get("tax_profile", {})
     tax_items = body.get("tax_items", {})
@@ -3852,6 +3946,27 @@ async def create_lead(request: Request):
     session_id = body.get("session_id", "")
     source = body.get("source", "intelligent_advisor")
     status = body.get("status", "new")
+
+    # Handle flat-format fields from quick_estimate page
+    if not contact.get("email") and body.get("email"):
+        contact["email"] = body["email"]
+    if not contact.get("name") and body.get("name"):
+        contact["name"] = body["name"]
+    if not tax_profile.get("filing_status") and body.get("filing_status"):
+        tax_profile["filing_status"] = body["filing_status"]
+    if not tax_profile.get("dependents") and body.get("dependents"):
+        try:
+            tax_profile["dependents"] = int(body["dependents"])
+        except (ValueError, TypeError):
+            pass
+    if not tax_profile.get("income_range") and body.get("income_range"):
+        tax_profile["income_range"] = body["income_range"]
+    # Parse estimated_savings from string like "$1,234" to number
+    if isinstance(estimated_savings, str):
+        try:
+            estimated_savings = float(estimated_savings.replace("$", "").replace(",", "").strip())
+        except (ValueError, TypeError):
+            estimated_savings = 0
 
     # Create lead record
     lead_id = f"lead-{session_id[-8:]}" if session_id else f"lead-{secrets.token_hex(4)}"
@@ -3868,7 +3983,8 @@ async def create_lead(request: Request):
         "source": source,
     }
 
-    # Persist lead to database
+    # Persist lead to database (dual: raw SQLite for PII + ORM for pipeline queries)
+    estimate_id = body.get("estimate_id")
     try:
         from database.lead_state_persistence import LeadStatePersistence
         persistence = LeadStatePersistence()
@@ -3882,23 +3998,75 @@ async def create_lead(request: Request):
         )
         logger.info(f"Lead persisted to DB: {lead_id} - Score: {lead_score}, State: {initial_state}")
 
-        # Fire lead notification for CPA alerts
-        if lead_score >= 70:
-            try:
-                from notifications.notification_integration import NotificationDeliveryService
-                notifier = NotificationDeliveryService()
-                contact_name = lead_metadata.get("name", "Unknown")
-                notifier.send_lead_notification(
-                    notification_type="lead_hot_alert",
-                    recipient_email=os.getenv("CPA_ALERT_EMAIL", ""),
-                    recipient_name="CPA Team",
-                    subject=f"Hot Lead Alert: {contact_name} (Score: {lead_score})",
-                    body=f"New high-value lead captured.\n\nName: {contact_name}\nEmail: {lead_metadata.get('email', 'N/A')}\nFiling Status: {lead_metadata.get('filing_status', 'N/A')}\nEstimated Savings: ${estimated_savings:,.0f}\nLead Score: {lead_score}",
-                    data={"lead_id": lead_id, "lead_score": lead_score, "session_id": session_id},
-                )
-                logger.info(f"Hot lead notification sent for {lead_id}")
-            except Exception as notify_err:
-                logger.warning(f"Lead notification failed (non-blocking): {notify_err}")
+        # Also save to ORM LeadRecord for structured queries (GAP #1)
+        try:
+            from database.models import LeadRecord
+            from database.session import SessionLocal
+            db = SessionLocal()
+            orm_lead = LeadRecord(
+                lead_id=lead_id,
+                session_id=session_id,
+                tenant_id="default",
+                contact_name=contact.get("name", ""),
+                contact_email=contact.get("email", ""),
+                contact_phone=contact.get("phone", ""),
+                lead_score=lead_score,
+                current_state=initial_state,
+                complexity=complexity,
+                filing_status=tax_profile.get("filing_status", ""),
+                total_income=tax_profile.get("total_income", 0),
+                estimated_savings=estimated_savings,
+                dependents=tax_profile.get("dependents", 0),
+                estimate_id=estimate_id,
+                source=source,
+                metadata_json=lead_metadata,
+            )
+            db.add(orm_lead)
+            db.commit()
+            db.close()
+        except Exception as orm_err:
+            logger.warning(f"ORM lead save failed (non-blocking): {orm_err}")
+
+        # Fire LeadStateEngine signal for state machine processing (GAP #1)
+        try:
+            from cpa_panel.lead_state.engine import LeadStateEngine
+            engine = LeadStateEngine()
+            engine.process_signal(
+                lead_id=lead_id,
+                signal_id="LEAD_CAPTURED",
+                data={
+                    "score": lead_score,
+                    "source": source,
+                    "session_id": session_id,
+                    "complexity": complexity,
+                },
+            )
+        except Exception as engine_err:
+            logger.warning(f"LeadStateEngine signal failed (non-blocking): {engine_err}")
+
+        # Fire LEAD_CAPTURED notification for ALL leads (GAP #1)
+        try:
+            from notifications.notification_integration import NotificationDeliveryService
+            notifier = NotificationDeliveryService()
+            contact_name = lead_metadata.get("name", "Unknown")
+            # Determine notification type based on score
+            if lead_score >= 70:
+                notif_type = "lead_hot_alert"
+                subject = f"Hot Lead Alert: {contact_name} (Score: {lead_score})"
+            else:
+                notif_type = "lead_captured"
+                subject = f"New Lead Captured: {contact_name} (Score: {lead_score})"
+            notifier.send_lead_notification(
+                notification_type=notif_type,
+                recipient_email=os.getenv("CPA_ALERT_EMAIL", ""),
+                recipient_name="CPA Team",
+                subject=subject,
+                body=f"Lead captured.\n\nName: {contact_name}\nEmail: {lead_metadata.get('email', 'N/A')}\nFiling Status: {lead_metadata.get('filing_status', 'N/A')}\nEstimated Savings: ${estimated_savings:,.0f}\nLead Score: {lead_score}",
+                data={"lead_id": lead_id, "lead_score": lead_score, "session_id": session_id},
+            )
+            logger.info(f"Lead notification sent for {lead_id} (type={notif_type})")
+        except Exception as notify_err:
+            logger.warning(f"Lead notification failed (non-blocking): {notify_err}")
     except Exception as db_err:
         # Log but don't fail - lead capture should be resilient
         logger.error(f"Failed to persist lead {lead_id}: {db_err}")
@@ -3908,6 +4076,7 @@ async def create_lead(request: Request):
     return JSONResponse({
         "success": True,
         "lead_id": lead_id,
+        "estimate_id": estimate_id,
         "message": "Lead captured successfully"
     })
 

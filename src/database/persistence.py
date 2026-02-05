@@ -310,14 +310,18 @@ class TaxReturnPersistence:
     def list_returns(
         self,
         tax_year: Optional[int] = None,
-        limit: int = 50
+        status: Optional[str] = None,
+        limit: int = 50,
+        offset: int = 0,
     ) -> List[SavedReturn]:
         """
         List saved tax returns.
 
         Args:
             tax_year: Optional filter by tax year
+            status: Optional filter by return status
             limit: Maximum number of returns to return
+            offset: Number of rows to skip
 
         Returns:
             List of SavedReturn metadata objects
@@ -325,29 +329,28 @@ class TaxReturnPersistence:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
+            query = """SELECT return_id, session_id, taxpayer_name, tax_year,
+                              filing_status, state_code, gross_income,
+                              combined_tax_liability, combined_refund_or_owed,
+                              status, created_at, updated_at
+                       FROM tax_returns"""
+            conditions = []
+            params: list = []
+
             if tax_year:
-                cursor.execute(
-                    """SELECT return_id, session_id, taxpayer_name, tax_year,
-                              filing_status, state_code, gross_income,
-                              combined_tax_liability, combined_refund_or_owed,
-                              status, created_at, updated_at
-                       FROM tax_returns
-                       WHERE tax_year = ?
-                       ORDER BY updated_at DESC
-                       LIMIT ?""",
-                    (tax_year, limit)
-                )
-            else:
-                cursor.execute(
-                    """SELECT return_id, session_id, taxpayer_name, tax_year,
-                              filing_status, state_code, gross_income,
-                              combined_tax_liability, combined_refund_or_owed,
-                              status, created_at, updated_at
-                       FROM tax_returns
-                       ORDER BY updated_at DESC
-                       LIMIT ?""",
-                    (limit,)
-                )
+                conditions.append("tax_year = ?")
+                params.append(tax_year)
+            if status:
+                conditions.append("status = ?")
+                params.append(status)
+
+            if conditions:
+                query += " WHERE " + " AND ".join(conditions)
+
+            query += " ORDER BY updated_at DESC LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
+
+            cursor.execute(query, params)
 
             returns = []
             for row in cursor.fetchall():

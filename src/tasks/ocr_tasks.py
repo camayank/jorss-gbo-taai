@@ -319,7 +319,7 @@ def process_document_bytes_task(
         extra={
             "document_id": document_id,
             "task_id": task_id,
-            "filename": original_filename,
+            "original_filename": original_filename,
             "mime_type": mime_type,
         },
     )

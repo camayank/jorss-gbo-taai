@@ -15,13 +15,14 @@ tax advisory chatbot experience:
 NO ONE IN USA HAS DONE THIS.
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
 import logging
+import os
 import uuid
 import json
 import threading
@@ -148,22 +149,23 @@ def convert_profile_to_tax_return(profile: Dict[str, Any], session_id: str = Non
     total_itemized = mortgage_interest + salt + charitable + medical_expenses
 
     # Determine if itemizing makes sense
+    # 2025 Standard Deductions (IRS Rev. Proc. 2024-40) - matches main engine
     standard_deductions = {
-        "SINGLE": 15000,
-        "MARRIED_JOINT": 30000,
-        "MARRIED_FILING_JOINTLY": 30000,
-        "HEAD_OF_HOUSEHOLD": 22500,
-        "MARRIED_SEPARATE": 15000,
-        "MARRIED_FILING_SEPARATELY": 15000,
-        "QUALIFYING_WIDOW": 30000
+        "SINGLE": 15750,
+        "MARRIED_JOINT": 31500,
+        "MARRIED_FILING_JOINTLY": 31500,
+        "HEAD_OF_HOUSEHOLD": 23850,
+        "MARRIED_SEPARATE": 15750,
+        "MARRIED_FILING_SEPARATELY": 15750,
+        "QUALIFYING_WIDOW": 31500
     }
-    # Additional standard deduction for age 65+ ($1,950 single/HOH, $1,550 married)
-    standard_ded = standard_deductions.get(tax_filing_status, 15000)
+    # Additional standard deduction for age 65+ (2025: $2,000 single/HOH, $1,600 married)
+    standard_ded = standard_deductions.get(tax_filing_status, 15750)
     if is_over_65:
         if tax_filing_status in ("SINGLE", "HEAD_OF_HOUSEHOLD"):
-            standard_ded += 1950
+            standard_ded += 2000
         else:
-            standard_ded += 1550
+            standard_ded += 1600
 
     use_standard = total_itemized < standard_ded
 
@@ -271,14 +273,30 @@ def build_tax_return_from_profile(profile: Dict[str, Any]) -> "TaxReturn":
         TaxFilingStatus.SINGLE
     )
 
-    taxpayer = TaxpayerInfo(
-        first_name=taxpayer_data.get("first_name", "Tax"),
-        last_name=taxpayer_data.get("last_name", "Client"),
-        ssn=taxpayer_data.get("ssn", "000-00-0000"),
-        filing_status=filing_status,
-        is_over_65=taxpayer_data.get("is_over_65", False),
-        state=taxpayer_data.get("state"),
-    )
+    # Calculate date_of_birth from age if available (GAP #8)
+    # TaxpayerInfo.date_of_birth expects YYYY-MM-DD string
+    date_of_birth = None
+    age = taxpayer_data.get("age")
+    if age is not None:
+        try:
+            from datetime import date as date_cls
+            birth_year = date_cls.today().year - int(age)
+            date_of_birth = f"{birth_year}-01-01"  # Approximate to Jan 1
+        except (ValueError, TypeError):
+            pass
+
+    taxpayer_kwargs = {
+        "first_name": taxpayer_data.get("first_name", "Tax"),
+        "last_name": taxpayer_data.get("last_name", "Client"),
+        "ssn": taxpayer_data.get("ssn", "000-00-0000"),
+        "filing_status": filing_status,
+        "is_over_65": taxpayer_data.get("is_over_65", False),
+        "state": taxpayer_data.get("state"),
+    }
+    if date_of_birth:
+        taxpayer_kwargs["date_of_birth"] = date_of_birth
+
+    taxpayer = TaxpayerInfo(**taxpayer_kwargs)
 
     # Build income with K-1 aggregated into Form 1040 line items
     # Per IRS rules: K-1 income flows to the same lines as direct income
@@ -313,8 +331,33 @@ def build_tax_return_from_profile(profile: Dict[str, Any]) -> "TaxReturn":
         income.w2_forms.append(W2Info(
             employer_name="Primary Employer",
             wages=w2_wages,
-            federal_withholding=income_data.get("federal_withholding", 0),
+            federal_tax_withheld=income_data.get("federal_withholding", 0) or 0,
         ))
+
+    # Build ScheduleE with K-1 data if present (GAP #6)
+    has_k1 = any(income_data.get(k, 0) for k in [
+        "k1_ordinary_income", "k1_guaranteed_payments", "k1_interest_income",
+        "k1_dividend_income", "k1_rental_income", "k1_royalty_income"
+    ])
+    if has_k1:
+        try:
+            from models.schedule_e import ScheduleE, PartnershipSCorpK1
+            k1_entry = PartnershipSCorpK1(
+                entity_name=income_data.get("k1_entity_name", "Partnership/S-Corp"),
+                is_s_corp=income_data.get("k1_entity_type", "").lower() == "s_corp",
+                ein=income_data.get("k1_ein", ""),
+                ordinary_income_loss=k1_ordinary,
+                guaranteed_payments=k1_guaranteed,
+                interest_income=k1_interest,
+                ordinary_dividends=k1_dividend,
+                net_rental_income_loss=k1_rental,
+                royalties=k1_royalty,
+                self_employment_income=k1_guaranteed,
+                qbi_income=k1_ordinary,
+            )
+            income.schedule_e = ScheduleE(partnership_scorp_k1s=[k1_entry])
+        except (ImportError, Exception) as e:
+            logger.warning(f"Could not build ScheduleE: {e}")
 
     deductions = Deductions(
         use_standard_deduction=deductions_data.get("use_standard_deduction", True),
@@ -613,9 +656,11 @@ class IntelligentChatEngine:
     # Maximum in-memory sessions before cleanup triggers
     MAX_IN_MEMORY_SESSIONS = 500
     # Sessions idle longer than this (seconds) are evicted from memory
-    SESSION_IDLE_TIMEOUT = 3600  # 1 hour
+    # Configurable via SESSION_TIMEOUT_MINUTES env var (default: 30 min)
+    SESSION_IDLE_TIMEOUT = int(os.environ.get("SESSION_TIMEOUT_MINUTES", "30")) * 60
     # Maximum conversation history messages per session before pruning
     MAX_CONVERSATION_HISTORY = 100
+    MAX_TOKEN_ESTIMATE = 100000  # ~100K tokens max (approx 4 chars/token)
 
     def __init__(self):
         # In-memory cache for fast access
@@ -656,15 +701,31 @@ class IntelligentChatEngine:
 
     @staticmethod
     def _prune_conversation(conversation: list) -> list:
-        """Prune conversation history if it exceeds MAX_CONVERSATION_HISTORY.
+        """Prune conversation history based on message count AND token estimate.
 
         Keeps the first 2 messages (welcome + first user message for context)
         and the most recent messages up to the limit.
+        Uses approximate token counting (~4 chars per token) as secondary guard.
         """
         limit = IntelligentChatEngine.MAX_CONVERSATION_HISTORY
-        if len(conversation) <= limit:
+        token_limit = IntelligentChatEngine.MAX_TOKEN_ESTIMATE
+
+        # Check approximate token count
+        total_chars = sum(len(m.get("content", "")) for m in conversation)
+        approx_tokens = total_chars // 4
+
+        if len(conversation) <= limit and approx_tokens <= token_limit:
             return conversation
-        return conversation[:2] + conversation[-(limit - 2):]
+
+        # If token limit exceeded, reduce more aggressively
+        effective_limit = limit
+        if approx_tokens > token_limit:
+            effective_limit = min(limit, max(20, limit // 2))
+
+        if len(conversation) <= effective_limit:
+            return conversation
+
+        return conversation[:2] + conversation[-(effective_limit - 2):]
 
     def _serialize_session_for_db(self, session: Dict[str, Any]) -> Dict[str, Any]:
         """Serialize session data for database storage."""
@@ -1348,7 +1409,7 @@ class IntelligentChatEngine:
             (48475, 0.12),
             (103350, 0.22),
             (197300, 0.24),
-            (250500, 0.32),
+            (250525, 0.32),
             (626350, 0.35),
             (float('inf'), 0.37)
         ],
@@ -1371,11 +1432,11 @@ class IntelligentChatEngine:
             (float('inf'), 0.37)
         ],
         "head_of_household": [
-            (17000, 0.10),
+            (17050, 0.10),
             (64850, 0.12),
             (103350, 0.22),
             (197300, 0.24),
-            (250500, 0.32),
+            (250525, 0.32),
             (626350, 0.35),
             (float('inf'), 0.37)
         ],
@@ -3640,6 +3701,43 @@ def _summarize_profile(profile: dict) -> str:
     return ", ".join(parts) if parts else "No information yet"
 
 
+def _get_suggested_questions(profile: dict) -> List[str]:
+    """
+    Detect patterns in profile and suggest proactive questions (GAP #4).
+    Similar to agent's _detect_patterns_and_suggest() but for rule-based chatbot.
+    Returns up to 2 suggested questions.
+    """
+    suggestions = []
+
+    # Has W-2 income but no withholding info
+    if profile.get("w2_income") or profile.get("total_income"):
+        if not profile.get("federal_withholding"):
+            suggestions.append("Do you know your total federal tax withholding from your W-2 (Box 2)?")
+
+    # Has business income but no expenses
+    if profile.get("business_income") and not profile.get("business_expenses"):
+        suggestions.append("What business expenses did you have? (Mileage, supplies, home office, etc.)")
+
+    # Has children but no education expenses asked
+    if profile.get("dependents") and not profile.get("_asked_education"):
+        suggestions.append("Are any of your dependents in college? You may qualify for education credits worth up to $2,500.")
+
+    # Has rental income but no rental expenses
+    if profile.get("rental_income") and not profile.get("rental_expenses"):
+        suggestions.append("Do you have rental property expenses (insurance, repairs, depreciation)?")
+
+    # High income but no retirement contributions
+    total_income = profile.get("total_income", 0) or 0
+    if total_income > 100000 and not profile.get("retirement_401k") and not profile.get("_asked_retirement"):
+        suggestions.append("Are you contributing to a 401(k) or IRA? This could save significant taxes at your income level.")
+
+    # Self-employed but no HSA
+    if profile.get("business_income") and not profile.get("hsa_contributions") and not profile.get("_asked_hsa"):
+        suggestions.append("Do you have a High Deductible Health Plan? HSA contributions are triple tax-advantaged.")
+
+    return suggestions[:2]
+
+
 def _get_dynamic_next_question(profile: dict, last_extracted: dict = None) -> tuple:
     """
     Dynamically determine the next question based on what's missing.
@@ -4591,6 +4689,23 @@ async def intelligent_chat(request: ChatRequest):
             "lead_score": chat_engine.calculate_lead_score(profile)
         })
 
+        # Bridge: Also save to session_tax_returns so advisory report API can find it
+        try:
+            return_data = convert_profile_to_tax_return(profile, request.session_id)
+            calc_dict = tax_calculation.dict() if hasattr(tax_calculation, 'dict') else tax_calculation
+            if SESSION_PERSISTENCE_AVAILABLE:
+                persistence = get_session_persistence()
+                persistence.save_session_tax_return(
+                    session_id=request.session_id,
+                    tenant_id="default",
+                    tax_year=2025,
+                    return_data=return_data,
+                    calculated_results=calc_dict,
+                )
+                logger.debug(f"Tax return data saved to session_tax_returns for {request.session_id}")
+        except Exception as bridge_err:
+            logger.warning(f"Failed to bridge tax return data (non-blocking): {bridge_err}")
+
         total_savings = sum(s.estimated_savings for s in strategies)
         total_potential_savings = total_savings
 
@@ -4686,6 +4801,13 @@ async def intelligent_chat(request: ChatRequest):
         warnings.append(f"⚠️ {urgency_message}")
     elif urgency_level == "HIGH":
         key_insights.insert(0, f"📅 {urgency_message}")
+
+    # Append proactive suggested questions to response (GAP #4)
+    suggested_qs = _get_suggested_questions(profile)
+    if suggested_qs and response_type in ("calculation", "question", "strategy"):
+        response_text += "\n\n**You might also want to share:**\n"
+        for sq in suggested_qs:
+            response_text += f"- {sq}\n"
 
     # Record conversation messages and prune if needed
     conversation = session.get("conversation", [])
@@ -5037,6 +5159,7 @@ Tax laws are subject to change, and individual circumstances may vary."""
 @router.get("/report/{session_id}/pdf")
 async def get_session_pdf(
     session_id: str,
+    background_tasks: BackgroundTasks,
     include_charts: bool = True,
     include_toc: bool = True,
     cpa_id: Optional[str] = None,  # CPA profile ID to load branding from
@@ -5154,10 +5277,11 @@ async def get_session_pdf(
                 primary_color=primary_color or "#2c5aa0",
             )
 
-        # Generate PDF using the exporter
-        output_dir = Path("/tmp/advisor_reports")
-        output_dir.mkdir(parents=True, exist_ok=True)
-        pdf_path = str(output_dir / f"report_{session_id}.pdf")
+        # Generate PDF to a temp file, schedule cleanup after response
+        import tempfile as _tempfile
+        tmp = _tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", prefix="advisor_report_")
+        pdf_path = tmp.name
+        tmp.close()
 
         export_advisory_report_to_pdf(
             report=report,
@@ -5168,7 +5292,9 @@ async def get_session_pdf(
             brand_config=brand_config,
         )
 
-        # Return PDF file
+        # Schedule cleanup after the response is sent
+        background_tasks.add_task(os.unlink, pdf_path)
+
         return FileResponse(
             path=pdf_path,
             media_type="application/pdf",
@@ -5480,16 +5606,12 @@ async def get_universal_report_pdf(
         )
 
         if output.pdf_bytes:
-            # Save to temp file and return
-            output_dir = Path("/tmp/universal_reports")
-            output_dir.mkdir(parents=True, exist_ok=True)
-            pdf_path = output_dir / f"universal_report_{session_id}.pdf"
-            pdf_path.write_bytes(output.pdf_bytes)
-
-            return FileResponse(
-                path=str(pdf_path),
+            # Stream directly from memory — no temp file needed
+            import io as _io
+            return StreamingResponse(
+                _io.BytesIO(output.pdf_bytes),
                 media_type="application/pdf",
-                filename=f"tax_report_{session_id}.pdf"
+                headers={"Content-Disposition": f'attachment; filename="tax_report_{session_id}.pdf"'}
             )
         else:
             raise HTTPException(status_code=500, detail="PDF generation failed")

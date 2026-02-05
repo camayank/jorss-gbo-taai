@@ -159,9 +159,10 @@ async def list_returns(
             offset=offset,
         )
 
+        from dataclasses import asdict
         return JSONResponse({
             "status": "success",
-            "returns": returns,
+            "returns": [asdict(r) for r in returns],
             "count": len(returns),
             "limit": limit,
             "offset": offset,

@@ -83,11 +83,38 @@ class SessionPersistence:
         self._ensure_tables_exist()
 
     def _ensure_tables_exist(self):
-        """Create tables if they don't exist."""
+        """Create tables if they don't exist.
+
+        NOTE: These tables should be created via Alembic migration
+        (20260205_0002_session_tables.py). This method is kept as a
+        safety net for environments where migrations haven't been run.
+        """
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
+
+            # Check if tables already exist (created by Alembic)
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='session_states'")
+            if cursor.fetchone():
+                # Tables exist — skip runtime creation, just do ALTER TABLE safety checks
+                for column, coldef in [
+                    ("user_id", "TEXT"),
+                    ("is_anonymous", "INTEGER DEFAULT 1"),
+                    ("workflow_type", "TEXT"),
+                    ("return_id", "TEXT")
+                ]:
+                    try:
+                        cursor.execute(f"ALTER TABLE session_states ADD COLUMN {column} {coldef}")
+                    except sqlite3.OperationalError:
+                        pass  # Column already exists
+                conn.commit()
+                return
+
+            logger.warning(
+                "Session tables not found — creating via runtime fallback. "
+                "Run 'alembic upgrade head' to use the canonical migration path."
+            )
 
             # Session states table (replaces _SESSIONS)
             cursor.execute("""
