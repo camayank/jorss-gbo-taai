@@ -16,6 +16,10 @@ Routes:
 """
 
 import os
+
+# Load environment variables from .env file BEFORE importing feature_flags
+from dotenv import load_dotenv
+load_dotenv()
 import uuid
 import traceback
 import threading
