@@ -1529,7 +1529,7 @@ class MFAPendingSetup(Base):
 
 def hash_ssn(ssn: str) -> str:
     """
-    Create SHA256 hash of SSN for secure lookup.
+    Create secure HMAC-SHA256 hash of SSN for lookup.
 
     Args:
         ssn: Social Security Number (with or without dashes)
@@ -1537,36 +1537,31 @@ def hash_ssn(ssn: str) -> str:
     Returns:
         64-character hexadecimal hash string
 
-    H3 SECURITY LIMITATION - DISCLOSED:
-    ====================================
-    This implementation uses a simple SHA256 hash WITHOUT a salt or pepper.
+    Security:
+        Uses HMAC-SHA256 with secret key from SSN_HASH_SECRET environment
+        variable. This prevents rainbow table attacks and correlation attacks
+        between databases.
 
-    Known limitations:
-    1. SSNs have limited key space (~1 billion combinations). Pre-computed
-       rainbow tables could reverse hashes in <1 second with modern hardware.
-    2. Identical SSNs produce identical hashes, enabling correlation attacks
-       between records or databases.
-    3. This does NOT meet NIST SP 800-132 recommendations for password/secret
-       hashing which require adaptive functions (bcrypt, scrypt, Argon2).
+    Migration:
+        Existing legacy SHA256 hashes can be verified using verify_ssn_hash_compat()
+        from security.ssn_hash module. New hashes should always use this function.
 
-    Why this was accepted for FREEZE:
-    - SSN hash is used for LOOKUP ONLY (finding client by SSN), not storage
-    - Actual SSN is never stored in database (only the hash)
-    - Production deployment MUST use encrypted database connections
-    - Future enhancement: Add per-tenant salt stored in HSM
-
-    For production security hardening, consider:
-    - HMAC-SHA256 with environment-variable secret key
-    - Per-tenant salt stored in secure vault
-    - Migration to Argon2id with appropriate work factors
-
-    See: OWASP Cryptographic Failures, NIST SP 800-132
+    See: security.ssn_hash for full implementation details
     """
-    # Remove any formatting
-    clean_ssn = ssn.replace("-", "").replace(" ", "")
-
-    # Create hash (H3: No salt - see limitation documentation above)
-    return hashlib.sha256(clean_ssn.encode()).hexdigest()
+    try:
+        from security.ssn_hash import secure_hash_ssn
+        return secure_hash_ssn(ssn)
+    except ImportError:
+        # Fallback to legacy hash if security module not available
+        # Log a warning in this case
+        import warnings
+        warnings.warn(
+            "security.ssn_hash module not available, using legacy SHA256. "
+            "This is NOT secure for production.",
+            UserWarning
+        )
+        clean_ssn = ssn.replace("-", "").replace(" ", "")
+        return hashlib.sha256(clean_ssn.encode()).hexdigest()
 
 
 def generate_return_id() -> str:
