@@ -1,0 +1,164 @@
+{#
+  Loading Components
+
+  Spinner, skeleton, and loading state components.
+
+  Usage:
+    {% from 'components/feedback/loading.html' import spinner, loading_overlay, skeleton %}
+    {{ spinner(size="md") }}
+    {{ loading_overlay(message="Loading data...") }}
+    {{ skeleton(type="text", lines=3) }}
+
+  Parameters (spinner):
+    - size: sm|md|lg|xl (default: md)
+    - color: primary|accent|white|gray (default: primary)
+    - class_name: Additional CSS classes (optional)
+
+  Parameters (loading_overlay):
+    - message: Loading message (optional)
+    - visible: boolean (default: true)
+
+  Parameters (skeleton):
+    - type: text|avatar|card|table-row (default: text)
+    - lines: Number of text lines for text type (default: 3)
+    - class_name: Additional CSS classes (optional)
+#}
+
+{# Spinner Component #}
+{% macro spinner(size='md', color='primary', class_name='') %}
+  {% set sizes = {
+    'sm': '16px',
+    'md': '24px',
+    'lg': '40px',
+    'xl': '64px'
+  } %}
+
+  {% set colors = {
+    'primary': 'var(--color-primary-600)',
+    'accent': 'var(--color-accent-500)',
+    'white': '#ffffff',
+    'gray': 'var(--color-gray-400)'
+  } %}
+
+  {% set border_widths = {
+    'sm': '2px',
+    'md': '3px',
+    'lg': '3px',
+    'xl': '4px'
+  } %}
+
+  <div
+    class="loading-spinner {{ class_name }}"
+    role="status"
+    aria-label="Loading"
+    style="
+      width: {{ sizes.get(size, sizes.md) }};
+      height: {{ sizes.get(size, sizes.md) }};
+      border-width: {{ border_widths.get(size, border_widths.md) }};
+      border-top-color: {{ colors.get(color, colors.primary) }};
+    "
+  ></div>
+{% endmacro %}
+
+
+{# Loading Overlay - Full screen loading state #}
+{% macro loading_overlay(message=none, visible=true) %}
+  <div class="loading-overlay {% if visible %}visible{% endif %}" role="dialog" aria-modal="true" aria-label="Loading">
+    {{ spinner(size='lg') }}
+    {% if message %}
+      <p class="loading-message">{{ message }}</p>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+
+{# Inline Loading - For buttons or inline content #}
+{% macro loading_inline(text='Loading...', size='sm') %}
+  <span style="display: inline-flex; align-items: center; gap: 8px;">
+    {{ spinner(size=size) }}
+    <span>{{ text }}</span>
+  </span>
+{% endmacro %}
+
+
+{# Skeleton Loader #}
+{% macro skeleton(type='text', lines=3, width='100%', class_name='') %}
+  {% set base_style = 'background: linear-gradient(90deg, var(--color-gray-200) 25%, var(--color-gray-100) 50%, var(--color-gray-200) 75%); background-size: 200% 100%; animation: skeleton-shimmer 1.5s infinite; border-radius: var(--radius-md);' %}
+
+  <style>
+    @keyframes skeleton-shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+  </style>
+
+  {% if type == 'text' %}
+    <div class="skeleton-text {{ class_name }}" style="display: flex; flex-direction: column; gap: 8px; width: {{ width }};">
+      {% for i in range(lines) %}
+        <div style="{{ base_style }} height: 16px; {% if loop.last %}width: 60%;{% endif %}"></div>
+      {% endfor %}
+    </div>
+
+  {% elif type == 'avatar' %}
+    <div class="skeleton-avatar {{ class_name }}" style="{{ base_style }} width: 48px; height: 48px; border-radius: var(--radius-full);"></div>
+
+  {% elif type == 'card' %}
+    <div class="skeleton-card {{ class_name }}" style="padding: 16px; border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg);">
+      <div style="{{ base_style }} height: 120px; margin-bottom: 16px;"></div>
+      <div style="{{ base_style }} height: 20px; width: 70%; margin-bottom: 8px;"></div>
+      <div style="{{ base_style }} height: 14px; width: 90%; margin-bottom: 4px;"></div>
+      <div style="{{ base_style }} height: 14px; width: 50%;"></div>
+    </div>
+
+  {% elif type == 'table-row' %}
+    <div class="skeleton-table-row {{ class_name }}" style="display: flex; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--color-gray-200);">
+      <div style="{{ base_style }} height: 16px; width: 80px;"></div>
+      <div style="{{ base_style }} height: 16px; flex: 1;"></div>
+      <div style="{{ base_style }} height: 16px; width: 120px;"></div>
+      <div style="{{ base_style }} height: 16px; width: 80px;"></div>
+    </div>
+
+  {% elif type == 'avatar-with-text' %}
+    <div class="skeleton-avatar-text {{ class_name }}" style="display: flex; gap: 12px; align-items: center;">
+      <div style="{{ base_style }} width: 40px; height: 40px; border-radius: var(--radius-full); flex-shrink: 0;"></div>
+      <div style="flex: 1;">
+        <div style="{{ base_style }} height: 14px; width: 120px; margin-bottom: 6px;"></div>
+        <div style="{{ base_style }} height: 12px; width: 80px;"></div>
+      </div>
+    </div>
+  {% endif %}
+{% endmacro %}
+
+
+{# Progress Bar #}
+{% macro progress(value=0, max=100, label=none, show_percentage=false, variant='primary', class_name='') %}
+  {% set percentage = (value / max * 100) | round %}
+
+  <div class="progress-wrapper {{ class_name }}">
+    {% if label or show_percentage %}
+      <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: var(--text-sm);">
+        {% if label %}<span style="color: var(--color-gray-700);">{{ label }}</span>{% endif %}
+        {% if show_percentage %}<span style="color: var(--color-gray-500);">{{ percentage }}%</span>{% endif %}
+      </div>
+    {% endif %}
+    <div
+      class="progress"
+      role="progressbar"
+      aria-valuenow="{{ value }}"
+      aria-valuemin="0"
+      aria-valuemax="{{ max }}"
+      style="height: 8px; background: var(--color-gray-200); border-radius: var(--radius-full); overflow: hidden;"
+    >
+      <div
+        class="progress-bar"
+        style="
+          height: 100%;
+          width: {{ percentage }}%;
+          background: var(--color-{{ variant }}-500);
+          border-radius: var(--radius-full);
+          transition: width 0.3s ease;
+        "
+      ></div>
+    </div>
+  </div>
+{% endmacro %}

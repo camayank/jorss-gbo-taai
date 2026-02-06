@@ -1,0 +1,88 @@
+{#
+  Button Component
+
+  A reusable button component with multiple variants and sizes.
+
+  Usage:
+    {% from 'components/buttons/button.html' import button %}
+    {{ button(text="Click me", variant="primary") }}
+    {{ button(text="Submit", variant="accent", size="lg", type="submit") }}
+    {{ button(text="Loading...", variant="primary", loading=true) }}
+
+  Parameters:
+    - text: Button text (required)
+    - variant: primary|secondary|accent|ghost|outline|danger|success|warning (default: primary)
+    - size: xs|sm|md|lg|xl (default: md)
+    - type: button|submit|reset (default: button)
+    - disabled: boolean (default: false)
+    - loading: boolean (default: false)
+    - full_width: boolean (default: false)
+    - icon: Icon HTML to prepend (optional)
+    - icon_right: Icon HTML to append (optional)
+    - attrs: Additional HTML attributes as dict (optional)
+    - class_name: Additional CSS classes (optional)
+#}
+
+{% macro button(
+  text,
+  variant='primary',
+  size='md',
+  type='button',
+  disabled=false,
+  loading=false,
+  full_width=false,
+  icon=none,
+  icon_right=none,
+  attrs={},
+  class_name=''
+) %}
+  {% set size_classes = {
+    'xs': 'btn-xs',
+    'sm': 'btn-sm',
+    'md': '',
+    'lg': 'btn-lg',
+    'xl': 'btn-xl'
+  } %}
+
+  {% set variant_classes = {
+    'primary': 'btn-primary',
+    'secondary': 'btn-secondary',
+    'accent': 'btn-accent',
+    'ghost': 'btn-ghost',
+    'outline': 'btn-outline',
+    'danger': 'btn-danger',
+    'success': 'btn-success',
+    'warning': 'btn-warning',
+    'link': 'btn-link'
+  } %}
+
+  <button
+    type="{{ type }}"
+    class="btn {{ variant_classes.get(variant, 'btn-primary') }} {{ size_classes.get(size, '') }} {% if loading %}btn-loading{% endif %} {% if full_width %}btn-full{% endif %} {{ class_name }}"
+    {% if disabled or loading %}disabled{% endif %}
+    {% for key, value in attrs.items() %}
+      {{ key }}="{{ value }}"
+    {% endfor %}
+  >
+    {% if loading %}
+      <span class="btn-spinner"></span>
+    {% endif %}
+    {% if icon and not loading %}
+      <span class="btn-icon btn-icon-left">{{ icon | safe }}</span>
+    {% endif %}
+    <span class="btn-text">{{ text }}</span>
+    {% if icon_right and not loading %}
+      <span class="btn-icon btn-icon-right">{{ icon_right | safe }}</span>
+    {% endif %}
+  </button>
+{% endmacro %}
+
+
+{# Button Group Component #}
+{% macro button_group(buttons=[], vertical=false, connected=false) %}
+  <div class="btn-group {% if vertical %}btn-group-vertical{% endif %} {% if connected %}btn-group-connected{% endif %}">
+    {% for btn in buttons %}
+      {{ button(**btn) }}
+    {% endfor %}
+  </div>
+{% endmacro %}

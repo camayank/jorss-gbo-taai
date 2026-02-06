@@ -1,0 +1,165 @@
+{#
+  Card Component
+
+  A versatile card container for content.
+
+  Usage:
+    {% from 'components/layout/card.html' import card, stat_card, feature_card %}
+    {% call card(title="My Card", subtitle="Optional subtitle") %}
+      <p>Card content here</p>
+    {% endcall %}
+
+  Parameters:
+    - title: Card title (optional)
+    - subtitle: Card subtitle (optional)
+    - variant: flat|elevated|bordered|interactive (optional)
+    - status: success|warning|error|info (optional - adds left border)
+    - size: sm|md|lg (default: md)
+    - header_actions: HTML for header actions (optional)
+    - footer: Show footer (default: false)
+    - footer_actions: List of button configs for footer (optional)
+    - class_name: Additional CSS classes (optional)
+#}
+
+{% macro card(
+  title=none,
+  subtitle=none,
+  variant=none,
+  status=none,
+  size='md',
+  header_actions=none,
+  footer=false,
+  footer_actions=[],
+  class_name=''
+) %}
+  {% set variant_class = 'card-' ~ variant if variant else '' %}
+  {% set status_class = 'card-' ~ status if status else '' %}
+  {% set size_class = 'card-' ~ size if size != 'md' else '' %}
+
+  <div class="card {{ variant_class }} {{ status_class }} {{ size_class }} {{ class_name }}">
+    {% if title or header_actions %}
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">{{ title }}</h3>
+          {% if subtitle %}
+            <p class="card-subtitle">{{ subtitle }}</p>
+          {% endif %}
+        </div>
+        {% if header_actions %}
+          <div class="card-header-actions">{{ header_actions | safe }}</div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div class="card-body">
+      {{ caller() }}
+    </div>
+
+    {% if footer or footer_actions %}
+      <div class="card-footer">
+        {% for btn in footer_actions %}
+          <button
+            type="{{ btn.type | default('button') }}"
+            class="btn btn-{{ btn.variant | default('ghost') }}"
+            {% if btn.onclick %}onclick="{{ btn.onclick }}"{% endif %}
+          >{{ btn.text }}</button>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+
+{# Stat Card - For displaying metrics #}
+{% macro stat_card(
+  label,
+  value,
+  change=none,
+  change_type='neutral',
+  icon=none,
+  class_name=''
+) %}
+  <div class="card stat-card {{ class_name }}">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <p class="stat-card-label">{{ label }}</p>
+        <p class="stat-card-value">{{ value }}</p>
+        {% if change %}
+          <div class="stat-card-change {{ change_type }}">
+            {% if change_type == 'positive' %}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m18 15-6-6-6 6"/>
+              </svg>
+            {% elif change_type == 'negative' %}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            {% endif %}
+            <span>{{ change }}</span>
+          </div>
+        {% endif %}
+      </div>
+      {% if icon %}
+        <div style="color: var(--color-gray-400);">{{ icon | safe }}</div>
+      {% endif %}
+    </div>
+  </div>
+{% endmacro %}
+
+
+{# Feature Card - For feature highlights #}
+{% macro feature_card(
+  title,
+  description,
+  icon=none,
+  link_text=none,
+  link_href=none,
+  class_name=''
+) %}
+  <div class="card feature-card {{ class_name }}">
+    {% if icon %}
+      <div class="feature-card-icon">{{ icon | safe }}</div>
+    {% endif %}
+    <h4 class="feature-card-title">{{ title }}</h4>
+    <p class="feature-card-description">{{ description }}</p>
+    {% if link_text %}
+      <a href="{{ link_href | default('#') }}" style="margin-top: 16px; display: inline-block; font-size: 14px; color: var(--color-primary-600); text-decoration: none; font-weight: 500;">
+        {{ link_text }} &rarr;
+      </a>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+
+{# Profile Card #}
+{% macro profile_card(
+  name,
+  role=none,
+  avatar=none,
+  initials=none,
+  actions=[],
+  class_name=''
+) %}
+  <div class="card profile-card {{ class_name }}">
+    <div class="profile-card-avatar">
+      {% if avatar %}
+        <img src="{{ avatar }}" alt="{{ name }}">
+      {% else %}
+        {{ initials | default(name[0:2] | upper) }}
+      {% endif %}
+    </div>
+    <h4 class="profile-card-name">{{ name }}</h4>
+    {% if role %}
+      <p class="profile-card-role">{{ role }}</p>
+    {% endif %}
+    {% if actions %}
+      <div style="margin-top: 16px; display: flex; gap: 8px; justify-content: center;">
+        {% for action in actions %}
+          <a href="{{ action.href | default('#') }}" class="btn btn-{{ action.variant | default('outline') }} btn-sm">
+            {{ action.text }}
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+{% endmacro %}

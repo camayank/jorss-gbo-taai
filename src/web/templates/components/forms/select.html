@@ -1,0 +1,107 @@
+{#
+  Select Component
+
+  A reusable select/dropdown component.
+
+  Usage:
+    {% from 'components/forms/select.html' import select %}
+    {{ select(name="country", label="Country", options=[
+      {"value": "us", "label": "United States"},
+      {"value": "ca", "label": "Canada"}
+    ]) }}
+
+  Parameters:
+    - name: Select name attribute (required)
+    - options: List of option dicts with value/label keys (required)
+    - label: Label text (optional)
+    - selected: Currently selected value (optional)
+    - placeholder: Placeholder option text (optional)
+    - required: boolean (default: false)
+    - disabled: boolean (default: false)
+    - size: sm|md|lg (default: md)
+    - state: valid|invalid (optional)
+    - helper: Helper text below select (optional)
+    - error: Error message (optional)
+    - attrs: Additional HTML attributes as dict (optional)
+    - class_name: Additional CSS classes (optional)
+#}
+
+{% macro select(
+  name,
+  options=[],
+  label=none,
+  selected=none,
+  placeholder=none,
+  required=false,
+  disabled=false,
+  size='md',
+  state=none,
+  helper=none,
+  error=none,
+  attrs={},
+  class_name=''
+) %}
+  {% set size_classes = {
+    'sm': 'form-select-sm',
+    'md': '',
+    'lg': 'form-select-lg'
+  } %}
+
+  {% set state_classes = {
+    'valid': 'is-valid',
+    'invalid': 'is-invalid'
+  } %}
+
+  <div class="form-group {{ class_name }}">
+    {% if label %}
+      <label class="form-label {% if required %}required{% endif %}" for="{{ name }}">
+        {{ label }}
+      </label>
+    {% endif %}
+
+    <select
+      id="{{ name }}"
+      name="{{ name }}"
+      class="form-select {{ size_classes.get(size, '') }} {{ state_classes.get(state, '') }}"
+      {% if required %}required{% endif %}
+      {% if disabled %}disabled{% endif %}
+      {% for key, val in attrs.items() %}
+        {{ key }}="{{ val }}"
+      {% endfor %}
+    >
+      {% if placeholder %}
+        <option value="" disabled {% if not selected %}selected{% endif %}>{{ placeholder }}</option>
+      {% endif %}
+      {% for option in options %}
+        {% if option.group %}
+          <optgroup label="{{ option.label }}">
+            {% for opt in option.options %}
+              <option
+                value="{{ opt.value }}"
+                {% if opt.value == selected %}selected{% endif %}
+                {% if opt.disabled %}disabled{% endif %}
+              >{{ opt.label }}</option>
+            {% endfor %}
+          </optgroup>
+        {% else %}
+          <option
+            value="{{ option.value }}"
+            {% if option.value == selected %}selected{% endif %}
+            {% if option.disabled %}disabled{% endif %}
+          >{{ option.label }}</option>
+        {% endif %}
+      {% endfor %}
+    </select>
+
+    {% if error %}
+      <p class="form-error">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+        </svg>
+        {{ error }}
+      </p>
+    {% elif helper %}
+      <p class="form-helper">{{ helper }}</p>
+    {% endif %}
+  </div>
+{% endmacro %}

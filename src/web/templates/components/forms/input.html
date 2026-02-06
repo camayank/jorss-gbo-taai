@@ -1,0 +1,201 @@
+{#
+  Input Component
+
+  A reusable text input component with validation states.
+
+  Usage:
+    {% from 'components/forms/input.html' import input %}
+    {{ input(name="email", label="Email", type="email", required=true) }}
+    {{ input(name="phone", label="Phone", placeholder="(555) 555-5555") }}
+    {{ input(name="amount", label="Amount", addon_left="$", addon_right=".00") }}
+
+  Parameters:
+    - name: Input name attribute (required)
+    - label: Label text (optional)
+    - type: input type - text|email|password|number|tel|url|date (default: text)
+    - value: Input value (optional)
+    - placeholder: Placeholder text (optional)
+    - required: boolean (default: false)
+    - disabled: boolean (default: false)
+    - readonly: boolean (default: false)
+    - size: sm|md|lg (default: md)
+    - state: valid|invalid (optional)
+    - helper: Helper text below input (optional)
+    - error: Error message (optional)
+    - addon_left: Left addon text (optional)
+    - addon_right: Right addon text (optional)
+    - icon: Icon HTML for search-style input (optional)
+    - attrs: Additional HTML attributes as dict (optional)
+    - class_name: Additional CSS classes (optional)
+#}
+
+{% macro input(
+  name,
+  label=none,
+  type='text',
+  value='',
+  placeholder='',
+  required=false,
+  disabled=false,
+  readonly=false,
+  size='md',
+  state=none,
+  helper=none,
+  error=none,
+  addon_left=none,
+  addon_right=none,
+  icon=none,
+  attrs={},
+  class_name=''
+) %}
+  {% set size_classes = {
+    'sm': 'form-input-sm',
+    'md': '',
+    'lg': 'form-input-lg'
+  } %}
+
+  {% set state_classes = {
+    'valid': 'is-valid',
+    'invalid': 'is-invalid'
+  } %}
+
+  <div class="form-group {{ class_name }}">
+    {% if label %}
+      <label class="form-label {% if required %}required{% endif %}" for="{{ name }}">
+        {{ label }}
+      </label>
+    {% endif %}
+
+    {% if addon_left or addon_right %}
+      <div class="input-group">
+        {% if addon_left %}
+          <span class="input-addon">{{ addon_left }}</span>
+        {% endif %}
+        <input
+          type="{{ type }}"
+          id="{{ name }}"
+          name="{{ name }}"
+          class="form-input {{ size_classes.get(size, '') }} {{ state_classes.get(state, '') }}"
+          value="{{ value }}"
+          placeholder="{{ placeholder }}"
+          {% if required %}required{% endif %}
+          {% if disabled %}disabled{% endif %}
+          {% if readonly %}readonly{% endif %}
+          {% for key, val in attrs.items() %}
+            {{ key }}="{{ val }}"
+          {% endfor %}
+        >
+        {% if addon_right %}
+          <span class="input-addon">{{ addon_right }}</span>
+        {% endif %}
+      </div>
+    {% elif icon %}
+      <div class="search-input">
+        <span class="search-icon">{{ icon | safe }}</span>
+        <input
+          type="{{ type }}"
+          id="{{ name }}"
+          name="{{ name }}"
+          class="form-input {{ size_classes.get(size, '') }} {{ state_classes.get(state, '') }}"
+          value="{{ value }}"
+          placeholder="{{ placeholder }}"
+          {% if required %}required{% endif %}
+          {% if disabled %}disabled{% endif %}
+          {% if readonly %}readonly{% endif %}
+          {% for key, val in attrs.items() %}
+            {{ key }}="{{ val }}"
+          {% endfor %}
+        >
+      </div>
+    {% else %}
+      <input
+        type="{{ type }}"
+        id="{{ name }}"
+        name="{{ name }}"
+        class="form-input {{ size_classes.get(size, '') }} {{ state_classes.get(state, '') }}"
+        value="{{ value }}"
+        placeholder="{{ placeholder }}"
+        {% if required %}required{% endif %}
+        {% if disabled %}disabled{% endif %}
+        {% if readonly %}readonly{% endif %}
+        {% for key, val in attrs.items() %}
+          {{ key }}="{{ val }}"
+        {% endfor %}
+      >
+    {% endif %}
+
+    {% if error %}
+      <p class="form-error">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+        </svg>
+        {{ error }}
+      </p>
+    {% elif helper %}
+      <p class="form-helper">{{ helper }}</p>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+
+{# Textarea Component #}
+{% macro textarea(
+  name,
+  label=none,
+  value='',
+  placeholder='',
+  required=false,
+  disabled=false,
+  readonly=false,
+  size='md',
+  state=none,
+  helper=none,
+  error=none,
+  rows=4,
+  attrs={},
+  class_name=''
+) %}
+  {% set size_classes = {
+    'sm': 'form-textarea-sm',
+    'md': '',
+    'lg': 'form-textarea-lg'
+  } %}
+
+  {% set state_classes = {
+    'valid': 'is-valid',
+    'invalid': 'is-invalid'
+  } %}
+
+  <div class="form-group {{ class_name }}">
+    {% if label %}
+      <label class="form-label {% if required %}required{% endif %}" for="{{ name }}">
+        {{ label }}
+      </label>
+    {% endif %}
+
+    <textarea
+      id="{{ name }}"
+      name="{{ name }}"
+      class="form-textarea {{ size_classes.get(size, '') }} {{ state_classes.get(state, '') }}"
+      placeholder="{{ placeholder }}"
+      rows="{{ rows }}"
+      {% if required %}required{% endif %}
+      {% if disabled %}disabled{% endif %}
+      {% if readonly %}readonly{% endif %}
+      {% for key, val in attrs.items() %}
+        {{ key }}="{{ val }}"
+      {% endfor %}
+    >{{ value }}</textarea>
+
+    {% if error %}
+      <p class="form-error">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+        </svg>
+        {{ error }}
+      </p>
+    {% elif helper %}
+      <p class="form-helper">{{ helper }}</p>
+    {% endif %}
+  </div>
+{% endmacro %}

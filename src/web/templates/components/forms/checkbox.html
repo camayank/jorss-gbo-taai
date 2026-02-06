@@ -1,0 +1,204 @@
+{#
+  Checkbox and Toggle Components
+
+  Reusable checkbox, radio, and toggle switch components.
+
+  Usage:
+    {% from 'components/forms/checkbox.html' import checkbox, radio, toggle %}
+    {{ checkbox(name="terms", label="I agree to the terms") }}
+    {{ radio(name="plan", value="pro", label="Pro Plan") }}
+    {{ toggle(name="notifications", label="Enable notifications") }}
+
+  Parameters (checkbox/radio):
+    - name: Input name attribute (required)
+    - value: Input value (default: "on" for checkbox)
+    - label: Label text (required)
+    - checked: boolean (default: false)
+    - disabled: boolean (default: false)
+    - required: boolean (default: false)
+    - custom: Use custom styled checkbox (default: false)
+    - attrs: Additional HTML attributes as dict (optional)
+    - class_name: Additional CSS classes (optional)
+
+  Parameters (toggle):
+    - name: Input name attribute (required)
+    - label: Label text (required)
+    - checked: boolean (default: false)
+    - disabled: boolean (default: false)
+    - label_position: left|right (default: right)
+    - attrs: Additional HTML attributes as dict (optional)
+    - class_name: Additional CSS classes (optional)
+#}
+
+{# Standard Checkbox #}
+{% macro checkbox(
+  name,
+  label,
+  value='on',
+  checked=false,
+  disabled=false,
+  required=false,
+  custom=false,
+  attrs={},
+  class_name=''
+) %}
+  {% if custom %}
+    <label class="checkbox-custom {{ class_name }}">
+      <input
+        type="checkbox"
+        id="{{ name }}"
+        name="{{ name }}"
+        value="{{ value }}"
+        {% if checked %}checked{% endif %}
+        {% if disabled %}disabled{% endif %}
+        {% if required %}required{% endif %}
+        {% for key, val in attrs.items() %}
+          {{ key }}="{{ val }}"
+        {% endfor %}
+      >
+      <span class="checkmark"></span>
+      <span class="form-check-label">{{ label }}</span>
+    </label>
+  {% else %}
+    <div class="form-check {{ class_name }}">
+      <input
+        type="checkbox"
+        id="{{ name }}"
+        name="{{ name }}"
+        value="{{ value }}"
+        class="form-check-input"
+        {% if checked %}checked{% endif %}
+        {% if disabled %}disabled{% endif %}
+        {% if required %}required{% endif %}
+        {% for key, val in attrs.items() %}
+          {{ key }}="{{ val }}"
+        {% endfor %}
+      >
+      <label class="form-check-label" for="{{ name }}">{{ label }}</label>
+    </div>
+  {% endif %}
+{% endmacro %}
+
+
+{# Radio Button #}
+{% macro radio(
+  name,
+  value,
+  label,
+  checked=false,
+  disabled=false,
+  required=false,
+  attrs={},
+  class_name=''
+) %}
+  <div class="form-check {{ class_name }}">
+    <input
+      type="radio"
+      id="{{ name }}_{{ value }}"
+      name="{{ name }}"
+      value="{{ value }}"
+      class="form-check-input"
+      {% if checked %}checked{% endif %}
+      {% if disabled %}disabled{% endif %}
+      {% if required %}required{% endif %}
+      {% for key, val in attrs.items() %}
+        {{ key }}="{{ val }}"
+      {% endfor %}
+    >
+    <label class="form-check-label" for="{{ name }}_{{ value }}">{{ label }}</label>
+  </div>
+{% endmacro %}
+
+
+{# Radio Group #}
+{% macro radio_group(
+  name,
+  options=[],
+  selected=none,
+  label=none,
+  required=false,
+  disabled=false,
+  inline=false,
+  class_name=''
+) %}
+  <div class="form-group {{ class_name }}">
+    {% if label %}
+      <label class="form-label {% if required %}required{% endif %}">{{ label }}</label>
+    {% endif %}
+    <div class="{% if inline %}form-check-inline{% endif %}" style="{% if inline %}display: flex; gap: 1rem; flex-wrap: wrap;{% endif %}">
+      {% for option in options %}
+        {{ radio(
+          name=name,
+          value=option.value,
+          label=option.label,
+          checked=(option.value == selected),
+          disabled=(disabled or option.disabled),
+          required=(loop.first and required)
+        ) }}
+      {% endfor %}
+    </div>
+  </div>
+{% endmacro %}
+
+
+{# Toggle Switch #}
+{% macro toggle(
+  name,
+  label,
+  checked=false,
+  disabled=false,
+  label_position='right',
+  attrs={},
+  class_name=''
+) %}
+  <label class="toggle {{ class_name }}" {% if disabled %}style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
+    {% if label_position == 'left' %}
+      <span class="toggle-label">{{ label }}</span>
+    {% endif %}
+    <input
+      type="checkbox"
+      id="{{ name }}"
+      name="{{ name }}"
+      {% if checked %}checked{% endif %}
+      {% if disabled %}disabled{% endif %}
+      {% for key, val in attrs.items() %}
+        {{ key }}="{{ val }}"
+      {% endfor %}
+    >
+    <span class="toggle-track"></span>
+    {% if label_position == 'right' %}
+      <span class="toggle-label">{{ label }}</span>
+    {% endif %}
+  </label>
+{% endmacro %}
+
+
+{# Checkbox Group #}
+{% macro checkbox_group(
+  name,
+  options=[],
+  selected=[],
+  label=none,
+  required=false,
+  disabled=false,
+  inline=false,
+  class_name=''
+) %}
+  <div class="form-group {{ class_name }}">
+    {% if label %}
+      <label class="form-label {% if required %}required{% endif %}">{{ label }}</label>
+    {% endif %}
+    <div class="{% if inline %}form-check-inline{% endif %}" style="{% if inline %}display: flex; gap: 1rem; flex-wrap: wrap;{% endif %}">
+      {% for option in options %}
+        {{ checkbox(
+          name=name ~ '[]',
+          value=option.value,
+          label=option.label,
+          checked=(option.value in selected),
+          disabled=(disabled or option.disabled),
+          required=(loop.first and required)
+        ) }}
+      {% endfor %}
+    </div>
+  </div>
+{% endmacro %}

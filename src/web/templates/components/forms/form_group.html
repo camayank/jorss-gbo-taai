@@ -1,0 +1,135 @@
+{#
+  Form Layout Components
+
+  Layout utilities for organizing forms.
+
+  Usage:
+    {% from 'components/forms/form_group.html' import form, form_row, form_actions %}
+
+    {% call form(action="/submit", method="post") %}
+      {% call form_row() %}
+        {{ input(name="first_name", label="First Name") }}
+        {{ input(name="last_name", label="Last Name") }}
+      {% endcall %}
+      {{ form_actions([
+        {"text": "Cancel", "variant": "ghost"},
+        {"text": "Submit", "variant": "primary", "type": "submit"}
+      ]) }}
+    {% endcall %}
+
+  Parameters (form):
+    - action: Form action URL (optional)
+    - method: Form method - get|post (default: post)
+    - enctype: Form enctype for file uploads (optional)
+    - attrs: Additional HTML attributes as dict (optional)
+    - class_name: Additional CSS classes (optional)
+
+  Parameters (form_row):
+    - class_name: Additional CSS classes (optional)
+
+  Parameters (form_actions):
+    - buttons: List of button configs (uses button component)
+    - align: left|center|right|between (default: right)
+    - class_name: Additional CSS classes (optional)
+#}
+
+{# Form Container #}
+{% macro form(action='', method='post', enctype=none, attrs={}, class_name='') %}
+  <form
+    class="form {{ class_name }}"
+    {% if action %}action="{{ action }}"{% endif %}
+    method="{{ method }}"
+    {% if enctype %}enctype="{{ enctype }}"{% endif %}
+    {% for key, val in attrs.items() %}
+      {{ key }}="{{ val }}"
+    {% endfor %}
+  >
+    {{ caller() }}
+  </form>
+{% endmacro %}
+
+
+{# Form Row (side-by-side fields) #}
+{% macro form_row(class_name='') %}
+  <div class="form-row {{ class_name }}">
+    {{ caller() }}
+  </div>
+{% endmacro %}
+
+
+{# Form Section with heading #}
+{% macro form_section(title, description=none, class_name='') %}
+  <fieldset class="form-section {{ class_name }}" style="border: none; padding: 0; margin: 0 0 var(--space-6) 0;">
+    <legend style="font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--color-gray-900); margin-bottom: var(--space-1);">
+      {{ title }}
+    </legend>
+    {% if description %}
+      <p style="font-size: var(--text-sm); color: var(--color-gray-500); margin-bottom: var(--space-4);">
+        {{ description }}
+      </p>
+    {% endif %}
+    {{ caller() }}
+  </fieldset>
+{% endmacro %}
+
+
+{# Form Actions (submit/cancel buttons) #}
+{% macro form_actions(buttons=[], align='right', class_name='') %}
+  {% set align_styles = {
+    'left': 'justify-content: flex-start;',
+    'center': 'justify-content: center;',
+    'right': 'justify-content: flex-end;',
+    'between': 'justify-content: space-between;'
+  } %}
+
+  <div class="form-actions {{ class_name }}" style="display: flex; gap: var(--space-3); padding-top: var(--space-4); {{ align_styles.get(align, 'justify-content: flex-end;') }}">
+    {% for btn in buttons %}
+      <button
+        type="{{ btn.type | default('button') }}"
+        class="btn btn-{{ btn.variant | default('primary') }} {% if btn.size %}btn-{{ btn.size }}{% endif %}"
+        {% if btn.disabled %}disabled{% endif %}
+        {% if btn.onclick %}onclick="{{ btn.onclick }}"{% endif %}
+      >
+        {{ btn.text }}
+      </button>
+    {% endfor %}
+  </div>
+{% endmacro %}
+
+
+{# File Upload Dropzone #}
+{% macro file_upload(
+  name,
+  label=none,
+  accept=none,
+  multiple=false,
+  helper=none,
+  class_name=''
+) %}
+  <div class="form-group {{ class_name }}">
+    {% if label %}
+      <label class="form-label">{{ label }}</label>
+    {% endif %}
+
+    <label class="file-input" for="{{ name }}">
+      <input
+        type="file"
+        id="{{ name }}"
+        name="{{ name }}"
+        {% if accept %}accept="{{ accept }}"{% endif %}
+        {% if multiple %}multiple{% endif %}
+      >
+      <svg class="file-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M12 4v12M8 8l4-4 4 4"/>
+      </svg>
+      <p class="file-input-text">
+        <strong>Click to upload</strong> or drag and drop<br>
+        {% if accept %}{{ accept }}{% else %}Any file type{% endif %}
+      </p>
+    </label>
+
+    {% if helper %}
+      <p class="form-helper">{{ helper }}</p>
+    {% endif %}
+  </div>
+{% endmacro %}

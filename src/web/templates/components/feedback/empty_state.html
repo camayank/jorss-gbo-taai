@@ -1,0 +1,156 @@
+{#
+  Empty State Component
+
+  Placeholder for empty data states.
+
+  Usage:
+    {% from 'components/feedback/empty_state.html' import empty_state %}
+    {{ empty_state(
+      icon="inbox",
+      title="No messages",
+      description="You don't have any messages yet.",
+      action_text="Send a message",
+      action_href="/messages/new"
+    ) }}
+
+  Parameters:
+    - icon: inbox|search|folder|document|users|chart (default: inbox)
+    - title: Title text (required)
+    - description: Description text (optional)
+    - action_text: Primary action button text (optional)
+    - action_href: Primary action URL (optional)
+    - action_variant: Button variant (default: primary)
+    - secondary_text: Secondary link text (optional)
+    - secondary_href: Secondary link URL (optional)
+    - size: sm|md|lg (default: md)
+    - class_name: Additional CSS classes (optional)
+#}
+
+{% macro empty_state(
+  title,
+  icon='inbox',
+  description=none,
+  action_text=none,
+  action_href=none,
+  action_variant='primary',
+  secondary_text=none,
+  secondary_href=none,
+  size='md',
+  class_name=''
+) %}
+  {% set icons = {
+    'inbox': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>',
+    'search': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>',
+    'folder': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
+    'document': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>',
+    'users': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    'chart': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>',
+    'calendar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+    'credit-card': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><path d="M1 10h22"/></svg>'
+  } %}
+
+  {% set sizes = {
+    'sm': {'icon': '48px', 'title': 'var(--text-base)', 'desc': 'var(--text-sm)', 'padding': '24px'},
+    'md': {'icon': '64px', 'title': 'var(--text-lg)', 'desc': 'var(--text-base)', 'padding': '40px'},
+    'lg': {'icon': '80px', 'title': 'var(--text-xl)', 'desc': 'var(--text-base)', 'padding': '60px'}
+  } %}
+
+  {% set s = sizes.get(size, sizes.md) %}
+
+  <div class="empty-state {{ class_name }}" style="
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: {{ s.padding }};
+  ">
+    <div style="
+      width: {{ s.icon }};
+      height: {{ s.icon }};
+      color: var(--color-gray-300);
+      margin-bottom: 16px;
+    ">
+      {{ icons.get(icon, icons.inbox) | safe }}
+    </div>
+
+    <h3 style="
+      font-size: {{ s.title }};
+      font-weight: var(--font-semibold);
+      color: var(--color-gray-900);
+      margin: 0 0 8px;
+    ">{{ title }}</h3>
+
+    {% if description %}
+      <p style="
+        font-size: {{ s.desc }};
+        color: var(--color-gray-500);
+        max-width: 320px;
+        margin: 0 0 20px;
+      ">{{ description }}</p>
+    {% endif %}
+
+    {% if action_text %}
+      <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+        <a href="{{ action_href | default('#') }}" class="btn btn-{{ action_variant }}">
+          {{ action_text }}
+        </a>
+        {% if secondary_text %}
+          <a href="{{ secondary_href | default('#') }}" class="btn btn-ghost">
+            {{ secondary_text }}
+          </a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+
+{# No Results - Specific empty state for search results #}
+{% macro no_results(
+  search_term=none,
+  suggestions=[],
+  clear_href=none,
+  class_name=''
+) %}
+  <div class="no-results {{ class_name }}" style="
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 40px;
+  ">
+    <div style="width: 64px; height: 64px; color: var(--color-gray-300); margin-bottom: 16px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+    </div>
+
+    <h3 style="font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--color-gray-900); margin: 0 0 8px;">
+      {% if search_term %}
+        No results for "{{ search_term }}"
+      {% else %}
+        No results found
+      {% endif %}
+    </h3>
+
+    <p style="font-size: var(--text-base); color: var(--color-gray-500); margin: 0 0 16px;">
+      Try adjusting your search or filter criteria
+    </p>
+
+    {% if suggestions %}
+      <div style="margin-bottom: 16px;">
+        <p style="font-size: var(--text-sm); color: var(--color-gray-600); margin-bottom: 8px;">Suggestions:</p>
+        <ul style="list-style: none; padding: 0; margin: 0; font-size: var(--text-sm); color: var(--color-gray-500);">
+          {% for suggestion in suggestions %}
+            <li style="margin-bottom: 4px;">{{ suggestion }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {% if clear_href %}
+      <a href="{{ clear_href }}" class="btn btn-ghost">Clear filters</a>
+    {% endif %}
+  </div>
+{% endmacro %}

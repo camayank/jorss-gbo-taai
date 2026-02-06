@@ -1,0 +1,196 @@
+{#
+  Navigation Components
+
+  Sidebar, breadcrumbs, and tab navigation.
+
+  Usage:
+    {% from 'components/layout/navigation.html' import breadcrumbs, tabs %}
+    {{ breadcrumbs([
+      {"label": "Home", "href": "/"},
+      {"label": "Clients", "href": "/clients"},
+      {"label": "John Doe"}
+    ]) }}
+#}
+
+{# Breadcrumbs #}
+{% macro breadcrumbs(items=[], class_name='') %}
+  <nav class="breadcrumbs {{ class_name }}" aria-label="Breadcrumb">
+    {% for item in items %}
+      <div class="breadcrumb-item {% if loop.last %}current{% endif %}">
+        {% if not loop.last and item.href %}
+          <a href="{{ item.href }}">{{ item.label }}</a>
+        {% else %}
+          <span>{{ item.label }}</span>
+        {% endif %}
+      </div>
+      {% if not loop.last %}
+        <span class="breadcrumb-separator" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </span>
+      {% endif %}
+    {% endfor %}
+  </nav>
+{% endmacro %}
+
+
+{# Tabs Navigation #}
+{% macro tabs(items=[], active=none, style='default', class_name='') %}
+  {% set style_class = 'tabs-pills' if style == 'pills' else '' %}
+
+  <nav class="tabs {{ style_class }} {{ class_name }}" role="tablist">
+    {% for item in items %}
+      <a
+        href="{{ item.href | default('#' ~ item.id) }}"
+        class="tab {% if item.id == active or item.active %}active{% endif %}"
+        role="tab"
+        aria-selected="{{ 'true' if (item.id == active or item.active) else 'false' }}"
+        {% if item.id %}id="tab-{{ item.id }}"{% endif %}
+      >
+        {% if item.icon %}
+          <span style="margin-right: 8px;">{{ item.icon | safe }}</span>
+        {% endif %}
+        {{ item.label }}
+        {% if item.badge %}
+          <span style="margin-left: 8px; background: var(--color-gray-200); padding: 2px 8px; border-radius: 9999px; font-size: 12px;">
+            {{ item.badge }}
+          </span>
+        {% endif %}
+      </a>
+    {% endfor %}
+  </nav>
+{% endmacro %}
+
+
+{# Sidebar Navigation Item #}
+{% macro nav_item(
+  label,
+  href='#',
+  icon=none,
+  active=false,
+  badge=none,
+  class_name=''
+) %}
+  <a href="{{ href }}" class="nav-item {% if active %}active{% endif %} {{ class_name }}">
+    {% if icon %}
+      <span class="nav-icon">{{ icon | safe }}</span>
+    {% endif %}
+    <span class="nav-label">{{ label }}</span>
+    {% if badge %}
+      <span class="nav-badge">{{ badge }}</span>
+    {% endif %}
+  </a>
+{% endmacro %}
+
+
+{# Navigation Section with Label #}
+{% macro nav_section(label=none, items=[], class_name='') %}
+  <div class="nav-section {{ class_name }}">
+    {% if label %}
+      <div class="nav-section-label">{{ label }}</div>
+    {% endif %}
+    <ul class="nav-list">
+      {% for item in items %}
+        <li>
+          {{ nav_item(
+            label=item.label,
+            href=item.href,
+            icon=item.icon,
+            active=item.active,
+            badge=item.badge
+          ) }}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endmacro %}
+
+
+{# Page Header with Title and Actions #}
+{% macro page_header(
+  title,
+  subtitle=none,
+  breadcrumb_items=[],
+  actions=none,
+  class_name=''
+) %}
+  <div class="page-header {{ class_name }}" style="margin-bottom: 24px;">
+    {% if breadcrumb_items %}
+      <div style="margin-bottom: 12px;">
+        {{ breadcrumbs(breadcrumb_items) }}
+      </div>
+    {% endif %}
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
+      <div>
+        <h1 style="font-size: 24px; font-weight: 600; color: var(--color-gray-900); margin: 0;">{{ title }}</h1>
+        {% if subtitle %}
+          <p style="font-size: 14px; color: var(--color-gray-500); margin: 4px 0 0;">{{ subtitle }}</p>
+        {% endif %}
+      </div>
+      {% if actions %}
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          {{ actions | safe }}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endmacro %}
+
+
+{# Steps/Progress Navigation #}
+{% macro steps(items=[], current=1, class_name='') %}
+  <nav class="steps {{ class_name }}" style="display: flex; align-items: center;" aria-label="Progress">
+    {% for item in items %}
+      {% set step_num = loop.index %}
+      {% set is_complete = step_num < current %}
+      {% set is_current = step_num == current %}
+
+      <div class="step" style="display: flex; align-items: center;">
+        <div style="
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          font-weight: 500;
+          {% if is_complete %}
+            background: var(--color-success-500);
+            color: white;
+          {% elif is_current %}
+            background: var(--color-primary-500);
+            color: white;
+          {% else %}
+            background: var(--color-gray-200);
+            color: var(--color-gray-500);
+          {% endif %}
+        ">
+          {% if is_complete %}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <path d="M20 6 9 17l-5-5"/>
+            </svg>
+          {% else %}
+            {{ step_num }}
+          {% endif %}
+        </div>
+        <span style="
+          margin-left: 12px;
+          font-size: 14px;
+          font-weight: {% if is_current %}600{% else %}400{% endif %};
+          color: {% if is_current %}var(--color-gray-900){% else %}var(--color-gray-500){% endif %};
+        ">{{ item.label }}</span>
+      </div>
+
+      {% if not loop.last %}
+        <div style="
+          flex: 1;
+          height: 2px;
+          margin: 0 16px;
+          background: {% if is_complete %}var(--color-success-500){% else %}var(--color-gray-200){% endif %};
+        "></div>
+      {% endif %}
+    {% endfor %}
+  </nav>
+{% endmacro %}
