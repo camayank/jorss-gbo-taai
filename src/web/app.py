@@ -1328,6 +1328,26 @@ def forgot_password_page(request: Request):
     return templates.TemplateResponse("auth/forgot_password.html", {"request": request, "branding": branding})
 
 
+@app.get("/reset-password", response_class=HTMLResponse)
+def reset_password_page(request: Request, token: str = None):
+    """
+    Reset Password Page - allows users to set new password with token.
+
+    The token is passed via query parameter from the password reset email.
+    The template handles token validation and form submission to /api/v1/auth/reset-password.
+    """
+    from config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse(
+        "auth/reset-password.html",
+        {
+            "request": request,
+            "branding": branding,
+            "reset_token": token
+        }
+    )
+
+
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request):
     """CPA Workspace Dashboard - Multi-client management."""
@@ -4099,16 +4119,20 @@ async def create_lead(request: Request):
 
 
 @app.get("/api/export/pdf")
-async def export_pdf(request: Request):
+async def export_pdf(request: Request, session_id: str = None):
     """
     Export tax return as PDF.
 
     CPA COMPLIANCE: Requires CPA_APPROVED status.
+
+    Args:
+        session_id: Optional session ID as query parameter. Falls back to cookie if not provided.
     """
     from export.pdf_generator import TaxReturnPDFGenerator
     from fastapi.responses import Response
 
-    session_id = request.cookies.get("tax_session_id") or ""
+    # Support both query parameter and cookie for session_id
+    session_id = session_id or request.cookies.get("tax_session_id") or ""
 
     # CPA COMPLIANCE: Check approval status before allowing export
     is_approved, error_msg = _check_cpa_approval(session_id, "PDF Export")
@@ -4143,13 +4167,17 @@ async def export_pdf(request: Request):
 
 
 @app.get("/api/export/json")
-async def export_json(request: Request):
+async def export_json(request: Request, session_id: str = None):
     """
     Export complete tax return as JSON.
 
     CPA COMPLIANCE: Requires CPA_APPROVED status.
+
+    Args:
+        session_id: Optional session ID as query parameter. Falls back to cookie if not provided.
     """
-    session_id = request.cookies.get("tax_session_id") or ""
+    # Support both query parameter and cookie for session_id
+    session_id = session_id or request.cookies.get("tax_session_id") or ""
 
     # CPA COMPLIANCE: Check approval status before allowing export
     is_approved, error_msg = _check_cpa_approval(session_id, "JSON Export")

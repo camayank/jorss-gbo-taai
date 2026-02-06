@@ -1,0 +1,440 @@
+{% extends "cpa/base.html" %}
+{% from 'macros/icons.html' import icon %}
+
+{% block title %}Return Queue{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div class="page-header-content">
+            <h1 class="page-title">Return Queue</h1>
+            <p class="page-subtitle">Review and approve client tax returns</p>
+        </div>
+        <div class="page-actions">
+            <div class="filter-tabs">
+                <button class="filter-tab {% if status == 'pending_review' %}active{% endif %}"
+                        onclick="filterByStatus('pending_review')">
+                    Pending Review
+                    {% if counts.pending_review %}<span class="badge">{{ counts.pending_review }}</span>{% endif %}
+                </button>
+                <button class="filter-tab {% if status == 'in_review' %}active{% endif %}"
+                        onclick="filterByStatus('in_review')">
+                    In Review
+                    {% if counts.in_review %}<span class="badge">{{ counts.in_review }}</span>{% endif %}
+                </button>
+                <button class="filter-tab {% if status == 'ready_for_approval' %}active{% endif %}"
+                        onclick="filterByStatus('ready_for_approval')">
+                    Ready for Approval
+                    {% if counts.ready_for_approval %}<span class="badge badge-success">{{ counts.ready_for_approval }}</span>{% endif %}
+                </button>
+                <button class="filter-tab {% if status == 'approved' %}active{% endif %}"
+                        onclick="filterByStatus('approved')">
+                    Approved
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Queue Stats -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-icon warning">{{ icon('clock') }}</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ counts.pending_review or 0 }}</div>
+                <div class="stat-label">Pending Review</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon info">{{ icon('eye') }}</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ counts.in_review or 0 }}</div>
+                <div class="stat-label">In Review</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon success">{{ icon('check-circle') }}</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ counts.ready_for_approval or 0 }}</div>
+                <div class="stat-label">Ready for Approval</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon primary">{{ icon('file-text') }}</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ counts.total or 0 }}</div>
+                <div class="stat-label">Total This Month</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Returns Table -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Returns - {{ status|replace('_', ' ')|title }}</h2>
+            <div class="card-actions">
+                <input type="text" class="search-input" placeholder="Search by client name..."
+                       id="searchInput" onkeyup="filterTable()">
+            </div>
+        </div>
+        <div class="card-body">
+            {% if returns and returns|length > 0 %}
+            <table class="data-table" id="returnsTable">
+                <thead>
+                    <tr>
+                        <th>Client</th>
+                        <th>Tax Year</th>
+                        <th>Filing Status</th>
+                        <th>Refund/Owed</th>
+                        <th>Submitted</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for return in returns %}
+                    <tr data-session-id="{{ return.session_id }}">
+                        <td>
+                            <div class="client-info">
+                                <div class="client-name">{{ return.client_name or 'Unknown Client' }}</div>
+                                <div class="client-email">{{ return.client_email or '' }}</div>
+                            </div>
+                        </td>
+                        <td>{{ return.tax_year or '2025' }}</td>
+                        <td>{{ return.filing_status or 'Single' }}</td>
+                        <td>
+                            {% if return.refund_or_owed %}
+                                {% if return.refund_or_owed > 0 %}
+                                <span class="amount refund">${{ "{:,.0f}".format(return.refund_or_owed) }} refund</span>
+                                {% else %}
+                                <span class="amount owed">${{ "{:,.0f}".format(return.refund_or_owed|abs) }} owed</span>
+                                {% endif %}
+                            {% else %}
+                            <span class="amount">-</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ return.submitted_at or '-' }}</td>
+                        <td>
+                            <span class="status-badge status-{{ return.status|replace('_', '-') }}">
+                                {{ return.status|replace('_', ' ')|title }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="/cpa/returns/{{ return.session_id }}/review" class="btn btn-sm btn-primary">
+                                    Review
+                                </a>
+                                {% if return.status == 'ready_for_approval' %}
+                                <button class="btn btn-sm btn-success" onclick="approveReturn('{{ return.session_id }}')">
+                                    Approve
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">{{ icon('inbox') }}</div>
+                <h3>No returns in this queue</h3>
+                <p>Returns submitted by clients will appear here for your review.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .page-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: var(--space-6);
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: var(--space-6);
+        flex-wrap: wrap;
+        gap: var(--space-4);
+    }
+
+    .page-title {
+        font-size: var(--text-2xl);
+        font-weight: var(--font-bold);
+        color: var(--color-gray-900);
+        margin-bottom: var(--space-1);
+    }
+
+    .page-subtitle {
+        color: var(--color-gray-500);
+        font-size: var(--text-sm);
+    }
+
+    .filter-tabs {
+        display: flex;
+        gap: var(--space-2);
+        flex-wrap: wrap;
+    }
+
+    .filter-tab {
+        padding: var(--space-2) var(--space-4);
+        border: 1px solid var(--color-gray-300);
+        border-radius: var(--radius-lg);
+        background: white;
+        cursor: pointer;
+        font-size: var(--text-sm);
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        transition: all var(--transition-fast);
+    }
+
+    .filter-tab:hover {
+        border-color: var(--color-primary-500);
+        color: var(--color-primary-600);
+    }
+
+    .filter-tab.active {
+        background: var(--color-primary-500);
+        color: white;
+        border-color: var(--color-primary-500);
+    }
+
+    .badge {
+        background: var(--color-gray-200);
+        color: var(--color-gray-700);
+        padding: 2px 8px;
+        border-radius: var(--radius-full);
+        font-size: var(--text-xs);
+        font-weight: var(--font-medium);
+    }
+
+    .filter-tab.active .badge {
+        background: rgba(255,255,255,0.2);
+        color: white;
+    }
+
+    .badge-success {
+        background: var(--color-success-100);
+        color: var(--color-success-700);
+    }
+
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--space-4);
+        margin-bottom: var(--space-6);
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: var(--radius-xl);
+        padding: var(--space-4);
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .stat-icon.warning { background: var(--color-warning-100); color: var(--color-warning-600); }
+    .stat-icon.info { background: var(--color-primary-100); color: var(--color-primary-600); }
+    .stat-icon.success { background: var(--color-success-100); color: var(--color-success-600); }
+    .stat-icon.primary { background: var(--color-gray-100); color: var(--color-gray-600); }
+
+    .stat-value {
+        font-size: var(--text-2xl);
+        font-weight: var(--font-bold);
+        color: var(--color-gray-900);
+    }
+
+    .stat-label {
+        font-size: var(--text-sm);
+        color: var(--color-gray-500);
+    }
+
+    .card {
+        background: white;
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: var(--space-4) var(--space-6);
+        border-bottom: 1px solid var(--color-gray-200);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .card-title {
+        font-size: var(--text-lg);
+        font-weight: var(--font-semibold);
+    }
+
+    .search-input {
+        padding: var(--space-2) var(--space-3);
+        border: 1px solid var(--color-gray-300);
+        border-radius: var(--radius-lg);
+        font-size: var(--text-sm);
+        min-width: 250px;
+    }
+
+    .card-body {
+        padding: 0;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .data-table th {
+        text-align: left;
+        padding: var(--space-3) var(--space-4);
+        background: var(--color-gray-50);
+        font-weight: var(--font-medium);
+        font-size: var(--text-sm);
+        color: var(--color-gray-600);
+        border-bottom: 1px solid var(--color-gray-200);
+    }
+
+    .data-table td {
+        padding: var(--space-3) var(--space-4);
+        border-bottom: 1px solid var(--color-gray-100);
+    }
+
+    .data-table tbody tr:hover {
+        background: var(--color-gray-50);
+    }
+
+    .client-name {
+        font-weight: var(--font-medium);
+        color: var(--color-gray-900);
+    }
+
+    .client-email {
+        font-size: var(--text-sm);
+        color: var(--color-gray-500);
+    }
+
+    .amount {
+        font-weight: var(--font-medium);
+    }
+
+    .amount.refund { color: var(--color-success-600); }
+    .amount.owed { color: var(--color-error-600); }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: var(--radius-full);
+        font-size: var(--text-xs);
+        font-weight: var(--font-medium);
+    }
+
+    .status-pending-review {
+        background: var(--color-warning-100);
+        color: var(--color-warning-700);
+    }
+
+    .status-in-review {
+        background: var(--color-primary-100);
+        color: var(--color-primary-700);
+    }
+
+    .status-ready-for-approval {
+        background: var(--color-success-100);
+        color: var(--color-success-700);
+    }
+
+    .status-approved {
+        background: var(--color-gray-100);
+        color: var(--color-gray-700);
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: var(--space-2);
+    }
+
+    .btn-sm {
+        padding: var(--space-1) var(--space-3);
+        font-size: var(--text-sm);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: var(--space-12) var(--space-6);
+        color: var(--color-gray-500);
+    }
+
+    .empty-icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto var(--space-4);
+        color: var(--color-gray-300);
+    }
+</style>
+
+<script>
+    function filterByStatus(status) {
+        window.location.href = '/cpa/returns/queue?status=' + status;
+    }
+
+    function filterTable() {
+        const input = document.getElementById('searchInput');
+        const filter = input.value.toLowerCase();
+        const table = document.getElementById('returnsTable');
+        const rows = table.getElementsByTagName('tr');
+
+        for (let i = 1; i < rows.length; i++) {
+            const clientName = rows[i].querySelector('.client-name');
+            if (clientName) {
+                const text = clientName.textContent.toLowerCase();
+                rows[i].style.display = text.includes(filter) ? '' : 'none';
+            }
+        }
+    }
+
+    async function approveReturn(sessionId) {
+        if (!confirm('Are you sure you want to approve this return?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/returns/${sessionId}/approve`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    cpa_signature: 'Electronic Signature'
+                })
+            });
+
+            if (response.ok) {
+                alert('Return approved successfully!');
+                window.location.reload();
+            } else {
+                const data = await response.json();
+                alert('Failed to approve: ' + (data.detail || 'Unknown error'));
+            }
+        } catch (error) {
+            alert('Error approving return: ' + error.message);
+        }
+    }
+</script>
+{% endblock %}

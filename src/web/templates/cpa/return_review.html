@@ -1,0 +1,651 @@
+{% extends "cpa/base.html" %}
+{% from 'macros/icons.html' import icon %}
+
+{% block title %}Review Return - {{ client_name }}{% endblock %}
+
+{% block content %}
+<div class="review-container">
+    <!-- Header -->
+    <div class="review-header">
+        <div class="header-left">
+            <a href="/cpa/returns/queue" class="back-link">
+                {{ icon('arrow-left') }}
+                Back to Queue
+            </a>
+            <h1 class="review-title">Tax Return Review</h1>
+            <p class="review-subtitle">{{ client_name }} - Tax Year {{ tax_year or '2025' }}</p>
+        </div>
+        <div class="header-right">
+            <span class="status-badge status-{{ return_data.status|replace('_', '-') }}">
+                {{ return_data.status|replace('_', ' ')|title }}
+            </span>
+        </div>
+    </div>
+
+    <div class="review-grid">
+        <!-- Main Content -->
+        <div class="review-main">
+            <!-- Summary Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Return Summary</h2>
+                </div>
+                <div class="card-body">
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <span class="label">Filing Status</span>
+                            <span class="value">{{ return_data.filing_status or 'Single' }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Total Income</span>
+                            <span class="value">${{ "{:,.2f}".format(return_data.total_income or 0) }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">AGI</span>
+                            <span class="value">${{ "{:,.2f}".format(return_data.agi or 0) }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Taxable Income</span>
+                            <span class="value">${{ "{:,.2f}".format(return_data.taxable_income or 0) }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Total Tax</span>
+                            <span class="value">${{ "{:,.2f}".format(return_data.total_tax or 0) }}</span>
+                        </div>
+                        <div class="summary-item highlight">
+                            <span class="label">
+                                {% if return_data.refund_or_owed and return_data.refund_or_owed > 0 %}
+                                Refund
+                                {% else %}
+                                Amount Owed
+                                {% endif %}
+                            </span>
+                            <span class="value {% if return_data.refund_or_owed and return_data.refund_or_owed > 0 %}refund{% else %}owed{% endif %}">
+                                ${{ "{:,.2f}".format((return_data.refund_or_owed or 0)|abs) }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Income Details -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Income Details</h2>
+                </div>
+                <div class="card-body">
+                    <table class="detail-table">
+                        <tbody>
+                            <tr>
+                                <td>W-2 Wages</td>
+                                <td class="amount">${{ "{:,.2f}".format(return_data.w2_wages or 0) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Interest Income</td>
+                                <td class="amount">${{ "{:,.2f}".format(return_data.interest_income or 0) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Dividend Income</td>
+                                <td class="amount">${{ "{:,.2f}".format(return_data.dividend_income or 0) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Self-Employment Income</td>
+                                <td class="amount">${{ "{:,.2f}".format(return_data.self_employment_income or 0) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Other Income</td>
+                                <td class="amount">${{ "{:,.2f}".format(return_data.other_income or 0) }}</td>
+                            </tr>
+                            <tr class="total-row">
+                                <td><strong>Total Income</strong></td>
+                                <td class="amount"><strong>${{ "{:,.2f}".format(return_data.total_income or 0) }}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Deductions -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Deductions</h2>
+                </div>
+                <div class="card-body">
+                    <table class="detail-table">
+                        <tbody>
+                            <tr>
+                                <td>Deduction Type</td>
+                                <td>{{ 'Standard' if return_data.use_standard_deduction else 'Itemized' }}</td>
+                            </tr>
+                            <tr>
+                                <td>Total Deduction</td>
+                                <td class="amount">${{ "{:,.2f}".format(return_data.total_deduction or 0) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tax Credits -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Credits & Payments</h2>
+                </div>
+                <div class="card-body">
+                    <table class="detail-table">
+                        <tbody>
+                            <tr>
+                                <td>Federal Withholding</td>
+                                <td class="amount">${{ "{:,.2f}".format(return_data.federal_withholding or 0) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Estimated Tax Payments</td>
+                                <td class="amount">${{ "{:,.2f}".format(return_data.estimated_payments or 0) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Child Tax Credit</td>
+                                <td class="amount">${{ "{:,.2f}".format(return_data.child_tax_credit or 0) }}</td>
+                            </tr>
+                            <tr>
+                                <td>EITC</td>
+                                <td class="amount">${{ "{:,.2f}".format(return_data.eitc or 0) }}</td>
+                            </tr>
+                            <tr class="total-row">
+                                <td><strong>Total Credits & Payments</strong></td>
+                                <td class="amount"><strong>${{ "{:,.2f}".format(return_data.total_payments or 0) }}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Notes Section -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Review Notes</h2>
+                    <button class="btn btn-sm btn-outline" onclick="toggleAddNote()">
+                        {{ icon('plus') }} Add Note
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Add Note Form (hidden by default) -->
+                    <div id="addNoteForm" class="add-note-form" style="display: none;">
+                        <textarea id="noteContent" placeholder="Enter your review note..." rows="3"></textarea>
+                        <div class="note-actions">
+                            <button class="btn btn-sm btn-primary" onclick="saveNote()">Save Note</button>
+                            <button class="btn btn-sm btn-outline" onclick="toggleAddNote()">Cancel</button>
+                        </div>
+                    </div>
+
+                    <!-- Existing Notes -->
+                    <div id="notesList">
+                        {% if notes and notes|length > 0 %}
+                            {% for note in notes %}
+                            <div class="note-item">
+                                <div class="note-header">
+                                    <span class="note-author">{{ note.author or 'CPA' }}</span>
+                                    <span class="note-date">{{ note.created_at or 'Just now' }}</span>
+                                </div>
+                                <div class="note-content">{{ note.content }}</div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-notes">No review notes yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar - Actions -->
+        <div class="review-sidebar">
+            <div class="card sticky">
+                <div class="card-header">
+                    <h2>Actions</h2>
+                </div>
+                <div class="card-body">
+                    {% if return_data.status != 'approved' %}
+                    <div class="action-section">
+                        <h3>Approval</h3>
+                        <p class="action-description">Approve this return for filing with the IRS.</p>
+
+                        <div class="signature-section">
+                            <label class="form-label">Electronic Signature</label>
+                            <input type="text" id="cpaSignature" class="form-input"
+                                   placeholder="Type your full name to sign"
+                                   value="{{ cpa.full_name or '' }}">
+                        </div>
+
+                        <button class="btn btn-success btn-full" onclick="approveReturn()">
+                            {{ icon('check-circle') }}
+                            Approve Return
+                        </button>
+                    </div>
+
+                    <hr class="divider">
+
+                    <div class="action-section">
+                        <h3>Request Changes</h3>
+                        <p class="action-description">Send back to client for corrections.</p>
+                        <textarea id="changeRequest" class="form-textarea"
+                                  placeholder="Describe the changes needed..." rows="3"></textarea>
+                        <button class="btn btn-warning btn-full" onclick="requestChanges()">
+                            {{ icon('alert-circle') }}
+                            Request Changes
+                        </button>
+                    </div>
+                    {% else %}
+                    <div class="approved-message">
+                        <div class="approved-icon">{{ icon('check-circle') }}</div>
+                        <h3>Return Approved</h3>
+                        <p>Approved on {{ return_data.approved_at or 'N/A' }}</p>
+                        <p>By: {{ return_data.approved_by or 'CPA' }}</p>
+                    </div>
+                    {% endif %}
+
+                    <hr class="divider">
+
+                    <div class="action-section">
+                        <h3>Documents</h3>
+                        <a href="/api/export/pdf?session_id={{ session_id }}" class="btn btn-outline btn-full" download>
+                            {{ icon('download') }}
+                            Download PDF
+                        </a>
+                        <a href="/api/export/json?session_id={{ session_id }}" class="btn btn-outline btn-full" download>
+                            {{ icon('file-text') }}
+                            Export Data
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .review-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: var(--space-6);
+    }
+
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: var(--space-6);
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        color: var(--color-gray-600);
+        text-decoration: none;
+        font-size: var(--text-sm);
+        margin-bottom: var(--space-2);
+    }
+
+    .back-link:hover {
+        color: var(--color-primary-600);
+    }
+
+    .review-title {
+        font-size: var(--text-2xl);
+        font-weight: var(--font-bold);
+        margin-bottom: var(--space-1);
+    }
+
+    .review-subtitle {
+        color: var(--color-gray-500);
+    }
+
+    .review-grid {
+        display: grid;
+        grid-template-columns: 1fr 350px;
+        gap: var(--space-6);
+    }
+
+    @media (max-width: 1024px) {
+        .review-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .review-main {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+    }
+
+    .card {
+        background: white;
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: var(--space-4) var(--space-6);
+        border-bottom: 1px solid var(--color-gray-200);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .card-header h2 {
+        font-size: var(--text-lg);
+        font-weight: var(--font-semibold);
+        margin: 0;
+    }
+
+    .card-body {
+        padding: var(--space-6);
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: var(--space-4);
+    }
+
+    .summary-item {
+        padding: var(--space-3);
+        background: var(--color-gray-50);
+        border-radius: var(--radius-lg);
+    }
+
+    .summary-item.highlight {
+        background: var(--color-primary-50);
+        border: 1px solid var(--color-primary-200);
+    }
+
+    .summary-item .label {
+        display: block;
+        font-size: var(--text-sm);
+        color: var(--color-gray-500);
+        margin-bottom: var(--space-1);
+    }
+
+    .summary-item .value {
+        display: block;
+        font-size: var(--text-xl);
+        font-weight: var(--font-bold);
+        color: var(--color-gray-900);
+    }
+
+    .summary-item .value.refund { color: var(--color-success-600); }
+    .summary-item .value.owed { color: var(--color-error-600); }
+
+    .detail-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .detail-table td {
+        padding: var(--space-3) 0;
+        border-bottom: 1px solid var(--color-gray-100);
+    }
+
+    .detail-table td.amount {
+        text-align: right;
+        font-family: var(--font-mono);
+    }
+
+    .detail-table tr.total-row {
+        border-top: 2px solid var(--color-gray-300);
+    }
+
+    .detail-table tr.total-row td {
+        padding-top: var(--space-4);
+    }
+
+    .sticky {
+        position: sticky;
+        top: var(--space-6);
+    }
+
+    .action-section {
+        margin-bottom: var(--space-4);
+    }
+
+    .action-section h3 {
+        font-size: var(--text-base);
+        font-weight: var(--font-semibold);
+        margin-bottom: var(--space-2);
+    }
+
+    .action-description {
+        font-size: var(--text-sm);
+        color: var(--color-gray-500);
+        margin-bottom: var(--space-3);
+    }
+
+    .signature-section {
+        margin-bottom: var(--space-3);
+    }
+
+    .form-label {
+        display: block;
+        font-size: var(--text-sm);
+        font-weight: var(--font-medium);
+        margin-bottom: var(--space-1);
+    }
+
+    .form-input, .form-textarea {
+        width: 100%;
+        padding: var(--space-2) var(--space-3);
+        border: 1px solid var(--color-gray-300);
+        border-radius: var(--radius-lg);
+        font-size: var(--text-sm);
+        margin-bottom: var(--space-3);
+    }
+
+    .btn-full {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .btn-success {
+        background: var(--color-success-600);
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: var(--color-success-700);
+    }
+
+    .btn-warning {
+        background: var(--color-warning-500);
+        color: white;
+    }
+
+    .btn-warning:hover {
+        background: var(--color-warning-600);
+    }
+
+    .divider {
+        border: none;
+        border-top: 1px solid var(--color-gray-200);
+        margin: var(--space-4) 0;
+    }
+
+    .approved-message {
+        text-align: center;
+        padding: var(--space-4);
+        background: var(--color-success-50);
+        border-radius: var(--radius-lg);
+    }
+
+    .approved-icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto var(--space-2);
+        color: var(--color-success-500);
+    }
+
+    .add-note-form {
+        margin-bottom: var(--space-4);
+        padding: var(--space-4);
+        background: var(--color-gray-50);
+        border-radius: var(--radius-lg);
+    }
+
+    .add-note-form textarea {
+        width: 100%;
+        padding: var(--space-3);
+        border: 1px solid var(--color-gray-300);
+        border-radius: var(--radius-lg);
+        resize: vertical;
+        margin-bottom: var(--space-3);
+    }
+
+    .note-actions {
+        display: flex;
+        gap: var(--space-2);
+    }
+
+    .note-item {
+        padding: var(--space-3);
+        border-bottom: 1px solid var(--color-gray-100);
+    }
+
+    .note-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: var(--space-1);
+    }
+
+    .note-author {
+        font-weight: var(--font-medium);
+        color: var(--color-gray-900);
+    }
+
+    .note-date {
+        font-size: var(--text-sm);
+        color: var(--color-gray-500);
+    }
+
+    .note-content {
+        color: var(--color-gray-700);
+    }
+
+    .no-notes {
+        color: var(--color-gray-500);
+        text-align: center;
+        padding: var(--space-4);
+    }
+
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: var(--radius-full);
+        font-size: var(--text-sm);
+        font-weight: var(--font-medium);
+    }
+
+    .status-pending-review { background: var(--color-warning-100); color: var(--color-warning-700); }
+    .status-in-review { background: var(--color-primary-100); color: var(--color-primary-700); }
+    .status-ready-for-approval { background: var(--color-success-100); color: var(--color-success-700); }
+    .status-approved { background: var(--color-gray-100); color: var(--color-gray-700); }
+</style>
+
+<script>
+    const sessionId = '{{ session_id }}';
+
+    function toggleAddNote() {
+        const form = document.getElementById('addNoteForm');
+        form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function saveNote() {
+        const content = document.getElementById('noteContent').value.trim();
+        if (!content) {
+            alert('Please enter a note.');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/returns/${sessionId}/notes`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content })
+            });
+
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                const data = await response.json();
+                alert('Failed to save note: ' + (data.detail || 'Unknown error'));
+            }
+        } catch (error) {
+            alert('Error saving note: ' + error.message);
+        }
+    }
+
+    async function approveReturn() {
+        const signature = document.getElementById('cpaSignature').value.trim();
+        if (!signature) {
+            alert('Please enter your electronic signature.');
+            return;
+        }
+
+        if (!confirm('Are you sure you want to approve this return for filing?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/returns/${sessionId}/approve`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    cpa_signature: signature
+                })
+            });
+
+            if (response.ok) {
+                alert('Return approved successfully!');
+                window.location.reload();
+            } else {
+                const data = await response.json();
+                alert('Failed to approve: ' + (data.detail || 'Unknown error'));
+            }
+        } catch (error) {
+            alert('Error approving return: ' + error.message);
+        }
+    }
+
+    async function requestChanges() {
+        const reason = document.getElementById('changeRequest').value.trim();
+        if (!reason) {
+            alert('Please describe the changes needed.');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/returns/${sessionId}/revert-to-draft`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    reason: reason
+                })
+            });
+
+            if (response.ok) {
+                alert('Return sent back to client for changes.');
+                window.location.href = '/cpa/returns/queue';
+            } else {
+                const data = await response.json();
+                alert('Failed to request changes: ' + (data.detail || 'Unknown error'));
+            }
+        } catch (error) {
+            alert('Error requesting changes: ' + error.message);
+        }
+    }
+</script>
+{% endblock %}

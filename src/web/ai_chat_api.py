@@ -1489,6 +1489,30 @@ async def analyze_document(
                     if hasattr(session, 'extracted_data'):
                         session.extracted_data.update(extracted_data)
                     persistence.save_unified_session(session)
+
+                    # CRITICAL: Apply extracted data to tax return forms
+                    # This maps W-2, 1099, etc. data to the actual TaxReturn model
+                    try:
+                        from services.document_form_mapper import apply_document_to_tax_return
+                        mapping_result = apply_document_to_tax_return(
+                            session_id=session_id,
+                            document_type=document_type,
+                            extracted_data=extracted_data,
+                            persistence=persistence
+                        )
+                        if mapping_result.get('success'):
+                            applied_count = len(mapping_result.get('applied_fields', []))
+                            logger.info(f"[{request_id}] Applied {applied_count} fields to tax return")
+                            if mapping_result.get('warnings'):
+                                for warning in mapping_result['warnings']:
+                                    logger.warning(f"[{request_id}] Mapping warning: {warning}")
+                        else:
+                            logger.warning(f"[{request_id}] Document mapping failed: {mapping_result.get('error')}")
+                    except ImportError as import_err:
+                        logger.warning(f"[{request_id}] Document form mapper not available: {import_err}")
+                    except Exception as map_err:
+                        logger.error(f"[{request_id}] Error applying document to tax return: {map_err}")
+
             elif session_id in _chat_sessions:
                 _chat_sessions[session_id].setdefault("extracted_data", {}).update(extracted_data)
 

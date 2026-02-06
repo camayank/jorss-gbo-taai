@@ -310,8 +310,11 @@
 
             <!-- Action buttons -->
             <div class="actions">
-                <a href="/api/tax-returns/{{ session_id }}/pdf" class="btn btn-primary" download>
+                <a href="/api/export/pdf?session_id={{ session_id }}" class="btn btn-primary" download>
                     Download PDF
+                </a>
+                <a href="/api/export/json?session_id={{ session_id }}" class="btn btn-outline" download>
+                    Export JSON
                 </a>
                 <a href="/file/review?session_id={{ session_id }}" class="btn btn-secondary">
                     Review Details

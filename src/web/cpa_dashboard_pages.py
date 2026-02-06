@@ -896,3 +896,217 @@ async def cpa_deadlines_page(
             "page_title": "Deadline Tracker",
         }
     )
+
+
+# =============================================================================
+# RETURN QUEUE AND REVIEW PAGES
+# =============================================================================
+
+@cpa_dashboard_router.get("/returns/queue", response_class=HTMLResponse)
+async def cpa_return_queue_page(
+    request: Request,
+    status: str = "pending_review",
+    current_user: dict = Depends(require_cpa_auth)
+):
+    """
+    CPA Return Queue - View and manage tax returns awaiting review.
+
+    Supports filtering by status:
+    - pending_review: Returns submitted by clients awaiting initial review
+    - in_review: Returns currently being reviewed
+    - ready_for_approval: Returns ready for final CPA approval
+    - approved: Completed approved returns
+    """
+    cpa_profile = await get_cpa_profile_from_context(request)
+    cpa_id = get_cpa_id_from_user(current_user)
+
+    # Get returns from queue API
+    returns = []
+    counts = {
+        "pending_review": 0,
+        "in_review": 0,
+        "ready_for_approval": 0,
+        "approved": 0,
+        "total": 0
+    }
+
+    try:
+        # Import session persistence to get returns
+        from database.session_persistence import SessionPersistence
+        persistence = SessionPersistence()
+
+        # Get all returns for this CPA (mock implementation - adjust based on actual data model)
+        # In production, this would query by CPA ID and filter by status
+        all_sessions = []
+
+        # For demo purposes, create mock returns if none exist
+        if not all_sessions:
+            returns = [
+                {
+                    "session_id": "demo-session-1",
+                    "client_name": "John Smith",
+                    "client_email": "john.smith@email.com",
+                    "tax_year": 2025,
+                    "filing_status": "Single",
+                    "refund_or_owed": 2450.00,
+                    "submitted_at": "2026-02-05",
+                    "status": status
+                },
+                {
+                    "session_id": "demo-session-2",
+                    "client_name": "Sarah Johnson",
+                    "client_email": "sarah.j@email.com",
+                    "tax_year": 2025,
+                    "filing_status": "Married Filing Jointly",
+                    "refund_or_owed": -1200.00,
+                    "submitted_at": "2026-02-04",
+                    "status": status
+                }
+            ]
+            counts = {
+                "pending_review": 3,
+                "in_review": 1,
+                "ready_for_approval": 2,
+                "approved": 5,
+                "total": 11
+            }
+
+    except Exception as e:
+        logger.error(f"Error loading return queue: {e}")
+        returns = []
+
+    return templates.TemplateResponse(
+        "cpa/return_queue.html",
+        {
+            "request": request,
+            "cpa": cpa_profile,
+            "current_user": current_user,
+            "active_page": "returns",
+            "page_title": "Return Queue",
+            "status": status,
+            "returns": returns,
+            "counts": counts
+        }
+    )
+
+
+@cpa_dashboard_router.get("/returns/{session_id}/review", response_class=HTMLResponse)
+async def cpa_return_review_page(
+    request: Request,
+    session_id: str,
+    current_user: dict = Depends(require_cpa_auth)
+):
+    """
+    CPA Return Review Page - Detailed view of a tax return for review and approval.
+
+    Features:
+    - Income summary and breakdown
+    - Deductions and credits overview
+    - Add review notes
+    - Approve or request changes
+    - Download PDF/JSON exports
+    """
+    cpa_profile = await get_cpa_profile_from_context(request)
+
+    # Load return data
+    return_data = {}
+    client_name = "Unknown Client"
+    tax_year = 2025
+    notes = []
+
+    try:
+        from database.session_persistence import SessionPersistence
+        persistence = SessionPersistence()
+
+        session = persistence.load_unified_session(session_id)
+        if session:
+            # Extract tax return data
+            tax_return = None
+            if hasattr(session, 'tax_return'):
+                tax_return = session.tax_return
+            elif isinstance(session, dict) and 'tax_return' in session:
+                tax_return = session['tax_return']
+
+            if tax_return:
+                # Build return_data from TaxReturn
+                if hasattr(tax_return, 'model_dump'):
+                    return_data = tax_return.model_dump()
+                elif isinstance(tax_return, dict):
+                    return_data = tax_return
+                else:
+                    return_data = {}
+
+                # Extract key fields
+                if hasattr(tax_return, 'taxpayer') and tax_return.taxpayer:
+                    tp = tax_return.taxpayer
+                    client_name = f"{getattr(tp, 'first_name', '')} {getattr(tp, 'last_name', '')}".strip() or "Unknown Client"
+                    return_data['filing_status'] = getattr(tp, 'filing_status', 'single')
+                    if hasattr(return_data['filing_status'], 'value'):
+                        return_data['filing_status'] = return_data['filing_status'].value
+
+                if hasattr(tax_return, 'income') and tax_return.income:
+                    inc = tax_return.income
+                    return_data['w2_wages'] = getattr(inc, 'get_total_wages', lambda: 0)() if callable(getattr(inc, 'get_total_wages', None)) else 0
+                    return_data['interest_income'] = getattr(inc, 'interest_income', 0)
+                    return_data['dividend_income'] = getattr(inc, 'dividend_income', 0)
+                    return_data['self_employment_income'] = getattr(inc, 'self_employment_income', 0)
+                    return_data['total_income'] = getattr(inc, 'get_total_income', lambda: 0)() if callable(getattr(inc, 'get_total_income', None)) else 0
+
+                return_data['agi'] = getattr(tax_return, 'adjusted_gross_income', 0) or 0
+                return_data['taxable_income'] = getattr(tax_return, 'taxable_income', 0) or 0
+                return_data['total_tax'] = getattr(tax_return, 'tax_liability', 0) or 0
+                return_data['refund_or_owed'] = getattr(tax_return, 'refund_or_owed', 0) or 0
+                return_data['total_payments'] = getattr(tax_return, 'total_payments', 0) or 0
+
+                tax_year = getattr(tax_return, 'tax_year', 2025)
+
+            # Get return status
+            return_data['status'] = getattr(session, 'status', 'pending_review') if hasattr(session, 'status') else session.get('status', 'pending_review')
+
+            # Get notes if available
+            if hasattr(session, 'notes'):
+                notes = session.notes or []
+            elif isinstance(session, dict) and 'notes' in session:
+                notes = session.get('notes', [])
+
+    except Exception as e:
+        logger.error(f"Error loading return for review: {e}")
+        # Use demo data
+        return_data = {
+            "status": "pending_review",
+            "filing_status": "Single",
+            "w2_wages": 75000,
+            "interest_income": 500,
+            "dividend_income": 1200,
+            "self_employment_income": 0,
+            "other_income": 0,
+            "total_income": 76700,
+            "agi": 76700,
+            "taxable_income": 62100,
+            "use_standard_deduction": True,
+            "total_deduction": 14600,
+            "federal_withholding": 12000,
+            "estimated_payments": 0,
+            "child_tax_credit": 0,
+            "eitc": 0,
+            "total_payments": 12000,
+            "total_tax": 9245,
+            "refund_or_owed": 2755
+        }
+        client_name = "Demo Client"
+
+    return templates.TemplateResponse(
+        "cpa/return_review.html",
+        {
+            "request": request,
+            "cpa": cpa_profile,
+            "current_user": current_user,
+            "active_page": "returns",
+            "page_title": f"Review Return - {client_name}",
+            "session_id": session_id,
+            "return_data": return_data,
+            "client_name": client_name,
+            "tax_year": tax_year,
+            "notes": notes
+        }
+    )
