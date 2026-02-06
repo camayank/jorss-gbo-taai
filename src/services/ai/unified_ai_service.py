@@ -191,20 +191,31 @@ class BaseProviderAdapter(ABC):
         pass
 
 
+# Default timeout for LLM API calls (seconds)
+# SECURITY FIX: Prevents request hangs that could cause resource exhaustion
+LLM_REQUEST_TIMEOUT = 60  # 60 seconds default timeout
+
+
 class OpenAIAdapter(BaseProviderAdapter):
     """Adapter for OpenAI API."""
 
-    def __init__(self, config: ProviderConfig):
+    def __init__(self, config: ProviderConfig, timeout: int = LLM_REQUEST_TIMEOUT):
         super().__init__(config)
         self._client = None
+        self.timeout = timeout
 
     @property
     def client(self):
-        """Lazy-load OpenAI client."""
+        """Lazy-load OpenAI client with timeout configuration."""
         if self._client is None:
             try:
                 from openai import AsyncOpenAI
-                self._client = AsyncOpenAI(api_key=self.config.api_key)
+                import httpx
+                # Configure client with timeout
+                self._client = AsyncOpenAI(
+                    api_key=self.config.api_key,
+                    timeout=httpx.Timeout(self.timeout, connect=10.0)
+                )
             except ImportError:
                 raise ImportError("openai package required: pip install openai")
         return self._client
@@ -221,12 +232,16 @@ class OpenAIAdapter(BaseProviderAdapter):
         start_time = time.time()
 
         try:
-            response = await self.client.chat.completions.create(
-                model=model,
-                messages=[{"role": m.role, "content": m.content} for m in messages],
-                temperature=temperature,
-                max_tokens=max_tokens,
-                **kwargs
+            # SECURITY FIX: Enforce timeout with asyncio.wait_for as backup
+            response = await asyncio.wait_for(
+                self.client.chat.completions.create(
+                    model=model,
+                    messages=[{"role": m.role, "content": m.content} for m in messages],
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    **kwargs
+                ),
+                timeout=self.timeout
             )
 
             latency_ms = int((time.time() - start_time) * 1000)
@@ -247,6 +262,10 @@ class OpenAIAdapter(BaseProviderAdapter):
                     usage.completion_tokens if usage else 0
                 ),
             )
+        except asyncio.TimeoutError:
+            self.circuit_breaker.record_failure()
+            logger.error(f"[OpenAI] Request timed out after {self.timeout}s for model {model}")
+            raise TimeoutError(f"OpenAI request timed out after {self.timeout} seconds")
         except Exception as e:
             self.circuit_breaker.record_failure()
             raise
@@ -283,17 +302,23 @@ class OpenAIAdapter(BaseProviderAdapter):
 class AnthropicAdapter(BaseProviderAdapter):
     """Adapter for Anthropic (Claude) API."""
 
-    def __init__(self, config: ProviderConfig):
+    def __init__(self, config: ProviderConfig, timeout: int = LLM_REQUEST_TIMEOUT):
         super().__init__(config)
         self._client = None
+        self.timeout = timeout
 
     @property
     def client(self):
-        """Lazy-load Anthropic client."""
+        """Lazy-load Anthropic client with timeout configuration."""
         if self._client is None:
             try:
                 from anthropic import AsyncAnthropic
-                self._client = AsyncAnthropic(api_key=self.config.api_key)
+                import httpx
+                # Configure client with timeout
+                self._client = AsyncAnthropic(
+                    api_key=self.config.api_key,
+                    timeout=httpx.Timeout(self.timeout, connect=10.0)
+                )
             except ImportError:
                 raise ImportError("anthropic package required: pip install anthropic")
         return self._client
@@ -319,12 +344,16 @@ class AnthropicAdapter(BaseProviderAdapter):
                 user_messages.append({"role": msg.role, "content": msg.content})
 
         try:
-            response = await self.client.messages.create(
-                model=model,
-                messages=user_messages,
-                system=system_content if system_content else None,
-                temperature=temperature,
-                max_tokens=max_tokens,
+            # SECURITY FIX: Enforce timeout with asyncio.wait_for as backup
+            response = await asyncio.wait_for(
+                self.client.messages.create(
+                    model=model,
+                    messages=user_messages,
+                    system=system_content if system_content else None,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                ),
+                timeout=self.timeout
             )
 
             latency_ms = int((time.time() - start_time) * 1000)
@@ -344,6 +373,10 @@ class AnthropicAdapter(BaseProviderAdapter):
                     response.usage.output_tokens
                 ),
             )
+        except asyncio.TimeoutError:
+            self.circuit_breaker.record_failure()
+            logger.error(f"[Anthropic] Request timed out after {self.timeout}s for model {model}")
+            raise TimeoutError(f"Anthropic request timed out after {self.timeout} seconds")
         except Exception as e:
             self.circuit_breaker.record_failure()
             raise
