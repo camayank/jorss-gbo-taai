@@ -1,0 +1,628 @@
+{% extends 'v2/base.html' %}
+{% from 'macros/icons.html' import icon %}
+
+{% block title %}Free Tax Savings Analysis | {{ cpa.firm_name or cpa.display_name }}{% endblock %}
+
+{% block meta_description %}Discover how much you could save on taxes. Get a free personalized analysis from {{ cpa.display_name }}.{% endblock %}
+
+{% block meta %}
+<meta name="robots" content="index, follow">
+{% if cpa.favicon_url %}
+<link rel="icon" href="{{ cpa.favicon_url }}">
+{% endif %}
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+  /* Override base template for landing page layout */
+  .page-wrapper {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .public-header,
+  .public-footer {
+    display: none;
+  }
+
+  .page-main {
+    flex: 1;
+    padding: 0;
+    background: linear-gradient(135deg, var(--cpa-primary, var(--color-primary-600)) 0%, var(--cpa-secondary, var(--color-primary-800)) 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* CPA Custom Colors */
+  :root {
+    --cpa-primary: {{ cpa.primary_color or 'var(--color-primary-600)' }};
+    --cpa-secondary: {{ cpa.secondary_color or 'var(--color-primary-800)' }};
+    --cpa-accent: {{ cpa.accent_color or 'var(--color-success-500)' }};
+  }
+
+  /* Container */
+  .landing-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: var(--space-5);
+    width: 100%;
+  }
+
+  /* Trust Bar */
+  .trust-bar {
+    background: rgba(255, 255, 255, 0.95);
+    padding: var(--space-3) var(--space-5);
+    border-radius: var(--radius-xl);
+    margin-bottom: var(--space-6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+    font-size: var(--text-sm);
+    color: var(--color-gray-600);
+    box-shadow: var(--shadow-md);
+  }
+
+  .trust-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .trust-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  .trust-icon.shield { color: var(--color-success-500); }
+  .trust-icon.check { color: var(--color-primary-500); }
+  .trust-icon.lock { color: var(--color-primary-500); }
+
+  /* Hero Card */
+  .hero-card {
+    background: white;
+    border-radius: var(--radius-2xl);
+    padding: var(--space-12) var(--space-10);
+    box-shadow: var(--shadow-2xl);
+    text-align: center;
+  }
+
+  /* CPA Branding */
+  .cpa-branding {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-8);
+  }
+
+  .cpa-logo {
+    max-width: 60px;
+    max-height: 60px;
+    border-radius: var(--radius-lg);
+  }
+
+  .cpa-info {
+    text-align: left;
+  }
+
+  .cpa-name {
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    color: var(--color-gray-900);
+  }
+
+  .cpa-firm {
+    font-size: var(--text-sm);
+    color: var(--color-gray-500);
+  }
+
+  .cpa-credentials {
+    display: inline-flex;
+    gap: var(--space-1);
+    margin-top: var(--space-1);
+  }
+
+  .credential-badge {
+    font-size: var(--text-xs);
+    padding: 2px 8px;
+    background: var(--cpa-primary);
+    color: white;
+    border-radius: var(--radius-full);
+    font-weight: var(--font-semibold);
+  }
+
+  /* Value Proposition */
+  .value-prop {
+    background: linear-gradient(135deg, var(--cpa-accent) 0%, var(--color-success-600) 100%);
+    color: white;
+    padding: var(--space-5) var(--space-8);
+    border-radius: var(--radius-2xl);
+    margin-bottom: var(--space-8);
+  }
+
+  .value-amount {
+    font-size: var(--text-4xl);
+    font-weight: var(--font-bold);
+  }
+
+  .value-text {
+    font-size: var(--text-base);
+    opacity: 0.95;
+  }
+
+  /* Time Estimate */
+  .time-estimate {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: var(--color-warning-100);
+    color: var(--color-warning-800);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    margin-bottom: var(--space-5);
+  }
+
+  /* Typography */
+  .hero-card h1 {
+    font-size: var(--text-3xl);
+    margin-bottom: var(--space-4);
+    color: var(--color-gray-900);
+    font-weight: var(--font-bold);
+    line-height: var(--leading-tight);
+  }
+
+  .subtitle {
+    font-size: var(--text-lg);
+    color: var(--color-gray-500);
+    margin-bottom: var(--space-8);
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Benefits Grid */
+  .benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-5);
+    margin-bottom: var(--space-8);
+  }
+
+  .benefit-item {
+    text-align: center;
+    padding: var(--space-5) var(--space-4);
+    background: var(--color-gray-50);
+    border-radius: var(--radius-xl);
+  }
+
+  .benefit-icon {
+    font-size: var(--text-3xl);
+    margin-bottom: var(--space-3);
+    color: var(--cpa-primary);
+  }
+
+  .benefit-title {
+    font-weight: var(--font-semibold);
+    color: var(--color-gray-900);
+    margin-bottom: var(--space-1);
+  }
+
+  .benefit-desc {
+    font-size: var(--text-sm);
+    color: var(--color-gray-500);
+  }
+
+  /* CTA Button */
+  .cta-button {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--cpa-primary) 0%, var(--cpa-secondary) 100%);
+    color: white;
+    padding: var(--space-4) var(--space-12);
+    border-radius: var(--radius-full);
+    text-decoration: none;
+    font-size: var(--text-xl);
+    font-weight: var(--font-semibold);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+  }
+
+  .cta-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 35px rgba(37, 99, 235, 0.5);
+  }
+
+  .cta-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .cta-subtext {
+    margin-top: var(--space-3);
+    font-size: var(--text-sm);
+    color: var(--color-gray-500);
+  }
+
+  /* What You'll Get Section */
+  .what-youll-get {
+    margin-top: var(--space-10);
+    padding-top: var(--space-8);
+    border-top: 1px solid var(--color-gray-200);
+  }
+
+  .section-title {
+    font-size: var(--text-sm);
+    color: var(--color-gray-500);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide);
+    margin-bottom: var(--space-5);
+    font-weight: var(--font-medium);
+  }
+
+  .get-items {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+    text-align: left;
+  }
+
+  .get-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--color-gray-50);
+    border-radius: var(--radius-xl);
+  }
+
+  .get-item-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    background: var(--cpa-primary);
+    color: white;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .get-item-text h4 {
+    font-weight: var(--font-semibold);
+    margin-bottom: var(--space-1);
+    color: var(--color-gray-900);
+  }
+
+  .get-item-text p {
+    font-size: var(--text-sm);
+    color: var(--color-gray-500);
+  }
+
+  /* Disclaimer */
+  .disclaimer {
+    margin-top: var(--space-8);
+    padding: var(--space-4) var(--space-5);
+    background: var(--color-gray-100);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-xs);
+    color: var(--color-gray-500);
+    text-align: left;
+    border-left: 3px solid var(--color-gray-300);
+  }
+
+  .disclaimer strong {
+    color: var(--color-gray-700);
+  }
+
+  .disclaimer a {
+    color: var(--cpa-primary);
+    text-decoration: none;
+  }
+
+  .disclaimer a:hover {
+    text-decoration: underline;
+  }
+
+  /* Loading State */
+  .loading {
+    display: none;
+  }
+
+  .loading.show {
+    display: block;
+  }
+
+  .spinner {
+    border: 3px solid var(--color-gray-200);
+    border-top: 3px solid var(--cpa-primary);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto var(--space-2);
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* Mobile Responsive */
+  @media (max-width: 768px) {
+    .hero-card {
+      padding: var(--space-8) var(--space-5);
+      border-radius: var(--radius-xl);
+    }
+
+    .hero-card h1 {
+      font-size: var(--text-2xl);
+    }
+
+    .subtitle {
+      font-size: var(--text-base);
+    }
+
+    .benefits-grid {
+      grid-template-columns: 1fr;
+      gap: var(--space-3);
+    }
+
+    .trust-bar {
+      flex-direction: column;
+      gap: var(--space-3);
+      padding: var(--space-4);
+    }
+
+    .get-items {
+      grid-template-columns: 1fr;
+    }
+
+    .value-amount {
+      font-size: var(--text-3xl);
+    }
+
+    .cta-button {
+      padding: var(--space-4) var(--space-10);
+      font-size: var(--text-lg);
+      width: 100%;
+    }
+
+    .cpa-branding {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .cpa-info {
+      text-align: center;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="landing-container">
+  <!-- Trust Bar -->
+  <div class="trust-bar" role="banner" aria-label="Trust indicators">
+    <div class="trust-item">
+      <svg class="trust-icon shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        <path d="M9 12l2 2 4-4"/>
+      </svg>
+      <span>Bank-Level Encryption</span>
+    </div>
+    <div class="trust-item">
+      <svg class="trust-icon check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M9 12l2 2 4-4"/>
+      </svg>
+      <span>Licensed CPA</span>
+    </div>
+    <div class="trust-item">
+      <svg class="trust-icon lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0110 0v4"/>
+      </svg>
+      <span>Your Data Never Sold</span>
+    </div>
+  </div>
+
+  <!-- Hero Card -->
+  <div class="hero-card">
+    <!-- CPA Branding -->
+    <div class="cpa-branding">
+      {% if cpa.logo_url %}
+      <img src="{{ cpa.logo_url }}" alt="{{ cpa.firm_name }}" class="cpa-logo">
+      {% endif %}
+      <div class="cpa-info">
+        <div class="cpa-name">{{ cpa.display_name }}</div>
+        {% if cpa.firm_name %}
+        <div class="cpa-firm">{{ cpa.firm_name }}</div>
+        {% endif %}
+        <div class="cpa-credentials">
+          {% for credential in cpa.credentials %}
+          <span class="credential-badge">{{ credential }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Value Proposition -->
+    <div class="value-prop">
+      <div class="value-amount">$2,847</div>
+      <div class="value-text">Average tax savings identified for our clients</div>
+    </div>
+
+    <!-- Time Estimate -->
+    <div class="time-estimate">
+      {{ icon('clock', size=16) }}
+      Just 3 quick questions (under 2 minutes)
+    </div>
+
+    <h1>Discover Your Hidden Tax Savings</h1>
+    <p class="subtitle">
+      Answer 3 simple questions and get a personalized analysis of potential
+      deductions, credits, and tax-saving opportunities you might be missing.
+    </p>
+
+    <!-- Benefits Grid -->
+    <div class="benefits-grid">
+      <div class="benefit-item">
+        <div class="benefit-icon">{{ icon('banknotes') }}</div>
+        <div class="benefit-title">Find Hidden Savings</div>
+        <div class="benefit-desc">Identify deductions and credits you may have missed</div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">{{ icon('chart-bar') }}</div>
+        <div class="benefit-title">Personalized Insights</div>
+        <div class="benefit-desc">Get recommendations tailored to your situation</div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">{{ icon('sparkles') }}</div>
+        <div class="benefit-title">Expert Guidance</div>
+        <div class="benefit-desc">From a licensed CPA who knows tax law</div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading" class="loading" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
+      <div>Starting your analysis...</div>
+    </div>
+
+    <!-- CTA Button -->
+    <button onclick="startAssessment()" class="cta-button" id="start-button">
+      Get My Free Tax Analysis
+    </button>
+    <div class="cta-subtext">
+      100% free. No credit card required.
+    </div>
+
+    <!-- What You'll Get -->
+    <div class="what-youll-get">
+      <div class="section-title">What You'll Get</div>
+      <div class="get-items">
+        <div class="get-item">
+          <div class="get-item-icon">{{ icon('check-circle', size=16) }}</div>
+          <div class="get-item-text">
+            <h4>Savings Estimate</h4>
+            <p>See how much you could potentially save</p>
+          </div>
+        </div>
+        <div class="get-item">
+          <div class="get-item-icon">{{ icon('document-text', size=16) }}</div>
+          <div class="get-item-text">
+            <h4>Tax Insights Report</h4>
+            <p>Personalized recommendations for your situation</p>
+          </div>
+        </div>
+        <div class="get-item">
+          <div class="get-item-icon">{{ icon('chat-bubble-left-right', size=16) }}</div>
+          <div class="get-item-text">
+            <h4>Free Consultation Option</h4>
+            <p>Speak with a CPA about your specific needs</p>
+          </div>
+        </div>
+        <div class="get-item">
+          <div class="get-item-icon">{{ icon('calendar', size=16) }}</div>
+          <div class="get-item-text">
+            <h4>Tax Calendar Reminders</h4>
+            <p>Key dates you need to know</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="disclaimer">
+      <strong>Important Disclosure:</strong> This analysis tool provides educational
+      information about potential tax-saving opportunities based on general tax principles.
+      The estimates provided are for informational purposes only and do not constitute
+      tax advice. Actual savings depend on your complete financial situation and may vary.
+      For personalized tax advice, please consult with {{ cpa.display_name }} or a
+      qualified tax professional. By proceeding, you agree to our
+      <a href="/privacy" target="_blank">Privacy Policy</a> and
+      <a href="/terms" target="_blank">Terms of Service</a>.
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Get CPA slug from URL or use default
+  const urlParams = new URLSearchParams(window.location.search);
+  const cpaSlug = urlParams.get('cpa') || '{{ cpa.cpa_slug }}';
+
+  async function startAssessment() {
+    const button = document.getElementById('start-button');
+    const loading = document.getElementById('loading');
+
+    try {
+      // Disable button and show loading
+      button.disabled = true;
+      button.style.opacity = '0.6';
+      loading.classList.add('show');
+
+      // Start assessment session
+      const response = await fetch('/api/cpa/lead-magnet/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          cpa_slug: cpaSlug,
+          assessment_mode: 'quick',
+          referral_source: urlParams.get('ref') || document.referrer || 'direct',
+          ux_version: 'v2'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start assessment');
+      }
+
+      const data = await response.json();
+
+      // Store session ID
+      sessionStorage.setItem('assessment_session_id', data.session_id);
+      sessionStorage.setItem('cpa_profile', JSON.stringify(data.cpa_profile));
+
+      // Redirect to quick estimate form
+      window.location.href = `/lead-magnet/estimate?session=${data.session_id}`;
+
+    } catch (error) {
+      console.error('Failed to start assessment:', error);
+      alert('Unable to start assessment. Please try again.');
+
+      // Re-enable button
+      button.disabled = false;
+      button.style.opacity = '1';
+      loading.classList.remove('show');
+    }
+  }
+
+  // Track page view for analytics
+  document.addEventListener('DOMContentLoaded', function() {
+    // Could send analytics event here
+    console.log('Lead magnet landing page loaded for CPA:', cpaSlug);
+
+    // Track UX version
+    if (window.gtag) {
+      gtag('event', 'lead_magnet_view', {
+        'cpa_slug': cpaSlug,
+        'ux_version': 'v2'
+      });
+    }
+  });
+</script>
+{% endblock %}
