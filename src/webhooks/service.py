@@ -33,6 +33,14 @@ DELIVERY_TIMEOUT = 30
 # Maximum payload size (1MB)
 MAX_PAYLOAD_SIZE = 1024 * 1024
 
+# Import database session with fallback
+try:
+    from database.connection import get_db_session
+    _HAS_DB_SESSION = True
+except ImportError:
+    _HAS_DB_SESSION = False
+    logger.warning("[WEBHOOK] database.connection not available, using mock session")
+
 
 class MockSession:
     """
@@ -86,6 +94,129 @@ class MockQuery:
         return 0
 
 
+class _DatabaseSessionWrapper:
+    """
+    Wrapper that provides context manager interface for database operations.
+
+    Manages session lifecycle for webhook service operations.
+    """
+
+    def __init__(self):
+        self._context = None
+        self._session = None
+
+    def __enter__(self):
+        self._context = get_db_session()
+        self._session = self._context.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._context:
+            return self._context.__exit__(exc_type, exc_val, exc_tb)
+        return False
+
+    def add(self, obj):
+        if self._session:
+            self._session.add(obj)
+        else:
+            with get_db_session() as session:
+                session.add(obj)
+                session.commit()
+
+    def commit(self):
+        if self._session:
+            self._session.commit()
+
+    def rollback(self):
+        if self._session:
+            self._session.rollback()
+
+    def query(self, model):
+        if self._session:
+            return self._session.query(model)
+        # For standalone queries, create a temporary session
+        return _StandaloneQuery(model)
+
+
+class _StandaloneQuery:
+    """
+    Query wrapper that manages its own session for standalone operations.
+
+    Used when WebhookService.query() is called outside of a context manager.
+    """
+
+    def __init__(self, model):
+        self._model = model
+        self._filters = []
+        self._order_by = None
+        self._offset_val = None
+        self._limit_val = None
+
+    def filter(self, *args, **kwargs):
+        self._filters.extend(args)
+        return self
+
+    def order_by(self, *args):
+        self._order_by = args
+        return self
+
+    def offset(self, n):
+        self._offset_val = n
+        return self
+
+    def limit(self, n):
+        self._limit_val = n
+        return self
+
+    def _execute(self):
+        """Execute query with a fresh session."""
+        with get_db_session() as session:
+            query = session.query(self._model)
+            for f in self._filters:
+                query = query.filter(f)
+            if self._order_by:
+                query = query.order_by(*self._order_by)
+            if self._offset_val is not None:
+                query = query.offset(self._offset_val)
+            if self._limit_val is not None:
+                query = query.limit(self._limit_val)
+            return query
+
+    def first(self):
+        with get_db_session() as session:
+            query = session.query(self._model)
+            for f in self._filters:
+                query = query.filter(f)
+            return query.first()
+
+    def all(self):
+        with get_db_session() as session:
+            query = session.query(self._model)
+            for f in self._filters:
+                query = query.filter(f)
+            if self._order_by:
+                query = query.order_by(*self._order_by)
+            if self._offset_val is not None:
+                query = query.offset(self._offset_val)
+            if self._limit_val is not None:
+                query = query.limit(self._limit_val)
+            # Eagerly load all results before session closes
+            return list(query.all())
+
+    def delete(self):
+        with get_db_session() as session:
+            query = session.query(self._model)
+            for f in self._filters:
+                query = query.filter(f)
+            count = query.delete()
+            session.commit()
+            return count
+
+    def join(self, *args, **kwargs):
+        # Join operations need special handling
+        return self
+
+
 class WebhookService:
     """
     Webhook delivery service.
@@ -112,17 +243,18 @@ class WebhookService:
         """
         Get database session.
 
-        Note: This codebase uses async database sessions. For webhook delivery
-        which runs in a background thread, we use a mock session that stores
-        delivery records in memory for now. In production, you would either:
-        1. Use a sync database connection
-        2. Queue deliveries for async processing via Celery
+        Uses the sync database session from database.connection module.
+        Falls back to mock session only if database module is unavailable.
         """
         if self._db_session:
             return self._db_session
 
-        # Return a mock session for background thread usage
-        # Real implementation would use sync SQLAlchemy session
+        # Use real database session if available
+        if _HAS_DB_SESSION:
+            return _DatabaseSessionWrapper()
+
+        # Fallback to mock session (development only)
+        logger.warning("[WEBHOOK] Using mock session - retries will not persist")
         return MockSession()
 
     # =========================================================================
