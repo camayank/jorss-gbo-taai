@@ -1,6 +1,6 @@
 /**
  * Shared Utility Functions
- * Used across: index.html, intelligent_advisor.html, cpa_dashboard.html, admin_dashboard.html
+ * Used across: index.html, intelligent_advisor.html, cpa/dashboard.html, admin_dashboard.html
  *
  * Usage (ES Module):
  *   import { escapeHtml, formatCurrency, debounce } from '/static/js/core/utils.js';

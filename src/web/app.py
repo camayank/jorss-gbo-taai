@@ -1382,7 +1382,7 @@ async def workspace_dashboard(request: Request):
         "email": request.cookies.get("user_email", ""),
     }
     return templates.TemplateResponse(
-        "cpa_dashboard.html",
+        "cpa/dashboard.html",
         {
             "request": request,
             "user": user,
@@ -1458,7 +1458,7 @@ def cpa_dashboard(request: Request):
     - Staff Assignment
     - Engagement Letters
     """
-    return templates.TemplateResponse("cpa_dashboard.html", {"request": request})
+    return templates.TemplateResponse("cpa/dashboard.html", {"request": request})
 
 
 @app.get("/cpa/v2", response_class=HTMLResponse)
@@ -1469,7 +1469,7 @@ def cpa_dashboard_v2(request: Request):
     Uses external CSS/JS files for better performance and maintainability.
     This is the refactored version for testing before full deployment.
     """
-    return templates.TemplateResponse("cpa_dashboard_refactored.html", {"request": request})
+    return templates.TemplateResponse("cpa/dashboard.html", {"request": request})
 
 
 @app.get("/cpa/settings/payments", response_class=HTMLResponse)
@@ -1582,7 +1582,7 @@ def cpa_landing_page(request: Request):
     - Pricing tiers
     - Demo access
     """
-    return templates.TemplateResponse("cpa_landing.html", {"request": request})
+    return templates.TemplateResponse("landing.html", {"request": request})
 
 
 @app.get("/terms", response_class=HTMLResponse)
@@ -1754,7 +1754,7 @@ def unified_workspace_dashboard(request: Request):
 
     Uses the refactored modular template for better performance.
     """
-    return templates.TemplateResponse("cpa_dashboard_refactored.html", {"request": request})
+    return templates.TemplateResponse("cpa/dashboard.html", {"request": request})
 
 
 @app.get("/app/portal", response_class=HTMLResponse, operation_id="unified_client_portal")

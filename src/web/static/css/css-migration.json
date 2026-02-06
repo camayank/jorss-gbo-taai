@@ -1,0 +1,146 @@
+{
+  "metadata": {
+    "description": "CSS variable migration map for Phase 1 UX Polish",
+    "created": "2026-02-06",
+    "targetAccentColor": "#14b8a6",
+    "targetWarningColor": "#f59e0b"
+  },
+  "variableMapping": {
+    "legacy_to_canonical": {
+      "--primary": "--color-primary-500",
+      "--primary-dark": "--color-primary-700",
+      "--primary-light": "--color-primary-400",
+      "--primary-50": "--color-primary-50",
+      "--primary-100": "--color-primary-100",
+      "--primary-200": "--color-primary-200",
+      "--primary-300": "--color-primary-300",
+      "--primary-400": "--color-primary-400",
+      "--primary-500": "--color-primary-500",
+      "--primary-600": "--color-primary-600",
+      "--primary-700": "--color-primary-700",
+      "--primary-800": "--color-primary-800",
+      "--primary-900": "--color-primary-900",
+      "--accent": "--color-accent-500",
+      "--accent-dark": "--color-accent-700",
+      "--accent-light": "--color-accent-400",
+      "--gray-50": "--color-gray-50",
+      "--gray-100": "--color-gray-100",
+      "--gray-200": "--color-gray-200",
+      "--gray-300": "--color-gray-300",
+      "--gray-400": "--color-gray-400",
+      "--gray-500": "--color-gray-500",
+      "--gray-600": "--color-gray-600",
+      "--gray-700": "--color-gray-700",
+      "--gray-800": "--color-gray-800",
+      "--gray-900": "--color-gray-900",
+      "--success": "--color-success-500",
+      "--success-light": "--color-success-100",
+      "--warning": "--color-warning-500",
+      "--warning-light": "--color-warning-100",
+      "--error": "--color-error-500",
+      "--error-light": "--color-error-100",
+      "--danger": "--color-error-500",
+      "--info": "--color-info-500",
+      "--info-light": "--color-info-100",
+      "--border-color": "--color-gray-200",
+      "--text-dark": "--color-gray-800",
+      "--text-muted": "--color-gray-500",
+      "--text-light": "--color-gray-400",
+      "--bg-light": "--color-gray-50",
+      "--bg-page": "--color-gray-100"
+    }
+  },
+  "colorReplacements": {
+    "inline_accent_fixes": {
+      "#2b6cb0": "#14b8a6",
+      "#5387c1": "#14b8a6",
+      "#059669": "#14b8a6",
+      "#0d9488": "#14b8a6",
+      "#1e3a5f": "#14b8a6",
+      "#10b981": "#14b8a6"
+    },
+    "inline_warning_fixes": {
+      "#c69214": "#f59e0b"
+    },
+    "gold_to_remove": {
+      "--accent-gold": "REMOVE",
+      "--gradient-gold": "REMOVE"
+    }
+  },
+  "filesToDelete": {
+    "css": [
+      "src/web/static/css/themes/admin.css",
+      "src/web/static/css/themes/cpa.css",
+      "src/web/static/css/unified-theme.css"
+    ],
+    "templates": [
+      "src/web/templates/cpa_dashboard.html",
+      "src/web/templates/cpa_dashboard_refactored.html",
+      "src/web/templates/cpa_landing.html"
+    ]
+  },
+  "templatesWithInlineOverrides": [
+    {
+      "file": "intelligent_advisor.html",
+      "fixes": [
+        { "find": "--accent: #2b6cb0", "replace": "--accent: var(--color-accent-500)" },
+        { "find": "--accent-gold: #c69214", "replace": "REMOVE_LINE" },
+        { "find": "--warning: #c69214", "replace": "--warning: var(--color-warning-500)" },
+        { "find": "--gradient-gold", "replace": "REMOVE_LINE" },
+        { "find": "#c69214", "replace": "var(--color-warning-500)" },
+        { "find": "#2b6cb0", "replace": "var(--color-accent-500)" }
+      ]
+    },
+    {
+      "file": "client_portal.html",
+      "fixes": [
+        { "find": "--accent: #059669", "replace": "--accent: var(--color-accent-500)" }
+      ]
+    },
+    {
+      "file": "admin_dashboard.html",
+      "fixes": [
+        { "find": "--accent: #0d9488", "replace": "--accent: var(--color-accent-500)" }
+      ]
+    },
+    {
+      "file": "cpa_dashboard.html",
+      "fixes": "DELETE_FILE"
+    },
+    {
+      "file": "test_auth.html",
+      "fixes": [
+        { "find": "--accent: #1e3a5f", "replace": "--accent: var(--color-accent-500)" }
+      ]
+    },
+    {
+      "file": "smart_tax.html",
+      "fixes": [
+        { "find": "--accent: #10b981", "replace": "--accent: var(--color-accent-500)" }
+      ]
+    },
+    {
+      "file": "landing.html",
+      "fixes": [
+        { "find": "--warning: #c69214", "replace": "--warning: var(--color-warning-500)" }
+      ]
+    },
+    {
+      "file": "quick_estimate.html",
+      "fixes": [
+        { "find": "--warning: #c69214", "replace": "--warning: var(--color-warning-500)" }
+      ]
+    },
+    {
+      "file": "advisory_report_preview.html",
+      "fixes": [
+        { "find": "--warning: #c69214", "replace": "--warning: var(--color-warning-500)" }
+      ]
+    }
+  ],
+  "importReplacements": {
+    "unified-theme.css": "Remove import - variables loaded via main.css",
+    "themes/admin.css": "Remove import - use data-theme='admin' attribute",
+    "themes/cpa.css": "Remove import - use data-theme='cpa' attribute"
+  }
+}

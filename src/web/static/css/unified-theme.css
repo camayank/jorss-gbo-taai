@@ -1,67 +1,10 @@
 /**
- * Unified Theme CSS
- * Bridges variable naming between standalone templates and the design system.
- * Provides consistent component styling across all template families.
+ * Unified Theme CSS - Component Styles
+ *
+ * NOTE: Variable bridge has been moved to core/variables.css.
+ * This file now contains only component styles that ensure consistency.
+ * TODO: Move these styles to respective component files in Phase 2.
  */
-
-/* =========================
-   VARIABLE BRIDGE
-   Maps short names (used by standalone templates) to design system names
-   ========================= */
-
-:root {
-  /* Primary palette bridge */
-  --primary: var(--color-primary-500);
-  --primary-dark: var(--color-primary-700);
-  --primary-light: var(--color-primary-400);
-  --primary-50: var(--color-primary-50);
-  --primary-100: var(--color-primary-100);
-  --primary-200: var(--color-primary-200);
-  --primary-300: var(--color-primary-300);
-  --primary-400: var(--color-primary-400);
-  --primary-500: var(--color-primary-500);
-  --primary-600: var(--color-primary-600);
-  --primary-700: var(--color-primary-700);
-  --primary-800: var(--color-primary-800);
-  --primary-900: var(--color-primary-900);
-
-  /* Accent bridge */
-  --accent: var(--color-accent-500);
-  --accent-dark: var(--color-accent-700);
-  --accent-light: var(--color-accent-400);
-
-  /* Gray bridge */
-  --gray-50: var(--color-gray-50);
-  --gray-100: var(--color-gray-100);
-  --gray-200: var(--color-gray-200);
-  --gray-300: var(--color-gray-300);
-  --gray-400: var(--color-gray-400);
-  --gray-500: var(--color-gray-500);
-  --gray-600: var(--color-gray-600);
-  --gray-700: var(--color-gray-700);
-  --gray-800: var(--color-gray-800);
-  --gray-900: var(--color-gray-900);
-
-  /* Semantic color bridge */
-  --success: var(--color-success-500);
-  --success-light: var(--color-success-100);
-  --warning: var(--color-warning-500);
-  --warning-light: var(--color-warning-100);
-  --error: var(--color-error-500);
-  --error-light: var(--color-error-100);
-  --danger: var(--color-error-500);
-  --info: var(--color-info-500);
-  --info-light: var(--color-info-100);
-
-  /* Common aliases */
-  --white: #ffffff;
-  --border-color: var(--color-gray-200);
-  --text-dark: var(--color-gray-800);
-  --text-muted: var(--color-gray-500);
-  --text-light: var(--color-gray-400);
-  --bg-light: var(--color-gray-50);
-  --bg-page: var(--color-gray-100);
-}
 
 /* =========================
    UNIFIED SIDEBAR
@@ -140,7 +83,7 @@
 
 /* =========================
    UNIFIED BUTTONS
-   Navy primary, teal secondary
+   Navy primary, teal accent
    ========================= */
 
 .btn-primary {
@@ -169,7 +112,7 @@
 .btn-accent:hover:not(:disabled),
 .btn-cta:hover:not(:disabled) {
   background: var(--color-accent-600);
-  box-shadow: 0 4px 14px 0 rgb(13 148 136 / 0.39);
+  box-shadow: 0 4px 14px 0 rgb(20 184 166 / 0.39);
 }
 
 /* =========================
@@ -177,7 +120,7 @@
    ========================= */
 
 .card {
-  background: var(--white);
+  background: var(--white, #ffffff);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl, 12px);
   box-shadow: var(--shadow-sm);
@@ -206,7 +149,7 @@ input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--color-accent-500);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
   outline: none;
 }
 

@@ -26,16 +26,13 @@
 <link rel="stylesheet" href="/static/css/components/navigation.css">
 <link rel="stylesheet" href="/static/css/components/toast.css">
 
-{# Unified Theme CSS #}
+{# Unified Theme CSS - Component styles #}
 <link rel="stylesheet" href="/static/css/unified-theme.css">
 
-{# Theme CSS (if specified) #}
-{% if theme == 'admin' %}
-<link rel="stylesheet" href="/static/css/themes/admin.css">
-{% elif theme == 'advisor' %}
+{# Theme-specific styles are now handled via data-theme attribute in variables.css #}
+{# To use a theme, set data-theme="admin|advisor|cpa" on the <html> element #}
+{% if theme == 'advisor' %}
 <link rel="stylesheet" href="/static/css/themes/advisor.css">
-{% elif theme == 'cpa' %}
-<link rel="stylesheet" href="/static/css/themes/cpa.css">
 {% endif %}
 
 {# Page-specific CSS (if specified) #}

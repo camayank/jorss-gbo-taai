@@ -12,18 +12,17 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      /* Professional Tax Platform Theme - Clean & Trustworthy */
+      /* Professional Tax Platform Theme - Unified Design System */
       --primary: #1e3a5f;           /* Navy blue - trust, professionalism */
       --primary-light: #5387c1;     /* Lighter navy */
       --primary-dark: #0d2137;      /* Darker navy */
-      --accent: #2b6cb0;            /* Professional blue */
-      --accent-light: #4299e1;      /* Lighter blue */
-      --accent-gold: #c69214;       /* Muted gold for premium */
-      --error: #c53030;             /* Professional red */
-      --error-light: #fc8181;
-      --warning: #c69214;           /* Muted amber */
-      --success: #276749;           /* Professional green - money/savings */
-      --success-light: #38a169;
+      --accent: #14b8a6;            /* Teal (Unified Design System) */
+      --accent-light: #2dd4bf;      /* Lighter teal */
+      --error: #ef4444;             /* Professional red */
+      --error-light: #f87171;
+      --warning: #f59e0b;           /* Amber (Unified Design System) */
+      --success: #10b981;           /* Emerald - money/savings */
+      --success-light: #34d399;
       --bg: #f7fafc;                /* Light gray background */
       --surface: #ffffff;           /* White cards */
       --surface-light: #edf2f7;     /* Light gray surfaces */
@@ -34,7 +33,7 @@
       --border: #e2e8f0;            /* Light borders */
       --border-light: #cbd5e0;      /* Slightly darker borders */
       --gradient: linear-gradient(135deg, #1e3a5f 0%, #5387c1 100%);
-      --gradient-gold: linear-gradient(135deg, #c69214 0%, #975a16 100%);
+      --gradient-accent: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
       --gradient-premium: linear-gradient(135deg, #5387c1 0%, #1e3a5f 100%);
       --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
       --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -371,7 +370,7 @@
     }
 
     .upload-percent {
-      color: #2b6cb0;
+      color: var(--accent);
       font-weight: 600;
     }
 
@@ -383,7 +382,7 @@
     }
 
     .upload-progress-fill {
-      background: linear-gradient(90deg, #2b6cb0, #4299e1);
+      background: linear-gradient(90deg, var(--accent), var(--accent-light));
       height: 100%;
       border-radius: 4px;
       transition: width 0.2s ease;
@@ -395,7 +394,7 @@
       top: 0;
       left: 0;
       right: 0;
-      background: #c69214;
+      background: var(--warning);
       color: white;
       padding: 10px 20px;
       text-align: center;
@@ -2357,7 +2356,7 @@
 
     .consent-item.warning {
       background: #fffbeb;
-      border-left: 3px solid #c69214;
+      border-left: 3px solid var(--warning);
     }
 
     .consent-icon {
@@ -2396,7 +2395,7 @@
     }
 
     .consent-link {
-      color: #2b6cb0;
+      color: var(--accent);
       text-decoration: none;
       font-size: 14px;
     }
@@ -4570,7 +4569,7 @@
         overlay.className = 'celebration-overlay';
         document.body.appendChild(overlay);
 
-        const colors = ['#1e3a5f', '#5387c1', '#38a169', '#c69214', '#4299e1', '#68d391'];
+        const colors = ['#1e3a5f', '#5387c1', '#10b981', '#14b8a6', '#f59e0b', '#34d399'];
 
         for (let i = 0; i < count; i++) {
           const confetti = document.createElement('div');
@@ -12636,9 +12635,9 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       const isFirst = currentStrategyIndex === 0;
 
       const priorityColors = {
-        'high': '#276749',
-        'medium': '#c69214',
-        'low': '#4a5568'
+        'high': '#10b981',
+        'medium': '#f59e0b',
+        'low': '#6b7280'
       };
       const priorityColor = priorityColors[strategy.priority] || '#4a5568';
 
@@ -13736,7 +13735,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       addMessage('ai', `
         <div style="margin-bottom: 16px;">
           <strong style="font-size: 18px; color: #1e3a5f;">Your Tax Profile Summary</strong>
-          <div style="margin-top: 8px; display: inline-block; background: #ebf8ff; color: #2b6cb0; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">
+          <div style="margin-top: 8px; display: inline-block; background: #f0fdfa; color: #14b8a6; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">
             ${complexityIndicator} Tax Situation
           </div>
         </div>

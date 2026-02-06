@@ -1,26 +1,28 @@
 /**
  * Main CSS Entry Point
  *
- * This file imports all CSS modules in the correct order for bundling.
- * Use a CSS bundler (PostCSS, Vite, etc.) to process this file.
- *
- * Build command: npx postcss src/web/static/css/main.css -o dist/css/main.min.css
+ * This file imports all CSS modules in the correct order.
+ * Can be used with a CSS bundler (PostCSS, Vite, etc.) or imported directly.
  *
  * Import Order:
- * 1. Core (reset, variables, typography, layout, animations)
+ * 1. Core (variables, reset, typography, layout, animations)
  * 2. Components (buttons, cards, forms, modals, navigation, tables, toast)
- * 3. Pages (advisor, cpa-dashboard, tax-form)
- * 4. Themes (admin, advisor, cpa)
- * 5. Feature-specific (advisory-report, chatbot-ux-enhancements)
+ * 3. Unified Theme (component styling overrides)
+ * 4. Pages (advisor, cpa-dashboard, tax-form)
+ * 5. Themes (advisor - others are now in variables.css via data-theme)
+ * 6. Feature-specific (advisory-report, chatbot-ux-enhancements)
+ *
+ * Note: Theme variations (admin, cpa) are now handled via data-theme attribute
+ * on the <html> element, with styles defined in core/variables.css.
  */
 
 /* =============================================================================
    CORE STYLES
-   Reset, CSS variables, typography, layout, and animations
+   CSS variables (design tokens), reset, typography, layout, and animations
    ============================================================================= */
 
-@import 'core/reset.css';
 @import 'core/variables.css';
+@import 'core/reset.css';
 @import 'core/typography.css';
 @import 'core/layout.css';
 @import 'core/animations.css';
@@ -39,6 +41,14 @@
 @import 'components/toast.css';
 
 /* =============================================================================
+   UNIFIED THEME
+   Component styling overrides for consistency
+   TODO: Merge into respective component files in Phase 2
+   ============================================================================= */
+
+@import './unified-theme.css';
+
+/* =============================================================================
    PAGE STYLES
    Page-specific layouts and styles
    ============================================================================= */
@@ -48,20 +58,11 @@
 @import 'pages/tax-form.css';
 
 /* =============================================================================
-   UNIFIED THEME
-   Bridges variable naming and provides consistent component styling
-   ============================================================================= */
-
-@import './unified-theme.css';
-
-/* =============================================================================
    THEME STYLES
-   Theme variations for different user types
+   Additional theme variations (advisor only - admin/cpa use data-theme)
    ============================================================================= */
 
-@import 'themes/admin.css';
 @import 'themes/advisor.css';
-@import 'themes/cpa.css';
 
 /* =============================================================================
    FEATURE STYLES

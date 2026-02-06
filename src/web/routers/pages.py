@@ -91,7 +91,7 @@ def cpa_branding_settings(request: Request):
 @router.get("/for-cpas", response_class=HTMLResponse)
 def cpa_landing_page(request: Request):
     """CPA marketing landing page."""
-    return templates.TemplateResponse("cpa_landing.html", {"request": request})
+    return templates.TemplateResponse("landing.html", {"request": request})
 
 
 @router.get("/client", response_class=HTMLResponse)
