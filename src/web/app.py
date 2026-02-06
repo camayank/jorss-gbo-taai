@@ -134,6 +134,7 @@ from security.middleware import (
     RequestValidationMiddleware,
     CSRFMiddleware,
 )
+from security.tenant_isolation_middleware import TenantIsolationMiddleware
 from security.auth_decorators import (
     require_auth,
     require_session_owner,
@@ -458,6 +459,28 @@ if RBAC_V2_ENABLED:
         logger.warning(f"Global RBAC middleware not available: {e}")
 else:
     logger.info("Global RBAC v2 middleware disabled (feature flag off)")
+
+# =============================================================================
+# TENANT ISOLATION MIDDLEWARE
+# =============================================================================
+# Enforces multi-tenant security with:
+# - Request-level tenant context extraction
+# - Cross-tenant access prevention
+# - Anomaly detection for suspicious access patterns
+# - Audit logging for all tenant access
+app.add_middleware(
+    TenantIsolationMiddleware,
+    strict_mode=not _is_dev,  # Strict in production, lenient in dev
+    audit_all_access=True,
+    detect_anomalies=True,
+    exempt_paths={
+        "/", "/health", "/healthz", "/ready", "/metrics",
+        "/api/v1/auth/login", "/api/v1/auth/register",
+        "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password",
+        "/docs", "/openapi.json", "/redoc",
+    },
+)
+logger.info("Tenant isolation middleware enabled (strict_mode=%s)", not _is_dev)
 
 
 # =============================================================================
