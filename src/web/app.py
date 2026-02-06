@@ -56,6 +56,9 @@ import re
 import logging
 import json as _json_mod
 
+# UX v2 Feature Flags
+from web.feature_flags import should_use_ux_v2, get_template_path, set_ux_version_cookie
+
 # =============================================================================
 # LOGGING CONFIGURATION
 # =============================================================================
@@ -1323,8 +1326,11 @@ def forgot_password_page(request: Request):
 
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request):
-    """CPA Workspace Dashboard - Multi-client management (legacy)."""
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+    """CPA Workspace Dashboard - Multi-client management."""
+    template_name = get_template_path(request, "dashboard.html")
+    response = templates.TemplateResponse(template_name, {"request": request})
+    set_ux_version_cookie(response, should_use_ux_v2(request))
+    return response
 
 
 # =============================================================================
@@ -1964,7 +1970,10 @@ def guided_filing_page(request: Request, session_id: str = None):
     except Exception:
         pass
 
-    return templates.TemplateResponse("guided_filing.html", context)
+    template_name = get_template_path(request, "guided_filing.html")
+    response = templates.TemplateResponse(template_name, context)
+    set_ux_version_cookie(response, should_use_ux_v2(request))
+    return response
 
 
 @app.get("/results", response_class=HTMLResponse)
@@ -2049,16 +2058,17 @@ def filing_results(request: Request, session_id: str = None):
         "upgrade_prompt" in filtered_report
     )
 
-    return templates.TemplateResponse("results.html", {
+    template_name = get_template_path(request, "results.html")
+    context = {
         "request": request,
         "session_id": session_id,
         "return_id": return_data.get('return_id', session_id[:12]),
         "return_data": return_data,
         "refund": refund,
         "tax_owed": tax_owed,
-        "report": filtered_report,  # NEW: Filtered advisory report
-        "user_tier": user_tier.value,  # NEW: Current subscription tier
-        "show_upgrade": show_upgrade,  # NEW: Show upgrade banner?
+        "report": filtered_report,  # Filtered advisory report
+        "user_tier": user_tier.value,  # Current subscription tier
+        "show_upgrade": show_upgrade,  # Show upgrade banner?
         "branding": {
             "platform_name": branding.platform_name,
             "company_name": branding.company_name,
@@ -2071,7 +2081,10 @@ def filing_results(request: Request, session_id: str = None):
             "custom_js": branding.custom_js,
             "meta_description": branding.meta_description,
         }
-    })
+    }
+    response = templates.TemplateResponse(template_name, context)
+    set_ux_version_cookie(response, should_use_ux_v2(request))
+    return response
 
 
 @app.post("/api/chat")
