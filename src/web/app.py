@@ -306,11 +306,14 @@ try:
     # 5. CSRF Cookie Persistence (ensures token is set on HTML responses)
     # This solves the token persistence problem where tokens weren't being
     # properly set in cookies before, causing validation failures
+    # SECURITY FIX: Align CSRF cookie expiration with refresh token (7 days)
+    # to prevent validation failures when users have valid refresh tokens
+    csrf_cookie_max_age = 7 * 24 * 60 * 60  # 7 days = 604800 seconds
     app.add_middleware(
         CSRFCookieMiddleware,
         secret_key=_csrf_secret_key,
         cookie_name="csrf_token",
-        cookie_max_age=86400,  # 24 hours (matches typical session duration)
+        cookie_max_age=csrf_cookie_max_age,
         secure=_is_production,
     )
     logger.info("CSRF cookie persistence middleware enabled")

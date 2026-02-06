@@ -601,6 +601,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
 
         # Rotate CSRF token after successful state-changing requests
+        # SECURITY FIX: Align with refresh token expiration (7 days)
         if request.method in ("POST", "PUT", "DELETE", "PATCH") and 200 <= response.status_code < 300:
             new_token = self.generate_token()
             response.set_cookie(
@@ -609,7 +610,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                 httponly=False,
                 samesite="lax",
                 path="/",
-                max_age=86400,
+                max_age=604800,  # 7 days - aligned with refresh token expiration
             )
             response.headers["X-CSRF-Token"] = new_token
 
