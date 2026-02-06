@@ -337,16 +337,68 @@
    THEME: ADMIN (Dark + Navy)
    ========================= */
 [data-theme="admin"] {
+  /* Background & Text */
   --body-bg: var(--color-gray-900);
   --body-text: var(--color-gray-100);
 
+  /* Cards */
   --card-bg: var(--color-gray-800);
   --card-border: var(--color-gray-700);
+  --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
 
+  /* Inputs */
   --input-bg: var(--color-gray-800);
   --input-border: var(--color-gray-600);
+  --input-border-focus: var(--color-primary-400);
   --input-text: var(--color-gray-100);
   --input-placeholder: var(--color-gray-500);
+
+  /* Sidebar (darker for admin) */
+  --sidebar-bg: linear-gradient(180deg, var(--color-primary-900) 0%, var(--color-primary-950) 100%);
+  --sidebar-text: var(--color-gray-200);
+  --sidebar-hover: var(--color-primary-700);
+  --sidebar-active: var(--color-accent-400);
+  --sidebar-border: var(--color-primary-800);
+
+  /* Tables */
+  --table-bg: var(--color-gray-800);
+  --table-header-bg: var(--color-gray-850, #1a1f2e);
+  --table-border: var(--color-gray-700);
+  --table-row-hover: var(--color-gray-750, #252b3b);
+  --table-stripe: var(--color-gray-850, #1a1f2e);
+
+  /* Borders */
+  --border-color: var(--color-gray-700);
+  --divider-color: var(--color-gray-700);
+
+  /* Text variations */
+  --text-primary: var(--color-gray-100);
+  --text-secondary: var(--color-gray-400);
+  --text-muted: var(--color-gray-500);
+  --text-disabled: var(--color-gray-600);
+
+  /* Links */
+  --link-color: var(--color-primary-400);
+  --link-hover: var(--color-primary-300);
+
+  /* Shadows (stronger for dark backgrounds) */
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.2);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+
+  /* Status badges */
+  --badge-bg: var(--color-gray-700);
+  --badge-text: var(--color-gray-200);
+
+  /* Dropdowns & Popovers */
+  --dropdown-bg: var(--color-gray-800);
+  --dropdown-border: var(--color-gray-700);
+  --dropdown-hover: var(--color-gray-700);
+
+  /* Metrics/Stats */
+  --stat-bg: var(--color-gray-800);
+  --stat-border: var(--color-gray-700);
+  --stat-icon-bg: var(--color-primary-800);
 }
 
 /* =========================
@@ -361,7 +413,56 @@
    THEME: CPA (Navy/Professional)
    ========================= */
 [data-theme="cpa"] {
-  /* Uses the same Navy primary palette as root */
+  /* Background & Text (light theme) */
+  --body-bg: var(--color-gray-50);
+  --body-text: var(--color-gray-900);
+
+  /* Cards */
+  --card-bg: #ffffff;
+  --card-border: var(--color-gray-200);
+  --card-shadow: var(--shadow-sm);
+
+  /* Sidebar (branded, customizable via CSS vars) */
+  --sidebar-bg: var(--cpa-primary, var(--color-primary-500));
+  --sidebar-text: #ffffff;
+  --sidebar-hover: var(--cpa-secondary, var(--color-primary-600));
+  --sidebar-active: var(--cpa-accent, var(--color-accent-400));
+  --sidebar-border: var(--color-primary-600);
+
+  /* Tables */
+  --table-bg: #ffffff;
+  --table-header-bg: var(--color-gray-50);
+  --table-border: var(--color-gray-200);
+  --table-row-hover: var(--color-gray-50);
+  --table-stripe: var(--color-gray-50);
+
+  /* Borders */
+  --border-color: var(--color-gray-200);
+  --divider-color: var(--color-gray-200);
+
+  /* Text variations */
+  --text-primary: var(--color-gray-900);
+  --text-secondary: var(--color-gray-600);
+  --text-muted: var(--color-gray-500);
+  --text-disabled: var(--color-gray-400);
+
+  /* Links */
+  --link-color: var(--color-primary-600);
+  --link-hover: var(--color-primary-700);
+
+  /* Status badges */
+  --badge-bg: var(--color-gray-100);
+  --badge-text: var(--color-gray-700);
+
+  /* Dropdowns & Popovers */
+  --dropdown-bg: #ffffff;
+  --dropdown-border: var(--color-gray-200);
+  --dropdown-hover: var(--color-gray-50);
+
+  /* Metrics/Stats */
+  --stat-bg: #ffffff;
+  --stat-border: var(--color-gray-200);
+  --stat-icon-bg: var(--color-primary-50);
 }
 
 /* =========================

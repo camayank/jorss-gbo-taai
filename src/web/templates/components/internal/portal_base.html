@@ -1,0 +1,118 @@
+{#
+  Portal Base Layout
+
+  Unified base template for internal portals (Admin, CPA).
+  Provides consistent sidebar navigation, header, and content structure.
+
+  Usage:
+    {% extends 'components/internal/portal_base.html' %}
+    {% set portal_type = 'admin' %}  {# or 'cpa' #}
+    {% set active_page = 'dashboard' %}
+
+    {% block page_title %}My Page{% endblock %}
+    {% block content %}...{% endblock %}
+
+  Variables:
+    - portal_type: 'admin' | 'cpa' (required)
+    - active_page: Current page identifier for nav highlighting
+    - user: User object with name, avatar, role
+    - branding: Branding object with logo, firm_name, colors (CPA only)
+#}
+{% from 'macros/icons.html' import icon %}
+{% from 'components/internal/nav_sidebar.html' import portal_sidebar %}
+{% from 'components/internal/portal_header.html' import portal_header %}
+
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ portal_type }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{% block page_title %}Dashboard{% endblock %}{% endblock %} | {{ branding.firm_name if branding else 'TaxFlow' }}</title>
+
+  {% if branding and branding.favicon_url %}
+  <link rel="icon" href="{{ branding.favicon_url }}">
+  {% endif %}
+
+  <!-- Core Design System -->
+  <link rel="stylesheet" href="/static/css/core/variables.css">
+  <link rel="stylesheet" href="/static/css/core/reset.css">
+  <link rel="stylesheet" href="/static/css/core/typography.css">
+  <link rel="stylesheet" href="/static/css/core/layout.css">
+  <link rel="stylesheet" href="/static/css/components/buttons.css">
+  <link rel="stylesheet" href="/static/css/components/cards.css">
+  <link rel="stylesheet" href="/static/css/components/forms.css">
+  <link rel="stylesheet" href="/static/css/components/tables.css">
+  <link rel="stylesheet" href="/static/css/components/navigation.css">
+  <link rel="stylesheet" href="/static/css/unified-theme.css">
+
+  {% if portal_type == 'cpa' and branding %}
+  <style>
+    :root {
+      --cpa-primary: {{ branding.primary_color or 'var(--color-primary-500)' }};
+      --cpa-secondary: {{ branding.secondary_color or 'var(--color-primary-700)' }};
+      --cpa-accent: {{ branding.accent_color or 'var(--color-accent-500)' }};
+    }
+    [data-theme="cpa"] {
+      --sidebar-bg: var(--cpa-primary);
+      --sidebar-active: var(--cpa-accent);
+    }
+  </style>
+  {% endif %}
+
+  {% block extra_styles %}{% endblock %}
+</head>
+<body class="has-sidebar">
+  <div class="app-layout">
+    <!-- Mobile Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    {% block sidebar %}
+      {{ portal_sidebar(
+        portal_type=portal_type,
+        active_page=active_page,
+        user=user,
+        branding=branding,
+        nav_items=nav_items,
+        stats=stats
+      ) }}
+    {% endblock %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Header -->
+      {% block header %}
+        {{ portal_header(
+          title=self.page_title(),
+          search_placeholder=search_placeholder | default('Search...'),
+          show_notifications=show_notifications | default(true),
+          user=user
+        ) }}
+      {% endblock %}
+
+      <!-- Page Content -->
+      <div class="page-content">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('sidebarOverlay').classList.toggle('visible');
+      document.body.classList.toggle('sidebar-open');
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('visible');
+        document.body.classList.remove('sidebar-open');
+      }
+    });
+  </script>
+
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

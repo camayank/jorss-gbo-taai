@@ -1,0 +1,141 @@
+{#
+  Metric Grid Component
+
+  Dashboard statistics grid for displaying KPIs.
+
+  Usage:
+    {% from 'components/internal/metric_grid.html' import metric_grid, metric_card %}
+    {{ metric_grid([
+      {"label": "Total Clients", "value": 1234, "change": "+12%", "trend": "up"},
+      {"label": "Revenue", "value": "$45,231", "change": "-3%", "trend": "down"},
+    ]) }}
+
+  Parameters (metric_grid):
+    - metrics: List of metric objects
+    - columns: Number of columns (default: auto-fit)
+    - class_name: Additional CSS classes
+
+  Parameters (metric_card):
+    - label: Metric label
+    - value: Metric value
+    - change: Change text (e.g., "+12%")
+    - trend: 'up' | 'down' | 'neutral'
+    - icon: Icon name (optional)
+    - link: Link URL (optional)
+    - variant: Card variant (optional)
+#}
+{% from 'macros/icons.html' import icon %}
+
+{% macro metric_grid(metrics=[], columns='auto', class_name='') %}
+  <div class="metric-grid {{ class_name }}" style="
+    display: grid;
+    grid-template-columns: {% if columns == 'auto' %}repeat(auto-fit, minmax(240px, 1fr)){% else %}repeat({{ columns }}, 1fr){% endif %};
+    gap: var(--space-5);
+  ">
+    {% for metric in metrics %}
+      {{ metric_card(
+        label=metric.label,
+        value=metric.value,
+        change=metric.change,
+        trend=metric.trend,
+        icon=metric.icon,
+        link=metric.link,
+        variant=metric.variant
+      ) }}
+    {% endfor %}
+  </div>
+{% endmacro %}
+
+
+{% macro metric_card(
+  label,
+  value,
+  change=none,
+  trend='neutral',
+  icon_name=none,
+  link=none,
+  variant=none,
+  class_name=''
+) %}
+  {% set trend_colors = {
+    'up': 'var(--color-success-600)',
+    'down': 'var(--color-error-600)',
+    'neutral': 'var(--color-gray-500)'
+  } %}
+
+  {% set trend_icons = {
+    'up': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>',
+    'down': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>'
+  } %}
+
+  <div class="card stat-card {{ 'card-' ~ variant if variant else '' }} {{ class_name }}" {% if link %}onclick="location.href='{{ link }}'" style="cursor: pointer;"{% endif %}>
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <p class="stat-card-label">{{ label }}</p>
+        <p class="stat-card-value">{{ value }}</p>
+        {% if change %}
+          <div class="stat-card-change {{ trend }}" style="color: {{ trend_colors.get(trend, trend_colors.neutral) }};">
+            {% if trend in ['up', 'down'] %}
+              {{ trend_icons.get(trend) | safe }}
+            {% endif %}
+            <span>{{ change }}</span>
+          </div>
+        {% endif %}
+      </div>
+      {% if icon_name %}
+        <div style="
+          width: 48px;
+          height: 48px;
+          border-radius: var(--radius-lg);
+          background: var(--color-primary-50);
+          color: var(--color-primary-600);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          {{ icon(icon_name) }}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endmacro %}
+
+
+{# Quick Stats Row - Compact horizontal stats #}
+{% macro quick_stats(stats=[], class_name='') %}
+  <div class="quick-stats {{ class_name }}" style="
+    display: flex;
+    gap: var(--space-6);
+    padding: var(--space-4) 0;
+    border-bottom: 1px solid var(--color-gray-200);
+    margin-bottom: var(--space-6);
+    flex-wrap: wrap;
+  ">
+    {% for stat in stats %}
+      <div class="quick-stat" style="display: flex; align-items: center; gap: var(--space-3);">
+        {% if stat.icon %}
+          <div style="
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-md);
+            background: {{ stat.bg_color | default('var(--color-gray-100)') }};
+            color: {{ stat.icon_color | default('var(--color-gray-600)') }};
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">
+            {{ icon(stat.icon) }}
+          </div>
+        {% endif %}
+        <div>
+          <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--color-gray-900);">
+            {{ stat.value }}
+          </div>
+          <div style="font-size: var(--text-sm); color: var(--color-gray-500);">
+            {{ stat.label }}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endmacro %}

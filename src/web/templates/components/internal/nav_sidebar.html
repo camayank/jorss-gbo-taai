@@ -1,0 +1,250 @@
+{#
+  Portal Sidebar Navigation
+
+  Reusable sidebar component for internal portals.
+
+  Usage:
+    {% from 'components/internal/nav_sidebar.html' import portal_sidebar %}
+    {{ portal_sidebar(
+      portal_type='cpa',
+      active_page='dashboard',
+      user=current_user,
+      branding=cpa_branding,
+      nav_items=navigation_config
+    ) }}
+
+  Parameters:
+    - portal_type: 'admin' | 'cpa'
+    - active_page: Current page identifier
+    - user: User object with name, avatar_url, role
+    - branding: Branding object with logo_url, firm_name
+    - nav_items: List of navigation sections
+    - stats: Dict with badge counts (new_leads, etc.)
+#}
+{% from 'macros/icons.html' import icon %}
+
+{% macro portal_sidebar(
+  portal_type='cpa',
+  active_page='',
+  user=none,
+  branding=none,
+  nav_items=[],
+  stats={}
+) %}
+  <aside class="sidebar" id="sidebar" data-portal="{{ portal_type }}">
+    <!-- Sidebar Header / Logo -->
+    <div class="sidebar-header">
+      <a href="/{{ portal_type }}/dashboard" class="sidebar-brand">
+        {% if branding and branding.logo_url %}
+          <img src="{{ branding.logo_url }}" alt="" class="sidebar-logo">
+        {% else %}
+          <div class="sidebar-logo-placeholder" style="background: {% if portal_type == 'admin' %}linear-gradient(135deg, #1e3a5f, #5387c1){% else %}var(--sidebar-bg){% endif %};">
+            {% if portal_type == 'admin' %}
+              TF
+            {% else %}
+              {{ (branding.firm_name if branding else 'T')[0] | upper }}
+            {% endif %}
+          </div>
+        {% endif %}
+        <div class="sidebar-brand-text">
+          {% if portal_type == 'admin' %}
+            <span>TaxFlow</span>
+            <span class="badge badge-warning" style="font-size: 10px; margin-left: 8px;">ADMIN</span>
+          {% else %}
+            {{ branding.firm_name if branding else 'Tax Practice' }}
+          {% endif %}
+        </div>
+      </a>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav">
+      {% if nav_items %}
+        {% for section in nav_items %}
+          <div class="nav-section">
+            {% if section.label %}
+              <div class="nav-section-label">{{ section.label }}</div>
+            {% endif %}
+            <ul class="nav-list">
+              {% for item in section.items %}
+                <li>
+                  <a href="{{ item.href }}" class="nav-item {% if item.id == active_page %}active{% endif %}">
+                    <span class="nav-icon">{{ icon(item.icon) if item.icon else '' }}{{ item.emoji if item.emoji else '' }}</span>
+                    <span class="nav-label">{{ item.label }}</span>
+                    {% if item.badge_key and stats.get(item.badge_key, 0) > 0 %}
+                      <span class="nav-badge">{{ stats[item.badge_key] }}</span>
+                    {% endif %}
+                  </a>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endfor %}
+      {% else %}
+        <!-- Default navigation based on portal type -->
+        {% if portal_type == 'admin' %}
+          {{ admin_default_nav(active_page, stats) }}
+        {% else %}
+          {{ cpa_default_nav(active_page, stats) }}
+        {% endif %}
+      {% endif %}
+    </nav>
+
+    <!-- Sidebar Footer / User Profile -->
+    <div class="sidebar-footer">
+      <div class="user-menu-trigger">
+        {% if user and user.avatar_url %}
+          <img src="{{ user.avatar_url }}" alt="" class="user-avatar">
+        {% else %}
+          <div class="user-avatar" style="background: var(--color-primary-600); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600;">
+            {{ (user.name if user else 'U')[0] | upper }}
+          </div>
+        {% endif %}
+        <div class="user-name">
+          {{ user.name if user else 'User' }}
+          <div style="font-size: 11px; opacity: 0.7;">{{ user.role if user else portal_type | upper }}</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+{% endmacro %}
+
+
+{# Default Admin Navigation #}
+{% macro admin_default_nav(active_page, stats={}) %}
+  <div class="nav-section">
+    <div class="nav-section-label">Overview</div>
+    <ul class="nav-list">
+      <li>
+        <a href="/admin/dashboard" class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+          <span class="nav-icon">{{ icon('chart-bar') }}</span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+      </li>
+      <li>
+        <a href="/admin/users" class="nav-item {% if active_page == 'users' %}active{% endif %}">
+          <span class="nav-icon">{{ icon('users') }}</span>
+          <span class="nav-label">Users</span>
+        </a>
+      </li>
+      <li>
+        <a href="/admin/cpas" class="nav-item {% if active_page == 'cpas' %}active{% endif %}">
+          <span class="nav-icon">{{ icon('briefcase') }}</span>
+          <span class="nav-label">CPAs</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">System</div>
+    <ul class="nav-list">
+      <li>
+        <a href="/admin/api-keys" class="nav-item {% if active_page == 'api_keys' %}active{% endif %}">
+          <span class="nav-icon">{{ icon('key') }}</span>
+          <span class="nav-label">API Keys</span>
+        </a>
+      </li>
+      <li>
+        <a href="/admin/impersonation" class="nav-item {% if active_page == 'impersonation' %}active{% endif %}">
+          <span class="nav-icon">{{ icon('user-circle') }}</span>
+          <span class="nav-label">Impersonation</span>
+        </a>
+      </li>
+      <li>
+        <a href="/admin/settings" class="nav-item {% if active_page == 'settings' %}active{% endif %}">
+          <span class="nav-icon">{{ icon('cog-6-tooth') }}</span>
+          <span class="nav-label">Settings</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+{% endmacro %}
+
+
+{# Default CPA Navigation #}
+{% macro cpa_default_nav(active_page, stats={}) %}
+  <div class="nav-section">
+    <div class="nav-section-label">Overview</div>
+    <ul class="nav-list">
+      <li>
+        <a href="/cpa/dashboard" class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+          <span class="nav-icon">{{ icon('chart-bar') }}</span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+      </li>
+      <li>
+        <a href="/cpa/leads" class="nav-item {% if active_page == 'leads' %}active{% endif %}">
+          <span class="nav-icon">{{ icon('users') }}</span>
+          <span class="nav-label">All Leads</span>
+          {% if stats.get('new_leads', 0) > 0 %}
+            <span class="nav-badge">{{ stats.new_leads }}</span>
+          {% endif %}
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Pipeline</div>
+    <ul class="nav-list">
+      <li>
+        <a href="/cpa/leads?state=advisory_ready" class="nav-item {% if active_page == 'advisory_ready' %}active{% endif %}">
+          <span class="nav-icon">{{ icon('star') }}</span>
+          <span class="nav-label">Advisory Ready</span>
+          {% if stats.get('advisory_ready', 0) > 0 %}
+            <span class="nav-badge">{{ stats.advisory_ready }}</span>
+          {% endif %}
+        </a>
+      </li>
+      <li>
+        <a href="/cpa/leads?state=high_leverage" class="nav-item {% if active_page == 'high_leverage' %}active{% endif %}">
+          <span class="nav-icon">🔥</span>
+          <span class="nav-label">High Leverage</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Clients</div>
+    <ul class="nav-list">
+      <li>
+        <a href="/cpa/clients" class="nav-item {% if active_page == 'clients' %}active{% endif %}">
+          <span class="nav-icon">{{ icon('users') }}</span>
+          <span class="nav-label">Clients</span>
+        </a>
+      </li>
+      <li>
+        <a href="/cpa/analytics" class="nav-item {% if active_page == 'analytics' %}active{% endif %}">
+          <span class="nav-icon">{{ icon('arrow-trending-up') }}</span>
+          <span class="nav-label">Analytics</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Settings</div>
+    <ul class="nav-list">
+      <li>
+        <a href="/cpa/profile" class="nav-item {% if active_page == 'profile' %}active{% endif %}">
+          <span class="nav-icon">{{ icon('user') }}</span>
+          <span class="nav-label">Profile</span>
+        </a>
+      </li>
+      <li>
+        <a href="/cpa/branding" class="nav-item {% if active_page == 'branding' %}active{% endif %}">
+          <span class="nav-icon">🎨</span>
+          <span class="nav-label">Branding</span>
+        </a>
+      </li>
+      <li>
+        <a href="/cpa/billing" class="nav-item {% if active_page == 'billing' %}active{% endif %}">
+          <span class="nav-icon">{{ icon('credit-card') }}</span>
+          <span class="nav-label">Billing</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+{% endmacro %}
