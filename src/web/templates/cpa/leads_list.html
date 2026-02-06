@@ -576,14 +576,115 @@
         window.location.href = '/cpa/leads/' + leadId;
     }
 
-    function engageLead(leadId) {
-        // TODO: Implement engage action
-        alert('Engage lead: ' + leadId);
+    async function engageLead(leadId) {
+        // Show engagement modal or redirect to engagement page
+        const confirmed = confirm('Start engagement with this lead? This will send an initial outreach message.');
+        if (!confirmed) return;
+
+        try {
+            const response = await fetch('/api/cpa/leads/' + leadId + '/engage', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.message || 'Failed to engage lead');
+            }
+
+            const result = await response.json();
+            alert('Engagement started! ' + (result.message || ''));
+            window.location.reload();
+        } catch (error) {
+            console.error('Engage lead error:', error);
+            alert('Error: ' + error.message);
+        }
     }
 
-    function showLeadMenu(leadId) {
-        // TODO: Implement dropdown menu
-        alert('Menu for lead: ' + leadId);
+    function showLeadMenu(leadId, event) {
+        event = event || window.event;
+        event.stopPropagation();
+
+        // Close any existing menus
+        document.querySelectorAll('.lead-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+
+        // Create or show dropdown menu
+        let menu = document.getElementById('lead-menu-' + leadId);
+        if (!menu) {
+            menu = document.createElement('div');
+            menu.id = 'lead-menu-' + leadId;
+            menu.className = 'lead-dropdown-menu';
+            menu.innerHTML = `
+                <button onclick="viewLead('${leadId}')">View Details</button>
+                <button onclick="engageLead('${leadId}')">Engage Lead</button>
+                <button onclick="editLead('${leadId}')">Edit Lead</button>
+                <hr>
+                <button onclick="archiveLead('${leadId}')" class="text-warning">Archive</button>
+                <button onclick="deleteLead('${leadId}')" class="text-danger">Delete</button>
+            `;
+            document.body.appendChild(menu);
+        }
+
+        // Position and show menu
+        const btn = event.target.closest('button');
+        const rect = btn.getBoundingClientRect();
+        menu.style.top = (rect.bottom + window.scrollY) + 'px';
+        menu.style.left = (rect.left + window.scrollX - 100) + 'px';
+        menu.classList.add('show');
+
+        // Close on outside click
+        setTimeout(() => {
+            document.addEventListener('click', function closeMenu(e) {
+                if (!menu.contains(e.target)) {
+                    menu.classList.remove('show');
+                    document.removeEventListener('click', closeMenu);
+                }
+            });
+        }, 0);
+    }
+
+    async function editLead(leadId) {
+        window.location.href = '/cpa/leads/' + leadId + '/edit';
+    }
+
+    async function archiveLead(leadId) {
+        if (!confirm('Archive this lead? It will be hidden from the main list.')) return;
+
+        try {
+            const response = await fetch('/api/cpa/leads/' + leadId + '/archive', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                credentials: 'same-origin'
+            });
+            if (!response.ok) throw new Error('Failed to archive lead');
+            window.location.reload();
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    async function deleteLead(leadId) {
+        if (!confirm('Delete this lead permanently? This cannot be undone.')) return;
+
+        try {
+            const response = await fetch('/api/cpa/leads/' + leadId, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                credentials: 'same-origin'
+            });
+            if (!response.ok) throw new Error('Failed to delete lead');
+            window.location.reload();
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
     }
 
     // Pagination
@@ -637,14 +738,56 @@
         updateBulkActions();
     }
 
-    function bulkAction(action) {
+    async function bulkAction(action) {
         const checkboxes = document.querySelectorAll('.lead-checkbox:checked');
         const leadIds = Array.from(checkboxes).map(cb => cb.value);
 
         if (leadIds.length === 0) return;
 
-        // TODO: Implement bulk actions
-        alert(action + ' ' + leadIds.length + ' leads: ' + leadIds.join(', '));
+        // Confirm action
+        const actionLabels = {
+            'engage': 'engage',
+            'archive': 'archive',
+            'delete': 'permanently delete',
+            'export': 'export'
+        };
+        const label = actionLabels[action] || action;
+
+        if (action === 'delete') {
+            if (!confirm(`Are you sure you want to ${label} ${leadIds.length} lead(s)? This cannot be undone.`)) return;
+        } else if (action !== 'export') {
+            if (!confirm(`${label.charAt(0).toUpperCase() + label.slice(1)} ${leadIds.length} selected lead(s)?`)) return;
+        }
+
+        // Handle export separately
+        if (action === 'export') {
+            window.location.href = '/api/cpa/leads/export?ids=' + leadIds.join(',');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/cpa/leads/bulk', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify({ action: action, lead_ids: leadIds }),
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.message || 'Bulk action failed');
+            }
+
+            const result = await response.json();
+            alert(`Successfully ${label}d ${result.count || leadIds.length} lead(s)`);
+            window.location.reload();
+        } catch (error) {
+            console.error('Bulk action error:', error);
+            alert('Error: ' + error.message);
+        }
     }
 </script>
 {% endblock %}

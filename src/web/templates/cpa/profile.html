@@ -346,14 +346,99 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="/static/js/core/api.js"></script>
 <script>
-    // Form submission handlers
+    // Profile form submission handler with loading states
     document.querySelectorAll('form').forEach(form => {
-        form.addEventListener('submit', function(e) {
+        form.addEventListener('submit', async function(e) {
             e.preventDefault();
-            // TODO: Implement API calls to save profile
-            alert('Profile updated! (API integration pending)');
+
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn ? submitBtn.innerHTML : '';
+
+            try {
+                // Show loading state
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner"></span> Saving...';
+                }
+
+                // Collect form data
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+
+                // Determine endpoint based on form
+                const formId = form.id || form.dataset.section;
+                const endpoint = formId === 'personal-info' ? '/api/cpa/profile/personal'
+                               : formId === 'business-info' ? '/api/cpa/profile/business'
+                               : formId === 'credentials' ? '/api/cpa/profile/credentials'
+                               : '/api/cpa/profile';
+
+                // Make API call
+                const response = await fetch(endpoint, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    },
+                    body: JSON.stringify(data),
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    throw new Error(error.message || 'Failed to save profile');
+                }
+
+                // Show success
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<span class="check-icon">&#10003;</span> Saved!';
+                    submitBtn.classList.add('btn-success');
+                    setTimeout(() => {
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.classList.remove('btn-success');
+                        submitBtn.disabled = false;
+                    }, 2000);
+                }
+
+            } catch (error) {
+                console.error('Profile save error:', error);
+
+                // Show error
+                if (submitBtn) {
+                    submitBtn.innerHTML = 'Error - Try Again';
+                    submitBtn.classList.add('btn-error');
+                    setTimeout(() => {
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.classList.remove('btn-error');
+                        submitBtn.disabled = false;
+                    }, 3000);
+                }
+
+                // Show user-friendly error message
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-error';
+                errorDiv.textContent = error.message || 'Failed to save profile. Please try again.';
+                form.insertBefore(errorDiv, form.firstChild);
+                setTimeout(() => errorDiv.remove(), 5000);
+            }
         });
     });
 </script>
+<style>
+    .spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid currentColor;
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .btn-success { background: var(--success-color, #10b981) !important; }
+    .btn-error { background: var(--error-color, #ef4444) !important; }
+    .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
+    .alert-error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+</style>
 {% endblock %}

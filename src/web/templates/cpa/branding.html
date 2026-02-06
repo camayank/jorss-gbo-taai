@@ -438,37 +438,166 @@
         updateColorPreview('accent', '#10b981');
     }
 
-    function saveColors() {
-        // TODO: Implement API call
-        alert('Colors saved! (API integration pending)');
+    async function saveColors() {
+        const colors = {
+            primary: document.getElementById('primaryColor').value,
+            secondary: document.getElementById('secondaryColor').value,
+            accent: document.getElementById('accentColor').value
+        };
+
+        try {
+            const response = await fetch('/api/cpa/branding/colors', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify(colors),
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) throw new Error('Failed to save colors');
+
+            showNotification('Colors saved successfully!', 'success');
+            refreshPreview();
+        } catch (error) {
+            console.error('Save colors error:', error);
+            showNotification('Error saving colors: ' + error.message, 'error');
+        }
     }
 
-    function saveBranding() {
-        // TODO: Implement API call
-        alert('Branding saved! (API integration pending)');
+    async function saveBranding() {
+        const form = document.getElementById('brandingForm');
+        const formData = new FormData(form);
+
+        try {
+            const response = await fetch('/api/cpa/branding', {
+                method: 'PUT',
+                headers: {
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: formData,
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) throw new Error('Failed to save branding');
+
+            showNotification('Branding settings saved!', 'success');
+            refreshPreview();
+        } catch (error) {
+            console.error('Save branding error:', error);
+            showNotification('Error saving branding: ' + error.message, 'error');
+        }
     }
 
     function refreshPreview() {
         const iframe = document.getElementById('previewFrame');
-        iframe.src = iframe.src;
+        if (iframe) {
+            iframe.src = iframe.src;
+        }
     }
 
     function changeLogo() {
         document.getElementById('logoInput').click();
     }
 
-    function uploadLogo(input) {
-        if (input.files && input.files[0]) {
-            // TODO: Implement file upload
-            alert('Logo upload (API integration pending)');
+    async function uploadLogo(input) {
+        if (!input.files || !input.files[0]) return;
+
+        const file = input.files[0];
+
+        // Validate file
+        if (!file.type.startsWith('image/')) {
+            showNotification('Please select an image file', 'error');
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            showNotification('File size must be under 5MB', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('logo', file);
+
+        try {
+            showNotification('Uploading logo...', 'info');
+
+            const response = await fetch('/api/cpa/branding/logo', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: formData,
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) throw new Error('Failed to upload logo');
+
+            const result = await response.json();
+
+            // Update logo preview
+            const logoPreview = document.querySelector('.logo-preview img, .logo-preview');
+            if (result.logo_url && logoPreview) {
+                if (logoPreview.tagName === 'IMG') {
+                    logoPreview.src = result.logo_url;
+                } else {
+                    logoPreview.innerHTML = `<img src="${result.logo_url}" alt="Logo" style="max-width: 100%; max-height: 100%;">`;
+                }
+            }
+
+            showNotification('Logo uploaded successfully!', 'success');
+            refreshPreview();
+        } catch (error) {
+            console.error('Upload logo error:', error);
+            showNotification('Error uploading logo: ' + error.message, 'error');
         }
     }
 
-    function removeLogo() {
-        if (confirm('Remove your logo?')) {
-            // TODO: Implement logo removal
-            alert('Logo removed (API integration pending)');
+    async function removeLogo() {
+        if (!confirm('Remove your logo? This action cannot be undone.')) return;
+
+        try {
+            const response = await fetch('/api/cpa/branding/logo', {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) throw new Error('Failed to remove logo');
+
+            // Reset logo preview
+            const logoPreview = document.querySelector('.logo-preview');
+            if (logoPreview) {
+                logoPreview.innerHTML = '<span class="placeholder-text">Your Logo</span>';
+            }
+
+            showNotification('Logo removed', 'success');
+            refreshPreview();
+        } catch (error) {
+            console.error('Remove logo error:', error);
+            showNotification('Error removing logo: ' + error.message, 'error');
         }
+    }
+
+    function showNotification(message, type) {
+        // Remove existing notifications
+        document.querySelectorAll('.notification-toast').forEach(n => n.remove());
+
+        const notification = document.createElement('div');
+        notification.className = 'notification-toast notification-' + type;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        // Animate in
+        setTimeout(() => notification.classList.add('show'), 10);
+
+        // Remove after delay
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
     }
 </script>
 {% endblock %}
