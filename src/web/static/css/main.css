@@ -26,6 +26,9 @@
 @import 'core/typography.css';
 @import 'core/layout.css';
 @import 'core/animations.css';
+@import 'core/responsive.css';
+@import 'core/accessibility.css';
+@import 'core/feedback.css';
 
 /* =============================================================================
    COMPONENT STYLES
