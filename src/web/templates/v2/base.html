@@ -1,0 +1,379 @@
+{#
+  V2 Base Template for Public Pages
+
+  Unified base template using the new component library.
+  All v2 public pages should extend this template.
+
+  Usage:
+    {% extends 'v2/base.html' %}
+    {% block title %}Page Title{% endblock %}
+    {% block content %}...{% endblock %}
+
+  Blocks:
+    - title: Page title (appears in browser tab)
+    - meta: Additional meta tags
+    - extra_styles: Page-specific CSS
+    - content: Main page content
+    - extra_scripts: Page-specific JavaScript
+#}
+{% from 'macros/icons.html' import icon %}
+
+<!DOCTYPE html>
+<html lang="en" data-theme="public">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}TaxFlow{% endblock %} | Smart Tax Preparation</title>
+
+  <!-- SEO Meta -->
+  <meta name="description" content="{% block meta_description %}Intelligent tax preparation powered by AI. Get accurate estimates, maximize deductions, and file with confidence.{% endblock %}">
+  {% block meta %}{% endblock %}
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg">
+  <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
+
+  <!-- Core Design System -->
+  <link rel="stylesheet" href="/static/css/core/variables.css">
+  <link rel="stylesheet" href="/static/css/core/reset.css">
+  <link rel="stylesheet" href="/static/css/core/typography.css">
+  <link rel="stylesheet" href="/static/css/core/layout.css">
+  <link rel="stylesheet" href="/static/css/components/buttons.css">
+  <link rel="stylesheet" href="/static/css/components/cards.css">
+  <link rel="stylesheet" href="/static/css/components/forms.css">
+  <link rel="stylesheet" href="/static/css/components/tables.css">
+  <link rel="stylesheet" href="/static/css/components/navigation.css">
+  <link rel="stylesheet" href="/static/css/unified-theme.css">
+
+  <!-- V2 Public Page Styles -->
+  <style>
+    /* Public theme overrides */
+    [data-theme="public"] {
+      --body-bg: var(--color-gray-50);
+      --body-text: var(--color-gray-900);
+      --header-bg: white;
+      --header-border: var(--color-gray-200);
+      --footer-bg: var(--color-gray-900);
+      --footer-text: var(--color-gray-300);
+    }
+
+    /* Page Layout */
+    .page-wrapper {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .page-main {
+      flex: 1;
+      padding: var(--space-8) var(--space-4);
+    }
+
+    .page-container {
+      max-width: var(--max-content-width);
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .page-container-narrow {
+      max-width: var(--max-form-width);
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Public Header */
+    .public-header {
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--header-border);
+      position: sticky;
+      top: 0;
+      z-index: var(--z-sticky);
+    }
+
+    .public-header-inner {
+      max-width: var(--max-content-width);
+      margin: 0 auto;
+      padding: var(--space-3) var(--space-4);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .public-logo {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      text-decoration: none;
+      color: var(--color-primary-600);
+      font-weight: var(--font-bold);
+      font-size: var(--text-xl);
+    }
+
+    .public-logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--color-primary-500), var(--color-accent-500));
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: var(--text-lg);
+    }
+
+    .public-nav {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+    }
+
+    .public-nav-link {
+      color: var(--color-gray-600);
+      text-decoration: none;
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-md);
+      transition: all var(--transition-fast);
+    }
+
+    .public-nav-link:hover {
+      color: var(--color-primary-600);
+      background: var(--color-gray-50);
+    }
+
+    .mobile-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      padding: var(--space-2);
+      color: var(--color-gray-600);
+      cursor: pointer;
+    }
+
+    /* Public Footer */
+    .public-footer {
+      background: var(--footer-bg);
+      color: var(--footer-text);
+      padding: var(--space-12) var(--space-4) var(--space-8);
+    }
+
+    .public-footer-inner {
+      max-width: var(--max-content-width);
+      margin: 0 auto;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-8);
+      margin-bottom: var(--space-8);
+    }
+
+    .footer-section-title {
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: white;
+      margin-bottom: var(--space-4);
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-wide);
+    }
+
+    .footer-links {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .footer-links li {
+      margin-bottom: var(--space-2);
+    }
+
+    .footer-links a {
+      color: var(--color-gray-400);
+      text-decoration: none;
+      font-size: var(--text-sm);
+      transition: color var(--transition-fast);
+    }
+
+    .footer-links a:hover {
+      color: white;
+    }
+
+    .footer-bottom {
+      padding-top: var(--space-6);
+      border-top: 1px solid var(--color-gray-700);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--space-4);
+    }
+
+    .footer-copyright {
+      font-size: var(--text-sm);
+      color: var(--color-gray-500);
+    }
+
+    .footer-legal-links {
+      display: flex;
+      gap: var(--space-4);
+    }
+
+    .footer-legal-links a {
+      color: var(--color-gray-400);
+      text-decoration: none;
+      font-size: var(--text-sm);
+    }
+
+    .footer-legal-links a:hover {
+      color: white;
+    }
+
+    /* Hero Section Pattern */
+    .hero {
+      text-align: center;
+      padding: var(--space-16) var(--space-4);
+      background: linear-gradient(135deg, var(--color-primary-50), var(--color-accent-50));
+    }
+
+    .hero-title {
+      font-size: var(--text-4xl);
+      font-weight: var(--font-bold);
+      color: var(--color-gray-900);
+      margin-bottom: var(--space-4);
+    }
+
+    .hero-subtitle {
+      font-size: var(--text-xl);
+      color: var(--color-gray-600);
+      max-width: 600px;
+      margin: 0 auto var(--space-8);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .public-nav {
+        display: none;
+      }
+
+      .mobile-menu-btn {
+        display: block;
+      }
+
+      .hero-title {
+        font-size: var(--text-3xl);
+      }
+
+      .hero-subtitle {
+        font-size: var(--text-lg);
+      }
+
+      .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+  </style>
+
+  {% block extra_styles %}{% endblock %}
+</head>
+<body>
+  <div class="page-wrapper">
+    <!-- Header -->
+    <header class="public-header">
+      <div class="public-header-inner">
+        <a href="/" class="public-logo">
+          <div class="public-logo-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          TaxFlow
+        </a>
+
+        <nav class="public-nav">
+          <a href="/features" class="public-nav-link">Features</a>
+          <a href="/pricing" class="public-nav-link">Pricing</a>
+          <a href="/about" class="public-nav-link">About</a>
+          <a href="/login" class="btn btn-ghost">Log In</a>
+          <a href="/signup" class="btn btn-primary">Get Started</a>
+        </nav>
+
+        <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle menu">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12h18M3 6h18M3 18h18"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="page-main">
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="public-footer">
+      <div class="public-footer-inner">
+        <div class="footer-grid">
+          <div>
+            <h4 class="footer-section-title">Product</h4>
+            <ul class="footer-links">
+              <li><a href="/features">Features</a></li>
+              <li><a href="/pricing">Pricing</a></li>
+              <li><a href="/security">Security</a></li>
+              <li><a href="/integrations">Integrations</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="footer-section-title">Resources</h4>
+            <ul class="footer-links">
+              <li><a href="/blog">Blog</a></li>
+              <li><a href="/help">Help Center</a></li>
+              <li><a href="/guides">Guides</a></li>
+              <li><a href="/api">API Docs</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="footer-section-title">Company</h4>
+            <ul class="footer-links">
+              <li><a href="/about">About</a></li>
+              <li><a href="/careers">Careers</a></li>
+              <li><a href="/press">Press</a></li>
+              <li><a href="/contact">Contact</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="footer-section-title">Legal</h4>
+            <ul class="footer-links">
+              <li><a href="/privacy">Privacy Policy</a></li>
+              <li><a href="/terms">Terms of Service</a></li>
+              <li><a href="/cookies">Cookie Policy</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <p class="footer-copyright">&copy; {{ now().year if now is defined else '2026' }} TaxFlow. All rights reserved.</p>
+          <div class="footer-legal-links">
+            <a href="/privacy">Privacy</a>
+            <a href="/terms">Terms</a>
+            <a href="/cookies">Cookies</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    function toggleMobileMenu() {
+      // Mobile menu toggle logic
+      const nav = document.querySelector('.public-nav');
+      nav.classList.toggle('show');
+    }
+  </script>
+
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>
