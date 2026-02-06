@@ -3569,6 +3569,9 @@
       <div class="logo-subtitle">AI-Powered Wealth Strategy</div>
     </div>
     <div class="header-right">
+      <button class="workflow-mode-btn" onclick="openWorkflowSelector()" title="Choose filing workflow" aria-label="Choose filing workflow" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; margin-right: 12px; transition: all 0.2s;">
+        ⚡ Choose Workflow
+      </button>
       <button class="clear-chat-btn" onclick="clearConversation()" title="Start new conversation" aria-label="Start new conversation">
         🔄 New Chat
       </button>
@@ -14885,5 +14888,9 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       PhotoCapture.open = PhotoCaptureEnhanced.open.bind(PhotoCaptureEnhanced);
     }
   </script>
+
+  <!-- Workflow Selector Component -->
+  {% include 'components/workflow_selector.html' %}
+
 </body>
 </html>

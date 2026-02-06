@@ -1,0 +1,406 @@
+{# Workflow Selector Component
+   Usage: {% include 'components/workflow_selector.html' %}
+
+   Allows users to choose their preferred tax filing workflow:
+   - Express Lane: Document-first, fastest path
+   - Smart Tax: Adaptive questions based on complexity
+   - Chat: Conversational AI assistant
+   - Guided: Traditional step-by-step forms
+#}
+
+<div class="workflow-selector" id="workflowSelector">
+    <div class="selector-backdrop" onclick="closeWorkflowSelector()"></div>
+    <div class="selector-modal">
+        <div class="selector-header">
+            <h2>How would you like to file?</h2>
+            <p>Choose the approach that works best for you</p>
+            <button class="close-btn" onclick="closeWorkflowSelector()" aria-label="Close">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="workflow-options">
+            <!-- Express Lane -->
+            <div class="workflow-card" onclick="selectWorkflow('express')" data-workflow="express">
+                <div class="workflow-icon express">
+                    <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <div class="workflow-content">
+                    <h3>Express Lane</h3>
+                    <p class="workflow-time">~3 minutes</p>
+                    <p class="workflow-desc">Upload your W-2 and we'll do the rest. Fastest path to your refund.</p>
+                    <ul class="workflow-features">
+                        <li>Upload documents first</li>
+                        <li>Auto-extract all data</li>
+                        <li>Minimal questions</li>
+                    </ul>
+                </div>
+                <div class="workflow-badge recommended">Recommended</div>
+            </div>
+
+            <!-- Smart Tax -->
+            <div class="workflow-card" onclick="selectWorkflow('smart')" data-workflow="smart">
+                <div class="workflow-icon smart">
+                    <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                    </svg>
+                </div>
+                <div class="workflow-content">
+                    <h3>Smart Tax</h3>
+                    <p class="workflow-time">~10 minutes</p>
+                    <p class="workflow-desc">AI adapts questions to your situation. Best for complex returns.</p>
+                    <ul class="workflow-features">
+                        <li>Adaptive questioning</li>
+                        <li>Finds deductions for you</li>
+                        <li>Handles complex situations</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Chat -->
+            <div class="workflow-card" onclick="selectWorkflow('chat')" data-workflow="chat">
+                <div class="workflow-icon chat">
+                    <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                    </svg>
+                </div>
+                <div class="workflow-content">
+                    <h3>Chat with AI</h3>
+                    <p class="workflow-time">~15 minutes</p>
+                    <p class="workflow-desc">Have a conversation about your taxes. Ask questions anytime.</p>
+                    <ul class="workflow-features">
+                        <li>Natural conversation</li>
+                        <li>Ask anything</li>
+                        <li>Get explanations</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Guided -->
+            <div class="workflow-card" onclick="selectWorkflow('guided')" data-workflow="guided">
+                <div class="workflow-icon guided">
+                    <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                </div>
+                <div class="workflow-content">
+                    <h3>Guided Filing</h3>
+                    <p class="workflow-time">~20 minutes</p>
+                    <p class="workflow-desc">Traditional step-by-step forms. Full control over every field.</p>
+                    <ul class="workflow-features">
+                        <li>Step-by-step forms</li>
+                        <li>Full control</li>
+                        <li>Familiar experience</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="selector-footer">
+            <p class="help-text">Not sure? <strong>Express Lane</strong> works great for most people with W-2 income.</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.workflow-selector {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.workflow-selector.active {
+    display: flex;
+}
+
+.selector-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.selector-modal {
+    position: relative;
+    background: white;
+    border-radius: var(--radius-2xl, 1rem);
+    max-width: 900px;
+    width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgb(0 0 0 / 0.25));
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.selector-header {
+    padding: var(--space-6, 1.5rem);
+    text-align: center;
+    border-bottom: 1px solid var(--color-gray-200, #e5e7eb);
+    position: relative;
+}
+
+.selector-header h2 {
+    font-size: var(--text-2xl, 1.5rem);
+    font-weight: var(--font-bold, 700);
+    color: var(--color-gray-900, #111827);
+    margin-bottom: var(--space-1, 0.25rem);
+}
+
+.selector-header p {
+    color: var(--color-gray-500, #6b7280);
+    font-size: var(--text-base, 1rem);
+}
+
+.close-btn {
+    position: absolute;
+    top: var(--space-4, 1rem);
+    right: var(--space-4, 1rem);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-gray-400, #9ca3af);
+    padding: var(--space-2, 0.5rem);
+    border-radius: var(--radius-lg, 0.5rem);
+    transition: all 0.2s;
+}
+
+.close-btn:hover {
+    background: var(--color-gray-100, #f3f4f6);
+    color: var(--color-gray-600, #4b5563);
+}
+
+.workflow-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4, 1rem);
+    padding: var(--space-6, 1.5rem);
+}
+
+@media (max-width: 768px) {
+    .workflow-options {
+        grid-template-columns: 1fr;
+    }
+}
+
+.workflow-card {
+    position: relative;
+    background: var(--color-gray-50, #f9fafb);
+    border: 2px solid var(--color-gray-200, #e5e7eb);
+    border-radius: var(--radius-xl, 0.75rem);
+    padding: var(--space-5, 1.25rem);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    gap: var(--space-4, 1rem);
+}
+
+.workflow-card:hover {
+    border-color: var(--color-primary-400, #818cf8);
+    background: white;
+    box-shadow: var(--shadow-md, 0 4px 6px -1px rgb(0 0 0 / 0.1));
+}
+
+.workflow-card:active,
+.workflow-card.selected {
+    border-color: var(--color-primary-500, #6366f1);
+    background: var(--color-primary-50, #eef2ff);
+}
+
+.workflow-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-lg, 0.5rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.workflow-icon.express {
+    background: var(--color-success-100, #d1fae5);
+    color: var(--color-success-600, #059669);
+}
+
+.workflow-icon.smart {
+    background: var(--color-primary-100, #e0e7ff);
+    color: var(--color-primary-600, #4f46e5);
+}
+
+.workflow-icon.chat {
+    background: var(--color-info-100, #dbeafe);
+    color: var(--color-info-600, #2563eb);
+}
+
+.workflow-icon.guided {
+    background: var(--color-warning-100, #fef3c7);
+    color: var(--color-warning-600, #d97706);
+}
+
+.workflow-content {
+    flex: 1;
+}
+
+.workflow-content h3 {
+    font-size: var(--text-lg, 1.125rem);
+    font-weight: var(--font-semibold, 600);
+    color: var(--color-gray-900, #111827);
+    margin-bottom: var(--space-1, 0.25rem);
+}
+
+.workflow-time {
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-primary-600, #4f46e5);
+    font-weight: var(--font-medium, 500);
+    margin-bottom: var(--space-2, 0.5rem);
+}
+
+.workflow-desc {
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-gray-600, #4b5563);
+    margin-bottom: var(--space-3, 0.75rem);
+    line-height: 1.5;
+}
+
+.workflow-features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.workflow-features li {
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--color-gray-500, #6b7280);
+    padding-left: var(--space-4, 1rem);
+    position: relative;
+    margin-bottom: var(--space-1, 0.25rem);
+}
+
+.workflow-features li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--color-success-500, #10b981);
+    font-weight: bold;
+}
+
+.workflow-badge {
+    position: absolute;
+    top: var(--space-3, 0.75rem);
+    right: var(--space-3, 0.75rem);
+    padding: 2px 8px;
+    border-radius: var(--radius-full, 9999px);
+    font-size: var(--text-xs, 0.75rem);
+    font-weight: var(--font-medium, 500);
+}
+
+.workflow-badge.recommended {
+    background: var(--color-success-100, #d1fae5);
+    color: var(--color-success-700, #047857);
+}
+
+.selector-footer {
+    padding: var(--space-4, 1rem) var(--space-6, 1.5rem);
+    background: var(--color-gray-50, #f9fafb);
+    border-top: 1px solid var(--color-gray-200, #e5e7eb);
+    text-align: center;
+}
+
+.help-text {
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-gray-500, #6b7280);
+}
+</style>
+
+<script>
+function openWorkflowSelector() {
+    document.getElementById('workflowSelector').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeWorkflowSelector() {
+    document.getElementById('workflowSelector').classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+async function selectWorkflow(workflowType) {
+    // Visual feedback
+    document.querySelectorAll('.workflow-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    document.querySelector(`[data-workflow="${workflowType}"]`).classList.add('selected');
+
+    // Create session with selected workflow
+    try {
+        const response = await fetch('/api/unified-filing/sessions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                workflow_type: workflowType,
+                tax_year: new Date().getFullYear()
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const sessionId = data.session_id;
+
+            // Redirect based on workflow type
+            switch (workflowType) {
+                case 'express':
+                    window.location.href = `/intelligent-advisor?session_id=${sessionId}&mode=express`;
+                    break;
+                case 'smart':
+                    window.location.href = `/intelligent-advisor?session_id=${sessionId}&mode=smart`;
+                    break;
+                case 'chat':
+                    window.location.href = `/intelligent-advisor?session_id=${sessionId}&mode=chat`;
+                    break;
+                case 'guided':
+                    window.location.href = `/guided/${sessionId}`;
+                    break;
+                default:
+                    window.location.href = `/intelligent-advisor?session_id=${sessionId}`;
+            }
+        } else {
+            console.error('Failed to create session');
+            alert('Failed to start filing session. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error creating session:', error);
+        alert('An error occurred. Please try again.');
+    }
+}
+
+// Close on escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeWorkflowSelector();
+    }
+});
+</script>
