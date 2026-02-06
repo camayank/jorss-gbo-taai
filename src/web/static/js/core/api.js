@@ -125,7 +125,21 @@ async function request(url, options = {}) {
     retryDelay = config.retryDelay,
     raw = false, // Return raw response instead of JSON
     skipCsrf = false,
+    // Loading state options
+    loadingContainer = null, // Selector or element to show loading state
+    loadingMessage = 'Loading...', // Message for screen readers
+    showSkeleton = false, // Use skeleton loading instead of spinner
   } = options;
+
+  // Start loading state if container provided
+  let loadingId = null;
+  if (loadingContainer && typeof window.LoadingStates !== 'undefined') {
+    loadingId = window.LoadingStates.start(loadingContainer, {
+      message: loadingMessage,
+      showSkeleton: showSkeleton,
+      timeout: timeout,
+    });
+  }
 
   // Build full URL
   const fullUrl = url.startsWith('http') ? url : `${config.baseUrl}${url}`;
@@ -187,7 +201,20 @@ async function request(url, options = {}) {
         }
 
         const errorMessage = errorData?.message || errorData?.error || response.statusText;
+
+        // Show error in loading state if active
+        if (loadingId && typeof window.LoadingStates !== 'undefined') {
+          window.LoadingStates.showError(loadingId, errorMessage, {
+            allowRetry: false,
+          });
+        }
+
         throw new ApiError(errorMessage, response.status, errorData);
+      }
+
+      // End loading state on success
+      if (loadingId && typeof window.LoadingStates !== 'undefined') {
+        window.LoadingStates.end(loadingId, { message: 'Complete' });
       }
 
       // Return raw response if requested
@@ -214,10 +241,17 @@ async function request(url, options = {}) {
 
       // Don't retry on client errors (4xx) or if it's an abort
       if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
+        // Loading state already handled in response.ok check
         throw error;
       }
 
       if (error.name === 'AbortError') {
+        // Show timeout in loading state
+        if (loadingId && typeof window.LoadingStates !== 'undefined') {
+          window.LoadingStates.showError(loadingId, 'Request timed out', {
+            allowRetry: true,
+          });
+        }
         throw new TimeoutError();
       }
 
@@ -227,12 +261,26 @@ async function request(url, options = {}) {
         continue;
       }
 
+      // Show error in loading state for final failure
+      if (loadingId && typeof window.LoadingStates !== 'undefined') {
+        window.LoadingStates.showError(loadingId, error.message || 'Request failed', {
+          allowRetry: true,
+        });
+      }
+
       if (error instanceof ApiError || error instanceof TimeoutError) {
         throw error;
       }
 
       throw new NetworkError(error.message || 'Network request failed');
     }
+  }
+
+  // End loading state for final error
+  if (loadingId && typeof window.LoadingStates !== 'undefined') {
+    window.LoadingStates.showError(loadingId, lastError?.message || 'Request failed', {
+      allowRetry: true,
+    });
   }
 
   throw lastError;
@@ -431,6 +479,167 @@ export const api = {
   download,
   getCached,
   clearCache,
+  ApiError,
+  NetworkError,
+  TimeoutError,
+};
+
+// ============================================
+// BUTTON LOADING HELPERS
+// ============================================
+
+/**
+ * Disable button and show loading state during async operation
+ * @param {HTMLButtonElement|string} button - Button element or selector
+ * @param {Function} asyncFn - Async function to execute
+ * @param {Object} options - Options
+ * @returns {Promise<any>} Result of asyncFn
+ */
+export async function withButtonLoading(button, asyncFn, options = {}) {
+  const btn = typeof button === 'string'
+    ? document.querySelector(button)
+    : button;
+
+  if (!btn) {
+    return asyncFn();
+  }
+
+  const {
+    loadingText = 'Processing...',
+    successText = null, // If set, shows success state briefly
+    errorText = 'Error',
+    successDuration = 1500,
+  } = options;
+
+  const originalText = btn.innerHTML;
+  const originalDisabled = btn.disabled;
+
+  // Show loading state
+  btn.disabled = true;
+  btn.setAttribute('aria-busy', 'true');
+  btn.innerHTML = `
+    <span class="btn-spinner" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83">
+          <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/>
+        </path>
+      </svg>
+    </span>
+    <span class="btn-text">${loadingText}</span>
+  `;
+
+  try {
+    const result = await asyncFn();
+
+    // Show success state if configured
+    if (successText) {
+      btn.innerHTML = `<span class="btn-text">${successText}</span>`;
+      btn.classList.add('btn-success');
+      await new Promise(resolve => setTimeout(resolve, successDuration));
+      btn.classList.remove('btn-success');
+    }
+
+    return result;
+  } catch (error) {
+    // Brief error indication
+    btn.innerHTML = `<span class="btn-text">${errorText}</span>`;
+    btn.classList.add('btn-error');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    btn.classList.remove('btn-error');
+    throw error;
+  } finally {
+    // Restore original state
+    btn.disabled = originalDisabled;
+    btn.setAttribute('aria-busy', 'false');
+    btn.innerHTML = originalText;
+  }
+}
+
+/**
+ * Create a submit handler with automatic loading state
+ * @param {HTMLFormElement|string} form - Form element or selector
+ * @param {Function} submitFn - Async submit handler (receives FormData)
+ * @param {Object} options - Options
+ * @returns {Function} Event handler
+ */
+export function createSubmitHandler(form, submitFn, options = {}) {
+  const formEl = typeof form === 'string'
+    ? document.querySelector(form)
+    : form;
+
+  if (!formEl) {
+    console.warn('Form not found for submit handler');
+    return () => {};
+  }
+
+  const {
+    submitButton = formEl.querySelector('button[type="submit"], input[type="submit"]'),
+    validateFn = null,
+    onSuccess = null,
+    onError = null,
+    preventDoubleSubmit = true,
+  } = options;
+
+  let isSubmitting = false;
+
+  return async function handleSubmit(event) {
+    event.preventDefault();
+
+    // Prevent double submission
+    if (preventDoubleSubmit && isSubmitting) {
+      return;
+    }
+
+    // Validate if validator provided
+    if (validateFn && !validateFn(formEl)) {
+      return;
+    }
+
+    isSubmitting = true;
+    const formData = new FormData(formEl);
+
+    try {
+      const result = await withButtonLoading(
+        submitButton,
+        () => submitFn(formData, formEl),
+        options
+      );
+
+      if (onSuccess) {
+        onSuccess(result);
+      }
+
+      return result;
+    } catch (error) {
+      if (onError) {
+        onError(error);
+      }
+      throw error;
+    } finally {
+      isSubmitting = false;
+    }
+  };
+}
+
+// ============================================
+// API OBJECT (updated with loading helpers)
+// ============================================
+
+export const api = {
+  configure,
+  setCsrfToken,
+  request,
+  get,
+  post,
+  put,
+  patch,
+  delete: del,
+  upload,
+  download,
+  getCached,
+  clearCache,
+  withButtonLoading,
+  createSubmitHandler,
   ApiError,
   NetworkError,
   TimeoutError,
