@@ -1,0 +1,216 @@
+{#
+  Table Component
+
+  Responsive data table with sorting, selection, and pagination.
+
+  Usage:
+    {% from 'components/data/table.html' import table, pagination %}
+    {{ table(
+      columns=[
+        {"key": "name", "label": "Name", "sortable": true},
+        {"key": "email", "label": "Email"},
+        {"key": "status", "label": "Status"}
+      ],
+      rows=clients,
+      selectable=true,
+      hover=true
+    ) }}
+
+  Parameters:
+    - columns: List of column definitions (required)
+      - key: Data key
+      - label: Column header
+      - sortable: boolean (default: false)
+      - align: left|center|right (default: left)
+      - width: Column width (optional)
+    - rows: List of data rows (required)
+    - variant: default|striped|bordered (default: default)
+    - size: sm|md|lg (default: md)
+    - hover: boolean - hoverable rows (default: false)
+    - selectable: boolean - checkbox selection (default: false)
+    - sortable: boolean - enable sorting globally (default: false)
+    - empty_message: Message when no data (default: "No data available")
+    - class_name: Additional CSS classes (optional)
+#}
+
+{% macro table(
+  columns=[],
+  rows=[],
+  variant='default',
+  size='md',
+  hover=false,
+  selectable=false,
+  sortable=false,
+  empty_message='No data available',
+  class_name=''
+) %}
+  {% set variant_class = 'table-' ~ variant if variant != 'default' else '' %}
+  {% set size_class = 'table-' ~ size if size != 'md' else '' %}
+
+  <div class="table-container {{ class_name }}">
+    <table class="table {{ variant_class }} {{ size_class }} {% if hover %}table-hover{% endif %} {% if sortable %}table-sortable{% endif %} {% if selectable %}table-selectable{% endif %}">
+      <thead>
+        <tr>
+          {% if selectable %}
+            <th class="row-checkbox">
+              <input type="checkbox" class="form-check-input" id="select-all" onchange="toggleSelectAll(this)">
+            </th>
+          {% endif %}
+          {% for col in columns %}
+            <th style="{% if col.width %}width: {{ col.width }};{% endif %} {% if col.align %}text-align: {{ col.align }};{% endif %}">
+              {% if col.sortable or sortable %}
+                <span class="th-sortable">
+                  {{ col.label }}
+                  <svg class="sort-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m7 15 5 5 5-5M7 9l5-5 5 5"/>
+                  </svg>
+                </span>
+              {% else %}
+                {{ col.label }}
+              {% endif %}
+            </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% if rows | length == 0 %}
+          <tr>
+            <td colspan="{{ columns | length + (1 if selectable else 0) }}">
+              <div class="table-empty">
+                <div class="table-empty-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M22 12h-6l-2 3h-4l-2-3H2"/>
+                    <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+                  </svg>
+                </div>
+                <p class="table-empty-title">{{ empty_message }}</p>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          {% for row in rows %}
+            <tr>
+              {% if selectable %}
+                <td class="row-checkbox">
+                  <input type="checkbox" class="form-check-input row-select" value="{{ row.id | default(loop.index) }}">
+                </td>
+              {% endif %}
+              {% for col in columns %}
+                <td style="{% if col.align %}text-align: {{ col.align }};{% endif %}">
+                  {{ row[col.key] | default('-') }}
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+{% endmacro %}
+
+
+{# Status Cell Helper #}
+{% macro status_cell(status, text=none) %}
+  {% set status_colors = {
+    'success': 'success',
+    'active': 'success',
+    'completed': 'success',
+    'filed': 'success',
+    'warning': 'warning',
+    'pending': 'warning',
+    'review': 'warning',
+    'error': 'error',
+    'failed': 'error',
+    'rejected': 'error',
+    'info': 'info',
+    'draft': 'info',
+    'neutral': 'neutral',
+    'inactive': 'neutral'
+  } %}
+
+  <span class="cell-status">
+    <span class="status-dot {{ status_colors.get(status | lower, 'neutral') }}"></span>
+    <span>{{ text | default(status | capitalize) }}</span>
+  </span>
+{% endmacro %}
+
+
+{# Avatar Cell Helper #}
+{% macro avatar_cell(name, subtitle=none, image=none) %}
+  <div class="cell-with-avatar">
+    <div class="table-avatar">
+      {% if image %}
+        <img src="{{ image }}" alt="{{ name }}">
+      {% else %}
+        {{ name[0:2] | upper }}
+      {% endif %}
+    </div>
+    <div>
+      <div style="font-weight: 500;">{{ name }}</div>
+      {% if subtitle %}
+        <div style="font-size: 12px; color: var(--color-gray-500);">{{ subtitle }}</div>
+      {% endif %}
+    </div>
+  </div>
+{% endmacro %}
+
+
+{# Row Actions #}
+{% macro row_actions(actions=[]) %}
+  <div class="row-actions-menu">
+    {% for action in actions %}
+      <button
+        type="button"
+        class="row-action-btn {% if action.variant == 'danger' %}danger{% endif %}"
+        title="{{ action.label }}"
+        {% if action.onclick %}onclick="{{ action.onclick }}"{% endif %}
+      >
+        {{ action.icon | safe }}
+      </button>
+    {% endfor %}
+  </div>
+{% endmacro %}
+
+
+{# Pagination Component #}
+{% macro pagination(
+  current_page=1,
+  total_pages=1,
+  total_items=0,
+  per_page=10,
+  class_name=''
+) %}
+  {% set start_item = ((current_page - 1) * per_page) + 1 %}
+  {% set end_item = [current_page * per_page, total_items] | min %}
+
+  <div class="table-pagination {{ class_name }}">
+    <span class="pagination-info">
+      Showing {{ start_item }} to {{ end_item }} of {{ total_items }} results
+    </span>
+    <div class="pagination-controls">
+      <button class="pagination-btn" {% if current_page == 1 %}disabled{% endif %} title="Previous">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m15 18-6-6 6-6"/>
+        </svg>
+      </button>
+
+      {% for page in range(1, total_pages + 1) %}
+        {% if page <= 3 or page > total_pages - 2 or (page >= current_page - 1 and page <= current_page + 1) %}
+          <button class="pagination-btn {% if page == current_page %}active{% endif %}">
+            {{ page }}
+          </button>
+        {% elif page == 4 and current_page > 4 %}
+          <span style="padding: 0 4px; color: var(--color-gray-400);">...</span>
+        {% elif page == total_pages - 2 and current_page < total_pages - 3 %}
+          <span style="padding: 0 4px; color: var(--color-gray-400);">...</span>
+        {% endif %}
+      {% endfor %}
+
+      <button class="pagination-btn" {% if current_page == total_pages %}disabled{% endif %} title="Next">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m9 18 6-6-6-6"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+{% endmacro %}
