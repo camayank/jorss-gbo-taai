@@ -872,13 +872,19 @@ def get_cpa_auth_context(request):
     except ImportError:
         pass
 
-    # Check headers for basic CPA identification
-    is_cpa = request.headers.get("X-Is-CPA", "").lower() == "true"
-    staff_role = request.headers.get("X-Staff-Role")
+    # SECURITY: Do NOT trust headers for authentication
+    # Headers like X-Is-CPA can be spoofed by anyone
+    # If we reach this point, the user is not authenticated through any secure mechanism
+    logger.warning(
+        f"[SECURITY] Unauthenticated CPA access attempt | "
+        f"ip={request.client.host if request.client else 'unknown'} | "
+        f"path={request.url.path}"
+    )
 
     return CPAAuthContext(
-        is_cpa=is_cpa,
-        staff_role=staff_role,
+        is_cpa=False,
+        is_authenticated=False,
+        staff_role=None,
     )
 
 

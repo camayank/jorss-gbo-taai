@@ -176,6 +176,22 @@ class NotificationService:
             )
         """)
 
+        # Notification preferences table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS notification_preferences (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cpa_email TEXT UNIQUE NOT NULL,
+                email_new_leads INTEGER DEFAULT 1,
+                email_hot_leads INTEGER DEFAULT 1,
+                email_daily_digest INTEGER DEFAULT 1,
+                email_follow_up_reminders INTEGER DEFAULT 1,
+                in_app_enabled INTEGER DEFAULT 1,
+                digest_time TEXT DEFAULT '08:00',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         conn.commit()
         conn.close()
 
@@ -706,6 +722,127 @@ Best regards,
         except Exception as e:
             logger.error(f"Failed to get pending notifications: {e}")
             return []
+
+    # =========================================================================
+    # NOTIFICATION PREFERENCES
+    # =========================================================================
+
+    def get_notification_preferences(self, cpa_email: str) -> Dict[str, Any]:
+        """
+        Get notification preferences for a CPA.
+
+        Returns default preferences if none are stored.
+        """
+        try:
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM notification_preferences
+                WHERE cpa_email = ?
+            """, (cpa_email,))
+            row = cursor.fetchone()
+            conn.close()
+
+            if row:
+                return {
+                    "email_new_leads": bool(row["email_new_leads"]),
+                    "email_hot_leads": bool(row["email_hot_leads"]),
+                    "email_daily_digest": bool(row["email_daily_digest"]),
+                    "email_follow_up_reminders": bool(row["email_follow_up_reminders"]),
+                    "in_app_enabled": bool(row["in_app_enabled"]),
+                    "digest_time": row["digest_time"],
+                }
+            else:
+                # Return defaults
+                return {
+                    "email_new_leads": True,
+                    "email_hot_leads": True,
+                    "email_daily_digest": True,
+                    "email_follow_up_reminders": True,
+                    "in_app_enabled": True,
+                    "digest_time": "08:00",
+                }
+        except Exception as e:
+            logger.error(f"Failed to get notification preferences: {e}")
+            return {
+                "email_new_leads": True,
+                "email_hot_leads": True,
+                "email_daily_digest": True,
+                "email_follow_up_reminders": True,
+                "in_app_enabled": True,
+                "digest_time": "08:00",
+            }
+
+    def update_notification_preferences(
+        self,
+        cpa_email: str,
+        preferences: Dict[str, Any]
+    ) -> bool:
+        """
+        Update notification preferences for a CPA.
+
+        Upserts preferences (creates if not exists, updates if exists).
+        """
+        try:
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+
+            # Check if exists
+            cursor.execute("""
+                SELECT 1 FROM notification_preferences
+                WHERE cpa_email = ?
+            """, (cpa_email,))
+            exists = cursor.fetchone() is not None
+
+            now = datetime.utcnow().isoformat()
+
+            if exists:
+                cursor.execute("""
+                    UPDATE notification_preferences SET
+                        email_new_leads = ?,
+                        email_hot_leads = ?,
+                        email_daily_digest = ?,
+                        email_follow_up_reminders = ?,
+                        in_app_enabled = ?,
+                        digest_time = ?,
+                        updated_at = ?
+                    WHERE cpa_email = ?
+                """, (
+                    int(preferences.get("email_new_leads", True)),
+                    int(preferences.get("email_hot_leads", True)),
+                    int(preferences.get("email_daily_digest", True)),
+                    int(preferences.get("email_follow_up_reminders", True)),
+                    int(preferences.get("in_app_enabled", True)),
+                    preferences.get("digest_time", "08:00"),
+                    now,
+                    cpa_email,
+                ))
+            else:
+                cursor.execute("""
+                    INSERT INTO notification_preferences (
+                        cpa_email, email_new_leads, email_hot_leads,
+                        email_daily_digest, email_follow_up_reminders,
+                        in_app_enabled, digest_time, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    cpa_email,
+                    int(preferences.get("email_new_leads", True)),
+                    int(preferences.get("email_hot_leads", True)),
+                    int(preferences.get("email_daily_digest", True)),
+                    int(preferences.get("email_follow_up_reminders", True)),
+                    int(preferences.get("in_app_enabled", True)),
+                    preferences.get("digest_time", "08:00"),
+                    now,
+                    now,
+                ))
+
+            conn.commit()
+            conn.close()
+            logger.info(f"Updated notification preferences for {cpa_email}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update notification preferences: {e}")
+            return False
 
     def get_notification_stats(self) -> Dict[str, Any]:
         """Get notification statistics."""

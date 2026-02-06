@@ -16,9 +16,37 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 import logging
 
-from .common import get_tenant_id
+from .common import get_tenant_id, get_cpa_auth_context
 
 logger = logging.getLogger(__name__)
+
+
+def _get_authenticated_cpa_email(request: Request) -> str:
+    """
+    Get authenticated CPA email from request.
+
+    SECURITY: Does NOT trust headers - uses proper authentication.
+    Raises HTTPException if not authenticated.
+    """
+    auth = get_cpa_auth_context(request)
+
+    if not auth.is_authenticated:
+        logger.warning(
+            f"[SECURITY] Unauthenticated notification access attempt | "
+            f"ip={request.client.host if request.client else 'unknown'}"
+        )
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required to access notifications"
+        )
+
+    if not auth.email:
+        raise HTTPException(
+            status_code=401,
+            detail="CPA email not found in authentication context"
+        )
+
+    return auth.email
 
 notification_router = APIRouter(tags=["CPA Notifications"])
 
@@ -62,7 +90,7 @@ async def list_notifications(
         from cpa_panel.services.notification_service import get_notification_service
         service = get_notification_service()
 
-        cpa_email = request.headers.get("X-CPA-Email") or "demo@example.com"
+        cpa_email = _get_authenticated_cpa_email(request)
 
         # Get notifications from database
         conn = service._get_db_connection()
@@ -169,7 +197,7 @@ async def mark_all_notifications_read(request: Request):
         from cpa_panel.services.notification_service import get_notification_service
         service = get_notification_service()
 
-        cpa_email = request.headers.get("X-CPA-Email") or "demo@example.com"
+        cpa_email = _get_authenticated_cpa_email(request)
 
         conn = service._get_db_connection()
         cursor = conn.cursor()
@@ -200,49 +228,64 @@ async def mark_all_notifications_read(request: Request):
 async def get_notification_preferences(request: Request):
     """
     Get notification preferences for the current CPA.
+
+    Returns stored preferences from database, or defaults if none set.
     """
     try:
-        # In production, fetch from database
-        # For now, return defaults
-        cpa_email = request.headers.get("X-CPA-Email") or "demo@example.com"
+        from cpa_panel.services.notification_service import get_notification_service
 
-        # FREEZE & FINISH: Database storage deferred to Phase 2
-        # Preferences managed client-side (localStorage) for now
-        preferences = NotificationPreferences()
+        cpa_email = _get_authenticated_cpa_email(request)
+        service = get_notification_service()
+
+        # Fetch from database
+        stored_preferences = service.get_notification_preferences(cpa_email)
 
         return JSONResponse({
-            "preferences": preferences.model_dump(),
+            "preferences": stored_preferences,
             "cpa_email": cpa_email,
-            "storage_note": "Preferences are stored locally in your browser. Database sync coming soon."
         })
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to get notification preferences: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to retrieve notification preferences")
 
 
 @notification_router.put("/notifications/preferences")
 async def update_notification_preferences(request: Request, preferences: NotificationPreferences):
     """
     Update notification preferences for the current CPA.
+
+    Persists preferences to database.
     """
     try:
-        cpa_email = request.headers.get("X-CPA-Email") or "demo@example.com"
+        from cpa_panel.services.notification_service import get_notification_service
 
-        # FREEZE & FINISH: Database storage deferred to Phase 2
-        # Preferences acknowledged but stored client-side for now
-        logger.info(f"Updated notification preferences for {cpa_email}: {preferences.model_dump()}")
+        cpa_email = _get_authenticated_cpa_email(request)
+        service = get_notification_service()
+
+        # Persist to database
+        success = service.update_notification_preferences(
+            cpa_email=cpa_email,
+            preferences=preferences.model_dump()
+        )
+
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to save preferences")
+
+        logger.info(f"Updated notification preferences for {cpa_email}")
 
         return JSONResponse({
             "success": True,
             "preferences": preferences.model_dump(),
-            "storage_note": "Preferences saved locally. Database sync coming soon.",
-            "recommendation": "Store these preferences in your browser's localStorage for persistence."
         })
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to update notification preferences: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to update notification preferences")
 
 
 # =============================================================================
@@ -263,7 +306,7 @@ async def get_follow_up_reminders(
         from cpa_panel.services.notification_service import get_notification_service
         service = get_notification_service()
 
-        cpa_email = request.headers.get("X-CPA-Email") or "demo@example.com"
+        cpa_email = _get_authenticated_cpa_email(request)
 
         conn = service._get_db_connection()
         cursor = conn.cursor()
@@ -400,7 +443,7 @@ async def get_notification_stats(request: Request):
 
         stats = service.get_notification_stats()
 
-        cpa_email = request.headers.get("X-CPA-Email") or "demo@example.com"
+        cpa_email = _get_authenticated_cpa_email(request)
 
         # Get CPA-specific unread count
         conn = service._get_db_connection()

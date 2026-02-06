@@ -17,8 +17,22 @@ from datetime import datetime
 import logging
 import psutil
 
+from rbac import require_platform_admin, AuthContext
+
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+
+
+# =============================================================================
+# AUTHORIZATION - All admin endpoints require platform admin role
+# =============================================================================
+
+async def get_admin_context(ctx: AuthContext = Depends(require_platform_admin)) -> AuthContext:
+    """
+    Dependency that ensures platform admin access.
+    All admin endpoints must use this dependency.
+    """
+    return ctx
 
 
 # =============================================================================
@@ -61,7 +75,7 @@ class CacheStats(BaseModel):
 # =============================================================================
 
 @router.get("/status", response_model=SystemStatus)
-async def get_system_status():
+async def get_system_status(admin: AuthContext = Depends(get_admin_context)):
     """
     Get overall system status.
 
@@ -113,7 +127,7 @@ async def get_system_status():
 
 
 @router.get("/circuit-breakers")
-async def get_circuit_breakers():
+async def get_circuit_breakers(admin: AuthContext = Depends(get_admin_context)):
     """
     Get status of all circuit breakers.
 
@@ -137,7 +151,7 @@ async def get_circuit_breakers():
 
 
 @router.post("/circuit-breakers/{name}/reset")
-async def reset_circuit_breaker(name: str):
+async def reset_circuit_breaker(name: str, admin: AuthContext = Depends(get_admin_context)):
     """
     Reset a specific circuit breaker.
 
@@ -161,7 +175,7 @@ async def reset_circuit_breaker(name: str):
 
 
 @router.post("/circuit-breakers/reset-all")
-async def reset_all_circuit_breakers():
+async def reset_all_circuit_breakers(admin: AuthContext = Depends(get_admin_context)):
     """
     Reset all circuit breakers.
 
@@ -185,7 +199,7 @@ async def reset_all_circuit_breakers():
 
 
 @router.get("/sessions", response_model=SessionInfo)
-async def get_session_info():
+async def get_session_info(admin: AuthContext = Depends(get_admin_context)):
     """
     Get AI chat session information.
 
@@ -223,7 +237,7 @@ async def get_session_info():
 
 
 @router.post("/sessions/cleanup")
-async def cleanup_sessions():
+async def cleanup_sessions(admin: AuthContext = Depends(get_admin_context)):
     """
     Trigger session cleanup.
 
@@ -251,7 +265,7 @@ async def cleanup_sessions():
 
 
 @router.get("/metrics/system")
-async def get_system_metrics():
+async def get_system_metrics(admin: AuthContext = Depends(get_admin_context)):
     """
     Get detailed system metrics.
 
@@ -303,7 +317,7 @@ async def get_system_metrics():
 
 
 @router.get("/metrics/performance")
-async def get_performance_metrics():
+async def get_performance_metrics(admin: AuthContext = Depends(get_admin_context)):
     """
     Get performance metrics.
 
@@ -332,7 +346,7 @@ async def get_performance_metrics():
 
 
 @router.post("/cache/clear")
-async def clear_cache():
+async def clear_cache(admin: AuthContext = Depends(get_admin_context)):
     """
     Clear application caches.
 
@@ -352,7 +366,7 @@ async def clear_cache():
 
 
 @router.get("/logs/recent")
-async def get_recent_logs(level: str = "ERROR", limit: int = 100):
+async def get_recent_logs(level: str = "ERROR", limit: int = 100, admin: AuthContext = Depends(get_admin_context)):
     """
     Get recent log entries.
 
@@ -369,7 +383,7 @@ async def get_recent_logs(level: str = "ERROR", limit: int = 100):
 
 
 @router.get("/config")
-async def get_configuration():
+async def get_configuration(admin: AuthContext = Depends(get_admin_context)):
     """
     Get current configuration (non-sensitive).
 
@@ -398,7 +412,7 @@ async def get_configuration():
 
 
 @router.post("/restart-required")
-async def mark_restart_required():
+async def mark_restart_required(admin: AuthContext = Depends(get_admin_context)):
     """
     Mark that system needs restart.
 

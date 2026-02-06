@@ -55,6 +55,35 @@ templates = Jinja2Templates(directory=templates_dir)
 # Allowed roles for CPA dashboard
 CPA_ALLOWED_ROLES = ["cpa", "admin", "preparer", "partner", "staff"]
 
+# Demo mode configuration - MUST be explicitly enabled AND in non-production environment
+_DEV_ENVIRONMENTS = frozenset({"development", "dev", "local", "test", "testing"})
+
+
+def _is_demo_mode_allowed() -> bool:
+    """
+    Check if demo mode is allowed.
+
+    Demo mode requires BOTH:
+    1. ENABLE_DEMO_MODE=true environment variable
+    2. APP_ENVIRONMENT is a development environment (not production)
+
+    This fail-closed design prevents accidental demo mode exposure in production.
+    """
+    demo_enabled = os.environ.get("ENABLE_DEMO_MODE", "").lower() == "true"
+    app_env = os.environ.get("APP_ENVIRONMENT", "").lower().strip()
+
+    # Only allow demo mode in explicitly allowlisted development environments
+    is_dev_env = app_env in _DEV_ENVIRONMENTS
+
+    if demo_enabled and not is_dev_env:
+        logger.warning(
+            f"[SECURITY] Demo mode requested but blocked - "
+            f"APP_ENVIRONMENT='{app_env}' is not a development environment"
+        )
+        return False
+
+    return demo_enabled and is_dev_env
+
 
 async def require_cpa_auth(request: Request) -> dict:
     """
@@ -67,12 +96,13 @@ async def require_cpa_auth(request: Request) -> dict:
     # Get user from request
     user = get_user_from_request(request) if AUTH_AVAILABLE else None
 
-    # Check for demo mode (allows testing without full auth)
-    demo_mode = request.query_params.get("demo") == "true"
+    # Check for demo mode - ONLY if explicitly enabled AND in dev environment
+    demo_requested = request.query_params.get("demo") == "true"
     cpa_cookie = request.cookies.get("cpa_id")
 
-    if demo_mode or cpa_cookie:
-        # Allow demo access with mock user
+    if demo_requested and _is_demo_mode_allowed():
+        # Allow demo access with mock user (only in dev environments)
+        logger.info("[DEMO] Demo mode access granted for CPA dashboard")
         return {
             "id": cpa_cookie or "demo-cpa",
             "role": "cpa",
@@ -80,10 +110,17 @@ async def require_cpa_auth(request: Request) -> dict:
             "email": "demo@example.com",
             "name": "Demo CPA"
         }
+    elif demo_requested:
+        # Demo was requested but not allowed - log security event
+        logger.warning(
+            f"[SECURITY] Demo mode access denied - not enabled or not in dev environment | "
+            f"ip={request.client.host if request.client else 'unknown'}"
+        )
 
     if not user:
         # Not authenticated - redirect to login
         logger.warning(f"Unauthenticated access to CPA dashboard: {request.url.path}")
+
         # For API requests, return 401
         if request.headers.get("accept", "").startswith("application/json"):
             raise HTTPException(
@@ -94,15 +131,27 @@ async def require_cpa_auth(request: Request) -> dict:
                     "redirect": "/login?next=/cpa/dashboard"
                 }
             )
-        # For browser requests, return demo user to allow testing without login
-        # In production, this would redirect to login page
-        return {
-            "id": "demo-cpa",
-            "role": "cpa",
-            "tenant_id": "default",
-            "email": "demo@example.com",
-            "name": "Demo CPA (Login Required)"
-        }
+
+        # For browser requests - only allow demo user if demo mode is explicitly enabled
+        if _is_demo_mode_allowed():
+            logger.info("[DEMO] Demo fallback user granted for unauthenticated browser request")
+            return {
+                "id": "demo-cpa",
+                "role": "cpa",
+                "tenant_id": "default",
+                "email": "demo@example.com",
+                "name": "Demo CPA (Login Required)"
+            }
+
+        # In production, redirect to login page
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error": "AuthenticationRequired",
+                "message": "Please log in to access the CPA dashboard",
+                "redirect": "/login?next=/cpa/dashboard"
+            }
+        )
 
     # Check role
     user_role = user.get("role", "").lower()

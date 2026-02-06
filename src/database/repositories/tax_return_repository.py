@@ -49,7 +49,7 @@ class TaxReturnRepository(ITaxReturnRepository):
             Tax return data dict or None if not found.
         """
         query = """
-            SELECT return_id, session_id, taxpayer_name, tax_year, filing_status,
+            SELECT return_id, session_id, taxpayer_ssn_hash, taxpayer_name, tax_year, filing_status,
                    state_code, gross_income, adjusted_gross_income, taxable_income,
                    federal_tax_liability, state_tax_liability, combined_tax_liability,
                    federal_refund_or_owed, state_refund_or_owed, combined_refund_or_owed,
@@ -243,7 +243,7 @@ class TaxReturnRepository(ITaxReturnRepository):
 
         # Client ID in this context is the SSN hash
         query = text("""
-            SELECT return_id, session_id, taxpayer_name, tax_year, filing_status,
+            SELECT return_id, session_id, taxpayer_ssn_hash, taxpayer_name, tax_year, filing_status,
                    state_code, gross_income, adjusted_gross_income, taxable_income,
                    federal_tax_liability, state_tax_liability, combined_tax_liability,
                    federal_refund_or_owed, state_refund_or_owed, combined_refund_or_owed,
@@ -256,13 +256,13 @@ class TaxReturnRepository(ITaxReturnRepository):
         return [self._row_to_dict(row) for row in result.fetchall()]
 
     async def get_by_year(
-        self, client_id: UUID, tax_year: int
+        self, client_id: str, tax_year: int
     ) -> Optional[Dict[str, Any]]:
-        """Get a tax return for a specific year."""
+        """Get a tax return for a specific year by SSN hash."""
         from sqlalchemy import text
 
         query = text("""
-            SELECT return_id, session_id, taxpayer_name, tax_year, filing_status,
+            SELECT return_id, session_id, taxpayer_ssn_hash, taxpayer_name, tax_year, filing_status,
                    state_code, gross_income, adjusted_gross_income, taxable_income,
                    federal_tax_liability, state_tax_liability, combined_tax_liability,
                    federal_refund_or_owed, state_refund_or_owed, combined_refund_or_owed,
@@ -279,22 +279,67 @@ class TaxReturnRepository(ITaxReturnRepository):
         return self._row_to_dict(row) if row else None
 
     async def get_prior_year(self, return_id: UUID) -> Optional[Dict[str, Any]]:
-        """Get the prior year tax return."""
+        """
+        Get the prior year tax return for the same taxpayer.
+
+        Args:
+            return_id: Current return ID
+
+        Returns:
+            Prior year tax return data or None if not found
+        """
         from sqlalchemy import text
 
         # First get the current return to find the taxpayer and year
         current = await self.get(return_id)
         if not current:
+            logger.debug(f"get_prior_year: Current return not found: {return_id}")
             return None
 
         tax_year = current.get("tax_year", 2025)
         prior_year = tax_year - 1
 
-        # Look up by session_id pattern or taxpayer_ssn_hash
+        # Try to look up by taxpayer_ssn_hash first (most reliable)
         ssn_hash = current.get("taxpayer_ssn_hash")
         if ssn_hash:
-            return await self.get_by_year(UUID(ssn_hash), prior_year)
+            prior_return = await self.get_by_year(ssn_hash, prior_year)
+            if prior_return:
+                logger.debug(f"get_prior_year: Found prior year return by SSN hash for year {prior_year}")
+                return prior_return
 
+        # Fallback: Try to look up by session_id pattern
+        # Some systems use session_id patterns like "user-123-2024" -> "user-123-2023"
+        session_id = current.get("session_id", "")
+        if session_id and str(tax_year) in session_id:
+            prior_session_id = session_id.replace(str(tax_year), str(prior_year))
+            prior_return = await self.get_by_session(prior_session_id)
+            if prior_return:
+                logger.debug(f"get_prior_year: Found prior year return by session pattern")
+                return prior_return
+
+        # Fallback: Try to find any return for the prior year with matching taxpayer name
+        taxpayer_name = current.get("taxpayer_name", "")
+        if taxpayer_name and taxpayer_name != "Unknown":
+            query = text("""
+                SELECT return_id, session_id, taxpayer_ssn_hash, taxpayer_name, tax_year, filing_status,
+                       state_code, gross_income, adjusted_gross_income, taxable_income,
+                       federal_tax_liability, state_tax_liability, combined_tax_liability,
+                       federal_refund_or_owed, state_refund_or_owed, combined_refund_or_owed,
+                       status, return_data, created_at, updated_at
+                FROM tax_returns
+                WHERE taxpayer_name = :taxpayer_name AND tax_year = :prior_year
+                LIMIT 1
+            """)
+            result = await self._session.execute(
+                query,
+                {"taxpayer_name": taxpayer_name, "prior_year": prior_year}
+            )
+            row = result.fetchone()
+            if row:
+                logger.debug(f"get_prior_year: Found prior year return by taxpayer name")
+                return self._row_to_dict(row)
+
+        logger.debug(f"get_prior_year: No prior year return found for {return_id}")
         return None
 
     async def list_returns(
@@ -321,7 +366,7 @@ class TaxReturnRepository(ITaxReturnRepository):
         where_clause = " AND ".join(conditions) if conditions else "1=1"
 
         query = text(f"""
-            SELECT return_id, session_id, taxpayer_name, tax_year, filing_status,
+            SELECT return_id, session_id, taxpayer_ssn_hash, taxpayer_name, tax_year, filing_status,
                    state_code, gross_income, adjusted_gross_income, taxable_income,
                    federal_tax_liability, state_tax_liability, combined_tax_liability,
                    federal_refund_or_owed, state_refund_or_owed, combined_refund_or_owed,
@@ -357,7 +402,7 @@ class TaxReturnRepository(ITaxReturnRepository):
         from sqlalchemy import text
 
         query = text("""
-            SELECT return_id, session_id, taxpayer_name, tax_year, filing_status,
+            SELECT return_id, session_id, taxpayer_ssn_hash, taxpayer_name, tax_year, filing_status,
                    state_code, gross_income, adjusted_gross_income, taxable_income,
                    federal_tax_liability, state_tax_liability, combined_tax_liability,
                    federal_refund_or_owed, state_refund_or_owed, combined_refund_or_owed,
@@ -372,34 +417,46 @@ class TaxReturnRepository(ITaxReturnRepository):
         return self._row_to_dict(row) if row else None
 
     def _row_to_dict(self, row) -> Dict[str, Any]:
-        """Convert a database row to a tax return dict."""
+        """
+        Convert a database row to a tax return dict.
+
+        Expected column order (0-indexed):
+        0: return_id, 1: session_id, 2: taxpayer_ssn_hash, 3: taxpayer_name,
+        4: tax_year, 5: filing_status, 6: state_code, 7: gross_income,
+        8: adjusted_gross_income, 9: taxable_income, 10: federal_tax_liability,
+        11: state_tax_liability, 12: combined_tax_liability, 13: federal_refund_or_owed,
+        14: state_refund_or_owed, 15: combined_refund_or_owed, 16: status,
+        17: return_data, 18: created_at, 19: updated_at
+        """
         if row is None:
             return None
 
-        # Parse the JSON return_data
-        return_data = json.loads(row[16]) if row[16] else {}
+        # Parse the JSON return_data (column 17)
+        return_data = json.loads(row[17]) if row[17] else {}
 
         # Add metadata
         return_data["return_id"] = row[0]
         return_data["session_id"] = row[1]
-        return_data["taxpayer_name"] = row[2]
-        return_data["tax_year"] = row[3]
-        return_data["taxpayer_ssn_hash"] = row[1]  # Using session_id position
-        return_data["status"] = row[15]
-        return_data["created_at"] = row[17]
-        return_data["updated_at"] = row[18]
+        return_data["taxpayer_ssn_hash"] = row[2]
+        return_data["taxpayer_name"] = row[3]
+        return_data["tax_year"] = row[4]
+        return_data["filing_status"] = row[5]
+        return_data["state_code"] = row[6]
+        return_data["status"] = row[16]
+        return_data["created_at"] = row[18]
+        return_data["updated_at"] = row[19]
 
         # Add summary values
         return_data["summary"] = {
-            "gross_income": row[6],
-            "adjusted_gross_income": row[7],
-            "taxable_income": row[8],
-            "federal_tax_liability": row[9],
-            "state_tax_liability": row[10],
-            "combined_tax_liability": row[11],
-            "federal_refund_or_owed": row[12],
-            "state_refund_or_owed": row[13],
-            "combined_refund_or_owed": row[14],
+            "gross_income": row[7],
+            "adjusted_gross_income": row[8],
+            "taxable_income": row[9],
+            "federal_tax_liability": row[10],
+            "state_tax_liability": row[11],
+            "combined_tax_liability": row[12],
+            "federal_refund_or_owed": row[13],
+            "state_refund_or_owed": row[14],
+            "combined_refund_or_owed": row[15],
         }
 
         return return_data
