@@ -293,9 +293,15 @@ class OpenAIAdapter(BaseProviderAdapter):
             # Try to extract JSON from response
             content = response.content
             if "```json" in content:
-                content = content.split("```json")[1].split("```")[0]
+                parts = content.split("```json")
+                if len(parts) > 1:
+                    inner_parts = parts[1].split("```")
+                    content = inner_parts[0] if inner_parts else parts[1]
             elif "```" in content:
-                content = content.split("```")[1].split("```")[0]
+                parts = content.split("```")
+                if len(parts) > 1:
+                    inner_parts = parts[1].split("```")
+                    content = inner_parts[0] if inner_parts else parts[1]
             return json.loads(content.strip())
 
 
@@ -400,9 +406,11 @@ class AnthropicAdapter(BaseProviderAdapter):
         import json
         content = response.content.strip()
         if content.startswith("```"):
-            content = content.split("```")[1]
-            if content.startswith("json"):
-                content = content[4:]
+            parts = content.split("```")
+            if len(parts) > 1:
+                content = parts[1]
+                if content.startswith("json"):
+                    content = content[4:]
         return json.loads(content.strip())
 
 
@@ -654,9 +662,11 @@ class GeminiAdapter(BaseProviderAdapter):
         import json
         content = response.content.strip()
         if content.startswith("```"):
-            content = content.split("```")[1]
-            if content.startswith("json"):
-                content = content[4:]
+            parts = content.split("```")
+            if len(parts) > 1:
+                content = parts[1]
+                if content.startswith("json"):
+                    content = content[4:]
         return json.loads(content.strip())
 
 

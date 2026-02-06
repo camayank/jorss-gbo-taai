@@ -823,7 +823,7 @@ Life Events This Year:
                 temperature=0.3
             )
 
-            if response.choices[0].message.function_call:
+            if response.choices and response.choices[0].message.function_call:
                 result = json.loads(response.choices[0].message.function_call.arguments)
 
                 for opp_data in result.get("opportunities", []):

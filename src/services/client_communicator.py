@@ -83,7 +83,7 @@ class ClientInfo:
         return {
             "name": self.name,
             "email": self.email,
-            "preferred_name": self.preferred_name or self.name.split()[0],
+            "preferred_name": self.preferred_name or (self.name.split()[0] if self.name and self.name.strip() else "Client"),
             "company_name": self.company_name,
             "tone_preference": self.tone_preference.value,
             "sophistication": self.sophistication.value,
@@ -270,7 +270,7 @@ CONTEXT:
 REQUIREMENTS:
 1. Use {client.tone_preference.value} tone
 2. Adjust technical language for {client.sophistication.value} level
-3. Address client as "{client.preferred_name or client.name.split()[0]}"
+3. Address client as "{client.preferred_name or (client.name.split()[0] if client.name and client.name.strip() else 'Client')}"
 4. Include clear call-to-action
 5. Be concise but complete
 6. {'Include professional signature block' if include_signature else 'No signature needed'}
