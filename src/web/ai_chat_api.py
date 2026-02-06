@@ -811,6 +811,33 @@ async def process_chat_message(request: ChatMessageRequest, http_request: FastAP
                     "content": msg.content
                 })
 
+        # CRITICAL FIX: Include full extracted document data in agent context
+        # This ensures the chatbot knows about W-2, 1099, etc. data already provided
+        extracted_data = get_session_attr(unified_session, "extracted_data", {})
+        if extracted_data:
+            # Build comprehensive context message with all extracted fields
+            data_summary_parts = []
+            for key, value in extracted_data.items():
+                if value is not None and value != "":
+                    # Format currency values
+                    if isinstance(value, (int, float)) and any(kw in key.lower() for kw in ['wage', 'income', 'tax', 'withheld', 'payment']):
+                        data_summary_parts.append(f"- {key}: ${value:,.2f}")
+                    else:
+                        data_summary_parts.append(f"- {key}: {value}")
+
+            if data_summary_parts:
+                context_message = (
+                    "IMPORTANT CONTEXT - User has already provided the following tax information via document uploads. "
+                    "DO NOT ask about data that has already been extracted:\n\n"
+                    + "\n".join(data_summary_parts) +
+                    "\n\nUse this information when answering questions and avoid asking for data already provided."
+                )
+                agent.messages.append({
+                    "role": "system",
+                    "content": context_message
+                })
+                logger.debug(f"[{request_id}] Added extracted data context to agent ({len(extracted_data)} fields)")
+
         # Add user message to session
         if isinstance(unified_session, dict):
             unified_session.setdefault("conversation_history", []).append({
@@ -1446,31 +1473,64 @@ async def analyze_document(
         except ImportError:
             logger.error(f"[{request_id}] OCR service not available")
             return AnalyzeDocumentResponse(
-                ai_response="Document processing is temporarily unavailable. Please enter your information manually.",
+                ai_response=(
+                    "Document processing is temporarily unavailable. No worries - you can enter your information manually!\n\n"
+                    "**To enter W-2 information, I'll need:**\n"
+                    "- Employer name\n"
+                    "- Box 1: Wages (total compensation)\n"
+                    "- Box 2: Federal tax withheld\n\n"
+                    "Just tell me the values, like: \"My W-2 from Acme Corp shows $75,000 wages and $12,000 withheld.\""
+                ),
                 quick_actions=[
-                    QuickAction(label="Enter W-2 info", value="income_wages"),
-                    QuickAction(label="Enter 1099 info", value="income_1099")
+                    QuickAction(label="Enter W-2 info", value="manual_w2"),
+                    QuickAction(label="Enter 1099 info", value="manual_1099"),
+                    QuickAction(label="Enter other income", value="manual_other")
                 ],
                 extracted_data={},
                 completion_percentage=0,
-                extracted_summary={}
+                extracted_summary={"manual_entry_required": True}
             )
 
         except Exception as ocr_error:
             logger.error(f"[{request_id}] OCR failed: {str(ocr_error)}", exc_info=True)
             return AnalyzeDocumentResponse(
-                ai_response="I had trouble reading that document. The image might be blurry or the format unclear. Could you try a clearer photo or enter the information manually?",
+                ai_response=(
+                    "I had trouble reading that document. Here are some options:\n\n"
+                    "**Try uploading again:**\n"
+                    "- Use better lighting\n"
+                    "- Make sure all text is visible\n"
+                    "- Try the original PDF if available\n\n"
+                    "**Or enter manually:**\n"
+                    "Just tell me the key details from your document. For example:\n"
+                    "- \"My W-2 shows $50,000 wages from ABC Company\"\n"
+                    "- \"I have $500 in interest income from Chase Bank\""
+                ),
                 quick_actions=[
-                    QuickAction(label="Try another photo", value="upload_retry"),
-                    QuickAction(label="Enter manually", value="type_manual")
+                    QuickAction(label="Try clearer photo", value="upload_retry"),
+                    QuickAction(label="Upload PDF instead", value="upload_pdf"),
+                    QuickAction(label="Enter manually", value="manual_entry"),
+                    QuickAction(label="Skip for now", value="skip_document")
                 ],
                 extracted_data={},
                 completion_percentage=0,
-                extracted_summary={}
+                extracted_summary={"ocr_failed": True, "manual_entry_available": True}
             )
 
         # Generate AI response based on document type
         ai_response = _generate_analyze_response(document_type, extracted_data, ocr_confidence)
+
+        # LOW-CONFIDENCE OCR ALERT: Warn user if extraction quality is poor
+        LOW_CONFIDENCE_THRESHOLD = 0.75
+        confidence_warning = None
+        if ocr_confidence < LOW_CONFIDENCE_THRESHOLD:
+            confidence_pct = int(ocr_confidence * 100)
+            confidence_warning = (
+                f"\n\n**Note:** The document scan quality is lower than ideal ({confidence_pct}% confidence). "
+                "Please review the extracted information carefully and correct any errors. "
+                "If possible, try uploading a clearer image or the original PDF."
+            )
+            ai_response += confidence_warning
+            logger.warning(f"[{request_id}] Low OCR confidence: {confidence_pct}%")
 
         # Calculate completion percentage based on extracted data
         completion_percentage = _calculate_completion_percentage(extracted_data)
@@ -1478,8 +1538,19 @@ async def analyze_document(
         # Generate summary for stats display
         extracted_summary = _generate_extracted_summary(document_type, extracted_data)
 
+        # Add confidence info to summary
+        extracted_summary["ocr_confidence"] = ocr_confidence
+        extracted_summary["low_confidence_warning"] = confidence_warning is not None
+
         # Generate quick actions based on what was extracted
         quick_actions = _generate_post_upload_actions(document_type, extracted_data)
+
+        # Add manual review action if confidence is low
+        if ocr_confidence < LOW_CONFIDENCE_THRESHOLD:
+            quick_actions.insert(0, QuickAction(
+                label="Review & correct data",
+                value="review_extracted_data"
+            ))
 
         # Update session with extracted data
         try:
