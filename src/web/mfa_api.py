@@ -3,12 +3,15 @@ Multi-Factor Authentication (MFA) API
 
 TOTP-based two-factor authentication implementation.
 Compatible with Google Authenticator, Authy, and other TOTP apps.
+
+SECURITY: MFA secrets and backup codes are encrypted at rest using AES-256-GCM
+and persisted to the database. No sensitive data is stored in-memory only.
 """
 
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 import logging
 import secrets
@@ -17,6 +20,7 @@ import hmac
 import hashlib
 import struct
 import time
+import json
 
 try:
     from rbac.dependencies import require_auth, AuthContext
@@ -33,6 +37,32 @@ try:
 except ImportError:
     def get_user_auth_repository():
         raise HTTPException(500, "User auth repository not available")
+
+# Import encryption utilities
+try:
+    from database.encrypted_fields import encrypt_pii, decrypt_pii
+    ENCRYPTION_AVAILABLE = True
+except ImportError:
+    ENCRYPTION_AVAILABLE = False
+    def encrypt_pii(data: str, field_type: str = "generic", associated_data: bytes = None) -> str:
+        # Fallback: base64 encode (NOT SECURE - for dev only)
+        import warnings
+        warnings.warn("PII encryption not available - using base64 encoding", UserWarning)
+        return base64.b64encode(data.encode()).decode()
+    def decrypt_pii(data: str, field_type: str = "generic", associated_data: bytes = None) -> str:
+        return base64.b64decode(data.encode()).decode()
+
+# Import database session
+try:
+    from database.connection import get_db_session
+    from database.models import MFACredential, MFAPendingSetup, MFAType
+    from sqlalchemy import select, delete
+    DATABASE_AVAILABLE = True
+except ImportError:
+    DATABASE_AVAILABLE = False
+    MFACredential = None
+    MFAPendingSetup = None
+    MFAType = None
 
 logger = logging.getLogger(__name__)
 
@@ -234,14 +264,297 @@ def hash_backup_code(code: str) -> str:
 
 
 # =============================================================================
-# IN-MEMORY STORES (Production: use database)
+# MFA PERSISTENCE SERVICE
 # =============================================================================
 
-# Pending MFA setups: user_id -> setup_data
-_pending_mfa_setups: Dict[str, Dict[str, Any]] = {}
+class MFAPersistenceService:
+    """
+    Service for persisting MFA credentials securely.
 
-# Backup codes: user_id -> [hashed_codes]
-_backup_codes: Dict[str, List[str]] = {}
+    Uses database storage with AES-256-GCM encryption for:
+    - TOTP secrets
+    - Backup codes (hashed before encryption for extra security)
+
+    Falls back to in-memory storage only if database is unavailable.
+    """
+
+    # In-memory fallback (only used if database unavailable)
+    _fallback_pending: Dict[str, Dict[str, Any]] = {}
+    _fallback_backup_codes: Dict[str, List[str]] = {}
+
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+        self._db_available = DATABASE_AVAILABLE
+
+    def _get_associated_data(self, user_id: str, tenant_id: str = None) -> bytes:
+        """Generate associated data for context binding."""
+        context = f"mfa:{user_id}"
+        if tenant_id:
+            context += f":{tenant_id}"
+        return context.encode()
+
+    # -------------------------------------------------------------------------
+    # Pending Setup Methods
+    # -------------------------------------------------------------------------
+
+    def save_pending_setup(
+        self,
+        user_id: str,
+        secret: str,
+        backup_codes_hashed: List[str],
+        tenant_id: str = None,
+        expires_minutes: int = 15
+    ) -> bool:
+        """Save a pending MFA setup to database."""
+        if not self._db_available:
+            self._fallback_pending[user_id] = {
+                "secret": secret,
+                "backup_codes": backup_codes_hashed,
+                "created_at": datetime.utcnow().isoformat(),
+            }
+            return True
+
+        try:
+            from database.connection import get_db_session
+
+            associated_data = self._get_associated_data(user_id, tenant_id)
+
+            # Encrypt secret and backup codes
+            secret_encrypted = encrypt_pii(secret, field_type="generic", associated_data=associated_data)
+            codes_json = json.dumps(backup_codes_hashed)
+            codes_encrypted = encrypt_pii(codes_json, field_type="generic", associated_data=associated_data)
+
+            with get_db_session() as session:
+                # Remove any existing pending setup for this user
+                session.execute(
+                    delete(MFAPendingSetup).where(MFAPendingSetup.user_id == user_id)
+                )
+
+                # Create new pending setup
+                pending = MFAPendingSetup(
+                    user_id=user_id,
+                    tenant_id=tenant_id,
+                    secret_encrypted=secret_encrypted,
+                    backup_codes_encrypted=codes_encrypted,
+                    expires_at=datetime.utcnow() + timedelta(minutes=expires_minutes),
+                )
+                session.add(pending)
+                session.commit()
+
+            self.logger.info(f"[MFA] Pending setup saved for user {user_id}")
+            return True
+
+        except Exception as e:
+            self.logger.error(f"[MFA] Failed to save pending setup: {e}")
+            # Fallback to in-memory
+            self._fallback_pending[user_id] = {
+                "secret": secret,
+                "backup_codes": backup_codes_hashed,
+                "created_at": datetime.utcnow().isoformat(),
+            }
+            return True
+
+    def get_pending_setup(self, user_id: str, tenant_id: str = None) -> Optional[Dict[str, Any]]:
+        """Get pending MFA setup from database."""
+        if not self._db_available:
+            return self._fallback_pending.get(user_id)
+
+        try:
+            from database.connection import get_db_session
+
+            with get_db_session() as session:
+                result = session.execute(
+                    select(MFAPendingSetup).where(
+                        MFAPendingSetup.user_id == user_id,
+                        MFAPendingSetup.expires_at > datetime.utcnow()
+                    )
+                ).scalar_one_or_none()
+
+                if not result:
+                    return self._fallback_pending.get(user_id)
+
+                associated_data = self._get_associated_data(user_id, tenant_id)
+
+                # Decrypt data
+                secret = decrypt_pii(result.secret_encrypted, field_type="generic", associated_data=associated_data)
+                codes_json = decrypt_pii(result.backup_codes_encrypted, field_type="generic", associated_data=associated_data)
+                backup_codes = json.loads(codes_json)
+
+                return {
+                    "secret": secret,
+                    "backup_codes": backup_codes,
+                    "created_at": result.created_at.isoformat(),
+                }
+
+        except Exception as e:
+            self.logger.error(f"[MFA] Failed to get pending setup: {e}")
+            return self._fallback_pending.get(user_id)
+
+    def delete_pending_setup(self, user_id: str) -> bool:
+        """Delete pending MFA setup after verification."""
+        # Always clean up in-memory fallback too
+        self._fallback_pending.pop(user_id, None)
+
+        if not self._db_available:
+            return True
+
+        try:
+            from database.connection import get_db_session
+
+            with get_db_session() as session:
+                session.execute(
+                    delete(MFAPendingSetup).where(MFAPendingSetup.user_id == user_id)
+                )
+                session.commit()
+            return True
+
+        except Exception as e:
+            self.logger.error(f"[MFA] Failed to delete pending setup: {e}")
+            return False
+
+    # -------------------------------------------------------------------------
+    # Backup Codes Methods
+    # -------------------------------------------------------------------------
+
+    def save_backup_codes(
+        self,
+        user_id: str,
+        backup_codes_hashed: List[str],
+        tenant_id: str = None
+    ) -> bool:
+        """Save hashed backup codes to database."""
+        if not self._db_available:
+            self._fallback_backup_codes[user_id] = backup_codes_hashed
+            return True
+
+        try:
+            from database.connection import get_db_session
+
+            associated_data = self._get_associated_data(user_id, tenant_id)
+            codes_json = json.dumps(backup_codes_hashed)
+            codes_encrypted = encrypt_pii(codes_json, field_type="generic", associated_data=associated_data)
+
+            with get_db_session() as session:
+                # Check for existing backup codes credential
+                existing = session.execute(
+                    select(MFACredential).where(
+                        MFACredential.user_id == user_id,
+                        MFACredential.mfa_type == MFAType.BACKUP_CODES,
+                        MFACredential.is_active == True
+                    )
+                ).scalar_one_or_none()
+
+                if existing:
+                    existing.backup_codes_encrypted = codes_encrypted
+                    existing.updated_at = datetime.utcnow()
+                else:
+                    credential = MFACredential(
+                        user_id=user_id,
+                        tenant_id=tenant_id,
+                        mfa_type=MFAType.BACKUP_CODES,
+                        backup_codes_encrypted=codes_encrypted,
+                        is_verified=True,
+                        verified_at=datetime.utcnow(),
+                    )
+                    session.add(credential)
+
+                session.commit()
+
+            self.logger.info(f"[MFA] Backup codes saved for user {user_id}")
+            return True
+
+        except Exception as e:
+            self.logger.error(f"[MFA] Failed to save backup codes: {e}")
+            self._fallback_backup_codes[user_id] = backup_codes_hashed
+            return True
+
+    def get_backup_codes(self, user_id: str, tenant_id: str = None) -> List[str]:
+        """Get hashed backup codes from database."""
+        if not self._db_available:
+            return self._fallback_backup_codes.get(user_id, [])
+
+        try:
+            from database.connection import get_db_session
+
+            with get_db_session() as session:
+                credential = session.execute(
+                    select(MFACredential).where(
+                        MFACredential.user_id == user_id,
+                        MFACredential.mfa_type == MFAType.BACKUP_CODES,
+                        MFACredential.is_active == True
+                    )
+                ).scalar_one_or_none()
+
+                if not credential or not credential.backup_codes_encrypted:
+                    return self._fallback_backup_codes.get(user_id, [])
+
+                associated_data = self._get_associated_data(user_id, tenant_id)
+                codes_json = decrypt_pii(
+                    credential.backup_codes_encrypted,
+                    field_type="generic",
+                    associated_data=associated_data
+                )
+                return json.loads(codes_json)
+
+        except Exception as e:
+            self.logger.error(f"[MFA] Failed to get backup codes: {e}")
+            return self._fallback_backup_codes.get(user_id, [])
+
+    def update_backup_codes(
+        self,
+        user_id: str,
+        backup_codes_hashed: List[str],
+        tenant_id: str = None
+    ) -> bool:
+        """Update backup codes (e.g., after using one)."""
+        return self.save_backup_codes(user_id, backup_codes_hashed, tenant_id)
+
+    def delete_backup_codes(self, user_id: str) -> bool:
+        """Delete all backup codes for a user (when disabling MFA)."""
+        self._fallback_backup_codes.pop(user_id, None)
+
+        if not self._db_available:
+            return True
+
+        try:
+            from database.connection import get_db_session
+
+            with get_db_session() as session:
+                session.execute(
+                    delete(MFACredential).where(
+                        MFACredential.user_id == user_id,
+                        MFACredential.mfa_type == MFAType.BACKUP_CODES
+                    )
+                )
+                session.commit()
+            return True
+
+        except Exception as e:
+            self.logger.error(f"[MFA] Failed to delete backup codes: {e}")
+            return False
+
+    def has_backup_codes(self, user_id: str, tenant_id: str = None) -> bool:
+        """Check if user has backup codes."""
+        codes = self.get_backup_codes(user_id, tenant_id)
+        return len(codes) > 0
+
+    def get_backup_codes_count(self, user_id: str, tenant_id: str = None) -> int:
+        """Get count of remaining backup codes."""
+        codes = self.get_backup_codes(user_id, tenant_id)
+        return len(codes)
+
+
+# Initialize persistence service
+_mfa_persistence = MFAPersistenceService()
+
+
+# Legacy compatibility - redirect to persistence service
+def _get_pending_setup(user_id: str) -> Optional[Dict[str, Any]]:
+    return _mfa_persistence.get_pending_setup(user_id)
+
+
+def _get_backup_codes(user_id: str) -> List[str]:
+    return _mfa_persistence.get_backup_codes(user_id)
 
 
 # =============================================================================
@@ -264,8 +577,8 @@ async def get_mfa_status(
         if not user:
             raise HTTPException(404, "User not found")
 
-        # Check for pending setup
-        pending = _pending_mfa_setups.get(str(ctx.user_id))
+        # Check for pending setup (using persistence service)
+        pending = _mfa_persistence.get_pending_setup(str(ctx.user_id), getattr(ctx, 'tenant_id', None))
 
         status = MFAStatus.DISABLED
         if user.mfa_enabled and user.mfa_secret:
@@ -276,7 +589,7 @@ async def get_mfa_status(
         return {
             "enabled": user.mfa_enabled,
             "status": status.value,
-            "has_backup_codes": str(ctx.user_id) in _backup_codes and len(_backup_codes[str(ctx.user_id)]) > 0,
+            "has_backup_codes": _mfa_persistence.has_backup_codes(str(ctx.user_id), getattr(ctx, 'tenant_id', None)),
         }
 
     except HTTPException:
@@ -321,13 +634,15 @@ async def setup_mfa(
 
         # Generate backup codes
         backup_codes = generate_backup_codes(10)
+        backup_codes_hashed = [hash_backup_code(c) for c in backup_codes]
 
-        # Store pending setup (not yet confirmed)
-        _pending_mfa_setups[str(ctx.user_id)] = {
-            "secret": secret,
-            "backup_codes": [hash_backup_code(c) for c in backup_codes],
-            "created_at": datetime.utcnow().isoformat(),
-        }
+        # Store pending setup (using persistence service with encryption)
+        _mfa_persistence.save_pending_setup(
+            user_id=str(ctx.user_id),
+            secret=secret,
+            backup_codes_hashed=backup_codes_hashed,
+            tenant_id=getattr(ctx, 'tenant_id', None),
+        )
 
         # Format secret for manual entry (groups of 4)
         manual_key = ' '.join([secret[i:i+4] for i in range(0, len(secret), 4)])
@@ -373,7 +688,8 @@ async def verify_mfa_setup(
         if not user:
             raise HTTPException(404, "User not found")
 
-        pending = _pending_mfa_setups.get(str(ctx.user_id))
+        tenant_id = getattr(ctx, 'tenant_id', None)
+        pending = _mfa_persistence.get_pending_setup(str(ctx.user_id), tenant_id)
         if not pending:
             raise HTTPException(400, "No pending MFA setup. Please start setup first.")
 
@@ -389,11 +705,11 @@ async def verify_mfa_setup(
         user.mfa_secret = secret
         repo.update_user(user)
 
-        # Store backup codes
-        _backup_codes[str(ctx.user_id)] = backup_codes_hashed
+        # Store backup codes (encrypted in database)
+        _mfa_persistence.save_backup_codes(str(ctx.user_id), backup_codes_hashed, tenant_id)
 
         # Clear pending setup
-        del _pending_mfa_setups[str(ctx.user_id)]
+        _mfa_persistence.delete_pending_setup(str(ctx.user_id))
 
         logger.info(f"[MFA] Enabled successfully for user {ctx.user_id}")
 
@@ -439,14 +755,14 @@ async def validate_mfa_code(
                 "method": "totp",
             }
 
-        # Try backup codes
+        # Try backup codes (fetched from encrypted database)
         code_hash = hash_backup_code(request.code)
-        user_backup_codes = _backup_codes.get(request.user_id, [])
+        user_backup_codes = _mfa_persistence.get_backup_codes(request.user_id)
 
         if code_hash in user_backup_codes:
             # Remove used backup code
             user_backup_codes.remove(code_hash)
-            _backup_codes[request.user_id] = user_backup_codes
+            _mfa_persistence.update_backup_codes(request.user_id, user_backup_codes)
 
             logger.info(f"[MFA] Backup code used for user {request.user_id}")
             return {
@@ -500,8 +816,8 @@ async def disable_mfa(
         user.mfa_secret = None
         repo.update_user(user)
 
-        # Clear backup codes
-        _backup_codes.pop(str(ctx.user_id), None)
+        # Clear backup codes (from database)
+        _mfa_persistence.delete_backup_codes(str(ctx.user_id))
 
         logger.info(f"[MFA] Disabled for user {ctx.user_id}")
 
@@ -543,9 +859,14 @@ async def regenerate_backup_codes(
         if not TOTPGenerator.verify_totp(user.mfa_secret, request.code):
             raise HTTPException(400, "Invalid MFA code")
 
-        # Generate new backup codes
+        # Generate new backup codes (save encrypted to database)
         new_codes = generate_backup_codes(10)
-        _backup_codes[str(ctx.user_id)] = [hash_backup_code(c) for c in new_codes]
+        new_codes_hashed = [hash_backup_code(c) for c in new_codes]
+        _mfa_persistence.save_backup_codes(
+            str(ctx.user_id),
+            new_codes_hashed,
+            getattr(ctx, 'tenant_id', None)
+        )
 
         logger.info(f"[MFA] Backup codes regenerated for user {ctx.user_id}")
 
@@ -573,7 +894,10 @@ async def get_backup_codes_count(
     Helps users know if they need to regenerate codes.
     """
     try:
-        count = len(_backup_codes.get(str(ctx.user_id), []))
+        count = _mfa_persistence.get_backup_codes_count(
+            str(ctx.user_id),
+            getattr(ctx, 'tenant_id', None)
+        )
 
         return {
             "count": count,

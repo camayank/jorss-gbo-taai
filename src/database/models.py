@@ -1434,6 +1434,96 @@ class ClientSessionRecord(Base):
 
 
 # =============================================================================
+# MFA CREDENTIAL STORAGE (Secure Persistence)
+# =============================================================================
+
+class MFAType(str, PyEnum):
+    """Types of MFA credentials."""
+    TOTP = "totp"
+    BACKUP_CODES = "backup_codes"
+
+
+class MFACredential(Base):
+    """
+    MFA Credential Record - Secure storage for MFA secrets and backup codes.
+
+    Replaces in-memory storage with encrypted database persistence.
+    All sensitive data (TOTP secrets, backup codes) is encrypted at rest.
+    """
+    __tablename__ = "mfa_credentials"
+
+    # Primary Key
+    credential_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    # User Reference
+    user_id = Column(String(100), nullable=False, index=True)
+    tenant_id = Column(String(100), nullable=True, index=True)
+
+    # MFA Type
+    mfa_type = Column(Enum(MFAType), nullable=False, default=MFAType.TOTP)
+
+    # Encrypted Data
+    # TOTP secret encrypted with AES-256-GCM
+    secret_encrypted = Column(String(512), nullable=True, comment="AES-256-GCM encrypted TOTP secret")
+
+    # Backup codes stored as encrypted JSON array
+    backup_codes_encrypted = Column(Text, nullable=True, comment="AES-256-GCM encrypted backup codes JSON")
+
+    # Status Tracking
+    is_verified = Column(Boolean, default=False, index=True)
+    verified_at = Column(DateTime, nullable=True)
+    is_active = Column(Boolean, default=True, index=True)
+
+    # Usage Tracking
+    last_used_at = Column(DateTime, nullable=True)
+    use_count = Column(Integer, default=0)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index('ix_mfa_user_type', 'user_id', 'mfa_type'),
+        Index('ix_mfa_user_active', 'user_id', 'is_active'),
+        UniqueConstraint('user_id', 'mfa_type', 'tenant_id', name='uq_mfa_user_type_tenant'),
+    )
+
+    def __repr__(self):
+        return f"<MFACredential(user={self.user_id}, type={self.mfa_type}, verified={self.is_verified})>"
+
+
+class MFAPendingSetup(Base):
+    """
+    MFA Pending Setup Record - Temporary storage for MFA setup in progress.
+
+    This replaces the in-memory _pending_mfa_setups dictionary.
+    Entries are automatically cleaned up after expiration.
+    """
+    __tablename__ = "mfa_pending_setups"
+
+    # Primary Key
+    setup_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    # User Reference
+    user_id = Column(String(100), nullable=False, unique=True, index=True)
+    tenant_id = Column(String(100), nullable=True)
+
+    # Encrypted Setup Data
+    secret_encrypted = Column(String(512), nullable=False, comment="AES-256-GCM encrypted TOTP secret")
+    backup_codes_encrypted = Column(Text, nullable=False, comment="AES-256-GCM encrypted backup codes")
+
+    # Expiration (setup must be completed within this time)
+    expires_at = Column(DateTime, nullable=False, index=True)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index('ix_mfa_pending_expires', 'expires_at'),
+    )
+
+
+# =============================================================================
 # DATABASE UTILITY FUNCTIONS
 # =============================================================================
 
