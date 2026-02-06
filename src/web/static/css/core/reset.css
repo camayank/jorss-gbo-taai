@@ -132,15 +132,92 @@ legend {
   }
 }
 
-/* Focus visible for accessibility */
+/* =========================
+   KEYBOARD NAVIGATION (WCAG 2.4.7)
+   Provides visible focus indicators for keyboard users
+   while hiding them for mouse users.
+   ========================= */
+
+/* Focus visible for accessibility - enhanced ring */
 :focus-visible {
   outline: 2px solid var(--color-primary-500, #1e3a5f);
   outline-offset: 2px;
+  box-shadow: var(--focus-ring, 0 0 0 3px rgba(30, 58, 95, 0.4));
 }
 
 /* Remove focus outline for mouse users */
 :focus:not(:focus-visible) {
   outline: none;
+  box-shadow: none;
+}
+
+/* Enhanced focus for buttons */
+button:focus-visible,
+[role="button"]:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--color-primary-500, #1e3a5f);
+  outline-offset: 2px;
+  box-shadow: var(--focus-ring, 0 0 0 3px rgba(30, 58, 95, 0.4));
+}
+
+/* Enhanced focus for links */
+a:focus-visible {
+  outline: 2px solid var(--color-primary-500, #1e3a5f);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm, 2px);
+}
+
+/* Enhanced focus for form inputs */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--color-primary-500, #1e3a5f);
+  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.15);
+}
+
+/* Enhanced focus for checkboxes and radios */
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible {
+  outline: 2px solid var(--color-primary-500, #1e3a5f);
+  outline-offset: 2px;
+}
+
+/* Skip link for keyboard navigation */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-primary-500, #1e3a5f);
+  color: white;
+  padding: 8px 16px;
+  z-index: 10000;
+  text-decoration: none;
+  font-weight: 600;
+  border-radius: 0 0 var(--radius-md, 6px) 0;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Focus trap indicator for modals */
+[role="dialog"]:focus-visible,
+[aria-modal="true"]:focus-visible {
+  outline: none;
+}
+
+/* Tab panel focus */
+[role="tabpanel"]:focus-visible {
+  outline: 2px solid var(--color-primary-500, #1e3a5f);
+  outline-offset: -2px;
+}
+
+/* Card/interactive container focus */
+[tabindex="0"]:focus-visible {
+  outline: 2px solid var(--color-primary-500, #1e3a5f);
+  outline-offset: 2px;
+  border-radius: var(--radius-lg, 8px);
 }
 
 /* Selection styling */
