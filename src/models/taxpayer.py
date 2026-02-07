@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Optional, List
+import re
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -49,12 +50,44 @@ class Dependent(BaseModel):
     - Qualifying Relative (QR) 4-part test: BR3-0206 to BR3-0209
     - Tiebreaker rules: BR3-0210 to BR3-0212
     """
-    name: str
-    ssn: Optional[str] = None
-    relationship: str  # Kept as string for backwards compatibility
+    name: str = Field(..., min_length=1, max_length=100, description="Dependent's full name")
+    ssn: Optional[str] = Field(None, description="Social Security Number")
+    relationship: str = Field(..., min_length=1, max_length=50, description="Relationship to taxpayer")
     relationship_type: Optional[DependentRelationship] = None
-    date_of_birth: Optional[str] = None  # YYYY-MM-DD format
-    age: int
+    date_of_birth: Optional[str] = Field(None, pattern=r'^\d{4}-\d{2}-\d{2}$', description="YYYY-MM-DD format")
+    age: int = Field(..., ge=0, le=130, description="Dependent's age")
+
+    @field_validator('ssn')
+    @classmethod
+    def validate_ssn_format(cls, v):
+        """Validate SSN format if provided."""
+        if v is None or v == "":
+            return v
+        # Remove formatting
+        clean_ssn = re.sub(r'[^0-9]', '', v)
+        if len(clean_ssn) != 9:
+            raise ValueError(f"SSN must be 9 digits, got {len(clean_ssn)}")
+        # Check for invalid patterns
+        if clean_ssn == "000000000":
+            raise ValueError("SSN cannot be all zeros")
+        if clean_ssn[:3] == "000":
+            raise ValueError("SSN area number cannot be 000")
+        if clean_ssn[:3] == "666":
+            raise ValueError("SSN area number cannot be 666")
+        if clean_ssn[:3].startswith("9"):
+            raise ValueError("SSN area number cannot start with 9")
+        return v
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v):
+        """Validate dependent name contains only valid characters."""
+        if not v or not v.strip():
+            raise ValueError("Name is required")
+        # Allow letters, spaces, hyphens, apostrophes, periods
+        if not re.match(r"^[a-zA-Z\s\-'.]+$", v.strip()):
+            raise ValueError("Name contains invalid characters")
+        return v.strip()
 
     # Qualifying Child Test Fields (BR-0023 to BR-0027)
     is_student: bool = Field(default=False, description="Full-time student for 5+ months")
@@ -89,26 +122,69 @@ class Dependent(BaseModel):
 
 class TaxpayerInfo(BaseModel):
     """Primary taxpayer information"""
-    first_name: str
-    last_name: str
+    first_name: str = Field(..., min_length=1, max_length=50, description="First name")
+    last_name: str = Field(..., min_length=1, max_length=50, description="Last name")
     ssn: Optional[str] = Field(None, description="Social Security Number (stored securely)")
-    date_of_birth: Optional[str] = None
+    date_of_birth: Optional[str] = Field(None, pattern=r'^\d{4}-\d{2}-\d{2}$', description="YYYY-MM-DD format")
     filing_status: FilingStatus
-    address: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    zip_code: Optional[str] = None
+    address: Optional[str] = Field(None, max_length=200, description="Street address")
+    city: Optional[str] = Field(None, max_length=100, description="City")
+    state: Optional[str] = Field(None, pattern=r'^[A-Z]{2}$', description="Two-letter state code")
+    zip_code: Optional[str] = Field(None, pattern=r'^\d{5}(-\d{4})?$', description="ZIP code (5 or 9 digits)")
     dependents: List[Dependent] = Field(default_factory=list)
     is_blind: bool = False
     is_over_65: bool = False
-    
+
     # Spouse information (if applicable)
-    spouse_first_name: Optional[str] = None
-    spouse_last_name: Optional[str] = None
+    spouse_first_name: Optional[str] = Field(None, max_length=50)
+    spouse_last_name: Optional[str] = Field(None, max_length=50)
     spouse_ssn: Optional[str] = None
-    spouse_date_of_birth: Optional[str] = None
+    spouse_date_of_birth: Optional[str] = Field(None, pattern=r'^\d{4}-\d{2}-\d{2}$')
     spouse_is_blind: bool = False
     spouse_is_over_65: bool = False
+
+    @field_validator('first_name', 'last_name')
+    @classmethod
+    def validate_names(cls, v):
+        """Validate names contain only valid characters."""
+        if not v or not v.strip():
+            raise ValueError("Name is required")
+        # Allow letters, spaces, hyphens, apostrophes, periods
+        if not re.match(r"^[a-zA-Z\s\-'.]+$", v.strip()):
+            raise ValueError("Name contains invalid characters")
+        return v.strip()
+
+    @field_validator('ssn', 'spouse_ssn')
+    @classmethod
+    def validate_ssn_format(cls, v):
+        """Validate SSN format if provided."""
+        if v is None or v == "":
+            return v
+        # Remove formatting
+        clean_ssn = re.sub(r'[^0-9]', '', v)
+        if len(clean_ssn) != 9:
+            raise ValueError(f"SSN must be 9 digits, got {len(clean_ssn)}")
+        # Check for invalid patterns
+        if clean_ssn == "000000000":
+            raise ValueError("SSN cannot be all zeros")
+        if clean_ssn[:3] == "000":
+            raise ValueError("SSN area number cannot be 000")
+        if clean_ssn[:3] == "666":
+            raise ValueError("SSN area number cannot be 666")
+        if clean_ssn[:3].startswith("9"):
+            raise ValueError("SSN area number cannot start with 9")
+        return v
+
+    @field_validator('address')
+    @classmethod
+    def validate_address(cls, v):
+        """Validate address does not contain suspicious content."""
+        if v is None:
+            return v
+        # Check for XSS patterns
+        if re.search(r'<script|javascript:|onerror=', v, re.IGNORECASE):
+            raise ValueError("Address contains invalid content")
+        return v.strip()
 
     # Special status flags (BR2-0002, BR2-0003, BR2-0004)
     spouse_itemizes_deductions: bool = Field(

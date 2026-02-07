@@ -63,12 +63,21 @@ TEST_FIRMS = [
 
 def _hash_password(password: str) -> str:
     """Hash password for testing."""
-    salt = "fixed-salt-for-dev"
+    import os
+    # SECURITY: Use environment variable for salt, or generate a secure one
+    salt = os.environ.get("TEST_PASSWORD_SALT", "dev-only-salt-do-not-use-in-production")
     return hashlib.sha256(f"{password}{salt}".encode()).hexdigest()
 
-# All test users use password: "Password123!"
-TEST_PASSWORD = "Password123!"
+# SECURITY: Test password should be read from environment in non-dev environments
+# All test users use password from env, defaulting to a development value
+import os
+_default_test_password = "Password123!"
+TEST_PASSWORD = os.environ.get("TEST_USER_PASSWORD", _default_test_password)
 TEST_PASSWORD_HASH = _hash_password(TEST_PASSWORD)
+
+# SECURITY WARNING: Log if using default credentials
+if TEST_PASSWORD == _default_test_password:
+    logger.warning("Using default test password - set TEST_USER_PASSWORD env var for production testing")
 
 TEST_USERS = [
     # ==========================================================================

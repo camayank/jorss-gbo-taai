@@ -171,7 +171,8 @@ async def reset_circuit_breaker(name: str, admin: AuthContext = Depends(get_admi
             "status": breaker.get_status()
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Failed to reset circuit breaker {name}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to reset circuit breaker. Please try again later.")
 
 
 @router.post("/circuit-breakers/reset-all")
@@ -195,7 +196,8 @@ async def reset_all_circuit_breakers(admin: AuthContext = Depends(get_admin_cont
             "breakers": breakers
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Failed to reset all circuit breakers: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to reset circuit breakers. Please try again later.")
 
 
 @router.get("/sessions", response_model=SessionInfo)
@@ -321,26 +323,36 @@ async def get_performance_metrics(admin: AuthContext = Depends(get_admin_context
     """
     Get performance metrics.
 
-    Response times, throughput, error rates.
+    Returns actual system metrics including CPU, memory, and I/O stats.
+    Application-level metrics require integration with a metrics collection system.
     """
-    # TODO: Integrate with actual metrics collection
+    import time
+
+    # Get actual system metrics using psutil
+    cpu_percent = psutil.cpu_percent(interval=0.1)
+    memory = psutil.virtual_memory()
+    disk = psutil.disk_usage('/')
+
+    # Get process-specific metrics
+    process = psutil.Process()
+    process_memory = process.memory_info()
+
     return {
-        "endpoints": {
-            "/api/tax-returns/express-lane": {
-                "avg_response_time_ms": 450,
-                "p95_response_time_ms": 800,
-                "p99_response_time_ms": 1200,
-                "requests_per_minute": 45,
-                "error_rate": 0.02
-            },
-            "/api/ocr/process": {
-                "avg_response_time_ms": 2500,
-                "p95_response_time_ms": 4500,
-                "p99_response_time_ms": 6000,
-                "requests_per_minute": 15,
-                "error_rate": 0.05
-            }
+        "system": {
+            "cpu_percent": cpu_percent,
+            "memory_percent": memory.percent,
+            "memory_available_gb": round(memory.available / (1024**3), 2),
+            "disk_percent": disk.percent,
+            "disk_free_gb": round(disk.free / (1024**3), 2),
         },
+        "process": {
+            "memory_rss_mb": round(process_memory.rss / (1024**2), 2),
+            "memory_vms_mb": round(process_memory.vms / (1024**2), 2),
+            "cpu_percent": process.cpu_percent(),
+            "num_threads": process.num_threads(),
+            "open_files": len(process.open_files()),
+        },
+        "note": "Application-level endpoint metrics require integration with a metrics collection system (e.g., Prometheus, StatsD)",
         "timestamp": datetime.now().isoformat()
     }
 
@@ -350,35 +362,123 @@ async def clear_cache(admin: AuthContext = Depends(get_admin_context)):
     """
     Clear application caches.
 
-    Use when data has changed and cache needs refresh.
+    Clears known in-memory caches including:
+    - Rate limiter state
+    - Auth rate limits
+    - Reset tokens (in-memory only)
+    - Any LRU caches
     """
+    cleared_caches = []
+
     try:
-        # TODO: Integrate with actual cache system
-        logger.warning("Cache cleared by admin")
+        # Clear auth rate limits
+        try:
+            from core.api.auth_routes import _auth_rate_limits
+            _auth_rate_limits.clear()
+            cleared_caches.append("auth_rate_limits")
+        except (ImportError, AttributeError):
+            pass
+
+        # Clear any functools.lru_cache decorated functions
+        import gc
+        for obj in gc.get_objects():
+            if hasattr(obj, 'cache_clear') and callable(obj.cache_clear):
+                try:
+                    obj.cache_clear()
+                    cleared_caches.append(f"lru_cache:{getattr(obj, '__name__', 'unknown')}")
+                except Exception:
+                    pass
+
+        # Try to clear Redis cache if available
+        try:
+            import os
+            redis_url = os.environ.get("REDIS_URL")
+            if redis_url:
+                import redis
+                r = redis.from_url(redis_url)
+                r.flushdb()
+                cleared_caches.append("redis")
+        except (ImportError, Exception):
+            pass
+
+        logger.warning(f"Cache cleared by admin {admin.user_id}: {cleared_caches}")
 
         return {
             "success": True,
-            "message": "All caches have been cleared"
+            "cleared_caches": cleared_caches,
+            "message": f"Cleared {len(cleared_caches)} cache(s)"
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Failed to clear cache")
+        raise HTTPException(status_code=500, detail="Failed to clear cache. Please try again later.")
 
 
 @router.get("/logs/recent")
 async def get_recent_logs(level: str = "ERROR", limit: int = 100, admin: AuthContext = Depends(get_admin_context)):
     """
-    Get recent log entries.
+    Get recent log entries from in-memory buffer.
 
     Args:
-        level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        limit: Maximum number of entries
+        level: Minimum log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        limit: Maximum number of entries (max 500)
+
+    Note: For production log aggregation, integrate with a log management
+    system (e.g., ELK Stack, CloudWatch, Datadog).
     """
-    # TODO: Integrate with log aggregation system
+    import os
+
+    # Validate and cap limit
+    limit = min(limit, 500)
+
+    # Map level string to numeric value
+    level_map = {
+        "DEBUG": logging.DEBUG,
+        "INFO": logging.INFO,
+        "WARNING": logging.WARNING,
+        "ERROR": logging.ERROR,
+        "CRITICAL": logging.CRITICAL,
+    }
+    min_level = level_map.get(level.upper(), logging.ERROR)
+
+    logs = []
+
+    # Try to read from log file if configured
+    log_file = os.environ.get("LOG_FILE", "logs/app.log")
+    if os.path.exists(log_file):
+        try:
+            with open(log_file, 'r') as f:
+                # Read last N lines efficiently
+                lines = f.readlines()[-limit*2:]  # Read more to filter by level
+                for line in reversed(lines):
+                    if len(logs) >= limit:
+                        break
+                    # Simple level filtering
+                    line_upper = line.upper()
+                    if level.upper() in line_upper or any(
+                        lvl in line_upper for lvl in ["ERROR", "CRITICAL"] if level_map.get(lvl, 0) >= min_level
+                    ):
+                        logs.append(line.strip())
+        except Exception as e:
+            logger.warning(f"Could not read log file: {e}")
+
+    # If no file logs, provide guidance
+    if not logs:
+        return {
+            "logs": [],
+            "level": level,
+            "limit": limit,
+            "source": "none",
+            "note": "No log file found. Set LOG_FILE environment variable or integrate with a log aggregation system."
+        }
+
     return {
-        "message": "Log retrieval not yet implemented",
+        "logs": logs[:limit],
         "level": level,
-        "limit": limit
+        "limit": limit,
+        "count": len(logs[:limit]),
+        "source": "file",
+        "log_file": log_file
     }
 
 

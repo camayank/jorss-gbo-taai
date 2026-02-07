@@ -161,8 +161,20 @@ class ESignWebhookHandler:
             ).hexdigest()
             return hmac.compare_digest(expected, signature)
 
-        # Generic fallback - just check signature exists
-        return bool(signature)
+        elif provider == ESignProvider.PANDADOC:
+            # PandaDoc uses HMAC-SHA256 on the JSON payload
+            import json
+            payload_bytes = json.dumps(payload, separators=(',', ':')).encode()
+            expected = hmac.new(
+                secret.encode(),
+                payload_bytes,
+                hashlib.sha256
+            ).hexdigest()
+            return hmac.compare_digest(expected, signature)
+
+        # Generic fallback - require valid signature format but can't verify
+        logger.warning(f"No signature verification implemented for {provider}")
+        return False  # Fail closed for unknown providers
 
     def _parse_webhook(
         self,

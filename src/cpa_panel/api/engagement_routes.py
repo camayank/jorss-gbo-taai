@@ -14,6 +14,7 @@ NOT in scope:
 - Full CRM functionality
 """
 
+import os
 from fastapi import APIRouter, HTTPException, Request, Header
 from fastapi.responses import Response
 from typing import Dict, Any, Optional, List
@@ -34,6 +35,15 @@ from .common import format_success_response, format_error_response, get_tenant_i
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/engagement", tags=["engagement"])
+
+
+# SECURITY FIX: E-sign webhook secrets from environment
+# Each provider should have its own secret configured
+ESIGN_WEBHOOK_SECRETS = {
+    "docusign": os.environ.get("DOCUSIGN_WEBHOOK_SECRET"),
+    "hellosign": os.environ.get("HELLOSIGN_WEBHOOK_SECRET"),
+    "pandadoc": os.environ.get("PANDADOC_WEBHOOK_SECRET"),
+}
 
 # In-memory storage for letters (replace with DB in production)
 _letters: Dict[str, EngagementLetter] = {}
@@ -217,6 +227,7 @@ async def esign_webhook(
     provider: str,
     x_signature: Optional[str] = Header(None, alias="X-DocuSign-Signature-1"),
     x_hellosign_signature: Optional[str] = Header(None, alias="X-HelloSign-Signature"),
+    x_pandadoc_signature: Optional[str] = Header(None, alias="X-PandaDoc-Signature"),
 ) -> Dict[str, Any]:
     """
     Receive e-signature webhook callbacks.
@@ -226,6 +237,13 @@ async def esign_webhook(
     The signature header varies by provider:
     - DocuSign: X-DocuSign-Signature-1
     - HelloSign: X-HelloSign-Signature
+    - PandaDoc: X-PandaDoc-Signature
+
+    SECURITY: Webhook signatures are validated when a secret is configured
+    for the provider. Configure secrets via environment variables:
+    - DOCUSIGN_WEBHOOK_SECRET
+    - HELLOSIGN_WEBHOOK_SECRET
+    - PANDADOC_WEBHOOK_SECRET
     """
     try:
         esign_provider = ESignProvider(provider.lower())
@@ -236,7 +254,25 @@ async def esign_webhook(
         )
 
     # Get signature based on provider
-    signature = x_signature or x_hellosign_signature
+    if provider.lower() == "docusign":
+        signature = x_signature
+    elif provider.lower() == "hellosign":
+        signature = x_hellosign_signature
+    elif provider.lower() == "pandadoc":
+        signature = x_pandadoc_signature
+    else:
+        signature = x_signature or x_hellosign_signature or x_pandadoc_signature
+
+    # SECURITY FIX: Get webhook secret from configuration
+    webhook_secret = ESIGN_WEBHOOK_SECRETS.get(provider.lower())
+
+    # If a secret is configured, signature is required
+    if webhook_secret and not signature:
+        logger.warning(f"E-sign webhook from {provider} missing required signature")
+        raise HTTPException(
+            status_code=401,
+            detail="Missing webhook signature"
+        )
 
     # Parse body
     try:
@@ -244,14 +280,22 @@ async def esign_webhook(
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON payload")
 
-    # Process webhook
+    # Process webhook with signature validation
     handler = get_esign_handler()
     event = handler.process_webhook(
         provider=esign_provider,
         payload=payload,
         signature=signature,
-        secret=None,  # Secret should come from config in production
+        secret=webhook_secret,  # SECURITY FIX: Use configured secret
     )
+
+    # If signature validation failed (when secret is configured)
+    if webhook_secret and signature and not event:
+        logger.warning(f"E-sign webhook from {provider} failed signature validation")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid webhook signature"
+        )
 
     if not event:
         logger.warning(f"Could not process webhook from {provider}")

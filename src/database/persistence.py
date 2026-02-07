@@ -541,6 +541,11 @@ class DocumentPersistence:
 
         return document_id
 
+    # SECURITY: Whitelist of allowed column names for dynamic updates
+    _DOCUMENT_UPDATE_COLUMNS = frozenset({
+        "updated_at", "status", "document_type", "extracted_data", "confidence_score"
+    })
+
     def update_document(
         self,
         document_id: str,
@@ -555,22 +560,27 @@ class DocumentPersistence:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
-            updates = ["updated_at = ?"]
-            values = [now]
+            # SECURITY: Build updates using validated column names only
+            update_mapping = {
+                "updated_at": now,
+            }
 
             if status:
-                updates.append("status = ?")
-                values.append(status)
+                update_mapping["status"] = status
             if document_type:
-                updates.append("document_type = ?")
-                values.append(document_type)
+                update_mapping["document_type"] = document_type
             if extracted_data is not None:
-                updates.append("extracted_data = ?")
-                values.append(json.dumps(extracted_data, default=str))
+                update_mapping["extracted_data"] = json.dumps(extracted_data, default=str)
             if confidence_score is not None:
-                updates.append("confidence_score = ?")
-                values.append(confidence_score)
+                update_mapping["confidence_score"] = confidence_score
 
+            # SECURITY: Validate all column names against whitelist
+            for col in update_mapping.keys():
+                if col not in self._DOCUMENT_UPDATE_COLUMNS:
+                    raise ValueError(f"Invalid column name: {col}")
+
+            updates = [f"{col} = ?" for col in update_mapping.keys()]
+            values = list(update_mapping.values())
             values.append(document_id)
 
             cursor.execute(
@@ -723,6 +733,11 @@ class IntakePersistence:
 
         return intake_id
 
+    # SECURITY: Whitelist of allowed column names for dynamic updates
+    _INTAKE_UPDATE_COLUMNS = frozenset({
+        "updated_at", "status", "progress", "current_stage", "answers", "benefit_estimate"
+    })
+
     def update_intake(
         self,
         intake_id: str,
@@ -738,25 +753,29 @@ class IntakePersistence:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
-            updates = ["updated_at = ?"]
-            values = [now]
+            # SECURITY: Build updates using validated column names only
+            update_mapping = {
+                "updated_at": now,
+            }
 
             if status:
-                updates.append("status = ?")
-                values.append(status)
+                update_mapping["status"] = status
             if progress is not None:
-                updates.append("progress = ?")
-                values.append(progress)
+                update_mapping["progress"] = progress
             if current_stage:
-                updates.append("current_stage = ?")
-                values.append(current_stage)
+                update_mapping["current_stage"] = current_stage
             if answers is not None:
-                updates.append("answers = ?")
-                values.append(json.dumps(answers, default=str))
+                update_mapping["answers"] = json.dumps(answers, default=str)
             if benefit_estimate is not None:
-                updates.append("benefit_estimate = ?")
-                values.append(json.dumps(benefit_estimate, default=str))
+                update_mapping["benefit_estimate"] = json.dumps(benefit_estimate, default=str)
 
+            # SECURITY: Validate all column names against whitelist
+            for col in update_mapping.keys():
+                if col not in self._INTAKE_UPDATE_COLUMNS:
+                    raise ValueError(f"Invalid column name: {col}")
+
+            updates = [f"{col} = ?" for col in update_mapping.keys()]
+            values = list(update_mapping.values())
             values.append(intake_id)
 
             cursor.execute(

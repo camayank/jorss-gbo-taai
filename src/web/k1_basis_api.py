@@ -200,8 +200,8 @@ async def create_basis_record(
         )
 
     except Exception as e:
-        logger.error(f"Error creating K-1 basis record: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error creating K-1 basis record: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create K-1 basis record. Please check your input data.")
 
 
 @router.get("/session/{session_id}/records", response_model=List[K1BasisResponse])

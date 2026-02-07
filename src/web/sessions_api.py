@@ -325,14 +325,14 @@ async def delete_session(
 # =============================================================================
 
 @router.post("/cleanup-expired")
-async def cleanup_expired_sessions():
+async def cleanup_expired_sessions(ctx: AuthContext = Depends(require_auth)):
     """
     Cleanup expired sessions.
 
     This endpoint should be called by a background job periodically
     (e.g., cron job every hour).
 
-    No auth required - can be called from internal scheduler.
+    Requires authentication to prevent abuse.
     """
     try:
         persistence = get_session_persistence()
@@ -593,13 +593,16 @@ async def restore_session(session_id: str):
         )
 
 
-@router.post("/create-session")
+@router.post("/create-session", status_code=status.HTTP_201_CREATED)
 async def create_filing_session(request: CreateSessionRequest = CreateSessionRequest()):
     """
     Create a new filing session.
 
     This endpoint is called by the UI when a user starts a new tax return.
     Returns a session_id that the UI uses to track the filing session.
+
+    Note: This endpoint allows anonymous access to support guest checkout flows.
+    Session ownership is transferred upon login via /transfer-anonymous.
     """
     try:
         import uuid

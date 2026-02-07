@@ -161,17 +161,25 @@ class PerplexityClientResearcher:
         self.api_key = api_key or os.getenv("PERPLEXITY_API_KEY")
         self._client: Optional[Any] = None
 
+    # SECURITY FIX: Add timeout for external API calls
+    # Perplexity research queries may take longer, but should complete within 60 seconds
+    API_TIMEOUT = 60.0
+
     @property
     def client(self):
-        """Lazy-load the Perplexity client (OpenAI compatible)."""
+        """Lazy-load the Perplexity client (OpenAI compatible) with timeout."""
         if self._client is None:
             if not OPENAI_AVAILABLE:
                 raise ImportError("openai package not installed. Run: pip install openai")
             if not self.api_key:
                 raise ValueError("PERPLEXITY_API_KEY not configured")
+
+            # Configure client with timeout
+            import httpx
             self._client = OpenAI(
                 api_key=self.api_key,
-                base_url=self.PERPLEXITY_BASE_URL
+                base_url=self.PERPLEXITY_BASE_URL,
+                timeout=httpx.Timeout(self.API_TIMEOUT, connect=10.0),
             )
         return self._client
 
@@ -283,7 +291,11 @@ Format as detailed analysis with specific facts and statistics."""
             # Parse into structured insights
             return self._parse_industry_insights(content, industry)
 
-        except Exception:
+        except TimeoutError as e:
+            logger.error(f"Perplexity API timeout during industry trends research: {e}")
+            return []
+        except Exception as e:
+            logger.error(f"Perplexity API error during industry trends research: {e}")
             return []
 
     def monitor_client_news(
@@ -321,7 +333,11 @@ For each item note tax relevance if applicable."""
             content = response.choices[0].message.content
             return self._parse_news_items(content)
 
-        except Exception:
+        except TimeoutError as e:
+            logger.error(f"Perplexity API timeout during news monitoring: {e}")
+            return []
+        except Exception as e:
+            logger.error(f"Perplexity API error during news monitoring: {e}")
             return []
 
     def research_tax_implications(
@@ -366,7 +382,11 @@ Focus on current 2025/2026 tax law."""
             content = response.choices[0].message.content
             return self._parse_tax_considerations(content)
 
-        except Exception:
+        except TimeoutError as e:
+            logger.error(f"Perplexity API timeout during tax research: {e}")
+            return TaxConsiderations()
+        except Exception as e:
+            logger.error(f"Perplexity API error during tax research: {e}")
             return TaxConsiderations()
 
     def generate_meeting_prep(

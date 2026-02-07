@@ -6,11 +6,13 @@ Staff and Partner roles can customize their own profiles.
 """
 
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator, Field
 from typing import Optional, List
 from datetime import datetime
 from uuid import uuid4
+from pathlib import Path
 import os
+import re
 
 from ..rbac.dependencies import require_auth, AuthContext
 from ..rbac.roles import Role
@@ -34,23 +36,68 @@ router = APIRouter(prefix="/api/cpa/branding", tags=["cpa-branding"])
 
 class UpdateCPABrandingRequest(BaseModel):
     """Request to update CPA branding"""
-    display_name: Optional[str] = None
-    tagline: Optional[str] = None
-    accent_color: Optional[str] = None
+    display_name: Optional[str] = Field(None, max_length=100, description="Display name")
+    tagline: Optional[str] = Field(None, max_length=200, description="Professional tagline")
+    accent_color: Optional[str] = Field(None, pattern=r'^#[0-9A-Fa-f]{6}$', description="Hex color code (e.g., #1a2b3c)")
 
     # Contact
     direct_email: Optional[EmailStr] = None
-    direct_phone: Optional[str] = None
-    office_address: Optional[str] = None
+    direct_phone: Optional[str] = Field(None, description="Phone number")
+    office_address: Optional[str] = Field(None, max_length=500, description="Office address")
 
     # Bio
-    bio: Optional[str] = None
-    credentials: Optional[List[str]] = None
-    years_experience: Optional[int] = None
-    specializations: Optional[List[str]] = None
+    bio: Optional[str] = Field(None, max_length=2000, description="Professional biography")
+    credentials: Optional[List[str]] = Field(None, max_length=20, description="Professional credentials (max 20)")
+    years_experience: Optional[int] = Field(None, ge=0, le=80, description="Years of experience (0-80)")
+    specializations: Optional[List[str]] = Field(None, max_length=20, description="Areas of specialization (max 20)")
 
     # Client Portal
-    welcome_message: Optional[str] = None
+    welcome_message: Optional[str] = Field(None, max_length=1000, description="Client welcome message")
+
+    @field_validator('direct_phone')
+    @classmethod
+    def validate_phone(cls, v):
+        """Validate phone number format."""
+        if v is None or v == "":
+            return v
+        # Remove all non-digit characters for validation
+        digits_only = re.sub(r'[^\d]', '', v)
+        if len(digits_only) < 10 or len(digits_only) > 15:
+            raise ValueError("Phone number must be 10-15 digits")
+        # Check for suspicious patterns
+        if re.search(r'<script|javascript:|onerror=', v, re.IGNORECASE):
+            raise ValueError("Phone number contains invalid characters")
+        return v
+
+    @field_validator('display_name', 'tagline', 'bio', 'office_address', 'welcome_message')
+    @classmethod
+    def sanitize_text_fields(cls, v):
+        """Sanitize text fields to prevent XSS."""
+        if v is None:
+            return v
+        # Check for XSS patterns
+        if re.search(r'<script|javascript:|onerror=|onclick=', v, re.IGNORECASE):
+            raise ValueError("Field contains invalid content")
+        return v.strip()
+
+    @field_validator('credentials', 'specializations')
+    @classmethod
+    def validate_list_items(cls, v):
+        """Validate list items are clean strings."""
+        if v is None:
+            return v
+        sanitized = []
+        for item in v:
+            if not isinstance(item, str):
+                continue
+            # Check for XSS
+            if re.search(r'<script|javascript:', item, re.IGNORECASE):
+                continue
+            # Limit length per item
+            if len(item) > 100:
+                item = item[:100]
+            sanitized.append(item.strip())
+        return sanitized[:20]  # Max 20 items
 
 
 class CPABrandingResponse(BaseModel):

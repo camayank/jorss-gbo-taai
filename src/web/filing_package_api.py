@@ -556,8 +556,8 @@ async def generate_filing_package(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"[FILING_PACKAGE] Failed to generate package: {e}")
-        raise HTTPException(500, f"Failed to generate filing package: {str(e)}")
+        logger.exception(f"[FILING_PACKAGE] Failed to generate package: {e}")
+        raise HTTPException(500, "Failed to generate filing package. Please check your data and try again.")
 
 
 @router.get("/{session_id}/download/{format}")
@@ -624,8 +624,8 @@ async def download_filing_package(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"[FILING_PACKAGE] Failed to download package: {e}")
-        raise HTTPException(500, f"Failed to download filing package: {str(e)}")
+        logger.exception(f"[FILING_PACKAGE] Failed to download package: {e}")
+        raise HTTPException(500, "Failed to download filing package. Please try again later.")
 
 
 @router.get("/formats")

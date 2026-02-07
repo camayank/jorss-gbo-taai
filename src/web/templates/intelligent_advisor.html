@@ -11855,8 +11855,10 @@ If they're ready to move forward, suggest generating their comprehensive advisor
     }
 
     function updateProgress(percentage) {
-      document.getElementById('progressFill').style.width = percentage + '%';
-      document.getElementById('progressText').textContent = `${Math.round(percentage)}% Complete`;
+      const progressFill = document.getElementById('progressFill');
+      const progressText = document.getElementById('progressText');
+      if (progressFill) progressFill.style.width = percentage + '%';
+      if (progressText) progressText.textContent = `${Math.round(percentage)}% Complete`;
 
       // Auto-update journey stepper based on percentage
       const stepNumber = percentage < 25 ? 1 : percentage < 50 ? 2 : percentage < 75 ? 3 : 4;
@@ -11878,8 +11880,10 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
       // Update percentage bar
       const percentage = (progressUpdate.current_step / progressUpdate.total_steps) * 100;
-      document.getElementById('progressFill').style.width = percentage + '%';
-      document.getElementById('progressText').textContent = `${Math.round(percentage)}% Complete`;
+      const progressFill = document.getElementById('progressFill');
+      const progressText = document.getElementById('progressText');
+      if (progressFill) progressFill.style.width = percentage + '%';
+      if (progressText) progressText.textContent = `${Math.round(percentage)}% Complete`;
 
       // Update phase label
       updatePhaseLabel(progressUpdate.phase_name);
@@ -14824,21 +14828,27 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
           video.style.display = 'none';
           preview.style.display = 'block';
-          document.getElementById('captureBtn').style.display = 'none';
-          document.getElementById('retakeBtn').style.display = 'inline-block';
-          document.getElementById('usePhotoBtn').style.display = 'inline-block';
+          const captureBtn = document.getElementById('captureBtn');
+          const retakeBtn = document.getElementById('retakeBtn');
+          const usePhotoBtn = document.getElementById('usePhotoBtn');
+          if (captureBtn) captureBtn.style.display = 'none';
+          if (retakeBtn) retakeBtn.style.display = 'inline-block';
+          if (usePhotoBtn) usePhotoBtn.style.display = 'inline-block';
         }
       },
 
       retake: function() {
         const video = document.getElementById('cameraVideo');
         const preview = document.getElementById('capturePreview');
+        const captureBtn = document.getElementById('captureBtn');
+        const retakeBtn = document.getElementById('retakeBtn');
+        const usePhotoBtn = document.getElementById('usePhotoBtn');
 
-        video.style.display = 'block';
-        preview.style.display = 'none';
-        document.getElementById('captureBtn').style.display = 'inline-block';
-        document.getElementById('retakeBtn').style.display = 'none';
-        document.getElementById('usePhotoBtn').style.display = 'none';
+        if (video) video.style.display = 'block';
+        if (preview) preview.style.display = 'none';
+        if (captureBtn) captureBtn.style.display = 'inline-block';
+        if (retakeBtn) retakeBtn.style.display = 'none';
+        if (usePhotoBtn) usePhotoBtn.style.display = 'none';
 
         this.capturedImage = null;
       },

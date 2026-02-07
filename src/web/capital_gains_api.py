@@ -7,7 +7,7 @@ Form 8949 calculations, and Schedule D reporting.
 from datetime import datetime, date
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, Query, Body
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from decimal import Decimal
 import logging
 import uuid
@@ -53,23 +53,44 @@ router = APIRouter(prefix="/api/v1/capital-gains", tags=["Capital Gains / Form 8
 
 class TransactionInput(BaseModel):
     """Input model for a securities transaction."""
-    security_type: str = Field(default="stock", description="stock, bond, mutual_fund, option, crypto, other")
-    security_description: str = Field(..., description="Description of the security (e.g., 'AAPL - Apple Inc.')")
-    ticker_symbol: Optional[str] = None
-    cusip: Optional[str] = None
+    security_type: str = Field(
+        default="stock",
+        pattern=r'^(stock|bond|mutual_fund|etf|option|reit|commodity|futures|crypto|collectible|other)$',
+        description="Security type"
+    )
+    security_description: str = Field(
+        ...,
+        min_length=1,
+        max_length=200,
+        description="Description of the security (e.g., 'AAPL - Apple Inc.')"
+    )
+    ticker_symbol: Optional[str] = Field(None, max_length=20, pattern=r'^[A-Z0-9\.\-]*$')
+    cusip: Optional[str] = Field(None, pattern=r'^[A-Z0-9]{9}$', description="9-character CUSIP")
 
-    date_acquired: str = Field(..., description="Date acquired (YYYY-MM-DD or 'VARIOUS')")
-    date_sold: str = Field(..., description="Date sold (YYYY-MM-DD)")
+    date_acquired: str = Field(
+        ...,
+        pattern=r'^(\d{4}-\d{2}-\d{2}|VARIOUS)$',
+        description="Date acquired (YYYY-MM-DD or 'VARIOUS')"
+    )
+    date_sold: str = Field(
+        ...,
+        pattern=r'^\d{4}-\d{2}-\d{2}$',
+        description="Date sold (YYYY-MM-DD)"
+    )
 
-    proceeds: float = Field(..., ge=0, description="Sales proceeds")
-    cost_basis: float = Field(..., ge=0, description="Cost basis")
+    proceeds: float = Field(..., ge=0, le=1_000_000_000, description="Sales proceeds (max $1B)")
+    cost_basis: float = Field(..., ge=0, le=1_000_000_000, description="Cost basis (max $1B)")
 
-    shares_sold: Optional[float] = Field(default=None, description="Number of shares sold")
+    shares_sold: Optional[float] = Field(default=None, ge=0, le=1_000_000_000, description="Number of shares sold")
 
     # Adjustments
-    adjustment_codes: Optional[List[str]] = Field(default=None, description="Adjustment codes (W, B, H, etc.)")
-    adjustment_amount: Optional[float] = Field(default=None, description="Adjustment amount")
-    adjustment_description: Optional[str] = None
+    adjustment_codes: Optional[List[str]] = Field(
+        default=None,
+        max_length=10,
+        description="Adjustment codes (W, B, H, etc.)"
+    )
+    adjustment_amount: Optional[float] = Field(default=None, ge=-1_000_000_000, le=1_000_000_000)
+    adjustment_description: Optional[str] = Field(None, max_length=500)
 
     # 1099-B reporting
     reported_on_1099b: bool = Field(default=True, description="Was this reported on 1099-B?")
@@ -78,11 +99,37 @@ class TransactionInput(BaseModel):
 
     # Wash sale
     is_wash_sale: bool = Field(default=False, description="Is this a wash sale?")
-    wash_sale_disallowed_loss: Optional[float] = Field(default=None)
+    wash_sale_disallowed_loss: Optional[float] = Field(default=None, ge=0, le=1_000_000_000)
 
     # Special situations
     acquired_from_inheritance: bool = Field(default=False)
     acquired_from_gift: bool = Field(default=False)
+
+    @field_validator('security_description', 'adjustment_description')
+    @classmethod
+    def sanitize_descriptions(cls, v):
+        """Sanitize description fields to prevent XSS."""
+        if v is None:
+            return v
+        import re
+        # Check for XSS patterns
+        if re.search(r'<script|javascript:|onerror=|onclick=', v, re.IGNORECASE):
+            raise ValueError("Description contains invalid content")
+        return v.strip()
+
+    @field_validator('adjustment_codes')
+    @classmethod
+    def validate_adjustment_codes(cls, v):
+        """Validate adjustment codes are valid IRS codes."""
+        if v is None:
+            return v
+        valid_codes = {'W', 'B', 'C', 'D', 'E', 'H', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'X'}
+        sanitized = []
+        for code in v:
+            code_upper = str(code).upper().strip()
+            if code_upper in valid_codes:
+                sanitized.append(code_upper)
+        return sanitized if sanitized else None
 
 
 class TransactionResponse(BaseModel):
@@ -260,10 +307,11 @@ async def add_transaction(
         )
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid data: {str(e)}")
+        logger.warning(f"Invalid transaction data: {e}")
+        raise HTTPException(status_code=400, detail="Invalid transaction data. Please check dates and amounts.")
     except Exception as e:
-        logger.error(f"Error adding transaction: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error adding transaction: {e}")
+        raise HTTPException(status_code=500, detail="Failed to add transaction. Please try again.")
 
 
 @router.get("/session/{session_id}/transactions", response_model=List[TransactionResponse])
@@ -468,17 +516,31 @@ async def get_schedule_d_amounts(session_id: str):
     }
 
 
+class Add1099BRequest(BaseModel):
+    """Request model for adding a 1099-B form."""
+    broker_name: str = Field(..., min_length=1, max_length=200, description="Broker name")
+    broker_ein: Optional[str] = Field(None, pattern=r'^\d{2}-\d{7}$', description="Broker EIN (XX-XXXXXXX)")
+    short_term_proceeds: float = Field(default=0, ge=0, le=1_000_000_000)
+    short_term_cost: float = Field(default=0, ge=0, le=1_000_000_000)
+    long_term_proceeds: float = Field(default=0, ge=0, le=1_000_000_000)
+    long_term_cost: float = Field(default=0, ge=0, le=1_000_000_000)
+    wash_sale_loss: Optional[float] = Field(None, ge=0, le=1_000_000_000)
+    federal_tax_withheld: Optional[float] = Field(None, ge=0, le=1_000_000_000)
+
+    @field_validator('broker_name')
+    @classmethod
+    def sanitize_broker_name(cls, v):
+        """Sanitize broker name to prevent XSS."""
+        import re
+        if re.search(r'<script|javascript:|onerror=', v, re.IGNORECASE):
+            raise ValueError("Broker name contains invalid content")
+        return v.strip()
+
+
 @router.post("/session/{session_id}/add-1099b")
 async def add_1099b(
     session_id: str,
-    broker_name: str = Body(...),
-    broker_ein: Optional[str] = Body(None),
-    short_term_proceeds: float = Body(0),
-    short_term_cost: float = Body(0),
-    long_term_proceeds: float = Body(0),
-    long_term_cost: float = Body(0),
-    wash_sale_loss: Optional[float] = Body(None),
-    federal_tax_withheld: Optional[float] = Body(None)
+    request: Add1099BRequest
 ):
     """
     Add a 1099-B form to the session portfolio.
@@ -491,14 +553,14 @@ async def add_1099b(
 
     try:
         form_1099b = Form1099B(
-            broker_name=broker_name,
-            broker_ein=broker_ein,
-            short_term_covered_proceeds=Decimal(str(short_term_proceeds)),
-            short_term_covered_cost=Decimal(str(short_term_cost)),
-            long_term_covered_proceeds=Decimal(str(long_term_proceeds)),
-            long_term_covered_cost=Decimal(str(long_term_cost)),
-            wash_sale_loss=Decimal(str(wash_sale_loss)) if wash_sale_loss else Decimal("0"),
-            federal_tax_withheld=Decimal(str(federal_tax_withheld)) if federal_tax_withheld else Decimal("0")
+            broker_name=request.broker_name,
+            broker_ein=request.broker_ein,
+            short_term_covered_proceeds=Decimal(str(request.short_term_proceeds)),
+            short_term_covered_cost=Decimal(str(request.short_term_cost)),
+            long_term_covered_proceeds=Decimal(str(request.long_term_proceeds)),
+            long_term_covered_cost=Decimal(str(request.long_term_cost)),
+            wash_sale_loss=Decimal(str(request.wash_sale_loss)) if request.wash_sale_loss else Decimal("0"),
+            federal_tax_withheld=Decimal(str(request.federal_tax_withheld)) if request.federal_tax_withheld else Decimal("0")
         )
 
         portfolio = get_or_create_portfolio(session_id)
@@ -526,8 +588,8 @@ async def add_1099b(
         }
 
     except Exception as e:
-        logger.error(f"Error adding 1099-B: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error adding 1099-B: {e}")
+        raise HTTPException(status_code=500, detail="Failed to add 1099-B form. Please check your input data.")
 
 
 @router.post("/session/{session_id}/set-carryforward")

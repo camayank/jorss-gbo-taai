@@ -425,22 +425,86 @@ def process_document_bytes_task(
         raise
 
 
-def _send_callback(url: str, result: Dict[str, Any]) -> None:
-    """Send callback notification when processing completes."""
-    try:
-        import requests
+def _send_callback(
+    url: str,
+    result: Dict[str, Any],
+    max_retries: int = 3,
+    retry_delay: float = 1.0,
+) -> bool:
+    """
+    Send callback notification when processing completes.
 
-        response = requests.post(
-            url,
-            json=result,
-            headers={"Content-Type": "application/json"},
-            timeout=10,
-        )
-        response.raise_for_status()
-        logger.info(f"Callback sent successfully to {url}")
+    SECURITY FIX: Added retry logic with exponential backoff for transient failures.
 
-    except Exception as e:
-        logger.warning(f"Failed to send callback to {url}: {e}")
+    Args:
+        url: Callback URL to send result to
+        result: Processing result dict
+        max_retries: Maximum retry attempts (default: 3)
+        retry_delay: Initial delay between retries in seconds (default: 1.0)
+
+    Returns:
+        True if callback was sent successfully, False otherwise
+    """
+    import requests
+    import time
+
+    last_error = None
+
+    for attempt in range(max_retries):
+        try:
+            response = requests.post(
+                url,
+                json=result,
+                headers={
+                    "Content-Type": "application/json",
+                    "User-Agent": "TaxPlatform-OCR/1.0",
+                },
+                timeout=10,
+            )
+            response.raise_for_status()
+            logger.info(f"Callback sent successfully to {url}")
+            return True
+
+        except requests.exceptions.Timeout as e:
+            last_error = e
+            logger.warning(
+                f"Callback timeout to {url} (attempt {attempt + 1}/{max_retries}): {e}"
+            )
+        except requests.exceptions.ConnectionError as e:
+            last_error = e
+            logger.warning(
+                f"Callback connection error to {url} (attempt {attempt + 1}/{max_retries}): {e}"
+            )
+        except requests.exceptions.HTTPError as e:
+            # Don't retry on 4xx client errors (except 429 rate limit)
+            if e.response is not None and 400 <= e.response.status_code < 500:
+                if e.response.status_code == 429:
+                    # Rate limited - wait longer before retry
+                    retry_after = int(e.response.headers.get("Retry-After", retry_delay * 5))
+                    logger.warning(f"Callback rate limited, waiting {retry_after}s")
+                    time.sleep(retry_after)
+                    continue
+                else:
+                    logger.error(f"Callback client error to {url}: {e}")
+                    return False
+            last_error = e
+            logger.warning(
+                f"Callback HTTP error to {url} (attempt {attempt + 1}/{max_retries}): {e}"
+            )
+        except Exception as e:
+            last_error = e
+            logger.warning(
+                f"Callback failed to {url} (attempt {attempt + 1}/{max_retries}): {e}"
+            )
+
+        # Exponential backoff between retries
+        if attempt < max_retries - 1:
+            sleep_time = retry_delay * (2 ** attempt)
+            logger.debug(f"Waiting {sleep_time}s before retry")
+            time.sleep(sleep_time)
+
+    logger.error(f"Callback to {url} failed after {max_retries} attempts: {last_error}")
+    return False
 
 
 def get_task_status(task_id: str) -> Dict[str, Any]:

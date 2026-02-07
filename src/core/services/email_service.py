@@ -49,13 +49,43 @@ class EmailConfig:
     APP_URL = os.environ.get("APP_URL", "http://localhost:8000")
     APP_NAME = os.environ.get("APP_NAME", "Tax Advisor")
 
-    # Mode (smtp, mock)
-    EMAIL_MODE = os.environ.get("EMAIL_MODE", "mock")
+    # Mode (smtp, mock, auto)
+    # SECURITY: In production, defaults to 'smtp' if configured, 'mock' otherwise with warning
+    _EMAIL_MODE_RAW = os.environ.get("EMAIL_MODE", "auto")
 
     @classmethod
     def is_smtp_configured(cls) -> bool:
         """Check if SMTP is configured."""
         return bool(cls.SMTP_USERNAME and cls.SMTP_PASSWORD)
+
+    @classmethod
+    def get_email_mode(cls) -> str:
+        """
+        Get email mode with safe defaults.
+
+        - If EMAIL_MODE is explicitly set, use that
+        - If 'auto' (default): use 'smtp' if configured, 'mock' with warning otherwise
+        """
+        if cls._EMAIL_MODE_RAW != "auto":
+            return cls._EMAIL_MODE_RAW
+
+        # Auto-detect mode
+        if cls.is_smtp_configured():
+            return "smtp"
+
+        # SECURITY: Warn in production if emails will be mocked
+        env = os.environ.get("APP_ENVIRONMENT", "development")
+        if env.lower() in ("production", "prod", "staging"):
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                "[SECURITY] EMAIL_MODE not set and SMTP not configured. "
+                "Emails will be MOCKED in production! Set EMAIL_MODE=smtp and configure SMTP."
+            )
+        return "mock"
+
+    # For backwards compatibility
+    EMAIL_MODE = _EMAIL_MODE_RAW  # Use get_email_mode() for safe access
 
 
 # =============================================================================
@@ -121,8 +151,12 @@ class SMTPEmailBackend(EmailBackend):
     def __init__(self, config: EmailConfig = None):
         self.config = config or EmailConfig()
 
+    # SECURITY FIX: Add timeout for SMTP connections
+    # Email sends should complete within 30 seconds
+    SMTP_TIMEOUT = 30
+
     async def send(self, message: EmailMessage) -> EmailResult:
-        """Send email via SMTP."""
+        """Send email via SMTP with timeout and error handling."""
         try:
             # Create message
             msg = MIMEMultipart("alternative")
@@ -142,8 +176,8 @@ class SMTPEmailBackend(EmailBackend):
                 msg.attach(MIMEText(message.text_body, "plain"))
             msg.attach(MIMEText(message.html_body, "html"))
 
-            # Send via SMTP
-            with smtplib.SMTP(self.config.SMTP_HOST, self.config.SMTP_PORT) as server:
+            # Send via SMTP with timeout
+            with smtplib.SMTP(self.config.SMTP_HOST, self.config.SMTP_PORT, timeout=self.SMTP_TIMEOUT) as server:
                 if self.config.SMTP_USE_TLS:
                     server.starttls()
                 if self.config.SMTP_USERNAME:
@@ -162,6 +196,30 @@ class SMTPEmailBackend(EmailBackend):
                 message_id=message_id
             )
 
+        except smtplib.SMTPServerDisconnected as e:
+            logger.error(f"SMTP server disconnected while sending to {message.to}: {e}")
+            return EmailResult(
+                success=False,
+                error=f"Email server disconnected: {e}"
+            )
+        except smtplib.SMTPAuthenticationError as e:
+            logger.error(f"SMTP authentication failed: {e}")
+            return EmailResult(
+                success=False,
+                error="Email authentication failed. Check SMTP credentials."
+            )
+        except smtplib.SMTPRecipientsRefused as e:
+            logger.error(f"SMTP recipients refused for {message.to}: {e}")
+            return EmailResult(
+                success=False,
+                error=f"Recipient refused: {message.to}"
+            )
+        except TimeoutError as e:
+            logger.error(f"SMTP timeout sending to {message.to}: {e}")
+            return EmailResult(
+                success=False,
+                error="Email send timed out. Please try again."
+            )
         except Exception as e:
             logger.error(f"Failed to send email to {message.to}: {e}")
             return EmailResult(
@@ -188,13 +246,14 @@ class EmailService:
     def __init__(self, config: EmailConfig = None):
         self.config = config or EmailConfig()
 
-        # Select backend based on mode
-        if self.config.EMAIL_MODE == "smtp" and self.config.is_smtp_configured():
+        # Select backend based on mode (use get_email_mode for safe defaults)
+        email_mode = self.config.get_email_mode()
+        if email_mode == "smtp" and self.config.is_smtp_configured():
             self._backend = SMTPEmailBackend(self.config)
             logger.info("Email service initialized with SMTP backend")
         else:
             self._backend = MockEmailBackend()
-            logger.info("Email service initialized with MOCK backend")
+            logger.info(f"Email service initialized with MOCK backend (mode={email_mode})")
 
     async def send_password_reset_email(
         self,

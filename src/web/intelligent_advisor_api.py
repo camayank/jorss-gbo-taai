@@ -5316,10 +5316,10 @@ async def get_session_pdf(
         )
 
     except Exception as e:
-        logger.error(f"PDF generation failed for session {session_id}: {e}")
+        logger.exception(f"PDF generation failed for session {session_id}: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to generate PDF: {str(e)}"
+            detail="Failed to generate PDF report. Please try again."
         )
 
 
@@ -5389,10 +5389,10 @@ async def generate_session_pdf(session_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to generate PDF for session {session_id}: {e}")
+        logger.exception(f"Failed to generate PDF for session {session_id}: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to generate report: {str(e)}"
+            detail="Failed to generate report. Please try again."
         )
 
 
@@ -5488,10 +5488,10 @@ async def generate_universal_report(request: UniversalReportRequest):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Universal report generation failed: {e}", exc_info=True)
+        logger.exception(f"Universal report generation failed: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to generate report: {str(e)}"
+            detail="Failed to generate report. Please try again."
         )
 
 
@@ -5558,8 +5558,8 @@ async def get_universal_report_html(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Universal report HTML failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Universal report HTML failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate HTML report. Please try again.")
 
 
 @router.get("/universal-report/{session_id}/pdf")
@@ -5636,8 +5636,8 @@ async def get_universal_report_pdf(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Universal report PDF failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Universal report PDF failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate PDF report. Please try again.")
 
 
 # =============================================================================

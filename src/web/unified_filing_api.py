@@ -211,6 +211,10 @@ class UploadDocumentResponse(BaseModel):
     warnings: List[str] = []
 
 
+# File upload validation - use shared utility
+from web.helpers.file_validation import validate_uploaded_file, MAX_FILE_SIZE
+
+
 @router.post("/sessions/{session_id}/upload", response_model=UploadDocumentResponse)
 async def upload_document(
     session_id: str,
@@ -234,11 +238,14 @@ async def upload_document(
         raise HTTPException(403, "Access denied")
 
     try:
+        # Read and validate file
+        content = await file.read()
+        validate_uploaded_file(file, content)
+
         # Process document with OCR
         from src.services.ocr.ocr_engine import OCREngine
 
         ocr = OCREngine()
-        content = await file.read()
 
         # Process bytes
         result = ocr.process_bytes(content, file.filename)

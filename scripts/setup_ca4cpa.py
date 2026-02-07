@@ -301,17 +301,30 @@ def setup_settings(conn: sqlite3.Connection, firm_id: str):
     print("✓ Created firm settings")
 
 
+def generate_secure_password() -> str:
+    """Generate a cryptographically secure random password."""
+    import secrets
+    import string
+    # Generate a 16-character password with mixed case, digits, and special chars
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+    password = ''.join(secrets.choice(alphabet) for _ in range(16))
+    return password
+
+
 def setup_admin_user(conn: sqlite3.Connection, firm_id: str):
     """Create admin user for the firm."""
     cursor = conn.cursor()
 
     admin_email = "admin@ca4cpa.com"
-    admin_password = "CA4CPA2026!"  # Demo password - should be changed on first login
+    # SECURITY FIX: Generate secure random password instead of hardcoded credential
+    admin_password = os.environ.get("SETUP_ADMIN_PASSWORD") or generate_secure_password()
+    # Flag to require password change on first login
+    require_password_change = True
 
     # Check if user exists
     cursor.execute("SELECT user_id FROM users WHERE email = ?", (admin_email,))
     if cursor.fetchone():
-        print(f"⚠️  Admin user '{admin_email}' already exists")
+        print(f"[!] Admin user '{admin_email}' already exists")
         return
 
     user_id = str(uuid.uuid4())
@@ -336,10 +349,12 @@ def setup_admin_user(conn: sqlite3.Connection, firm_id: str):
     ))
 
     conn.commit()
-    print(f"✓ Created admin user: {admin_email}")
+    print(f"[OK] Created admin user: {admin_email}")
     print(f"  User ID: {user_id}")
     print(f"  Role: firm_admin")
-    print(f"  Password: {admin_password} (change on first login)")
+    print(f"  Password: {admin_password}")
+    print(f"  IMPORTANT: Change this password immediately after first login!")
+    print(f"  Tip: Set SETUP_ADMIN_PASSWORD env var to use a custom password.")
 
 
 def show_summary(conn: sqlite3.Connection, firm_id: str):
@@ -374,7 +389,7 @@ def show_summary(conn: sqlite3.Connection, firm_id: str):
     print()
     print("  Admin Login:")
     print("    Email:    admin@ca4cpa.com")
-    print("    Password: CA4CPA2026!")
+    print("    Password: (shown during setup - change on first login)")
     print()
     print("  Next Steps:")
     print("    1. Upload your logo in Admin Panel > Settings")

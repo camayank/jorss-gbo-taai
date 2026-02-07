@@ -33,14 +33,21 @@ router = APIRouter(prefix="/payment-settings", tags=["CPA Payment Settings"])
 # =============================================================================
 
 def get_stripe_config():
-    """Get Stripe configuration from environment."""
+    """Get Stripe configuration from environment.
+
+    IMPORTANT: In production, ensure STRIPE_CONNECT_REDIRECT_URI is set
+    to your actual callback URL. The localhost default is for development only.
+    """
+    # Get base URL from environment for building callback URL
+    app_base_url = os.environ.get("APP_URL", os.environ.get("BASE_URL", "http://localhost:8000"))
+
     return {
         "client_id": os.environ.get("STRIPE_CLIENT_ID"),
         "secret_key": os.environ.get("STRIPE_SECRET_KEY"),
         "publishable_key": os.environ.get("STRIPE_PUBLISHABLE_KEY"),
         "connect_redirect_uri": os.environ.get(
             "STRIPE_CONNECT_REDIRECT_URI",
-            "http://localhost:8000/api/cpa/payment-settings/stripe/callback"
+            f"{app_base_url}/api/cpa/payment-settings/stripe/callback"
         ),
     }
 
@@ -314,7 +321,11 @@ async def stripe_connect_callback(
     try:
         import httpx
 
-        async with httpx.AsyncClient() as client:
+        # SECURITY FIX: Add timeout to prevent hanging requests
+        # Stripe OAuth token exchanges should complete within 30 seconds
+        STRIPE_OAUTH_TIMEOUT = 30.0
+
+        async with httpx.AsyncClient(timeout=httpx.Timeout(STRIPE_OAUTH_TIMEOUT, connect=10.0)) as client:
             response = await client.post(
                 "https://connect.stripe.com/oauth/token",
                 data={
@@ -334,6 +345,25 @@ async def stripe_connect_callback(
             token_data = response.json()
             stripe_account_id = token_data.get("stripe_user_id")
 
+            if not stripe_account_id:
+                logger.error("Stripe token response missing stripe_user_id")
+                return RedirectResponse(
+                    url="/cpa/settings/payments?error=invalid_response",
+                    status_code=302,
+                )
+
+    except httpx.TimeoutException:
+        logger.error("Stripe OAuth request timed out")
+        return RedirectResponse(
+            url="/cpa/settings/payments?error=timeout",
+            status_code=302,
+        )
+    except httpx.ConnectError as e:
+        logger.error(f"Stripe OAuth connection error: {e}")
+        return RedirectResponse(
+            url="/cpa/settings/payments?error=connection_failed",
+            status_code=302,
+        )
     except ImportError:
         # httpx not available, simulate for development
         stripe_account_id = f"acct_demo_{uuid4().hex[:12]}"

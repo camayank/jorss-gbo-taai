@@ -403,8 +403,84 @@
         color: white;
     }
 
-    .btn-primary:hover {
+    .btn-primary:hover:not(:disabled) {
         background: var(--color-primary-700);
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+
+    .btn-loading .btn-spinner {
+        display: inline-block;
+    }
+
+    .btn-loading .btn-text {
+        display: none;
+    }
+
+    .btn-spinner {
+        display: none;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Form validation styles */
+    .form-input.error,
+    .form-textarea.error {
+        border-color: var(--color-error-500);
+    }
+
+    .form-error-text {
+        color: var(--color-error-600);
+        font-size: var(--text-xs);
+        margin-top: var(--space-1);
+        display: none;
+    }
+
+    .form-error-text.show {
+        display: block;
+    }
+
+    /* Alert styles */
+    .form-alert {
+        padding: var(--space-3) var(--space-4);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-4);
+        display: none;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .form-alert.show {
+        display: flex;
+    }
+
+    .form-alert-error {
+        background: var(--color-error-50);
+        color: var(--color-error-700);
+        border: 1px solid var(--color-error-200);
+    }
+
+    .form-alert-success {
+        background: var(--color-success-50);
+        color: var(--color-success-700);
+        border: 1px solid var(--color-success-200);
+    }
+
+    .form-alert svg {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
     }
 
     .btn-secondary {
@@ -457,7 +533,26 @@
         <h1 class="page-title">Create Support Ticket</h1>
     </div>
 
-    <form class="form-card" action="/support/create" method="POST" enctype="multipart/form-data">
+    <form class="form-card" id="support-form" action="/support/create" method="POST" enctype="multipart/form-data" novalidate>
+        <!-- Alert Messages -->
+        <div class="form-section" style="border-bottom: none; padding-bottom: 0;">
+            <div class="form-alert form-alert-error" id="form-error" role="alert">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+                <span id="form-error-message">Please fill in all required fields.</span>
+            </div>
+            <div class="form-alert form-alert-success" id="form-success" role="alert">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <span>Your support ticket has been submitted successfully!</span>
+            </div>
+        </div>
+
         <!-- Category Selection -->
         <div class="form-section">
             <h2 class="section-title">What do you need help with?</h2>

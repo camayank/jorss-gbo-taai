@@ -175,9 +175,10 @@ async def register_preparer(request_data: PreparerRegisterRequest):
         return response
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning(f"Invalid preparer registration data: {e}")
+        raise HTTPException(status_code=400, detail="Invalid registration data. Please check your inputs.")
     except Exception as e:
-        logger.error(f"Register preparer error: {e}")
+        logger.exception(f"Register preparer error: {e}")
         raise HTTPException(status_code=500, detail="Failed to register preparer")
 
 
@@ -242,9 +243,10 @@ async def update_preparer_branding(request: Request, request_data: PreparerBrand
         })
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning(f"Invalid branding update data: {e}")
+        raise HTTPException(status_code=400, detail="Invalid branding data. Please check your inputs.")
     except Exception as e:
-        logger.error(f"Update branding error: {e}")
+        logger.exception(f"Update branding error: {e}")
         raise HTTPException(status_code=500, detail="Failed to update branding")
 
 
@@ -284,9 +286,10 @@ async def create_client(request: Request, request_data: ClientCreateRequest):
         })
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning(f"Invalid client data: {e}")
+        raise HTTPException(status_code=400, detail="Invalid client data. Please check your inputs.")
     except Exception as e:
-        logger.error(f"Create client error: {e}")
+        logger.exception(f"Create client error: {e}")
         raise HTTPException(status_code=500, detail="Failed to create client")
 
 
@@ -412,11 +415,12 @@ async def update_client(request: Request, client_id: str, request_data: ClientUp
         })
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning(f"Invalid client update data: {e}")
+        raise HTTPException(status_code=400, detail="Invalid client update data. Please check your inputs.")
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Update client error: {e}")
+        logger.exception(f"Update client error: {e}")
         raise HTTPException(status_code=500, detail="Failed to update client")
 
 
@@ -491,11 +495,12 @@ async def create_session(request: Request, request_data: SessionCreateRequest):
         })
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning(f"Invalid session data: {e}")
+        raise HTTPException(status_code=400, detail="Invalid session data. Please check your inputs.")
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Create session error: {e}")
+        logger.exception(f"Create session error: {e}")
         raise HTTPException(status_code=500, detail="Failed to create session")
 
 
@@ -578,11 +583,12 @@ async def update_session_status(request: Request, session_id: str, request_data:
         })
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning(f"Invalid session status update: {e}")
+        raise HTTPException(status_code=400, detail="Invalid session status data.")
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Update session status error: {e}")
+        logger.exception(f"Update session status error: {e}")
         raise HTTPException(status_code=500, detail="Failed to update session status")
 
 
@@ -621,11 +627,12 @@ async def duplicate_prior_year(request: Request, request_data: DuplicateYearRequ
         })
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning(f"Invalid duplicate year request: {e}")
+        raise HTTPException(status_code=400, detail="Invalid duplicate year data.")
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Duplicate year error: {e}")
+        logger.exception(f"Duplicate year error: {e}")
         raise HTTPException(status_code=500, detail="Failed to duplicate year")
 
 

@@ -16,7 +16,7 @@ import tempfile
 from typing import Dict, Any, List, Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends, Query
 from pydantic import BaseModel, Field
 
 from smart_tax import (
@@ -120,9 +120,13 @@ def get_orchestrator() -> SmartTaxOrchestrator:
 
 class CreateSessionRequest(BaseModel):
     """Request to create a new Smart Tax session."""
-    filing_status: str = Field(default="single", description="Filing status")
-    num_dependents: int = Field(default=0, ge=0, description="Number of dependents")
-    tax_year: int = Field(default=2024, description="Tax year")
+    filing_status: str = Field(
+        default="single",
+        pattern=r'^(single|married_joint|married_separate|head_of_household|qualifying_widow)$',
+        description="Filing status"
+    )
+    num_dependents: int = Field(default=0, ge=0, le=20, description="Number of dependents (max 20)")
+    tax_year: int = Field(default=2024, ge=2020, le=2030, description="Tax year (2020-2030)")
 
 
 class CreateSessionResponse(BaseModel):
@@ -161,10 +165,13 @@ class AnswerQuestionRequest(BaseModel):
 
 class QuickEstimateRequest(BaseModel):
     """Request for quick estimate from W-2 data."""
-    wages: float
-    federal_withheld: float
-    filing_status: str = "single"
-    num_dependents: int = 0
+    wages: float = Field(..., ge=0, le=100_000_000, description="Annual wages (max $100M)")
+    federal_withheld: float = Field(..., ge=0, le=50_000_000, description="Federal tax withheld (max $50M)")
+    filing_status: str = Field(
+        default="single",
+        pattern=r'^(single|married_joint|married_separate|head_of_household|qualifying_widow)$'
+    )
+    num_dependents: int = Field(default=0, ge=0, le=20)
 
 
 class ComplexityAssessmentRequest(BaseModel):
@@ -331,7 +338,8 @@ async def upload_document(
     try:
         file_content = await file.read()
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to read file: {str(e)}")
+        logger.warning(f"Failed to read uploaded file: {e}")
+        raise HTTPException(status_code=400, detail="Failed to read the uploaded file. Please try again.")
 
     # Run OCR
     try:
@@ -339,13 +347,14 @@ async def upload_document(
         mime_type = content_type if content_type else f"image/{file_ext.lstrip('.')}"
         ocr_result = ocr_engine.process_bytes(file_content, mime_type)
     except OCREngineError as e:
+        logger.warning(f"OCR engine not available: {e}")
         raise HTTPException(
             status_code=503,
-            detail=f"OCR engine not available: {str(e)}"
+            detail="OCR engine is temporarily unavailable. Please try again later."
         )
     except Exception as e:
-        logger.error(f"OCR processing failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"OCR processing failed: {str(e)}")
+        logger.exception(f"OCR processing failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Document processing failed. Please ensure the image is clear.")
 
     # Check if OCR was successful
     if not ocr_result.raw_text or ocr_result.confidence < 10:
@@ -668,7 +677,7 @@ async def get_flow_config():
 @router.get("/sessions/{session_id}/generated-questions")
 async def get_generated_questions(
     session_id: str,
-    max_questions: int = 10,
+    max_questions: int = Query(default=10, ge=1, le=50, description="Maximum questions to return (1-50)"),
 ):
     """
     Get AI-generated adaptive questions based on the tax situation.
@@ -789,7 +798,7 @@ async def analyze_deductions_standalone(
 @router.get("/sessions/{session_id}/planning")
 async def get_planning_insights(
     session_id: str,
-    age: int = 35,
+    age: int = Query(default=35, ge=1, le=130, description="Taxpayer age (1-130)"),
 ):
     """
     Get proactive tax planning insights and recommendations.
@@ -864,8 +873,8 @@ async def generate_planning_report_standalone(
 @router.get("/sessions/{session_id}/intelligence")
 async def get_full_intelligence(
     session_id: str,
-    age: int = 35,
-    max_questions: int = 5,
+    age: int = Query(default=35, ge=1, le=130, description="Taxpayer age (1-130)"),
+    max_questions: int = Query(default=5, ge=1, le=50, description="Maximum questions to return (1-50)"),
 ):
     """
     Get complete AI intelligence for a session.

@@ -194,7 +194,22 @@ app.add_middleware(
     allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["*"],
+    # SECURITY: Explicitly list allowed headers instead of wildcard
+    # This prevents potential header injection attacks
+    allow_headers=[
+        "Accept",
+        "Accept-Language",
+        "Authorization",
+        "Content-Type",
+        "Content-Length",
+        "Origin",
+        "X-Requested-With",
+        "X-CSRF-Token",
+        "X-Request-ID",
+        "X-Correlation-ID",
+        "X-Tenant-ID",
+        "X-Impersonation-Token",
+    ],
     expose_headers=["X-Request-ID", "X-Correlation-ID"],
 )
 logger.info(f"CORS middleware enabled for {len(cors_origins)} origin(s) [env={_environment}]")
@@ -2272,7 +2287,8 @@ async def upload_document(
     try:
         content = await file.read()
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to read file: {str(e)}")
+        logger.warning(f"Failed to read uploaded file: {e}")
+        raise HTTPException(status_code=400, detail="Failed to read the uploaded file. Please try again with a different file.")
 
     # Process document with OCR
     try:
@@ -2284,7 +2300,8 @@ async def upload_document(
             tax_year=tax_year,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"OCR processing failed: {str(e)}")
+        logger.exception(f"OCR processing failed: {e}")
+        raise HTTPException(status_code=500, detail="Document processing failed. Please ensure the file is a clear image or PDF.")
 
     # C3: Store document result in database (not in-memory)
     doc_id = str(result.document_id)
@@ -2472,11 +2489,13 @@ async def upload_document_async(
             return json_response
         except Exception as e:
             persistence.delete_document(document_id)
-            raise HTTPException(status_code=500, detail=f"OCR processing failed: {str(e)}")
+            logger.exception(f"OCR processing failed for document {document_id}: {e}")
+            raise HTTPException(status_code=500, detail="Document processing failed. Please ensure the file is a valid document.")
 
     except Exception as e:
         persistence.delete_document(document_id)
-        raise HTTPException(status_code=500, detail=f"Failed to submit document for processing: {str(e)}")
+        logger.exception(f"Failed to submit document {document_id} for processing: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process document. Please try again later.")
 
 
 @app.get("/api/upload/status/{task_id}")
@@ -2524,8 +2543,8 @@ async def get_upload_status(task_id: str, request: Request):
             detail="Async processing not available. Use synchronous /api/upload endpoint."
         )
     except Exception as e:
-        logger.error(f"Error getting task status: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get task status: {str(e)}")
+        logger.exception(f"Error getting task status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get task status. Please try again.")
 
 
 @app.get("/api/documents/{document_id}/status")
@@ -2688,8 +2707,8 @@ async def cancel_upload_task(task_id: str, request: Request):
             detail="Async processing not available."
         )
     except Exception as e:
-        logger.error(f"Error cancelling task: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to cancel task: {str(e)}")
+        logger.exception(f"Error cancelling task: {e}")
+        raise HTTPException(status_code=500, detail="Failed to cancel task. Please try again.")
 
 
 @app.get("/api/documents")
@@ -3987,12 +4006,15 @@ async def calculate_tax_advisory(request: Request):
 
 
 @app.post("/api/leads/create")
+@rate_limit(max_requests=10, window_seconds=60)  # SECURITY: Rate limit lead creation to prevent abuse
 async def create_lead(request: Request):
     """
     Create a new lead from the intelligent advisor chatbot.
 
     This endpoint captures qualified leads for CPA follow-up.
     Leads include contact info, tax profile, and estimated savings.
+
+    SECURITY: Rate limited to 10 requests per minute per IP to prevent spam/abuse.
     """
     try:
         body = await request.json()
@@ -4188,8 +4210,8 @@ async def export_pdf(request: Request, session_id: str = None):
             }
         )
     except Exception as e:
-        logger.error(f"PDF generation failed: {e}")
-        raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
+        logger.exception(f"PDF generation failed: {e}")
+        raise HTTPException(status_code=500, detail="PDF generation failed. Please try again later.")
 
 
 @app.get("/api/export/json")
@@ -4512,11 +4534,14 @@ async def root_health_check():
 
 @app.post("/api/returns/save")
 @require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
+@rate_limit(max_requests=30, window_seconds=60)  # SECURITY: Rate limit save operations
 async def save_tax_return(request: Request):
     """
     Save the current tax return to database.
 
     Returns the return_id for future retrieval.
+
+    SECURITY: Rate limited to 30 requests per minute to prevent abuse.
     """
     from database.persistence import save_tax_return as db_save
 
@@ -4575,18 +4600,41 @@ async def save_tax_return(request: Request):
 
 
 @app.get("/api/returns/{return_id}")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER, Role.ADMIN])
 async def get_saved_return(return_id: str, request: Request):
     """
     Load a saved tax return by ID.
 
     Restores the return to the current session.
+
+    SECURITY: Requires authentication and validates ownership/access rights.
     """
-    from database.persistence import load_tax_return as db_load
+    from database.persistence import load_tax_return as db_load, get_persistence
 
     return_data = db_load(return_id)
 
     if not return_data:
         raise HTTPException(status_code=404, detail="Tax return not found")
+
+    # SECURITY FIX: IDOR Protection - Verify user has access to this return
+    # Get user context from request state (set by @require_auth decorator)
+    user = getattr(request.state, 'user', None)
+    if user:
+        # Check if return belongs to user's session or tenant
+        return_session_id = return_data.get("session_id")
+        return_tenant_id = return_data.get("tenant_id")
+        current_session = request.cookies.get("tax_session_id")
+
+        # Admin can access all returns
+        is_admin = hasattr(user, 'role') and user.role in (Role.ADMIN, "admin")
+        # Check session ownership
+        is_owner = return_session_id and return_session_id == current_session
+        # Check tenant access (CPA accessing their client's returns)
+        is_tenant_member = return_tenant_id and hasattr(user, 'tenant_id') and user.tenant_id == return_tenant_id
+
+        if not (is_admin or is_owner or is_tenant_member):
+            logger.warning(f"IDOR attempt: User tried to access return {return_id} without authorization")
+            raise HTTPException(status_code=403, detail="Access denied")
 
     # Rebuild TaxReturn from saved data
     from models.tax_return import TaxReturn
@@ -4702,7 +4750,8 @@ async def get_saved_return(return_id: str, request: Request):
         return response
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error loading return: {str(e)}")
+        logger.exception(f"Error loading return: {e}")
+        raise HTTPException(status_code=500, detail="Failed to load tax return. Please try again.")
 
 
 @app.get("/api/returns")
@@ -4759,14 +4808,44 @@ async def list_saved_returns(
 
 @app.delete("/api/returns/{return_id}")
 @require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.ADMIN])
-async def delete_saved_return(return_id: str):
-    """Delete a saved tax return."""
-    from database.persistence import get_persistence
+async def delete_saved_return(return_id: str, request: Request):
+    """
+    Delete a saved tax return.
+
+    SECURITY: Requires authentication and validates ownership before deletion.
+    """
+    from database.persistence import get_persistence, load_tax_return as db_load
+
+    # SECURITY FIX: IDOR Protection - Verify user has access before deletion
+    return_data = db_load(return_id)
+    if not return_data:
+        raise HTTPException(status_code=404, detail="Tax return not found")
+
+    # Get user context from request state (set by @require_auth decorator)
+    user = getattr(request.state, 'user', None)
+    if user:
+        return_session_id = return_data.get("session_id")
+        return_tenant_id = return_data.get("tenant_id")
+        current_session = request.cookies.get("tax_session_id")
+
+        # Admin can delete any return
+        is_admin = hasattr(user, 'role') and user.role in (Role.ADMIN, "admin")
+        # Check session ownership
+        is_owner = return_session_id and return_session_id == current_session
+        # Check tenant access
+        is_tenant_member = return_tenant_id and hasattr(user, 'tenant_id') and user.tenant_id == return_tenant_id
+
+        if not (is_admin or is_owner or is_tenant_member):
+            logger.warning(f"IDOR attempt: User tried to delete return {return_id} without authorization")
+            raise HTTPException(status_code=403, detail="Access denied")
 
     deleted = get_persistence().delete_return(return_id)
 
     if not deleted:
         raise HTTPException(status_code=404, detail="Tax return not found")
+
+    # Log the deletion for audit trail
+    logger.info(f"Tax return {return_id} deleted by user")
 
     return JSONResponse({
         "success": True,
@@ -6463,8 +6542,8 @@ async def compare_entities(request_body: EntityComparisonRequest):
         return JSONResponse(response)
 
     except Exception as e:
-        logger.error(f"Entity comparison error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Entity comparison error: {e}")
+        raise HTTPException(status_code=500, detail="Entity comparison failed. Please check your input data.")
 
 
 @app.post("/api/entity-comparison/adjust-salary")
@@ -6515,8 +6594,8 @@ async def adjust_entity_salary(request_body: SalaryAdjustmentRequest):
         })
 
     except Exception as e:
-        logger.error(f"Salary adjustment error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Salary adjustment error: {e}")
+        raise HTTPException(status_code=500, detail="Salary adjustment calculation failed. Please try again.")
 
 
 # =============================================================================
@@ -6621,8 +6700,8 @@ async def analyze_retirement(request_body: RetirementAnalysisRequest, request: R
         })
 
     except Exception as e:
-        logger.error(f"Retirement analysis error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Retirement analysis error: {e}")
+        raise HTTPException(status_code=500, detail="Retirement analysis failed. Please check your input data.")
 
 
 # =============================================================================
@@ -6865,8 +6944,8 @@ async def apply_smart_insight(insight_id: str, request: Request):
         })
 
     except Exception as e:
-        logger.error(f"Apply insight error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Apply insight error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to apply insight. Please try again.")
 
 
 @app.post("/api/smart-insights/{insight_id}/dismiss")

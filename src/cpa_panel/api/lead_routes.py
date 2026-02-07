@@ -8,9 +8,10 @@ SECURITY: All lead endpoints validate tenant access to prevent
 cross-tenant data leakage.
 """
 
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends, status
 from fastapi.responses import JSONResponse
 from typing import Optional, List
+from pydantic import BaseModel, Field
 import logging
 
 from .common import get_tenant_id, get_lead_state_engine, log_and_raise_http_error
@@ -72,7 +73,10 @@ async def get_lead_details(lead_id: str, request: Request):
         lead = engine.get_lead(lead_id)
 
         if not lead:
-            raise HTTPException(status_code=404, detail=f"Lead not found: {lead_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Lead not found: {lead_id}"
+            )
 
         return JSONResponse({
             "success": True,
@@ -84,7 +88,7 @@ async def get_lead_details(lead_id: str, request: Request):
         log_and_raise_http_error(e, category="db", context=f"getting lead {lead_id}")
 
 
-@lead_router.post("/leads")
+@lead_router.post("/leads", status_code=status.HTTP_201_CREATED)
 async def create_lead(request: Request):
     """
     Create or get a lead for a session.
@@ -104,9 +108,15 @@ async def create_lead(request: Request):
     tenant_id = body.get("tenant_id") or get_tenant_id(request)
 
     if not lead_id:
-        raise HTTPException(status_code=400, detail="lead_id is required")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="lead_id is required"
+        )
     if not session_id:
-        raise HTTPException(status_code=400, detail="session_id is required")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="session_id is required"
+        )
 
     try:
         engine = get_engine()
@@ -159,7 +169,10 @@ async def process_signal(lead_id: str, request: Request):
     metadata = body.get("metadata", {})
 
     if not signal_id:
-        raise HTTPException(status_code=400, detail="signal_id is required")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="signal_id is required"
+        )
 
     try:
         engine = get_engine()
@@ -184,9 +197,15 @@ async def process_signal(lead_id: str, request: Request):
             "current_state": lead.current_state.name,
         })
     except ValueError as e:
-        raise HTTPException(status_code=400, detail="Invalid signal or lead data provided.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid signal or lead data provided."
+        )
     except TransitionError as e:
-        raise HTTPException(status_code=400, detail="Invalid state transition requested.")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid state transition requested."
+        )
     except Exception as e:
         log_and_raise_http_error(e, category="db", context="processing signal")
 
@@ -210,7 +229,10 @@ async def process_signals_batch(lead_id: str, request: Request):
     tenant_id = body.get("tenant_id") or get_tenant_id(request)
 
     if not signals:
-        raise HTTPException(status_code=400, detail="signals list is required")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="signals list is required"
+        )
 
     try:
         engine = get_engine()
@@ -359,7 +381,7 @@ async def get_leads_by_state(state: str, request: Request, limit: int = 50, offs
         valid_state = LeadState[state.upper()]
     except KeyError:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid state '{state}'. Must be one of: {', '.join(s.name for s in LeadState)}"
         )
 

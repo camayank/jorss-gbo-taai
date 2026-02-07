@@ -162,10 +162,11 @@ async def create_scenario(request_body: CreateScenarioRequest, request: Request)
         })
 
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        logger.warning(f"Invalid scenario creation request: {e}")
+        raise HTTPException(status_code=404, detail="Tax return not found. Please ensure the return exists.")
     except Exception as e:
-        logger.error(f"Error creating scenario: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error creating scenario: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create scenario. Please try again.")
 
 
 @router.get("")
@@ -285,10 +286,11 @@ async def calculate_scenario(scenario_id: str, request: Request):
         })
 
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        logger.warning(f"Scenario calculation validation error: {e}")
+        raise HTTPException(status_code=404, detail="Scenario or tax return not found.")
     except Exception as e:
-        logger.error(f"Error calculating scenario: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error calculating scenario: {e}")
+        raise HTTPException(status_code=500, detail="Failed to calculate scenario. Please try again.")
 
 
 @router.delete("/{scenario_id}")
@@ -338,10 +340,11 @@ async def compare_scenarios(request_body: CompareScenarioRequest, request: Reque
         return JSONResponse(comparison)
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning(f"Scenario comparison validation error: {e}")
+        raise HTTPException(status_code=400, detail="Invalid scenarios for comparison. Please check the scenario IDs.")
     except Exception as e:
-        logger.error(f"Error comparing scenarios: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error comparing scenarios: {e}")
+        raise HTTPException(status_code=500, detail="Failed to compare scenarios. Please try again.")
 
 
 @router.post("/filing-status")
@@ -396,10 +399,11 @@ async def generate_filing_status_scenarios(request_body: FilingStatusScenariosRe
         })
 
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        logger.warning(f"Filing status scenarios validation error: {e}")
+        raise HTTPException(status_code=404, detail="Tax return not found for filing status comparison.")
     except Exception as e:
-        logger.error(f"Error generating filing status scenarios: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error generating filing status scenarios: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate filing status scenarios. Please try again.")
 
 
 @router.post("/retirement")
@@ -448,10 +452,11 @@ async def generate_retirement_scenarios(request_body: RetirementScenariosRequest
         })
 
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        logger.warning(f"Retirement scenarios validation error: {e}")
+        raise HTTPException(status_code=404, detail="Tax return not found for retirement scenario analysis.")
     except Exception as e:
-        logger.error(f"Error generating retirement scenarios: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error generating retirement scenarios: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate retirement scenarios. Please try again.")
 
 
 @router.post("/what-if")
@@ -497,10 +502,11 @@ async def create_what_if_scenario(request_body: WhatIfScenarioRequest, request: 
         })
 
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        logger.warning(f"What-if scenario validation error: {e}")
+        raise HTTPException(status_code=404, detail="Tax return not found for what-if analysis.")
     except Exception as e:
-        logger.error(f"Error creating what-if scenario: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error creating what-if scenario: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create what-if scenario. Please try again.")
 
 
 @router.post("/{scenario_id}/apply")
@@ -533,7 +539,8 @@ async def apply_scenario(scenario_id: str, request_body: ApplyScenarioRequest, r
         })
 
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        logger.warning(f"Apply scenario validation error: {e}")
+        raise HTTPException(status_code=404, detail="Scenario not found or cannot be applied.")
     except Exception as e:
-        logger.error(f"Error applying scenario: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error applying scenario: {e}")
+        raise HTTPException(status_code=500, detail="Failed to apply scenario. Please try again.")

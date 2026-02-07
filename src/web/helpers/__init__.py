@@ -44,6 +44,8 @@ try:
         handle_validation_error,
         LoadingState,
         create_loading_response,
+        safe_error_message,
+        raise_safe_error,
     )
     _ERROR_EXPORTS = [
         "ErrorCode",
@@ -55,12 +57,33 @@ try:
         "handle_validation_error",
         "LoadingState",
         "create_loading_response",
+        "safe_error_message",
+        "raise_safe_error",
     ]
 except ImportError:
     _ERROR_EXPORTS = []
+
+# File upload validation
+try:
+    from .file_validation import (
+        validate_uploaded_file,
+        get_file_type_from_content,
+        MAX_FILE_SIZE,
+        ALLOWED_CONTENT_TYPES,
+        ALLOWED_EXTENSIONS,
+    )
+    _FILE_EXPORTS = [
+        "validate_uploaded_file",
+        "get_file_type_from_content",
+        "MAX_FILE_SIZE",
+        "ALLOWED_CONTENT_TYPES",
+        "ALLOWED_EXTENSIONS",
+    ]
+except ImportError:
+    _FILE_EXPORTS = []
 
 __all__ = [
     "PaginationMeta",
     "PaginatedResponse",
     "paginate",
-] + _HISTORY_EXPORTS + _ERROR_EXPORTS
+] + _HISTORY_EXPORTS + _ERROR_EXPORTS + _FILE_EXPORTS

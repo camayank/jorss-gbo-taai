@@ -991,6 +991,8 @@ function initializeUXEnhancements(extractedData, onProfileUpdate) {
 
   // Initialize tax term explainer
   taxTermExplainer = new TaxTermExplainer();
+  // Initialize event delegation for tax term links
+  taxTermExplainer.initTermLinks();
 
   // Initialize comparison view
   comparisonView = new ComparisonView('comparisonViewContainer');

@@ -18,7 +18,7 @@ import {
   hideLoading,
 } from '/static/js/core/utils.js';
 
-import { api, getCSRFToken } from '/static/js/core/api.js';
+import { api, getCsrfToken } from '/static/js/core/api.js';
 
 // =============================================================================
 // APPLICATION STATE
@@ -129,7 +129,7 @@ export async function coreApi(endpoint, options = {}) {
   // Add CSRF token for state-changing requests
   const method = (options.method || 'GET').toUpperCase();
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-    const csrfToken = getCSRFToken();
+    const csrfToken = getCsrfToken();
     if (csrfToken) {
       headers['X-CSRF-Token'] = csrfToken;
     }
@@ -368,7 +368,7 @@ async function loadInsightsData() {
   showSkeleton('insights-list', 5);
 
   try {
-    const data = await api('/api/cpa/insights');
+    const data = await api.get('/api/cpa/insights');
     if (data.insights) {
       state.insights = data.insights;
       renderInsightsList(data.insights);
@@ -424,7 +424,7 @@ async function loadClientsData() {
   showSkeleton('clients-list', 5);
 
   try {
-    const data = await api('/api/cpa/clients');
+    const data = await api.get('/api/cpa/clients');
     if (data.clients) {
       state.clients = data.clients;
       renderClientsList(data.clients);
@@ -463,7 +463,7 @@ function renderClientsList(clients) {
 // =============================================================================
 async function loadPipelineData() {
   try {
-    const data = await api('/api/cpa/pipeline');
+    const data = await api.get('/api/cpa/pipeline');
     if (data.leads) {
       state.leads = data.leads;
       renderPipeline(data.leads);
@@ -512,7 +512,7 @@ function updatePipelineBadge(count) {
 // =============================================================================
 async function loadReviewData() {
   try {
-    const data = await api('/api/cpa/review-queue');
+    const data = await api.get('/api/cpa/review-queue');
     if (data.items) {
       renderReviewQueue(data.items);
       updateReviewBadge(data.items.length);

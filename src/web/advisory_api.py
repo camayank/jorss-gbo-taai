@@ -298,17 +298,17 @@ def _get_tax_return_from_session(session_id: str, tenant_id: str = "default") ->
         return tax_return
 
     except Exception as e:
-        logger.error(f"Error reconstructing TaxReturn from session data: {str(e)}", exc_info=True)
+        logger.exception(f"Error reconstructing TaxReturn from session data: {str(e)}")
         if STANDARD_ERRORS_AVAILABLE:
             raise_api_error(
                 ErrorCode.PROCESSING_ERROR,
                 message="Failed to load tax return data. Please try again.",
-                details=[{"field": "session_data", "message": str(e)}]
+                details=[{"field": "session_data", "message": "Unable to load session data"}]
             )
         else:
             raise HTTPException(
                 status_code=500,
-                detail=f"Error loading tax return data: {str(e)}"
+                detail="Failed to load tax return data. Please try again."
             )
 
 
@@ -470,14 +470,14 @@ async def generate_report(
         return response
 
     except Exception as e:
-        logger.error(f"Error in generate_report: {str(e)}", exc_info=True)
+        logger.exception(f"Error in generate_report: {str(e)}")
         if STANDARD_ERRORS_AVAILABLE:
             raise_api_error(
                 ErrorCode.PROCESSING_ERROR,
                 message="Failed to generate advisory report. Please try again.",
             )
         else:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail="Failed to generate advisory report. Please try again.")
 
 
 @router.get("/{report_id}", response_model=AdvisoryReportResponse)
@@ -797,14 +797,14 @@ async def detect_tax_opportunities(request: TaxOpportunityRequest):
         )
 
     except Exception as e:
-        logger.error(f"Error detecting opportunities: {str(e)}", exc_info=True)
+        logger.exception(f"Error detecting opportunities: {str(e)}")
         if STANDARD_ERRORS_AVAILABLE:
             raise_api_error(
                 ErrorCode.PROCESSING_ERROR,
                 message="Failed to detect tax opportunities. Please try again.",
             )
         else:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail="Failed to detect tax opportunities. Please try again.")
 
 
 @router.get("/opportunities/{session_id}", response_model=TaxOpportunitiesResponse)

@@ -47,7 +47,7 @@ let csrfToken = null;
  * Get CSRF token from meta tag or cookie
  * @returns {string|null}
  */
-function getCsrfToken() {
+export function getCsrfToken() {
   if (csrfToken) return csrfToken;
 
   // Try meta tag first
@@ -461,28 +461,6 @@ export function clearCache(urlPattern) {
     cache.clear();
   }
 }
-
-// ============================================
-// API OBJECT (for namespaced usage)
-// ============================================
-
-export const api = {
-  configure,
-  setCsrfToken,
-  request,
-  get,
-  post,
-  put,
-  patch,
-  delete: del,
-  upload,
-  download,
-  getCached,
-  clearCache,
-  ApiError,
-  NetworkError,
-  TimeoutError,
-};
 
 // ============================================
 // BUTTON LOADING HELPERS

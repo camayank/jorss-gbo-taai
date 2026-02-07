@@ -103,8 +103,8 @@ async def get_session_audit(
         return events
 
     except Exception as e:
-        logger.error(f"Error retrieving audit trail for session {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error retrieving audit trail for session {session_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve audit trail. Please try again.")
 
 
 @router.get("/session/{session_id}/summary")
@@ -160,8 +160,8 @@ async def get_session_audit_summary(session_id: str):
         }
 
     except Exception as e:
-        logger.error(f"Error generating audit summary for session {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error generating audit summary for session {session_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate audit summary. Please try again.")
 
 
 @router.get("/session/{session_id}/report")
@@ -180,8 +180,8 @@ async def get_session_audit_report(session_id: str):
         return report
 
     except Exception as e:
-        logger.error(f"Error generating audit report for session {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error generating audit report for session {session_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate audit report. Please try again.")
 
 
 @router.get("/session/{session_id}/field/{field_name}")
@@ -216,8 +216,8 @@ async def get_field_history(session_id: str, field_name: str):
         }
 
     except Exception as e:
-        logger.error(f"Error retrieving field history for {field_name}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error retrieving field history for {field_name}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve field history. Please try again.")
 
 
 @router.get("/session/{session_id}/calculations")
@@ -248,8 +248,8 @@ async def get_calculation_history(session_id: str):
         }
 
     except Exception as e:
-        logger.error(f"Error retrieving calculation history: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error retrieving calculation history: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve calculation history. Please try again.")
 
 
 @router.get("/user/{user_id}/activity")
@@ -277,8 +277,8 @@ async def get_user_activity(
         }
 
     except Exception as e:
-        logger.error(f"Error retrieving user activity for {user_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error retrieving user activity for {user_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve user activity. Please try again.")
 
 
 @router.get("/security/events")
@@ -311,8 +311,8 @@ async def get_security_events(
         }
 
     except Exception as e:
-        logger.error(f"Error retrieving security events: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error retrieving security events: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve security events. Please try again.")
 
 
 @router.get("/health")

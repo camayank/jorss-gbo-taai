@@ -190,8 +190,8 @@ async def calculate_depreciation(input_data: DepreciationCalculationInput):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error calculating depreciation: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error calculating depreciation: {e}")
+        raise HTTPException(status_code=500, detail="Failed to calculate depreciation. Please check your input values.")
 
 
 @router.post("/schedule", response_model=List[ScheduleEntryResponse])
@@ -248,8 +248,8 @@ async def generate_depreciation_schedule(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error generating schedule: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error generating schedule: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate depreciation schedule. Please check your input values.")
 
 
 @router.post("/session/{session_id}/property", response_model=PropertySummaryResponse)
@@ -330,8 +330,8 @@ async def create_rental_property(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error creating property: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error creating property: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create property. Please check your input values.")
 
 
 @router.post("/session/{session_id}/property/{property_id}/improvement")
@@ -388,8 +388,8 @@ async def add_improvement(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error adding improvement: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error adding improvement: {e}")
+        raise HTTPException(status_code=500, detail="Failed to add improvement. Please check your input values.")
 
 
 @router.get("/session/{session_id}/properties", response_model=List[PropertySummaryResponse])

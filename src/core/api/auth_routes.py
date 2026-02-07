@@ -10,11 +10,15 @@ Unified authentication endpoints for all user types:
 
 These endpoints work identically for consumers, CPA clients,
 CPA team members, and platform administrators.
+
+SECURITY: All sensitive endpoints have rate limiting to prevent brute force attacks.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Header, Query, status
+from fastapi import APIRouter, HTTPException, Depends, Header, Query, status, Request
 from typing import Optional
 import logging
+import time
+from collections import defaultdict
 
 from ..services.auth_service import (
     get_auth_service,
@@ -29,6 +33,51 @@ from ..models.user import UserContext, UserType
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Core Authentication"])
+
+# =============================================================================
+# RATE LIMITING FOR AUTH ENDPOINTS
+# =============================================================================
+# SECURITY: Simple in-memory rate limiter for auth endpoints
+# In production, this should use Redis for distributed rate limiting
+
+_auth_rate_limits: dict = defaultdict(list)
+_AUTH_RATE_LIMIT_WINDOW = 60  # seconds
+_AUTH_LOGIN_LIMIT = 5  # max login attempts per window
+_AUTH_FORGOT_PASSWORD_LIMIT = 3  # max forgot password requests per window
+
+
+def _check_auth_rate_limit(identifier: str, limit: int) -> bool:
+    """
+    Check if identifier has exceeded rate limit.
+
+    Returns True if request is allowed, False if rate limited.
+    """
+    now = time.time()
+    window_start = now - _AUTH_RATE_LIMIT_WINDOW
+
+    # Clean old entries
+    _auth_rate_limits[identifier] = [
+        ts for ts in _auth_rate_limits[identifier] if ts > window_start
+    ]
+
+    # Check limit
+    if len(_auth_rate_limits[identifier]) >= limit:
+        return False
+
+    # Record this request
+    _auth_rate_limits[identifier].append(now)
+    return True
+
+
+def _get_client_ip(request: Request) -> str:
+    """Extract client IP from request."""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip
+    return request.client.host if request.client else "unknown"
 
 # Include OAuth routes
 from .oauth_routes import router as oauth_router
@@ -105,6 +154,7 @@ async def get_optional_user(
 @router.post("/login", response_model=AuthResponse)
 async def login(
     request: LoginRequest,
+    http_request: Request,
     auth_service: CoreAuthService = Depends(get_auth_service)
 ):
     """
@@ -120,7 +170,21 @@ async def login(
     - access_token: JWT for API authentication
     - refresh_token: Token to get new access tokens (if remember_me=true)
     - user: Basic user information
+
+    SECURITY: Rate limited to 5 attempts per minute per IP/email to prevent brute force.
     """
+    # SECURITY: Rate limit by IP and email to prevent brute force attacks
+    client_ip = _get_client_ip(http_request)
+    rate_limit_key = f"login:{client_ip}:{request.email}"
+
+    if not _check_auth_rate_limit(rate_limit_key, _AUTH_LOGIN_LIMIT):
+        logger.warning(f"Login rate limit exceeded for {client_ip} / {request.email}")
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts. Please try again later.",
+            headers={"Retry-After": str(_AUTH_RATE_LIMIT_WINDOW)}
+        )
+
     response = await auth_service.login(request)
 
     if not response.success:
@@ -328,10 +392,50 @@ async def verify_token(
 
 from pydantic import BaseModel
 import secrets
+import os
 from datetime import datetime, timedelta
 
-# In-memory storage for password reset tokens (use Redis in production)
-_reset_tokens: dict = {}
+# SECURITY: Token storage backend selection
+# In production, use Redis for persistence across workers and restarts
+_use_redis_tokens = os.environ.get("USE_REDIS_AUTH", "").lower() in ("true", "1", "yes")
+_reset_tokens: dict = {}  # Fallback in-memory storage
+
+def _get_reset_token_backend():
+    """Get the password reset token storage backend."""
+    if _use_redis_tokens:
+        try:
+            import redis
+            redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+            return redis.from_url(redis_url, decode_responses=True)
+        except (ImportError, Exception) as e:
+            logger.warning(f"Redis unavailable for reset tokens, using in-memory: {e}")
+    return None
+
+def _store_reset_token(token: str, data: dict, ttl_seconds: int = 900):
+    """Store a password reset token with expiration."""
+    redis_client = _get_reset_token_backend()
+    if redis_client:
+        import json
+        redis_client.setex(f"reset_token:{token}", ttl_seconds, json.dumps(data, default=str))
+    else:
+        _reset_tokens[token] = data
+
+def _get_reset_token(token: str) -> dict:
+    """Retrieve a password reset token."""
+    redis_client = _get_reset_token_backend()
+    if redis_client:
+        import json
+        data = redis_client.get(f"reset_token:{token}")
+        return json.loads(data) if data else None
+    return _reset_tokens.get(token)
+
+def _delete_reset_token(token: str):
+    """Delete a password reset token after use."""
+    redis_client = _get_reset_token_backend()
+    if redis_client:
+        redis_client.delete(f"reset_token:{token}")
+    elif token in _reset_tokens:
+        del _reset_tokens[token]
 
 
 class PasswordResetRequest(BaseModel):
@@ -348,6 +452,7 @@ class PasswordResetConfirm(BaseModel):
 @router.post("/forgot-password")
 async def forgot_password(
     request: PasswordResetRequest,
+    http_request: Request,
     auth_service: CoreAuthService = Depends(get_auth_service)
 ):
     """
@@ -355,8 +460,22 @@ async def forgot_password(
 
     Sends an email with a reset link if the account exists.
     Always returns success to prevent email enumeration.
+
+    SECURITY: Rate limited to 3 requests per minute per IP to prevent email bombing.
     """
     from ..services.email_service import get_email_service
+
+    # SECURITY: Rate limit by IP to prevent email bombing/enumeration
+    client_ip = _get_client_ip(http_request)
+    rate_limit_key = f"forgot_password:{client_ip}"
+
+    if not _check_auth_rate_limit(rate_limit_key, _AUTH_FORGOT_PASSWORD_LIMIT):
+        logger.warning(f"Forgot password rate limit exceeded for {client_ip}")
+        # Still return success to prevent enumeration, but don't send email
+        return {
+            "success": True,
+            "message": "If an account exists with that email, a reset link has been sent."
+        }
 
     # Find user
     user = auth_service.get_user_by_email(request.email)
@@ -366,12 +485,12 @@ async def forgot_password(
         reset_token = secrets.token_urlsafe(32)
         expires_at = datetime.utcnow() + timedelta(minutes=15)
 
-        # Store token
-        _reset_tokens[reset_token] = {
+        # Store token using secure backend (Redis in production)
+        _store_reset_token(reset_token, {
             "user_id": user.id,
             "email": user.email,
-            "expires_at": expires_at
-        }
+            "expires_at": expires_at.isoformat()
+        }, ttl_seconds=900)  # 15 minutes
 
         # Send email
         email_service = get_email_service()
@@ -400,8 +519,8 @@ async def reset_password(
 
     Validates the token and updates the user's password.
     """
-    # Validate token
-    token_data = _reset_tokens.get(request.token)
+    # Validate token using secure backend
+    token_data = _get_reset_token(request.token)
 
     if not token_data:
         raise HTTPException(
@@ -409,9 +528,12 @@ async def reset_password(
             detail="Invalid or expired reset token"
         )
 
-    # Check expiration
-    if datetime.utcnow() > token_data["expires_at"]:
-        del _reset_tokens[request.token]
+    # Check expiration (handle both datetime and ISO string formats)
+    expires_at = token_data["expires_at"]
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at)
+    if datetime.utcnow() > expires_at:
+        _delete_reset_token(request.token)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Reset token has expired"
@@ -436,8 +558,8 @@ async def reset_password(
     # Update password hash
     user.password_hash = auth_service._hash_password(request.new_password)
 
-    # Clean up used token
-    del _reset_tokens[request.token]
+    # Clean up used token using secure backend
+    _delete_reset_token(request.token)
 
     logger.info(f"Password reset completed for {user.email}")
 

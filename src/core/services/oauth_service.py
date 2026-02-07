@@ -245,37 +245,56 @@ class OAuthService:
 
         callback_url = redirect_uri or f"{self.config.CALLBACK_BASE_URL}/api/core/auth/oauth/google/callback"
 
+        # SECURITY FIX: Add timeout to prevent hanging requests
+        # OAuth token exchanges should complete within 30 seconds
+        OAUTH_TIMEOUT = 30.0
+
         # Exchange code for tokens
-        async with httpx.AsyncClient() as client:
-            token_response = await client.post(
-                self.config.GOOGLE_TOKEN_URL,
-                data={
-                    "client_id": self.config.GOOGLE_CLIENT_ID,
-                    "client_secret": self.config.GOOGLE_CLIENT_SECRET,
-                    "code": code,
-                    "grant_type": "authorization_code",
-                    "redirect_uri": callback_url
-                }
-            )
+        try:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(OAUTH_TIMEOUT, connect=10.0)) as client:
+                token_response = await client.post(
+                    self.config.GOOGLE_TOKEN_URL,
+                    data={
+                        "client_id": self.config.GOOGLE_CLIENT_ID,
+                        "client_secret": self.config.GOOGLE_CLIENT_SECRET,
+                        "code": code,
+                        "grant_type": "authorization_code",
+                        "redirect_uri": callback_url
+                    }
+                )
 
-            if token_response.status_code != 200:
-                logger.error(f"Google token exchange failed: {token_response.text}")
-                raise ValueError("Failed to exchange authorization code")
+                if token_response.status_code != 200:
+                    logger.error(f"Google token exchange failed: {token_response.text}")
+                    raise ValueError("Failed to exchange authorization code")
 
-            tokens = token_response.json()
-            access_token = tokens.get("access_token")
+                tokens = token_response.json()
+                access_token = tokens.get("access_token")
 
-            # Fetch user info
-            userinfo_response = await client.get(
-                self.config.GOOGLE_USERINFO_URL,
-                headers={"Authorization": f"Bearer {access_token}"}
-            )
+                if not access_token:
+                    logger.error("Google token response missing access_token")
+                    raise ValueError("Invalid token response from Google")
 
-            if userinfo_response.status_code != 200:
-                logger.error(f"Google userinfo failed: {userinfo_response.text}")
-                raise ValueError("Failed to fetch user information")
+                # Fetch user info
+                userinfo_response = await client.get(
+                    self.config.GOOGLE_USERINFO_URL,
+                    headers={"Authorization": f"Bearer {access_token}"}
+                )
 
-            userinfo = userinfo_response.json()
+                if userinfo_response.status_code != 200:
+                    logger.error(f"Google userinfo failed: {userinfo_response.text}")
+                    raise ValueError("Failed to fetch user information")
+
+                userinfo = userinfo_response.json()
+
+        except httpx.TimeoutException:
+            logger.error("Google OAuth request timed out")
+            raise ValueError("OAuth request timed out. Please try again.")
+        except httpx.ConnectError as e:
+            logger.error(f"Google OAuth connection error: {e}")
+            raise ValueError("Failed to connect to Google. Please try again.")
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Google OAuth HTTP error: {e}")
+            raise ValueError("Google authentication failed. Please try again.")
 
         # Normalize user info
         return OAuthUserInfo(
@@ -296,38 +315,56 @@ class OAuthService:
 
         callback_url = redirect_uri or f"{self.config.CALLBACK_BASE_URL}/api/core/auth/oauth/microsoft/callback"
 
+        # SECURITY FIX: Add timeout to prevent hanging requests
+        OAUTH_TIMEOUT = 30.0
+
         # Exchange code for tokens
-        async with httpx.AsyncClient() as client:
-            token_response = await client.post(
-                self.config.MICROSOFT_TOKEN_URL,
-                data={
-                    "client_id": self.config.MICROSOFT_CLIENT_ID,
-                    "client_secret": self.config.MICROSOFT_CLIENT_SECRET,
-                    "code": code,
-                    "grant_type": "authorization_code",
-                    "redirect_uri": callback_url,
-                    "scope": " ".join(self.config.MICROSOFT_SCOPES)
-                }
-            )
+        try:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(OAUTH_TIMEOUT, connect=10.0)) as client:
+                token_response = await client.post(
+                    self.config.MICROSOFT_TOKEN_URL,
+                    data={
+                        "client_id": self.config.MICROSOFT_CLIENT_ID,
+                        "client_secret": self.config.MICROSOFT_CLIENT_SECRET,
+                        "code": code,
+                        "grant_type": "authorization_code",
+                        "redirect_uri": callback_url,
+                        "scope": " ".join(self.config.MICROSOFT_SCOPES)
+                    }
+                )
 
-            if token_response.status_code != 200:
-                logger.error(f"Microsoft token exchange failed: {token_response.text}")
-                raise ValueError("Failed to exchange authorization code")
+                if token_response.status_code != 200:
+                    logger.error(f"Microsoft token exchange failed: {token_response.text}")
+                    raise ValueError("Failed to exchange authorization code")
 
-            tokens = token_response.json()
-            access_token = tokens.get("access_token")
+                tokens = token_response.json()
+                access_token = tokens.get("access_token")
 
-            # Fetch user info from Microsoft Graph
-            userinfo_response = await client.get(
-                self.config.MICROSOFT_USERINFO_URL,
-                headers={"Authorization": f"Bearer {access_token}"}
-            )
+                if not access_token:
+                    logger.error("Microsoft token response missing access_token")
+                    raise ValueError("Invalid token response from Microsoft")
 
-            if userinfo_response.status_code != 200:
-                logger.error(f"Microsoft userinfo failed: {userinfo_response.text}")
-                raise ValueError("Failed to fetch user information")
+                # Fetch user info from Microsoft Graph
+                userinfo_response = await client.get(
+                    self.config.MICROSOFT_USERINFO_URL,
+                    headers={"Authorization": f"Bearer {access_token}"}
+                )
 
-            userinfo = userinfo_response.json()
+                if userinfo_response.status_code != 200:
+                    logger.error(f"Microsoft userinfo failed: {userinfo_response.text}")
+                    raise ValueError("Failed to fetch user information")
+
+                userinfo = userinfo_response.json()
+
+        except httpx.TimeoutException:
+            logger.error("Microsoft OAuth request timed out")
+            raise ValueError("OAuth request timed out. Please try again.")
+        except httpx.ConnectError as e:
+            logger.error(f"Microsoft OAuth connection error: {e}")
+            raise ValueError("Failed to connect to Microsoft. Please try again.")
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Microsoft OAuth HTTP error: {e}")
+            raise ValueError("Microsoft authentication failed. Please try again.")
 
         # Parse name parts
         display_name = userinfo.get("displayName", "")

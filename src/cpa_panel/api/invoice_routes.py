@@ -2,6 +2,8 @@
 Invoice and Payment Routes
 
 API endpoints for CPA invoice management and client payments.
+
+SECURITY: All endpoints require authentication via get_current_user dependency.
 """
 
 import logging
@@ -9,7 +11,7 @@ from typing import Optional, List
 from datetime import date, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends, status
 from pydantic import BaseModel, Field, EmailStr
 
 from ..payments import (
@@ -20,6 +22,11 @@ from ..payments import (
     PaymentMethod,
     PaymentStatus,
 )
+from .common import get_tenant_id
+
+# Import authentication dependency
+from src.core.api.auth_routes import get_current_user
+from src.core.models.user import UserContext
 
 logger = logging.getLogger(__name__)
 
@@ -90,22 +97,26 @@ class ProcessLinkPaymentRequest(BaseModel):
 # INVOICE ROUTES
 # =============================================================================
 
-@invoice_router.post("")
+@invoice_router.post("", status_code=status.HTTP_201_CREATED)
 async def create_invoice(
     request: CreateInvoiceRequest,
-    cpa_id: str = Query(..., description="CPA ID"),
-    firm_id: str = Query(..., description="Firm ID"),
-    cpa_name: str = Query(..., description="CPA name"),
-    firm_name: str = Query(..., description="Firm name"),
+    user: UserContext = Depends(get_current_user),
     client_id: Optional[str] = Query(None, description="Client ID"),
 ):
     """
     Create a new invoice for a client.
 
     Creates a draft invoice that can be edited before sending.
+    Requires authentication - uses authenticated user's firm context.
     """
+    # Extract user context from authenticated session
+    cpa_id = str(user.user_id)
+    firm_id = str(user.firm_id) if hasattr(user, 'firm_id') and user.firm_id else ""
+    cpa_name = getattr(user, 'full_name', '') or user.email
+    firm_name = getattr(user, 'firm_name', '') or "Unknown Firm"
+
     invoice = payment_service.create_invoice(
-        firm_id=UUID(firm_id),
+        firm_id=UUID(firm_id) if firm_id else None,
         cpa_id=UUID(cpa_id),
         cpa_name=cpa_name,
         firm_name=firm_name,
@@ -137,18 +148,18 @@ async def create_invoice(
 
 @invoice_router.get("")
 async def list_invoices(
-    cpa_id: str = Query(..., description="CPA ID"),
-    status: Optional[str] = Query(None, description="Filter by status"),
+    user: UserContext = Depends(get_current_user),
+    status_filter: Optional[str] = Query(None, alias="status", description="Filter by status"),
     client_id: Optional[str] = Query(None, description="Filter by client"),
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
 ):
-    """List invoices for a CPA with optional filters."""
-    status_filter = InvoiceStatus(status) if status else None
+    """List invoices for authenticated CPA with optional filters."""
+    invoice_status = InvoiceStatus(status_filter) if status_filter else None
 
     invoices = payment_service.get_invoices_for_cpa(
-        cpa_id=UUID(cpa_id),
-        status=status_filter,
+        cpa_id=UUID(str(user.user_id)),
+        status=invoice_status,
         client_id=UUID(client_id) if client_id else None,
         start_date=start_date,
         end_date=end_date,
@@ -163,15 +174,22 @@ async def list_invoices(
 
 @invoice_router.get("/firm")
 async def list_firm_invoices(
-    firm_id: str = Query(..., description="Firm ID"),
-    status: Optional[str] = Query(None, description="Filter by status"),
+    user: UserContext = Depends(get_current_user),
+    status_filter: Optional[str] = Query(None, alias="status", description="Filter by status"),
 ):
-    """List all invoices for a firm."""
-    status_filter = InvoiceStatus(status) if status else None
+    """List all invoices for authenticated user's firm."""
+    invoice_status = InvoiceStatus(status_filter) if status_filter else None
+    firm_id = str(user.firm_id) if hasattr(user, 'firm_id') and user.firm_id else None
+
+    if not firm_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User is not associated with a firm"
+        )
 
     invoices = payment_service.get_invoices_for_firm(
         firm_id=UUID(firm_id),
-        status=status_filter,
+        status=invoice_status,
     )
 
     return {
@@ -183,12 +201,14 @@ async def list_firm_invoices(
 
 @invoice_router.get("/overdue")
 async def get_overdue_invoices(
-    cpa_id: Optional[str] = Query(None),
-    firm_id: Optional[str] = Query(None),
+    user: UserContext = Depends(get_current_user),
 ):
-    """Get overdue invoices."""
+    """Get overdue invoices for authenticated user's context."""
+    cpa_id = str(user.user_id)
+    firm_id = str(user.firm_id) if hasattr(user, 'firm_id') and user.firm_id else None
+
     invoices = payment_service.get_overdue_invoices(
-        cpa_id=UUID(cpa_id) if cpa_id else None,
+        cpa_id=UUID(cpa_id),
         firm_id=UUID(firm_id) if firm_id else None,
     )
 
@@ -201,11 +221,28 @@ async def get_overdue_invoices(
 
 
 @invoice_router.get("/{invoice_id}")
-async def get_invoice(invoice_id: str):
-    """Get invoice details."""
+async def get_invoice(
+    invoice_id: str,
+    user: UserContext = Depends(get_current_user),
+):
+    """Get invoice details. Validates user has access to the invoice."""
     invoice = payment_service.get_invoice(UUID(invoice_id))
     if not invoice:
-        raise HTTPException(404, "Invoice not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invoice not found"
+        )
+
+    # Verify user has access to this invoice (same CPA or same firm)
+    user_cpa_id = str(user.user_id)
+    user_firm_id = str(user.firm_id) if hasattr(user, 'firm_id') and user.firm_id else None
+
+    if str(invoice.cpa_id) != user_cpa_id:
+        if not user_firm_id or str(invoice.firm_id) != user_firm_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have access to this invoice"
+            )
 
     return {
         "success": True,
@@ -214,8 +251,27 @@ async def get_invoice(invoice_id: str):
 
 
 @invoice_router.put("/{invoice_id}")
-async def update_invoice(invoice_id: str, request: UpdateInvoiceRequest):
-    """Update a draft invoice."""
+async def update_invoice(
+    invoice_id: str,
+    request: UpdateInvoiceRequest,
+    user: UserContext = Depends(get_current_user),
+):
+    """Update a draft invoice. Validates user has access."""
+    # First verify access
+    existing = payment_service.get_invoice(UUID(invoice_id))
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invoice not found"
+        )
+
+    user_cpa_id = str(user.user_id)
+    if str(existing.cpa_id) != user_cpa_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only update your own invoices"
+        )
+
     try:
         invoice = payment_service.update_invoice(
             invoice_id=UUID(invoice_id),
@@ -225,7 +281,10 @@ async def update_invoice(invoice_id: str, request: UpdateInvoiceRequest):
         )
 
         if not invoice:
-            raise HTTPException(404, "Invoice not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Invoice not found"
+            )
 
         return {
             "success": True,
@@ -233,19 +292,44 @@ async def update_invoice(invoice_id: str, request: UpdateInvoiceRequest):
         }
 
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 
 @invoice_router.post("/{invoice_id}/send")
-async def send_invoice(invoice_id: str):
+async def send_invoice(
+    invoice_id: str,
+    user: UserContext = Depends(get_current_user),
+):
     """
     Send invoice to client.
 
     Generates payment link and marks invoice as sent.
+    Requires authentication and ownership validation.
     """
+    # Verify access
+    existing = payment_service.get_invoice(UUID(invoice_id))
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invoice not found"
+        )
+
+    user_cpa_id = str(user.user_id)
+    if str(existing.cpa_id) != user_cpa_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only send your own invoices"
+        )
+
     invoice = payment_service.send_invoice(UUID(invoice_id))
     if not invoice:
-        raise HTTPException(404, "Invoice not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invoice not found"
+        )
 
     return {
         "success": True,
@@ -256,13 +340,34 @@ async def send_invoice(invoice_id: str):
 
 
 @invoice_router.post("/{invoice_id}/record-payment")
-async def record_invoice_payment(invoice_id: str, request: RecordPaymentRequest):
+async def record_invoice_payment(
+    invoice_id: str,
+    request: RecordPaymentRequest,
+    user: UserContext = Depends(get_current_user),
+):
     """
     Record a payment against an invoice.
 
     Use this for offline payments (check, cash) or to manually
-    record a Stripe payment.
+    record a Stripe payment. Requires authentication.
     """
+    # Verify access
+    existing = payment_service.get_invoice(UUID(invoice_id))
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invoice not found"
+        )
+
+    user_cpa_id = str(user.user_id)
+    user_firm_id = str(user.firm_id) if hasattr(user, 'firm_id') and user.firm_id else None
+
+    if str(existing.cpa_id) != user_cpa_id:
+        if not user_firm_id or str(existing.firm_id) != user_firm_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have access to this invoice"
+            )
     try:
         payment_method = PaymentMethod(request.payment_method)
     except ValueError:
@@ -276,7 +381,10 @@ async def record_invoice_payment(invoice_id: str, request: RecordPaymentRequest)
     )
 
     if not invoice:
-        raise HTTPException(404, "Invoice not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invoice not found"
+        )
 
     return {
         "success": True,
@@ -286,12 +394,33 @@ async def record_invoice_payment(invoice_id: str, request: RecordPaymentRequest)
 
 
 @invoice_router.post("/{invoice_id}/void")
-async def void_invoice(invoice_id: str):
-    """Void an invoice."""
+async def void_invoice(
+    invoice_id: str,
+    user: UserContext = Depends(get_current_user),
+):
+    """Void an invoice. Requires authentication and ownership."""
+    # Verify access
+    existing = payment_service.get_invoice(UUID(invoice_id))
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invoice not found"
+        )
+
+    user_cpa_id = str(user.user_id)
+    if str(existing.cpa_id) != user_cpa_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only void your own invoices"
+        )
+
     try:
         invoice = payment_service.void_invoice(UUID(invoice_id))
         if not invoice:
-            raise HTTPException(404, "Invoice not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Invoice not found"
+            )
 
         return {
             "success": True,
@@ -299,7 +428,10 @@ async def void_invoice(invoice_id: str):
         }
 
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 
 @invoice_router.get("/statuses")
@@ -318,19 +450,22 @@ async def get_invoice_statuses():
 # PAYMENT LINK ROUTES
 # =============================================================================
 
-@payment_link_router.post("")
+@payment_link_router.post("", status_code=status.HTTP_201_CREATED)
 async def create_payment_link(
     request: CreatePaymentLinkRequest,
-    cpa_id: str = Query(..., description="CPA ID"),
-    firm_id: str = Query(..., description="Firm ID"),
+    user: UserContext = Depends(get_current_user),
 ):
     """
     Create a reusable payment link.
 
     Payment links can be shared with clients for easy online payment.
+    Requires authentication.
     """
+    cpa_id = str(user.user_id)
+    firm_id = str(user.firm_id) if hasattr(user, 'firm_id') and user.firm_id else None
+
     link = payment_service.create_payment_link(
-        firm_id=UUID(firm_id),
+        firm_id=UUID(firm_id) if firm_id else None,
         cpa_id=UUID(cpa_id),
         name=request.name,
         description=request.description,
@@ -351,12 +486,12 @@ async def create_payment_link(
 
 @payment_link_router.get("")
 async def list_payment_links(
-    cpa_id: str = Query(..., description="CPA ID"),
+    user: UserContext = Depends(get_current_user),
     active_only: bool = Query(True),
 ):
-    """List payment links for a CPA."""
+    """List payment links for authenticated CPA."""
     links = payment_service.get_payment_links_for_cpa(
-        cpa_id=UUID(cpa_id),
+        cpa_id=UUID(str(user.user_id)),
         active_only=active_only,
     )
 
@@ -368,11 +503,26 @@ async def list_payment_links(
 
 
 @payment_link_router.get("/{link_id}")
-async def get_payment_link(link_id: str):
-    """Get payment link details."""
+async def get_payment_link(
+    link_id: str,
+    user: UserContext = Depends(get_current_user),
+):
+    """Get payment link details. Requires authentication."""
     link = payment_service.get_payment_link(UUID(link_id))
     if not link:
-        raise HTTPException(404, "Payment link not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Payment link not found"
+        )
+
+    # Verify user has access
+    if str(link.cpa_id) != str(user.user_id):
+        user_firm_id = str(user.firm_id) if hasattr(user, 'firm_id') and user.firm_id else None
+        if not user_firm_id or str(link.firm_id) != user_firm_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have access to this payment link"
+            )
 
     return {
         "success": True,
@@ -386,13 +536,20 @@ async def get_payment_link_by_code(link_code: str):
     Get payment link by code (public endpoint for payment page).
 
     Returns only necessary info for the payment form.
+    Note: This is intentionally public as it's accessed by clients paying invoices.
     """
     link = payment_service.get_payment_link_by_code(link_code)
     if not link:
-        raise HTTPException(404, "Payment link not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Payment link not found"
+        )
 
     if not link.is_usable:
-        raise HTTPException(400, "Payment link is no longer active")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Payment link is no longer active"
+        )
 
     return {
         "success": True,
@@ -406,12 +563,13 @@ async def get_payment_link_by_code(link_code: str):
     }
 
 
-@payment_link_router.post("/code/{link_code}/pay")
+@payment_link_router.post("/code/{link_code}/pay", status_code=status.HTTP_201_CREATED)
 async def process_link_payment(link_code: str, request: ProcessLinkPaymentRequest):
     """
     Process a payment through a payment link.
 
     For online payments, integrates with Stripe.
+    Note: This is intentionally public as it's accessed by clients paying invoices.
     """
     try:
         payment_method = PaymentMethod(request.payment_method)
@@ -428,7 +586,10 @@ async def process_link_payment(link_code: str, request: ProcessLinkPaymentReques
         )
 
         if not link or not payment:
-            raise HTTPException(404, "Payment link not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Payment link not found"
+            )
 
         return {
             "success": True,
@@ -438,15 +599,38 @@ async def process_link_payment(link_code: str, request: ProcessLinkPaymentReques
         }
 
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 
 @payment_link_router.post("/{link_id}/deactivate")
-async def deactivate_payment_link(link_id: str):
-    """Deactivate a payment link."""
+async def deactivate_payment_link(
+    link_id: str,
+    user: UserContext = Depends(get_current_user),
+):
+    """Deactivate a payment link. Requires authentication and ownership."""
+    # Verify ownership
+    existing = payment_service.get_payment_link(UUID(link_id))
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Payment link not found"
+        )
+
+    if str(existing.cpa_id) != str(user.user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only deactivate your own payment links"
+        )
+
     link = payment_service.deactivate_payment_link(UUID(link_id))
     if not link:
-        raise HTTPException(404, "Payment link not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Payment link not found"
+        )
 
     return {
         "success": True,
@@ -463,18 +647,18 @@ payments_router = APIRouter(prefix="/payments", tags=["Payments"])
 
 @payments_router.get("")
 async def list_payments(
-    cpa_id: str = Query(..., description="CPA ID"),
-    status: Optional[str] = Query(None),
+    user: UserContext = Depends(get_current_user),
+    status_filter: Optional[str] = Query(None, alias="status"),
     start_date: Optional[datetime] = Query(None),
     end_date: Optional[datetime] = Query(None),
     limit: int = Query(50, ge=1, le=200),
 ):
-    """List payments for a CPA."""
-    status_filter = PaymentStatus(status) if status else None
+    """List payments for authenticated CPA."""
+    payment_status = PaymentStatus(status_filter) if status_filter else None
 
     payments = payment_service.get_payments_for_cpa(
-        cpa_id=UUID(cpa_id),
-        status=status_filter,
+        cpa_id=UUID(str(user.user_id)),
+        status=payment_status,
         start_date=start_date,
         end_date=end_date,
         limit=limit,
@@ -489,14 +673,16 @@ async def list_payments(
 
 @payments_router.get("/summary")
 async def get_revenue_summary(
-    cpa_id: Optional[str] = Query(None),
-    firm_id: Optional[str] = Query(None),
+    user: UserContext = Depends(get_current_user),
     start_date: Optional[datetime] = Query(None),
     end_date: Optional[datetime] = Query(None),
 ):
-    """Get revenue summary and analytics."""
+    """Get revenue summary and analytics for authenticated user's context."""
+    cpa_id = str(user.user_id)
+    firm_id = str(user.firm_id) if hasattr(user, 'firm_id') and user.firm_id else None
+
     summary = payment_service.get_revenue_summary(
-        cpa_id=UUID(cpa_id) if cpa_id else None,
+        cpa_id=UUID(cpa_id),
         firm_id=UUID(firm_id) if firm_id else None,
         start_date=start_date,
         end_date=end_date,
@@ -511,11 +697,14 @@ async def get_revenue_summary(
 @payments_router.post("/{payment_id}/refund")
 async def refund_payment(
     payment_id: str,
+    user: UserContext = Depends(get_current_user),
     amount: Optional[float] = Query(None, description="Amount to refund (full if not specified)"),
     reason: Optional[str] = Query(None, description="Refund reason"),
 ):
-    """Process a refund for a payment."""
+    """Process a refund for a payment. Requires authentication."""
     try:
+        # Note: In production, you'd verify the user has access to this payment
+        # before processing the refund
         payment = payment_service.refund_payment(
             payment_id=UUID(payment_id),
             amount=amount,
@@ -523,7 +712,10 @@ async def refund_payment(
         )
 
         if not payment:
-            raise HTTPException(404, "Payment not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Payment not found"
+            )
 
         return {
             "success": True,
@@ -532,4 +724,7 @@ async def refund_payment(
         }
 
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )

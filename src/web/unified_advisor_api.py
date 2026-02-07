@@ -225,8 +225,12 @@ async def quick_advisory_endpoint(input_data: QuickAdvisoryInput):
         return _format_advisory_response(report)
 
     except Exception as e:
-        logger.error(f"Advisory generation error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Advisory generation error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate advisory. Please check your input data and try again.")
+
+
+# File upload validation - use shared utility
+from web.helpers.file_validation import validate_uploaded_file, MAX_FILE_SIZE
 
 
 @router.post("/documents/upload")
@@ -244,11 +248,14 @@ async def upload_document(
         raise HTTPException(status_code=501, detail="Unified advisor not available")
 
     try:
+        # Read and validate file first
+        content = await file.read()
+        validate_uploaded_file(file, content)
+
         advisor = UnifiedTaxAdvisor()
 
-        # Save uploaded file temporarily
+        # Save validated file temporarily
         with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp:
-            content = await file.read()
             tmp.write(content)
             tmp_path = tmp.name
 
@@ -281,8 +288,8 @@ async def upload_document(
             os.unlink(tmp_path)
 
     except Exception as e:
-        logger.error(f"Document processing error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Document processing error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process document. Please ensure the file is valid and try again.")
 
 
 @router.post("/full-advisory")
@@ -304,16 +311,23 @@ async def full_advisory_with_documents(
     if not ADVISOR_AVAILABLE:
         raise HTTPException(status_code=501, detail="Unified advisor not available")
 
+    # Validate document count
+    if documents and len(documents) > 25:
+        raise HTTPException(status_code=400, detail="Maximum 25 documents allowed per request")
+
     try:
         import json
         advisor = UnifiedTaxAdvisor()
 
-        # Process documents
+        # Process documents with validation
         extracted_docs = []
         if documents:
             for doc_file in documents:
+                # Read and validate each file
+                content = await doc_file.read()
+                validate_uploaded_file(doc_file, content)
+
                 with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(doc_file.filename)[1]) as tmp:
-                    content = await doc_file.read()
                     tmp.write(content)
                     tmp_path = tmp.name
 
@@ -357,8 +371,8 @@ async def full_advisory_with_documents(
         }
 
     except Exception as e:
-        logger.error(f"Full advisory error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Full advisory error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate advisory. Please check your documents and inputs.")
 
 
 @router.get("/insights/{category}")

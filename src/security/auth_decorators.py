@@ -222,19 +222,37 @@ def require_session_owner(session_param: str = "session_id", enforce: Optional[b
     return decorator
 
 
-def rate_limit(requests_per_minute: int = 60):
+def rate_limit(requests_per_minute: int = None, max_requests: int = None, window_seconds: int = 60):
     """
     Decorator to rate limit an endpoint.
 
     Args:
-        requests_per_minute: Maximum requests allowed per minute per user
+        requests_per_minute: Maximum requests allowed per minute per user (legacy parameter)
+        max_requests: Maximum requests allowed (preferred parameter)
+        window_seconds: Time window in seconds (default 60, used to calculate requests_per_minute)
+
+    Either requests_per_minute OR max_requests should be provided.
+    If both are provided, max_requests takes precedence.
 
     Example:
         @app.post("/api/upload")
         @rate_limit(requests_per_minute=10)
         async def upload(request: Request):
             pass
+
+        @app.post("/api/upload")
+        @rate_limit(max_requests=10, window_seconds=60)
+        async def upload(request: Request):
+            pass
     """
+    # Handle both parameter styles
+    if max_requests is not None:
+        # Convert to requests_per_minute based on window
+        effective_rpm = int(max_requests * (60 / window_seconds)) if window_seconds > 0 else max_requests
+    elif requests_per_minute is not None:
+        effective_rpm = requests_per_minute
+    else:
+        effective_rpm = 60  # Default
     def decorator(func: Callable):
         @functools.wraps(func)
         async def wrapper(request: Request, *args, **kwargs):
@@ -242,7 +260,7 @@ def rate_limit(requests_per_minute: int = 60):
             user_id = user.get("id") if user else request.client.host
 
             # Check rate limit
-            if is_rate_limited(user_id, requests_per_minute):
+            if is_rate_limited(user_id, effective_rpm):
                 logger.warning(f"Rate limit exceeded for user {user_id} on {request.url.path}")
                 raise HTTPException(429, "Too many requests. Please try again later.")
 
@@ -627,8 +645,14 @@ def get_owner_for_session(session_id: str) -> Optional[str]:
 
 # Export main interface
 __all__ = [
+    # Decorators
     'require_auth',
     'require_session_owner',
     'rate_limit',
+    # Role enum
     'Role',
+    # IDOR protection helpers
+    'check_session_ownership',
+    'check_tenant_access',
+    'get_user_from_request',
 ]

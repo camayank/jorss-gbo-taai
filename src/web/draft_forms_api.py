@@ -154,8 +154,8 @@ async def generate_form_1040(input_data: Form1040Input):
         )
 
     except Exception as e:
-        logger.error(f"Error generating Form 1040: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error generating Form 1040: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate Form 1040. Please check your input data and try again.")
 
 
 @router.post("/schedule", response_class=Response)
@@ -193,8 +193,8 @@ async def generate_schedule(input_data: ScheduleInput):
         )
 
     except Exception as e:
-        logger.error(f"Error generating schedule: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error generating schedule: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate schedule. Please check your input data and try again.")
 
 
 @router.get("/session/{session_id}/form-1040", response_class=Response)

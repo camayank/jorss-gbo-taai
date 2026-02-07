@@ -363,3 +363,90 @@ def create_loading_response(
         "message": message or f"{operation} in progress...",
         "timestamp": datetime.now().isoformat(),
     }
+
+
+# =============================================================================
+# SAFE ERROR HANDLING
+# =============================================================================
+
+def safe_error_message(
+    exception: Exception,
+    context: str = "operation",
+    allow_value_errors: bool = True,
+) -> str:
+    """
+    Get a safe, user-friendly error message from an exception.
+
+    SECURITY: This function prevents internal error details from leaking
+    to API responses. Use this instead of str(e) in exception handlers.
+
+    Args:
+        exception: The caught exception
+        context: Description of what failed (e.g., "file upload", "OAuth")
+        allow_value_errors: If True, expose ValueError messages (usually validation)
+
+    Returns:
+        A user-friendly error message
+    """
+    import os
+
+    # In development, you may want to see full errors
+    is_dev = os.environ.get("APP_ENVIRONMENT", "").lower() in ("development", "dev", "local", "test")
+
+    # Log the full error for debugging
+    logger.exception(f"Error during {context}")
+
+    # ValueErrors are usually validation/business logic - safe to expose
+    if allow_value_errors and isinstance(exception, ValueError):
+        msg = str(exception)
+        # Still sanitize - don't expose paths or internal details
+        if any(sensitive in msg.lower() for sensitive in ["/", "\\", "sql", "query", "database", "password", "secret", "key", "token"]):
+            return f"Invalid input for {context}. Please check your data."
+        return msg
+
+    # Known safe exception types
+    if isinstance(exception, (KeyError, IndexError)):
+        return f"Required data is missing for {context}."
+
+    if isinstance(exception, TimeoutError):
+        return f"The {context} timed out. Please try again."
+
+    if isinstance(exception, PermissionError):
+        return f"Permission denied for {context}."
+
+    if isinstance(exception, FileNotFoundError):
+        return f"Required file not found for {context}."
+
+    # For all other exceptions, return generic message
+    # In development, include exception type
+    if is_dev:
+        return f"{context} failed: {type(exception).__name__}"
+
+    return f"An error occurred during {context}. Please try again later."
+
+
+def raise_safe_error(
+    exception: Exception,
+    status_code: int = 500,
+    context: str = "operation",
+    allow_value_errors: bool = True,
+) -> None:
+    """
+    Raise an HTTPException with a safe error message.
+
+    Usage:
+        try:
+            do_something()
+        except Exception as e:
+            raise_safe_error(e, context="processing request")
+
+    Args:
+        exception: The caught exception
+        status_code: HTTP status code (default 500)
+        context: Description of what failed
+        allow_value_errors: If True, expose ValueError messages
+    """
+    raise HTTPException(
+        status_code=status_code,
+        detail=safe_error_message(exception, context, allow_value_errors)
+    )
