@@ -26,7 +26,7 @@ import os
 import time
 import logging
 from datetime import datetime
-from typing import Dict, Optional, Set, Callable
+from typing import Dict, Optional, Set, Callable, Union
 from collections import defaultdict
 
 from fastapi import Request, HTTPException
@@ -395,7 +395,7 @@ class RedisRateLimitMiddleware(BaseHTTPMiddleware):
 
 
 # Convenience function for standalone rate limit checks
-def create_rate_limiter() -> RedisRateLimiter | InMemoryRateLimiter:
+def create_rate_limiter() -> Union[RedisRateLimiter, InMemoryRateLimiter]:
     """
     Create a rate limiter instance.
 

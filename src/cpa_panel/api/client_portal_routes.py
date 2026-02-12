@@ -461,9 +461,9 @@ async def get_client_dashboard(
                 "created_at": row[3].isoformat() if row[3] else datetime.utcnow().isoformat(),
                 "read": is_read
             })
-    except Exception:
-        # Messages table might not exist yet
-        pass
+    except Exception as e:
+        # Messages table might not exist yet - log but don't fail
+        logger.debug(f"Could not fetch messages for client {client.client_id}: {e}")
 
     # Get invoices
     invoices = []
@@ -496,8 +496,9 @@ async def get_client_dashboard(
                     "amount": amount,
                     "status": "paid" if inv_status == "paid" else "pending"
                 })
-    except Exception:
-        pass
+    except Exception as e:
+        # Invoices table might not exist - log but don't fail
+        logger.debug(f"Could not fetch invoices for client {client.client_id}: {e}")
 
     return {
         "client_id": client.client_id,
@@ -676,8 +677,9 @@ async def get_document_requests(
                 "requested_at": row[5].isoformat() if row[5] else datetime.utcnow().isoformat()
             })
         return requests
-    except Exception:
-        # Table might not exist, return empty list
+    except Exception as e:
+        # Table might not exist, return empty list - log the error
+        logger.debug(f"Could not fetch document requests: {e}")
         return []
 
 
@@ -799,8 +801,9 @@ async def upload_document(
                 "client_id": client.client_id,
                 "now": now
             })
-        except Exception:
-            pass  # Document requests table might not exist
+        except Exception as e:
+            # Document requests table might not exist - log but continue
+            logger.debug(f"Could not update document request {request_id}: {e}")
 
     await session.commit()
 
@@ -856,8 +859,9 @@ async def get_messages(
                 "read": row[4] is not None
             })
         return messages
-    except Exception:
-        # Messages table might not exist
+    except Exception as e:
+        # Messages table might not exist - log error
+        logger.debug(f"Could not fetch messages: {e}")
         return []
 
 
@@ -965,7 +969,8 @@ async def mark_messages_read(
         })
         await session.commit()
         return {"marked_read": True, "count": result.rowcount}
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Could not mark messages as read: {e}")
         return {"marked_read": True, "count": 0}
 
 
@@ -1019,8 +1024,8 @@ async def get_billing(
                     "amount": amount,
                     "status": "paid" if inv_status == "paid" else "pending"
                 })
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Could not fetch billing invoices: {e}")
 
     return {"balance": balance, "invoices": invoices}
 
@@ -1290,8 +1295,9 @@ async def get_notifications(
             })
 
         return {"notifications": notifications, "unread_count": unread_count}
-    except Exception:
-        # Notifications table might not exist
+    except Exception as e:
+        # Notifications table might not exist - log error
+        logger.debug(f"Could not fetch notifications: {e}")
         return {"notifications": [], "unread_count": 0}
 
 
@@ -1313,7 +1319,7 @@ async def mark_notification_read(
             "now": datetime.utcnow()
         })
         await session.commit()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"Could not mark notification {notification_id} as read: {e}")
 
     return {"marked_read": True}

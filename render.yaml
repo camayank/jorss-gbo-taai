@@ -1,0 +1,83 @@
+# =============================================================================
+# Render Blueprint - Jorss-GBO Tax Platform
+# =============================================================================
+# Deploy with: https://render.com/deploy
+#
+# This uses FREE tier resources:
+# - Web Service: Free (sleeps after 15 min inactivity)
+# - Database: Use external Neon (permanent free tier)
+# - Redis: Use external Upstash (free tier)
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Main Web Application
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: jorss-gbo
+    runtime: python
+    region: oregon  # or your preferred region
+    plan: free      # Free tier
+
+    # Build configuration
+    buildCommand: chmod +x scripts/build.sh && ./scripts/build.sh
+
+    # Start command
+    startCommand: gunicorn src.web.app:app --bind 0.0.0.0:$PORT --workers 2 --worker-class uvicorn.workers.UvicornWorker --timeout 120
+
+    # Health check
+    healthCheckPath: /api/health
+
+    # Environment variables (set these in Render dashboard or via envVarGroups)
+    envVars:
+      # Application
+      - key: APP_ENVIRONMENT
+        value: production
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: LOG_LEVEL
+        value: INFO
+
+      # Feature flags
+      - key: UNIFIED_FILING
+        value: "true"
+      - key: DB_PERSISTENCE
+        value: "true"
+      - key: NEW_LANDING
+        value: "true"
+
+      # Database - Neon (set in dashboard with actual values)
+      - key: DATABASE_URL
+        sync: false  # Set manually in dashboard
+
+      # Redis - Upstash (set in dashboard with actual values)
+      - key: REDIS_URL
+        sync: false  # Set manually in dashboard
+
+      # Security secrets (generate and set in dashboard)
+      - key: APP_SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CSRF_SECRET_KEY
+        generateValue: true
+      - key: ENCRYPTION_MASTER_KEY
+        generateValue: true
+      - key: SSN_HASH_SECRET
+        generateValue: true
+      - key: AUTH_SECRET_KEY
+        generateValue: true
+      - key: PASSWORD_SALT
+        generateValue: true
+
+      # OpenAI (set in dashboard)
+      - key: OPENAI_API_KEY
+        sync: false
+
+      # Branding (customize in dashboard)
+      - key: PLATFORM_NAME
+        value: "Tax Platform"
+      - key: COMPANY_NAME
+        value: "Your Company"
+      - key: SUPPORT_EMAIL
+        value: "support@example.com"

@@ -28,6 +28,7 @@ from .common import (
     sanitize_search_query,
     generate_request_id,
     log_api_event,
+    get_tenant_id,
 )
 
 logger = logging.getLogger(__name__)
@@ -100,13 +101,22 @@ async def list_clients(
     # Sanitize search query
     search = sanitize_search_query(search) if search else None
 
+    # Get tenant_id for multi-tenant isolation
+    tenant_id = get_tenant_id(request)
+
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
-            # Build query
+            # Build query with tenant isolation
+            # SECURITY: Always filter by tenant_id to prevent cross-tenant data access
             query = "SELECT * FROM clients WHERE 1=1"
             params = []
+
+            # Add tenant filter if not default (platform admin can see all with default)
+            if tenant_id and tenant_id != "default":
+                query += " AND (tenant_id = ? OR tenant_id IS NULL)"
+                params.append(tenant_id)
 
             if complexity:
                 query += " AND complexity = ?"
@@ -171,15 +181,27 @@ async def get_client(request: Request, client_id: str) -> Dict[str, Any]:
     if not valid:
         return format_error_response(err, ErrorCode.VALIDATION_ERROR, request_id=request_id)
 
+    # Get tenant_id for multi-tenant isolation
+    tenant_id = get_tenant_id(request)
+
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
-            # Try to find by client_id or session_id
-            cursor.execute(
-                "SELECT * FROM clients WHERE client_id = ? OR session_id = ?",
-                (client_id, client_id)
-            )
+            # Try to find by client_id or session_id with tenant isolation
+            # SECURITY: Include tenant_id check to prevent cross-tenant data access
+            if tenant_id and tenant_id != "default":
+                cursor.execute(
+                    """SELECT * FROM clients
+                       WHERE (client_id = ? OR session_id = ?)
+                       AND (tenant_id = ? OR tenant_id IS NULL)""",
+                    (client_id, client_id, tenant_id)
+                )
+            else:
+                cursor.execute(
+                    "SELECT * FROM clients WHERE client_id = ? OR session_id = ?",
+                    (client_id, client_id)
+                )
             row = cursor.fetchone()
 
             if not row:

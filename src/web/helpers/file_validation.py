@@ -9,7 +9,7 @@ Provides security-focused validation for uploaded files including:
 """
 
 import os
-from typing import Set
+from typing import Optional, Set
 from fastapi import UploadFile, HTTPException
 
 
@@ -81,7 +81,7 @@ def _validate_file_size(content: bytes) -> None:
         )
 
 
-def _validate_content_type(content_type: str | None) -> None:
+def _validate_content_type(content_type: Optional[str]) -> None:
     """Validate content type is allowed."""
     if content_type and content_type not in ALLOWED_CONTENT_TYPES:
         raise HTTPException(
@@ -90,7 +90,7 @@ def _validate_content_type(content_type: str | None) -> None:
         )
 
 
-def _validate_extension(filename: str | None) -> None:
+def _validate_extension(filename: Optional[str]) -> None:
     """Validate file extension is allowed."""
     if not filename:
         return
@@ -139,7 +139,7 @@ def _validate_magic_bytes(content: bytes) -> None:
         )
 
 
-def get_file_type_from_content(content: bytes) -> str | None:
+def get_file_type_from_content(content: bytes) -> Optional[str]:
     """
     Detect file type from content using magic bytes.
 

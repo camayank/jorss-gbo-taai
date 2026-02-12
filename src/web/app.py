@@ -3293,6 +3293,45 @@ async def startup_auto_save():
         logger.error(f"Auto-save initialization failed: {e}")
 
 
+@app.on_event("startup")
+async def startup_production_readiness_check():
+    """
+    Check production readiness and warn about in-memory storage components.
+
+    These components currently use in-memory storage that will NOT persist
+    across restarts or work in multi-instance deployments:
+    - Billing subscriptions/invoices
+    - Audit logs
+    - Staff assignments
+    - Client auth tokens
+    - Impersonation sessions
+
+    For production, these need to be migrated to database storage.
+    """
+    in_memory_components = [
+        ("Billing Storage", "core/api/billing_routes.py", "subscriptions and invoices"),
+        ("Audit Logs", "admin_panel/services/audit_service.py", "compliance audit trail"),
+        ("Staff Assignments", "cpa_panel/staff/assignment_service.py", "CPA staff assignments"),
+        ("Client Tokens", "cpa_panel/api/client_portal_routes.py", "client authentication"),
+        ("Impersonation", "admin_panel/support/impersonation_service.py", "support sessions"),
+    ]
+
+    if _is_production:
+        logger.warning("=" * 70)
+        logger.warning("  PRODUCTION READINESS WARNING")
+        logger.warning("=" * 70)
+        logger.warning("  The following components use IN-MEMORY storage:")
+        for name, location, description in in_memory_components:
+            logger.warning(f"    - {name}: {description}")
+        logger.warning("  ")
+        logger.warning("  Data in these components will be LOST on restart!")
+        logger.warning("  For production, migrate to database storage using the")
+        logger.warning("  migration: 20260212_0001_add_missing_tables.py")
+        logger.warning("=" * 70)
+    else:
+        logger.info("Production readiness check passed (in-memory storage OK for development)")
+
+
 @app.on_event("shutdown")
 async def shutdown_database():
     """Close database connections on application shutdown."""
