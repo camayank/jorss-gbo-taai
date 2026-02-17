@@ -22,6 +22,7 @@ Foreign Key Indexes (for JOIN and cascade performance):
 """
 
 from alembic import op
+import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
@@ -70,14 +71,19 @@ def upgrade() -> None:
         postgresql_where="student_ssn_hash IS NOT NULL"
     )
 
-    # Client SSN hash for client lookups
-    op.create_index(
-        'ix_client_ssn_hash',
-        'clients',
-        ['ssn_hash'],
-        unique=False,
-        postgresql_where="ssn_hash IS NOT NULL"
-    )
+    # Client SSN hash for client lookups (only if clients table exists in this branch)
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if 'clients' in inspector.get_table_names():
+        client_columns = {col["name"] for col in inspector.get_columns("clients")}
+        if 'ssn_hash' in client_columns:
+            op.create_index(
+                'ix_client_ssn_hash',
+                'clients',
+                ['ssn_hash'],
+                unique=False,
+                postgresql_where="ssn_hash IS NOT NULL"
+            )
 
     # ==========================================================================
     # Foreign Key Indexes (JOIN and Cascade Performance)
@@ -163,7 +169,12 @@ def downgrade() -> None:
     op.drop_index('ix_user_invited_by', table_name='users')
 
     # Drop SSN hash indexes
-    op.drop_index('ix_client_ssn_hash', table_name='clients')
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if 'clients' in inspector.get_table_names():
+        client_indexes = {ix["name"] for ix in inspector.get_indexes("clients")}
+        if 'ix_client_ssn_hash' in client_indexes:
+            op.drop_index('ix_client_ssn_hash', table_name='clients')
     op.drop_index('ix_credit_student_ssn_hash', table_name='credit_records')
     op.drop_index('ix_1099_recipient_ssn_hash', table_name='form1099_records')
     op.drop_index('ix_w2_employee_ssn_hash', table_name='w2_records')

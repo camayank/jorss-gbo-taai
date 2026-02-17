@@ -332,6 +332,20 @@ class ScenarioResult(BaseModel):
     computed_at: datetime = Field(default_factory=datetime.utcnow)
     computation_time_ms: Optional[int] = Field(default=None)
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for storage and API responses."""
+        try:
+            data = self.model_dump(mode="python")  # Pydantic v2
+        except AttributeError:
+            data = self.dict()  # Pydantic v1 fallback
+
+        # Ensure datetime is JSON-serializable in all runtimes.
+        computed_at = data.get("computed_at")
+        if isinstance(computed_at, datetime):
+            data["computed_at"] = computed_at.isoformat()
+
+        return data
+
 
 class RecommendationAction(BaseModel):
     """

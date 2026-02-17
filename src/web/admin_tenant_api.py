@@ -10,6 +10,8 @@ from pydantic import BaseModel, EmailStr, HttpUrl
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from uuid import uuid4
+import logging
+import sqlite3
 
 from ..rbac.dependencies import require_auth, AuthContext
 from ..rbac.roles import Role
@@ -27,6 +29,7 @@ from ..database.tenant_models import (
 
 
 router = APIRouter(prefix="/api/admin/tenants", tags=["admin-tenants"])
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -637,25 +640,54 @@ async def verify_custom_domain(
 
     Checks DNS TXT record and marks domain as verified.
     """
-    # DNS TXT record verification
-    import socket
-
     persistence = get_tenant_persistence()
-    expected_txt = f"jorss-verification={domain}"
+    tenant = persistence.get_tenant(tenant_id)
+    if not tenant:
+        raise HTTPException(404, "Tenant not found")
+
+    if tenant.custom_domain and tenant.custom_domain != domain:
+        raise HTTPException(400, "Domain does not match tenant custom domain")
+
+    verification_token: Optional[str] = None
+    try:
+        with sqlite3.connect(persistence.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT tenant_id, verification_token FROM domain_mappings WHERE domain = ? LIMIT 1",
+                (domain,),
+            )
+            row = cursor.fetchone()
+            if row:
+                mapped_tenant_id, verification_token = str(row[0]), row[1]
+                if mapped_tenant_id != tenant_id:
+                    raise HTTPException(403, "Domain belongs to a different tenant")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.warning(f"Failed to read domain mapping for {domain}: {exc}")
+
+    if not verification_token:
+        raise HTTPException(404, "Domain mapping not found. Add the custom domain first.")
+
+    expected_txt = f"tax-domain-verification={verification_token}"
 
     dns_verified = False
     try:
         import dns.resolver
         answers = dns.resolver.resolve(domain, "TXT")
         for rdata in answers:
-            txt_value = rdata.to_text().strip('"')
+            txt_chunks = []
+            for raw in getattr(rdata, "strings", []) or []:
+                if isinstance(raw, bytes):
+                    txt_chunks.append(raw.decode(errors="ignore"))
+                else:
+                    txt_chunks.append(str(raw))
+            txt_value = "".join(txt_chunks) or rdata.to_text().strip('"')
             if expected_txt in txt_value:
                 dns_verified = True
                 break
     except ImportError:
-        # dnspython not installed — fall through to persistence-only check
-        logger.warning("dnspython not installed; skipping DNS TXT verification")
-        dns_verified = True  # Allow persistence-based verification as fallback
+        raise HTTPException(503, "dnspython dependency is required for DNS verification")
     except Exception as e:
         logger.warning(f"DNS verification failed for {domain}: {e}")
 
@@ -666,5 +698,9 @@ async def verify_custom_domain(
 
     if not success:
         raise HTTPException(404, "Domain not found or verification failed")
+
+    tenant.custom_domain = domain
+    tenant.custom_domain_verified = True
+    persistence.update_tenant(tenant)
 
     return {"message": "Domain verified", "domain": domain, "dns_checked": dns_verified}

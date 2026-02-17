@@ -1,7 +1,7 @@
 """Add session persistence tables
 
 Revision ID: 20260205_0002
-Revises: 20260205_0001
+Revises: 20260203_0001
 Create Date: 2026-02-05
 
 Creates the 5 session-related tables that were previously managed via
@@ -22,7 +22,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '20260205_0002'
-down_revision = '20260205_0001'
+down_revision = '20260203_0001'
 branch_labels = None
 depends_on = None
 

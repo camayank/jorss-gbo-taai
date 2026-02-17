@@ -1,7 +1,7 @@
 """Add webhook tables
 
 Revision ID: 20260129_0001
-Revises: 20260128_0002_add_ssn_and_fk_indexes
+Revises: 20260128_0002
 Create Date: 2026-01-29
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '20260129_0001'
-down_revision = '20260128_0002_add_ssn_and_fk_indexes'
+down_revision = '20260128_0002'
 branch_labels = None
 depends_on = None
 

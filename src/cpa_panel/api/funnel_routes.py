@@ -14,11 +14,14 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 import logging
 
+from .auth_dependencies import require_internal_cpa_auth
+
 logger = logging.getLogger(__name__)
 
 funnel_router = APIRouter(
     prefix="/funnel",
-    tags=["Funnel Orchestration"]
+    tags=["Funnel Orchestration"],
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 
 

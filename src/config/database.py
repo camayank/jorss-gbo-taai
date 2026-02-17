@@ -8,7 +8,7 @@ from functools import lru_cache
 from typing import Optional
 from pathlib import Path
 
-from pydantic import Field, computed_field
+from pydantic import AliasChoices, Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -32,7 +32,15 @@ class DatabaseSettings(BaseSettings):
         env_prefix="DB_",
         env_file=".env",
         env_file_encoding="utf-8",
+        populate_by_name=True,
         extra="ignore",
+    )
+
+    # Preferred direct URL (takes precedence over DB_* parts when provided)
+    database_url: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("DATABASE_URL", "DB_DATABASE_URL"),
+        description="Direct database URL (e.g. postgresql:///jorss_gbo)",
     )
 
     # Database driver: postgresql+asyncpg (production) or sqlite+aiosqlite (dev)
@@ -113,13 +121,37 @@ class DatabaseSettings(BaseSettings):
     @property
     def is_sqlite(self) -> bool:
         """Check if using SQLite."""
+        url = self._normalized_database_url()
+        if url:
+            return self._url_scheme(url).startswith("sqlite")
         return "sqlite" in self.driver.lower()
 
     @computed_field
     @property
     def is_postgres(self) -> bool:
         """Check if using PostgreSQL."""
+        url = self._normalized_database_url()
+        if url:
+            return self._url_scheme(url).startswith(("postgresql", "postgres"))
         return "postgresql" in self.driver.lower() or "postgres" in self.driver.lower()
+
+    def _normalized_database_url(self) -> Optional[str]:
+        if not self.database_url:
+            return None
+        normalized = self.database_url.strip()
+        return normalized or None
+
+    @staticmethod
+    def _url_scheme(url: str) -> str:
+        if "://" not in url:
+            return ""
+        return url.split("://", 1)[0].lower()
+
+    @staticmethod
+    def _replace_url_scheme(url: str, new_scheme: str) -> str:
+        if "://" not in url:
+            return url
+        return f"{new_scheme}://{url.split('://', 1)[1]}"
 
     @computed_field
     @property
@@ -130,6 +162,15 @@ class DatabaseSettings(BaseSettings):
         Returns:
             Database URL for async connections.
         """
+        direct_url = self._normalized_database_url()
+        if direct_url:
+            scheme = self._url_scheme(direct_url)
+            if scheme.startswith(("postgresql", "postgres")):
+                return self._replace_url_scheme(direct_url, "postgresql+asyncpg")
+            if scheme.startswith("sqlite"):
+                return self._replace_url_scheme(direct_url, "sqlite+aiosqlite")
+            return direct_url
+
         if self.is_sqlite:
             # Ensure parent directory exists
             self.sqlite_path.parent.mkdir(parents=True, exist_ok=True)
@@ -154,6 +195,15 @@ class DatabaseSettings(BaseSettings):
         Returns:
             Database URL for sync connections.
         """
+        direct_url = self._normalized_database_url()
+        if direct_url:
+            scheme = self._url_scheme(direct_url)
+            if scheme.startswith(("postgresql", "postgres")):
+                return self._replace_url_scheme(direct_url, "postgresql+psycopg2")
+            if scheme.startswith("sqlite"):
+                return self._replace_url_scheme(direct_url, "sqlite")
+            return direct_url
+
         if self.is_sqlite:
             return f"sqlite:///{self.sqlite_path.absolute()}"
 

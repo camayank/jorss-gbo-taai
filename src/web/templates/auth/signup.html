@@ -535,6 +535,56 @@
         // API Base URL for authentication
         const AUTH_API = '/api/core/auth';
 
+        function getCookieValue(name) {
+            const cookies = document.cookie ? document.cookie.split(';') : [];
+            for (const cookie of cookies) {
+                const [key, ...rest] = cookie.trim().split('=');
+                if (key === name) {
+                    return decodeURIComponent(rest.join('='));
+                }
+            }
+            return '';
+        }
+
+        function setCookie(name, value, maxAgeSeconds = 604800) {
+            const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
+            document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax${secureFlag}`;
+        }
+
+        function decodeJwtPayload(token) {
+            try {
+                const payload = token.split('.')[1];
+                if (!payload) return {};
+                const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+                const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+                return JSON.parse(atob(padded));
+            } catch (_err) {
+                return {};
+            }
+        }
+
+        function persistAuthSession(result) {
+            const accessToken = result && result.access_token ? result.access_token : '';
+            const refreshToken = result && result.refresh_token ? result.refresh_token : '';
+            const user = (result && result.user) || decodeJwtPayload(accessToken);
+
+            if (accessToken) {
+                localStorage.setItem('auth_token', accessToken);
+                setCookie('auth_token', accessToken);
+            }
+            if (refreshToken) {
+                localStorage.setItem('refresh_token', refreshToken);
+            }
+
+            const role = user && (user.role || user.user_type) ? (user.role || user.user_type) : '';
+            const displayName = user && (user.full_name || user.name) ? (user.full_name || user.name) : '';
+            const email = user && user.email ? user.email : '';
+
+            if (role) setCookie('user_role', role);
+            if (displayName) setCookie('user_name', displayName);
+            if (email) setCookie('user_email', email);
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
             const nextUrl = urlParams.get('next') || '/advisor';
@@ -544,7 +594,7 @@
             if (urlParams.get('oauth_success') === 'true') {
                 const token = urlParams.get('token');
                 if (token) {
-                    localStorage.setItem('auth_token', token);
+                    persistAuthSession({ access_token: token });
                     window.location.href = nextUrl;
                     return;
                 }
@@ -616,22 +666,23 @@
             };
 
             try {
+                const headers = { 'Content-Type': 'application/json' };
+                const csrfToken = getCookieValue('csrf_token');
+                if (csrfToken) {
+                    headers['X-CSRF-Token'] = csrfToken;
+                }
+
                 const response = await fetch(`${AUTH_API}/register`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers,
                     body: JSON.stringify(data)
                 });
 
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    // Store tokens
-                    if (result.access_token) {
-                        localStorage.setItem('auth_token', result.access_token);
-                    }
-                    if (result.refresh_token) {
-                        localStorage.setItem('refresh_token', result.refresh_token);
-                    }
+                    // Store tokens + role context for server-rendered routes
+                    persistAuthSession(result);
                     const nextUrl = document.getElementById('next-url').value;
                     window.location.href = nextUrl;
                 } else {

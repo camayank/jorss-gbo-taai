@@ -9,7 +9,8 @@ Smart Tax Advisory Lead Magnet Flow endpoints:
 5. CPA lead management
 """
 
-from fastapi import APIRouter, HTTPException, Query, Response
+from datetime import datetime
+from fastapi import APIRouter, HTTPException, Query, Response, Depends, Request, status
 from pydantic import BaseModel, Field
 try:
     from pydantic import EmailStr
@@ -25,6 +26,7 @@ from ..services.lead_magnet_service import (
 from ..services.report_templates import get_report_template_service
 from ..services.activity_service import get_activity_service, ActivityType, ActivityActor
 from ..services.nurture_service import get_nurture_service, NurtureSequenceType
+from .auth_dependencies import require_internal_cpa_auth
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +34,8 @@ lead_magnet_router = APIRouter(
     prefix="/lead-magnet",
     tags=["Lead Magnet"]
 )
+
+MIN_CONTACT_FORM_DWELL_MS = 1200
 
 
 # =============================================================================
@@ -52,6 +56,26 @@ class StartAssessmentRequest(BaseModel):
         None,
         description="How the prospect found this (e.g., 'google', 'referral')"
     )
+    variant_id: Optional[str] = Field(
+        default=None,
+        description="Experiment variant id for A/B funnel testing (e.g., A-E).",
+    )
+    utm_source: Optional[str] = Field(
+        default=None,
+        description="UTM source attribution token.",
+    )
+    utm_medium: Optional[str] = Field(
+        default=None,
+        description="UTM medium attribution token.",
+    )
+    utm_campaign: Optional[str] = Field(
+        default=None,
+        description="UTM campaign attribution token.",
+    )
+    device_type: Optional[str] = Field(
+        default=None,
+        description="Client-reported device type (mobile/tablet/desktop).",
+    )
 
 
 class StartAssessmentResponse(BaseModel):
@@ -59,6 +83,7 @@ class StartAssessmentResponse(BaseModel):
     session_id: str
     cpa_profile: Dict[str, Any]
     assessment_mode: str
+    variant_id: str
     screens: List[str]
 
 
@@ -67,6 +92,14 @@ class TaxProfileRequest(BaseModel):
     filing_status: str = Field(
         ...,
         description="Filing status: single, married_jointly, married_separately, head_of_household"
+    )
+    state_code: str = Field(
+        default="US",
+        description="Two-letter US state code for state tax personalization (e.g., CA, TX, NY)."
+    )
+    occupation_type: Optional[str] = Field(
+        default="w2",
+        description="Occupation profile token (w2, self_employed, freelancer, business_owner, investor, retired).",
     )
     dependents_count: int = Field(
         default=0,
@@ -122,14 +155,70 @@ class TaxProfileResponse(BaseModel):
     complexity: str
     income_range_display: str
     insights_preview: int
+    score_preview: int
+    score_band: str
+    missed_savings_range: str
+    personalization_line: Optional[str] = None
+    personalization_tokens: Optional[Dict[str, Any]] = None
+    deadline_days_remaining: Optional[int] = None
+    score_benchmark: Optional[Dict[str, Any]] = None
+    comparison_chart: Optional[Dict[str, Any]] = None
     next_screen: str
 
 
 class CaptureContactRequest(BaseModel):
     """Request to capture prospect contact info."""
     first_name: str = Field(..., description="Prospect's first name")
-    email: str = Field(..., description="Prospect's email address")
+    email: EmailStr = Field(..., description="Prospect's email address")
     phone: Optional[str] = Field(None, description="Prospect's phone number (optional)")
+    website: Optional[str] = Field(
+        None,
+        description="Honeypot field for bot filtering; must remain empty."
+    )
+    form_started_at_ms: Optional[int] = Field(
+        None,
+        description="Client timestamp in milliseconds to validate minimum dwell time.",
+    )
+    phone_capture_variant: Optional[str] = Field(
+        default=None,
+        description="Contact friction test variant: 'required' or 'optional'.",
+    )
+
+
+class TrackFunnelEventRequest(BaseModel):
+    """Track taxpayer funnel events for analytics and drop-off reporting."""
+    event_name: str = Field(
+        ...,
+        description="Event name (start, step_complete, drop_off, lead_submit, report_view).",
+    )
+    step: Optional[str] = Field(
+        None,
+        description="Optional current step/screen identifier.",
+    )
+    metadata: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Optional additional context for analytics.",
+    )
+    variant_id: Optional[str] = Field(
+        default=None,
+        description="Experiment variant id for this event.",
+    )
+    utm_source: Optional[str] = Field(
+        default=None,
+        description="UTM source for this event.",
+    )
+    utm_medium: Optional[str] = Field(
+        default=None,
+        description="UTM medium for this event.",
+    )
+    utm_campaign: Optional[str] = Field(
+        default=None,
+        description="UTM campaign for this event.",
+    )
+    device_type: Optional[str] = Field(
+        default=None,
+        description="Device type for this event.",
+    )
 
 
 class CaptureContactResponse(BaseModel):
@@ -156,6 +245,10 @@ class TierOneReportResponse(BaseModel):
     locked_count: int
     cta_text: str
     booking_link: str
+    personalization: Optional[Dict[str, Any]] = None
+    comparison_chart: Optional[Dict[str, Any]] = None
+    deadline_context: Optional[Dict[str, Any]] = None
+    share_payload: Optional[Dict[str, Any]] = None
     report_html: str
 
 
@@ -250,17 +343,23 @@ async def start_assessment(request: StartAssessmentRequest):
             cpa_slug=request.cpa_slug,
             assessment_mode=request.assessment_mode,
             referral_source=request.referral_source,
+            variant_id=request.variant_id,
+            utm_source=request.utm_source,
+            utm_medium=request.utm_medium,
+            utm_campaign=request.utm_campaign,
+            device_type=request.device_type,
         )
 
         # Determine screens based on mode
-        screens = ["welcome", "profile", "contact", "report"]
+        screens = ["welcome", "profile", "teaser", "contact", "report"]
         if request.assessment_mode == "full":
-            screens = ["welcome", "profile", "documents", "contact", "report"]
+            screens = ["welcome", "profile", "documents", "teaser", "contact", "report"]
 
         return StartAssessmentResponse(
             session_id=session["session_id"],
             cpa_profile=session["cpa_profile"],
             assessment_mode=session["assessment_mode"],
+            variant_id=session.get("variant_id") or "A",
             screens=screens,
         )
 
@@ -288,6 +387,8 @@ async def submit_tax_profile(session_id: str, request: TaxProfileRequest):
         result = service.submit_tax_profile(
             session_id=session_id,
             filing_status=request.filing_status,
+            state_code=request.state_code,
+            occupation_type=request.occupation_type,
             dependents_count=request.dependents_count,
             has_children_under_17=request.has_children_under_17,
             income_range=request.income_range,
@@ -317,7 +418,15 @@ async def submit_tax_profile(session_id: str, request: TaxProfileRequest):
             complexity=result["complexity"],
             income_range_display=income_display,
             insights_preview=result["insights_count"],
-            next_screen="contact",
+            score_preview=result.get("score_preview", 62),
+            score_band=result.get("score_band", "Watchlist"),
+            missed_savings_range=result.get("missed_savings_range", "$1,500 - $4,200"),
+            personalization_line=result.get("personalization_line"),
+            personalization_tokens=result.get("personalization_tokens"),
+            deadline_days_remaining=(result.get("deadline_context") or {}).get("days_remaining"),
+            score_benchmark=result.get("score_benchmark"),
+            comparison_chart=result.get("comparison_chart"),
+            next_screen="teaser",
         )
 
     except ValueError as e:
@@ -328,12 +437,53 @@ async def submit_tax_profile(session_id: str, request: TaxProfileRequest):
 
 
 @lead_magnet_router.post(
+    "/{session_id}/event",
+    summary="Track lead magnet funnel event",
+    description="Stores funnel step and engagement events for analytics."
+)
+async def track_funnel_event(session_id: str, request: TrackFunnelEventRequest):
+    """Track start/step/drop-off/contact/report events for funnel analytics."""
+    allowed_events = {
+        "start",
+        "step_complete",
+        "drop_off",
+        "lead_submit",
+        "report_view",
+    }
+    if request.event_name not in allowed_events:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported event_name '{request.event_name}'",
+        )
+
+    try:
+        service = get_lead_magnet_service()
+        tracked = service.track_event(
+            session_id=session_id,
+            event_name=request.event_name,
+            step=request.step,
+            metadata=request.metadata or {},
+            variant_id=request.variant_id,
+            utm_source=request.utm_source,
+            utm_medium=request.utm_medium,
+            utm_campaign=request.utm_campaign,
+            device_type=request.device_type,
+        )
+        return {"status": "ok", "tracked": tracked}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to track event for session {session_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@lead_magnet_router.post(
     "/{session_id}/contact",
     response_model=CaptureContactResponse,
     summary="Capture contact info (lead gate)",
     description="Capture prospect's contact info to create lead and generate report"
 )
-async def capture_contact(session_id: str, request: CaptureContactRequest):
+async def capture_contact(session_id: str, request: CaptureContactRequest, http_request: Request):
     """
     Capture contact info - this is the lead gate.
 
@@ -345,6 +495,35 @@ async def capture_contact(session_id: str, request: CaptureContactRequest):
     5. Activity is logged for audit trail
     6. Lead is enrolled in nurture sequence
     """
+    honeypot_value = (request.website or "").strip()
+    if honeypot_value:
+        logger.warning(
+            "Blocked lead-magnet bot submission (honeypot triggered) session=%s ip=%s",
+            session_id,
+            http_request.client.host if http_request.client else "unknown",
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid submission payload.",
+        )
+
+    if request.form_started_at_ms is not None:
+        now_ms = int(datetime.utcnow().timestamp() * 1000)
+        dwell_ms = now_ms - request.form_started_at_ms
+        # Reject unrealistically fast submissions while tolerating minor clock skew.
+        if dwell_ms >= 0 and dwell_ms < MIN_CONTACT_FORM_DWELL_MS:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Please take a moment to review your details before submitting.",
+            )
+
+    phone_variant = (request.phone_capture_variant or "optional").strip().lower()
+    if phone_variant == "required" and not (request.phone or "").strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Phone number is required for this variant.",
+        )
+
     try:
         service = get_lead_magnet_service()
 
@@ -377,6 +556,19 @@ async def capture_contact(session_id: str, request: CaptureContactRequest):
         except Exception as nurture_error:
             logger.warning(f"Failed to enroll lead {lead_id} in nurture: {nurture_error}")
 
+        try:
+            service.track_event(
+                session_id=session_id,
+                event_name="lead_submit",
+                step="contact",
+                metadata={
+                    "lead_id": lead_id,
+                    "phone_capture_variant": phone_variant,
+                },
+            )
+        except Exception as tracking_error:
+            logger.warning(f"Failed to track lead_submit for session {session_id}: {tracking_error}")
+
         return CaptureContactResponse(
             session_id=session_id,
             lead_id=lead_id,
@@ -389,6 +581,36 @@ async def capture_contact(session_id: str, request: CaptureContactRequest):
     except Exception as e:
         logger.error(f"Failed to capture contact for session {session_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@lead_magnet_router.get(
+    "/analytics/kpis",
+    summary="Get funnel KPI aggregates",
+    description="Returns funnel conversion KPI metrics grouped by date/variant filters.",
+    dependencies=[Depends(require_internal_cpa_auth)],
+)
+async def get_funnel_kpis(
+    date_from: Optional[str] = Query(default=None, description="Start date (YYYY-MM-DD)."),
+    date_to: Optional[str] = Query(default=None, description="End date (YYYY-MM-DD)."),
+    variant_id: Optional[str] = Query(default=None, description="Filter by experiment variant."),
+    utm_source: Optional[str] = Query(default=None, description="Filter by UTM source."),
+    device_type: Optional[str] = Query(default=None, description="Filter by device type (mobile/tablet/desktop)."),
+    cpa_id: Optional[str] = Query(default=None, description="Filter by CPA id."),
+):
+    """Get funnel KPI rates and counts for Connor launch analytics."""
+    try:
+        service = get_lead_magnet_service()
+        return service.get_funnel_kpis(
+            date_from=date_from,
+            date_to=date_to,
+            variant_id=variant_id,
+            utm_source=utm_source,
+            device_type=device_type,
+            cpa_id=cpa_id,
+        )
+    except Exception as exc:
+        logger.error("Failed to fetch funnel KPI metrics: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @lead_magnet_router.get(
@@ -508,7 +730,8 @@ async def get_tier_two_report(
 @lead_magnet_router.get(
     "/leads",
     summary="Get all lead magnet leads",
-    description="Get all leads from lead magnet funnel for CPA dashboard"
+    description="Get all leads from lead magnet funnel for CPA dashboard",
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def get_lead_magnet_leads(
     cpa_id: Optional[str] = Query(None, description="Filter by CPA ID"),
@@ -548,7 +771,8 @@ async def get_lead_magnet_leads(
 @lead_magnet_router.get(
     "/leads/hot",
     summary="Get hot leads",
-    description="Get high-score hot leads for immediate follow-up"
+    description="Get high-score hot leads for immediate follow-up",
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def get_hot_leads(
     cpa_id: Optional[str] = Query(None, description="Filter by CPA ID"),
@@ -585,7 +809,8 @@ async def get_hot_leads(
 @lead_magnet_router.get(
     "/leads/stats",
     summary="Get lead statistics",
-    description="Get aggregate statistics for lead magnet leads"
+    description="Get aggregate statistics for lead magnet leads",
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def get_lead_stats(
     cpa_id: Optional[str] = Query(None, description="Filter by CPA ID"),
@@ -616,7 +841,8 @@ async def get_lead_stats(
 @lead_magnet_router.get(
     "/leads/{lead_id}",
     summary="Get lead details",
-    description="Get detailed information about a specific lead"
+    description="Get detailed information about a specific lead",
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def get_lead_details(lead_id: str):
     """
@@ -644,7 +870,8 @@ async def get_lead_details(lead_id: str):
 @lead_magnet_router.post(
     "/leads/{lead_id}/engage",
     summary="Mark lead as engaged",
-    description="Mark a lead as engaged (step 1 of Tier 2 unlock)"
+    description="Mark a lead as engaged (step 1 of Tier 2 unlock)",
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def engage_lead(lead_id: str, request: Optional[EngageLeadRequest] = None):
     """
@@ -716,7 +943,8 @@ async def engage_lead(lead_id: str, request: Optional[EngageLeadRequest] = None)
 @lead_magnet_router.post(
     "/leads/{lead_id}/acknowledge-engagement",
     summary="Acknowledge engagement letter",
-    description="Acknowledge the engagement letter (step 2 of Tier 2 unlock)"
+    description="Acknowledge the engagement letter (step 2 of Tier 2 unlock)",
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def acknowledge_engagement_letter(lead_id: str, request: AcknowledgeEngagementLetterRequest):
     """
@@ -770,7 +998,8 @@ async def acknowledge_engagement_letter(lead_id: str, request: AcknowledgeEngage
 @lead_magnet_router.post(
     "/leads/{lead_id}/convert",
     summary="Convert lead to client",
-    description="Convert an engaged lead to a full client"
+    description="Convert an engaged lead to a full client",
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def convert_lead(lead_id: str):
     """
@@ -834,7 +1063,8 @@ async def convert_lead(lead_id: str):
 @lead_magnet_router.post(
     "/cpa-profiles",
     summary="Create CPA profile",
-    description="Create a new CPA profile for lead magnet branding"
+    description="Create a new CPA profile for lead magnet branding",
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def create_cpa_profile(request: CPAProfileRequest):
     """
@@ -906,7 +1136,8 @@ async def get_cpa_profile(cpa_slug: str):
 @lead_magnet_router.put(
     "/cpa-profiles/{cpa_id}",
     summary="Update CPA profile",
-    description="Update an existing CPA profile"
+    description="Update an existing CPA profile",
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def update_cpa_profile(cpa_id: str, request: CPAProfileRequest):
     """

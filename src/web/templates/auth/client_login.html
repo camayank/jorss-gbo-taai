@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Portal Login</title>
+  <style>
+    :root {
+      --bg: #f3f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #1e3a5f;
+      --border: #dbe4ef;
+      --danger: #dc2626;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at top right, #dde8f6 0%, var(--bg) 45%, #eef3f8 100%);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+    .card {
+      width: 100%;
+      max-width: 460px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 10px 24px rgba(30, 58, 95, 0.08);
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin: 0 0 8px;
+      color: var(--primary);
+    }
+    p {
+      margin: 0 0 20px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    label {
+      display: block;
+      margin: 0 0 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    input {
+      width: 100%;
+      height: 48px;
+      border-radius: 10px;
+      border: 1px solid #cfd9e6;
+      padding: 0 14px;
+      font-size: 1rem;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
+    }
+    button {
+      margin-top: 16px;
+      width: 100%;
+      height: 48px;
+      border: 0;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button[disabled] {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+    .message {
+      margin-top: 14px;
+      font-size: 0.9rem;
+      min-height: 1.2em;
+    }
+    .message.error { color: var(--danger); }
+    .message.success { color: #0f766e; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Client Portal Access</h1>
+    <p>Enter the same email you use with your CPA. We will open your personalized portal instantly.</p>
+
+    <form id="client-login-form">
+      <label for="email">Email Address</label>
+      <input id="email" name="email" type="email" autocomplete="email" required />
+
+      <button id="submit-btn" type="submit">Access My Portal</button>
+      <div id="message" class="message" aria-live="polite"></div>
+    </form>
+  </main>
+
+  <script>
+    const nextUrl = {{ next_url|tojson }};
+
+    function getCookieValue(name) {
+      const cookies = document.cookie ? document.cookie.split(';') : [];
+      for (const cookie of cookies) {
+        const [key, ...rest] = cookie.trim().split('=');
+        if (key === name) {
+          return decodeURIComponent(rest.join('='));
+        }
+      }
+      return '';
+    }
+
+    function setClientToken(token) {
+      const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
+      localStorage.setItem('client_token', token);
+      document.cookie = `client_token=${encodeURIComponent(token)}; Path=/; Max-Age=86400; SameSite=Lax${secureFlag}`;
+    }
+
+    function redirectToPortal(token) {
+      const separator = nextUrl.includes('?') ? '&' : '?';
+      window.location.href = `${nextUrl}${separator}token=${encodeURIComponent(token)}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const existingToken = localStorage.getItem('client_token');
+      if (existingToken) {
+        redirectToPortal(existingToken);
+      }
+    });
+
+    document.getElementById('client-login-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const submitBtn = document.getElementById('submit-btn');
+      const message = document.getElementById('message');
+      const email = (document.getElementById('email').value || '').trim();
+
+      if (!email) {
+        message.textContent = 'Email is required.';
+        message.className = 'message error';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      message.textContent = '';
+      message.className = 'message';
+
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        const csrfToken = getCookieValue('csrf_token');
+        if (csrfToken) {
+          headers['X-CSRF-Token'] = csrfToken;
+        }
+
+        const response = await fetch('/api/cpa/client/login', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ email })
+        });
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok || !payload.success || !payload.token) {
+          const detail = payload.detail || payload.message || 'Unable to log in with this email.';
+          throw new Error(detail);
+        }
+
+        setClientToken(payload.token);
+        message.textContent = 'Login successful. Opening your portal...';
+        message.className = 'message success';
+        redirectToPortal(payload.token);
+      } catch (error) {
+        message.textContent = error.message || 'Login failed. Please try again.';
+        message.className = 'message error';
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

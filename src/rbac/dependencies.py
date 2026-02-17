@@ -23,7 +23,7 @@ Usage:
 """
 
 import logging
-from typing import Optional, Set, Union, Callable
+from typing import Any, Callable, Optional, Set, Union
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, Request, status
@@ -158,6 +158,67 @@ async def require_auth(
     return ctx
 
 
+async def optional_auth(
+    ctx: AuthContext = Depends(get_auth_context),
+) -> Optional[AuthContext]:
+    """
+    Return authenticated context when available, otherwise None.
+
+    Use this for endpoints that support both anonymous and authenticated access.
+    """
+    if not ctx.is_authenticated:
+        return None
+    return ctx
+
+
+def _extract_auth_context_from_call(args: tuple, kwargs: dict) -> Optional[AuthContext]:
+    """Extract AuthContext from decorator-invoked endpoint arguments."""
+    for value in kwargs.values():
+        if isinstance(value, AuthContext):
+            return value
+    for value in args:
+        if isinstance(value, AuthContext):
+            return value
+    return None
+
+
+def _require_decorator_auth_context(args: tuple, kwargs: dict) -> AuthContext:
+    """Require an authenticated AuthContext for decorator-based checks."""
+    ctx = _extract_auth_context_from_call(args, kwargs)
+    if not ctx or not ctx.is_authenticated:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return ctx
+
+
+def _role_to_value(role_like: Union[Role, str, Any]) -> str:
+    """Normalize role-like value to comparable role string."""
+    raw = role_like.value if hasattr(role_like, "value") else str(role_like)
+    return raw
+
+
+def _coerce_permission(permission_like: Union[Permission, str, Any]) -> Union[Permission, str]:
+    """Normalize permission-like values to Permission enum when possible."""
+    if isinstance(permission_like, Permission):
+        return permission_like
+
+    raw = permission_like.value if hasattr(permission_like, "value") else str(permission_like)
+    try:
+        return Permission(raw)
+    except (TypeError, ValueError):
+        return raw
+
+
+def _permission_to_value(permission_like: Union[Permission, str]) -> str:
+    """Normalize permission to comparable string value."""
+    if isinstance(permission_like, Permission):
+        return permission_like.value
+    return str(permission_like)
+
+
 # =============================================================================
 # ROLE-BASED DEPENDENCIES
 # =============================================================================
@@ -182,11 +243,15 @@ def require_role(role: Union[Role, Set[Role]]) -> Callable:
     import functools
     import inspect
 
-    roles = {role} if isinstance(role, Role) else role
+    if isinstance(role, (set, frozenset, list, tuple)):
+        roles = set(role)
+    else:
+        roles = {role}
+    required_role_values = {_role_to_value(r) for r in roles}
 
     async def dependency(ctx: AuthContext = Depends(require_auth)) -> AuthContext:
-        if ctx.role not in roles:
-            role_names = ", ".join(r.value for r in roles)
+        if _role_to_value(ctx.role) not in required_role_values:
+            role_names = ", ".join(sorted(required_role_values))
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Required role: {role_names}",
@@ -195,30 +260,42 @@ def require_role(role: Union[Role, Set[Role]]) -> Callable:
 
     def decorator_or_dependency(func_or_ctx=None):
         """
-        When used as @require_role(role), this is called with the decorated function.
+        When used as @require_role(role), this enforces role checks at runtime.
         When used as Depends(require_role(role)), this returns the dependency.
         """
-        # If called with a function (decorator usage)
-        if func_or_ctx is not None and callable(func_or_ctx) and hasattr(func_or_ctx, '__name__'):
+        if func_or_ctx is not None and callable(func_or_ctx) and hasattr(func_or_ctx, "__name__"):
             if inspect.iscoroutinefunction(func_or_ctx):
                 @functools.wraps(func_or_ctx)
                 async def async_wrapper(*args, **kwargs):
+                    ctx = _require_decorator_auth_context(args, kwargs)
+                    if _role_to_value(ctx.role) not in required_role_values:
+                        role_names = ", ".join(sorted(required_role_values))
+                        raise HTTPException(
+                            status_code=status.HTTP_403_FORBIDDEN,
+                            detail=f"Required role: {role_names}",
+                        )
                     return await func_or_ctx(*args, **kwargs)
+
                 async_wrapper._required_roles = roles
                 return async_wrapper
-            else:
-                @functools.wraps(func_or_ctx)
-                def sync_wrapper(*args, **kwargs):
-                    return func_or_ctx(*args, **kwargs)
-                sync_wrapper._required_roles = roles
-                return sync_wrapper
 
-        # If called with ctx (dependency usage via Depends)
+            @functools.wraps(func_or_ctx)
+            def sync_wrapper(*args, **kwargs):
+                ctx = _require_decorator_auth_context(args, kwargs)
+                if _role_to_value(ctx.role) not in required_role_values:
+                    role_names = ", ".join(sorted(required_role_values))
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail=f"Required role: {role_names}",
+                    )
+                return func_or_ctx(*args, **kwargs)
+
+            sync_wrapper._required_roles = roles
+            return sync_wrapper
+
         return dependency
 
-    # Copy signature for FastAPI introspection
     decorator_or_dependency.__signature__ = inspect.signature(dependency)
-
     return decorator_or_dependency
 
 
@@ -247,14 +324,24 @@ def require_platform_admin(func_or_ctx=None):
     # If called as a decorator (func_or_ctx is the decorated function)
     if callable(func_or_ctx) and not isinstance(func_or_ctx, AuthContext):
         import functools
+        import inspect
+
+        if inspect.iscoroutinefunction(func_or_ctx):
+            @functools.wraps(func_or_ctx)
+            async def async_wrapper(*args, **kwargs):
+                ctx = _require_decorator_auth_context(args, kwargs)
+                _require_platform_admin_impl(ctx)
+                return await func_or_ctx(*args, **kwargs)
+
+            return async_wrapper
 
         @functools.wraps(func_or_ctx)
-        async def wrapper(*args, **kwargs):
-            return await func_or_ctx(*args, **kwargs)
+        def sync_wrapper(*args, **kwargs):
+            ctx = _require_decorator_auth_context(args, kwargs)
+            _require_platform_admin_impl(ctx)
+            return func_or_ctx(*args, **kwargs)
 
-        # Add the dependency check as a dependency
-        # This is a no-op decorator - the actual auth is handled by Depends in route params
-        return wrapper
+        return sync_wrapper
 
     # If called as a dependency (func_or_ctx is None or AuthContext)
     if func_or_ctx is None:
@@ -285,11 +372,24 @@ def require_super_admin(func_or_ctx=None):
     """
     if callable(func_or_ctx) and not isinstance(func_or_ctx, AuthContext):
         import functools
+        import inspect
+
+        if inspect.iscoroutinefunction(func_or_ctx):
+            @functools.wraps(func_or_ctx)
+            async def async_wrapper(*args, **kwargs):
+                ctx = _require_decorator_auth_context(args, kwargs)
+                _require_super_admin_impl(ctx)
+                return await func_or_ctx(*args, **kwargs)
+
+            return async_wrapper
 
         @functools.wraps(func_or_ctx)
-        async def wrapper(*args, **kwargs):
-            return await func_or_ctx(*args, **kwargs)
-        return wrapper
+        def sync_wrapper(*args, **kwargs):
+            ctx = _require_decorator_auth_context(args, kwargs)
+            _require_super_admin_impl(ctx)
+            return func_or_ctx(*args, **kwargs)
+
+        return sync_wrapper
 
     if func_or_ctx is None:
         async def dependency(ctx: AuthContext = Depends(require_auth)) -> AuthContext:
@@ -352,50 +452,63 @@ def require_permission(permission: Union[Permission, Set[Permission], str], requ
     import functools
     import inspect
 
-    # Handle string permissions (for backward compatibility with UserPermission enum)
-    if isinstance(permission, str):
-        permissions = {permission}
-    elif isinstance(permission, Permission):
-        permissions = {permission}
+    if isinstance(permission, (str, Permission)) or hasattr(permission, "value"):
+        permissions = {_coerce_permission(permission)}
     else:
-        permissions = permission
+        permissions = {_coerce_permission(p) for p in permission}
+
+    required_permission_values = {_permission_to_value(p) for p in permissions}
+
+    def _check_permissions(ctx: AuthContext) -> None:
+        actual_permission_values = {_permission_to_value(p) for p in ctx.permissions}
+
+        if require_all:
+            missing_values = sorted(required_permission_values - actual_permission_values)
+            if missing_values:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Missing permissions: {', '.join(missing_values)}",
+                )
+            return
+
+        if not (actual_permission_values & required_permission_values):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Required permission: {', '.join(sorted(required_permission_values))}",
+            )
 
     async def dependency(ctx: AuthContext = Depends(require_auth)) -> AuthContext:
-        if require_all:
-            if not ctx.has_all_permissions(permissions):
-                missing = permissions - ctx.permissions
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Missing permissions: {', '.join(str(p) for p in missing)}",
-                )
-        else:
-            if not ctx.has_any_permission(permissions):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Required permission: {', '.join(str(p) for p in permissions)}",
-                )
+        _check_permissions(ctx)
         return ctx
 
     def decorator_or_dependency(func_or_none=None):
         """
-        When used as @require_permission(perm), this is called with the decorated function.
-        When used as Depends(require_permission(perm)), this is the dependency.
+        When used as @require_permission(perm), this enforces permission checks.
+        When used as Depends(require_permission(perm)), this returns the dependency.
         """
-        # If called with a function (decorator usage: @require_permission(perm))
-        if func_or_none is not None and (callable(func_or_none) or inspect.iscoroutinefunction(func_or_none)):
-            @functools.wraps(func_or_none)
-            async def wrapper(*args, **kwargs):
-                return await func_or_none(*args, **kwargs)
-            wrapper._required_permissions = permissions
-            return wrapper
+        if func_or_none is not None and callable(func_or_none):
+            if inspect.iscoroutinefunction(func_or_none):
+                @functools.wraps(func_or_none)
+                async def async_wrapper(*args, **kwargs):
+                    ctx = _require_decorator_auth_context(args, kwargs)
+                    _check_permissions(ctx)
+                    return await func_or_none(*args, **kwargs)
 
-        # If called without arguments (Depends usage), this shouldn't happen
-        # because FastAPI calls it with ctx parameter
+                async_wrapper._required_permissions = permissions
+                return async_wrapper
+
+            @functools.wraps(func_or_none)
+            def sync_wrapper(*args, **kwargs):
+                ctx = _require_decorator_auth_context(args, kwargs)
+                _check_permissions(ctx)
+                return func_or_none(*args, **kwargs)
+
+            sync_wrapper._required_permissions = permissions
+            return sync_wrapper
+
         return dependency
 
-    # Copy signature from dependency for FastAPI introspection
     decorator_or_dependency.__signature__ = inspect.signature(dependency)
-
     return decorator_or_dependency
 
 

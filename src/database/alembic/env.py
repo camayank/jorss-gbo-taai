@@ -8,11 +8,12 @@ migrations. Supports both online (connected to database) and offline
 from __future__ import annotations
 
 import asyncio
+import logging
 import sys
 from logging.config import fileConfig
 from pathlib import Path
 
-from sqlalchemy import pool
+from sqlalchemy import create_engine, pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
@@ -35,6 +36,7 @@ if config.config_file_name is not None:
 
 # Set target metadata for autogenerate support
 target_metadata = Base.metadata
+logger = logging.getLogger(__name__)
 
 
 def get_url() -> str:
@@ -93,16 +95,29 @@ async def run_async_migrations() -> None:
         "sqlalchemy.echo": False,
     }
 
-    connectable = async_engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    try:
+        connectable = async_engine_from_config(
+            configuration,
+            prefix="sqlalchemy.",
+            poolclass=pool.NullPool,
+        )
 
-    async with connectable.connect() as connection:
-        await connection.run_sync(do_run_migrations)
+        async with connectable.connect() as connection:
+            await connection.run_sync(do_run_migrations)
 
-    await connectable.dispose()
+        await connectable.dispose()
+    except ModuleNotFoundError as exc:
+        # Fallback for environments where asyncpg is not installed.
+        logger.warning(
+            "Async migration driver unavailable (%s); falling back to sync engine",
+            exc,
+        )
+        sync_engine = create_engine(settings.sync_url, poolclass=pool.NullPool)
+        try:
+            with sync_engine.connect() as connection:
+                do_run_migrations(connection)
+        finally:
+            sync_engine.dispose()
 
 
 def run_migrations_online() -> None:

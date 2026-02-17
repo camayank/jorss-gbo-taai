@@ -4215,6 +4215,8 @@
 
         // Store token
         localStorage.setItem('client_token', clientToken);
+        const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `client_token=${encodeURIComponent(clientToken)}; Path=/; Max-Age=86400; SameSite=Lax${secureFlag}`;
 
         // Load client data from API
         const clientData = await clientApi('/client/dashboard');
@@ -4943,6 +4945,7 @@
       if (!response.ok) {
         if (response.status === 401) {
           localStorage.removeItem('client_token');
+          document.cookie = 'client_token=; Path=/; Max-Age=0; SameSite=Lax';
           showToast('Session expired. Please log in again.', 'error');
           setTimeout(() => window.location.href = '/client/login', 2000);
         }
@@ -4970,6 +4973,7 @@
         if (response.status === 401) {
           // Token expired, redirect to login
           localStorage.removeItem('client_token');
+          document.cookie = 'client_token=; Path=/; Max-Age=0; SameSite=Lax';
           showToast('Session expired. Please log in again.', 'error');
           setTimeout(() => window.location.href = '/client/login', 2000);
         }
@@ -5004,7 +5008,8 @@
      */
     function logout() {
       localStorage.removeItem('client_token');
-      window.location.href = '/';
+      document.cookie = 'client_token=; Path=/; Max-Age=0; SameSite=Lax';
+      window.location.href = '/client/login';
     }
 
     /**

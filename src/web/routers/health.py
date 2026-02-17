@@ -192,13 +192,19 @@ async def _check_database() -> Dict[str, Any]:
 def _check_encryption_key() -> Dict[str, Any]:
     """Check if encryption key is properly configured."""
     # Check for required encryption keys
+    encryption_value = os.environ.get("ENCRYPTION_KEY") or os.environ.get("ENCRYPTION_MASTER_KEY")
     required_keys = [
-        ("ENCRYPTION_KEY", os.environ.get("ENCRYPTION_KEY")),
+        ("ENCRYPTION_KEY", encryption_value),
         ("JWT_SECRET", os.environ.get("JWT_SECRET")),
         ("APP_SECRET_KEY", os.environ.get("APP_SECRET_KEY")),
     ]
 
-    is_production = os.environ.get("ENVIRONMENT", "development").lower() == "production"
+    env_name = (
+        os.environ.get("APP_ENVIRONMENT")
+        or os.environ.get("ENVIRONMENT")
+        or "development"
+    ).lower()
+    is_production = env_name in {"production", "prod", "staging"}
 
     missing = []
     weak = []
@@ -311,7 +317,8 @@ async def health_check() -> JSONResponse:
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "uptime": uptime_str,
         "version": os.environ.get("APP_VERSION", "development"),
-        "environment": os.environ.get("ENVIRONMENT", "development"),
+        "environment": os.environ.get("APP_ENVIRONMENT")
+        or os.environ.get("ENVIRONMENT", "development"),
         "checks": checks,
     }
 

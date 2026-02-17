@@ -108,6 +108,32 @@ class SessionPersistence:
                         cursor.execute(f"ALTER TABLE session_states ADD COLUMN {column} {coldef}")
                     except sqlite3.OperationalError:
                         pass  # Column already exists
+
+                # Ensure optimistic locking support exists
+                try:
+                    cursor.execute("ALTER TABLE session_tax_returns ADD COLUMN version INTEGER NOT NULL DEFAULT 0")
+                except sqlite3.OperationalError:
+                    pass  # Column already exists or table missing (handled by migrations)
+
+                # Ensure anonymous->authenticated transfer audit table exists
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS session_transfers (
+                        transfer_id TEXT PRIMARY KEY,
+                        session_id TEXT NOT NULL,
+                        from_anonymous INTEGER NOT NULL DEFAULT 1,
+                        to_user_id TEXT NOT NULL,
+                        transferred_at TEXT NOT NULL,
+                        FOREIGN KEY (session_id) REFERENCES session_states(session_id)
+                    )
+                """)
+                cursor.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_session_transfers_session
+                    ON session_transfers(session_id)
+                """)
+                cursor.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_session_transfers_user
+                    ON session_transfers(to_user_id)
+                """)
                 conn.commit()
                 return
 
@@ -171,7 +197,20 @@ class SessionPersistence:
                     updated_at TEXT NOT NULL,
                     tax_year INTEGER NOT NULL DEFAULT 2025,
                     return_data_json TEXT NOT NULL DEFAULT '{}',
+                    version INTEGER NOT NULL DEFAULT 0,
                     calculated_results_json TEXT,
+                    FOREIGN KEY (session_id) REFERENCES session_states(session_id)
+                )
+            """)
+
+            # Session transfer audit table (anonymous -> authenticated)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS session_transfers (
+                    transfer_id TEXT PRIMARY KEY,
+                    session_id TEXT NOT NULL,
+                    from_anonymous INTEGER NOT NULL DEFAULT 1,
+                    to_user_id TEXT NOT NULL,
+                    transferred_at TEXT NOT NULL,
                     FOREIGN KEY (session_id) REFERENCES session_states(session_id)
                 )
             """)
@@ -192,6 +231,14 @@ class SessionPersistence:
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_doc_tenant
                 ON document_processing(tenant_id)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_session_transfers_session
+                ON session_transfers(session_id)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_session_transfers_user
+                ON session_transfers(to_user_id)
             """)
 
             # =================================================================
@@ -348,6 +395,72 @@ class SessionPersistence:
                 ))
 
             conn.commit()
+
+    def save_session_state(
+        self,
+        session_id: str,
+        state_data: Dict[str, Any],
+        tenant_id: str = "default",
+        session_type: str = "agent",
+        metadata: Optional[Dict[str, Any]] = None,
+        user_id: Optional[str] = None,
+        is_anonymous: Optional[bool] = None,
+        workflow_type: Optional[str] = None,
+        return_id: Optional[str] = None,
+    ) -> None:
+        """
+        Backward-compatible wrapper for legacy callers that expect save_session_state().
+        """
+        data = state_data or {}
+        resolved_user_id = user_id if user_id is not None else data.get("user_id")
+
+        resolved_is_anonymous = is_anonymous
+        if resolved_is_anonymous is None:
+            if "is_anonymous" in data:
+                resolved_is_anonymous = bool(data.get("is_anonymous"))
+            else:
+                resolved_is_anonymous = resolved_user_id is None
+
+        resolved_workflow_type = workflow_type or data.get("workflow_type")
+        resolved_return_id = return_id or data.get("return_id")
+
+        self.save_session(
+            session_id=session_id,
+            tenant_id=tenant_id,
+            session_type=session_type,
+            data=data,
+            metadata=metadata or {},
+            user_id=resolved_user_id,
+            is_anonymous=resolved_is_anonymous,
+            workflow_type=resolved_workflow_type,
+            return_id=resolved_return_id,
+        )
+
+    def load_session_state(
+        self,
+        session_id: str,
+        tenant_id: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Backward-compatible wrapper for legacy callers that expect load_session_state().
+        """
+        record = self.load_session(session_id, tenant_id=tenant_id)
+        if not record:
+            return None
+
+        data = dict(record.data or {})
+        data.setdefault("session_id", record.session_id)
+        data.setdefault("created_at", record.created_at)
+        data.setdefault("updated_at", record.last_activity)
+        data.setdefault("last_updated", record.last_activity)
+        data.setdefault("workflow_type", record.session_type)
+
+        if "user_id" not in data and record.metadata.get("user_id"):
+            data["user_id"] = record.metadata["user_id"]
+        if "is_anonymous" not in data:
+            data["is_anonymous"] = data.get("user_id") is None
+
+        return data
 
     def load_session(self, session_id: str, tenant_id: Optional[str] = None) -> Optional[SessionRecord]:
         """

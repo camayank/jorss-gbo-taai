@@ -85,29 +85,6 @@ from .unit_of_work import (
 
 from .repositories import TaxReturnRepository
 
-# Migration helpers (optional - requires alembic)
-try:
-    from .alembic_helpers import (
-        AlembicManager,
-        AlembicStatus,
-        AlembicCLI,
-        get_alembic_status,
-        run_alembic_migrations,
-        check_migrations_on_startup,
-        get_migration_health,
-        ALEMBIC_AVAILABLE,
-    )
-except ImportError:
-    # Alembic not installed - provide stubs
-    AlembicManager = None
-    AlembicStatus = None
-    AlembicCLI = None
-    get_alembic_status = None
-    run_alembic_migrations = None
-    check_migrations_on_startup = None
-    get_migration_health = None
-    ALEMBIC_AVAILABLE = False
-
 __all__ = [
     # Models
     "Base",
@@ -168,3 +145,36 @@ __all__ = [
     "get_migration_health",
     "ALEMBIC_AVAILABLE",
 ]
+
+
+_MIGRATION_EXPORTS = {
+    "AlembicManager",
+    "AlembicStatus",
+    "AlembicCLI",
+    "get_alembic_status",
+    "run_alembic_migrations",
+    "check_migrations_on_startup",
+    "get_migration_health",
+    "ALEMBIC_AVAILABLE",
+}
+
+
+def __getattr__(name):
+    """
+    Lazily resolve migration helpers to avoid circular import side effects.
+
+    In particular, this prevents `python -m database.alembic_helpers ...` from
+    importing `database.alembic_helpers` via package init before runpy executes
+    the target module, which previously produced runtime warnings.
+    """
+    if name in _MIGRATION_EXPORTS:
+        try:
+            from . import alembic_helpers as _alembic_helpers
+        except ImportError as exc:
+            if name == "ALEMBIC_AVAILABLE":
+                return False
+            raise AttributeError(
+                f"module {__name__!r} has no attribute {name!r}"
+            ) from exc
+        return getattr(_alembic_helpers, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

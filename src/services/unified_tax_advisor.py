@@ -23,6 +23,34 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _load_standard_deduction_thresholds_2025() -> Dict[str, float]:
+    """Load 2025 standard deduction thresholds from shared tax-year config."""
+    defaults = {
+        "standard_deduction_single": 15750,
+        "standard_deduction_mfj": 31500,
+        "standard_deduction_hoh": 23850,
+    }
+
+    try:
+        from calculator.tax_year_config import TaxYearConfig
+
+        config = TaxYearConfig.for_2025()
+        return {
+            "standard_deduction_single": float(
+                config.standard_deduction.get("single", defaults["standard_deduction_single"])
+            ),
+            "standard_deduction_mfj": float(
+                config.standard_deduction.get("married_joint", defaults["standard_deduction_mfj"])
+            ),
+            "standard_deduction_hoh": float(
+                config.standard_deduction.get("head_of_household", defaults["standard_deduction_hoh"])
+            ),
+        }
+    except Exception as exc:
+        logger.debug(f"Falling back to inline 2025 standard deductions: {exc}")
+        return defaults
+
+
 # =============================================================================
 # CORE DATA STRUCTURES
 # =============================================================================
@@ -175,6 +203,10 @@ class TaxProfile:
     documents: List[ExtractedDocument] = field(default_factory=list)
 
 
+# Backward-compatible alias used across the advisory service.
+AdvisoryTaxpayerProfile = TaxProfile
+
+
 @dataclass
 class CPAInsight:
     """A single CPA-level insight/recommendation."""
@@ -284,9 +316,7 @@ class CPAKnowledgeBase:
         "amt_phaseout_mfj": 1252700,
 
         # Standard deductions
-        "standard_deduction_single": 15000,
-        "standard_deduction_mfj": 30000,
-        "standard_deduction_hoh": 22500,
+        **_load_standard_deduction_thresholds_2025(),
 
         # SALT cap
         "salt_cap": 10000,
@@ -1192,6 +1222,175 @@ class UnifiedTaxAdvisor:
         else:
             return AdvisoryComplexity.SIMPLE
 
+    def _map_filing_status(self, filing_status: str):
+        """Map advisory filing-status labels to core model enum values."""
+        from models.taxpayer import FilingStatus
+
+        normalized = (filing_status or "single").strip().lower().replace("-", "_").replace(" ", "_")
+        mapping = {
+            "single": FilingStatus.SINGLE,
+            "married_joint": FilingStatus.MARRIED_JOINT,
+            "married_filing_jointly": FilingStatus.MARRIED_JOINT,
+            "mfj": FilingStatus.MARRIED_JOINT,
+            "married_separate": FilingStatus.MARRIED_SEPARATE,
+            "married_filing_separately": FilingStatus.MARRIED_SEPARATE,
+            "mfs": FilingStatus.MARRIED_SEPARATE,
+            "head_of_household": FilingStatus.HEAD_OF_HOUSEHOLD,
+            "hoh": FilingStatus.HEAD_OF_HOUSEHOLD,
+            "qualifying_widow": FilingStatus.QUALIFYING_WIDOW,
+            "qualifying_widow_er": FilingStatus.QUALIFYING_WIDOW,
+        }
+        return mapping.get(normalized, FilingStatus.SINGLE)
+
+    def _build_core_tax_return(self, profile: AdvisoryTaxpayerProfile):
+        """Convert advisory profile into the core TaxReturn model for full-engine calculations."""
+        from models.tax_return import TaxReturn
+        from models.taxpayer import TaxpayerInfo
+        from models.income import Income
+        from models.deductions import Deductions, ItemizedDeductions
+        from models.credits import TaxCredits
+
+        state = (profile.state or "").strip().upper()
+        if len(state) != 2:
+            state = None
+
+        filing_status = self._map_filing_status(profile.filing_status)
+
+        taxpayer = TaxpayerInfo(
+            first_name=(profile.first_name or "Taxpayer").strip() or "Taxpayer",
+            last_name=(profile.last_name or "Client").strip() or "Client",
+            filing_status=filing_status,
+            state=state,
+            dependents=[],
+            is_blind=bool(profile.is_blind),
+            is_over_65=bool(profile.is_65_or_older),
+            spouse_is_blind=bool(profile.spouse_is_blind),
+            spouse_is_over_65=bool(profile.spouse_is_65_or_older),
+        )
+
+        self_employment_income = float(profile.business_income or 0.0)
+        if self_employment_income <= 0:
+            self_employment_income = max(0.0, float(profile.se_gross_receipts or 0.0))
+
+        income = Income(
+            self_employment_income=self_employment_income,
+            self_employment_expenses=max(0.0, float(profile.se_expenses or 0.0)),
+            interest_income=float(profile.interest_income or 0.0),
+            dividend_income=float(profile.dividend_income or 0.0),
+            qualified_dividends=float(profile.qualified_dividends or 0.0),
+            short_term_capital_gains=float(profile.capital_gains_short or 0.0),
+            long_term_capital_gains=float(profile.capital_gains_long or 0.0),
+            rental_income=float(profile.rental_income or 0.0),
+            social_security_benefits=float(profile.social_security_benefits or 0.0),
+            retirement_income=float(profile.retirement_distributions or 0.0),
+            other_income=(
+                float(profile.other_income or 0.0) +
+                float(profile.k1_income or 0.0) +
+                float(profile.gambling_winnings or 0.0)
+            ),
+            estimated_tax_payments=float(profile.estimated_payments or 0.0),
+        )
+
+        if profile.wages:
+            from models.income import W2Info
+            income.w2_forms.append(
+                W2Info(
+                    employer_name="Advisory Imported Income",
+                    wages=float(profile.wages or 0.0),
+                    federal_tax_withheld=float(profile.federal_withholding or 0.0),
+                    state_tax_withheld=float(profile.state_withholding or 0.0),
+                )
+            )
+
+        itemized = ItemizedDeductions(
+            medical_expenses=float(profile.medical_expenses or 0.0),
+            state_local_income_tax=float(profile.state_local_taxes_paid or 0.0),
+            real_estate_tax=float(profile.real_estate_taxes or 0.0),
+            mortgage_interest=float(profile.mortgage_interest or 0.0),
+            charitable_cash=float(profile.charitable_cash or 0.0),
+            charitable_non_cash=float(profile.charitable_noncash or 0.0),
+            casualty_losses=float(profile.casualty_loss or 0.0),
+        )
+
+        itemized_total = (
+            float(profile.medical_expenses or 0.0) +
+            float(profile.state_local_taxes_paid or 0.0) +
+            float(profile.real_estate_taxes or 0.0) +
+            float(profile.mortgage_interest or 0.0) +
+            float(profile.charitable_cash or 0.0) +
+            float(profile.charitable_noncash or 0.0) +
+            float(profile.casualty_loss or 0.0)
+        )
+
+        status_key = filing_status.value
+        standard_map = {
+            "single": CPAKnowledgeBase.THRESHOLDS_2025["standard_deduction_single"],
+            "married_joint": CPAKnowledgeBase.THRESHOLDS_2025["standard_deduction_mfj"],
+            "head_of_household": CPAKnowledgeBase.THRESHOLDS_2025["standard_deduction_hoh"],
+            "married_separate": CPAKnowledgeBase.THRESHOLDS_2025["standard_deduction_single"],
+            "qualifying_widow": CPAKnowledgeBase.THRESHOLDS_2025["standard_deduction_mfj"],
+        }
+        standard_deduction = float(standard_map.get(status_key, CPAKnowledgeBase.THRESHOLDS_2025["standard_deduction_single"]))
+
+        deductions = Deductions(
+            use_standard_deduction=itemized_total <= standard_deduction,
+            itemized=itemized,
+            educator_expenses=float(profile.educator_expenses or 0.0),
+            student_loan_interest=float(profile.student_loan_interest or 0.0),
+            hsa_contributions=float(profile.hsa_contributions or 0.0),
+            ira_contributions=float(profile.traditional_ira_contributions or 0.0),
+            other_adjustments=float(profile.self_employment_tax_deduction or 0.0),
+            alimony_paid=float(profile.alimony_paid or 0.0),
+        )
+
+        credits = TaxCredits(
+            child_tax_credit_children=max(0, int(profile.child_tax_credit_eligible or 0)),
+            child_care_expenses=float(profile.dependent_care_expenses or 0.0),
+            education_expenses=float(profile.education_expenses or 0.0),
+            residential_energy_credit=0.0,
+            foreign_tax_credit=0.0,
+            other_credits=0.0,
+        )
+
+        return TaxReturn(
+            tax_year=profile.tax_year or self.tax_year,
+            taxpayer=taxpayer,
+            income=income,
+            deductions=deductions,
+            credits=credits,
+            state_of_residence=state,
+        )
+
+    def _normalize_calculation_result(
+        self,
+        result: Any,
+        tax_return: Any,
+    ) -> Dict[str, Any]:
+        """Normalize engine output to the advisory report contract."""
+        if hasattr(result, "to_dict"):
+            raw = result.to_dict()
+        elif isinstance(result, dict):
+            raw = result
+        else:
+            raw = {}
+
+        gross_income = float(raw.get("gross_income") or getattr(tax_return.income, "get_total_income", lambda: 0.0)() or 0.0)
+        total_tax = float(raw.get("total_tax", 0.0) or 0.0)
+
+        return {
+            "gross_income": gross_income,
+            "adjusted_gross_income": float(raw.get("agi", raw.get("adjusted_gross_income", 0.0)) or 0.0),
+            "taxable_income": float(raw.get("taxable_income", 0.0) or 0.0),
+            "federal_tax": float(raw.get("total_tax_before_credits", total_tax) or 0.0),
+            "self_employment_tax": float(raw.get("self_employment_tax", 0.0) or 0.0),
+            "total_tax": total_tax,
+            "total_payments": float(raw.get("total_payments", 0.0) or 0.0),
+            "refund_or_due": float(raw.get("refund_or_owed", raw.get("refund_or_due", 0.0)) or 0.0),
+            "effective_rate": float(raw.get("effective_tax_rate", (total_tax / gross_income if gross_income > 0 else 0.0)) or 0.0),
+            "marginal_rate": float(raw.get("marginal_tax_rate", 0.22) or 0.22),
+            "engine_breakdown": raw,
+        }
+
     def calculate_taxes(self, profile: AdvisoryTaxpayerProfile) -> Dict[str, Any]:
         """Run full tax calculation."""
         # Build tax return data structure
@@ -1237,8 +1436,9 @@ class UnifiedTaxAdvisor:
 
         if self.tax_engine:
             try:
-                result = self.tax_engine.calculate(tax_data)
-                return result
+                tax_return = self._build_core_tax_return(profile)
+                result = self.tax_engine.calculate(tax_return)
+                return self._normalize_calculation_result(result, tax_return)
             except Exception as e:
                 logger.error(f"Tax calculation error: {e}")
 

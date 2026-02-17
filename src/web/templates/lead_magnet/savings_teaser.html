@@ -137,6 +137,217 @@
             color: var(--text-muted);
         }
 
+        .score-card {
+            margin: 18px auto 24px;
+            max-width: 420px;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 14px 16px;
+            background: #f8fafc;
+        }
+
+        .score-title {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .score-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .score-visual-wrap {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+
+        .score-ring-visual {
+            position: relative;
+            width: 176px;
+            height: 176px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .score-ring-visual svg {
+            width: 176px;
+            height: 176px;
+            transform: rotate(-90deg);
+        }
+
+        .score-ring-track {
+            stroke: #dbeafe;
+            stroke-width: 12;
+            fill: none;
+        }
+
+        .score-ring-progress {
+            stroke: #10b981;
+            stroke-width: 12;
+            fill: none;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.6s ease;
+        }
+
+        .score-ring-center {
+            position: absolute;
+            text-align: center;
+            line-height: 1.1;
+        }
+
+        .score-ring-number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .score-ring-scale {
+            font-size: 0.75rem;
+            color: #475569;
+        }
+
+        .score-gauge-visual {
+            width: min(320px, 100%);
+            display: none;
+            text-align: left;
+            margin: 4px auto 0;
+        }
+
+        .score-gauge-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .score-gauge-track {
+            width: 100%;
+            height: 16px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: linear-gradient(90deg, #ef4444 0%, #f97316 35%, #84cc16 68%, #16a34a 100%);
+            position: relative;
+        }
+
+        .score-gauge-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.22);
+        }
+
+        .score-gauge-value {
+            margin-top: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #0f172a;
+            text-align: center;
+        }
+
+        .score-band {
+            display: inline-block;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            margin-bottom: 8px;
+            border: 1px solid #cbd5e1;
+            color: #334155;
+            background: #eef2ff;
+        }
+
+        .score-context {
+            font-size: 0.82rem;
+            color: #475569;
+        }
+
+        .score-subscores {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .subscore-chip {
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #334155;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 0.74rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .subscore-chip:hover {
+            border-color: #2563eb;
+            color: #1d4ed8;
+        }
+
+        .personalization-line {
+            margin: 0 auto 20px;
+            max-width: 520px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            background: #eef2ff;
+            color: #3730a3;
+            font-size: 0.83rem;
+            text-align: left;
+        }
+
+        .comparison-card {
+            margin: 0 auto 26px;
+            max-width: 520px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 14px 16px;
+            text-align: left;
+        }
+
+        .comparison-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+
+        .comparison-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.84rem;
+            color: #334155;
+        }
+
+        .comparison-track {
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background: #dbeafe;
+            overflow: hidden;
+        }
+
+        .comparison-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #2563eb, #10b981);
+        }
+
         /* Complexity Badge */
         .complexity-badge {
             display: inline-block;
@@ -185,6 +396,29 @@
             font-size: 0.75rem;
             padding: 2px 8px;
             border-radius: 10px;
+        }
+
+        .content-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            border-radius: 999px;
+            padding: 4px 10px;
+            margin-bottom: 10px;
+        }
+
+        .content-badge.free {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .content-badge.locked {
+            background: #fef3c7;
+            color: #92400e;
         }
 
         .insight-item {
@@ -250,6 +484,31 @@
         .locked-desc {
             font-size: 0.9rem;
             color: #a16207;
+        }
+
+        .locked-strategy-list {
+            margin-top: 12px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .locked-strategy-item {
+            border-radius: 8px;
+            border: 1px dashed rgba(146, 64, 14, 0.45);
+            padding: 8px 10px;
+            font-size: 0.78rem;
+            color: rgba(146, 64, 14, 0.9);
+            filter: blur(2.2px);
+            user-select: none;
+        }
+
+        body.gate-hard .insight-desc {
+            filter: blur(1.8px);
+            user-select: none;
+        }
+
+        body.gate-hard .locked-strategy-item {
+            filter: blur(3px);
         }
 
         /* CTA Section */
@@ -341,6 +600,16 @@
                 font-size: 2.5rem;
             }
 
+            .score-ring-visual {
+                width: 168px;
+                height: 168px;
+            }
+
+            .score-ring-visual svg {
+                width: 168px;
+                height: 168px;
+            }
+
             .cpa-header {
                 flex-direction: column;
             }
@@ -381,9 +650,59 @@
 
             <!-- Savings Display -->
             <div class="savings-section">
-                <div class="savings-label">Your Estimated Tax Savings</div>
+                <div class="savings-label" id="savingsLabel">Potential IRS Overpayment Detected</div>
                 <div class="savings-amount" id="savingsAmount">$1,500 - $4,200</div>
-                <div class="savings-note">Based on your tax profile</div>
+                <div class="savings-note" id="savingsNote">Most taxpayers miss this before a CPA review</div>
+            </div>
+
+            <div class="score-card">
+                <div class="score-title">Your Tax Health Score</div>
+                <div class="score-visual-wrap">
+                    <div class="score-ring-visual" id="scoreRingVisual">
+                        <svg viewBox="0 0 176 176" aria-hidden="true">
+                            <circle class="score-ring-track" cx="88" cy="88" r="70"></circle>
+                            <circle class="score-ring-progress" id="scoreRingProgress" cx="88" cy="88" r="70"></circle>
+                        </svg>
+                        <div class="score-ring-center">
+                            <div class="score-ring-number"><span id="taxHealthScore">58</span></div>
+                            <div class="score-ring-scale">/100</div>
+                        </div>
+                    </div>
+                    <div class="score-gauge-visual" id="scoreGaugeVisual">
+                        <div class="score-gauge-labels">
+                            <span>0</span>
+                            <span>50</span>
+                            <span>100</span>
+                        </div>
+                        <div class="score-gauge-track">
+                            <div class="score-gauge-fill" id="scoreGaugeFill" style="width: 42%;"></div>
+                        </div>
+                        <div class="score-gauge-value"><span id="scoreGaugeValue">58</span>/100</div>
+                    </div>
+                </div>
+                <div class="score-band" id="scoreBand">Needs Attention</div>
+                <div class="score-context">
+                    This reflects how optimized your current tax setup appears from initial answers.
+                </div>
+                <div class="score-subscores" id="scoreSubscores"></div>
+            </div>
+
+            <div class="personalization-line" id="personalizationLine">
+                We are tailoring this estimate to your filing profile and state-level tax rules.
+            </div>
+
+            <div class="comparison-card">
+                <div class="comparison-title">Current vs Optimized Tax Path</div>
+                <div class="comparison-row">
+                    <span>Current path</span>
+                    <strong id="comparisonCurrent">$6,200</strong>
+                </div>
+                <div class="comparison-track"><div class="comparison-fill" id="comparisonCurrentFill" style="width: 100%;"></div></div>
+                <div class="comparison-row" style="margin-top: 10px;">
+                    <span>Optimized path</span>
+                    <strong id="comparisonOptimized">$3,900</strong>
+                </div>
+                <div class="comparison-track"><div class="comparison-fill" id="comparisonOptimizedFill" style="width: 63%;"></div></div>
             </div>
 
             <!-- Complexity Badge -->
@@ -393,6 +712,7 @@
 
             <!-- Insights Preview -->
             <div class="insights-preview">
+                <div class="content-badge free">Free Preview Unlocked</div>
                 <div class="insights-title">
                     Tax Insights Found
                     <span class="insights-count" id="insightsCount">3</span>
@@ -427,17 +747,19 @@
 
             <!-- Locked Insights Teaser -->
             <div class="locked-insights">
+                <div class="content-badge locked">Locked Until Contact</div>
                 <div class="locked-icon">{{ icon('lock-closed') }}</div>
-                <div class="locked-title">+5 More Insights Available</div>
+                <div class="locked-title" id="lockedTitle">+5 More Insights Available</div>
                 <div class="locked-desc">
                     Enter your contact info to unlock your complete personalized analysis
                 </div>
+                <div class="locked-strategy-list" id="lockedStrategyList"></div>
             </div>
 
             <!-- CTA Section -->
             <div class="cta-section">
-                <div class="cta-title">Get Your Full Tax Analysis</div>
-                <button onclick="proceedToContact()" class="cta-button">
+                <div class="cta-title" id="teaserCtaTitle">Get Your Full Tax Analysis</div>
+                <button onclick="proceedToContact()" class="cta-button" id="teaserCtaButton">
                     Unlock My Full Report
                 </button>
                 <div class="cta-subtext">
@@ -481,60 +803,365 @@
         </div>
     </div>
 
+    <script src="/static/js/lead_magnet_analytics.js"></script>
     <script>
-        // Get session data
-        const sessionId = '{{ session_id }}' || sessionStorage.getItem('assessment_session_id');
-        const complexity = sessionStorage.getItem('tax_complexity') || 'moderate';
-        const insightsPreview = parseInt(sessionStorage.getItem('insights_preview')) || 3;
+        const sessionId = window.LeadMagnetAnalytics
+            ? window.LeadMagnetAnalytics.getSessionId('{{ session_id }}')
+            : ('{{ session_id }}' || sessionStorage.getItem('assessment_session_id'));
+        const heroVariant = window.LeadMagnetAnalytics
+            ? window.LeadMagnetAnalytics.resolveVariant('{{ variant_id or "A" }}')
+            : (sessionStorage.getItem('lm_variant_hero') || '{{ variant_id or "A" }}');
+        const experimentConfig = window.LeadMagnetAnalytics
+            ? window.LeadMagnetAnalytics.getExperimentConfig(heroVariant)
+            : {
+                variant_id: heroVariant,
+                phone_capture_variant: 'optional',
+                gate_aggressiveness: 'soft',
+                score_visualization: 'donut',
+                teaser_cta: 'unlock_report'
+            };
+        const previewInsightsTarget = experimentConfig.gate_aggressiveness === 'hard' ? 2 : 3;
+        sessionStorage.setItem('lm_experiment_config', JSON.stringify(experimentConfig));
+        let complexity = sessionStorage.getItem('tax_complexity') || 'moderate';
+        let insightsPreview = parseInt(sessionStorage.getItem('insights_preview') || '3', 10);
+        let scorePreview = parseInt(sessionStorage.getItem('tax_health_score') || '58', 10);
+        let scoreBand = sessionStorage.getItem('tax_health_band') || 'Needs Attention';
+        let proceededToContact = false;
 
-        // Update complexity badge
+        function trackLeadMagnetEvent(eventName, step, metadata = {}) {
+            if (!sessionId || !window.LeadMagnetAnalytics) return;
+            window.LeadMagnetAnalytics.trackEvent(
+                sessionId,
+                eventName,
+                step,
+                metadata,
+                { defaultVariant: heroVariant }
+            );
+        }
+
+        function applyVariantPresentation() {
+            const scoreMode = experimentConfig.score_visualization || 'donut';
+            const ringVisual = document.getElementById('scoreRingVisual');
+            const gaugeVisual = document.getElementById('scoreGaugeVisual');
+            const ctaTitle = document.getElementById('teaserCtaTitle');
+            const ctaButton = document.getElementById('teaserCtaButton');
+
+            if (ringVisual && gaugeVisual) {
+                if (scoreMode === 'gauge') {
+                    ringVisual.style.display = 'none';
+                    gaugeVisual.style.display = 'block';
+                } else {
+                    ringVisual.style.display = 'inline-flex';
+                    gaugeVisual.style.display = 'none';
+                }
+            }
+
+            const unlockMode = experimentConfig.teaser_cta === 'unlock_report';
+            if (ctaTitle) {
+                ctaTitle.textContent = unlockMode ? 'Get Your Full Tax Analysis' : 'Get My Free Analysis';
+            }
+            if (ctaButton) {
+                ctaButton.textContent = unlockMode ? 'Unlock My Full Report' : 'Get My Free Analysis';
+            }
+
+            document.body.classList.toggle('gate-hard', experimentConfig.gate_aggressiveness === 'hard');
+        }
+
+        function parseRange(rangeText) {
+            if (!rangeText) return [1500, 4200];
+            const numbers = rangeText.match(/\d[\d,]*/g) || [];
+            if (numbers.length < 2) return [1500, 4200];
+            return numbers.slice(0, 2).map(num => parseInt(num.replace(/,/g, ''), 10));
+        }
+
         function updateComplexityBadge() {
             const badge = document.getElementById('complexityBadge');
             const complexityMap = {
-                'simple': { text: 'Simple Return', class: 'complexity-low' },
-                'moderate': { text: 'Moderate Complexity', class: 'complexity-moderate' },
-                'complex': { text: 'Complex Situation', class: 'complexity-high' }
+                simple: { text: 'Simple Return', className: 'complexity-low' },
+                moderate: { text: 'Moderate Complexity', className: 'complexity-moderate' },
+                complex: { text: 'Complex Situation', className: 'complexity-high' },
+                professional: { text: 'Professional Complexity', className: 'complexity-high' }
             };
-
-            const config = complexityMap[complexity.toLowerCase()] || complexityMap['moderate'];
+            const config = complexityMap[(complexity || '').toLowerCase()] || complexityMap.moderate;
             badge.textContent = config.text;
-            badge.className = `complexity-badge ${config.class}`;
+            badge.className = `complexity-badge ${config.className}`;
         }
 
-        // Update savings estimate based on complexity
-        function updateSavingsEstimate() {
+        function updateSavingsEstimate(rangeText) {
             const savingsElement = document.getElementById('savingsAmount');
-            const savingsMap = {
-                'simple': '$500 - $1,500',
-                'moderate': '$1,500 - $4,200',
-                'complex': '$3,500 - $12,000+'
-            };
-
-            savingsElement.textContent = savingsMap[complexity.toLowerCase()] || savingsMap['moderate'];
-        }
-
-        // Update insights count
-        function updateInsightsCount() {
-            const countElement = document.getElementById('insightsCount');
-            countElement.textContent = insightsPreview;
-        }
-
-        // Navigate to contact capture
-        function proceedToContact() {
-            window.location.href = `/lead-magnet/contact?session=${sessionId}`;
-        }
-
-        // Initialize page
-        document.addEventListener('DOMContentLoaded', function() {
-            if (!sessionId) {
-                // No session, redirect to landing
-                window.location.href = '/lead-magnet/';
+            const providedRange = rangeText || sessionStorage.getItem('missed_savings_range');
+            if (providedRange) {
+                savingsElement.textContent = providedRange;
                 return;
+            }
+            const fallback = {
+                simple: '$500 - $1,500',
+                moderate: '$1,500 - $4,200',
+                complex: '$3,500 - $12,000+',
+                professional: '$8,500 - $24,000+'
+            };
+            savingsElement.textContent = fallback[(complexity || '').toLowerCase()] || fallback.moderate;
+        }
+
+        function updateTaxHealthScore() {
+            const scoreNode = document.getElementById('taxHealthScore');
+            const gaugeNode = document.getElementById('scoreGaugeValue');
+            const bandNode = document.getElementById('scoreBand');
+            const safeScore = Number.isFinite(scorePreview) ? Math.max(0, Math.min(100, scorePreview)) : 58;
+            scoreNode.textContent = safeScore;
+            if (gaugeNode) gaugeNode.textContent = safeScore;
+            bandNode.textContent = scoreBand;
+
+            const circumference = 2 * Math.PI * 70;
+            const ring = document.getElementById('scoreRingProgress');
+            if (ring) {
+                ring.style.strokeDasharray = `${circumference}`;
+                const offset = circumference - (safeScore / 100) * circumference;
+                ring.style.strokeDashoffset = `${offset}`;
+                ring.style.stroke = safeScore >= 81 ? '#16a34a' : (safeScore >= 61 ? '#84cc16' : (safeScore >= 41 ? '#f97316' : '#dc2626'));
+            }
+            const gaugeFill = document.getElementById('scoreGaugeFill');
+            if (gaugeFill) {
+                gaugeFill.style.width = `${Math.max(0, Math.min(100, safeScore))}%`;
+            }
+        }
+
+        function updateProfileAwareMessaging(tokens) {
+            const labelNode = document.getElementById('savingsLabel');
+            const noteNode = document.getElementById('savingsNote');
+            if (!labelNode || !noteNode) return;
+
+            const persistedState = sessionStorage.getItem('lm_state_code');
+            const persistedOccupation = sessionStorage.getItem('lm_occupation_type');
+            const stateCode = (tokens && tokens.state_code) || persistedState || 'US';
+            const occupationType = (tokens && tokens.occupation_type) || persistedOccupation || 'w2';
+            const filingStatus = ((tokens && (tokens.filing_status_label || tokens.filing_status)) || 'your filing profile').replace(/_/g, ' ');
+
+            const occupationMap = {
+                w2: 'W-2 earners',
+                self_employed: 'self-employed filers',
+                freelancer: 'freelancers',
+                business_owner: 'business owners',
+                investor: 'investors',
+                retired: 'retirees'
+            };
+            const audience = occupationMap[occupationType] || 'taxpayers';
+            const stateText = stateCode !== 'US' ? stateCode : 'your state';
+
+            labelNode.textContent = `For ${audience} in ${stateText}, overpayment risk is often hidden.`;
+            noteNode.textContent = `Using ${filingStatus} assumptions, this range highlights likely strategy gaps before a CPA review.`;
+        }
+
+        function renderSubscores(subscores) {
+            const container = document.getElementById('scoreSubscores');
+            if (!container) return;
+            const source = subscores && typeof subscores === 'object'
+                ? subscores
+                : {
+                    deduction_optimization: Math.max(30, scorePreview - 8),
+                    timing_strategy: Math.max(30, scorePreview - 6),
+                    state_tax_efficiency: Math.max(30, scorePreview - 4),
+                };
+            const items = Object.entries(source).sort((a, b) => Number(a[1]) - Number(b[1])).slice(0, 3);
+            container.innerHTML = items.map(([key, value]) => {
+                const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                return `<button type="button" class="subscore-chip" data-key="${key}" data-value="${value}">${label}: ${value}</button>`;
+            }).join('');
+            container.querySelectorAll('.subscore-chip').forEach(node => {
+                node.addEventListener('click', function () {
+                    trackLeadMagnetEvent('step_complete', 'score_interaction', {
+                        subscore_click: node.getAttribute('data-key'),
+                        subscore_value: Number(node.getAttribute('data-value') || 0),
+                        location: 'teaser'
+                    });
+                });
+            });
+        }
+
+        function updateInsightsCount(count) {
+            const countElement = document.getElementById('insightsCount');
+            countElement.textContent = count || insightsPreview;
+        }
+
+        function updateComparisonChart(rangeText, chartPayload) {
+            if (chartPayload && chartPayload.bars && chartPayload.bars.length >= 2) {
+                const current = chartPayload.bars[0].value;
+                const optimized = chartPayload.bars[1].value;
+                const pct = current > 0 ? Math.round((optimized / current) * 100) : 60;
+                document.getElementById('comparisonCurrent').textContent = `$${current.toLocaleString()}`;
+                document.getElementById('comparisonOptimized').textContent = `$${optimized.toLocaleString()}`;
+                document.getElementById('comparisonCurrentFill').style.width = '100%';
+                document.getElementById('comparisonOptimizedFill').style.width = `${Math.max(18, pct)}%`;
+                return;
+            }
+
+            const [low, high] = parseRange(rangeText);
+            const missedMid = Math.round((low + high) / 2);
+            const current = Math.max(1800, Math.round(missedMid * 2.2));
+            const optimized = Math.max(500, current - missedMid);
+            const pct = Math.round((optimized / current) * 100);
+            document.getElementById('comparisonCurrent').textContent = `$${current.toLocaleString()}`;
+            document.getElementById('comparisonOptimized').textContent = `$${optimized.toLocaleString()}`;
+            document.getElementById('comparisonCurrentFill').style.width = '100%';
+            document.getElementById('comparisonOptimizedFill').style.width = `${Math.max(18, pct)}%`;
+        }
+
+        function renderInsights(insights) {
+            if (!Array.isArray(insights) || insights.length === 0) return;
+            const list = document.getElementById('insightsList');
+            const visible = insights.slice(0, previewInsightsTarget);
+            list.innerHTML = visible.map(insight => `
+                <div class="insight-item">
+                    <div class="insight-icon">{{ icon('sparkles') }}</div>
+                    <div class="insight-content">
+                        <div class="insight-title">${insight.title || 'Tax Optimization Insight'}</div>
+                        <div class="insight-desc">${insight.description || 'Additional tax strategy available for your profile.'}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderLockedStrategies(lockedTitles, lockedCount) {
+            const lockedTitle = document.getElementById('lockedTitle');
+            const lockedList = document.getElementById('lockedStrategyList');
+            const gateOffset = experimentConfig.gate_aggressiveness === 'hard' ? 2 : 3;
+            const resolvedLockedCount = Math.max(0, Number(lockedCount || 0));
+            if (lockedTitle) {
+                lockedTitle.textContent = `+${resolvedLockedCount || 5} More Insights Available`;
+            }
+            if (!lockedList) return;
+            const items = (lockedTitles || []).slice(0, experimentConfig.gate_aggressiveness === 'hard' ? 5 : 4);
+            if (items.length === 0) {
+                lockedList.innerHTML = `
+                    <div class="locked-strategy-item">Entity structure optimization</div>
+                    <div class="locked-strategy-item">Income timing sequence</div>
+                    <div class="locked-strategy-item">State tax efficiency playbook</div>
+                    ${gateOffset === 2 ? '<div class="locked-strategy-item">Deadline-driven deduction stack</div>' : ''}
+                `;
+                return;
+            }
+            lockedList.innerHTML = items.map(title => `<div class="locked-strategy-item">${title}</div>`).join('');
+        }
+
+        async function hydrateFromReport() {
+            try {
+                const response = await fetch(`/api/cpa/lead-magnet/${sessionId}/report`);
+                if (!response.ok) return;
+                const report = await response.json();
+
+                if (report.complexity) {
+                    complexity = report.complexity;
+                    sessionStorage.setItem('tax_complexity', complexity);
+                }
+                if (report.savings_range) {
+                    updateSavingsEstimate(report.savings_range);
+                    sessionStorage.setItem('missed_savings_range', report.savings_range);
+                }
+                if (report.tax_health_score) {
+                    scorePreview = report.tax_health_score.overall || scorePreview;
+                    scoreBand = report.tax_health_score.band || scoreBand;
+                    sessionStorage.setItem('tax_health_score', String(scorePreview));
+                    sessionStorage.setItem('tax_health_band', scoreBand);
+                    renderSubscores(report.tax_health_score.subscores || null);
+                } else {
+                    renderSubscores(null);
+                }
+                if (report.personalization && report.personalization.line) {
+                    document.getElementById('personalizationLine').textContent = report.personalization.line;
+                    sessionStorage.setItem('personalization_line', report.personalization.line);
+                }
+                if (report.personalization && report.personalization.tokens) {
+                    sessionStorage.setItem('personalization_tokens', JSON.stringify(report.personalization.tokens));
+                    updateProfileAwareMessaging(report.personalization.tokens);
+                } else {
+                    updateProfileAwareMessaging(null);
+                }
+
+                const teaserInsights = report.teaser_insights || report.insights || [];
+                const lockedTitles = report.locked_strategy_titles || [];
+                const totalInsights = Number(report.total_insights || teaserInsights.length || 0);
+                const lockedCount = Math.max(0, totalInsights - previewInsightsTarget);
+                insightsPreview = Math.min(teaserInsights.length || insightsPreview, previewInsightsTarget);
+
+                updateComplexityBadge();
+                updateTaxHealthScore();
+                updateInsightsCount(insightsPreview);
+                renderInsights(teaserInsights);
+                renderLockedStrategies(lockedTitles, lockedCount || report.locked_count || 5);
+                updateComparisonChart(report.savings_range, report.comparison_chart || null);
+
+                sessionStorage.setItem('teaser_report_cache', JSON.stringify(report));
+                return;
+            } catch (error) {
+                console.warn('Could not hydrate teaser from report:', error);
             }
 
             updateComplexityBadge();
             updateSavingsEstimate();
-            updateInsightsCount();
+            updateTaxHealthScore();
+            renderSubscores(null);
+            updateInsightsCount(insightsPreview);
+            renderLockedStrategies([], 5);
+            let cachedChart = null;
+            try {
+                cachedChart = JSON.parse(sessionStorage.getItem('comparison_chart') || 'null');
+            } catch (_) {}
+            updateComparisonChart(sessionStorage.getItem('missed_savings_range'), cachedChart);
+            const personalization = sessionStorage.getItem('personalization_line');
+            if (personalization) {
+                document.getElementById('personalizationLine').textContent = personalization;
+            }
+            try {
+                const storedTokens = JSON.parse(sessionStorage.getItem('personalization_tokens') || 'null');
+                updateProfileAwareMessaging(storedTokens);
+            } catch (_) {
+                updateProfileAwareMessaging(null);
+            }
+        }
+
+        function proceedToContact() {
+            proceededToContact = true;
+            trackLeadMagnetEvent('step_complete', 'teaser', {
+                complexity: complexity,
+                insights_preview: insightsPreview,
+                score_preview: scorePreview,
+                gate_aggressiveness: experimentConfig.gate_aggressiveness,
+                score_visualization: experimentConfig.score_visualization,
+                teaser_cta: experimentConfig.teaser_cta,
+            });
+            window.location.href = `/lead-magnet/contact?session=${sessionId}`;
+        }
+
+        document.addEventListener('DOMContentLoaded', async function () {
+            if (!sessionId) {
+                window.location.href = '/lead-magnet/';
+                return;
+            }
+            applyVariantPresentation();
+            await hydrateFromReport();
+            trackLeadMagnetEvent('step_complete', 'teaser_view', {
+                complexity: complexity,
+                score_preview: scorePreview,
+                gate_aggressiveness: experimentConfig.gate_aggressiveness,
+                score_visualization: experimentConfig.score_visualization,
+                teaser_cta: experimentConfig.teaser_cta,
+            });
+        });
+
+        window.addEventListener('beforeunload', function () {
+            if (sessionId && !proceededToContact && window.LeadMagnetAnalytics) {
+                window.LeadMagnetAnalytics.sendBeaconEvent(
+                    sessionId,
+                    'drop_off',
+                    'teaser',
+                    {
+                        complexity: complexity,
+                        gate_aggressiveness: experimentConfig.gate_aggressiveness,
+                        score_visualization: experimentConfig.score_visualization,
+                    },
+                    { defaultVariant: heroVariant }
+                );
+            }
         });
     </script>
 </body>

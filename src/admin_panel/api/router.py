@@ -90,8 +90,15 @@ except ImportError as e:
 
 try:
     from .rbac_routes import router as rbac_router
-    admin_router.include_router(rbac_router, prefix="/admin")
-    logger.info("RBAC management routes enabled")
+    # Canonical: /api/v1/admin/rbac/*
+    admin_router.include_router(rbac_router)
+    # Backward-compatible alias: /api/v1/admin/admin/rbac/* (hidden from OpenAPI)
+    admin_router.include_router(
+        rbac_router,
+        prefix="/admin",
+        include_in_schema=False,
+    )
+    logger.info("RBAC management routes enabled (canonical + legacy alias)")
 except ImportError as e:
     logger.warning(f"RBAC routes not available: {e}")
 

@@ -348,7 +348,8 @@ class TenantIsolationMiddleware(BaseHTTPMiddleware):
                 )
             except ImportError:
                 pass  # rbac.jwt not available
-            except (ValueError, KeyError, TypeError) as e:
+            except Exception as e:
+                # Invalid/malformed tokens should not crash request handling.
                 logger.debug(f"Token extraction failed in tenant middleware: {type(e).__name__}")
 
         # Check session/cookie

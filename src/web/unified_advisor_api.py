@@ -40,6 +40,47 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/advisor", tags=["Unified Tax Advisor"])
 
 
+def _get_2025_standard_deductions() -> Dict[str, float]:
+    """Read 2025 standard deductions from shared tax config with safe fallback."""
+    defaults = {
+        "single": 15750,
+        "married_filing_jointly": 31500,
+        "married_filing_separately": 15750,
+        "head_of_household": 23850,
+        "additional_65_or_blind_single": 1950,
+        "additional_65_or_blind_married": 1550,
+    }
+
+    try:
+        from calculator.tax_year_config import TaxYearConfig
+
+        config = TaxYearConfig.for_2025()
+        std = config.standard_deduction or {}
+        additional = config.additional_standard_deduction_over_65_or_blind or {}
+
+        return {
+            "single": float(std.get("single", defaults["single"])),
+            "married_filing_jointly": float(
+                std.get("married_joint", defaults["married_filing_jointly"])
+            ),
+            "married_filing_separately": float(
+                std.get("married_separate", defaults["married_filing_separately"])
+            ),
+            "head_of_household": float(
+                std.get("head_of_household", defaults["head_of_household"])
+            ),
+            "additional_65_or_blind_single": float(
+                additional.get("single", defaults["additional_65_or_blind_single"])
+            ),
+            "additional_65_or_blind_married": float(
+                additional.get("married_joint", defaults["additional_65_or_blind_married"])
+            ),
+        }
+    except Exception as exc:
+        logger.debug(f"Using inline 2025 standard deductions fallback: {exc}")
+        return defaults
+
+
 # =============================================================================
 # REQUEST/RESPONSE MODELS
 # =============================================================================
@@ -563,14 +604,7 @@ async def get_2025_tax_limits():
                 {"rate": 0.37, "up_to": "unlimited"}
             ]
         },
-        "standard_deductions": {
-            "single": 15750,
-            "married_filing_jointly": 31500,
-            "married_filing_separately": 15750,
-            "head_of_household": 23850,
-            "additional_65_or_blind_single": 1950,
-            "additional_65_or_blind_married": 1550
-        },
+        "standard_deductions": _get_2025_standard_deductions(),
         "capital_gains_brackets": {
             "0_percent_up_to": {
                 "single": 48350,

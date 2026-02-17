@@ -10,27 +10,33 @@ from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field, validator
 from datetime import datetime, timedelta
 from enum import Enum
-import uuid
 import logging
+import sqlite3
 import hashlib
 import secrets
-import socket
 import re
 
 try:
     from rbac.dependencies import require_auth, AuthContext, get_current_user
     from rbac.permissions import Permission
 except ImportError:
+    _RBAC_IMPORT_ERROR = True
+
     class AuthContext:
         user_id: Optional[str] = None
         tenant_id: Optional[str] = None
         role: Any = None
-    def require_auth():
-        return AuthContext()
-    def get_current_user():
-        return AuthContext()
+
+    async def require_auth():
+        raise HTTPException(status_code=503, detail="Authentication subsystem unavailable")
+
+    async def get_current_user():
+        raise HTTPException(status_code=503, detail="Authentication subsystem unavailable")
+
     class Permission:
         MANAGE_TENANT_SETTINGS = "manage_tenant_settings"
+else:
+    _RBAC_IMPORT_ERROR = False
 
 try:
     from database.tenant_persistence import get_tenant_persistence
@@ -131,22 +137,17 @@ async def verify_cname_record(domain: str, expected_target: str) -> bool:
     """
     try:
         import dns.resolver
+    except ImportError:
+        logger.error("dnspython is required for CNAME verification")
+        return False
+
+    try:
         answers = dns.resolver.resolve(domain, 'CNAME')
         for rdata in answers:
             target = str(rdata.target).rstrip('.')
             if target.lower() == expected_target.lower():
                 return True
         return False
-    except ImportError:
-        # Fallback: Use socket for basic check
-        try:
-            # Check if domain resolves
-            socket.gethostbyname(domain)
-            # In production, you'd verify the actual CNAME target
-            logger.warning(f"DNS verification fallback for {domain} - dnspython not available")
-            return True  # Allow for testing
-        except socket.gaierror:
-            return False
     except Exception as e:
         logger.error(f"CNAME verification error for {domain}: {e}")
         return False
@@ -175,26 +176,46 @@ async def verify_txt_record(domain: str, expected_value: str) -> bool:
 
 
 # =============================================================================
-# IN-MEMORY VERIFICATION STORE (Production: use database)
+# VERIFICATION STATE PERSISTENCE
 # =============================================================================
 
-# Stores pending verifications: tenant_id -> verification_data
-_pending_verifications: Dict[str, Dict[str, Any]] = {}
+_VERIFICATION_METADATA_KEY = "custom_domain_verification"
 
 
 def get_pending_verification(tenant_id: str) -> Optional[Dict[str, Any]]:
-    """Get pending verification for a tenant"""
-    return _pending_verifications.get(tenant_id)
+    """Load pending verification from tenant metadata."""
+    persistence = get_tenant_persistence()
+    tenant = persistence.get_tenant(tenant_id)
+    if not tenant:
+        return None
+    verification = (tenant.metadata or {}).get(_VERIFICATION_METADATA_KEY)
+    return verification if isinstance(verification, dict) else None
 
 
 def save_pending_verification(tenant_id: str, data: Dict[str, Any]) -> None:
-    """Save pending verification"""
-    _pending_verifications[tenant_id] = data
+    """Persist pending verification into tenant metadata."""
+    persistence = get_tenant_persistence()
+    tenant = persistence.get_tenant(tenant_id)
+    if not tenant:
+        raise HTTPException(404, "Tenant not found")
+
+    metadata = dict(tenant.metadata or {})
+    metadata[_VERIFICATION_METADATA_KEY] = data
+    tenant.metadata = metadata
+    persistence.update_tenant(tenant)
 
 
 def clear_pending_verification(tenant_id: str) -> None:
-    """Clear pending verification"""
-    _pending_verifications.pop(tenant_id, None)
+    """Clear pending verification from tenant metadata."""
+    persistence = get_tenant_persistence()
+    tenant = persistence.get_tenant(tenant_id)
+    if not tenant:
+        return
+
+    metadata = dict(tenant.metadata or {})
+    metadata.pop(_VERIFICATION_METADATA_KEY, None)
+    tenant.metadata = metadata
+    persistence.update_tenant(tenant)
 
 
 # =============================================================================
@@ -264,6 +285,16 @@ async def setup_custom_domain(
         domain = request.domain
         method = request.verification_method
 
+        # Enforce cross-tenant domain uniqueness.
+        for existing_tenant in persistence.list_tenants(limit=10000):
+            existing_domain = (existing_tenant.custom_domain or "").strip().lower()
+            if (
+                existing_domain
+                and existing_domain == domain
+                and existing_tenant.tenant_id != str(ctx.tenant_id)
+            ):
+                raise HTTPException(409, "This domain is already in use by another tenant")
+
         # Generate verification token
         token = generate_verification_token(str(ctx.tenant_id), domain)
 
@@ -319,10 +350,28 @@ async def setup_custom_domain(
         }
         save_pending_verification(str(ctx.tenant_id), verification_data)
 
+        # Store domain mapping token for deterministic verification.
+        added = persistence.add_custom_domain(str(ctx.tenant_id), domain, token)
+        if not added:
+            with sqlite3.connect(persistence.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT tenant_id FROM domain_mappings WHERE domain = ? LIMIT 1",
+                    (domain,),
+                )
+                row = cursor.fetchone()
+                if row and str(row[0]) != str(ctx.tenant_id):
+                    raise HTTPException(409, "This domain is already mapped to another tenant")
+                cursor.execute(
+                    "UPDATE domain_mappings SET verification_token = ?, verified = 0 WHERE domain = ?",
+                    (token, domain),
+                )
+                conn.commit()
+
         # Update tenant with pending domain
         tenant.custom_domain = domain
         tenant.custom_domain_verified = False
-        persistence.save_tenant(tenant)
+        persistence.update_tenant(tenant)
 
         logger.info(f"[CustomDomain] Setup initiated for tenant {ctx.tenant_id}: {domain}")
 
@@ -395,7 +444,8 @@ async def verify_custom_domain(
             # Update tenant
             tenant.custom_domain = domain
             tenant.custom_domain_verified = True
-            persistence.save_tenant(tenant)
+            persistence.update_tenant(tenant)
+            persistence.verify_custom_domain(domain)
 
             logger.info(f"[CustomDomain] Verified successfully: {domain} for tenant {ctx.tenant_id}")
 
@@ -462,7 +512,7 @@ async def remove_custom_domain(
         # Clear custom domain
         tenant.custom_domain = None
         tenant.custom_domain_verified = False
-        persistence.save_tenant(tenant)
+        persistence.update_tenant(tenant)
 
         # Clear any pending verification
         clear_pending_verification(str(ctx.tenant_id))
@@ -506,10 +556,16 @@ async def check_domain_availability(
 
         # Check if domain is already in use
         persistence = get_tenant_persistence()
-
-        # In production, query all tenants to check for domain conflicts
-        # For now, return available
-        is_available = True  # Would check database here
+        is_available = True
+        for existing_tenant in persistence.list_tenants(limit=10000):
+            existing_domain = (existing_tenant.custom_domain or "").strip().lower()
+            if (
+                existing_domain
+                and existing_domain == domain
+                and existing_tenant.tenant_id != str(ctx.tenant_id)
+            ):
+                is_available = False
+                break
 
         if is_available:
             return {

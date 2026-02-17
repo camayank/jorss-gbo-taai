@@ -11,31 +11,55 @@ Endpoints:
 """
 
 from datetime import datetime
-from typing import Optional, List, Set
+from typing import Optional, List
 from uuid import UUID
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
-from core.rbac import (
-    RBACContext,
-    get_rbac_context,
-    RequirePermission,
-    RequireSubscriptionTier,
-    require_firm_admin,
-    require_platform_admin,
-    PermissionService,
-    RoleService,
-    get_permission_service,
-    get_role_service,
-    PermissionCategory,
-    HierarchyLevel,
-    OverrideAction,
-)
 from database import get_async_session
 
 logger = logging.getLogger(__name__)
+
+# Prefer full core RBAC backend; fall back to compatibility backend.
+try:
+    from core.rbac import (
+        RBACContext,
+        get_rbac_context,
+        RequirePermission,
+        RequireSubscriptionTier,
+        require_firm_admin,
+        require_platform_admin,
+        PermissionService,
+        RoleService,
+        get_permission_service,
+        get_role_service,
+        PermissionCategory,
+        HierarchyLevel,
+        OverrideAction,
+    )
+    _USING_CORE_RBAC = True
+except ImportError:
+    from .rbac_compat import (
+        RBACContext,
+        get_rbac_context,
+        RequirePermission,
+        RequireSubscriptionTier,
+        require_firm_admin,
+        require_platform_admin,
+        PermissionService,
+        RoleService,
+        get_permission_service,
+        get_role_service,
+        PermissionCategory,
+        HierarchyLevel,
+        OverrideAction,
+    )
+    _USING_CORE_RBAC = False
+    logger.warning(
+        "core.rbac backend unavailable; using admin RBAC compatibility backend"
+    )
 
 router = APIRouter(prefix="/admin/rbac", tags=["RBAC Management"])
 
@@ -152,7 +176,13 @@ async def list_permissions(
         perm_service = get_permission_service(db)
 
         # Filter by category if specified
-        cat = PermissionCategory(category) if category else None
+        try:
+            cat = PermissionCategory(category) if category else None
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid category: {category}",
+            )
 
         permissions = await perm_service.get_all_permissions(
             category=cat,
@@ -577,8 +607,6 @@ async def create_permission_override(
 
     Allows granting or revoking specific permissions beyond their role defaults.
     """
-    from core.rbac.models import UserPermissionOverride
-
     async with get_async_session() as db:
         perm_service = get_permission_service(db)
 
@@ -597,24 +625,66 @@ async def create_permission_override(
                 detail=f"Permission not available in {ctx.subscription_tier} tier",
             )
 
-        # Create override
+        resource_id = None
+        if request.resource_id:
+            try:
+                resource_id = UUID(request.resource_id)
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid resource_id",
+                )
+
+        # Prefer service-driven override creation when available
+        if hasattr(perm_service, "create_permission_override"):
+            result = await perm_service.create_permission_override(
+                user_id=user_id,
+                permission_code=request.permission_code,
+                action=OverrideAction(request.action),
+                resource_type=request.resource_type,
+                resource_id=resource_id,
+                expires_at=request.expires_at,
+                reason=request.reason,
+                created_by=ctx.user_id,
+            )
+            if not result.success:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={
+                        "message": result.message,
+                        "errors": result.errors,
+                    },
+                )
+            return {
+                "success": True,
+                "message": result.message,
+                "override_id": str(result.override_id) if result.override_id else None,
+            }
+
+        # Legacy core.rbac path
+        from core.rbac.models import UserPermissionOverride
+
         override = UserPermissionOverride(
             user_id=user_id,
             permission_id=permission.permission_id,
             action=OverrideAction(request.action),
             resource_type=request.resource_type,
-            resource_id=UUID(request.resource_id) if request.resource_id else None,
+            resource_id=resource_id,
             expires_at=request.expires_at,
             reason=request.reason,
             created_by=ctx.user_id,
         )
         db.add(override)
-        db.commit()
+        await db.commit()
 
-        # Invalidate user's permission cache
-        from core.rbac import get_permission_cache
-        cache = get_permission_cache()
-        cache.invalidate_user(user_id)
+        # Best-effort cache invalidation
+        try:
+            from core.rbac import get_permission_cache
+
+            cache = get_permission_cache()
+            cache.invalidate_user(user_id)
+        except Exception:
+            logger.debug("Permission cache invalidation skipped", exc_info=True)
 
         return {
             "success": True,

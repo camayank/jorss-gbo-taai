@@ -54,7 +54,7 @@ def business_tax_return() -> TaxReturn:
         taxpayer=TaxpayerInfo(
             first_name="Jane",
             last_name="Business",
-            ssn="987-65-4321",
+            ssn="234-56-7890",
             filing_status=FilingStatus.SINGLE,
         ),
         income=Income(
@@ -237,7 +237,7 @@ class TestAdvisoryReportGenerator:
             taxpayer=TaxpayerInfo(
                 first_name="Test",
                 last_name="User",
-                ssn="000-00-0000",
+                ssn="321-54-9876",
                 filing_status=FilingStatus.SINGLE,
             ),
             income=Income(),  # Empty income

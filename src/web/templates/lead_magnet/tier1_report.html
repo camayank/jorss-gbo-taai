@@ -133,6 +133,161 @@
         .complexity-moderate { background: #fef9c3; color: #854d0e; }
         .complexity-complex { background: #fee2e2; color: #991b1b; }
 
+        .score-panel {
+            margin-top: 20px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            background: #f8fafc;
+            text-align: left;
+        }
+
+        .score-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .score-overall {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .score-band {
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border: 1px solid #cbd5e1;
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        .score-missed {
+            font-size: 0.85rem;
+            color: #334155;
+            margin-bottom: 10px;
+        }
+
+        .subscores {
+            display: grid;
+            gap: 8px;
+        }
+
+        .subscore-row {
+            display: grid;
+            grid-template-columns: 160px 1fr 42px;
+            gap: 8px;
+            align-items: center;
+            font-size: 0.8rem;
+            color: #334155;
+            cursor: pointer;
+            border-radius: 8px;
+            padding: 3px 4px;
+            transition: background 0.2s ease;
+        }
+
+        .subscore-row:hover,
+        .subscore-row:focus {
+            background: #eef2ff;
+            outline: none;
+        }
+
+        .subscore-track {
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background: #e2e8f0;
+            overflow: hidden;
+        }
+
+        .subscore-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #2563eb, #10b981);
+        }
+
+        .score-explainer {
+            margin-top: 12px;
+            font-size: 0.82rem;
+            color: #475569;
+        }
+
+        .score-benchmark {
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: #334155;
+        }
+
+        .score-actions {
+            margin-top: 10px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .score-action {
+            border-radius: 8px;
+            background: #eef2ff;
+            border: 1px solid #c7d2fe;
+            padding: 8px 10px;
+            font-size: 0.78rem;
+            color: #3730a3;
+        }
+
+        .comparison-summary {
+            margin-top: 18px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            background: #f8fafc;
+            text-align: left;
+        }
+
+        .comparison-bar-track {
+            width: 100%;
+            height: 9px;
+            border-radius: 999px;
+            background: #dbeafe;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .comparison-bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #2563eb, #10b981);
+        }
+
+        .comparison-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.83rem;
+            color: #334155;
+            margin-bottom: 6px;
+        }
+
+        .comparison-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .priority-actions {
+            margin-top: 14px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .priority-action {
+            border-radius: 8px;
+            padding: 9px 11px;
+            border: 1px solid #c7d2fe;
+            background: #eef2ff;
+            color: #3730a3;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
         /* Insights Section */
         .section {
             background: var(--white);
@@ -204,6 +359,71 @@
         .insight-description {
             font-size: 0.95rem;
             color: var(--text-muted);
+        }
+
+        .content-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            border-radius: 999px;
+            padding: 4px 10px;
+            margin-bottom: 12px;
+        }
+
+        .content-badge.free {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .content-badge.locked {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .waterfall-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #f8fafc;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        .waterfall-title {
+            font-size: 0.82rem;
+            color: #475569;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .waterfall-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.82rem;
+            color: #334155;
+        }
+
+        .waterfall-track {
+            grid-column: 1 / span 2;
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background: #e2e8f0;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+
+        .waterfall-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #22c55e, #0ea5e9);
         }
 
         /* Locked Insights */
@@ -313,6 +533,65 @@
             margin-bottom: 40px;
         }
 
+        .share-section {
+            background: #0f172a;
+            border-radius: 14px;
+            color: #e2e8f0;
+            padding: 20px;
+            margin-top: 20px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .share-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+
+        .share-copy {
+            font-size: 0.85rem;
+            color: #cbd5e1;
+        }
+
+        .share-card-preview {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #334155;
+            background: #0b1120;
+        }
+
+        .share-card-preview img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .share-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .share-btn {
+            border: none;
+            border-radius: 999px;
+            padding: 9px 14px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .share-btn.primary {
+            background: #22c55e;
+            color: #052e16;
+        }
+
+        .share-btn.secondary {
+            background: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+        }
+
         .disclaimer-title {
             font-weight: 600;
             color: #374151;
@@ -395,13 +674,74 @@
         </div>
         <h1 class="report-title">Your Tax Savings Analysis</h1>
         <p class="report-subtitle">Personalized insights for your tax situation</p>
+        {% if report and report.personalization and report.personalization.line %}
+        <p class="report-subtitle">{{ report.personalization.line }}</p>
+        {% endif %}
         <div class="report-date">Generated on {{ now().strftime('%B %d, %Y') if now else 'Today' }}</div>
     </header>
 
     <div class="container">
         <!-- Savings Summary -->
         <div class="savings-card">
-            <div class="savings-label">Estimated Potential Savings</div>
+            {% set score = report.tax_health_score if report and report.tax_health_score else {
+                'overall': 58,
+                'band': 'Needs Attention',
+                'missed_savings_range': '$1,500 - $4,200',
+                'subscores': {
+                    'deduction_optimization': 54,
+                    'entity_structure': 61,
+                    'timing_strategy': 57,
+                    'compliance_risk': 64,
+                    'state_tax_efficiency': 59,
+                    'confidence': 73
+                },
+                'explainers': [
+                    'Multiple deduction and timing opportunities were detected in your profile.',
+                    'A CPA review can validate strategy fit and implementation order.'
+                ]
+            } %}
+            <div class="score-panel">
+                <div class="score-top">
+                    <div class="score-overall">Tax Health Score: {{ score.overall }}/100</div>
+                    <div class="score-band">{{ score.band }}</div>
+                </div>
+                <div class="score-missed">
+                    Estimated missed savings range: {{ score.missed_savings_range }}
+                </div>
+                <div class="subscores">
+                    {% for key, value in score.subscores.items() %}
+                    <div class="subscore-row js-subscore-row" data-subscore="{{ key }}" data-score="{{ value }}" tabindex="0" role="button">
+                        <span>{{ key.replace('_', ' ')|title }}</span>
+                        <span class="subscore-track"><span class="subscore-fill" style="width: {{ value }}%;"></span></span>
+                        <span>{{ value }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="score-explainer">
+                    {% if score.explainers and score.explainers|length > 0 %}
+                        {{ score.explainers[0] }}
+                    {% endif %}
+                </div>
+                {% if score.benchmark %}
+                <div class="score-benchmark">
+                    Average taxpayer: {{ score.benchmark.average_taxpayer }}/100.
+                    CPA-optimized target: {{ score.benchmark.cpa_optimized_target }}/100.
+                </div>
+                {% endif %}
+                {% if score.recommended_actions %}
+                <div class="score-actions">
+                    {% for action in score.recommended_actions %}
+                    <div class="score-action">{{ action.label }}: {{ action.next_step }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="complexity-badge complexity-{{ report.complexity|lower if report else 'moderate' }}">
+                {{ report.complexity if report else 'Moderate' }} Tax Situation
+            </div>
+
+            <div class="savings-label">Estimated Potential Savings Delta</div>
             <div class="savings-amount" id="savingsRange">
                 {% if report and report.savings_range %}
                     {{ report.savings_range }}
@@ -409,15 +749,52 @@
                     $1,500 - $4,200
                 {% endif %}
             </div>
-            <div class="savings-note">Based on your tax profile</div>
+            <div class="savings-note">How much annual tax drag may be reduced with optimization</div>
 
-            <div class="complexity-badge complexity-{{ report.complexity|lower if report else 'moderate' }}">
-                {{ report.complexity if report else 'Moderate' }} Tax Situation
+            {% set current_tax = report.comparison_chart.bars[0].value if report and report.comparison_chart and report.comparison_chart.bars else None %}
+            {% set optimized_tax = report.comparison_chart.bars[1].value if report and report.comparison_chart and report.comparison_chart.bars else None %}
+            {% set optimized_pct = (((optimized_tax / current_tax) * 100) if current_tax and optimized_tax is not none else 62) %}
+            <div class="comparison-summary">
+                <div class="comparison-row">
+                    <span>Current path</span>
+                    <strong>
+                        {% if current_tax is not none %}
+                            ${{ '{:,}'.format(current_tax) }}
+                        {% else %}
+                            n/a
+                        {% endif %}
+                    </strong>
+                </div>
+                <div class="comparison-bar-track">
+                    <div class="comparison-bar-fill" style="width: 100%;"></div>
+                </div>
+                <div class="comparison-row">
+                    <span>Optimized path</span>
+                    <strong>
+                        {% if optimized_tax is not none %}
+                            ${{ '{:,}'.format(optimized_tax) }}
+                        {% else %}
+                            n/a
+                        {% endif %}
+                    </strong>
+                </div>
+                <div class="comparison-bar-track">
+                    <div class="comparison-bar-fill" style="width: {{ (optimized_pct if optimized_pct > 14 else 14) | round(0, 'floor') }}%;"></div>
+                </div>
             </div>
+
+            {% if score.recommended_actions %}
+            <div class="priority-actions">
+                {% for action in score.recommended_actions[:3] %}
+                <div class="priority-action">{{ loop.index }}. {{ action.label }}: {{ action.next_step }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
 
         <!-- Insights Section -->
         <div class="section">
+            <div class="content-badge free">Free Preview</div>
             <h2 class="section-title">
                 <div class="section-icon">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -480,8 +857,40 @@
                 </div>
             {% endif %}
 
+            <div class="waterfall-card">
+                <div class="waterfall-title">Strategy Savings Waterfall</div>
+                {% if report and report.strategy_waterfall and report.strategy_waterfall.bars %}
+                    {% for bar in report.strategy_waterfall.bars %}
+                    <div class="waterfall-row">
+                        <span>{{ bar.label }}</span>
+                        <strong>${{ '{:,}'.format(bar.value) }}</strong>
+                        <div class="waterfall-track">
+                            <div class="waterfall-fill" style="width: {{ bar.percent if bar.percent else 0 }}%;"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="waterfall-row">
+                        <span>Retirement contribution timing</span>
+                        <strong>$1,450</strong>
+                        <div class="waterfall-track"><div class="waterfall-fill" style="width: 100%;"></div></div>
+                    </div>
+                    <div class="waterfall-row">
+                        <span>State withholding optimization</span>
+                        <strong>$940</strong>
+                        <div class="waterfall-track"><div class="waterfall-fill" style="width: 65%;"></div></div>
+                    </div>
+                    <div class="waterfall-row">
+                        <span>Credit eligibility cleanup</span>
+                        <strong>$620</strong>
+                        <div class="waterfall-track"><div class="waterfall-fill" style="width: 43%;"></div></div>
+                    </div>
+                {% endif %}
+            </div>
+
             <!-- Locked Insights -->
             <div class="locked-section">
+                <div class="content-badge locked">Locked Until Consultation</div>
                 <div class="locked-icon">{{ icon('lock-closed') }}</div>
                 <h3 class="locked-title">
                     +{{ report.locked_count if report else 5 }} More Insights Available
@@ -532,6 +941,27 @@
             </div>
         </div>
 
+        <div class="share-section">
+            <div class="share-title">Share Your Tax Health Score</div>
+            <div class="share-copy" id="shareCopyText">
+                {% if report and report.share_payload and report.share_payload.text %}
+                    {{ report.share_payload.text }}
+                {% else %}
+                    My Tax Health Score is {{ score.overall }}/100. Check yours.
+                {% endif %}
+            </div>
+            {% if report and report.share_payload and report.share_payload.image_url %}
+            <div class="share-card-preview">
+                <img src="{{ report.share_payload.image_url }}" alt="Shareable Tax Health Score card preview">
+            </div>
+            {% endif %}
+            <div class="share-controls">
+                <button class="share-btn primary" type="button" onclick="copyScoreShare()">Copy Share Text</button>
+                <button class="share-btn secondary" type="button" onclick="copyShareLink()">Copy Link</button>
+                <button class="share-btn secondary" type="button" onclick="copyShareCardLink()">Copy Score Card Link</button>
+            </div>
+        </div>
+
         <!-- Disclaimer Section -->
         <div class="disclaimer-section">
             <h3 class="disclaimer-title">Important Disclosures</h3>
@@ -575,9 +1005,75 @@
         {% endif %}
     </footer>
 
+    <script src="/static/js/lead_magnet_analytics.js"></script>
     <script>
-        // Track report view for analytics
-        const sessionId = '{{ session_id }}';
+        const sessionId = window.LeadMagnetAnalytics
+            ? window.LeadMagnetAnalytics.getSessionId('{{ session_id }}')
+            : '{{ session_id }}';
+        const heroVariant = window.LeadMagnetAnalytics
+            ? window.LeadMagnetAnalytics.resolveVariant('{{ variant_id or "A" }}')
+            : (sessionStorage.getItem('lm_variant_hero') || '{{ variant_id or "A" }}');
+        const shareText = `{% if report and report.share_payload and report.share_payload.text %}{{ report.share_payload.text | replace('`', "'") }}{% else %}My Tax Health Score is {{ score.overall }}/100. Check yours.{% endif %}`;
+        const shareUrl = `{% if report and report.share_payload and report.share_payload.url %}{{ report.share_payload.url }}{% else %}/lead-magnet/?session={{ session_id }}{% endif %}`;
+        const shareImageUrl = `{% if report and report.share_payload and report.share_payload.image_url %}{{ report.share_payload.image_url }}{% else %}/lead-magnet/share-card.svg?score={{ score.overall }}{% endif %}`;
+
+        function trackLeadMagnetEvent(eventName, step, metadata = {}) {
+            if (!sessionId || !window.LeadMagnetAnalytics) return;
+            window.LeadMagnetAnalytics.trackEvent(
+                sessionId,
+                eventName,
+                step || null,
+                metadata,
+                { defaultVariant: heroVariant }
+            );
+        }
+
+        async function copyScoreShare() {
+            const text = `${shareText} ${window.location.origin}${shareUrl}`;
+            try {
+                await navigator.clipboard.writeText(text);
+                trackLeadMagnetEvent('step_complete', 'share_copy_text');
+            } catch (err) {
+                console.warn('Clipboard copy failed', err);
+            }
+        }
+
+        async function copyShareLink() {
+            try {
+                await navigator.clipboard.writeText(`${window.location.origin}${shareUrl}`);
+                trackLeadMagnetEvent('step_complete', 'share_copy_link');
+            } catch (err) {
+                console.warn('Clipboard copy failed', err);
+            }
+        }
+
+        async function copyShareCardLink() {
+            try {
+                await navigator.clipboard.writeText(`${window.location.origin}${shareImageUrl}`);
+                trackLeadMagnetEvent('step_complete', 'share_copy_card_link');
+            } catch (err) {
+                console.warn('Clipboard copy failed', err);
+            }
+        }
+
+        document.querySelectorAll('.js-subscore-row').forEach(node => {
+            const send = () => {
+                trackLeadMagnetEvent('step_complete', 'score_interaction', {
+                    subscore_click: node.dataset.subscore,
+                    subscore_value: Number(node.dataset.score || 0),
+                    location: 'tier1_report'
+                });
+            };
+            node.addEventListener('click', send);
+            node.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    send();
+                }
+            });
+        });
+
+        trackLeadMagnetEvent('report_view', 'report_tier1');
         console.log('Tier 1 report viewed for session:', sessionId);
     </script>
 </body>

@@ -7,6 +7,16 @@
     <title>Free Tax Savings Analysis | {{ cpa.firm_name or cpa.display_name }}</title>
     <meta name="description" content="Discover how much you could save on taxes. Get a free personalized analysis from {{ cpa.display_name }}.">
     <meta name="robots" content="index, follow">
+    {% set shared_score = request.query_params.get('score') if request else None %}
+    {% set share_image_url = '/lead-magnet/share-card.svg?score=' ~ (shared_score or '58') ~ '&cpa=' ~ (cpa.cpa_slug or 'default') %}
+    <meta property="og:title" content="Tax Health Score | {{ cpa.firm_name or cpa.display_name }}">
+    <meta property="og:description" content="Check your Tax Health Score and missed savings range in under 2 minutes.">
+    <meta property="og:image" content="{{ share_image_url }}">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Tax Health Score">
+    <meta name="twitter:description" content="Check your score and savings opportunities in minutes.">
+    <meta name="twitter:image" content="{{ share_image_url }}">
     {% if cpa.favicon_url %}
     <link rel="icon" href="{{ cpa.favicon_url }}">
     {% endif %}
@@ -242,6 +252,37 @@
             margin-bottom: 20px;
         }
 
+        .deadline-banner {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 999px;
+            padding: 8px 14px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin-bottom: 18px;
+        }
+
+        .deadline-banner.critical {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .deadline-banner.high {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .deadline-banner.moderate {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .deadline-banner.planning {
+            background: #dcfce7;
+            color: #166534;
+        }
+
         /* What You'll Get Section */
         .what-youll-get {
             margin-top: 40px;
@@ -443,13 +484,23 @@
                     <circle cx="12" cy="12" r="10"/>
                     <polyline points="12 6 12 12 16 14"/>
                 </svg>
-                Just 3 quick questions (under 2 minutes)
+                Just 4 quick questions (under 2 minutes)
             </div>
 
-            <h1>Discover Your Hidden Tax Savings</h1>
-            <p class="subtitle">
-                Answer 3 simple questions and get a personalized analysis of potential
-                deductions, credits, and tax-saving opportunities you might be missing.
+            <div class="deadline-banner {{ deadline_context.urgency if deadline_context else 'moderate' }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span>
+                    Tax deadline in {{ deadline_context.days_remaining if deadline_context else 60 }} days
+                </span>
+            </div>
+
+            <h1 id="heroHeadline">You May Be Overpaying the IRS This Year</h1>
+            <p class="subtitle" id="heroSubtitle">
+                In under 2 minutes, get your personalized Tax Health Score and see
+                where missed deductions, credits, and timing strategies may be costing you.
             </p>
 
             <!-- Benefits Grid -->
@@ -457,17 +508,17 @@
                 <div class="benefit-item">
                     <div class="benefit-icon">{{ icon('banknotes') }}</div>
                     <div class="benefit-title">Find Hidden Savings</div>
-                    <div class="benefit-desc">Identify deductions and credits you may have missed</div>
+                    <div class="benefit-desc">See the missed savings range before booking a call</div>
                 </div>
                 <div class="benefit-item">
                     <div class="benefit-icon">{{ icon('chart-bar') }}</div>
-                    <div class="benefit-title">Personalized Insights</div>
-                    <div class="benefit-desc">Get recommendations tailored to your situation</div>
+                    <div class="benefit-title">Tax Health Score</div>
+                    <div class="benefit-desc">Benchmark your optimization level on a 100-point scale</div>
                 </div>
                 <div class="benefit-item">
                     <div class="benefit-icon">{{ icon('sparkles') }}</div>
                     <div class="benefit-title">Expert Guidance</div>
-                    <div class="benefit-desc">From a licensed CPA who knows tax law</div>
+                    <div class="benefit-desc">Get a CPA review path with your local firm branding</div>
                 </div>
             </div>
 
@@ -479,10 +530,10 @@
 
             <!-- CTA Button -->
             <button onclick="startAssessment()" class="cta-button" id="start-button">
-                Get My Free Tax Analysis
+                <span id="heroCtaText">Check My Tax Health Score</span>
             </button>
             <div class="cta-subtext">
-                100% free. No credit card required.
+                Free for now. Tax deadline pressure makes timing matter.
             </div>
 
             <!-- What You'll Get -->
@@ -555,10 +606,107 @@
         </div>
     </div>
 
+    <script src="/static/js/lead_magnet_analytics.js"></script>
     <script>
         // Get CPA slug from URL or use default
         const urlParams = new URLSearchParams(window.location.search);
         const cpaSlug = urlParams.get('cpa') || '{{ cpa.cpa_slug }}';
+        const serverVariant = '{{ variant_id or "A" }}';
+        const experimentConfig = window.LeadMagnetAnalytics
+            ? window.LeadMagnetAnalytics.getExperimentConfig(serverVariant)
+            : {
+                variant_id: serverVariant,
+                phone_capture_variant: 'optional',
+                gate_aggressiveness: 'soft',
+                score_visualization: 'donut',
+                teaser_cta: 'unlock_report'
+            };
+        const heroVariants = {
+            A: {
+                headline: 'You May Be Overpaying the IRS by $X,XXX',
+                subtitle: 'Answer 4 quick questions to reveal your Tax Health Score and hidden savings range.',
+                cta: 'Check My Tax Health Score'
+            },
+            B: {
+                headline: 'Most Taxpayers Score Below 60/100',
+                subtitle: 'See how your tax setup compares and what to fix before filing season closes.',
+                cta: 'Reveal My Score'
+            },
+            C: {
+                headline: 'Found: Missed Tax Strategies in Minutes',
+                subtitle: 'Get a personalized savings estimate before you book any CPA consultation.',
+                cta: 'Find My Missed Savings'
+            },
+            D: {
+                headline: 'How Healthy Is Your Tax Setup?',
+                subtitle: 'Get a benchmarked Tax Health Score with strategy opportunities for your profile.',
+                cta: 'Run My 2-Minute Check'
+            },
+            E: {
+                headline: 'Tax Deadline Pressure Is Real',
+                subtitle: 'Use this rapid assessment to see if you are still leaving money on the table.',
+                cta: 'Start Free Assessment'
+            }
+        };
+        const variantKeys = Object.keys(heroVariants);
+        const selectedVariant = experimentConfig.variant_id || (window.LeadMagnetAnalytics
+            ? window.LeadMagnetAnalytics.resolveVariant(serverVariant)
+            : (variantKeys.includes((urlParams.get('v') || '').toUpperCase()) ? (urlParams.get('v') || '').toUpperCase() : serverVariant));
+
+        function applyHeroVariant() {
+            const variant = heroVariants[selectedVariant] || heroVariants.A;
+            const headlineEl = document.getElementById('heroHeadline');
+            const subtitleEl = document.getElementById('heroSubtitle');
+            const ctaEl = document.getElementById('heroCtaText');
+            const sharedScore = urlParams.get('score');
+            if (urlParams.get('share') === '1' && sharedScore && headlineEl && subtitleEl) {
+                headlineEl.textContent = `A Friend Shared a ${sharedScore}/100 Tax Health Score`;
+                subtitleEl.textContent = 'Run your own 2-minute check and compare where your savings opportunities stand.';
+                if (ctaEl) ctaEl.textContent = 'Check My Score Now';
+                return;
+            }
+            if (headlineEl) headlineEl.textContent = variant.headline;
+            if (subtitleEl) subtitleEl.textContent = variant.subtitle;
+            if (ctaEl) ctaEl.textContent = variant.cta;
+        }
+
+        function trackLeadMagnetEvent(sessionId, eventName, step, metadata = {}) {
+            if (!sessionId || !window.LeadMagnetAnalytics) return;
+            window.LeadMagnetAnalytics.trackEvent(
+                sessionId,
+                eventName,
+                step || null,
+                {
+                    ...metadata,
+                    cpa_slug: cpaSlug,
+                },
+                { defaultVariant: selectedVariant }
+            );
+            window.LeadMagnetAnalytics.safeGtag(eventName, {
+                step: step || undefined,
+                cpa_slug: cpaSlug,
+                hero_variant: selectedVariant,
+            });
+        }
+
+        function getReferralSource() {
+            const directRef = urlParams.get('ref');
+            if (directRef) return directRef;
+            if (document.referrer) return document.referrer;
+            return 'direct';
+        }
+
+        function getUtmContext() {
+            if (!window.LeadMagnetAnalytics) {
+                return {
+                    utm_source: urlParams.get('utm_source'),
+                    utm_medium: urlParams.get('utm_medium'),
+                    utm_campaign: urlParams.get('utm_campaign'),
+                    device_type: null
+                };
+            }
+            return window.LeadMagnetAnalytics.getCommonContext(selectedVariant);
+        }
 
         async function startAssessment() {
             const button = document.getElementById('start-button');
@@ -570,18 +718,33 @@
                 button.style.opacity = '0.6';
                 loading.classList.add('show');
 
-                // Start assessment session
-                const response = await fetch('/api/cpa/lead-magnet/start', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        cpa_slug: cpaSlug,
-                        assessment_mode: 'quick',
-                        referral_source: urlParams.get('ref') || document.referrer || 'direct'
-                    })
-                });
+                const attribution = getUtmContext();
+                let response;
+                if (window.LeadMagnetAnalytics) {
+                    response = await window.LeadMagnetAnalytics.startAssessment(
+                        cpaSlug,
+                        'quick',
+                        getReferralSource(),
+                        { defaultVariant: selectedVariant }
+                    );
+                } else {
+                    response = await fetch('/api/cpa/lead-magnet/start', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            cpa_slug: cpaSlug,
+                            assessment_mode: 'quick',
+                            referral_source: getReferralSource(),
+                            variant_id: selectedVariant,
+                            utm_source: attribution.utm_source || null,
+                            utm_medium: attribution.utm_medium || null,
+                            utm_campaign: attribution.utm_campaign || null,
+                            device_type: attribution.device_type || null
+                        })
+                    });
+                }
 
                 if (!response.ok) {
                     throw new Error('Failed to start assessment');
@@ -590,8 +753,24 @@
                 const data = await response.json();
 
                 // Store session ID
-                sessionStorage.setItem('assessment_session_id', data.session_id);
-                sessionStorage.setItem('cpa_profile', JSON.stringify(data.cpa_profile));
+                if (window.LeadMagnetAnalytics) {
+                    window.LeadMagnetAnalytics.cacheStartSession(data);
+                } else {
+                    sessionStorage.setItem('assessment_session_id', data.session_id);
+                    sessionStorage.setItem('cpa_profile', JSON.stringify(data.cpa_profile));
+                }
+
+                // Track start before redirecting to next step
+                trackLeadMagnetEvent(data.session_id, 'start', 'welcome', {
+                    assessment_mode: 'quick',
+                    referral_source: getReferralSource(),
+                    hero_variant: selectedVariant,
+                    phone_capture_variant: experimentConfig.phone_capture_variant,
+                    gate_aggressiveness: experimentConfig.gate_aggressiveness,
+                    score_visualization: experimentConfig.score_visualization,
+                    teaser_cta: experimentConfig.teaser_cta,
+                    shared_score: urlParams.get('score') || null
+                });
 
                 // Redirect to quick estimate form
                 window.location.href = `/lead-magnet/estimate?session=${data.session_id}`;
@@ -609,7 +788,15 @@
 
         // Track page view for analytics
         document.addEventListener('DOMContentLoaded', function() {
-            // Could send analytics event here
+            applyHeroVariant();
+            if (window.LeadMagnetAnalytics) {
+                window.LeadMagnetAnalytics.safeGtag('view', {
+                    cpa_slug: cpaSlug,
+                    hero_variant: selectedVariant
+                });
+            } else if (typeof gtag === 'function') {
+                gtag('event', 'lead_magnet_view', { cpa_slug: cpaSlug, hero_variant: selectedVariant });
+            }
             console.log('Lead magnet landing page loaded for CPA:', cpaSlug);
         });
     </script>

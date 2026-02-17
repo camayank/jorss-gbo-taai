@@ -27,38 +27,67 @@ from .services import (
     get_user_service,
 )
 
-# RBAC System
-from .rbac import (
-    # Models
-    Permission,
-    RoleTemplate,
-    RolePermission,
-    UserRoleAssignment,
-    UserPermissionOverride,
-    RBACauditLog,
-    PermissionCacheVersion,
-    # Enums
-    HierarchyLevel,
-    PermissionCategory,
-    OverrideAction,
-    # Permission Service
-    PermissionService,
-    get_permission_service,
-    # Role Service
-    RoleService,
-    get_role_service,
-    # Cache
-    PermissionCache,
-    get_permission_cache,
-    # Middleware
-    RBACMiddleware,
-    # Dependencies
-    get_rbac_context,
-    RBACContext,
-    require_permissions,
-    require_any_permission,
-    RequirePermission,
-)
+# Optional RBAC exports (module may not exist in this workspace build)
+_RBAC_EXPORTS = []
+try:
+    from .rbac import (
+        # Models
+        Permission,
+        RoleTemplate,
+        RolePermission,
+        UserRoleAssignment,
+        UserPermissionOverride,
+        RBACauditLog,
+        PermissionCacheVersion,
+        # Enums
+        HierarchyLevel,
+        PermissionCategory,
+        OverrideAction,
+        # Permission Service
+        PermissionService,
+        get_permission_service,
+        # Role Service
+        RoleService,
+        get_role_service,
+        # Cache
+        PermissionCache,
+        get_permission_cache,
+        # Middleware
+        RBACMiddleware,
+        # Dependencies
+        get_rbac_context,
+        RBACContext,
+        require_permissions,
+        require_any_permission,
+        RequirePermission,
+    )
+
+    _RBAC_EXPORTS = [
+        "Permission",
+        "RoleTemplate",
+        "RolePermission",
+        "UserRoleAssignment",
+        "UserPermissionOverride",
+        "RBACauditLog",
+        "PermissionCacheVersion",
+        "HierarchyLevel",
+        "PermissionCategory",
+        "OverrideAction",
+        "PermissionService",
+        "get_permission_service",
+        "RoleService",
+        "get_role_service",
+        "PermissionCache",
+        "get_permission_cache",
+        "RBACMiddleware",
+        "get_rbac_context",
+        "RBACContext",
+        "require_permissions",
+        "require_any_permission",
+        "RequirePermission",
+    ]
+except ImportError:
+    pass
 
 __all__ = [
     # Core Platform API
@@ -76,33 +105,4 @@ __all__ = [
     "get_auth_service",
     "CoreUserService",
     "get_user_service",
-    # RBAC Models
-    "Permission",
-    "RoleTemplate",
-    "RolePermission",
-    "UserRoleAssignment",
-    "UserPermissionOverride",
-    "RBACauditLog",
-    "PermissionCacheVersion",
-    # RBAC Enums
-    "HierarchyLevel",
-    "PermissionCategory",
-    "OverrideAction",
-    # Permission Service
-    "PermissionService",
-    "get_permission_service",
-    # Role Service
-    "RoleService",
-    "get_role_service",
-    # Cache
-    "PermissionCache",
-    "get_permission_cache",
-    # Middleware
-    "RBACMiddleware",
-    # Dependencies
-    "get_rbac_context",
-    "RBACContext",
-    "require_permissions",
-    "require_any_permission",
-    "RequirePermission",
-]
+] + _RBAC_EXPORTS

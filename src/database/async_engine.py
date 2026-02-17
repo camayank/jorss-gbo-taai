@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.pool import NullPool, QueuePool
+from sqlalchemy.pool import NullPool
 from sqlalchemy import event, text
 
 from config.database import DatabaseSettings, get_database_settings
@@ -60,28 +60,31 @@ def create_engine(settings: Optional[DatabaseSettings] = None) -> AsyncEngine:
         }
     )
 
-    # Pool configuration differs for SQLite vs PostgreSQL
+    # Pool configuration differs for SQLite vs PostgreSQL.
+    # NOTE: Async engines cannot use synchronous QueuePool.
+    engine_kwargs = {
+        "echo": settings.echo_sql,
+        "connect_args": settings.get_connect_args(),
+    }
+
     if settings.is_sqlite:
-        # SQLite doesn't support connection pooling in the traditional sense
-        pool_class = NullPool
-        pool_kwargs = {}
+        # SQLite uses NullPool for predictable local behavior.
+        engine_kwargs["poolclass"] = NullPool
     else:
-        # PostgreSQL uses QueuePool for connection pooling
-        pool_class = QueuePool
-        pool_kwargs = {
-            "pool_size": settings.pool_size,
-            "max_overflow": settings.max_overflow,
-            "pool_timeout": settings.pool_timeout,
-            "pool_recycle": settings.pool_recycle,
-            "pool_pre_ping": settings.pool_pre_ping,
-        }
+        # For async PostgreSQL, rely on SQLAlchemy's async-compatible default pool.
+        engine_kwargs.update(
+            {
+                "pool_size": settings.pool_size,
+                "max_overflow": settings.max_overflow,
+                "pool_timeout": settings.pool_timeout,
+                "pool_recycle": settings.pool_recycle,
+                "pool_pre_ping": settings.pool_pre_ping,
+            }
+        )
 
     engine = create_async_engine(
         settings.async_url,
-        echo=settings.echo_sql,
-        poolclass=pool_class,
-        connect_args=settings.get_connect_args(),
-        **pool_kwargs,
+        **engine_kwargs,
     )
 
     # Register engine event listeners

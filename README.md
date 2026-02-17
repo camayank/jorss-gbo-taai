@@ -101,6 +101,23 @@ AUDIT_HMAC_KEY=<generate-with-secrets.token_hex(32)>
 OPENAI_API_KEY=your_openai_api_key
 ```
 
+### Launch Bootstrap (Recommended)
+
+```bash
+# 1) Generate secure secrets + scaffold missing launch vars in .env
+python scripts/setup_launch_env.py --environment production
+
+# 2) Fill unresolved values in .env:
+#    - DATABASE_URL
+#    - OPENAI_API_KEY
+
+# 3) Run preflight checks before launch
+python scripts/preflight_launch.py --mode production
+
+# 4) Run migrations
+python -m alembic -c alembic.ini upgrade head
+```
+
 ### Run
 
 ```bash

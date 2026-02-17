@@ -164,6 +164,48 @@
             background-clip: text;
         }
 
+        .waterfall-box {
+            margin-top: 20px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 14px;
+            background: #f8fafc;
+        }
+
+        .waterfall-title {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #475569;
+            margin-bottom: 10px;
+        }
+
+        .waterfall-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.84rem;
+            color: #334155;
+        }
+
+        .waterfall-track {
+            grid-column: 1 / span 2;
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background: #dbeafe;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+
+        .waterfall-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #22c55e, #0ea5e9);
+        }
+
         /* Full Insights */
         .insight-card {
             background: var(--bg-light);
@@ -573,6 +615,37 @@
                     </div>
                 </div>
             </div>
+
+            <div class="waterfall-box">
+                <div class="waterfall-title">Strategy Savings Waterfall</div>
+                {% if report and report.strategy_waterfall and report.strategy_waterfall.bars %}
+                    {% for bar in report.strategy_waterfall.bars %}
+                    <div class="waterfall-row">
+                        <span>{{ bar.label }}</span>
+                        <strong>${{ '{:,}'.format(bar.value) }}</strong>
+                        <div class="waterfall-track">
+                            <div class="waterfall-fill" style="width: {{ bar.percent if bar.percent else 0 }}%;"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="waterfall-row">
+                        <span>Deduction optimization</span>
+                        <strong>$2,200</strong>
+                        <div class="waterfall-track"><div class="waterfall-fill" style="width: 100%;"></div></div>
+                    </div>
+                    <div class="waterfall-row">
+                        <span>Entity structure alignment</span>
+                        <strong>$1,450</strong>
+                        <div class="waterfall-track"><div class="waterfall-fill" style="width: 66%;"></div></div>
+                    </div>
+                    <div class="waterfall-row">
+                        <span>State tax adjustments</span>
+                        <strong>$900</strong>
+                        <div class="waterfall-track"><div class="waterfall-fill" style="width: 41%;"></div></div>
+                    </div>
+                {% endif %}
+            </div>
         </div>
 
         <!-- Complete Insights -->
@@ -755,7 +828,7 @@
                                     <circle cx="12" cy="12" r="10"/>
                                     <polyline points="12 6 12 12 16 14"/>
                                 </svg>
-                                Before Apr 15, 2025
+                                Before {{ report.deadline_context.deadline_display if report and report.deadline_context and report.deadline_context.deadline_display else 'the filing deadline' }}
                             </div>
                             <div class="action-form">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -26,9 +26,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 try:
     from database.connection import get_async_session
 except ImportError:
-    async def _mock_session():
-        yield None
-    get_async_session = _mock_session
+    async def get_async_session():
+        raise HTTPException(status_code=503, detail="Database session dependency unavailable")
 from ..client_visibility import ClientVisibilityService, ClientVisibilityData
 from .common import format_success_response, format_error_response
 

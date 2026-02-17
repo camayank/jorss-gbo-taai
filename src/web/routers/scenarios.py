@@ -115,7 +115,8 @@ def _get_scenario_service():
 
 
 @router.post("")
-async def create_scenario(request_body: CreateScenarioRequest, request: Request):
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
+async def create_scenario(request: Request, request_body: CreateScenarioRequest):
     """
     Create a new tax scenario.
 
@@ -170,7 +171,8 @@ async def create_scenario(request_body: CreateScenarioRequest, request: Request)
 
 
 @router.get("")
-async def list_scenarios(return_id: str, request: Request):
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
+async def list_scenarios(request: Request, return_id: str):
     """
     List all scenarios for a tax return.
 
@@ -200,7 +202,8 @@ async def list_scenarios(return_id: str, request: Request):
 
 
 @router.get("/{scenario_id}")
-async def get_scenario(scenario_id: str, request: Request):
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
+async def get_scenario(request: Request, scenario_id: str):
     """
     Get detailed information about a specific scenario.
 
@@ -253,7 +256,8 @@ async def get_scenario(scenario_id: str, request: Request):
 
 
 @router.post("/{scenario_id}/calculate")
-async def calculate_scenario(scenario_id: str, request: Request):
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
+async def calculate_scenario(request: Request, scenario_id: str):
     """
     Calculate tax results for a scenario.
 
@@ -295,7 +299,7 @@ async def calculate_scenario(scenario_id: str, request: Request):
 
 @router.delete("/{scenario_id}")
 @require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
-async def delete_scenario(scenario_id: str, request: Request):
+async def delete_scenario(request: Request, scenario_id: str):
     """
     Delete a scenario.
 
@@ -319,7 +323,8 @@ async def delete_scenario(scenario_id: str, request: Request):
 
 
 @router.post("/compare")
-async def compare_scenarios(request_body: CompareScenarioRequest, request: Request):
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
+async def compare_scenarios(request: Request, request_body: CompareScenarioRequest):
     """
     Compare multiple scenarios to find the best option.
 
@@ -341,14 +346,15 @@ async def compare_scenarios(request_body: CompareScenarioRequest, request: Reque
 
     except ValueError as e:
         logger.warning(f"Scenario comparison validation error: {e}")
-        raise HTTPException(status_code=400, detail="Invalid scenarios for comparison. Please check the scenario IDs.")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.exception(f"Error comparing scenarios: {e}")
         raise HTTPException(status_code=500, detail="Failed to compare scenarios. Please try again.")
 
 
 @router.post("/filing-status")
-async def generate_filing_status_scenarios(request_body: FilingStatusScenariosRequest, request: Request):
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
+async def generate_filing_status_scenarios(request: Request, request_body: FilingStatusScenariosRequest):
     """
     Generate and compare filing status scenarios.
 
@@ -407,7 +413,8 @@ async def generate_filing_status_scenarios(request_body: FilingStatusScenariosRe
 
 
 @router.post("/retirement")
-async def generate_retirement_scenarios(request_body: RetirementScenariosRequest, request: Request):
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
+async def generate_retirement_scenarios(request: Request, request_body: RetirementScenariosRequest):
     """
     Generate retirement contribution comparison scenarios.
 
@@ -460,7 +467,8 @@ async def generate_retirement_scenarios(request_body: RetirementScenariosRequest
 
 
 @router.post("/what-if")
-async def create_what_if_scenario(request_body: WhatIfScenarioRequest, request: Request):
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
+async def create_what_if_scenario(request: Request, request_body: WhatIfScenarioRequest):
     """
     Create a quick what-if scenario with simple field modifications.
 
@@ -510,7 +518,8 @@ async def create_what_if_scenario(request_body: WhatIfScenarioRequest, request: 
 
 
 @router.post("/{scenario_id}/apply")
-async def apply_scenario(scenario_id: str, request_body: ApplyScenarioRequest, request: Request):
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
+async def apply_scenario(request: Request, scenario_id: str, request_body: ApplyScenarioRequest):
     """
     Apply a scenario's modifications to the base return.
 

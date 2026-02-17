@@ -186,7 +186,8 @@ class TaxReturnService:
         return_id: str,
         session_id: str,
         updates: Dict[str, Any],
-        recalculate: bool = True
+        recalculate: bool = True,
+        fail_on_recalc_error: bool = False,
     ) -> Optional[Dict[str, Any]]:
         """
         Update a tax return.
@@ -196,6 +197,7 @@ class TaxReturnService:
             session_id: Session identifier
             updates: Fields to update
             recalculate: Whether to recalculate after update
+            fail_on_recalc_error: If True, abort update when recalculation fails
 
         Returns:
             Updated tax return data
@@ -235,6 +237,14 @@ class TaxReturnService:
         # Recalculate if requested
         if recalculate:
             calc_result = self.calculate(return_id, session_id, existing)
+            if not calc_result.success:
+                message = "; ".join(calc_result.errors) if calc_result.errors else "unknown recalculation error"
+                self._logger.warning(
+                    f"Recalculation failed during update for return {return_id}: {message}"
+                )
+                if fail_on_recalc_error:
+                    raise RuntimeError(f"Recalculation failed: {message}")
+
             if calc_result.success and calc_result.breakdown:
                 # Update with calculation results
                 existing["adjusted_gross_income"] = calc_result.breakdown.agi

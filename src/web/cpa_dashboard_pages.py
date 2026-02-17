@@ -443,6 +443,66 @@ async def cpa_dashboard(
     )
 
 
+@cpa_dashboard_router.get("/onboarding", response_class=HTMLResponse)
+async def cpa_onboarding(
+    request: Request,
+    current_user: dict = Depends(require_cpa_auth),
+):
+    """
+    CPA onboarding wizard for launch readiness.
+
+    Step 1: Firm profile + branding
+    Step 2: Lead routing + calendar
+    Step 3: Embed installation + verification
+    """
+    cpa_profile = await get_cpa_profile_from_context(request)
+    cpa_id = get_cpa_id_from_user(current_user) or cpa_profile.get("cpa_id", "default")
+    stats = await get_dashboard_stats(cpa_id)
+
+    cpa_slug = cpa_profile.get("cpa_slug") or "default"
+    base_url = str(request.base_url).rstrip("/")
+    landing_url = f"{base_url}/lead-magnet?cpa={cpa_slug}"
+    embed_snippet = (
+        f'<iframe src="{landing_url}" title="Tax Health Score" '
+        f'style="width:100%;height:760px;border:0;" loading="lazy"></iframe>'
+    )
+
+    step1_complete = bool(
+        (cpa_profile.get("firm_name") or "").strip()
+        and (cpa_profile.get("email") or "").strip()
+    )
+    step2_complete = bool(
+        (cpa_profile.get("booking_link") or "").strip()
+        and (cpa_profile.get("email") or "").strip()
+    )
+    step3_complete = bool((stats.get("total_leads") or 0) > 0)
+
+    completed_steps = sum([step1_complete, step2_complete, step3_complete])
+    onboarding_progress = int((completed_steps / 3) * 100)
+
+    return templates.TemplateResponse(
+        "cpa/onboarding.html",
+        {
+            "request": request,
+            "cpa": cpa_profile,
+            "stats": stats,
+            "current_user": current_user,
+            "active_page": "onboarding",
+            "onboarding": {
+                "step1_complete": step1_complete,
+                "step2_complete": step2_complete,
+                "step3_complete": step3_complete,
+                "completed_steps": completed_steps,
+                "total_steps": 3,
+                "progress": onboarding_progress,
+                "landing_url": landing_url,
+                "embed_snippet": embed_snippet,
+                "lead_count": stats.get("total_leads", 0),
+            },
+        },
+    )
+
+
 @cpa_dashboard_router.get("/leads", response_class=HTMLResponse)
 async def cpa_leads_list(
     request: Request,

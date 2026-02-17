@@ -60,7 +60,7 @@ class ReportSection(str, Enum):
     # Core sections (Basic tier)
     TAX_SUMMARY = "tax_summary"
     COMPUTATION_STATEMENT = "computation_statement"
-    DRAFT_RETURN = "draft_return"
+    DRAFT_RETURN = "draft_return"  # Deprecated: kept for backward compatibility only
 
     # Advisory sections (Standard tier)
     EXECUTIVE_SUMMARY = "executive_summary"
@@ -93,7 +93,6 @@ TIER_SECTIONS: Dict[ReportTier, FrozenSet[ReportSection]] = {
     ReportTier.BASIC: frozenset([
         ReportSection.TAX_SUMMARY,
         ReportSection.COMPUTATION_STATEMENT,
-        ReportSection.DRAFT_RETURN,
         ReportSection.DISCLAIMER,
     ]),
 
@@ -101,7 +100,6 @@ TIER_SECTIONS: Dict[ReportTier, FrozenSet[ReportSection]] = {
         # Basic sections
         ReportSection.TAX_SUMMARY,
         ReportSection.COMPUTATION_STATEMENT,
-        ReportSection.DRAFT_RETURN,
         # Advisory sections
         ReportSection.EXECUTIVE_SUMMARY,
         ReportSection.CREDIT_ANALYSIS,
@@ -116,7 +114,6 @@ TIER_SECTIONS: Dict[ReportTier, FrozenSet[ReportSection]] = {
         # All Basic + Standard sections
         ReportSection.TAX_SUMMARY,
         ReportSection.COMPUTATION_STATEMENT,
-        ReportSection.DRAFT_RETURN,
         ReportSection.EXECUTIVE_SUMMARY,
         ReportSection.CREDIT_ANALYSIS,
         ReportSection.DEDUCTION_ANALYSIS,
@@ -216,19 +213,19 @@ class GeneratedReport:
 
 SECTION_METADATA: Dict[ReportSection, Dict[str, Any]] = {
     ReportSection.TAX_SUMMARY: {
-        "title": "Tax Return Summary",
+        "title": "Tax Advisory Summary",
         "order": 1,
-        "description": "Overview of your tax situation",
+        "description": "Current tax position and planning baseline",
     },
     ReportSection.COMPUTATION_STATEMENT: {
-        "title": "Tax Computation Statement",
+        "title": "Computation Transparency",
         "order": 2,
-        "description": "Detailed tax calculation breakdown",
+        "description": "Traceable tax computation and assumptions",
     },
     ReportSection.DRAFT_RETURN: {
-        "title": "Draft Tax Return",
+        "title": "Draft Tax Return (Deprecated)",
         "order": 3,
-        "description": "Form 1040 and schedules preview",
+        "description": "Return-preparation output is not included in advisory reports",
     },
     ReportSection.EXECUTIVE_SUMMARY: {
         "title": "Executive Summary",
@@ -442,6 +439,7 @@ class PremiumReportGenerator:
         session_id: str,
         tier: ReportTier = ReportTier.BASIC,
         format: ReportFormat = ReportFormat.HTML,
+        brand_context: Optional[Dict[str, Any]] = None,
     ) -> GeneratedReport:
         """
         Generate a tax advisory report.
@@ -477,6 +475,14 @@ class PremiumReportGenerator:
         # Get taxpayer info
         taxpayer_name = self._get_taxpayer_name(tax_return)
         tax_year = 2025  # Current tax year
+
+        # Resolve branding context (white-label safe defaults).
+        brand_context = brand_context or {}
+        brand_name = (
+            brand_context.get("platform_name")
+            or brand_context.get("company_name")
+            or "Tax Advisory Platform"
+        )
 
         # Get sections for this tier
         allowed_sections = TIER_SECTIONS[tier]
@@ -514,6 +520,7 @@ class PremiumReportGenerator:
                 "section_count": len(sections),
                 "action_item_count": len(action_items),
                 "tier_sections": [s.value for s in allowed_sections],
+                "brand_name": brand_name,
             },
         )
 
@@ -582,7 +589,7 @@ class PremiumReportGenerator:
                 content = self._build_entity_structure(tax_return, session_id)
 
             elif section == ReportSection.INVESTMENT_TAX_ANALYSIS:
-                content = self._build_investment_analysis(tax_return)
+                content = self._build_investment_analysis(tax_return, session_id)
 
             elif section == ReportSection.MULTI_YEAR_PROJECTION:
                 content = self._build_multi_year_projection(tax_return)
@@ -668,19 +675,11 @@ class PremiumReportGenerator:
         }
 
     def _build_draft_return(self, tax_return: "TaxReturn") -> Dict[str, Any]:
-        """Build draft return section."""
-        if self.draft_generator:
-            try:
-                result = self.draft_generator.generate(tax_return)
-                return {
-                    "form_1040": result.get("form_1040", {}),
-                    "schedules": result.get("schedules", []),
-                    "completion_status": result.get("completion_status", {}),
-                }
-            except Exception as e:
-                logger.error(f"Draft return error: {e}")
-
-        return {"status": "Draft return generation unavailable"}
+        """Return advisory-safe placeholder for deprecated return-prep output."""
+        return {
+            "status": "disabled",
+            "note": "Draft return generation is intentionally excluded from advisory reports.",
+        }
 
     def _build_executive_summary(
         self, tax_return: "TaxReturn", session_id: str
@@ -728,8 +727,15 @@ class PremiumReportGenerator:
             try:
                 optimizer = self.advisory_service.optimizer_adapter
                 if optimizer:
-                    credits = optimizer.optimize_credits(session_id)
-                    return credits
+                    result = optimizer.get_credit_analysis(session_id)
+                    if result.success:
+                        return {
+                            **(result.data or {}),
+                            "summary": result.summary,
+                            "potential_savings": result.total_potential_savings,
+                            "recommendations": result.recommendations,
+                            "warnings": result.warnings,
+                        }
             except Exception as e:
                 logger.error(f"Credit analysis error: {e}")
 
@@ -745,8 +751,15 @@ class PremiumReportGenerator:
             try:
                 optimizer = self.advisory_service.optimizer_adapter
                 if optimizer:
-                    deductions = optimizer.optimize_deductions(session_id)
-                    return deductions
+                    result = optimizer.get_deduction_analysis(session_id)
+                    if result.success:
+                        return {
+                            **(result.data or {}),
+                            "summary": result.summary,
+                            "potential_savings": result.total_potential_savings,
+                            "recommendations": result.recommendations,
+                            "warnings": result.warnings,
+                        }
             except Exception as e:
                 logger.error(f"Deduction analysis error: {e}")
 
@@ -763,7 +776,15 @@ class PremiumReportGenerator:
             try:
                 optimizer = self.advisory_service.optimizer_adapter
                 if optimizer:
-                    return optimizer.optimize_filing_status(session_id)
+                    result = optimizer.get_filing_status_comparison(session_id)
+                    if result.success:
+                        return {
+                            **(result.data or {}),
+                            "summary": result.summary,
+                            "potential_savings": result.total_potential_savings,
+                            "recommendations": result.recommendations,
+                            "warnings": result.warnings,
+                        }
             except Exception as e:
                 logger.error(f"Filing status error: {e}")
 
@@ -777,12 +798,29 @@ class PremiumReportGenerator:
         self, tax_return: "TaxReturn", session_id: str
     ) -> Dict[str, Any]:
         """Build retirement optimization section."""
+        if self.advisory_service:
+            try:
+                optimizer = self.advisory_service.optimizer_adapter
+                if optimizer:
+                    strategy = optimizer.get_full_strategy(session_id)
+                    if strategy.success:
+                        retirement = (strategy.data or {}).get("retirement_analysis", {})
+                        return {
+                            **retirement,
+                            "summary": strategy.summary,
+                            "potential_savings": strategy.total_potential_savings,
+                            "recommendations": strategy.recommendations,
+                            "warnings": strategy.warnings,
+                        }
+            except Exception as e:
+                logger.error(f"Retirement strategy error: {e}")
+
         income = tax_return.income
 
         # Get current contributions
-        current_401k = getattr(income, '401k_contribution', 0) or 0
-        current_ira = getattr(income, 'ira_contribution', 0) or 0
-        current_hsa = getattr(income, 'hsa_contribution', 0) or 0
+        current_401k = self._estimate_401k_contribution(tax_return)
+        current_ira = self._estimate_ira_contribution(tax_return)
+        current_hsa = self._estimate_hsa_contribution(tax_return)
 
         # 2025 limits
         limits = {
@@ -819,24 +857,34 @@ class PremiumReportGenerator:
         if self.scenario_service:
             try:
                 # Run standard scenarios
-                scenarios = [
+                scenario_templates = [
                     "max_401k",
                     "max_ira",
                     "charitable_bunching",
                 ]
 
-                results = self.scenario_service.compare_scenarios(
+                results = self.scenario_service.compare_from_templates(
                     session_id=session_id,
-                    template_ids=scenarios,
+                    template_ids=scenario_templates,
                 )
 
+                if results.get("success"):
+                    comparison = results.get("comparison", {})
+                    return {
+                        "baseline": {
+                            "tax_liability": tax_return.tax_liability or 0,
+                            "refund_or_owed": tax_return.refund_or_owed or 0,
+                        },
+                        "scenarios": results.get("scenarios", []),
+                        "best_scenario": comparison.get("best_scenario"),
+                        "max_savings": comparison.get("max_savings", 0),
+                        "analysis_timestamp": results.get("analysis_timestamp"),
+                    }
+
                 return {
-                    "baseline": {
-                        "tax_liability": tax_return.tax_liability or 0,
-                        "refund_or_owed": tax_return.refund_or_owed or 0,
-                    },
-                    "scenarios": results.get("scenarios", []),
-                    "best_scenario": results.get("best_scenario"),
+                    "baseline": {"tax_liability": tax_return.tax_liability or 0},
+                    "scenarios": [],
+                    "error": results.get("error", "Scenario analysis unavailable"),
                 }
             except Exception as e:
                 logger.error(f"Scenario comparison error: {e}")
@@ -851,6 +899,22 @@ class PremiumReportGenerator:
         self, tax_return: "TaxReturn", session_id: str
     ) -> Dict[str, Any]:
         """Build entity structure analysis (Premium)."""
+        if self.advisory_service:
+            try:
+                optimizer = self.advisory_service.optimizer_adapter
+                if optimizer:
+                    result = optimizer.get_entity_comparison(session_id)
+                    if result.success:
+                        return {
+                            **(result.data or {}),
+                            "summary": result.summary,
+                            "potential_savings": result.total_potential_savings,
+                            "recommendations": result.recommendations,
+                            "warnings": result.warnings,
+                        }
+            except Exception as e:
+                logger.error(f"Entity structure optimization error: {e}")
+
         income = tax_return.income
         se_income = getattr(income, 'self_employment_income', 0) or 0
 
@@ -881,8 +945,26 @@ class PremiumReportGenerator:
             ],
         }
 
-    def _build_investment_analysis(self, tax_return: "TaxReturn") -> Dict[str, Any]:
+    def _build_investment_analysis(self, tax_return: "TaxReturn", session_id: str) -> Dict[str, Any]:
         """Build investment tax analysis (Premium)."""
+        if self.advisory_service:
+            try:
+                optimizer = self.advisory_service.optimizer_adapter
+                if optimizer:
+                    result = optimizer.get_full_strategy(session_id)
+                    if result.success:
+                        investment = (result.data or {}).get("investment_analysis", {})
+                        if investment:
+                            return {
+                                **investment,
+                                "summary": result.summary,
+                                "recommendations": result.recommendations,
+                                "warnings": result.warnings,
+                            }
+            except Exception:
+                # Fall through to deterministic local summary.
+                pass
+
         income = tax_return.income
 
         dividends = getattr(income, 'dividend_income', 0) or 0
@@ -905,42 +987,50 @@ class PremiumReportGenerator:
 
     def _build_multi_year_projection(self, tax_return: "TaxReturn") -> Dict[str, Any]:
         """Build multi-year projection (Premium)."""
+        try:
+            from projection.multi_year_projections import (
+                MultiYearProjectionEngine,
+                generate_projection_timeline_data,
+            )
+
+            engine = MultiYearProjectionEngine()
+            result = engine.project_multi_year(tax_return=tax_return, years=3)
+            timeline = generate_projection_timeline_data(result)
+
+            projections = []
+            for year in result.yearly_projections:
+                projections.append({
+                    "year": year.year,
+                    "projected_income": float(year.total_income),
+                    "projected_tax": float(year.total_tax),
+                    "taxable_income": float(year.taxable_income),
+                    "retirement_balance_eoy": float(year.retirement_balance_eoy),
+                    "cumulative_strategy_savings": float(year.cumulative_strategy_savings),
+                    "assumptions": year.assumptions,
+                    "strategy_notes": year.strategy_notes,
+                })
+
+            return {
+                "current_year": {
+                    "year": result.base_year,
+                    "agi": tax_return.adjusted_gross_income or 0,
+                    "tax": tax_return.tax_liability or 0,
+                },
+                "projection_years": result.projection_years,
+                "projections": projections,
+                "summary": timeline.get("summary", {}),
+                "assumptions": result.assumptions,
+            }
+        except Exception as e:
+            logger.error(f"Multi-year projection engine failed: {e}")
+
         current_tax = tax_return.tax_liability or 0
         agi = tax_return.adjusted_gross_income or 0
-
-        # Simple 3% growth projection
-        growth_rate = 0.03
-
-        projections = []
-        for year_offset in range(1, 4):
-            projected_agi = agi * ((1 + growth_rate) ** year_offset)
-            # Simplified tax projection (actual would use bracket modeling)
-            projected_tax = current_tax * ((1 + growth_rate) ** year_offset)
-
-            projections.append({
-                "year": 2025 + year_offset,
-                "projected_agi": float(money(projected_agi)),
-                "projected_tax": float(money(projected_tax)),
-                "assumptions": f"{growth_rate * 100}% income growth",
-            })
-
         return {
-            "current_year": {
-                "year": 2025,
-                "agi": agi,
-                "tax": current_tax,
-            },
-            "projections": projections,
-            "assumptions": [
-                "Income grows 3% annually",
-                "Tax brackets adjusted for inflation",
-                "No major life changes",
-            ],
-            "planning_opportunities": [
-                "Consider Roth conversions in lower-income years",
-                "Bunch deductions in alternating years",
-                "Time capital gains for optimal rates",
-            ],
+            "current_year": {"year": 2025, "agi": agi, "tax": current_tax},
+            "projections": [],
+            "assumptions": ["Multi-year engine unavailable; projection data could not be generated."],
+            "planning_opportunities": [],
         }
 
     def _build_assumptions_appendix(self, tax_return: "TaxReturn") -> Dict[str, Any]:
@@ -1017,11 +1107,59 @@ class PremiumReportGenerator:
         3 = Medium ($100-$1000 potential savings)
         4 = Low (<$100 or convenience)
         """
+        if self.advisory_service:
+            try:
+                optimizer = self.advisory_service.optimizer_adapter
+                if optimizer:
+                    strategy = optimizer.get_full_strategy(session_id)
+                    if strategy.success:
+                        def _priority(value: Any) -> int:
+                            if isinstance(value, int):
+                                return max(1, min(4, value))
+                            normalized = str(value or "").strip().lower()
+                            mapping = {"critical": 1, "high": 2, "medium": 3, "low": 4}
+                            return mapping.get(normalized, 3)
+
+                        items: List[ActionItem] = []
+                        pools = [
+                            (strategy.data or {}).get("immediate_strategies", []),
+                            (strategy.data or {}).get("current_year_strategies", []),
+                            (strategy.data or {}).get("next_year_strategies", []),
+                        ]
+                        seen: set[str] = set()
+
+                        for pool in pools:
+                            for idx, rec in enumerate(pool):
+                                title = str(rec.get("title") or "").strip()
+                                if not title:
+                                    continue
+                                key = title.lower()
+                                if key in seen:
+                                    continue
+                                seen.add(key)
+                                items.append(
+                                    ActionItem(
+                                        action_id=f"strategy_{len(items)+1}",
+                                        title=title,
+                                        description=str(rec.get("description") or "Review this strategy with your CPA."),
+                                        priority=_priority(rec.get("priority")),
+                                        category="tax_savings",
+                                        potential_savings=float(rec.get("estimated_savings") or 0.0),
+                                        deadline=rec.get("deadline"),
+                                    )
+                                )
+
+                        items.sort(key=lambda x: (x.priority, -x.potential_savings))
+                        if items:
+                            return items[:10]
+            except Exception as e:
+                logger.error(f"Action item strategy generation error: {e}")
+
         items: List[ActionItem] = []
 
         # Retirement contribution opportunities
         income = tax_return.income
-        current_401k = getattr(income, '401k_contribution', 0) or 0
+        current_401k = self._estimate_401k_contribution(tax_return)
         if current_401k < 23500:
             room = 23500 - current_401k
             savings = room * 0.22  # Est. marginal rate
@@ -1037,7 +1175,7 @@ class PremiumReportGenerator:
             ))
 
         # IRA contribution
-        current_ira = getattr(income, 'ira_contribution', 0) or 0
+        current_ira = self._estimate_ira_contribution(tax_return)
         if current_ira < 7000:
             room = 7000 - current_ira
             savings = room * 0.22
@@ -1053,7 +1191,7 @@ class PremiumReportGenerator:
             ))
 
         # HSA contribution
-        current_hsa = getattr(income, 'hsa_contribution', 0) or 0
+        current_hsa = self._estimate_hsa_contribution(tax_return)
         if current_hsa < 4300:
             room = 4300 - current_hsa
             savings = room * 0.22
@@ -1115,6 +1253,7 @@ class PremiumReportGenerator:
 
     def _render_html(self, report: GeneratedReport) -> str:
         """Render report to HTML for client portal."""
+        brand_name = report.metadata.get("brand_name", "Tax Advisory Platform")
         sections_html = []
 
         for section in report.sections:
@@ -1198,7 +1337,7 @@ class PremiumReportGenerator:
             </main>
 
             <footer style="margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; font-size: 0.875rem; color: #64748b;">
-                <p>Report ID: {report.report_id} | CA4CPA Global LLC</p>
+                <p>Report ID: {report.report_id} | {brand_name}</p>
             </footer>
         </body>
         </html>
@@ -1247,6 +1386,7 @@ class PremiumReportGenerator:
 
     def _render_pdf(self, report: GeneratedReport) -> bytes:
         """Render report to PDF bytes using ReportLab (with text fallback)."""
+        brand_name = report.metadata.get("brand_name", "Tax Advisory Platform")
         try:
             from reportlab.lib.pagesizes import letter
             from reportlab.pdfgen import canvas
@@ -1272,6 +1412,8 @@ class PremiumReportGenerator:
             c.setFont("Helvetica", 14)
             y = height - 3.2*inch
             c.drawString(1*inch, y, f"Prepared for: {report.taxpayer_name}")
+            y -= 0.35*inch
+            c.drawString(1*inch, y, f"Prepared by: {brand_name}")
             y -= 0.35*inch
             c.drawString(1*inch, y, f"Tax Year: {report.tax_year}")
             y -= 0.35*inch
@@ -1359,6 +1501,7 @@ class PremiumReportGenerator:
                 f"Tax Year: {report.tax_year}",
                 f"Generated: {report.generated_at}",
                 f"Report ID: {report.report_id}",
+                f"Prepared by: {brand_name}",
                 "=" * 80,
                 "",
             ]
@@ -1433,6 +1576,10 @@ class PremiumReportGenerator:
         """Get tax return for session."""
         if self.tax_return_adapter:
             try:
+                if hasattr(self.tax_return_adapter, "get_optimizer_compatible_return"):
+                    wrapped = self.tax_return_adapter.get_optimizer_compatible_return(session_id)
+                    if wrapped:
+                        return wrapped
                 return self.tax_return_adapter.get_tax_return(session_id)
             except Exception as e:
                 logger.error(f"Failed to get tax return: {e}")
@@ -1452,6 +1599,64 @@ class PremiumReportGenerator:
             fs = tax_return.taxpayer.filing_status
             return fs.value if hasattr(fs, 'value') else str(fs)
         return "unknown"
+
+    def _estimate_401k_contribution(self, tax_return: "TaxReturn") -> float:
+        """Estimate employee 401(k) contribution from available return fields."""
+        income = getattr(tax_return, "income", None)
+        if income is None:
+            return 0.0
+
+        direct = getattr(income, "retirement_contributions_401k", None)
+        if direct is None:
+            direct = getattr(income, "retirement_contributions", None)
+        if direct is not None:
+            try:
+                return max(0.0, float(direct))
+            except (TypeError, ValueError):
+                pass
+
+        total = 0.0
+        for w2 in getattr(income, "w2_forms", []) or []:
+            try:
+                total += float(getattr(w2, "retirement_plan_contributions", 0) or 0)
+            except (TypeError, ValueError):
+                continue
+        return max(0.0, total)
+
+    def _estimate_ira_contribution(self, tax_return: "TaxReturn") -> float:
+        """Estimate IRA contribution from deductions data."""
+        deductions = getattr(tax_return, "deductions", None)
+        if deductions is None:
+            return 0.0
+        try:
+            return max(0.0, float(getattr(deductions, "ira_contributions", 0) or 0))
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _estimate_hsa_contribution(self, tax_return: "TaxReturn") -> float:
+        """Estimate HSA contribution from deductions and employer W-2 data."""
+        deductions = getattr(tax_return, "deductions", None)
+        direct = 0.0
+        try:
+            direct = float(getattr(deductions, "hsa_contributions", 0) or 0)
+        except (TypeError, ValueError):
+            direct = 0.0
+
+        income = getattr(tax_return, "income", None)
+        employer_hsa = 0.0
+        if income is not None and hasattr(income, "get_employer_hsa_contributions"):
+            try:
+                employer_hsa = float(income.get_employer_hsa_contributions() or 0)
+            except Exception:
+                employer_hsa = 0.0
+        elif income is not None:
+            for w2 in getattr(income, "w2_forms", []) or []:
+                try:
+                    employer_hsa += float(getattr(w2, "employer_hsa_contribution", 0) or 0)
+                except (TypeError, ValueError):
+                    continue
+
+        return max(0.0, direct + employer_hsa)
 
     def _error_report(
         self,
@@ -1485,6 +1690,7 @@ def generate_report(
     session_id: str,
     tier: str = "basic",
     format: str = "html",
+    brand_context: Optional[Dict[str, Any]] = None,
 ) -> GeneratedReport:
     """
     Convenience function to generate a report.
@@ -1502,6 +1708,7 @@ def generate_report(
         session_id=session_id,
         tier=ReportTier(tier),
         format=ReportFormat(format),
+        brand_context=brand_context,
     )
 
 

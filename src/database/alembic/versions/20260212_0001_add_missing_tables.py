@@ -29,76 +29,82 @@ depends_on = None
 
 def upgrade() -> None:
     """Create missing tables for production."""
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    existing_tables = set(inspector.get_table_names())
 
     # ==========================================================================
     # SCENARIOS - Tax scenario modeling
     # ==========================================================================
 
-    op.create_table(
-        'scenarios',
-        sa.Column('scenario_id', postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column('return_id', postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column('tenant_id', sa.String(50), nullable=True),
-        sa.Column('name', sa.String(255), nullable=False),
-        sa.Column('description', sa.Text, nullable=True),
-        sa.Column('scenario_type', sa.String(50), nullable=False),  # 'what_if', 'optimization', 'projection'
-        sa.Column('status', sa.String(20), default='draft'),  # 'draft', 'calculated', 'saved'
-        sa.Column('is_recommended', sa.Boolean, default=False),
-        sa.Column('scenario_data', postgresql.JSONB, nullable=True),
-        sa.Column('result_data', postgresql.JSONB, nullable=True),
-        sa.Column('tax_liability', sa.Numeric(12, 2), nullable=True),
-        sa.Column('refund_amount', sa.Numeric(12, 2), nullable=True),
-        sa.Column('created_at', sa.DateTime, server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime, server_default=sa.func.now(), onupdate=sa.func.now()),
-        sa.Column('created_by', sa.String(100), nullable=True),
-    )
+    if 'scenarios' not in existing_tables:
+        op.create_table(
+            'scenarios',
+            sa.Column('scenario_id', postgresql.UUID(as_uuid=True), primary_key=True),
+            sa.Column('return_id', postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column('tenant_id', sa.String(50), nullable=True),
+            sa.Column('name', sa.String(255), nullable=False),
+            sa.Column('description', sa.Text, nullable=True),
+            sa.Column('scenario_type', sa.String(50), nullable=False),  # 'what_if', 'optimization', 'projection'
+            sa.Column('status', sa.String(20), default='draft'),  # 'draft', 'calculated', 'saved'
+            sa.Column('is_recommended', sa.Boolean, default=False),
+            sa.Column('scenario_data', postgresql.JSONB, nullable=True),
+            sa.Column('result_data', postgresql.JSONB, nullable=True),
+            sa.Column('tax_liability', sa.Numeric(12, 2), nullable=True),
+            sa.Column('refund_amount', sa.Numeric(12, 2), nullable=True),
+            sa.Column('created_at', sa.DateTime, server_default=sa.func.now()),
+            sa.Column('updated_at', sa.DateTime, server_default=sa.func.now(), onupdate=sa.func.now()),
+            sa.Column('created_by', sa.String(100), nullable=True),
+        )
 
-    op.create_index('idx_scenarios_return_id', 'scenarios', ['return_id'])
-    op.create_index('idx_scenarios_tenant_id', 'scenarios', ['tenant_id'])
-    op.create_index('idx_scenarios_type', 'scenarios', ['scenario_type'])
+        op.create_index('idx_scenarios_return_id', 'scenarios', ['return_id'])
+        op.create_index('idx_scenarios_tenant_id', 'scenarios', ['tenant_id'])
+        op.create_index('idx_scenarios_type', 'scenarios', ['scenario_type'])
 
     # ==========================================================================
     # SCENARIO COMPARISONS - Side-by-side comparison
     # ==========================================================================
 
-    op.create_table(
-        'scenario_comparisons',
-        sa.Column('comparison_id', postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column('return_id', postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column('tenant_id', sa.String(50), nullable=True),
-        sa.Column('name', sa.String(255), nullable=True),
-        sa.Column('scenario_ids', postgresql.ARRAY(postgresql.UUID(as_uuid=True)), nullable=False),
-        sa.Column('comparison_data', postgresql.JSONB, nullable=True),
-        sa.Column('created_at', sa.DateTime, server_default=sa.func.now()),
-        sa.Column('created_by', sa.String(100), nullable=True),
-    )
+    if 'scenario_comparisons' not in existing_tables:
+        op.create_table(
+            'scenario_comparisons',
+            sa.Column('comparison_id', postgresql.UUID(as_uuid=True), primary_key=True),
+            sa.Column('return_id', postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column('tenant_id', sa.String(50), nullable=True),
+            sa.Column('name', sa.String(255), nullable=True),
+            sa.Column('scenario_ids', postgresql.ARRAY(postgresql.UUID(as_uuid=True)), nullable=False),
+            sa.Column('comparison_data', postgresql.JSONB, nullable=True),
+            sa.Column('created_at', sa.DateTime, server_default=sa.func.now()),
+            sa.Column('created_by', sa.String(100), nullable=True),
+        )
 
-    op.create_index('idx_scenario_comparisons_return_id', 'scenario_comparisons', ['return_id'])
+        op.create_index('idx_scenario_comparisons_return_id', 'scenario_comparisons', ['return_id'])
 
     # ==========================================================================
     # DOMAIN EVENTS - Event sourcing
     # ==========================================================================
 
-    op.create_table(
-        'domain_events',
-        sa.Column('event_id', postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column('stream_id', sa.String(100), nullable=False),
-        sa.Column('event_type', sa.String(100), nullable=False),
-        sa.Column('event_version', sa.Integer, nullable=False, default=1),
-        sa.Column('aggregate_type', sa.String(100), nullable=True),
-        sa.Column('aggregate_id', sa.String(100), nullable=True),
-        sa.Column('event_data', postgresql.JSONB, nullable=False),
-        sa.Column('metadata', postgresql.JSONB, nullable=True),
-        sa.Column('occurred_at', sa.DateTime, nullable=False),
-        sa.Column('stored_at', sa.DateTime, server_default=sa.func.now()),
-        sa.Column('correlation_id', sa.String(100), nullable=True),
-        sa.Column('causation_id', sa.String(100), nullable=True),
-    )
+    if 'domain_events' not in existing_tables:
+        op.create_table(
+            'domain_events',
+            sa.Column('event_id', postgresql.UUID(as_uuid=True), primary_key=True),
+            sa.Column('stream_id', sa.String(100), nullable=False),
+            sa.Column('event_type', sa.String(100), nullable=False),
+            sa.Column('event_version', sa.Integer, nullable=False, default=1),
+            sa.Column('aggregate_type', sa.String(100), nullable=True),
+            sa.Column('aggregate_id', sa.String(100), nullable=True),
+            sa.Column('event_data', postgresql.JSONB, nullable=False),
+            sa.Column('metadata', postgresql.JSONB, nullable=True),
+            sa.Column('occurred_at', sa.DateTime, nullable=False),
+            sa.Column('stored_at', sa.DateTime, server_default=sa.func.now()),
+            sa.Column('correlation_id', sa.String(100), nullable=True),
+            sa.Column('causation_id', sa.String(100), nullable=True),
+        )
 
-    op.create_index('idx_domain_events_stream', 'domain_events', ['stream_id', 'event_version'])
-    op.create_index('idx_domain_events_aggregate', 'domain_events', ['aggregate_type', 'aggregate_id'])
-    op.create_index('idx_domain_events_type', 'domain_events', ['event_type'])
-    op.create_index('idx_domain_events_occurred', 'domain_events', ['occurred_at'])
+        op.create_index('idx_domain_events_stream', 'domain_events', ['stream_id', 'event_version'])
+        op.create_index('idx_domain_events_aggregate', 'domain_events', ['aggregate_type', 'aggregate_id'])
+        op.create_index('idx_domain_events_type', 'domain_events', ['event_type'])
+        op.create_index('idx_domain_events_occurred', 'domain_events', ['occurred_at'])
 
     # ==========================================================================
     # SESSION TRANSFERS - Anonymous to authenticated

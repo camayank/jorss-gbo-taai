@@ -20,9 +20,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 try:
     from database.connection import get_async_session
 except ImportError:
-    async def _mock_session():
-        yield None
-    get_async_session = _mock_session
+    async def get_async_session():
+        raise HTTPException(status_code=503, detail="Database session dependency unavailable")
 from ..services.smart_onboarding_service import (
     get_smart_onboarding_service,
     OnboardingStatus,

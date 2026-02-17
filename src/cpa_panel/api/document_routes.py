@@ -13,8 +13,8 @@ from typing import Optional
 import logging
 
 # Import authentication dependency
-from src.core.api.auth_routes import get_current_user
-from src.core.models.user import UserContext
+from core.api.auth_routes import get_current_user
+from core.models.user import UserContext
 
 logger = logging.getLogger(__name__)
 

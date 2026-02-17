@@ -1,0 +1,2 @@
+"""CPA panel configuration package."""
+

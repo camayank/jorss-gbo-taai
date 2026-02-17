@@ -662,7 +662,7 @@ async def generate_sample_report(background_tasks: BackgroundTasks):
         taxpayer=TaxpayerInfo(
             first_name="Sample",
             last_name="Client",
-            ssn="000-00-0000",
+            ssn="456-78-9012",
             filing_status=FilingStatus.SINGLE,
         ),
         income=Income(

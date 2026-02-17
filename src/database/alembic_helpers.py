@@ -34,6 +34,7 @@ from typing import Any, Dict, List, Optional
 try:
     from alembic import command
     from alembic.config import Config
+    from alembic.util.exc import CommandError
     from alembic.runtime.migration import MigrationContext
     from alembic.script import ScriptDirectory
     ALEMBIC_AVAILABLE = True
@@ -41,6 +42,7 @@ except ImportError:
     ALEMBIC_AVAILABLE = False
     command = None
     Config = None
+    CommandError = Exception
     MigrationContext = None
     ScriptDirectory = None
 
@@ -234,11 +236,21 @@ class AlembicManager:
         head = self.get_head_revision()
         script = self._get_script_directory()
 
-        # Find pending revisions
+        # Find pending revisions. script.walk_revisions expects (base, head).
         pending = []
         if current != head:
-            for rev in script.walk_revisions(head, current):
-                if rev.revision != current:
+            try:
+                if current:
+                    revisions = script.walk_revisions(base=current, head=head)
+                else:
+                    revisions = script.walk_revisions(base="base", head=head)
+
+                for rev in revisions:
+                    if rev.revision != current:
+                        pending.append(rev.revision)
+            except CommandError:
+                # Current revision is unknown or divergent from graph; surface as fully pending.
+                for rev in script.walk_revisions(base="base", head=head):
                     pending.append(rev.revision)
 
         db_type = "postgresql" if self._settings.is_postgres else "sqlite"

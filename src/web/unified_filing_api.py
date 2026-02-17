@@ -13,18 +13,10 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
 import uuid
+import logging
 
-try:
-    from rbac.dependencies import require_auth, AuthContext, optional_auth
-except ImportError:
-    # Fallback for non-RBAC mode
-    class AuthContext:
-        user_id: Optional[str] = None
-        role: Any = None
-    def require_auth():
-        return AuthContext()
-    def optional_auth():
-        return AuthContext()
+from rbac.dependencies import require_auth, optional_auth
+from rbac.context import AuthContext
 
 try:
     from rbac.feature_access_control import require_feature, Features, check_feature_access
@@ -36,11 +28,7 @@ except ImportError:
     def check_feature_access(ctx, feature):
         return True
 
-try:
-    from database.session_persistence import get_session_persistence
-except ImportError:
-    def get_session_persistence():
-        raise HTTPException(500, "Session persistence not available")
+from database.session_persistence import get_session_persistence
 
 try:
     from audit.audit_logger import get_audit_logger, AuditEventType, AuditSeverity
@@ -53,6 +41,48 @@ except ImportError:
         return None
 
 router = APIRouter(prefix="/api/filing", tags=["unified-filing"])
+logger = logging.getLogger(__name__)
+
+
+def _ctx_user_id(ctx: Optional[AuthContext]) -> Optional[str]:
+    """Get a normalized user ID from auth context."""
+    if not ctx or not getattr(ctx, "user_id", None):
+        return None
+    return str(ctx.user_id)
+
+
+def _log_audit(
+    event_type: Any,
+    severity: Any,
+    user_id: str,
+    session_id: str,
+    details: Dict[str, Any],
+) -> None:
+    """Best-effort audit logging that never breaks request handling."""
+    audit = get_audit_logger()
+    if not audit or not hasattr(audit, "log"):
+        return
+
+    try:
+        audit.log(
+            event_type=event_type,
+            severity=severity,
+            user_id=user_id,
+            session_id=session_id,
+            details=details,
+        )
+    except Exception as exc:
+        logger.warning(f"Audit logging skipped for session {session_id}: {exc}")
+
+
+def _audit_event(name: str) -> Any:
+    """Resolve audit event type safely across logger implementations."""
+    return getattr(AuditEventType, name, name.lower())
+
+
+def _audit_severity(name: str) -> Any:
+    """Resolve audit severity safely across logger implementations."""
+    return getattr(AuditSeverity, name, name.lower())
 
 
 # =============================================================================
@@ -114,14 +144,14 @@ class SessionStatusResponse(BaseModel):
 @router.post("/sessions", response_model=CreateSessionResponse)
 async def create_filing_session(
     request: CreateSessionRequest,
-    ctx: AuthContext = Depends(optional_auth)
+    ctx: Optional[AuthContext] = Depends(optional_auth)
 ):
     """
     Create new filing session (all workflows).
     Works for Express Lane, Smart Tax, AI Chat, and Guided workflows.
     """
     session_id = str(uuid.uuid4())
-    user_id = str(ctx.user_id) if ctx else None
+    user_id = _ctx_user_id(ctx)
 
     persistence = get_session_persistence()
 
@@ -148,13 +178,12 @@ async def create_filing_session(
     )
 
     # Audit log
-    audit = get_audit_logger()
-    audit.log(
-        event_type=AuditEventType.SESSION_CREATED,
-        severity=AuditSeverity.INFO,
+    _log_audit(
+        event_type=_audit_event("SESSION_CREATED"),
+        severity=_audit_severity("INFO"),
         user_id=user_id or "anonymous",
         session_id=session_id,
-        details={"workflow_type": request.workflow_type.value}
+        details={"workflow_type": request.workflow_type.value},
     )
 
     return CreateSessionResponse(
@@ -168,7 +197,7 @@ async def create_filing_session(
 @router.get("/sessions/{session_id}", response_model=SessionStatusResponse)
 async def get_session_status(
     session_id: str,
-    ctx: AuthContext = Depends(optional_auth)
+    ctx: Optional[AuthContext] = Depends(optional_auth)
 ):
     """Get session status and progress."""
     persistence = get_session_persistence()
@@ -178,7 +207,7 @@ async def get_session_status(
         raise HTTPException(404, "Session not found")
 
     # Verify ownership for authenticated users
-    user_id = str(ctx.user_id) if ctx else None
+    user_id = _ctx_user_id(ctx)
     if user_id and session_data.get("user_id") != user_id:
         raise HTTPException(403, "Access denied")
 
@@ -219,7 +248,7 @@ from web.helpers.file_validation import validate_uploaded_file, MAX_FILE_SIZE
 async def upload_document(
     session_id: str,
     file: UploadFile = File(...),
-    ctx: AuthContext = Depends(optional_auth)
+    ctx: Optional[AuthContext] = Depends(optional_auth)
 ):
     """
     Upload document (works for all workflows).
@@ -233,7 +262,7 @@ async def upload_document(
         raise HTTPException(404, "Session not found")
 
     # Verify ownership
-    user_id = str(ctx.user_id) if ctx else None
+    user_id = _ctx_user_id(ctx)
     if user_id and session_data.get("user_id") != user_id:
         raise HTTPException(403, "Access denied")
 
@@ -276,17 +305,16 @@ async def upload_document(
         persistence.save_session_state(session_id, session_data)
 
         # Audit log
-        audit = get_audit_logger()
-        audit.log(
-            event_type=AuditEventType.DOCUMENT_UPLOADED,
-            severity=AuditSeverity.INFO,
+        _log_audit(
+            event_type=_audit_event("DOCUMENT_UPLOADED"),
+            severity=_audit_severity("INFO"),
             user_id=user_id or "anonymous",
             session_id=session_id,
             details={
                 "document_id": document_id,
                 "document_type": result.document_type,
-                "confidence": result.confidence_score
-            }
+                "confidence": result.confidence_score,
+            },
         )
 
         return UploadDocumentResponse(
@@ -329,7 +357,7 @@ class CalculateTaxResponse(BaseModel):
 async def calculate_taxes(
     session_id: str,
     request: CalculateTaxRequest,
-    ctx: AuthContext = Depends(optional_auth)
+    ctx: Optional[AuthContext] = Depends(optional_auth)
 ):
     """
     Calculate taxes (unified for all workflows).
@@ -342,7 +370,7 @@ async def calculate_taxes(
         raise HTTPException(404, "Session not found")
 
     # Verify ownership
-    user_id = str(ctx.user_id) if ctx else None
+    user_id = _ctx_user_id(ctx)
     if user_id and session_data.get("user_id") != user_id:
         raise HTTPException(403, "Access denied")
 
@@ -374,13 +402,12 @@ async def calculate_taxes(
         persistence.save_session_state(session_id, session_data)
 
         # Audit log
-        audit = get_audit_logger()
-        audit.log(
-            event_type=AuditEventType.TAX_CALCULATED,
-            severity=AuditSeverity.INFO,
+        _log_audit(
+            event_type=_audit_event("TAX_CALCULATED"),
+            severity=_audit_severity("INFO"),
             user_id=user_id or "anonymous",
             session_id=session_id,
-            details={"total_tax": float(result.total_tax)}
+            details={"total_tax": float(result.total_tax)},
         )
 
         return CalculateTaxResponse(
@@ -448,8 +475,6 @@ async def submit_return(
         return_id = f"RET-{datetime.now().year}-{datetime.now().strftime('%m%d%H%M%S')}"
 
         # Save return to database
-        from src.database.models import TaxReturnRecord
-
         tax_return_data = {
             "return_id": return_id,
             "user_id": user_id,
@@ -464,7 +489,12 @@ async def submit_return(
         }
 
         # Save return (simplified - would use proper database model)
-        persistence.save_session_tax_return(session_id, tax_return_data)
+        persistence.save_session_tax_return(
+            session_id=session_id,
+            tenant_id=session_data.get("tenant_id", "default"),
+            tax_year=int(session_data.get("tax_year", 2024)),
+            return_data=tax_return_data,
+        )
 
         # Update session
         session_data["return_id"] = return_id
@@ -473,13 +503,12 @@ async def submit_return(
         persistence.save_session_state(session_id, session_data)
 
         # Audit log
-        audit = get_audit_logger()
-        audit.log(
-            event_type=AuditEventType.RETURN_SUBMITTED,
-            severity=AuditSeverity.INFO,
+        _log_audit(
+            event_type=_audit_event("RETURN_SUBMITTED"),
+            severity=_audit_severity("INFO"),
             user_id=user_id,
             session_id=session_id,
-            details={"return_id": return_id}
+            details={"return_id": return_id},
         )
 
         return SubmitReturnResponse(
@@ -536,4 +565,3 @@ def _build_tax_return(extracted_data: Dict[str, Any], request: CalculateTaxReque
     )
 
     return tax_return
-

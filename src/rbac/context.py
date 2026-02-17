@@ -117,6 +117,15 @@ class AuthContext:
 
     def __post_init__(self):
         """Populate computed fields after initialization."""
+        # Preserve true anonymous contexts created with zero UUID + empty identity.
+        if (
+            self.user_id == UUID("00000000-0000-0000-0000-000000000000")
+            and not self.email
+        ):
+            self.permissions = set()
+            self.is_authenticated = False
+            return
+
         if self.role:
             role_info = get_role_info(self.role)
             self.level = role_info.level

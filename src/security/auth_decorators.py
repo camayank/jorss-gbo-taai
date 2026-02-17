@@ -15,8 +15,9 @@ Usage:
 """
 
 import functools
+import inspect
 import logging
-from typing import List, Optional, Callable
+from typing import List, Optional, Callable, get_type_hints
 from fastapi import Request, HTTPException
 from enum import Enum
 
@@ -76,6 +77,35 @@ class Role(str, Enum):
     GUEST = "guest"
 
 
+def _preserve_wrapped_signature(wrapper: Callable, func: Callable) -> None:
+    """
+    Preserve endpoint signature with resolved annotations for FastAPI.
+
+    When `from __future__ import annotations` is enabled, annotations are stored
+    as strings. After decoration, FastAPI evaluates those strings using the
+    wrapper module globals, which can break request model resolution.
+    """
+    signature = inspect.signature(func)
+
+    try:
+        resolved_hints = get_type_hints(func, globalns=func.__globals__)
+    except Exception:
+        resolved_hints = {}
+
+    parameters = []
+    for name, param in signature.parameters.items():
+        annotation = resolved_hints.get(name, param.annotation)
+        parameters.append(param.replace(annotation=annotation))
+
+    return_annotation = resolved_hints.get("return", signature.return_annotation)
+    wrapper.__signature__ = signature.replace(
+        parameters=parameters,
+        return_annotation=return_annotation,
+    )
+    if resolved_hints:
+        wrapper.__annotations__ = resolved_hints.copy()
+
+
 def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True, enforce: Optional[bool] = None):
     """
     Decorator to require authentication for an endpoint.
@@ -105,6 +135,9 @@ def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True
         async def wrapper(request: Request, *args, **kwargs):
             # Get user from session/JWT
             user = get_user_from_request(request)
+            if user:
+                # Make authenticated principal available to downstream handlers.
+                request.state.user = user
 
             # Comprehensive logging for security audit trail
             client_ip = request.client.host if request.client else "unknown"
@@ -155,6 +188,7 @@ def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True
             # Call original function
             return await func(request, *args, **kwargs)
 
+        _preserve_wrapped_signature(wrapper, func)
         return wrapper
     return decorator
 
@@ -186,6 +220,9 @@ def require_session_owner(session_param: str = "session_id", enforce: Optional[b
         @functools.wraps(func)
         async def wrapper(request: Request, *args, **kwargs):
             user = get_user_from_request(request)
+            if user:
+                # Keep principal available for endpoint-level authorization checks.
+                request.state.user = user
 
             # Comprehensive logging for security audit trail
             client_ip = request.client.host if request.client else "unknown"
@@ -218,6 +255,7 @@ def require_session_owner(session_param: str = "session_id", enforce: Optional[b
 
             return await func(request, *args, **kwargs)
 
+        _preserve_wrapped_signature(wrapper, func)
         return wrapper
     return decorator
 
@@ -291,6 +329,20 @@ def get_user_from_request(request: Request) -> Optional[dict]:
     if auth_header.startswith("Bearer "):
         token = auth_header[7:]
         user = verify_jwt_token(token)
+        if user:
+            return user
+
+    # Check for auth token in cookie (web app login flow)
+    auth_cookie = request.cookies.get("auth_token")
+    if auth_cookie:
+        user = verify_jwt_token(auth_cookie)
+        if user:
+            return user
+
+    # Check for client token in cookie (client portal flow)
+    client_cookie = request.cookies.get("client_token")
+    if client_cookie:
+        user = verify_jwt_token(client_cookie)
         if user:
             return user
 

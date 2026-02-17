@@ -79,6 +79,30 @@ class TestDatabaseSettings:
         url = settings.async_url
         assert "@" not in url.split("://")[1].split("/")[0]
 
+    def test_database_url_postgres_precedence(self):
+        """DATABASE_URL should drive URL generation when provided."""
+        with patch.dict(os.environ, {"DATABASE_URL": "postgresql:///jorss_gbo"}):
+            settings = DatabaseSettings(
+                driver="sqlite+aiosqlite",
+                sqlite_path="ignored.db",
+            )
+            assert settings.is_postgres
+            assert not settings.is_sqlite
+            assert settings.async_url == "postgresql+asyncpg:///jorss_gbo"
+            assert settings.sync_url == "postgresql+psycopg2:///jorss_gbo"
+
+    def test_database_url_sqlite_precedence(self):
+        """SQLite DATABASE_URL should override DB_DRIVER decomposition."""
+        with patch.dict(os.environ, {"DATABASE_URL": "sqlite:///tmp/direct.db"}):
+            settings = DatabaseSettings(
+                driver="postgresql+asyncpg",
+                host="dbhost",
+            )
+            assert settings.is_sqlite
+            assert not settings.is_postgres
+            assert settings.async_url == "sqlite+aiosqlite:///tmp/direct.db"
+            assert settings.sync_url == "sqlite:///tmp/direct.db"
+
     def test_pool_settings_validation(self):
         """Pool settings should have valid ranges."""
         settings = DatabaseSettings(

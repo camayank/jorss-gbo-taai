@@ -13,12 +13,13 @@ All routes use database-backed queries.
 import json
 import logging
 import os
+from decimal import Decimal
 from typing import Optional, List
 from datetime import datetime, timedelta
-from decimal import Decimal
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+import httpx
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,6 +36,203 @@ from calculator.decimal_math import money, to_decimal
 
 router = APIRouter(prefix="/billing", tags=["Billing"])
 logger = logging.getLogger(__name__)
+
+_STRIPE_API_BASE = "https://api.stripe.com/v1"
+
+
+def _stripe_enabled() -> bool:
+    return bool(os.environ.get("STRIPE_SECRET_KEY"))
+
+
+def _parse_json_field(raw_value, default):
+    """Parse DB JSON fields safely across PostgreSQL/SQLite adapters."""
+    if raw_value is None:
+        return default
+    if isinstance(raw_value, (dict, list)):
+        return raw_value
+    try:
+        return json.loads(raw_value)
+    except (TypeError, ValueError):
+        return default
+
+
+async def _stripe_request(
+    method: str,
+    path: str,
+    *,
+    data: Optional[dict] = None,
+    idempotency_key: Optional[str] = None,
+) -> dict:
+    """Execute a Stripe API request with consistent error handling."""
+    stripe_key = os.environ.get("STRIPE_SECRET_KEY")
+    if not stripe_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Stripe is not configured for this environment",
+        )
+
+    headers = {"Authorization": f"Bearer {stripe_key}"}
+    if idempotency_key:
+        headers["Idempotency-Key"] = idempotency_key
+
+    url = f"{_STRIPE_API_BASE}{path}"
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.request(
+                method=method,
+                url=url,
+                headers=headers,
+                data=data or {},
+            )
+    except httpx.HTTPError as exc:
+        logger.error("Stripe request failed: %s %s (%s)", method, path, exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Unable to reach Stripe. Please try again shortly.",
+        ) from exc
+
+    if response.status_code >= 400:
+        message = "Stripe request failed"
+        try:
+            payload = response.json()
+            message = payload.get("error", {}).get("message", message)
+        except ValueError:
+            pass
+        logger.error("Stripe API error %s %s: %s", method, path, message)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Stripe error: {message}",
+        )
+
+    if not response.text:
+        return {}
+    try:
+        return response.json()
+    except ValueError:
+        return {}
+
+
+async def _get_or_create_stripe_customer(
+    *,
+    session: AsyncSession,
+    firm_id: str,
+    subscription_id: Optional[str],
+    existing_customer_id: Optional[str],
+    email: Optional[str],
+    display_name: Optional[str],
+) -> str:
+    """Return existing Stripe customer, or create and persist a new one."""
+    if existing_customer_id:
+        return existing_customer_id
+
+    customer = await _stripe_request(
+        "POST",
+        "/customers",
+        data={
+            "email": email or "",
+            "name": display_name or f"Firm {firm_id}",
+            "metadata[firm_id]": str(firm_id),
+        },
+        idempotency_key=f"customer-{firm_id}",
+    )
+    customer_id = customer.get("id")
+    if not customer_id:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Stripe customer could not be created.",
+        )
+
+    if subscription_id:
+        await session.execute(
+            text("""
+                UPDATE subscriptions
+                SET stripe_customer_id = :customer_id,
+                    updated_at = :updated_at
+                WHERE subscription_id = :subscription_id
+            """),
+            {
+                "subscription_id": subscription_id,
+                "customer_id": customer_id,
+                "updated_at": datetime.utcnow().isoformat(),
+            },
+        )
+
+    return customer_id
+
+
+async def _charge_stripe_proration(
+    *,
+    customer_id: str,
+    firm_id: str,
+    from_plan: str,
+    to_plan: str,
+    prorated_charge: float,
+) -> Optional[str]:
+    """
+    Create and collect a one-off proration charge via invoice.
+    Returns Stripe invoice ID when a charge was attempted.
+    """
+    amount_cents = int(round(prorated_charge * 100))
+    if amount_cents <= 0:
+        return None
+
+    item_idempotency = f"proration-item-{firm_id}-{from_plan}-{to_plan}-{amount_cents}"
+    await _stripe_request(
+        "POST",
+        "/invoiceitems",
+        data={
+            "customer": customer_id,
+            "amount": str(amount_cents),
+            "currency": "usd",
+            "description": f"Proration charge for plan upgrade ({from_plan} -> {to_plan})",
+            "metadata[firm_id]": str(firm_id),
+            "metadata[upgrade_from]": from_plan,
+            "metadata[upgrade_to]": to_plan,
+        },
+        idempotency_key=item_idempotency,
+    )
+
+    invoice = await _stripe_request(
+        "POST",
+        "/invoices",
+        data={
+            "customer": customer_id,
+            "collection_method": "charge_automatically",
+            "auto_advance": "false",
+            "metadata[firm_id]": str(firm_id),
+            "metadata[type]": "plan_upgrade_proration",
+        },
+        idempotency_key=f"proration-invoice-{firm_id}-{to_plan}-{amount_cents}",
+    )
+
+    invoice_id = invoice.get("id")
+    if not invoice_id:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Stripe invoice could not be created for proration charge.",
+        )
+
+    await _stripe_request(
+        "POST",
+        f"/invoices/{invoice_id}/finalize",
+        data={},
+        idempotency_key=f"proration-finalize-{invoice_id}",
+    )
+
+    paid = await _stripe_request(
+        "POST",
+        f"/invoices/{invoice_id}/pay",
+        data={},
+        idempotency_key=f"proration-pay-{invoice_id}",
+    )
+
+    if paid.get("status") not in {"paid", "open"}:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Proration payment failed in Stripe. Update payment method and retry.",
+        )
+
+    return invoice_id
 
 
 # =============================================================================
@@ -120,6 +318,27 @@ class PlanComparison(BaseModel):
     recommendations: List[str]
 
 
+class CheckoutSessionRequest(BaseModel):
+    """Create a Stripe checkout session for a subscription plan."""
+    plan_code: str = Field(..., min_length=1, max_length=30)
+    billing_cycle: str = Field("monthly", pattern="^(monthly|annual)$")
+    success_url: Optional[str] = None
+    cancel_url: Optional[str] = None
+    promotion_code: Optional[str] = Field(None, max_length=255)
+
+
+class CheckoutSessionResponse(BaseModel):
+    """Checkout session payload returned to frontend."""
+    checkout_session_id: str
+    checkout_url: str
+    publishable_key: Optional[str] = None
+
+
+class BillingPortalRequest(BaseModel):
+    """Create a Stripe billing portal session."""
+    return_url: Optional[str] = None
+
+
 # =============================================================================
 # ROUTES
 # =============================================================================
@@ -139,7 +358,7 @@ async def get_current_subscription(
     query = text("""
         SELECT s.subscription_id, s.status, s.billing_cycle,
                s.current_period_start, s.current_period_end, s.next_billing_date,
-               s.trial_end, s.payment_method,
+               s.trial_end, s.payment_method_type, s.payment_method_last4, s.payment_method_brand,
                p.plan_id, p.name, p.code, p.monthly_price, p.annual_price,
                p.max_team_members, p.max_clients, p.max_scenarios_per_month,
                p.features, p.highlight_text
@@ -159,7 +378,7 @@ async def get_current_subscription(
         )
 
     # Parse features from JSONB
-    features_data = json.loads(row[16]) if row[16] else {}
+    features_data = _parse_json_field(row[18], {})
     features = PlanFeatures(
         scenario_analysis=features_data.get("scenario_analysis", True),
         multi_state=features_data.get("multi_state", False),
@@ -171,8 +390,13 @@ async def get_current_subscription(
         audit_log_export=features_data.get("audit_log_export", True),
     )
 
-    # Parse payment method from JSONB
-    payment_method = json.loads(row[7]) if row[7] else None
+    payment_method = None
+    if row[7] or row[8] or row[9]:
+        payment_method = {
+            "type": row[7],
+            "last4": row[8],
+            "brand": row[9],
+        }
 
     # Parse dates
     def parse_dt(val):
@@ -185,16 +409,16 @@ async def get_current_subscription(
     return CurrentSubscription(
         subscription_id=str(row[0]),
         plan=SubscriptionPlan(
-            plan_id=str(row[8]),
-            name=row[9],
-            code=row[10],
-            monthly_price=float(row[11]) if row[11] else 0.0,
-            annual_price=float(row[12]) if row[12] else 0.0,
-            max_team_members=row[13],
-            max_clients=row[14],
-            max_scenarios_per_month=row[15],
+            plan_id=str(row[10]),
+            name=row[11],
+            code=row[12],
+            monthly_price=float(row[13]) if row[13] else 0.0,
+            annual_price=float(row[14]) if row[14] else 0.0,
+            max_team_members=row[15],
+            max_clients=row[16],
+            max_scenarios_per_month=row[17],
             features=features,
-            highlight_text=row[17],
+            highlight_text=row[19],
         ),
         status=row[1],
         billing_cycle=row[2],
@@ -251,7 +475,7 @@ async def get_usage_metrics(
     max_team = sub_row[2]
     max_clients = sub_row[3]
     max_scenarios = sub_row[4]
-    features = json.loads(sub_row[5]) if sub_row[5] else {}
+    features = _parse_json_field(sub_row[5], {})
 
     # Handle different period selections
     if period == "previous":
@@ -393,7 +617,7 @@ async def get_available_plans(
 
     plans = []
     for row in rows:
-        features_data = json.loads(row[8]) if row[8] else {}
+        features_data = _parse_json_field(row[8], {})
         features = PlanFeatures(
             scenario_analysis=features_data.get("scenario_analysis", True),
             multi_state=features_data.get("multi_state", False),
@@ -419,6 +643,178 @@ async def get_available_plans(
         ))
 
     return plans
+
+
+@router.post("/checkout", response_model=CheckoutSessionResponse)
+@require_permission(UserPermission.CHANGE_PLAN)
+async def create_checkout_session(
+    payload: CheckoutSessionRequest,
+    user: TenantContext = Depends(get_current_user),
+    firm_id: str = Depends(get_current_firm),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Create Stripe Checkout session for a subscription plan purchase."""
+    if not _stripe_enabled():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Stripe checkout is not configured.",
+        )
+
+    plan_result = await session.execute(
+        text("""
+            SELECT plan_id, code, name, stripe_price_id_monthly, stripe_price_id_annual
+            FROM subscription_plans
+            WHERE code = :code AND is_active = true
+            LIMIT 1
+        """),
+        {"code": payload.plan_code},
+    )
+    plan_row = plan_result.fetchone()
+    if not plan_row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Plan '{payload.plan_code}' not found",
+        )
+
+    stripe_price_id = plan_row[3] if payload.billing_cycle == "monthly" else plan_row[4]
+    if not stripe_price_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Stripe price ID is not configured for plan '{payload.plan_code}' "
+                f"({payload.billing_cycle})."
+            ),
+        )
+
+    sub_result = await session.execute(
+        text("""
+            SELECT s.subscription_id, s.stripe_customer_id, f.name, f.email
+            FROM subscriptions s
+            JOIN firms f ON f.firm_id = s.firm_id
+            WHERE s.firm_id = :firm_id
+            ORDER BY s.created_at DESC
+            LIMIT 1
+        """),
+        {"firm_id": firm_id},
+    )
+    sub_row = sub_result.fetchone()
+    if not sub_row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No subscription record found for this firm.",
+        )
+
+    customer_id = await _get_or_create_stripe_customer(
+        session=session,
+        firm_id=str(firm_id),
+        subscription_id=str(sub_row[0]) if sub_row[0] else None,
+        existing_customer_id=sub_row[1],
+        email=sub_row[3] or user.email,
+        display_name=sub_row[2] or f"Firm {firm_id}",
+    )
+
+    app_base_url = os.environ.get("APP_BASE_URL", "http://localhost:8000").rstrip("/")
+    success_url = payload.success_url or f"{app_base_url}/cpa/billing?checkout=success"
+    cancel_url = payload.cancel_url or f"{app_base_url}/cpa/billing?checkout=cancelled"
+
+    data = {
+        "mode": "subscription",
+        "customer": customer_id,
+        "success_url": success_url,
+        "cancel_url": cancel_url,
+        "line_items[0][price]": stripe_price_id,
+        "line_items[0][quantity]": "1",
+        "allow_promotion_codes": "true",
+        "metadata[firm_id]": str(firm_id),
+        "metadata[plan_code]": payload.plan_code,
+        "metadata[billing_cycle]": payload.billing_cycle,
+    }
+    if payload.promotion_code:
+        data["discounts[0][promotion_code]"] = payload.promotion_code
+
+    stripe_session = await _stripe_request(
+        "POST",
+        "/checkout/sessions",
+        data=data,
+        idempotency_key=f"checkout-{firm_id}-{payload.plan_code}-{payload.billing_cycle}",
+    )
+
+    checkout_session_id = stripe_session.get("id")
+    checkout_url = stripe_session.get("url")
+    if not checkout_session_id or not checkout_url:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Stripe checkout session could not be created.",
+        )
+
+    await session.commit()
+    return CheckoutSessionResponse(
+        checkout_session_id=checkout_session_id,
+        checkout_url=checkout_url,
+        publishable_key=os.environ.get("STRIPE_PUBLISHABLE_KEY"),
+    )
+
+
+@router.post("/portal")
+@require_permission(UserPermission.VIEW_BILLING)
+async def create_billing_portal_session(
+    payload: BillingPortalRequest,
+    user: TenantContext = Depends(get_current_user),
+    firm_id: str = Depends(get_current_firm),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Create Stripe billing portal session for self-serve plan management."""
+    if not _stripe_enabled():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Stripe billing portal is not configured.",
+        )
+
+    sub_result = await session.execute(
+        text("""
+            SELECT s.subscription_id, s.stripe_customer_id, f.name, f.email
+            FROM subscriptions s
+            JOIN firms f ON f.firm_id = s.firm_id
+            WHERE s.firm_id = :firm_id
+            ORDER BY s.created_at DESC
+            LIMIT 1
+        """),
+        {"firm_id": firm_id},
+    )
+    sub_row = sub_result.fetchone()
+    if not sub_row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No subscription found for this firm.",
+        )
+
+    customer_id = await _get_or_create_stripe_customer(
+        session=session,
+        firm_id=str(firm_id),
+        subscription_id=str(sub_row[0]) if sub_row[0] else None,
+        existing_customer_id=sub_row[1],
+        email=sub_row[3] or user.email,
+        display_name=sub_row[2] or f"Firm {firm_id}",
+    )
+
+    app_base_url = os.environ.get("APP_BASE_URL", "http://localhost:8000").rstrip("/")
+    return_url = payload.return_url or f"{app_base_url}/cpa/billing"
+
+    portal = await _stripe_request(
+        "POST",
+        "/billing_portal/sessions",
+        data={"customer": customer_id, "return_url": return_url},
+        idempotency_key=f"portal-{firm_id}-{uuid4()}",
+    )
+    portal_url = portal.get("url")
+    if not portal_url:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Stripe billing portal session could not be created.",
+        )
+
+    await session.commit()
+    return {"status": "success", "url": portal_url}
 
 
 @router.post("/upgrade/preview", response_model=PlanComparison)
@@ -474,7 +870,7 @@ async def preview_upgrade(
 
     # Parse features
     def parse_features(data):
-        features_data = json.loads(data) if data else {}
+        features_data = _parse_json_field(data, {})
         return PlanFeatures(
             scenario_analysis=features_data.get("scenario_analysis", True),
             multi_state=features_data.get("multi_state", False),
@@ -591,7 +987,7 @@ async def upgrade_plan(
     # Get current subscription
     current_query = text("""
         SELECT s.subscription_id, s.billing_cycle, s.current_period_end,
-               p.monthly_price, p.annual_price
+               p.monthly_price, p.annual_price, p.code, s.stripe_customer_id
         FROM subscriptions s
         JOIN subscription_plans p ON s.plan_id = p.plan_id
         WHERE s.firm_id = :firm_id AND s.status = 'active'
@@ -637,7 +1033,32 @@ async def upgrade_plan(
     if isinstance(period_end, str):
         period_end = datetime.fromisoformat(period_end.replace('Z', '+00:00'))
     days_remaining = max(0, (period_end - datetime.utcnow()).days) if period_end else 0
-    prorated_charge = ((target_price - current_price) / 30) * days_remaining
+    prorated_charge = float(money(((target_price - current_price) / 30) * days_remaining))
+
+    # Collect proration charge before changing local plan state
+    stripe_invoice_id = None
+    billing_note = None
+    if prorated_charge > 0:
+        if _stripe_enabled():
+            customer_id = await _get_or_create_stripe_customer(
+                session=session,
+                firm_id=str(firm_id),
+                subscription_id=str(current_row[0]),
+                existing_customer_id=current_row[6],
+                email=user.email,
+                display_name=f"Firm {firm_id}",
+            )
+            stripe_invoice_id = await _charge_stripe_proration(
+                customer_id=customer_id,
+                firm_id=str(firm_id),
+                from_plan=current_row[5],
+                to_plan=target_plan_code,
+                prorated_charge=prorated_charge,
+            )
+        else:
+            billing_note = (
+                "Stripe is not configured. Proration charge was not collected automatically."
+            )
 
     # Update subscription
     now = datetime.utcnow()
@@ -685,9 +1106,10 @@ async def upgrade_plan(
         "user_id": user.user_id,
         "sub_id": str(current_row[0]),
         "details": json.dumps({
-            "from_plan": current_row[1],
+            "from_plan": current_row[5],
             "to_plan": target_plan_code,
-            "prorated_charge": float(money(prorated_charge)),
+            "prorated_charge": prorated_charge,
+            "stripe_invoice_id": stripe_invoice_id,
         }),
         "created_at": now.isoformat(),
     })
@@ -695,21 +1117,14 @@ async def upgrade_plan(
     await session.commit()
     logger.info(f"Plan upgraded for firm {firm_id} to {target_plan_code} by {user.email}")
 
-    # Stripe charge for prorated amount
-    stripe_key = os.environ.get("STRIPE_SECRET_KEY")
-    if stripe_key and prorated_charge > 0:
-        logger.warning(
-            f"Stripe charge not yet integrated: ${prorated_charge:.2f} for firm {firm_id}. "
-            f"Manual billing required."
-        )
-
     return {
         "status": "success",
         "message": "Plan upgraded successfully",
         "new_plan": target_plan_code,
         "effective_immediately": True,
-        "prorated_charge": float(money(prorated_charge)),
-        "billing_note": "Stripe billing integration pending" if not stripe_key else None,
+        "prorated_charge": prorated_charge,
+        "stripe_invoice_id": stripe_invoice_id,
+        "billing_note": billing_note,
     }
 
 
@@ -793,7 +1208,7 @@ async def downgrade_plan(
                        "Excess clients will be archived.")
 
     # Check feature loss
-    target_features = json.loads(target_row[4]) if target_row[4] else {}
+    target_features = _parse_json_field(target_row[4], {})
     if not target_features.get("api_access"):
         warnings.append("API access will be revoked at downgrade")
 
@@ -899,7 +1314,7 @@ async def list_invoices(
                 return val
             return datetime.fromisoformat(val.replace('Z', '+00:00'))
 
-        line_items = json.loads(row[11]) if row[11] else []
+        line_items = _parse_json_field(row[11], [])
 
         invoices.append(Invoice(
             invoice_id=str(row[0]),
@@ -953,7 +1368,7 @@ async def get_invoice(
             return val
         return datetime.fromisoformat(val.replace('Z', '+00:00'))
 
-    line_items = json.loads(row[11]) if row[11] else []
+    line_items = _parse_json_field(row[11], [])
 
     return Invoice(
         invoice_id=str(row[0]),
@@ -986,10 +1401,11 @@ async def update_payment_method(
     """
     # Get current subscription
     sub_query = text("""
-        SELECT subscription_id, stripe_customer_id
-        FROM subscriptions
-        WHERE firm_id = :firm_id AND status = 'active'
-        ORDER BY created_at DESC
+        SELECT s.subscription_id, s.stripe_customer_id, f.email, f.name
+        FROM subscriptions s
+        JOIN firms f ON f.firm_id = s.firm_id
+        WHERE s.firm_id = :firm_id AND s.status = 'active'
+        ORDER BY s.created_at DESC
         LIMIT 1
     """)
     sub_result = await session.execute(sub_query, {"firm_id": firm_id})
@@ -1001,24 +1417,60 @@ async def update_payment_method(
             detail="No active subscription found",
         )
 
-    # Stripe payment method attachment
-    stripe_key = os.environ.get("STRIPE_SECRET_KEY")
-    if stripe_key:
-        logger.warning(
-            f"Stripe payment method attachment not yet integrated for firm {firm_id}. "
-            f"Payment method stored locally only."
+    pm_type = "card"
+    pm_last4 = None
+    pm_brand = None
+
+    if _stripe_enabled():
+        customer_id = await _get_or_create_stripe_customer(
+            session=session,
+            firm_id=str(firm_id),
+            subscription_id=str(sub_row[0]),
+            existing_customer_id=sub_row[1],
+            email=sub_row[2] or user.email,
+            display_name=sub_row[3] or f"Firm {firm_id}",
         )
 
-    # For now, store the payment method ID in the subscription
+        # Attach payment method to customer and set as default invoice method.
+        await _stripe_request(
+            "POST",
+            f"/payment_methods/{payment_method_id}/attach",
+            data={"customer": customer_id},
+            idempotency_key=f"attach-pm-{customer_id}-{payment_method_id}",
+        )
+        await _stripe_request(
+            "POST",
+            f"/customers/{customer_id}",
+            data={"invoice_settings[default_payment_method]": payment_method_id},
+            idempotency_key=f"default-pm-{customer_id}-{payment_method_id}",
+        )
+
+        payment_method = await _stripe_request(
+            "GET",
+            f"/payment_methods/{payment_method_id}",
+        )
+        card = payment_method.get("card", {}) if isinstance(payment_method, dict) else {}
+        pm_type = payment_method.get("type", "card") if isinstance(payment_method, dict) else "card"
+        pm_last4 = card.get("last4")
+        pm_brand = card.get("brand")
+    else:
+        # Preserve a useful local marker in non-Stripe environments.
+        pm_last4 = payment_method_id[-4:] if len(payment_method_id) >= 4 else None
+        pm_brand = "manual"
+
     update_query = text("""
         UPDATE subscriptions SET
-            payment_method = :payment_method,
+            payment_method_type = :payment_method_type,
+            payment_method_last4 = :payment_method_last4,
+            payment_method_brand = :payment_method_brand,
             updated_at = :updated_at
         WHERE subscription_id = :subscription_id
     """)
     await session.execute(update_query, {
         "subscription_id": sub_row[0],
-        "payment_method": json.dumps({"stripe_payment_method_id": payment_method_id}),
+        "payment_method_type": pm_type,
+        "payment_method_last4": pm_last4,
+        "payment_method_brand": pm_brand,
         "updated_at": datetime.utcnow().isoformat(),
     })
 
@@ -1038,7 +1490,13 @@ async def update_payment_method(
         "firm_id": firm_id,
         "user_id": user.user_id,
         "sub_id": str(sub_row[0]),
-        "details": json.dumps({"payment_method_id": payment_method_id}),
+        "details": json.dumps({
+            "payment_method_id": payment_method_id,
+            "payment_method_type": pm_type,
+            "payment_method_brand": pm_brand,
+            "payment_method_last4": pm_last4,
+            "stripe_enabled": _stripe_enabled(),
+        }),
         "created_at": datetime.utcnow().isoformat(),
     })
 

@@ -42,6 +42,18 @@ router = APIRouter(prefix="/settings", tags=["Settings"])
 logger = logging.getLogger(__name__)
 
 
+def _parse_json_field(raw_value, default):
+    """Parse JSON/JSONB fields safely across DB adapters."""
+    if raw_value is None:
+        return default
+    if isinstance(raw_value, (dict, list)):
+        return raw_value
+    try:
+        return json.loads(raw_value)
+    except (TypeError, ValueError):
+        return default
+
+
 # =============================================================================
 # REQUEST/RESPONSE MODELS
 # =============================================================================
@@ -116,6 +128,20 @@ class SecuritySettingsUpdate(BaseModel):
     allow_self_review: Optional[bool] = None
 
 
+class IntegrationSettingsUpdate(BaseModel):
+    """Update integration settings request."""
+    settings: dict = Field(default_factory=dict)
+
+
+class OnboardingStatus(BaseModel):
+    """Firm onboarding checklist status."""
+    checklist: dict
+    completed: int
+    total: int
+    percentage: int
+    is_complete: bool
+
+
 class ApiKey(BaseModel):
     """API key information."""
     key_id: str
@@ -184,10 +210,10 @@ async def get_all_settings(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Firm not found")
 
     # Parse JSON fields
-    branding = json.loads(row[11]) if row[11] else {}
-    security = json.loads(row[12]) if row[12] else {}
-    integrations = json.loads(row[13]) if row[13] else {}
-    features = json.loads(row[14]) if row[14] else {}
+    branding = _parse_json_field(row[11], {})
+    security = _parse_json_field(row[12], {})
+    integrations = _parse_json_field(row[13], {})
+    features = _parse_json_field(row[14], {})
 
     # Check if API keys are enabled (Enterprise feature)
     api_keys_enabled = features.get("api_access", False)
@@ -225,6 +251,66 @@ async def get_all_settings(
         ),
         integrations=integrations,
         api_keys_enabled=api_keys_enabled,
+    )
+
+
+@router.get("/onboarding-status", response_model=OnboardingStatus)
+async def get_onboarding_status(
+    user: TenantContext = Depends(get_current_user),
+    firm_id: str = Depends(get_current_firm),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Get launch onboarding checklist status for the current firm."""
+    firm_result = await session.execute(
+        text("""
+            SELECT name, email, phone, branding, integrations
+            FROM firms
+            WHERE firm_id = :firm_id
+            LIMIT 1
+        """),
+        {"firm_id": firm_id},
+    )
+    firm_row = firm_result.fetchone()
+    if not firm_row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Firm not found")
+
+    branding = _parse_json_field(firm_row[3], {})
+    integrations = _parse_json_field(firm_row[4], {})
+
+    sub_result = await session.execute(
+        text("""
+            SELECT status
+            FROM subscriptions
+            WHERE firm_id = :firm_id
+            ORDER BY created_at DESC
+            LIMIT 1
+        """),
+        {"firm_id": firm_id},
+    )
+    sub_row = sub_result.fetchone()
+    subscription_status = (sub_row[0] if sub_row else "") or ""
+
+    checklist = {
+        "profile_completed": bool((firm_row[0] or "").strip() and (firm_row[1] or "").strip()),
+        "branding_configured": bool(branding.get("logo_url") and branding.get("primary_color")),
+        "lead_routing_configured": bool(
+            integrations.get("lead_routing_email") or (firm_row[1] or "").strip()
+        ),
+        "calendar_configured": bool(integrations.get("booking_link")),
+        "embed_verified": bool(integrations.get("embed_verified") or integrations.get("widget_installed")),
+        "payment_configured": subscription_status in {"active", "trialing"},
+    }
+
+    completed = sum(1 for value in checklist.values() if value)
+    total = len(checklist)
+    percentage = int((completed / total) * 100) if total else 0
+
+    return OnboardingStatus(
+        checklist=checklist,
+        completed=completed,
+        total=total,
+        percentage=percentage,
+        is_complete=completed == total,
     )
 
 
@@ -320,6 +406,59 @@ async def update_firm_profile(
     return await get_firm_profile(user, firm_id, session)
 
 
+@router.put("/integrations")
+@require_firm_admin
+async def update_integrations(
+    update: IntegrationSettingsUpdate,
+    user: TenantContext = Depends(get_current_user),
+    firm_id: str = Depends(get_current_firm),
+    session: AsyncSession = Depends(get_async_session),
+):
+    """Update integration settings used for lead routing and onboarding."""
+    current_result = await session.execute(
+        text("SELECT integrations FROM firms WHERE firm_id = :firm_id"),
+        {"firm_id": firm_id},
+    )
+    row = current_result.fetchone()
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Firm not found")
+
+    integrations = _parse_json_field(row[0], {})
+    integrations.update(update.settings or {})
+
+    await session.execute(
+        text("""
+            UPDATE firms
+            SET integrations = :integrations,
+                updated_at = :updated_at
+            WHERE firm_id = :firm_id
+        """),
+        {
+            "firm_id": firm_id,
+            "integrations": json.dumps(integrations),
+            "updated_at": datetime.utcnow().isoformat(),
+        },
+    )
+
+    await session.execute(
+        text("""
+            INSERT INTO audit_logs (log_id, firm_id, user_id, action, resource_type, details, created_at)
+            VALUES (:log_id, :firm_id, :user_id, 'integrations_updated', 'firm', :details, :created_at)
+        """),
+        {
+            "log_id": str(uuid4()),
+            "firm_id": firm_id,
+            "user_id": user.user_id,
+            "details": json.dumps({"updated_keys": sorted((update.settings or {}).keys())}),
+            "created_at": datetime.utcnow().isoformat(),
+        },
+    )
+
+    await session.commit()
+    logger.info(f"Firm {firm_id} integrations updated by {user.email}")
+    return {"status": "success", "integrations": integrations}
+
+
 @router.get("/branding", response_model=BrandingSettings)
 async def get_branding_settings(
     user: TenantContext = Depends(get_current_user),
@@ -334,7 +473,7 @@ async def get_branding_settings(
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Firm not found")
 
-    branding = json.loads(row[0]) if row[0] else {}
+    branding = _parse_json_field(row[0], {})
 
     return BrandingSettings(
         logo_url=branding.get("logo_url"),
@@ -364,7 +503,7 @@ async def update_branding_settings(
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Firm not found")
 
-    branding = json.loads(row[0]) if row[0] else {}
+    branding = _parse_json_field(row[0], {})
 
     # Update fields
     if update.primary_color is not None:
@@ -459,7 +598,7 @@ async def upload_logo(
     result = await session.execute(query, {"firm_id": firm_id})
     row = result.fetchone()
 
-    branding = json.loads(row[0]) if row and row[0] else {}
+    branding = _parse_json_field(row[0] if row else None, {})
     branding["logo_url"] = logo_url
 
     update_query = text("""
@@ -496,7 +635,7 @@ async def get_security_settings(
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Firm not found")
 
-    security = json.loads(row[0]) if row[0] else {}
+    security = _parse_json_field(row[0], {})
 
     return SecuritySettings(
         mfa_required=security.get("mfa_required", False),
@@ -527,7 +666,7 @@ async def update_security_settings(
         """)
         plan_result = await session.execute(plan_query, {"firm_id": firm_id})
         plan_row = plan_result.fetchone()
-        features = json.loads(plan_row[0]) if plan_row and plan_row[0] else {}
+        features = _parse_json_field(plan_row[0] if plan_row else None, {})
 
         if not features.get("ip_whitelist", False):
             raise HTTPException(
@@ -543,7 +682,7 @@ async def update_security_settings(
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Firm not found")
 
-    security = json.loads(row[0]) if row[0] else {}
+    security = _parse_json_field(row[0], {})
 
     # Update fields
     if update.mfa_required is not None:
@@ -612,7 +751,7 @@ async def _check_api_access(session: AsyncSession, firm_id: str) -> bool:
     row = result.fetchone()
     if not row:
         return False
-    features = json.loads(row[0]) if row[0] else {}
+    features = _parse_json_field(row[0], {})
     return features.get("api_access", False)
 
 

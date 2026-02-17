@@ -34,6 +34,7 @@ from .context import AuthContext, UserType
 from .dependencies import (
     get_auth_context,
     require_auth,
+    optional_auth,
     require_role,
     require_permission,
     require_platform_admin,
@@ -63,6 +64,7 @@ __all__ = [
     # Dependencies
     "get_auth_context",
     "require_auth",
+    "optional_auth",
     "require_role",
     "require_permission",
     "require_platform_admin",

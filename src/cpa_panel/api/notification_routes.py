@@ -87,10 +87,10 @@ async def list_notifications(
     Returns recent notifications with read/unread status.
     """
     try:
+        cpa_email = _get_authenticated_cpa_email(request)
+
         from cpa_panel.services.notification_service import get_notification_service
         service = get_notification_service()
-
-        cpa_email = _get_authenticated_cpa_email(request)
 
         # Get notifications from database
         conn = service._get_db_connection()
@@ -149,6 +149,8 @@ async def list_notifications(
             "offset": offset,
         })
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to list notifications: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -162,27 +164,33 @@ async def mark_notifications_read(request: Request, data: MarkReadRequest):
     Can mark multiple notifications at once.
     """
     try:
+        cpa_email = _get_authenticated_cpa_email(request)
+
         from cpa_panel.services.notification_service import get_notification_service
         service = get_notification_service()
 
         conn = service._get_db_connection()
         cursor = conn.cursor()
+        marked_count = 0
 
         for notification_id in data.notification_ids:
             cursor.execute("""
                 UPDATE notifications
                 SET status = 'read'
-                WHERE notification_id = ?
-            """, (notification_id,))
+                WHERE notification_id = ? AND recipient_email = ?
+            """, (notification_id, cpa_email))
+            marked_count += cursor.rowcount
 
         conn.commit()
         conn.close()
 
         return JSONResponse({
             "success": True,
-            "marked_count": len(data.notification_ids),
+            "marked_count": marked_count,
         })
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to mark notifications as read: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -194,10 +202,10 @@ async def mark_all_notifications_read(request: Request):
     Mark all notifications as read for the current CPA.
     """
     try:
+        cpa_email = _get_authenticated_cpa_email(request)
+
         from cpa_panel.services.notification_service import get_notification_service
         service = get_notification_service()
-
-        cpa_email = _get_authenticated_cpa_email(request)
 
         conn = service._get_db_connection()
         cursor = conn.cursor()
@@ -215,6 +223,8 @@ async def mark_all_notifications_read(request: Request):
             "marked_count": updated_count,
         })
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to mark all notifications as read: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -303,10 +313,10 @@ async def get_follow_up_reminders(
     Returns reminders sorted by due date, with overdue reminders first.
     """
     try:
+        cpa_email = _get_authenticated_cpa_email(request)
+
         from cpa_panel.services.notification_service import get_notification_service
         service = get_notification_service()
-
-        cpa_email = _get_authenticated_cpa_email(request)
 
         conn = service._get_db_connection()
         cursor = conn.cursor()
@@ -360,6 +370,8 @@ async def get_follow_up_reminders(
             "overdue_count": overdue_count,
         })
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to get reminders: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -371,12 +383,23 @@ async def complete_reminder(request: Request, reminder_id: str):
     Mark a follow-up reminder as completed.
     """
     try:
+        cpa_email = _get_authenticated_cpa_email(request)
+
         from cpa_panel.services.notification_service import get_notification_service
         service = get_notification_service()
 
-        success = service.complete_reminder(reminder_id)
+        conn = service._get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE follow_up_reminders
+            SET completed = 1, completed_at = ?
+            WHERE reminder_id = ? AND cpa_email = ? AND completed = 0
+        """, (datetime.utcnow().isoformat(), reminder_id, cpa_email))
+        updated_count = cursor.rowcount
+        conn.commit()
+        conn.close()
 
-        if not success:
+        if updated_count == 0:
             raise HTTPException(status_code=404, detail="Reminder not found")
 
         return JSONResponse({
@@ -401,6 +424,8 @@ async def snooze_reminder(
     Snooze a reminder for specified hours.
     """
     try:
+        cpa_email = _get_authenticated_cpa_email(request)
+
         from cpa_panel.services.notification_service import get_notification_service
         from datetime import timedelta
         service = get_notification_service()
@@ -412,10 +437,14 @@ async def snooze_reminder(
         cursor.execute("""
             UPDATE follow_up_reminders
             SET due_date = ?
-            WHERE reminder_id = ?
-        """, (new_due.isoformat(), reminder_id))
+            WHERE reminder_id = ? AND cpa_email = ?
+        """, (new_due.isoformat(), reminder_id, cpa_email))
+        updated_count = cursor.rowcount
         conn.commit()
         conn.close()
+
+        if updated_count == 0:
+            raise HTTPException(status_code=404, detail="Reminder not found")
 
         return JSONResponse({
             "success": True,
@@ -423,6 +452,8 @@ async def snooze_reminder(
             "new_due_date": new_due.isoformat(),
         })
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to snooze reminder: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -438,12 +469,12 @@ async def get_notification_stats(request: Request):
     Get notification statistics for the current CPA.
     """
     try:
+        cpa_email = _get_authenticated_cpa_email(request)
+
         from cpa_panel.services.notification_service import get_notification_service
         service = get_notification_service()
 
         stats = service.get_notification_stats()
-
-        cpa_email = _get_authenticated_cpa_email(request)
 
         # Get CPA-specific unread count
         conn = service._get_db_connection()
@@ -469,6 +500,8 @@ async def get_notification_stats(request: Request):
             "global_stats": stats,
         })
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to get notification stats: {e}")
         raise HTTPException(status_code=500, detail=str(e))

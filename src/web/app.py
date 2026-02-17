@@ -140,6 +140,7 @@ from security.auth_decorators import (
     require_session_owner,
     rate_limit,
     Role,
+    get_user_from_request,
 )
 
 # =============================================================================
@@ -292,6 +293,8 @@ try:
         "/api/ai-chat/upload",          # Bearer auth required + origin validation
         "/api/ai-chat/analyze-document",# Bearer auth required + origin validation
         "/api/v1/auth/",                # Auth endpoints (login/register) - no existing session
+        "/api/core/auth/",              # Core auth endpoints (login/register) - no existing session
+        "/api/v1/admin/auth/",          # Admin auth endpoints (login/register) - no existing session
         "/api/v1/advisory-reports/",    # Bearer auth required + origin validation
 
         # ===== Session-Based with Alternative Protection =====
@@ -572,7 +575,6 @@ _ROUTER_REGISTRY = [
     ("web.rental_depreciation_api", "router", None, "Rental Depreciation API"),
     ("web.draft_forms_api", "router", None, "Draft Forms API"),
     # CPA-specific routers
-    ("cpa_panel.api.funnel_routes", "funnel_router", "/api/cpa", "Funnel Orchestration API"),
     ("web.cpa_branding_api", "router", None, "CPA Branding API"),
     ("web.cpa_dashboard_pages", "cpa_dashboard_router", None, "CPA Dashboard Pages"),
     # Consumer-facing routers
@@ -582,8 +584,9 @@ _ROUTER_REGISTRY = [
     # Modular routers (extracted from app.py)
     ("web.routers.scenarios", "router", None, "Scenarios API"),
     ("web.routers.health", "router", None, "Health Check API"),
-    ("web.routers.returns", "router", None, "Returns API"),
-    ("web.routers.calculations", "router", None, "Calculations API"),
+    # SECURITY: Keep legacy route owners for returns/calculations until
+    # modular handlers have fully equivalent auth + tenant enforcement.
+    # This avoids duplicate route collisions with weaker auth posture.
     ("web.routers.validation", "router", None, "Validation API"),
     ("webhooks.router", "router", None, "Webhooks API"),
     # Admin routers
@@ -1329,6 +1332,7 @@ def quick_estimate_page(request: Request):
 
 @app.get("/login", response_class=HTMLResponse)
 @app.get("/signin", response_class=HTMLResponse)
+@app.get("/auth/login", response_class=HTMLResponse)
 def login_page(request: Request):
     """
     Login Page - Premium authentication experience.
@@ -1346,6 +1350,7 @@ def login_page(request: Request):
 
 @app.get("/signup", response_class=HTMLResponse)
 @app.get("/register", response_class=HTMLResponse)
+@app.get("/auth/register", response_class=HTMLResponse)
 def signup_page(request: Request):
     """
     Signup Page - Create new account.
@@ -1362,6 +1367,7 @@ def signup_page(request: Request):
 
 
 @app.get("/forgot-password", response_class=HTMLResponse)
+@app.get("/auth/forgot-password", response_class=HTMLResponse)
 def forgot_password_page(request: Request):
     """Forgot Password Page."""
     from config.branding import get_branding_config
@@ -1370,6 +1376,7 @@ def forgot_password_page(request: Request):
 
 
 @app.get("/reset-password", response_class=HTMLResponse)
+@app.get("/auth/reset-password", response_class=HTMLResponse)
 def reset_password_page(request: Request, token: str = None):
     """
     Reset Password Page - allows users to set new password with token.
@@ -1403,6 +1410,44 @@ def dashboard(request: Request):
 # =============================================================================
 # Single entry point that routes users to appropriate dashboard based on role
 
+_ADMIN_UI_ROLES = {"super_admin", "platform_admin", "admin", "support", "billing"}
+_CPA_UI_ROLES = {"partner", "staff", "cpa", "preparer", "accountant"}
+_CLIENT_UI_ROLES = {"client", "taxpayer", "user", "firm_client", "direct_client"}
+
+
+def _normalize_auth_value(value: Any) -> str:
+    """Normalize role/user type values for routing."""
+    if value is None:
+        return ""
+    if hasattr(value, "value"):
+        value = value.value
+    return str(value).strip().lower()
+
+
+def _resolve_request_role_bucket(request: Request) -> str:
+    """Resolve authenticated principal into a UI role bucket."""
+    user = get_user_from_request(request)
+    if user:
+        role = _normalize_auth_value(user.get("role"))
+        user_type = _normalize_auth_value(user.get("user_type"))
+        if role in _ADMIN_UI_ROLES or user_type == "platform_admin":
+            return "admin"
+        if role in _CPA_UI_ROLES or user_type in {"cpa_team", "firm_user"}:
+            return "cpa"
+        if role in _CLIENT_UI_ROLES or user_type in {"client", "cpa_client", "consumer"}:
+            return "client"
+
+    return "anonymous"
+
+
+def _ui_user_context(request: Request, default_role: str = "user") -> dict:
+    """Build lightweight template context for user identity."""
+    return {
+        "role": request.cookies.get("user_role", default_role),
+        "name": request.cookies.get("user_name", "User"),
+        "email": request.cookies.get("user_email", ""),
+    }
+
 @app.get("/app", response_class=HTMLResponse)
 async def app_router(request: Request):
     """
@@ -1410,32 +1455,21 @@ async def app_router(request: Request):
 
     Redirects users to appropriate dashboard based on their role:
     - PLATFORM_ADMIN, SUPER_ADMIN -> /admin
-    - PARTNER, STAFF, CPA, PREPARER -> /app/workspace
+    - PARTNER, STAFF, CPA, PREPARER -> /cpa/dashboard
     - CLIENT, TAXPAYER -> /app/portal
     - Unauthenticated -> /advisor
     """
-    # Try to get user from session/cookie
-    session_id = request.cookies.get("tax_session_id")
-    user_role = request.cookies.get("user_role", "").lower()
+    role_bucket = _resolve_request_role_bucket(request)
 
-    # If no session, redirect to public advisor
-    if not session_id:
-        return RedirectResponse(url="/advisor", status_code=302)
-
-    # Route based on role
-    admin_roles = ("super_admin", "platform_admin", "admin")
-    cpa_roles = ("partner", "staff", "cpa", "preparer", "accountant")
-    client_roles = ("client", "taxpayer", "user")
-
-    if user_role in admin_roles:
+    if role_bucket == "admin":
         return RedirectResponse(url="/admin", status_code=302)
-    elif user_role in cpa_roles:
-        return RedirectResponse(url="/app/workspace", status_code=302)
-    elif user_role in client_roles:
+    elif role_bucket == "cpa":
+        return RedirectResponse(url="/cpa/dashboard", status_code=302)
+    elif role_bucket == "client":
         return RedirectResponse(url="/app/portal", status_code=302)
-    else:
-        # Default to advisor for unknown roles
-        return RedirectResponse(url="/advisor", status_code=302)
+
+    # Default to advisor for unknown/anonymous roles
+    return RedirectResponse(url="/advisor", status_code=302)
 
 
 @app.get("/app/workspace", response_class=HTMLResponse)
@@ -1446,24 +1480,18 @@ async def workspace_dashboard(request: Request):
     Unified dashboard for CPA firm users (partners, staff, preparers).
     Redirects to CPA dashboard with workspace context.
     """
-    # Get user context for the template
-    user = {
-        "role": request.cookies.get("user_role", "staff"),
-        "name": request.cookies.get("user_name", "User"),
-        "email": request.cookies.get("user_email", ""),
-    }
-    return templates.TemplateResponse(
-        "cpa/dashboard.html",
-        {
-            "request": request,
-            "user": user,
-            "current_path": "/app/workspace",
-        }
-    )
+    role_bucket = _resolve_request_role_bucket(request)
+    if role_bucket == "admin":
+        return RedirectResponse(url="/admin", status_code=302)
+    if role_bucket == "client":
+        return RedirectResponse(url="/app/portal", status_code=302)
+    if role_bucket != "cpa":
+        return RedirectResponse(url="/login?next=/cpa/dashboard", status_code=302)
+    return RedirectResponse(url="/cpa/dashboard", status_code=302)
 
 
 @app.get("/app/portal", response_class=HTMLResponse)
-async def client_portal(request: Request):
+async def client_portal_entrypoint(request: Request):
     """
     Client Portal Dashboard.
 
@@ -1473,11 +1501,17 @@ async def client_portal(request: Request):
     - Message their CPA
     - Track return status
     """
-    user = {
-        "role": request.cookies.get("user_role", "client"),
-        "name": request.cookies.get("user_name", "User"),
-        "email": request.cookies.get("user_email", ""),
-    }
+    role_bucket = _resolve_request_role_bucket(request)
+    portal_token = request.query_params.get("token") or request.cookies.get("client_token")
+
+    if role_bucket == "admin":
+        return RedirectResponse(url="/admin", status_code=302)
+    if role_bucket == "cpa":
+        return RedirectResponse(url="/cpa/dashboard", status_code=302)
+    if role_bucket != "client" and not portal_token:
+        return RedirectResponse(url="/client/login?next=/app/portal", status_code=302)
+
+    user = _ui_user_context(request, default_role="client")
     return templates.TemplateResponse(
         "client_portal.html",
         {
@@ -1493,16 +1527,12 @@ async def app_settings(request: Request):
     """
     User settings page accessible from any role.
     """
-    user = {
-        "role": request.cookies.get("user_role", "user"),
-        "name": request.cookies.get("user_name", "User"),
-        "email": request.cookies.get("user_email", ""),
-    }
+    user = _ui_user_context(request, default_role="user")
     # Route to appropriate settings based on role
-    role = user["role"].lower()
-    if role in ("partner", "staff", "cpa", "preparer"):
+    role_bucket = _resolve_request_role_bucket(request)
+    if role_bucket == "cpa":
         return RedirectResponse(url="/cpa/settings", status_code=302)
-    elif role in ("super_admin", "platform_admin", "admin"):
+    elif role_bucket == "admin":
         return RedirectResponse(url="/admin/settings", status_code=302)
     else:
         return templates.TemplateResponse(
@@ -1516,31 +1546,24 @@ async def app_settings(request: Request):
         )
 
 
-@app.get("/cpa", response_class=HTMLResponse)
-def cpa_dashboard(request: Request):
+@app.get("/legacy/cpa", response_class=HTMLResponse, include_in_schema=False, deprecated=True)
+def cpa_dashboard_legacy_alias(request: Request):
     """
-    CPA Intelligence & Advisory Dashboard.
+    DEPRECATED alias for legacy CPA homepage entry.
 
-    Comprehensive dashboard with:
-    - Practice Intelligence (3 metrics only - boundary locked)
-    - Client Management
-    - Review Queue with Workflow Approval
-    - Lead Pipeline
-    - Staff Assignment
-    - Engagement Letters
+    Canonical route: /cpa/dashboard (auth-enforced in web.cpa_dashboard_pages).
     """
-    return templates.TemplateResponse("cpa/dashboard.html", {"request": request})
+    return RedirectResponse(url="/cpa/dashboard", status_code=302)
 
 
-@app.get("/cpa/v2", response_class=HTMLResponse)
-def cpa_dashboard_v2(request: Request):
+@app.get("/legacy/cpa/v2", response_class=HTMLResponse, include_in_schema=False, deprecated=True)
+def cpa_dashboard_v2_legacy_alias(request: Request):
     """
-    CPA Dashboard V2 - Refactored with modular CSS/JS.
+    DEPRECATED alias for legacy CPA v2 entry.
 
-    Uses external CSS/JS files for better performance and maintainability.
-    This is the refactored version for testing before full deployment.
+    Canonical route: /cpa/dashboard.
     """
-    return templates.TemplateResponse("cpa/dashboard.html", {"request": request})
+    return RedirectResponse(url="/cpa/dashboard", status_code=302)
 
 
 @app.get("/cpa/settings/payments", response_class=HTMLResponse)
@@ -1570,72 +1593,28 @@ def cpa_branding_settings(request: Request):
     return templates.TemplateResponse("cpa_branding_settings.html", {"request": request})
 
 
-@app.get("/cpa/clients", response_class=HTMLResponse)
-def cpa_clients(request: Request):
-    """
-    CPA Client Management - View and manage all clients.
-
-    Features:
-    - Client list with search and filtering
-    - Client status overview
-    - Quick actions (view details, send message, etc.)
-    - Add new client capability
-    """
-    return templates.TemplateResponse("cpa/clients.html", {
-        "request": request,
-        "active_page": "clients"
-    })
+@app.get("/legacy/cpa/clients", response_class=HTMLResponse, include_in_schema=False, deprecated=True)
+def cpa_clients_legacy_alias(request: Request):
+    """DEPRECATED alias. Canonical route: /cpa/clients."""
+    return RedirectResponse(url="/cpa/clients", status_code=302)
 
 
-@app.get("/cpa/settings", response_class=HTMLResponse)
-def cpa_settings(request: Request):
-    """
-    CPA Settings - Account and firm configuration.
-
-    Features:
-    - Firm profile settings
-    - Notification preferences
-    - Integration settings
-    - Security settings
-    """
-    return templates.TemplateResponse("cpa/settings.html", {
-        "request": request,
-        "active_page": "settings"
-    })
+@app.get("/legacy/cpa/settings", response_class=HTMLResponse, include_in_schema=False, deprecated=True)
+def cpa_settings_legacy_alias(request: Request):
+    """DEPRECATED alias. Canonical route: /cpa/settings."""
+    return RedirectResponse(url="/cpa/settings", status_code=302)
 
 
-@app.get("/cpa/team", response_class=HTMLResponse)
-def cpa_team(request: Request):
-    """
-    CPA Team Management - Manage staff and roles.
-
-    Features:
-    - Team member list
-    - Role assignments
-    - Invite new members
-    - Permission management
-    """
-    return templates.TemplateResponse("cpa/team.html", {
-        "request": request,
-        "active_page": "team"
-    })
+@app.get("/legacy/cpa/team", response_class=HTMLResponse, include_in_schema=False, deprecated=True)
+def cpa_team_legacy_alias(request: Request):
+    """DEPRECATED alias. Canonical route: /cpa/team."""
+    return RedirectResponse(url="/cpa/team", status_code=302)
 
 
-@app.get("/cpa/billing", response_class=HTMLResponse)
-def cpa_billing(request: Request):
-    """
-    CPA Billing - Subscription and payment management.
-
-    Features:
-    - Current plan details
-    - Usage statistics
-    - Payment history
-    - Plan upgrade options
-    """
-    return templates.TemplateResponse("cpa/billing.html", {
-        "request": request,
-        "active_page": "billing"
-    })
+@app.get("/legacy/cpa/billing", response_class=HTMLResponse, include_in_schema=False, deprecated=True)
+def cpa_billing_legacy_alias(request: Request):
+    """DEPRECATED alias. Canonical route: /cpa/billing."""
+    return RedirectResponse(url="/cpa/billing", status_code=302)
 
 
 # =============================================================================
@@ -1709,7 +1688,7 @@ def disclaimer_page(request: Request):
 
 
 @app.get("/client", response_class=HTMLResponse)
-def client_portal(request: Request):
+def client_portal_redirect(request: Request):
     """
     Client Access - Redirect to unified filing interface.
 
@@ -1725,6 +1704,23 @@ def client_portal(request: Request):
     return RedirectResponse(url="/file", status_code=302)
 
 
+@app.get("/client/login", response_class=HTMLResponse)
+def client_login_page(request: Request, next: str = "/app/portal"):
+    """
+    Client portal login entrypoint.
+
+    Fixes broken redirects from client portal token expiry handlers that pointed
+    to /client/login without a registered route.
+    """
+    return templates.TemplateResponse(
+        "auth/client_login.html",
+        {
+            "request": request,
+            "next_url": next or "/app/portal",
+        },
+    )
+
+
 # =============================================================================
 # REDIRECT ROUTES - Handle legacy and linked routes
 # =============================================================================
@@ -1735,6 +1731,11 @@ def logout_redirect(request: Request):
     response = RedirectResponse(url="/", status_code=302)
     # Clear any session cookies
     response.delete_cookie("tax_session_id")
+    response.delete_cookie("auth_token")
+    response.delete_cookie("client_token")
+    response.delete_cookie("user_role")
+    response.delete_cookie("user_name")
+    response.delete_cookie("user_email")
     response.delete_cookie("cpa_id")
     return response
 
@@ -1815,8 +1816,8 @@ if _ENABLE_TEST_ROUTES:
 # UNIFIED APP ROUTER - Single Entry Point with Role-Based Routing
 # =============================================================================
 
-@app.get("/app/workspace", response_class=HTMLResponse, operation_id="unified_workspace_dashboard")
-def unified_workspace_dashboard(request: Request):
+@app.get("/workspace", response_class=HTMLResponse, operation_id="unified_workspace_dashboard")
+def unified_workspace_dashboard_alias(request: Request):
     """
     CPA Workspace Dashboard - Professional tax preparation interface.
 
@@ -1825,11 +1826,11 @@ def unified_workspace_dashboard(request: Request):
 
     Uses the refactored modular template for better performance.
     """
-    return templates.TemplateResponse("cpa/dashboard.html", {"request": request})
+    return RedirectResponse(url="/app/workspace", status_code=302)
 
 
-@app.get("/app/portal", response_class=HTMLResponse, operation_id="unified_client_portal")
-def unified_client_portal(request: Request):
+@app.get("/portal", response_class=HTMLResponse, operation_id="unified_client_portal")
+def unified_client_portal_alias(request: Request):
     """
     Client Portal - Taxpayer self-service interface.
 
@@ -1841,26 +1842,21 @@ def unified_client_portal(request: Request):
 
     Uses the refactored modular template for better performance.
     """
-    from config.branding import get_branding_config
-    branding = get_branding_config()
-    return templates.TemplateResponse("index_refactored.html", {
-        "request": request,
-        "branding": {
-            "platform_name": branding.platform_name,
-            "company_name": branding.company_name,
-            "tagline": branding.tagline,
-            "firm_credentials": branding.firm_credentials,
-            "primary_color": branding.primary_color,
-            "secondary_color": branding.secondary_color,
-            "accent_color": branding.accent_color,
-            "logo_url": branding.logo_url,
-            "favicon_url": branding.favicon_url,
-            "support_email": branding.support_email,
-            "support_phone": branding.support_phone,
-            "website_url": branding.website_url,
-            "meta_description": branding.meta_description,
-        }
-    })
+    return RedirectResponse(url="/app/portal", status_code=302)
+
+
+def _require_admin_page_access(request: Request) -> Optional[RedirectResponse]:
+    """
+    Restrict /admin web pages to authenticated admin principals.
+    """
+    role_bucket = _resolve_request_role_bucket(request)
+    if role_bucket == "admin":
+        return None
+    if role_bucket == "cpa":
+        return RedirectResponse(url="/cpa/dashboard", status_code=302)
+    if role_bucket == "client":
+        return RedirectResponse(url="/app/portal", status_code=302)
+    return RedirectResponse(url="/login?next=/admin", status_code=302)
 
 
 @app.get("/admin/api-keys", response_class=HTMLResponse)
@@ -1871,6 +1867,9 @@ def admin_api_keys_page(request: Request):
     Dedicated page for managing API keys, tokens, and integrations.
     Separate from main admin SPA for focused key management workflow.
     """
+    denied = _require_admin_page_access(request)
+    if denied:
+        return denied
     return templates.TemplateResponse("admin_api_keys.html", {"request": request})
 
 
@@ -1883,6 +1882,9 @@ def admin_dashboard(request: Request, path: str = ""):
     Serves the admin panel SPA for firm management, team, billing, and settings.
     In production, this should require authentication.
     """
+    denied = _require_admin_page_access(request)
+    if denied:
+        return denied
     return templates.TemplateResponse("admin_dashboard.html", {"request": request})
 
 
@@ -1981,7 +1983,7 @@ def smart_tax_redirect(request: Request, path: str = ""):
     return RedirectResponse(url="/file?mode=smart", status_code=301)
 
 # LEGACY ROUTE - Keeping for backward compatibility but redirecting
-@app.get("/smart-tax-legacy", response_class=HTMLResponse)
+@app.get("/smart-tax-legacy", response_class=HTMLResponse, include_in_schema=False, deprecated=True)
 def smart_tax_app_legacy(request: Request, path: str = ""):
     """
     LEGACY: Smart Tax - Document-First Tax Preparation.
@@ -2499,6 +2501,7 @@ async def upload_document_async(
 
 
 @app.get("/api/upload/status/{task_id}")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER, Role.ADMIN])
 async def get_upload_status(task_id: str, request: Request):
     """
     Get the status of an async document upload task.
@@ -2548,6 +2551,7 @@ async def get_upload_status(task_id: str, request: Request):
 
 
 @app.get("/api/documents/{document_id}/status")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER, Role.ADMIN])
 async def get_document_processing_status(document_id: str, request: Request):
     """
     Get the processing status of a document by document_id.
@@ -2677,6 +2681,7 @@ async def get_document_processing_status(document_id: str, request: Request):
 
 
 @app.post("/api/upload/cancel/{task_id}")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER, Role.ADMIN])
 async def cancel_upload_task(task_id: str, request: Request):
     """
     Cancel a pending async document upload task.
@@ -2712,6 +2717,7 @@ async def cancel_upload_task(task_id: str, request: Request):
 
 
 @app.get("/api/documents")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER, Role.ADMIN])
 async def list_documents(request: Request):
     """List all uploaded documents for the current session."""
     session_id = request.cookies.get("tax_session_id")
@@ -2739,6 +2745,7 @@ async def list_documents(request: Request):
 
 
 @app.get("/api/documents/{document_id}")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER, Role.ADMIN])
 async def get_document(document_id: str, request: Request):
     """Get details of a specific uploaded document."""
     session_id = request.cookies.get("tax_session_id") or ""
@@ -2874,6 +2881,7 @@ def _tax_return_to_dict(tax_return) -> dict:
 
 
 @app.post("/api/documents/{document_id}/apply")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER, Role.ADMIN])
 async def apply_document(document_id: str, request: Request):
     """
     Apply extracted document data to the current tax return.
@@ -3194,8 +3202,13 @@ async def startup_banner():
     logger.info("=" * 60)
 
     # Check critical env vars
+    _allow_missing_openai = os.environ.get("ALLOW_MISSING_OPENAI", "").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
     _required_in_prod = {
-        "OPENAI_API_KEY": "AI features will not work",
         "JWT_SECRET": "Authentication tokens cannot be signed",
     }
     missing = []
@@ -3210,6 +3223,16 @@ async def startup_banner():
         raise RuntimeError(msg)
     elif missing:
         logger.warning("Missing env vars (non-critical in dev):\n" + "\n".join(missing))
+
+    openai_key = os.environ.get("OPENAI_API_KEY", "")
+    if not openai_key or openai_key.startswith("REPLACE_"):
+        if _is_production and not _allow_missing_openai:
+            msg = "Missing required environment variable:\n  - OPENAI_API_KEY: AI features will not work"
+            logger.error(msg)
+            raise RuntimeError(msg)
+        logger.warning(
+            "OPENAI_API_KEY is missing; AI-dependent features are disabled"
+        )
 
     # Warn if JWT secret is weak
     jwt_secret = os.environ.get("JWT_SECRET", "")
@@ -3911,6 +3934,7 @@ async def get_real_time_estimate(request: Request):
 
 
 @app.post("/api/calculate-tax")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER, Role.ADMIN])
 async def calculate_tax_advisory(request: Request):
     """
     Calculate tax liability for the intelligent advisor chatbot.
@@ -4547,7 +4571,7 @@ async def sync_tax_return(request: Request):
     return response
 
 
-@app.get("/health", operation_id="root_health_check")
+@app.get("/health/basic", operation_id="root_health_check", include_in_schema=False, deprecated=True)
 async def root_health_check():
     """Health check endpoint."""
     return JSONResponse({
@@ -4657,7 +4681,7 @@ async def get_saved_return(return_id: str, request: Request):
 
     # SECURITY FIX: IDOR Protection - Verify user has access to this return
     # Get user context from request state (set by @require_auth decorator)
-    user = getattr(request.state, 'user', None)
+    user = _request_user_dict(request)
     if user:
         # Check if return belongs to user's session or tenant
         return_session_id = return_data.get("session_id")
@@ -4665,11 +4689,13 @@ async def get_saved_return(return_id: str, request: Request):
         current_session = request.cookies.get("tax_session_id")
 
         # Admin can access all returns
-        is_admin = hasattr(user, 'role') and user.role in (Role.ADMIN, "admin")
+        user_role = str(user.get("role") or "").lower()
+        is_admin = user_role == Role.ADMIN.value
         # Check session ownership
         is_owner = return_session_id and return_session_id == current_session
         # Check tenant access (CPA accessing their client's returns)
-        is_tenant_member = return_tenant_id and hasattr(user, 'tenant_id') and user.tenant_id == return_tenant_id
+        user_tenant = str(user.get("tenant_id") or user.get("firm_id") or "")
+        is_tenant_member = bool(return_tenant_id and user_tenant and user_tenant == return_tenant_id)
 
         if not (is_admin or is_owner or is_tenant_member):
             logger.warning(f"IDOR attempt: User tried to access return {return_id} without authorization")
@@ -4794,7 +4820,9 @@ async def get_saved_return(return_id: str, request: Request):
 
 
 @app.get("/api/returns")
+@require_auth(roles=[Role.ADMIN])
 async def list_saved_returns(
+    request: Request,
     tax_year: int = 2025,
     limit: int = Query(50, ge=1, le=500, description="Number of returns per page"),
     offset: int = Query(0, ge=0, description="Number of returns to skip")
@@ -4861,18 +4889,20 @@ async def delete_saved_return(return_id: str, request: Request):
         raise HTTPException(status_code=404, detail="Tax return not found")
 
     # Get user context from request state (set by @require_auth decorator)
-    user = getattr(request.state, 'user', None)
+    user = _request_user_dict(request)
     if user:
         return_session_id = return_data.get("session_id")
         return_tenant_id = return_data.get("tenant_id")
         current_session = request.cookies.get("tax_session_id")
 
         # Admin can delete any return
-        is_admin = hasattr(user, 'role') and user.role in (Role.ADMIN, "admin")
+        user_role = str(user.get("role") or "").lower()
+        is_admin = user_role == Role.ADMIN.value
         # Check session ownership
         is_owner = return_session_id and return_session_id == current_session
         # Check tenant access
-        is_tenant_member = return_tenant_id and hasattr(user, 'tenant_id') and user.tenant_id == return_tenant_id
+        user_tenant = str(user.get("tenant_id") or user.get("firm_id") or "")
+        is_tenant_member = bool(return_tenant_id and user_tenant and user_tenant == return_tenant_id)
 
         if not (is_admin or is_owner or is_tenant_member):
             logger.warning(f"IDOR attempt: User tried to delete return {return_id} without authorization")
@@ -4905,7 +4935,38 @@ class ReturnStatus(str, Enum):
     CPA_APPROVED = "CPA_APPROVED"  # Signed off by CPA, full feature access
 
 
+def _request_user_dict(request: Request) -> Dict[str, Any]:
+    """Get normalized user info from request state."""
+    user = getattr(request.state, "user", None)
+    if isinstance(user, dict):
+        return user
+
+    auth_context = getattr(request.state, "auth_context", None)
+    if auth_context is None:
+        return {}
+
+    role = getattr(auth_context, "role", None)
+    role_value = getattr(role, "value", None) if role is not None else None
+    return {
+        "id": str(getattr(auth_context, "user_id", "") or ""),
+        "email": getattr(auth_context, "email", None),
+        "name": getattr(auth_context, "name", None),
+        "role": role_value,
+        "tenant_id": str(getattr(auth_context, "firm_id", "") or "default"),
+        "firm_id": getattr(auth_context, "firm_id", None),
+    }
+
+
+def _request_tenant_id(request: Request) -> str:
+    """Resolve tenant scope for persistence calls."""
+    user = _request_user_dict(request)
+    tenant_id = user.get("tenant_id") or user.get("firm_id")
+    return str(tenant_id or "default")
+
+
 @app.get("/api/returns/{session_id}/status", operation_id="get_return_workflow_status")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER, Role.ADMIN])
+@require_session_owner(session_param="session_id")
 async def get_return_workflow_status(session_id: str, request: Request):
     """
     Get the current workflow status of a return.
@@ -4917,7 +4978,10 @@ async def get_return_workflow_status(session_id: str, request: Request):
         - Status history and CPA reviewer info if applicable
     """
     persistence = _get_persistence()
-    status_record = persistence.get_return_status(session_id)
+    status_record = persistence.get_return_status(
+        session_id,
+        tenant_id=_request_tenant_id(request),
+    )
 
     if not status_record:
         # Default to DRAFT if no status exists
@@ -4954,6 +5018,8 @@ async def get_return_workflow_status(session_id: str, request: Request):
 
 
 @app.post("/api/returns/{session_id}/submit-for-review")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER, Role.ADMIN])
+@require_session_owner(session_param="session_id")
 async def submit_return_for_review(session_id: str, request: Request):
     """
     Submit a return for CPA review.
@@ -4967,9 +5033,10 @@ async def submit_return_for_review(session_id: str, request: Request):
         Updated status record
     """
     persistence = _get_persistence()
+    tenant_id = _request_tenant_id(request)
 
     # Check current status
-    current_status = persistence.get_return_status(session_id)
+    current_status = persistence.get_return_status(session_id, tenant_id=tenant_id)
     if current_status and current_status["status"] != ReturnStatus.DRAFT.value:
         raise HTTPException(
             status_code=400,
@@ -4980,6 +5047,7 @@ async def submit_return_for_review(session_id: str, request: Request):
     new_status = persistence.set_return_status(
         session_id=session_id,
         status=ReturnStatus.IN_REVIEW.value,
+        tenant_id=tenant_id,
     )
 
     # Log audit event
@@ -5039,8 +5107,9 @@ async def approve_return_cpa_signoff(session_id: str, request: Request):
     except Exception:
         body = {}
 
-    cpa_reviewer_id = body.get("cpa_reviewer_id")
-    cpa_reviewer_name = body.get("cpa_reviewer_name", "CPA Reviewer")
+    request_user = _request_user_dict(request)
+    cpa_reviewer_id = str(request_user.get("id") or body.get("cpa_reviewer_id") or "").strip()
+    cpa_reviewer_name = request_user.get("name") or body.get("cpa_reviewer_name", "CPA Reviewer")
     review_notes = body.get("review_notes")
     signature = body.get("signature")
 
@@ -5048,9 +5117,10 @@ async def approve_return_cpa_signoff(session_id: str, request: Request):
         raise HTTPException(status_code=400, detail="CPA reviewer ID is required")
 
     persistence = _get_persistence()
+    tenant_id = _request_tenant_id(request)
 
     # Check current status
-    current_status = persistence.get_return_status(session_id)
+    current_status = persistence.get_return_status(session_id, tenant_id=tenant_id)
     if current_status and current_status["status"] == ReturnStatus.CPA_APPROVED.value:
         raise HTTPException(status_code=400, detail="Return is already approved")
 
@@ -5064,6 +5134,7 @@ async def approve_return_cpa_signoff(session_id: str, request: Request):
     new_status = persistence.set_return_status(
         session_id=session_id,
         status=ReturnStatus.CPA_APPROVED.value,
+        tenant_id=tenant_id,
         cpa_reviewer_id=cpa_reviewer_id,
         cpa_reviewer_name=cpa_reviewer_name,
         review_notes=review_notes,
@@ -5106,6 +5177,8 @@ async def approve_return_cpa_signoff(session_id: str, request: Request):
 
 
 @app.post("/api/returns/{session_id}/revert-to-draft")
+@require_auth(roles=[Role.CPA, Role.ADMIN])
+@require_session_owner(session_param="session_id")
 async def revert_return_to_draft(session_id: str, request: Request):
     """
     Revert a return to DRAFT status (CPA action only).
@@ -5127,15 +5200,17 @@ async def revert_return_to_draft(session_id: str, request: Request):
     except Exception:
         body = {}
 
-    cpa_reviewer_id = body.get("cpa_reviewer_id")
+    request_user = _request_user_dict(request)
+    cpa_reviewer_id = str(request_user.get("id") or body.get("cpa_reviewer_id") or "").strip()
     reason = body.get("reason", "Needs revisions")
 
     if not cpa_reviewer_id:
         raise HTTPException(status_code=400, detail="CPA reviewer ID is required")
 
     persistence = _get_persistence()
+    tenant_id = _request_tenant_id(request)
 
-    current_status = persistence.get_return_status(session_id)
+    current_status = persistence.get_return_status(session_id, tenant_id=tenant_id)
     if not current_status:
         raise HTTPException(status_code=404, detail="No status record found")
 
@@ -5145,6 +5220,7 @@ async def revert_return_to_draft(session_id: str, request: Request):
     new_status = persistence.set_return_status(
         session_id=session_id,
         status=ReturnStatus.DRAFT.value,
+        tenant_id=tenant_id,
         review_notes=f"Reverted by CPA: {reason}"
     )
 
@@ -5181,6 +5257,7 @@ async def revert_return_to_draft(session_id: str, request: Request):
 
 
 @app.get("/api/returns/queue/{status}")
+@require_auth(roles=[Role.CPA, Role.PREPARER, Role.ADMIN])
 async def list_returns_by_status(
     status: str,
     request: Request,
@@ -5210,16 +5287,18 @@ async def list_returns_by_status(
         )
 
     persistence = _get_persistence()
+    tenant_id = _request_tenant_id(request)
     returns = persistence.list_returns_by_status(
         status=valid_status.value,
+        tenant_id=tenant_id,
         limit=limit,
         offset=offset
     )
 
     # Get total count for pagination
     try:
-        total_count = persistence.count_returns_by_status(valid_status.value)
-    except AttributeError:
+        total_count = persistence.count_returns_by_status(valid_status.value, tenant_id=tenant_id)
+    except (AttributeError, TypeError):
         # Fallback if count method not implemented
         total_count = len(returns) if len(returns) < limit else limit * 10
 
@@ -5235,6 +5314,8 @@ async def list_returns_by_status(
 # =============================================================================
 
 @app.post("/api/returns/{session_id}/delta")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER, Role.ADMIN])
+@require_session_owner(session_param="session_id")
 async def calculate_delta(session_id: str, request: Request):
     """
     Calculate before/after delta for a proposed change.
@@ -5346,6 +5427,8 @@ async def calculate_delta(session_id: str, request: Request):
 
 
 @app.post("/api/returns/{session_id}/notes")
+@require_auth(roles=[Role.CPA, Role.PREPARER, Role.ADMIN])
+@require_session_owner(session_param="session_id")
 async def add_cpa_note(session_id: str, request: Request):
     """
     Add CPA review notes to a return.
@@ -5369,16 +5452,18 @@ async def add_cpa_note(session_id: str, request: Request):
     note_text = body.get("note_text", "").strip()
     category = body.get("category", "general")
     is_internal = body.get("is_internal", False)
-    cpa_id = body.get("cpa_id", "")
-    cpa_name = body.get("cpa_name", "CPA")
+    request_user = _request_user_dict(request)
+    cpa_id = str(request_user.get("id") or body.get("cpa_id") or "").strip()
+    cpa_name = request_user.get("name") or body.get("cpa_name", "CPA")
 
     if not note_text:
         raise HTTPException(status_code=400, detail="Note text is required")
 
     persistence = _get_persistence()
+    tenant_id = _request_tenant_id(request)
 
     # Get existing status record to access notes
-    status_record = persistence.get_return_status(session_id)
+    status_record = persistence.get_return_status(session_id, tenant_id=tenant_id)
     existing_notes = []
     if status_record and status_record.get("review_notes"):
         try:
@@ -5406,6 +5491,7 @@ async def add_cpa_note(session_id: str, request: Request):
     persistence.set_return_status(
         session_id=session_id,
         status=status_record["status"] if status_record else "DRAFT",
+        tenant_id=tenant_id,
         review_notes=json_module.dumps(existing_notes)
     )
 
@@ -5435,6 +5521,8 @@ async def add_cpa_note(session_id: str, request: Request):
 
 
 @app.get("/api/returns/{session_id}/notes")
+@require_auth(roles=[Role.CPA, Role.PREPARER, Role.ADMIN])
+@require_session_owner(session_param="session_id")
 async def get_cpa_notes(session_id: str, request: Request, include_internal: bool = False):
     """
     Get all CPA notes for a return.
@@ -5446,7 +5534,10 @@ async def get_cpa_notes(session_id: str, request: Request, include_internal: boo
         List of notes with metadata
     """
     persistence = _get_persistence()
-    status_record = persistence.get_return_status(session_id)
+    status_record = persistence.get_return_status(
+        session_id,
+        tenant_id=_request_tenant_id(request),
+    )
 
     if not status_record or not status_record.get("review_notes"):
         return JSONResponse({
@@ -5481,6 +5572,8 @@ async def get_cpa_notes(session_id: str, request: Request, include_internal: boo
 # =============================================================================
 
 @app.get("/api/returns/{session_id}/tax-drivers")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER, Role.ADMIN])
+@require_session_owner(session_param="session_id")
 async def get_tax_drivers(session_id: str, request: Request):
     """
     Get 'What Drives Your Tax Outcome' breakdown.
@@ -5680,6 +5773,8 @@ async def get_tax_drivers(session_id: str, request: Request):
 
 
 @app.post("/api/returns/{session_id}/compare-scenarios")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER, Role.ADMIN])
+@require_session_owner(session_param="session_id")
 async def compare_scenarios(session_id: str, request: Request):
     """
     Compare multiple tax scenarios side-by-side.
@@ -5888,7 +5983,7 @@ async def list_audit_trails(request: Request, limit: int = 100, offset: int = 0)
 
 # ============ SMART VALIDATION API ============
 
-@app.post("/api/validate/fields")
+@app.post("/api/legacy/validate/fields", include_in_schema=False, deprecated=True)
 async def validate_and_get_field_states(request: Request):
     """
     Get smart field visibility and validation based on current data.
@@ -6041,7 +6136,7 @@ async def validate_and_get_field_states(request: Request):
     })
 
 
-@app.post("/api/validate/field/{field_name}", operation_id="validate_tax_field")
+@app.post("/api/legacy/validate/field/{field_name}", operation_id="validate_tax_field", include_in_schema=False, deprecated=True)
 async def validate_tax_field(field_name: str, request: Request):
     """Validate a single field and return its state."""
     from validation import TaxContext, get_rules_engine, ValidationSeverity
@@ -6090,7 +6185,7 @@ async def validate_tax_field(field_name: str, request: Request):
 # SUGGESTIONS & INTERVIEW STATE API - Alpine.js/htmx Integration
 # =============================================================================
 
-@app.post("/api/suggestions")
+@app.post("/api/legacy/suggestions", include_in_schema=False, deprecated=True)
 async def get_tax_suggestions(request: Request):
     """
     Get contextual tax optimization suggestions.
@@ -7020,16 +7115,16 @@ def ai_tax_advisor(request: Request):
 # ============================================================================
 # LEGACY ROUTES - Redirect to AI Advisor
 # ============================================================================
-@app.get("/tax-advisory")
-@app.get("/advisory")
-@app.get("/start")
-@app.get("/analysis")
-@app.get("/tax-advisory/v2")
-@app.get("/advisory/v2")
-@app.get("/start/v2")
-@app.get("/simple")
-@app.get("/conversation")
-@app.get("/chat")
+@app.get("/tax-advisory", include_in_schema=False, deprecated=True)
+@app.get("/advisory", include_in_schema=False, deprecated=True)
+@app.get("/start", include_in_schema=False, deprecated=True)
+@app.get("/analysis", include_in_schema=False, deprecated=True)
+@app.get("/tax-advisory/v2", include_in_schema=False, deprecated=True)
+@app.get("/advisory/v2", include_in_schema=False, deprecated=True)
+@app.get("/start/v2", include_in_schema=False, deprecated=True)
+@app.get("/simple", include_in_schema=False, deprecated=True)
+@app.get("/conversation", include_in_schema=False, deprecated=True)
+@app.get("/chat", include_in_schema=False, deprecated=True)
 def legacy_routes_redirect():
     """
     Legacy routes redirected to AI Tax Advisor.
@@ -7039,4 +7134,3 @@ def legacy_routes_redirect():
     """
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/advisor", status_code=302)
-

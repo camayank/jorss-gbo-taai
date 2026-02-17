@@ -1,0 +1,318 @@
+{% extends "cpa/base.html" %}
+{% from 'macros/icons.html' import icon %}
+
+{% block title %}Launch Setup{% endblock %}
+{% block page_title %}Launch Setup Wizard{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .wizard-summary {
+        background: linear-gradient(135deg, #0f766e, #115e59);
+        color: #fff;
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+
+    .wizard-summary h2 {
+        margin: 0 0 8px 0;
+        font-size: 1.4rem;
+        font-weight: 700;
+    }
+
+    .wizard-summary p {
+        margin: 0 0 16px 0;
+        opacity: 0.9;
+    }
+
+    .progress-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .progress-track {
+        flex: 1;
+        height: 10px;
+        background: rgba(255, 255, 255, 0.25);
+        border-radius: 999px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: #fde68a;
+        border-radius: 999px;
+        transition: width 0.3s ease;
+    }
+
+    .progress-label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .step-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 18px;
+    }
+
+    .step-card {
+        background: #fff;
+        border: 1px solid #dbe6f2;
+        border-radius: 14px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .step-card.complete {
+        border-color: #16a34a;
+        box-shadow: 0 8px 24px rgba(22, 163, 74, 0.12);
+    }
+
+    .step-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .step-title {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        border-radius: 999px;
+        padding: 5px 10px;
+        border: 1px solid #cbd5e1;
+        color: #475569;
+        background: #f8fafc;
+    }
+
+    .status-chip.complete {
+        border-color: #16a34a;
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .step-description {
+        margin: 0;
+        color: #475569;
+        font-size: 0.92rem;
+    }
+
+    .step-checks {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 8px;
+    }
+
+    .step-checks li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #1e293b;
+        font-size: 0.9rem;
+    }
+
+    .check-done {
+        color: #16a34a;
+    }
+
+    .check-pending {
+        color: #f59e0b;
+    }
+
+    .step-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        color: #0f172a;
+        text-decoration: none;
+        padding: 9px 12px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        background: #fff;
+    }
+
+    .action-btn.primary {
+        border-color: #0f766e;
+        background: #0f766e;
+        color: #fff;
+    }
+
+    .embed-box {
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 14px;
+    }
+
+    .embed-box pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 0.82rem;
+        color: #0f172a;
+    }
+
+    .embed-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+    }
+
+    @media (max-width: 640px) {
+        .wizard-summary {
+            padding: 18px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="wizard-summary">
+    <h2>Complete Launch Setup</h2>
+    <p>Finish all three steps to make your white-label lead funnel production-ready for CPA outreach.</p>
+    <div class="progress-row">
+        <div class="progress-track">
+            <div class="progress-fill" style="width: {{ onboarding.progress }}%;"></div>
+        </div>
+        <div class="progress-label">{{ onboarding.completed_steps }}/{{ onboarding.total_steps }} complete</div>
+    </div>
+</section>
+
+<section class="step-grid">
+    <article class="step-card {% if onboarding.step1_complete %}complete{% endif %}">
+        <div class="step-header">
+            <h3 class="step-title">Step 1: Firm Profile & Branding</h3>
+            <span class="status-chip {% if onboarding.step1_complete %}complete{% endif %}">
+                {% if onboarding.step1_complete %}{{ icon('check') }} Complete{% else %}Pending{% endif %}
+            </span>
+        </div>
+        <p class="step-description">Set client-facing identity details used in the widget and report exports.</p>
+        <ul class="step-checks">
+            <li>
+                <span class="{% if cpa.firm_name %}check-done{% else %}check-pending{% endif %}">
+                    {{ icon('check-circle' if cpa.firm_name else 'exclamation-triangle') }}
+                </span>
+                Firm name
+            </li>
+            <li>
+                <span class="{% if cpa.email %}check-done{% else %}check-pending{% endif %}">
+                    {{ icon('check-circle' if cpa.email else 'exclamation-triangle') }}
+                </span>
+                Contact email
+            </li>
+            <li>
+                <span class="{% if cpa.logo_url %}check-done{% else %}check-pending{% endif %}">
+                    {{ icon('check-circle' if cpa.logo_url else 'exclamation-triangle') }}
+                </span>
+                Logo / visual branding
+            </li>
+        </ul>
+        <div class="step-actions">
+            <a class="action-btn primary" href="/cpa/profile">{{ icon('pencil') }} Update Profile</a>
+            <a class="action-btn" href="/cpa/branding">{{ icon('sparkles') }} Branding</a>
+        </div>
+    </article>
+
+    <article class="step-card {% if onboarding.step2_complete %}complete{% endif %}">
+        <div class="step-header">
+            <h3 class="step-title">Step 2: Lead Routing & Booking</h3>
+            <span class="status-chip {% if onboarding.step2_complete %}complete{% endif %}">
+                {% if onboarding.step2_complete %}{{ icon('check') }} Complete{% else %}Pending{% endif %}
+            </span>
+        </div>
+        <p class="step-description">Configure where warm leads go and how prospects can book a consultation.</p>
+        <ul class="step-checks">
+            <li>
+                <span class="{% if cpa.email %}check-done{% else %}check-pending{% endif %}">
+                    {{ icon('check-circle' if cpa.email else 'exclamation-triangle') }}
+                </span>
+                Routing email
+            </li>
+            <li>
+                <span class="{% if cpa.booking_link %}check-done{% else %}check-pending{% endif %}">
+                    {{ icon('check-circle' if cpa.booking_link else 'exclamation-triangle') }}
+                </span>
+                Calendar booking link
+            </li>
+            <li>
+                <span class="check-done">{{ icon('check-circle') }}</span>
+                Lead notifications enabled
+            </li>
+        </ul>
+        <div class="step-actions">
+            <a class="action-btn primary" href="/cpa/profile">{{ icon('calendar') }} Set Booking Link</a>
+            <a class="action-btn" href="/cpa/settings">{{ icon('cog-6-tooth') }} Notifications</a>
+        </div>
+    </article>
+
+    <article class="step-card {% if onboarding.step3_complete %}complete{% endif %}">
+        <div class="step-header">
+            <h3 class="step-title">Step 3: Embed & Verify</h3>
+            <span class="status-chip {% if onboarding.step3_complete %}complete{% endif %}">
+                {% if onboarding.step3_complete %}{{ icon('check') }} Complete{% else %}Pending{% endif %}
+            </span>
+        </div>
+        <p class="step-description">Install the widget snippet on your website and validate first lead capture.</p>
+
+        <div class="embed-box">
+            <pre id="embedSnippet">{{ onboarding.embed_snippet }}</pre>
+        </div>
+        <div class="embed-meta">
+            <a class="action-btn primary" href="#" onclick="copyEmbedSnippet(event)">{{ icon('clipboard-document-list') }} Copy Snippet</a>
+            <a class="action-btn" href="{{ onboarding.landing_url }}" target="_blank" rel="noopener">{{ icon('arrow-up-tray') }} Open Test Link</a>
+        </div>
+
+        <ul class="step-checks">
+            <li>
+                <span class="check-done">{{ icon('check-circle') }}</span>
+                Embed snippet generated for slug: <strong>{{ cpa.cpa_slug or 'default' }}</strong>
+            </li>
+            <li>
+                <span class="{% if onboarding.step3_complete %}check-done{% else %}check-pending{% endif %}">
+                    {{ icon('check-circle' if onboarding.step3_complete else 'exclamation-triangle') }}
+                </span>
+                Verification by first captured lead (current: {{ onboarding.lead_count }})
+            </li>
+        </ul>
+    </article>
+</section>
+
+<script>
+    function copyEmbedSnippet(event) {
+        event.preventDefault();
+        const snippet = document.getElementById('embedSnippet').textContent || '';
+        navigator.clipboard.writeText(snippet).then(() => {
+            const btn = event.currentTarget;
+            const original = btn.innerHTML;
+            btn.innerHTML = 'Copied';
+            setTimeout(() => { btn.innerHTML = original; }, 1200);
+        }).catch(() => {});
+    }
+</script>
+{% endblock %}

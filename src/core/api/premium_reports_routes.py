@@ -19,10 +19,13 @@ Pricing:
 """
 
 import logging
+import json
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 from enum import Enum
 from uuid import uuid4
+from pathlib import Path
+import sqlite3
 
 from fastapi import APIRouter, HTTPException, Depends, Query, status
 from fastapi.responses import JSONResponse, Response
@@ -34,6 +37,34 @@ from ..models.user import UserContext, UserType
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/reports", tags=["Core Premium Reports"])
+
+_PRIMARY_DB_PATH = Path(__file__).resolve().parents[2] / "data" / "tax_returns.db"
+_LEGACY_DB_PATH = Path(__file__).resolve().parents[2] / "database" / "jorss_gbo.db"
+_TAX_RETURNS_DB_PATH = _PRIMARY_DB_PATH
+
+_PLATFORM_PRICING = {
+    "basic": 0.0,
+    "standard": 79.0,
+    "premium": 199.0,
+}
+
+_CPA_DEFAULT_PRICING = {
+    "basic": {"price": 0.0, "enabled": True},
+    "standard": {"price": 99.0, "enabled": True},
+    "premium": {"price": 299.0, "enabled": True},
+}
+
+
+def _candidate_db_paths() -> List[Path]:
+    """Return prioritized DB candidates (configured path first, then fallbacks)."""
+    seen = set()
+    ordered = []
+    for path in (_TAX_RETURNS_DB_PATH, _PRIMARY_DB_PATH, _LEGACY_DB_PATH):
+        normalized = str(path)
+        if normalized not in seen:
+            ordered.append(path)
+            seen.add(normalized)
+    return ordered
 
 
 # =============================================================================
@@ -84,6 +115,19 @@ class TierInfo(BaseModel):
     sections: List[str]
 
 
+class ReportHistoryItem(BaseModel):
+    """Persisted premium report metadata for a session."""
+    report_id: str
+    session_id: str
+    tier: str
+    format: str
+    generated_at: str
+    taxpayer_name: str
+    tax_year: int
+    section_count: int
+    action_item_count: int
+
+
 # =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
@@ -92,6 +136,389 @@ def get_premium_generator():
     """Get the premium report generator singleton."""
     from export.premium_report_generator import PremiumReportGenerator
     return PremiumReportGenerator()
+
+
+def _table_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
+    """Get column names for a SQLite table."""
+    cursor = conn.cursor()
+    cursor.execute(f"PRAGMA table_info({table_name})")
+    return {str(row[1]) for row in cursor.fetchall()}
+
+
+def _parse_json_object(value: Optional[str]) -> Optional[dict]:
+    """Safely parse JSON objects from text columns."""
+    if isinstance(value, dict):
+        return value
+    if not isinstance(value, str):
+        return None
+    payload = value.strip()
+    if not payload:
+        return None
+    try:
+        parsed = json.loads(payload)
+    except (TypeError, ValueError):
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _normalize_pricing_map(value: dict) -> Optional[dict]:
+    """
+    Normalize arbitrary pricing payload into tier-> {price, enabled}.
+
+    Supports values like:
+    - {"standard": 89}
+    - {"standard": {"price": 89, "enabled": true}}
+    """
+    normalized = {}
+    for tier in _PLATFORM_PRICING:
+        tier_value = value.get(tier)
+        if tier_value is None:
+            continue
+
+        enabled = True
+        raw_price = tier_value
+        if isinstance(tier_value, dict):
+            raw_price = tier_value.get("price")
+            enabled = bool(tier_value.get("enabled", True))
+
+        try:
+            price = float(raw_price)
+        except (TypeError, ValueError):
+            continue
+
+        normalized[tier] = {"price": max(price, 0.0), "enabled": enabled}
+
+    return normalized or None
+
+
+def _extract_pricing_from_settings(settings: Optional[dict]) -> Optional[dict]:
+    """Search known settings shapes for report pricing."""
+    if not isinstance(settings, dict):
+        return None
+
+    queue = [settings]
+    visited = set()
+    candidate_keys = ("report_pricing", "pricing", "reports", "premium_reports", "premium_report_pricing")
+
+    while queue:
+        current = queue.pop(0)
+        marker = id(current)
+        if marker in visited:
+            continue
+        visited.add(marker)
+
+        normalized = _normalize_pricing_map(current)
+        if normalized:
+            return normalized
+
+        for key in candidate_keys:
+            nested = current.get(key)
+            if isinstance(nested, dict):
+                queue.append(nested)
+
+    return None
+
+
+def _get_session_ownership(session_id: str) -> tuple[Optional[str], Optional[str], Optional[str]]:
+    """
+    Resolve ownership metadata for a session.
+
+    Returns: (owner_user_id, owner_firm_id, owner_preparer_id)
+    """
+    # Primary source: session persistence metadata
+    try:
+        from database.session_persistence import get_session_persistence
+
+        session_record = get_session_persistence().load_session(session_id)
+        if session_record:
+            session_data = session_record.data or {}
+            session_metadata = session_record.metadata or {}
+            owner_user_id = (
+                session_data.get("user_id")
+                or session_data.get("client_id")
+                or session_metadata.get("user_id")
+                or session_metadata.get("client_id")
+            )
+            owner_firm_id = (
+                session_data.get("firm_id")
+                or session_metadata.get("firm_id")
+                or (session_record.tenant_id if session_record.tenant_id != "default" else None)
+            )
+            owner_preparer_id = (
+                session_data.get("preparer_id")
+                or session_metadata.get("preparer_id")
+            )
+            return owner_user_id, owner_firm_id, owner_preparer_id
+    except Exception as exc:
+        logger.debug(f"Session ownership lookup failed for {session_id}: {exc}")
+
+    # Fallback: tax_returns table (schema varies by deployment)
+    try:
+        for db_path in _candidate_db_paths():
+            if not db_path.exists():
+                continue
+
+            with sqlite3.connect(db_path) as conn:
+                columns = _table_columns(conn, "tax_returns")
+                if "session_id" not in columns:
+                    continue
+
+                select_parts = []
+                owner_user_col = None
+                owner_firm_col = None
+                owner_preparer_col = None
+
+                for candidate in ("client_id", "user_id", "taxpayer_id"):
+                    if candidate in columns:
+                        owner_user_col = candidate
+                        break
+                if owner_user_col:
+                    select_parts.append(owner_user_col)
+
+                if "firm_id" in columns:
+                    owner_firm_col = "firm_id"
+                    select_parts.append(owner_firm_col)
+                elif "tenant_id" in columns:
+                    owner_firm_col = "tenant_id"
+                    select_parts.append(owner_firm_col)
+
+                if "preparer_id" in columns:
+                    owner_preparer_col = "preparer_id"
+                    select_parts.append(owner_preparer_col)
+
+                if not select_parts:
+                    continue
+
+                query = f"SELECT {', '.join(select_parts)} FROM tax_returns WHERE session_id = ?"
+                cursor = conn.cursor()
+                cursor.execute(query, (session_id,))
+                row = cursor.fetchone()
+                if not row:
+                    continue
+
+                values = {column: row[idx] for idx, column in enumerate(select_parts)}
+                owner_user_id = str(values.get(owner_user_col)) if owner_user_col and values.get(owner_user_col) else None
+                owner_firm_raw = values.get(owner_firm_col) if owner_firm_col else None
+                owner_firm_id = str(owner_firm_raw) if owner_firm_raw and owner_firm_raw != "default" else None
+                owner_preparer_id = (
+                    str(values.get(owner_preparer_col))
+                    if owner_preparer_col and values.get(owner_preparer_col)
+                    else None
+                )
+
+                return owner_user_id, owner_firm_id, owner_preparer_id
+    except Exception as exc:
+        logger.warning(f"Fallback session ownership lookup failed for {session_id}: {exc}")
+
+    return None, None, None
+
+
+def _resolve_client_firm_id(user: UserContext) -> Optional[str]:
+    """Resolve firm ID for CPA clients when not present in JWT context."""
+    if user.firm_id:
+        return user.firm_id
+
+    try:
+        for db_path in _candidate_db_paths():
+            if not db_path.exists():
+                continue
+
+            with sqlite3.connect(db_path) as conn:
+                users_columns = _table_columns(conn, "users")
+                clients_columns = _table_columns(conn, "clients")
+                cursor = conn.cursor()
+
+                # If client user is also in users table with a firm, use it directly.
+                if {"user_id", "firm_id"}.issubset(users_columns):
+                    cursor.execute(
+                        "SELECT firm_id FROM users WHERE user_id = ? LIMIT 1",
+                        (user.user_id,),
+                    )
+                    row = cursor.fetchone()
+                    if row and row[0]:
+                        return str(row[0])
+
+                # If clients table stores firm_id, use it.
+                if {"client_id", "firm_id"}.issubset(clients_columns):
+                    cursor.execute(
+                        "SELECT firm_id FROM clients WHERE client_id = ? LIMIT 1",
+                        (user.user_id,),
+                    )
+                    row = cursor.fetchone()
+                    if row and row[0]:
+                        return str(row[0])
+
+                # If clients table stores preparer_id, map preparer -> firm via users.
+                if (
+                    {"client_id", "preparer_id"}.issubset(clients_columns)
+                    and {"user_id", "firm_id"}.issubset(users_columns)
+                ):
+                    cursor.execute(
+                        """
+                        SELECT u.firm_id
+                        FROM clients c
+                        JOIN users u ON u.user_id = c.preparer_id
+                        WHERE c.client_id = ?
+                        LIMIT 1
+                        """,
+                        (user.user_id,),
+                    )
+                    row = cursor.fetchone()
+                    if row and row[0]:
+                        return str(row[0])
+
+                # Last fallback: assigned CPA -> users.firm_id
+                if user.assigned_cpa_id and {"user_id", "firm_id"}.issubset(users_columns):
+                    cursor.execute(
+                        "SELECT firm_id FROM users WHERE user_id = ? LIMIT 1",
+                        (user.assigned_cpa_id,),
+                    )
+                    row = cursor.fetchone()
+                    if row and row[0]:
+                        return str(row[0])
+    except Exception as exc:
+        logger.warning(f"Client firm lookup failed for user {user.user_id}: {exc}")
+
+    return None
+
+
+def _client_belongs_to_firm(client_id: str, firm_id: str) -> Optional[bool]:
+    """
+    Verify whether a client belongs to the CPA's firm.
+
+    Returns:
+    - True/False when verifiable from DB
+    - None when schema/data is insufficient to verify
+    """
+    try:
+        for db_path in _candidate_db_paths():
+            if not db_path.exists():
+                continue
+
+            with sqlite3.connect(db_path) as conn:
+                users_columns = _table_columns(conn, "users")
+                clients_columns = _table_columns(conn, "clients")
+                cursor = conn.cursor()
+
+                # Unified users table path
+                if {"user_id", "firm_id"}.issubset(users_columns):
+                    cursor.execute(
+                        "SELECT firm_id FROM users WHERE user_id = ? LIMIT 1",
+                        (client_id,),
+                    )
+                    row = cursor.fetchone()
+                    if row is not None:
+                        return bool(row[0] and str(row[0]) == firm_id)
+
+                # Legacy clients table path
+                if {"client_id", "firm_id"}.issubset(clients_columns):
+                    cursor.execute(
+                        "SELECT firm_id FROM clients WHERE client_id = ? LIMIT 1",
+                        (client_id,),
+                    )
+                    row = cursor.fetchone()
+                    if row is not None:
+                        return bool(row[0] and str(row[0]) == firm_id)
+
+                # Legacy clients->preparer relation path
+                if (
+                    {"client_id", "preparer_id"}.issubset(clients_columns)
+                    and {"user_id", "firm_id"}.issubset(users_columns)
+                ):
+                    cursor.execute(
+                        """
+                        SELECT u.firm_id
+                        FROM clients c
+                        JOIN users u ON u.user_id = c.preparer_id
+                        WHERE c.client_id = ?
+                        LIMIT 1
+                        """,
+                        (client_id,),
+                    )
+                    row = cursor.fetchone()
+                    if row is not None:
+                        return bool(row[0] and str(row[0]) == firm_id)
+    except Exception as exc:
+        logger.warning(f"Client-to-firm verification failed for {client_id}: {exc}")
+
+    return None
+
+
+def _get_firm_report_pricing(firm_id: Optional[str]) -> Optional[dict]:
+    """Fetch custom report pricing from firm settings, if configured."""
+    if not firm_id:
+        return None
+
+    try:
+        for db_path in _candidate_db_paths():
+            if not db_path.exists():
+                continue
+
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+
+                # Source 1: firms.settings JSON
+                firms_columns = _table_columns(conn, "firms")
+                if {"firm_id", "settings"}.issubset(firms_columns):
+                    cursor.execute(
+                        "SELECT settings FROM firms WHERE firm_id = ? LIMIT 1",
+                        (firm_id,),
+                    )
+                    row = cursor.fetchone()
+                    if row and row[0]:
+                        settings = _parse_json_object(row[0])
+                        pricing = _extract_pricing_from_settings(settings)
+                        if pricing:
+                            return pricing
+
+                # Source 2: firm_settings JSON blobs
+                firm_settings_columns = _table_columns(conn, "firm_settings")
+                selectable_columns = [
+                    column for column in ("integrations", "notification_preferences")
+                    if column in firm_settings_columns
+                ]
+                if "firm_id" in firm_settings_columns and selectable_columns:
+                    query = (
+                        f"SELECT {', '.join(selectable_columns)} "
+                        "FROM firm_settings WHERE firm_id = ? LIMIT 1"
+                    )
+                    cursor.execute(query, (firm_id,))
+                    row = cursor.fetchone()
+                    if row:
+                        for cell in row:
+                            settings = _parse_json_object(cell)
+                            pricing = _extract_pricing_from_settings(settings)
+                            if pricing:
+                                return pricing
+    except Exception as exc:
+        logger.warning(f"Firm pricing lookup failed for {firm_id}: {exc}")
+
+    return None
+
+
+def _is_user_or_team_allowed(
+    user: UserContext,
+    owner_user_id: Optional[str],
+    owner_firm_id: Optional[str] = None,
+    owner_preparer_id: Optional[str] = None,
+) -> bool:
+    """Evaluate report access rules for a user against ownership metadata."""
+    if user.user_type == UserType.PLATFORM_ADMIN:
+        return True
+
+    if user.user_type in {UserType.CONSUMER, UserType.CPA_CLIENT}:
+        return bool(owner_user_id and owner_user_id == user.user_id)
+
+    if user.user_type == UserType.CPA_TEAM:
+        if owner_firm_id and user.firm_id and owner_firm_id == user.firm_id:
+            return True
+        if owner_preparer_id and owner_preparer_id == user.user_id:
+            return True
+        if owner_user_id and owner_user_id == user.user_id:
+            return True
+        return False
+
+    return False
 
 
 def check_report_access(user: UserContext, session_id: str) -> bool:
@@ -108,12 +535,15 @@ def check_report_access(user: UserContext, session_id: str) -> bool:
     if user.user_type == UserType.PLATFORM_ADMIN:
         return True
 
-    # For now, allow access (full session validation would check session ownership)
-    # In production, this would verify:
-    # 1. Session exists
-    # 2. Session belongs to user (direct_client/firm_client)
-    # 3. Or session's client is in user's firm (partner/staff)
-    return True
+    owner_user_id, owner_firm_id, owner_preparer_id = _get_session_ownership(session_id)
+    if _is_user_or_team_allowed(user, owner_user_id, owner_firm_id, owner_preparer_id):
+        return True
+
+    logger.warning(
+        "Report access denied: unable to verify ownership "
+        f"(user={user.user_id}, user_type={user.user_type}, session={session_id})"
+    )
+    return False
 
 
 def get_pricing_for_user(user: UserContext, tier: str) -> dict:
@@ -124,23 +554,122 @@ def get_pricing_for_user(user: UserContext, tier: str) -> dict:
     - firm_client: CPA-set pricing (retrieved from firm settings)
     - partner/staff: Free (generating for clients)
     """
-    platform_pricing = {
-        "basic": 0,
-        "standard": 79,
-        "premium": 199,
-    }
-
     if user.user_type in [UserType.CPA_TEAM]:
         # CPAs generate for free (they charge clients directly)
         return {"price": 0, "currency": "USD", "source": "cpa_included"}
 
     if user.user_type == UserType.CPA_CLIENT:
-        # Would look up CPA's pricing from firm settings
-        # For now, return platform pricing as placeholder
-        return {"price": platform_pricing.get(tier, 0), "currency": "USD", "source": "cpa_pricing"}
+        firm_id = _resolve_client_firm_id(user)
+        firm_pricing = _get_firm_report_pricing(firm_id)
+        if firm_pricing and tier in firm_pricing:
+            tier_pricing = firm_pricing[tier]
+            if tier_pricing.get("enabled", True):
+                return {
+                    "price": tier_pricing["price"],
+                    "currency": "USD",
+                    "source": "firm_pricing",
+                    "firm_id": firm_id,
+                }
+
+        # Fallback to platform pricing if firm has no custom tier config.
+        return {
+            "price": _PLATFORM_PRICING.get(tier, 0.0),
+            "currency": "USD",
+            "source": "firm_pricing_fallback" if firm_id else "platform",
+            "firm_id": firm_id,
+        }
 
     # direct_client or consumer
-    return {"price": platform_pricing.get(tier, 0), "currency": "USD", "source": "platform"}
+    return {"price": _PLATFORM_PRICING.get(tier, 0.0), "currency": "USD", "source": "platform"}
+
+
+def _resolve_tenant_scope(user: UserContext) -> str:
+    """Resolve tenant scope for persistence writes."""
+    return str(user.firm_id or "default")
+
+
+def _persist_generated_report(report: Any, user: UserContext) -> None:
+    """Persist generated report metadata to durable session storage."""
+    try:
+        from database.session_persistence import get_session_persistence
+    except Exception as exc:
+        logger.warning(f"Session persistence unavailable for report storage: {exc}")
+        return
+
+    payload = {
+        "report_id": report.report_id,
+        "session_id": report.session_id,
+        "tier": report.tier.value,
+        "format": report.format.value,
+        "generated_at": report.generated_at,
+        "taxpayer_name": report.taxpayer_name,
+        "tax_year": report.tax_year,
+        "section_count": len(getattr(report, "sections", []) or []),
+        "action_item_count": len(getattr(report, "action_items", []) or []),
+        "metadata": report.metadata or {},
+        "action_items": [
+            item.to_dict() if hasattr(item, "to_dict") else item
+            for item in (getattr(report, "action_items", []) or [])
+        ],
+    }
+
+    if report.format.value == "html" and getattr(report, "html_content", ""):
+        payload["html_content"] = report.html_content
+    elif report.format.value == "json" and getattr(report, "json_data", None):
+        payload["json_data"] = report.json_data
+    elif report.format.value == "pdf" and getattr(report, "pdf_bytes", b""):
+        payload["pdf_size_bytes"] = len(report.pdf_bytes)
+
+    tenant_id = _resolve_tenant_scope(user)
+    persistence = get_session_persistence()
+    persistence.save_document_result(
+        document_id=report.report_id,
+        session_id=report.session_id,
+        tenant_id=tenant_id,
+        document_type=f"premium_report:{report.tier.value}:{report.format.value}",
+        status="completed",
+        result=payload,
+    )
+
+
+def _list_persisted_reports(session_id: str, user: UserContext) -> List[ReportHistoryItem]:
+    """List persisted report metadata for a session."""
+    try:
+        from database.session_persistence import get_session_persistence
+    except Exception as exc:
+        logger.warning(f"Session persistence unavailable for report history: {exc}")
+        return []
+
+    persistence = get_session_persistence()
+    tenant_id = _resolve_tenant_scope(user)
+    records = persistence.list_session_documents(session_id=session_id, tenant_id=tenant_id)
+
+    history: List[ReportHistoryItem] = []
+    for record in records:
+        doc_type = str(record.document_type or "")
+        if not doc_type.startswith("premium_report:"):
+            continue
+
+        result = record.result or {}
+        try:
+            history.append(
+                ReportHistoryItem(
+                    report_id=str(result.get("report_id") or record.document_id),
+                    session_id=str(result.get("session_id") or record.session_id),
+                    tier=str(result.get("tier") or "unknown"),
+                    format=str(result.get("format") or "unknown"),
+                    generated_at=str(result.get("generated_at") or record.created_at),
+                    taxpayer_name=str(result.get("taxpayer_name") or "Taxpayer"),
+                    tax_year=int(result.get("tax_year") or 2025),
+                    section_count=int(result.get("section_count") or 0),
+                    action_item_count=int(result.get("action_item_count") or 0),
+                )
+            )
+        except Exception:
+            continue
+
+    history.sort(key=lambda item: item.generated_at, reverse=True)
+    return history
 
 
 # =============================================================================
@@ -176,7 +705,7 @@ async def generate_report(
     # Get pricing (for logging/billing)
     pricing = get_pricing_for_user(user, request.tier.value)
     logger.info(
-        f"Report generation: user={user.id}, session={request.session_id}, "
+        f"Report generation: user={user.user_id}, session={request.session_id}, "
         f"tier={request.tier.value}, price=${pricing['price']}"
     )
 
@@ -200,6 +729,8 @@ async def generate_report(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=report.metadata["error"],
             )
+
+        _persist_generated_report(report, user)
 
         response = ReportResponse(
             report_id=report.report_id,
@@ -270,6 +801,8 @@ async def download_report(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=report.metadata["error"],
             )
+
+        _persist_generated_report(report, user)
 
         timestamp = datetime.now().strftime("%Y%m%d")
         safe_name = report.taxpayer_name.replace(" ", "_")
@@ -439,13 +972,28 @@ async def preview_report(
     }
 
 
+@router.get("/history/{session_id}", response_model=List[ReportHistoryItem])
+async def get_report_history(
+    session_id: str,
+    user: UserContext = Depends(get_current_user),
+):
+    """List persisted premium reports for a session."""
+    if not check_report_access(user, session_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this session",
+        )
+
+    return _list_persisted_reports(session_id, user)
+
+
 def _get_tier_highlights(tier: str) -> List[str]:
     """Get marketing highlights for a tier."""
     highlights = {
         "basic": [
             "Tax calculation summary",
-            "Draft Form 1040 preview",
-            "Basic computation statement",
+            "Computation transparency",
+            "Advisory baseline metrics",
         ],
         "standard": [
             "Everything in Basic",
@@ -494,8 +1042,49 @@ async def generate_report_for_client(
             detail="This endpoint is only for CPA team members",
         )
 
-    # In production, verify client belongs to CPA's firm
-    # For now, proceed with generation
+    if not user.firm_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="CPA team member must be associated with a firm",
+        )
+
+    if not check_report_access(user, session_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this session",
+        )
+
+    owner_user_id, owner_firm_id, _ = _get_session_ownership(session_id)
+
+    # Guard against accidental cross-client delivery.
+    if owner_user_id and owner_user_id != client_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Provided client_id does not match the owner of this tax session. "
+                "Use the client's actual session_id."
+            ),
+        )
+
+    # Enforce same-firm ownership when firm metadata is available.
+    if owner_firm_id and owner_firm_id != user.firm_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This session belongs to a different firm",
+        )
+
+    # Additional defense using client roster metadata when available.
+    client_firm_match = _client_belongs_to_firm(client_id, user.firm_id)
+    if client_firm_match is False:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The specified client does not belong to your firm",
+        )
+    if client_firm_match is None and not owner_user_id:
+        logger.warning(
+            "Client ownership metadata unavailable; allowing CPA report generation "
+            f"based on session access only (firm={user.firm_id}, client={client_id}, session={session_id})"
+        )
 
     try:
         from export.premium_report_generator import (
@@ -555,14 +1144,19 @@ async def get_cpa_pricing_settings(
             detail="This endpoint is only for CPA team members",
         )
 
-    # In production, fetch from firm settings
-    # For now, return default platform pricing as starting point
+    if not user.firm_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="CPA team member must be associated with a firm",
+        )
+
+    firm_pricing = _get_firm_report_pricing(user.firm_id)
+    pricing = firm_pricing or _CPA_DEFAULT_PRICING
+    source = "firm_settings" if firm_pricing else "default_profile"
+
     return {
         "firm_id": user.firm_id,
-        "pricing": {
-            "basic": {"price": 0, "enabled": True},
-            "standard": {"price": 99, "enabled": True},  # CPA can charge more
-            "premium": {"price": 299, "enabled": True},
-        },
-        "notes": "Pricing is customizable in your firm settings",
+        "pricing": pricing,
+        "source": source,
+        "notes": "Set custom report pricing in firm settings to override defaults",
     }

@@ -113,16 +113,26 @@ def upgrade() -> None:
     # =========================================================================
     # ADD PROFILE_DATA TO CLIENTS TABLE
     # =========================================================================
-    # Add profile_data column to store extended ClientProfile data
-    op.add_column(
-        'clients',
-        sa.Column('profile_data', postgresql.JSONB, nullable=True)
-    )
+    # Add profile_data column to store extended ClientProfile data.
+    # Some deployments don't have a clients table in this migration branch.
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if 'clients' in inspector.get_table_names():
+        client_columns = {col["name"] for col in inspector.get_columns("clients")}
+        if 'profile_data' not in client_columns:
+            op.add_column(
+                'clients',
+                sa.Column('profile_data', postgresql.JSONB, nullable=True)
+            )
 
 
 def downgrade() -> None:
-    # Remove profile_data column from clients
-    op.drop_column('clients', 'profile_data')
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if 'clients' in inspector.get_table_names():
+        client_columns = {col["name"] for col in inspector.get_columns("clients")}
+        if 'profile_data' in client_columns:
+            op.drop_column('clients', 'profile_data')
 
     # Drop domain_events table
     op.drop_index('ix_event_occurred', table_name='domain_events')

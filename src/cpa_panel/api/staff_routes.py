@@ -27,8 +27,8 @@ from ..staff.assignment_service import get_assignment_service
 from .common import format_success_response, format_error_response, get_tenant_id
 
 # Import authentication dependency
-from src.core.api.auth_routes import get_current_user
-from src.core.models.user import UserContext
+from core.api.auth_routes import get_current_user
+from core.models.user import UserContext
 
 logger = logging.getLogger(__name__)
 

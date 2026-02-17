@@ -9,7 +9,7 @@ Provides endpoints for prospect lead generation and management:
 5. Lead conversion (CPA-facing)
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, Depends
 from pydantic import BaseModel, Field
 try:
     from pydantic import EmailStr
@@ -24,6 +24,7 @@ from ..services.lead_generation_service import (
     LeadStatus,
     LeadPriority,
 )
+from .auth_dependencies import require_internal_cpa_auth
 
 logger = logging.getLogger(__name__)
 
@@ -274,10 +275,11 @@ async def capture_contact(lead_id: str, request: CaptureContactRequest):
 # =============================================================================
 
 @lead_generation_router.get(
-    "/pipeline",
+    "/pipeline-summary",
     response_model=PipelineSummaryResponse,
     summary="Get lead pipeline summary",
-    description="Get overview of lead pipeline with counts by status, priority, and source"
+    description="Get overview of lead pipeline with counts by status, priority, and source",
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def get_pipeline_summary(
     cpa_id: Optional[str] = Query(None, description="Filter by assigned CPA")
@@ -297,7 +299,8 @@ async def get_pipeline_summary(
 @lead_generation_router.get(
     "/unassigned",
     summary="Get unassigned leads",
-    description="Get all leads not yet assigned to a CPA"
+    description="Get all leads not yet assigned to a CPA",
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def get_unassigned_leads():
     """
@@ -335,7 +338,8 @@ async def get_unassigned_leads():
 @lead_generation_router.get(
     "/high-priority",
     summary="Get high priority leads",
-    description="Get all high priority leads for immediate follow-up"
+    description="Get all high priority leads for immediate follow-up",
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def get_high_priority_leads():
     """
@@ -372,7 +376,8 @@ async def get_high_priority_leads():
 @lead_generation_router.get(
     "/cpa/{cpa_id}",
     summary="Get leads for CPA",
-    description="Get all leads assigned to a specific CPA"
+    description="Get all leads assigned to a specific CPA",
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def get_leads_for_cpa(
     cpa_id: str,
@@ -403,10 +408,11 @@ async def get_leads_for_cpa(
 
 
 @lead_generation_router.get(
-    "/{lead_id}",
+    "/{lead_id}/profile",
     response_model=LeadResponse,
     summary="Get lead details",
-    description="Get detailed information about a specific lead"
+    description="Get detailed information about a specific lead",
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def get_lead(lead_id: str):
     """
@@ -447,7 +453,8 @@ async def get_lead(lead_id: str):
 @lead_generation_router.get(
     "/{lead_id}/analysis",
     summary="Get lead's full analysis",
-    description="Get the full tax savings analysis for a lead"
+    description="Get the full tax savings analysis for a lead",
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def get_lead_analysis(lead_id: str):
     """
@@ -476,7 +483,8 @@ async def get_lead_analysis(lead_id: str):
 @lead_generation_router.post(
     "/{lead_id}/assign",
     summary="Assign lead to CPA",
-    description="Assign a lead to a CPA for follow-up"
+    description="Assign a lead to a CPA for follow-up",
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def assign_lead(lead_id: str, request: AssignLeadRequest):
     """
@@ -503,7 +511,8 @@ async def assign_lead(lead_id: str, request: AssignLeadRequest):
 @lead_generation_router.post(
     "/{lead_id}/status",
     summary="Update lead status",
-    description="Update the status of a lead"
+    description="Update the status of a lead",
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def update_status(lead_id: str, request: UpdateStatusRequest):
     """
@@ -534,7 +543,8 @@ async def update_status(lead_id: str, request: UpdateStatusRequest):
 @lead_generation_router.post(
     "/{lead_id}/convert",
     summary="Convert lead to client",
-    description="Convert a qualified lead into a client"
+    description="Convert a qualified lead into a client",
+    dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def convert_lead(lead_id: str, cpa_id: str = Query(..., description="CPA ID")):
     """

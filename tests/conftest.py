@@ -9,6 +9,8 @@ import pytest
 # Set test environment BEFORE any other imports
 # This ensures auth decorators use fail-open mode for tests
 os.environ.setdefault("APP_ENVIRONMENT", "test")
+os.environ.setdefault("DATABASE_URL", "")
+os.environ.setdefault("DB_DRIVER", "sqlite+aiosqlite")
 
 # Add src to path for imports
 src_path = Path(__file__).parent.parent / "src"

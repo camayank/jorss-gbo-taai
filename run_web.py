@@ -4,13 +4,28 @@ Run the FastAPI web UI for the Tax Preparation Agent.
 """
 
 import os
+import subprocess
 import sys
+
+
+def _run_preflight_if_production(repo_root: str) -> None:
+    """Fail fast on production launch misconfiguration."""
+    env = os.getenv("APP_ENVIRONMENT", "development").lower()
+    if env not in {"production", "prod", "staging"}:
+        return
+
+    preflight_script = os.path.join(repo_root, "scripts", "preflight_launch.py")
+    cmd = [sys.executable, preflight_script, "--mode", "production"]
+    result = subprocess.run(cmd, cwd=repo_root)
+    if result.returncode != 0:
+        raise SystemExit(result.returncode)
 
 
 def main() -> None:
     # Make src importable
     repo_root = os.path.dirname(__file__)
     sys.path.insert(0, os.path.join(repo_root, "src"))
+    _run_preflight_if_production(repo_root)
 
     import uvicorn
 
@@ -24,4 +39,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

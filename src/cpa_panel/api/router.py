@@ -18,13 +18,29 @@ Domain Routers:
 All endpoints are prefixed with /api/cpa when included in the main app.
 """
 
-from fastapi import APIRouter
+from typing import Any
+
+from fastapi import APIRouter, Depends
 import logging
+
+from .auth_dependencies import require_internal_cpa_auth, INTERNAL_ROUTE_DEPENDENCIES
 
 logger = logging.getLogger(__name__)
 
 # Create main CPA router
 cpa_router = APIRouter(prefix="/cpa", tags=["CPA Panel"])
+
+
+def _include_internal_router(router_obj, label: str) -> None:
+    """Include router with mandatory JWT auth for internal CPA operations."""
+    cpa_router.include_router(router_obj, dependencies=INTERNAL_ROUTE_DEPENDENCIES)
+    logger.info("%s routes enabled (auth protected)", label)
+
+
+def _include_public_router(router_obj, label: str) -> None:
+    """Include router without core JWT dependency for public/client flows."""
+    cpa_router.include_router(router_obj)
+    logger.info("%s routes enabled", label)
 
 # Import domain-specific routers
 from .workflow_routes import workflow_router
@@ -37,192 +53,176 @@ from .exposure_routes import exposure_router
 # Import additional routers with error handling (may not exist yet)
 try:
     from .staff_routes import router as staff_router
-    cpa_router.include_router(staff_router)
-    logger.info("Staff routes enabled")
+    _include_internal_router(staff_router, "Staff")
 except ImportError as e:
     logger.warning(f"Staff routes not available: {e}")
 
 try:
     from .engagement_routes import router as engagement_router
-    cpa_router.include_router(engagement_router)
-    logger.info("Engagement routes enabled")
+    _include_internal_router(engagement_router, "Engagement")
 except ImportError as e:
     logger.warning(f"Engagement routes not available: {e}")
 
 try:
     from .client_visibility_routes import router as client_visibility_router
-    cpa_router.include_router(client_visibility_router)
-    logger.info("Client visibility routes enabled")
+    _include_internal_router(client_visibility_router, "Client visibility")
 except ImportError as e:
     logger.warning(f"Client visibility routes not available: {e}")
 
 try:
     from .practice_intelligence_routes import router as intelligence_router
-    cpa_router.include_router(intelligence_router)
-    logger.info("Practice intelligence routes enabled")
+    _include_internal_router(intelligence_router, "Practice intelligence")
 except ImportError as e:
     logger.warning(f"Practice intelligence routes not available: {e}")
 
 try:
     from .aggregated_insights_routes import router as aggregated_insights_router
-    cpa_router.include_router(aggregated_insights_router)
-    logger.info("Aggregated insights routes enabled")
+    _include_internal_router(aggregated_insights_router, "Aggregated insights")
 except ImportError as e:
     logger.warning(f"Aggregated insights routes not available: {e}")
 
 # NEW: Optimizer routes - Credit, deduction, filing status, entity, strategy
 try:
     from .optimizer_routes import optimizer_router
-    cpa_router.include_router(optimizer_router)
-    logger.info("Optimizer routes enabled")
+    _include_internal_router(optimizer_router, "Optimizer")
 except ImportError as e:
     logger.warning(f"Optimizer routes not available: {e}")
 
 # NEW: Scenario analysis routes - What-if analysis
 try:
     from .scenario_routes import scenario_router
-    cpa_router.include_router(scenario_router)
-    logger.info("Scenario routes enabled")
+    _include_internal_router(scenario_router, "Scenario")
 except ImportError as e:
     logger.warning(f"Scenario routes not available: {e}")
 
 # NEW: Pipeline routes - Lead pipeline and metrics
 try:
     from .pipeline_routes import pipeline_router
-    cpa_router.include_router(pipeline_router)
-    logger.info("Pipeline routes enabled")
+    _include_internal_router(pipeline_router, "Pipeline")
 except ImportError as e:
     logger.warning(f"Pipeline routes not available: {e}")
 
 # NEW: Document routes - Upload and OCR
 try:
     from .document_routes import document_router
-    cpa_router.include_router(document_router)
-    logger.info("Document routes enabled")
+    _include_internal_router(document_router, "Document")
 except ImportError as e:
     logger.warning(f"Document routes not available: {e}")
 
 # NEW: Pricing routes - Complexity pricing
 try:
     from .pricing_routes import pricing_router
-    cpa_router.include_router(pricing_router)
-    logger.info("Pricing routes enabled")
+    _include_internal_router(pricing_router, "Pricing")
 except ImportError as e:
     logger.warning(f"Pricing routes not available: {e}")
 
 # NEW: Intake routes - Client onboarding
 try:
     from .intake_routes import intake_router
-    cpa_router.include_router(intake_router)
-    logger.info("Intake routes enabled")
+    _include_internal_router(intake_router, "Intake")
 except ImportError as e:
     logger.warning(f"Intake routes not available: {e}")
 
 # NEW: Report routes - Advisory reports
 try:
     from .report_routes import report_router
-    cpa_router.include_router(report_router)
-    logger.info("Report routes enabled")
+    _include_internal_router(report_router, "Report")
 except ImportError as e:
     logger.warning(f"Report routes not available: {e}")
 
 # NEW: Data routes - Database access for clients, tax returns, recommendations
 try:
     from .data_routes import router as data_router
-    cpa_router.include_router(data_router)
-    logger.info("Data routes enabled")
+    _include_internal_router(data_router, "Data")
 except ImportError as e:
     logger.warning(f"Data routes not available: {e}")
 
 # NEW: Smart Onboarding routes - 60-second client onboarding
 try:
     from .smart_onboarding_routes import smart_onboarding_router
-    cpa_router.include_router(smart_onboarding_router)
-    logger.info("Smart onboarding routes enabled")
+    _include_internal_router(smart_onboarding_router, "Smart onboarding")
 except ImportError as e:
     logger.warning(f"Smart onboarding routes not available: {e}")
 
 # NEW: Lead Generation routes - Prospect lead capture and conversion
 try:
     from .lead_generation_routes import lead_generation_router
-    cpa_router.include_router(lead_generation_router)
-    logger.info("Lead generation routes enabled")
+    _include_public_router(lead_generation_router, "Lead generation")
 except ImportError as e:
     logger.warning(f"Lead generation routes not available: {e}")
 
 # NEW: Lead Magnet routes - Smart tax advisory lead magnet flow
 try:
     from .lead_magnet_routes import lead_magnet_router
-    cpa_router.include_router(lead_magnet_router)
-    logger.info("Lead magnet routes enabled")
+    _include_public_router(lead_magnet_router, "Lead magnet")
 except ImportError as e:
     logger.warning(f"Lead magnet routes not available: {e}")
 
 # NEW: Client Portal routes - B2C client dashboard
 try:
     from .client_portal_routes import router as client_portal_router
-    cpa_router.include_router(client_portal_router)
-    logger.info("Client portal routes enabled")
+    _include_public_router(client_portal_router, "Client portal")
 except ImportError as e:
     logger.warning(f"Client portal routes not available: {e}")
 
 # NEW: Notification routes - In-app notifications and reminders
 try:
     from .notification_routes import notification_router
-    cpa_router.include_router(notification_router)
-    logger.info("Notification routes enabled")
+    _include_internal_router(notification_router, "Notification")
 except ImportError as e:
     logger.warning(f"Notification routes not available: {e}")
 
 # NEW: Payment Settings routes - Stripe Connect integration for CPAs
 try:
     from .payment_settings_routes import router as payment_settings_router
-    cpa_router.include_router(payment_settings_router)
-    logger.info("Payment settings routes enabled")
+    _include_internal_router(payment_settings_router, "Payment settings")
 except ImportError as e:
     logger.warning(f"Payment settings routes not available: {e}")
 
 # NEW: Deadline Management routes - Tax deadline tracking
 try:
     from .deadline_routes import deadline_router
-    cpa_router.include_router(deadline_router)
-    logger.info("Deadline routes enabled")
+    _include_internal_router(deadline_router, "Deadline")
 except ImportError as e:
     logger.warning(f"Deadline routes not available: {e}")
 
 # NEW: Task Management routes - Task tracking and workflow
 try:
     from .task_routes import task_router
-    cpa_router.include_router(task_router)
-    logger.info("Task routes enabled")
+    _include_internal_router(task_router, "Task")
 except ImportError as e:
     logger.warning(f"Task routes not available: {e}")
 
 # NEW: Appointment Scheduling routes - Client appointment booking
 try:
     from .appointment_routes import appointment_router
-    cpa_router.include_router(appointment_router)
-    logger.info("Appointment routes enabled")
+    _include_internal_router(appointment_router, "Appointment")
 except ImportError as e:
     logger.warning(f"Appointment routes not available: {e}")
 
 # NEW: Invoice and Payment routes - Client billing and payment collection
 try:
     from .invoice_routes import invoice_router, payment_link_router, payments_router
-    cpa_router.include_router(invoice_router)
-    cpa_router.include_router(payment_link_router)
-    cpa_router.include_router(payments_router)
-    logger.info("Invoice and payment routes enabled")
+    _include_internal_router(invoice_router, "Invoice")
+    _include_internal_router(payment_link_router, "Payment links")
+    _include_internal_router(payments_router, "Payments")
 except ImportError as e:
     logger.warning(f"Invoice routes not available: {e}")
 
+# NEW: Funnel orchestration routes - internal operational automation
+try:
+    from .funnel_routes import funnel_router
+    _include_internal_router(funnel_router, "Funnel")
+except ImportError as e:
+    logger.warning(f"Funnel routes not available: {e}")
+
 # Include core domain routers
-cpa_router.include_router(workflow_router)
-cpa_router.include_router(analysis_router)
-cpa_router.include_router(notes_router)
-cpa_router.include_router(insights_router)
-cpa_router.include_router(lead_router)
-cpa_router.include_router(exposure_router)
+_include_internal_router(workflow_router, "Workflow")
+_include_internal_router(analysis_router, "Analysis")
+_include_internal_router(notes_router, "Notes")
+_include_internal_router(insights_router, "Insights")
+_include_internal_router(lead_router, "Lead")
+_include_internal_router(exposure_router, "Exposure")
 
 
 # =============================================================================
@@ -230,7 +230,7 @@ cpa_router.include_router(exposure_router)
 # =============================================================================
 
 @cpa_router.get("/health")
-async def cpa_health_check():
+async def cpa_health_check(_auth: Any = Depends(require_internal_cpa_auth)):
     """CPA Panel health check endpoint."""
     return {
         "status": "healthy",
@@ -275,7 +275,7 @@ async def cpa_health_check():
 # =============================================================================
 
 @cpa_router.get("/docs/routes")
-async def get_route_documentation():
+async def get_route_documentation(_auth: Any = Depends(require_internal_cpa_auth)):
     """Get documentation of all CPA panel routes."""
     return {
         "prefix": "/api/cpa",
@@ -448,7 +448,8 @@ async def get_route_documentation():
                     "POST /leads/estimate - Quick tax savings estimate",
                     "POST /leads/upload - Upload 1040 for teaser",
                     "POST /leads/{lead_id}/contact - Capture contact, unlock analysis",
-                    "GET /leads/pipeline - Pipeline summary",
+                    "GET /leads/pipeline-summary - Pipeline summary",
+                    "GET /leads/{lead_id}/profile - Lead profile snapshot",
                     "GET /leads/unassigned - Unassigned leads",
                     "GET /leads/high-priority - High priority leads",
                     "GET /leads/cpa/{cpa_id} - Leads for CPA",

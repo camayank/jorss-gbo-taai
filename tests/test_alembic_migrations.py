@@ -15,6 +15,9 @@ mock_alembic.runtime.migration = MagicMock()
 mock_alembic.runtime.migration.MigrationContext = MagicMock
 mock_alembic.script = MagicMock()
 mock_alembic.script.ScriptDirectory = MagicMock
+mock_alembic.util = MagicMock()
+mock_alembic.util.exc = MagicMock()
+mock_alembic.util.exc.CommandError = Exception
 
 sys.modules["alembic"] = mock_alembic
 sys.modules["alembic.command"] = mock_alembic.command
@@ -22,6 +25,8 @@ sys.modules["alembic.config"] = mock_alembic.config
 sys.modules["alembic.runtime"] = mock_alembic.runtime
 sys.modules["alembic.runtime.migration"] = mock_alembic.runtime.migration
 sys.modules["alembic.script"] = mock_alembic.script
+sys.modules["alembic.util"] = mock_alembic.util
+sys.modules["alembic.util.exc"] = mock_alembic.util.exc
 
 # Now import with mocked alembic
 from database.alembic_helpers import (
@@ -101,8 +106,12 @@ class TestAlembicManager:
             mock_result.scalar.return_value = False  # Table doesn't exist
             mock_conn.execute.return_value = mock_result
 
-            mock_engine_instance = AsyncMock()
-            mock_engine_instance.connect.return_value.__aenter__.return_value = mock_conn
+            connect_ctx = AsyncMock()
+            connect_ctx.__aenter__.return_value = mock_conn
+            connect_ctx.__aexit__.return_value = False
+
+            mock_engine_instance = MagicMock()
+            mock_engine_instance.connect.return_value = connect_ctx
             mock_engine_instance.dispose = AsyncMock()
             mock_engine.return_value = mock_engine_instance
 

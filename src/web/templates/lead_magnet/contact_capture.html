@@ -95,6 +95,59 @@
             margin-bottom: 30px;
         }
 
+        .urgency-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            border-radius: 999px;
+            padding: 6px 10px;
+            margin: 0 auto 12px;
+        }
+
+        .urgency-chip.critical {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .urgency-chip.high {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .urgency-chip.moderate {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .urgency-chip.planning {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .context-card {
+            border: 1px solid #dbeafe;
+            background: #eff6ff;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 18px;
+        }
+
+        .context-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #1d4ed8;
+            margin-bottom: 6px;
+        }
+
+        .context-line {
+            font-size: 0.88rem;
+            color: #1e3a8a;
+            margin-bottom: 4px;
+        }
+
         /* What You'll Get */
         .benefits-list {
             background: var(--bg-light);
@@ -205,6 +258,11 @@
             color: var(--text-muted);
             padding: 2px 8px;
             border-radius: 8px;
+        }
+
+        .optional-badge.required {
+            background: #fee2e2;
+            color: #991b1b;
         }
 
         /* Consent Checkbox */
@@ -326,6 +384,8 @@
             padding: 40px;
             border-radius: 16px;
             text-align: center;
+            min-width: 320px;
+            max-width: 420px;
         }
 
         .spinner {
@@ -341,6 +401,38 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        .loading-message {
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+
+        .loading-detail {
+            font-size: 0.82rem;
+            color: #475569;
+        }
+
+        .unlock-success {
+            display: none;
+            margin-top: 10px;
+            font-size: 0.88rem;
+            color: #166534;
+            font-weight: 600;
+        }
+
+        .loading-card.success {
+            border: 1px solid #bbf7d0;
+            background: #f0fdf4;
+        }
+
+        .loading-card.success .spinner {
+            display: none;
+        }
+
+        .loading-card.success .unlock-success {
+            display: block;
         }
 
         /* Mobile Responsive */
@@ -376,8 +468,23 @@
                 </div>
             </div>
 
-            <h1 class="page-title">Almost There!</h1>
-            <p class="page-subtitle">Enter your info to receive your personalized analysis</p>
+            <h1 class="page-title">Unlock Your Full Tax Health Report</h1>
+            <p class="page-subtitle" id="pageSubtitle">Share your contact details to reveal all strategy recommendations and next actions.</p>
+            <div class="urgency-chip {{ deadline_context.urgency if deadline_context else 'moderate' }}">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span>Tax deadline in {{ deadline_context.days_remaining if deadline_context else 60 }} days</span>
+            </div>
+            <div class="context-card">
+                <div class="context-title">What Unlocks Next</div>
+                <div class="context-line" id="contextSavingsLine">Estimated missed savings: $1,500 - $4,200</div>
+                <div class="context-line" id="contextScoreLine">Tax Health Score preview: 58/100</div>
+                <div class="context-line" id="contextPersonalizationLine">
+                    We will generate strategy recommendations specific to your profile and state.
+                </div>
+            </div>
 
             <!-- Benefits List -->
             <div class="benefits-list">
@@ -449,7 +556,7 @@
                 <div class="form-group">
                     <label class="form-label phone-optional" for="phone">
                         Phone Number
-                        <span class="optional-badge">Optional</span>
+                        <span class="optional-badge" id="phoneRequirementBadge">Optional</span>
                     </label>
                     <input
                         type="tel"
@@ -459,7 +566,20 @@
                         placeholder="(555) 123-4567"
                         autocomplete="tel"
                     >
-                    <div class="form-hint">For scheduling a consultation if you'd like</div>
+                    <div class="form-error" id="phoneError">Please enter a valid 10-digit phone number</div>
+                    <div class="form-hint" id="phoneHint">For scheduling a consultation if you'd like</div>
+                </div>
+
+                <!-- Honeypot field (hidden from humans, visible to basic bots) -->
+                <div class="form-group" style="position: absolute; left: -9999px; opacity: 0;">
+                    <label for="website">Website</label>
+                    <input
+                        type="text"
+                        id="website"
+                        name="website"
+                        tabindex="-1"
+                        autocomplete="off"
+                    >
                 </div>
 
                 <!-- Consent -->
@@ -482,7 +602,7 @@
                 </button>
 
                 <p class="submit-subtext">
-                    No payment required. No spam.
+                    Free unlock. We never sell your data.
                 </p>
             </form>
 
@@ -507,32 +627,111 @@
 
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-card">
+        <div class="loading-card" id="loadingCard">
             <div class="spinner"></div>
-            <div>Creating your personalized report...</div>
+            <div class="loading-message" id="loadingMessage">Creating your personalized report...</div>
+            <div class="loading-detail" id="loadingDetail">Running score insights and strategy prioritization.</div>
+            <div class="unlock-success" id="unlockSuccess">Unlocked. Redirecting to your report...</div>
         </div>
     </div>
 
+    <script src="/static/js/lead_magnet_analytics.js"></script>
     <script>
-        // Get session ID
-        const sessionId = '{{ session_id }}' || sessionStorage.getItem('assessment_session_id');
+        const sessionId = window.LeadMagnetAnalytics
+            ? window.LeadMagnetAnalytics.getSessionId('{{ session_id }}')
+            : ('{{ session_id }}' || sessionStorage.getItem('assessment_session_id'));
+        const heroVariant = window.LeadMagnetAnalytics
+            ? window.LeadMagnetAnalytics.resolveVariant('{{ variant_id or "A" }}')
+            : (sessionStorage.getItem('lm_variant_hero') || '{{ variant_id or "A" }}');
+        let storedExperimentConfig = null;
+        try {
+            storedExperimentConfig = JSON.parse(sessionStorage.getItem('lm_experiment_config') || 'null');
+        } catch (_) {
+            storedExperimentConfig = null;
+        }
+        const experimentConfig = window.LeadMagnetAnalytics
+            ? window.LeadMagnetAnalytics.getExperimentConfig(heroVariant)
+            : (storedExperimentConfig || {
+                variant_id: heroVariant,
+                phone_capture_variant: 'optional',
+                gate_aggressiveness: 'soft',
+                score_visualization: 'donut',
+                teaser_cta: 'unlock_report'
+            });
+        const formStartedAt = Date.now();
+        const phoneCaptureVariant = experimentConfig.phone_capture_variant || 'optional';
+        let leadSubmitted = false;
 
-        // Form validation
+        function trackLeadMagnetEvent(eventName, step, metadata = {}) {
+            if (!sessionId || !window.LeadMagnetAnalytics) return;
+            window.LeadMagnetAnalytics.trackEvent(
+                sessionId,
+                eventName,
+                step,
+                metadata,
+                { defaultVariant: heroVariant }
+            );
+        }
+
+        function hydrateContextCard() {
+            const savings = sessionStorage.getItem('missed_savings_range');
+            const score = sessionStorage.getItem('tax_health_score');
+            const personalization = sessionStorage.getItem('personalization_line');
+            const savingsEl = document.getElementById('contextSavingsLine');
+            const scoreEl = document.getElementById('contextScoreLine');
+            const personalizationEl = document.getElementById('contextPersonalizationLine');
+            if (savings && savingsEl) savingsEl.textContent = `Estimated missed savings: ${savings}`;
+            if (score && scoreEl) scoreEl.textContent = `Tax Health Score preview: ${score}/100`;
+            if (personalization && personalizationEl) personalizationEl.textContent = personalization;
+        }
+
+        function configurePhoneRequirement() {
+            const badge = document.getElementById('phoneRequirementBadge');
+            const phoneInput = document.getElementById('phone');
+            const phoneHint = document.getElementById('phoneHint');
+            if (!badge || !phoneInput || !phoneHint) return;
+            if (phoneCaptureVariant === 'required') {
+                badge.textContent = 'Required';
+                badge.classList.add('required');
+                phoneInput.required = true;
+                phoneHint.textContent = 'Required to send your full unlock summary and callback options.';
+            } else {
+                badge.textContent = 'Optional';
+                badge.classList.remove('required');
+                phoneInput.required = false;
+                phoneHint.textContent = 'Optional. Add if you want priority callback scheduling.';
+            }
+        }
+
+        function configureCtaCopy() {
+            const submitButton = document.getElementById('submitButton');
+            const subtitle = document.getElementById('pageSubtitle');
+            const unlockMode = experimentConfig.teaser_cta === 'unlock_report';
+            if (submitButton) {
+                submitButton.textContent = unlockMode ? 'Unlock My Full Report' : 'Get My Free Analysis';
+            }
+            if (subtitle) {
+                subtitle.textContent = unlockMode
+                    ? 'Enter your details to unlock your complete strategy playbook instantly.'
+                    : 'Share your contact details to receive your full personalized analysis immediately.';
+            }
+        }
+
         function validateEmail(email) {
             const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             return re.test(email);
         }
 
-        function validatePhone(phone) {
-            if (!phone) return true; // Optional
+        function validatePhone(phone, requiredMode) {
             const cleaned = phone.replace(/\D/g, '');
+            if (!cleaned && !requiredMode) return true;
             return cleaned.length >= 10;
         }
 
         function showError(fieldId, show) {
             const input = document.getElementById(fieldId);
             const error = document.getElementById(fieldId + 'Error');
-
+            if (!input || !error) return;
             if (show) {
                 input.classList.add('error');
                 error.classList.add('show');
@@ -542,68 +741,75 @@
             }
         }
 
-        // Real-time validation
-        document.getElementById('firstName').addEventListener('blur', function() {
+        function setLoadingState(isVisible) {
+            const overlay = document.getElementById('loadingOverlay');
+            const submitButton = document.getElementById('submitButton');
+            if (!overlay || !submitButton) return;
+            overlay.classList.toggle('show', isVisible);
+            submitButton.disabled = isVisible;
+        }
+
+        function showUnlockState() {
+            const card = document.getElementById('loadingCard');
+            const loadingMessage = document.getElementById('loadingMessage');
+            const loadingDetail = document.getElementById('loadingDetail');
+            if (card) card.classList.add('success');
+            if (loadingMessage) loadingMessage.textContent = 'Unlock complete';
+            if (loadingDetail) loadingDetail.textContent = 'Redirecting to your full Tax Health Report.';
+        }
+
+        document.getElementById('firstName').addEventListener('blur', function () {
             showError('firstName', !this.value.trim());
         });
-
-        document.getElementById('email').addEventListener('blur', function() {
+        document.getElementById('email').addEventListener('blur', function () {
             showError('email', !validateEmail(this.value));
         });
+        document.getElementById('phone').addEventListener('blur', function () {
+            const requiredMode = phoneCaptureVariant === 'required';
+            showError('phone', !validatePhone(this.value.trim(), requiredMode));
+        });
 
-        // Form submission
-        document.getElementById('contactForm').addEventListener('submit', async function(e) {
+        document.getElementById('contactForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
-            // Validate
             const firstName = document.getElementById('firstName').value.trim();
             const email = document.getElementById('email').value.trim();
             const phone = document.getElementById('phone').value.trim();
+            const website = document.getElementById('website').value.trim();
             const consent = document.getElementById('consent').checked;
+            const phoneRequired = phoneCaptureVariant === 'required';
 
             let valid = true;
-
             if (!firstName) {
                 showError('firstName', true);
                 valid = false;
             }
-
             if (!validateEmail(email)) {
                 showError('email', true);
                 valid = false;
             }
-
+            if (!validatePhone(phone, phoneRequired)) {
+                showError('phone', true);
+                valid = false;
+            } else {
+                showError('phone', false);
+            }
             if (!consent) {
                 document.getElementById('consentError').classList.add('show');
                 valid = false;
             } else {
                 document.getElementById('consentError').classList.remove('show');
             }
-
             if (!valid) return;
 
-            // Show loading
-            document.getElementById('loadingOverlay').classList.add('show');
-            document.getElementById('submitButton').disabled = true;
+            setLoadingState(true);
 
             try {
-                // Get CSRF token from cookie or meta tag
-                function getCsrfToken() {
-                    // Try cookie first
-                    const cookieMatch = document.cookie.match(/csrf_token=([^;]+)/);
-                    if (cookieMatch) return cookieMatch[1];
-                    // Try meta tag
-                    const meta = document.querySelector('meta[name="csrf-token"]');
-                    if (meta) return meta.getAttribute('content');
-                    return null;
-                }
-
-                // Submit to API
-                const csrfToken = getCsrfToken();
+                const csrfCookie = document.cookie.match(/csrf_token=([^;]+)/);
+                const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                const csrfToken = (csrfCookie && csrfCookie[1]) || (csrfMeta && csrfMeta.getAttribute('content'));
                 const headers = { 'Content-Type': 'application/json' };
-                if (csrfToken) {
-                    headers['X-CSRF-Token'] = csrfToken;
-                }
+                if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
 
                 const response = await fetch(`/api/cpa/lead-magnet/${sessionId}/contact`, {
                     method: 'POST',
@@ -611,7 +817,10 @@
                     body: JSON.stringify({
                         first_name: firstName,
                         email: email,
-                        phone: phone || null
+                        phone: phone || null,
+                        website: website || null,
+                        form_started_at_ms: formStartedAt,
+                        phone_capture_variant: phoneCaptureVariant,
                     })
                 });
 
@@ -620,25 +829,56 @@
                 }
 
                 const result = await response.json();
-
-                // Store lead ID
                 sessionStorage.setItem('lead_id', result.lead_id);
+                leadSubmitted = true;
+                trackLeadMagnetEvent('step_complete', 'contact_submit', {
+                    lead_id: result.lead_id,
+                    score_preview: sessionStorage.getItem('tax_health_score'),
+                    phone_capture_variant: phoneCaptureVariant,
+                    gate_aggressiveness: experimentConfig.gate_aggressiveness,
+                    score_visualization: experimentConfig.score_visualization,
+                    teaser_cta: experimentConfig.teaser_cta,
+                });
 
-                // Redirect to report
+                showUnlockState();
+                await new Promise(resolve => setTimeout(resolve, 850));
                 window.location.href = `/lead-magnet/report?session=${sessionId}`;
-
             } catch (error) {
                 console.error('Submission error:', error);
-                document.getElementById('loadingOverlay').classList.remove('show');
-                document.getElementById('submitButton').disabled = false;
+                setLoadingState(false);
                 alert('Something went wrong. Please try again.');
             }
         });
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             if (!sessionId) {
                 window.location.href = '/lead-magnet/';
+                return;
+            }
+            configurePhoneRequirement();
+            configureCtaCopy();
+            hydrateContextCard();
+            trackLeadMagnetEvent('step_complete', 'contact_view', {
+                phone_capture_variant: phoneCaptureVariant,
+                gate_aggressiveness: experimentConfig.gate_aggressiveness,
+                score_visualization: experimentConfig.score_visualization,
+                teaser_cta: experimentConfig.teaser_cta,
+            });
+        });
+
+        window.addEventListener('beforeunload', function () {
+            if (sessionId && !leadSubmitted && window.LeadMagnetAnalytics) {
+                window.LeadMagnetAnalytics.sendBeaconEvent(
+                    sessionId,
+                    'drop_off',
+                    'contact',
+                    {
+                        stage: 'contact_capture',
+                        phone_capture_variant: phoneCaptureVariant,
+                        gate_aggressiveness: experimentConfig.gate_aggressiveness,
+                    },
+                    { defaultVariant: heroVariant }
+                );
             }
         });
     </script>

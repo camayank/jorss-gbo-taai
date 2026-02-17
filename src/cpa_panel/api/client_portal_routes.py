@@ -15,7 +15,7 @@ from typing import Optional, List
 from datetime import datetime, timedelta
 from uuid import uuid4
 import json
-import secrets
+import jwt as pyjwt
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status, Header
 from pydantic import BaseModel, Field
@@ -34,8 +34,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+try:
+    from rbac.jwt import decode_token_safe, get_jwt_secret, JWT_ALGORITHM
+except Exception:  # pragma: no cover - guarded for deployments without RBAC package wiring
+    decode_token_safe = None
+    get_jwt_secret = None
+    JWT_ALGORITHM = "HS256"
+
 # =============================================================================
-# CLIENT TOKEN STORAGE (In production, use Redis)
+# LEGACY CLIENT TOKEN STORAGE (backward compatibility only)
 # =============================================================================
 
 _client_tokens: dict = {}  # token -> {client_id, email, expires_at}
@@ -105,19 +112,28 @@ async def client_login(
             detail="Account is inactive. Please contact your CPA."
         )
 
-    # Generate client token
-    client_token = f"client_{secrets.token_urlsafe(32)}"
-    expires_at = datetime.utcnow() + timedelta(hours=24)
+    if get_jwt_secret is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service unavailable"
+        )
 
-    # Store token (in production, use Redis)
-    _client_tokens[client_token] = {
+    # Generate signed JWT token for client portal session.
+    expires_at = datetime.utcnow() + timedelta(hours=24)
+    issued_at = datetime.utcnow()
+    payload = {
+        "sub": str(client_row[0]),
         "client_id": str(client_row[0]),
         "email": client_row[3],
-        "first_name": client_row[1],
-        "last_name": client_row[2],
+        "name": f"{client_row[1]} {client_row[2]}".strip(),
+        "user_type": "client",
+        "role": "firm_client",
+        "type": "client_portal",
         "preparer_id": str(client_row[4]) if client_row[4] else None,
-        "expires_at": expires_at
+        "iat": issued_at,
+        "exp": expires_at,
     }
+    client_token = pyjwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
 
     logger.info(f"Client login: {email_lower}")
 
@@ -138,34 +154,43 @@ async def verify_client_token(
 
     Returns client info if token is valid.
     """
-    if not token or not token.startswith("client_"):
+    _ = session  # Session kept for compatibility and future DB-backed checks.
+
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token"
         )
 
-    # Check token in storage
+    payload = decode_token_safe(token) if decode_token_safe else None
+    if payload and payload.get("type") in {"client_portal", "access"}:
+        return {
+            "valid": True,
+            "client_id": str(payload.get("client_id") or payload.get("sub") or ""),
+            "name": payload.get("name", "Client"),
+            "email": payload.get("email", ""),
+        }
+
+    # Legacy compatibility path for old in-memory tokens.
     token_data = _client_tokens.get(token)
-    if not token_data:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token"
-        )
+    if token_data:
+        if datetime.utcnow() > token_data["expires_at"]:
+            del _client_tokens[token]
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has expired"
+            )
+        return {
+            "valid": True,
+            "client_id": token_data["client_id"],
+            "name": f"{token_data['first_name']} {token_data['last_name']}",
+            "email": token_data["email"]
+        }
 
-    # Check expiry
-    if datetime.utcnow() > token_data["expires_at"]:
-        del _client_tokens[token]
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired"
-        )
-
-    return {
-        "valid": True,
-        "client_id": token_data["client_id"],
-        "name": f"{token_data['first_name']} {token_data['last_name']}",
-        "email": token_data["email"]
-    }
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or expired token"
+    )
 
 
 # =============================================================================
@@ -198,27 +223,33 @@ async def get_current_client(
     # Extract token from Bearer header
     token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
 
-    if not token.startswith("client_"):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token format"
-        )
+    client_id = None
+    payload = decode_token_safe(token) if decode_token_safe else None
+    if payload and payload.get("type") in {"client_portal", "access"}:
+        role = str(payload.get("role", "")).lower()
+        user_type = str(payload.get("user_type", "")).lower()
+        if role not in {"firm_client", "direct_client"} and user_type not in {"client", "firm_client", "cpa_client"}:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token is not valid for client portal"
+            )
+        client_id = str(payload.get("client_id") or payload.get("sub") or "")
 
-    # Check token in storage
-    token_data = _client_tokens.get(token)
-    if not token_data:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token"
-        )
-
-    # Check expiry
-    if datetime.utcnow() > token_data["expires_at"]:
-        del _client_tokens[token]
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired"
-        )
+    # Legacy compatibility path for old in-memory tokens.
+    if client_id is None:
+        token_data = _client_tokens.get(token)
+        if not token_data:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired token"
+            )
+        if datetime.utcnow() > token_data["expires_at"]:
+            del _client_tokens[token]
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has expired"
+            )
+        client_id = token_data["client_id"]
 
     # Get full client info from database
     query = text("""
@@ -228,7 +259,7 @@ async def get_current_client(
         LEFT JOIN users u ON c.preparer_id = u.user_id
         WHERE c.client_id = :client_id
     """)
-    result = await session.execute(query, {"client_id": token_data["client_id"]})
+    result = await session.execute(query, {"client_id": client_id})
     row = result.fetchone()
 
     if not row:

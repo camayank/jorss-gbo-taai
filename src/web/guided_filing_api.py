@@ -5,8 +5,7 @@ Step-by-step tax filing workflow with progress tracking.
 Complements the unified filing API with guided-specific endpoints.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -16,26 +15,46 @@ import logging
 from decimal import Decimal, ROUND_HALF_UP
 from calculator.decimal_math import money, to_decimal
 
-try:
-    from rbac.dependencies import require_auth, AuthContext, optional_auth
-except ImportError:
-    class AuthContext:
-        user_id: Optional[str] = None
-        role: Any = None
-    def require_auth():
-        return AuthContext()
-    def optional_auth():
-        return AuthContext()
-
-try:
-    from database.session_persistence import get_session_persistence
-except ImportError:
-    def get_session_persistence():
-        raise HTTPException(500, "Session persistence not available")
+from rbac.dependencies import require_auth, optional_auth
+from rbac.context import AuthContext
+from database.session_persistence import get_session_persistence
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/filing/guided", tags=["guided-filing"])
+
+
+def _ctx_user_id(ctx: Optional[AuthContext]) -> Optional[str]:
+    """Get normalized user ID from auth context."""
+    if not ctx or not getattr(ctx, "user_id", None):
+        return None
+    return str(ctx.user_id)
+
+
+def _enforce_guided_access(ctx: Optional[AuthContext], session_data: Dict[str, Any]) -> None:
+    """Ensure authenticated users can only access their own guided sessions."""
+    session_user_id = session_data.get("user_id")
+    request_user_id = _ctx_user_id(ctx)
+
+    if request_user_id and session_user_id and request_user_id != session_user_id:
+        raise HTTPException(403, "Access denied")
+
+
+def _save_guided_session_state(
+    persistence: Any,
+    session_id: str,
+    session_data: Dict[str, Any],
+) -> None:
+    """Persist guided session state using compatibility session API."""
+    persistence.save_session_state(
+        session_id=session_id,
+        state_data=session_data,
+        tenant_id=session_data.get("tenant_id", "default"),
+        session_type="guided",
+        user_id=session_data.get("user_id"),
+        is_anonymous=bool(session_data.get("is_anonymous", session_data.get("user_id") is None)),
+        workflow_type="guided",
+    )
 
 
 # =============================================================================
@@ -172,7 +191,7 @@ GUIDED_STEPS = [
 @router.post("/start")
 async def start_guided_filing(
     request: StartGuidedRequest,
-    ctx: AuthContext = Depends(optional_auth)
+    ctx: Optional[AuthContext] = Depends(optional_auth)
 ) -> Dict[str, Any]:
     """
     Start a new guided filing session.
@@ -184,29 +203,26 @@ async def start_guided_filing(
 
         # Create a new session
         session_id = str(uuid.uuid4())
+        user_id = _ctx_user_id(ctx)
+        tenant_id = str(ctx.firm_id) if ctx and getattr(ctx, "firm_id", None) else "default"
 
         session_data = {
+            "session_id": session_id,
             "workflow_type": "guided",
             "tax_year": request.tax_year,
             "current_step": "personal",
             "completed_steps": [],
             "form_data": GuidedFormData().dict(),
             "created_at": datetime.utcnow().isoformat(),
-            "user_id": str(ctx.user_id) if ctx.user_id else None,
+            "updated_at": datetime.utcnow().isoformat(),
+            "last_updated": datetime.utcnow().isoformat(),
+            "user_id": user_id,
+            "is_anonymous": user_id is None,
+            "tenant_id": tenant_id,
         }
 
-        # Save session
-        from database.unified_session import UnifiedFilingSession
-
-        session = UnifiedFilingSession(
-            session_id=session_id,
-            workflow_type="guided",
-            tax_year=request.tax_year,
-            data=session_data,
-            tenant_id=str(ctx.firm_id) if hasattr(ctx, 'firm_id') and ctx.firm_id else "default",
-        )
-
-        persistence.save_session(session)
+        # Save session state
+        _save_guided_session_state(persistence, session_id, session_data)
 
         logger.info(f"[GUIDED] Started new session: {session_id}")
 
@@ -226,7 +242,7 @@ async def start_guided_filing(
 @router.get("/{session_id}/progress")
 async def get_progress(
     session_id: str,
-    ctx: AuthContext = Depends(optional_auth)
+    ctx: Optional[AuthContext] = Depends(optional_auth)
 ) -> Dict[str, Any]:
     """
     Get the current progress of a guided filing session.
@@ -235,19 +251,24 @@ async def get_progress(
     """
     try:
         persistence = get_session_persistence()
-        session = persistence.load_session(session_id)
-
-        if not session:
+        session_data = persistence.load_session_state(session_id)
+        if not session_data:
             raise HTTPException(404, "Session not found")
 
-        session_data = session.data or {}
+        _enforce_guided_access(ctx, session_data)
+
+        last_updated = (
+            session_data.get("last_updated")
+            or session_data.get("updated_at")
+            or session_data.get("created_at")
+        )
 
         return {
             "session_id": session_id,
             "currentStep": session_data.get("current_step", "personal"),
             "completedSteps": session_data.get("completed_steps", []),
             "formData": session_data.get("form_data", {}),
-            "lastUpdated": session.updated_at.isoformat() if session.updated_at else None,
+            "lastUpdated": last_updated,
             "steps": GUIDED_STEPS,
         }
 
@@ -262,7 +283,7 @@ async def get_progress(
 async def save_progress(
     session_id: str,
     request: SaveProgressRequest,
-    ctx: AuthContext = Depends(optional_auth)
+    ctx: Optional[AuthContext] = Depends(optional_auth)
 ) -> Dict[str, Any]:
     """
     Save progress for a guided filing step.
@@ -271,12 +292,15 @@ async def save_progress(
     """
     try:
         persistence = get_session_persistence()
-        session = persistence.load_session(session_id)
-
-        if not session:
+        session_data = persistence.load_session_state(session_id)
+        if not session_data:
             raise HTTPException(404, "Session not found")
 
-        session_data = session.data or {}
+        _enforce_guided_access(ctx, session_data)
+        request_user_id = _ctx_user_id(ctx)
+        if request_user_id and not session_data.get("user_id"):
+            session_data["user_id"] = request_user_id
+            session_data["is_anonymous"] = False
 
         # Update form data
         form_data = session_data.get("form_data", {})
@@ -297,10 +321,10 @@ async def save_progress(
 
         session_data["completed_steps"] = completed
         session_data["last_updated"] = datetime.utcnow().isoformat()
+        session_data["updated_at"] = datetime.utcnow().isoformat()
 
         # Save updated session
-        session.data = session_data
-        persistence.save_session(session)
+        _save_guided_session_state(persistence, session_id, session_data)
 
         logger.info(f"[GUIDED] Saved progress for {session_id} at step {request.step.value}")
 
@@ -330,12 +354,16 @@ async def submit_guided_return(
     """
     try:
         persistence = get_session_persistence()
-        session = persistence.load_session(session_id)
-
-        if not session:
+        session_data = persistence.load_session_state(session_id)
+        if not session_data:
             raise HTTPException(404, "Session not found")
 
-        session_data = session.data or {}
+        _enforce_guided_access(ctx, session_data)
+        request_user_id = str(ctx.user_id)
+        if not session_data.get("user_id"):
+            session_data["user_id"] = request_user_id
+            session_data["is_anonymous"] = False
+
         form_data = session_data.get("form_data", {})
 
         # Validate required fields
@@ -358,9 +386,9 @@ async def submit_guided_return(
         session_data["submitted_at"] = datetime.utcnow().isoformat()
         session_data["current_step"] = "complete"
         session_data["completed_steps"] = [s["id"] for s in GUIDED_STEPS]
-
-        session.data = session_data
-        persistence.save_session(session)
+        session_data["last_updated"] = datetime.utcnow().isoformat()
+        session_data["updated_at"] = datetime.utcnow().isoformat()
+        _save_guided_session_state(persistence, session_id, session_data)
 
         logger.info(f"[GUIDED] Submitted return for session {session_id}")
 
@@ -381,7 +409,7 @@ async def submit_guided_return(
 @router.get("/{session_id}/summary")
 async def get_summary(
     session_id: str,
-    ctx: AuthContext = Depends(optional_auth)
+    ctx: Optional[AuthContext] = Depends(optional_auth)
 ) -> Dict[str, Any]:
     """
     Get a summary of the guided filing return.
@@ -390,12 +418,11 @@ async def get_summary(
     """
     try:
         persistence = get_session_persistence()
-        session = persistence.load_session(session_id)
-
-        if not session:
+        session_data = persistence.load_session_state(session_id)
+        if not session_data:
             raise HTTPException(404, "Session not found")
 
-        session_data = session.data or {}
+        _enforce_guided_access(ctx, session_data)
         form_data = session_data.get("form_data", {})
 
         # Calculate totals
@@ -479,7 +506,7 @@ async def get_summary(
 async def validate_step(
     session_id: str,
     step: GuidedStep,
-    ctx: AuthContext = Depends(optional_auth)
+    ctx: Optional[AuthContext] = Depends(optional_auth)
 ) -> Dict[str, Any]:
     """
     Validate a specific step's data.
@@ -488,12 +515,11 @@ async def validate_step(
     """
     try:
         persistence = get_session_persistence()
-        session = persistence.load_session(session_id)
-
-        if not session:
+        session_data = persistence.load_session_state(session_id)
+        if not session_data:
             raise HTTPException(404, "Session not found")
 
-        session_data = session.data or {}
+        _enforce_guided_access(ctx, session_data)
         form_data = session_data.get("form_data", {})
 
         # Get step definition

@@ -16,14 +16,140 @@ import uuid
 import json
 import logging
 import sqlite3
+import os
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any, Tuple
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, date
 from enum import Enum
 from pathlib import Path
+from urllib.parse import parse_qsl, urlencode, urlparse
 
+from config.database import get_database_settings
+from ..config.lead_magnet_score_config import SCORE_BENCHMARKS, get_score_weights
 logger = logging.getLogger(__name__)
+
+try:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+except Exception:  # pragma: no cover - optional runtime dependency path
+    psycopg2 = None
+    RealDictCursor = None
+
+
+STATE_DISPLAY_NAMES: Dict[str, str] = {
+    "AL": "Alabama",
+    "AK": "Alaska",
+    "AZ": "Arizona",
+    "AR": "Arkansas",
+    "CA": "California",
+    "CO": "Colorado",
+    "CT": "Connecticut",
+    "DE": "Delaware",
+    "FL": "Florida",
+    "GA": "Georgia",
+    "HI": "Hawaii",
+    "ID": "Idaho",
+    "IL": "Illinois",
+    "IN": "Indiana",
+    "IA": "Iowa",
+    "KS": "Kansas",
+    "KY": "Kentucky",
+    "LA": "Louisiana",
+    "ME": "Maine",
+    "MD": "Maryland",
+    "MA": "Massachusetts",
+    "MI": "Michigan",
+    "MN": "Minnesota",
+    "MS": "Mississippi",
+    "MO": "Missouri",
+    "MT": "Montana",
+    "NE": "Nebraska",
+    "NV": "Nevada",
+    "NH": "New Hampshire",
+    "NJ": "New Jersey",
+    "NM": "New Mexico",
+    "NY": "New York",
+    "NC": "North Carolina",
+    "ND": "North Dakota",
+    "OH": "Ohio",
+    "OK": "Oklahoma",
+    "OR": "Oregon",
+    "PA": "Pennsylvania",
+    "RI": "Rhode Island",
+    "SC": "South Carolina",
+    "SD": "South Dakota",
+    "TN": "Tennessee",
+    "TX": "Texas",
+    "UT": "Utah",
+    "VT": "Vermont",
+    "VA": "Virginia",
+    "WA": "Washington",
+    "WV": "West Virginia",
+    "WI": "Wisconsin",
+    "WY": "Wyoming",
+    "DC": "District of Columbia",
+}
+
+HIGH_TAX_STATES = {"CA", "NY", "NJ", "OR", "MN", "HI", "MA", "VT", "DC"}
+PROPERTY_TAX_HEAVY_STATES = {"TX", "NJ", "IL", "CT", "NH", "VT"}
+
+
+class _DbCursorAdapter:
+    """Normalize sqlite/postgres cursor behavior for existing query code."""
+
+    def __init__(self, cursor: Any, is_postgres: bool):
+        self._cursor = cursor
+        self._is_postgres = is_postgres
+
+    @staticmethod
+    def _normalize_query(query: str, is_postgres: bool) -> str:
+        if not is_postgres:
+            return query
+        # Existing service queries use sqlite-style '?' placeholders.
+        return query.replace("?", "%s")
+
+    def execute(self, query: str, params: Optional[Tuple[Any, ...]] = None):
+        normalized_query = self._normalize_query(query, self._is_postgres)
+        if params is None:
+            self._cursor.execute(normalized_query)
+        else:
+            self._cursor.execute(normalized_query, params)
+        return self
+
+    def fetchone(self):
+        return self._cursor.fetchone()
+
+    def fetchall(self):
+        return self._cursor.fetchall()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._cursor, name)
+
+
+class _DbConnectionAdapter:
+    """Wrap native DB connections with a consistent cursor() contract."""
+
+    def __init__(self, connection: Any, is_postgres: bool):
+        self._connection = connection
+        self._is_postgres = is_postgres
+
+    def cursor(self) -> _DbCursorAdapter:
+        if self._is_postgres:
+            return _DbCursorAdapter(
+                self._connection.cursor(cursor_factory=RealDictCursor),
+                is_postgres=True,
+            )
+        return _DbCursorAdapter(self._connection.cursor(), is_postgres=False)
+
+    def commit(self) -> None:
+        self._connection.commit()
+
+    def rollback(self) -> None:
+        self._connection.rollback()
+
+    def close(self) -> None:
+        self._connection.close()
 
 
 # =============================================================================
@@ -136,6 +262,8 @@ class CPAProfile:
 class TaxProfile:
     """Smart tax profile from quick questions."""
     filing_status: FilingStatus = FilingStatus.SINGLE
+    state_code: str = "US"
+    occupation_type: str = "w2"
     dependents_count: int = 0
     children_under_17: bool = False
     income_range: str = "50k-75k"  # Slider value
@@ -150,6 +278,8 @@ class TaxProfile:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "filing_status": self.filing_status.value,
+            "state_code": self.state_code,
+            "occupation_type": self.occupation_type,
             "dependents_count": self.dependents_count,
             "children_under_17": self.children_under_17,
             "income_range": self.income_range,
@@ -182,6 +312,8 @@ class TaxProfile:
 
         return cls(
             filing_status=FilingStatus(data.get("filing_status", "single")),
+            state_code=(data.get("state_code") or "US").upper(),
+            occupation_type=data.get("occupation_type", "w2"),
             dependents_count=data.get("dependents_count", 0),
             children_under_17=data.get("children_under_17", False),
             income_range=data.get("income_range", "50k-75k"),
@@ -249,6 +381,11 @@ class LeadMagnetSession:
     last_activity: datetime = field(default_factory=datetime.utcnow)
     time_spent_seconds: int = 0
     referral_source: Optional[str] = None
+    variant_id: str = "A"
+    utm_source: Optional[str] = None
+    utm_medium: Optional[str] = None
+    utm_campaign: Optional[str] = None
+    device_type: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -262,6 +399,12 @@ class LeadMagnetSession:
             "contact_captured": self.contact_captured,
             "started_at": self.started_at.isoformat(),
             "time_spent_seconds": self.time_spent_seconds,
+            "referral_source": self.referral_source,
+            "variant_id": self.variant_id,
+            "utm_source": self.utm_source,
+            "utm_medium": self.utm_medium,
+            "utm_campaign": self.utm_campaign,
+            "device_type": self.device_type,
         }
 
 
@@ -357,14 +500,170 @@ class LeadMagnetService:
         self._leads: Dict[str, LeadMagnetLead] = {}
         self._cpa_profiles: Dict[str, CPAProfile] = {}
         self._default_cpa = self._create_default_cpa()
+        self._db_settings = get_database_settings()
+        self._db_backend = "postgres" if self._db_settings.is_postgres else "sqlite"
+        # Keep SQLite fallback aligned with shared DB settings while honoring
+        # test/runtime overrides and legacy local data paths.
+        configured_sqlite_path = Path(self._db_settings.sqlite_path).expanduser()
+        override_sqlite_path = os.environ.get("DATABASE_PATH", "").strip()
+        legacy_sqlite_path = Path(__file__).parent.parent.parent / "database" / "jorss_gbo.db"
+
+        if override_sqlite_path:
+            self._sqlite_db_path = Path(override_sqlite_path).expanduser()
+        elif (
+            configured_sqlite_path.exists()
+            and self._sqlite_has_table(configured_sqlite_path, "lead_magnet_sessions")
+        ):
+            self._sqlite_db_path = configured_sqlite_path
+        elif legacy_sqlite_path.exists():
+            self._sqlite_db_path = legacy_sqlite_path
+        else:
+            self._sqlite_db_path = configured_sqlite_path
+        if self._db_backend == "sqlite":
+            self._ensure_event_table()
+            self._ensure_session_columns()
 
     def _get_db_connection(self):
         """Get database connection."""
-        db_path = Path(__file__).parent.parent.parent / "database" / "jorss_gbo.db"
-        db_path.parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(str(db_path))
+        if self._db_backend == "postgres":
+            if psycopg2 is None or RealDictCursor is None:
+                raise RuntimeError(
+                    "PostgreSQL backend selected but psycopg2 is unavailable."
+                )
+            sync_url = self._db_settings.sync_url
+            # psycopg2 accepts a PostgreSQL URI, not SQLAlchemy dialect+driver format.
+            if sync_url.startswith("postgresql+psycopg2://"):
+                sync_url = sync_url.replace("postgresql+psycopg2://", "postgresql://", 1)
+            conn = psycopg2.connect(sync_url)
+            return _DbConnectionAdapter(conn, is_postgres=True)
+
+        self._sqlite_db_path.parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(str(self._sqlite_db_path))
         conn.row_factory = sqlite3.Row
-        return conn
+        return _DbConnectionAdapter(conn, is_postgres=False)
+
+    def _sqlite_has_table(self, db_path: Path, table_name: str) -> bool:
+        """Return True when a SQLite database file already contains a table."""
+        try:
+            conn = sqlite3.connect(str(db_path))
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
+                (table_name,),
+            )
+            exists = cursor.fetchone() is not None
+            conn.close()
+            return exists
+        except Exception:
+            return False
+
+    def _ensure_event_table(self):
+        """Ensure analytics event table exists for funnel instrumentation."""
+        if self._db_backend == "postgres":
+            return
+        try:
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS lead_magnet_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    event_id TEXT UNIQUE NOT NULL,
+                    session_id TEXT NOT NULL,
+                    cpa_id TEXT,
+                    event_name TEXT NOT NULL,
+                    step TEXT,
+                    variant_id TEXT,
+                    utm_source TEXT,
+                    utm_medium TEXT,
+                    utm_campaign TEXT,
+                    device_type TEXT,
+                    metadata_json TEXT DEFAULT '{}',
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_lead_magnet_events_session
+                ON lead_magnet_events(session_id, created_at DESC)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_lead_magnet_events_name
+                ON lead_magnet_events(event_name, created_at DESC)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_lead_magnet_events_variant
+                ON lead_magnet_events(variant_id, created_at DESC)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_lead_magnet_events_utm_source
+                ON lead_magnet_events(utm_source, created_at DESC)
+            """)
+            self._ensure_column(
+                cursor,
+                table_name="lead_magnet_events",
+                column_name="variant_id",
+                column_def="TEXT",
+            )
+            self._ensure_column(
+                cursor,
+                table_name="lead_magnet_events",
+                column_name="utm_source",
+                column_def="TEXT",
+            )
+            self._ensure_column(
+                cursor,
+                table_name="lead_magnet_events",
+                column_name="utm_medium",
+                column_def="TEXT",
+            )
+            self._ensure_column(
+                cursor,
+                table_name="lead_magnet_events",
+                column_name="utm_campaign",
+                column_def="TEXT",
+            )
+            self._ensure_column(
+                cursor,
+                table_name="lead_magnet_events",
+                column_name="device_type",
+                column_def="TEXT",
+            )
+            conn.commit()
+            conn.close()
+        except Exception as exc:
+            logger.warning("Failed to ensure lead_magnet_events table: %s", exc)
+
+    def _ensure_column(
+        self,
+        cursor: sqlite3.Cursor,
+        table_name: str,
+        column_name: str,
+        column_def: str,
+    ) -> None:
+        """Idempotently add a column to a SQLite table if missing."""
+        try:
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            columns = {row[1] for row in cursor.fetchall()}
+            if column_name not in columns:
+                cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}")
+        except Exception as exc:
+            logger.debug("Skipping ensure column %s.%s: %s", table_name, column_name, exc)
+
+    def _ensure_session_columns(self):
+        """Ensure lead_magnet_sessions has experiment and attribution columns."""
+        if self._db_backend == "postgres":
+            return
+        try:
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+            self._ensure_column(cursor, "lead_magnet_sessions", "variant_id", "TEXT DEFAULT 'A'")
+            self._ensure_column(cursor, "lead_magnet_sessions", "utm_source", "TEXT")
+            self._ensure_column(cursor, "lead_magnet_sessions", "utm_medium", "TEXT")
+            self._ensure_column(cursor, "lead_magnet_sessions", "utm_campaign", "TEXT")
+            self._ensure_column(cursor, "lead_magnet_sessions", "device_type", "TEXT")
+            conn.commit()
+            conn.close()
+        except Exception as exc:
+            logger.debug("Could not ensure lead_magnet_sessions columns: %s", exc)
 
     def _create_default_cpa(self) -> CPAProfile:
         """Create a default CPA profile for unbranded sessions."""
@@ -376,6 +675,19 @@ class LeadMagnetService:
             credentials="CPA",
             firm_name="Tax Advisory Services",
         )
+
+    def _persistable_cpa_id(self, cpa_profile: Optional[CPAProfile]) -> Optional[str]:
+        """
+        Return a database-safe CPA id.
+
+        The fallback default profile is in-memory only, so it should not be
+        written into FK-constrained PostgreSQL tables.
+        """
+        if not cpa_profile:
+            return None
+        if cpa_profile.cpa_id == self._default_cpa.cpa_id:
+            return None
+        return cpa_profile.cpa_id
 
     # =========================================================================
     # CPA PROFILE MANAGEMENT
@@ -390,7 +702,7 @@ class LeadMagnetService:
             conn = self._get_db_connection()
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM cpa_profiles WHERE cpa_slug = ? AND active = 1",
+                "SELECT * FROM cpa_profiles WHERE cpa_slug = ? AND active = TRUE",
                 (cpa_slug,)
             )
             row = cursor.fetchone()
@@ -465,7 +777,7 @@ class LeadMagnetService:
                     address, bio, specialties_json
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                cpa_id, cpa_slug, profile.first_name, profile.last_name,
+                cpa_id, final_slug, profile.first_name, profile.last_name,
                 profile.credentials, profile.firm_name, profile.logo_url,
                 profile.email, profile.phone, profile.booking_link,
                 profile.address, profile.bio, json.dumps(profile.specialties),
@@ -484,6 +796,29 @@ class LeadMagnetService:
         slug = "".join(c if c.isalnum() or c == "-" else "-" for c in slug)
         return slug
 
+    def _extract_utm_from_referral(self, referral_source: Optional[str]) -> Dict[str, Optional[str]]:
+        """Extract UTM parameters from a referral URL if available."""
+        if not referral_source:
+            return {
+                "utm_source": None,
+                "utm_medium": None,
+                "utm_campaign": None,
+            }
+        try:
+            parsed = urlparse(referral_source)
+            params = dict(parse_qsl(parsed.query))
+            return {
+                "utm_source": params.get("utm_source"),
+                "utm_medium": params.get("utm_medium"),
+                "utm_campaign": params.get("utm_campaign"),
+            }
+        except Exception:
+            return {
+                "utm_source": None,
+                "utm_medium": None,
+                "utm_campaign": None,
+            }
+
     # =========================================================================
     # ASSESSMENT SESSION MANAGEMENT
     # =========================================================================
@@ -493,6 +828,11 @@ class LeadMagnetService:
         cpa_slug: Optional[str] = None,
         assessment_mode: str = "quick",
         referral_source: Optional[str] = None,
+        variant_id: Optional[str] = None,
+        utm_source: Optional[str] = None,
+        utm_medium: Optional[str] = None,
+        utm_campaign: Optional[str] = None,
+        device_type: Optional[str] = None,
     ) -> LeadMagnetSession:
         """
         Start a new assessment session with CPA branding.
@@ -516,6 +856,10 @@ class LeadMagnetService:
             cpa_profile = self._default_cpa
 
         mode = AssessmentMode.QUICK if assessment_mode == "quick" else AssessmentMode.FULL
+        inferred_utm = self._extract_utm_from_referral(referral_source)
+        final_utm_source = utm_source or inferred_utm["utm_source"]
+        final_utm_medium = utm_medium or inferred_utm["utm_medium"]
+        final_utm_campaign = utm_campaign or inferred_utm["utm_campaign"]
 
         session = LeadMagnetSession(
             session_id=session_id,
@@ -523,24 +867,36 @@ class LeadMagnetService:
             assessment_mode=mode,
             current_screen="welcome",
             referral_source=referral_source,
+            variant_id=(variant_id or "A").upper(),
+            utm_source=final_utm_source,
+            utm_medium=final_utm_medium,
+            utm_campaign=final_utm_campaign,
+            device_type=device_type,
         )
 
         # Persist to database
         try:
             conn = self._get_db_connection()
             cursor = conn.cursor()
+            stored_cpa_id = self._persistable_cpa_id(cpa_profile)
             cursor.execute("""
                 INSERT INTO lead_magnet_sessions (
                     session_id, cpa_id, cpa_slug, assessment_mode,
-                    current_screen, referral_source
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                    current_screen, referral_source, variant_id,
+                    utm_source, utm_medium, utm_campaign, device_type
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 session_id,
-                cpa_profile.cpa_id,
+                stored_cpa_id,
                 cpa_profile.cpa_slug,
                 mode.value,
                 "welcome",
                 referral_source,
+                session.variant_id,
+                final_utm_source,
+                final_utm_medium,
+                final_utm_campaign,
+                device_type,
             ))
             conn.commit()
             conn.close()
@@ -582,6 +938,11 @@ class LeadMagnetService:
                     contact_captured=bool(row["contact_captured"]),
                     time_spent_seconds=row["time_spent_seconds"] or 0,
                     referral_source=row["referral_source"],
+                    variant_id=row["variant_id"] if "variant_id" in row.keys() and row["variant_id"] else "A",
+                    utm_source=row["utm_source"] if "utm_source" in row.keys() else None,
+                    utm_medium=row["utm_medium"] if "utm_medium" in row.keys() else None,
+                    utm_campaign=row["utm_campaign"] if "utm_campaign" in row.keys() else None,
+                    device_type=row["device_type"] if "device_type" in row.keys() else None,
                 )
                 self._sessions[session_id] = session
                 return session
@@ -614,6 +975,92 @@ class LeadMagnetService:
             logger.error(f"Failed to update session screen: {e}")
 
         return session
+
+    def track_event(
+        self,
+        session_id: str,
+        event_name: str,
+        step: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        variant_id: Optional[str] = None,
+        utm_source: Optional[str] = None,
+        utm_medium: Optional[str] = None,
+        utm_campaign: Optional[str] = None,
+        device_type: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Persist a funnel analytics event.
+
+        This powers launch KPIs:
+        - start
+        - step_complete
+        - drop_off
+        - lead_submit
+        - report_view
+        """
+        session = self.get_session(session_id)
+        if not session:
+            raise ValueError(f"Session {session_id} not found")
+
+        event_id = f"evt-{uuid.uuid4().hex[:12]}"
+        created_at = datetime.utcnow().isoformat()
+        safe_metadata = metadata or {}
+        derived_variant = (
+            variant_id
+            or safe_metadata.get("variant_id")
+            or safe_metadata.get("hero_variant")
+            or session.variant_id
+            or "A"
+        )
+        derived_utm_source = utm_source or safe_metadata.get("utm_source") or session.utm_source
+        derived_utm_medium = utm_medium or safe_metadata.get("utm_medium") or session.utm_medium
+        derived_utm_campaign = utm_campaign or safe_metadata.get("utm_campaign") or session.utm_campaign
+        derived_device = device_type or safe_metadata.get("device_type") or safe_metadata.get("device") or session.device_type
+
+        try:
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO lead_magnet_events (
+                    event_id, session_id, cpa_id, event_name, step, variant_id,
+                    utm_source, utm_medium, utm_campaign, device_type, metadata_json, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                event_id,
+                session_id,
+                self._persistable_cpa_id(session.cpa_profile),
+                event_name,
+                step,
+                derived_variant,
+                derived_utm_source,
+                derived_utm_medium,
+                derived_utm_campaign,
+                derived_device,
+                json.dumps(safe_metadata),
+                created_at,
+            ))
+            conn.commit()
+            conn.close()
+        except Exception as exc:
+            logger.error("Failed to persist lead magnet event: %s", exc)
+            raise
+
+        if step:
+            self.update_session_screen(session_id, step)
+
+        logger.debug("Tracked lead-magnet event %s for session %s", event_name, session_id)
+        return {
+            "event_id": event_id,
+            "session_id": session_id,
+            "event_name": event_name,
+            "step": step,
+            "variant_id": derived_variant,
+            "utm_source": derived_utm_source,
+            "utm_medium": derived_utm_medium,
+            "utm_campaign": derived_utm_campaign,
+            "device_type": derived_device,
+            "created_at": created_at,
+        }
 
     # =========================================================================
     # PROFILE SUBMISSION & COMPLEXITY DETECTION
@@ -656,7 +1103,7 @@ class LeadMagnetService:
             cursor.execute("""
                 UPDATE lead_magnet_sessions SET
                     profile_data_json = ?,
-                    current_screen = 'contact',
+                    current_screen = 'teaser',
                     last_activity = ?
                 WHERE session_id = ?
             """, (json.dumps(profile_data), datetime.utcnow().isoformat(), session_id))
@@ -736,7 +1183,11 @@ class LeadMagnetService:
             "100k_150k": 125000,
             "150k_200k": 175000,
             "200k_500k": 350000,
+            "over_200k": 350000,
             "over_500k": 750000,
+            # Transitional format
+            "50k_100k": 87500,
+            "100k_200k": 175000,
             # Legacy format (normalized)
             "0_25k": 12500,
             "25k_50k": 37500,
@@ -989,6 +1440,311 @@ class LeadMagnetService:
             else:
                 return 0.32
 
+    def _normalize_state_code(self, state_code: Optional[str]) -> str:
+        """Normalize a state code and return US for unknown values."""
+        normalized = (state_code or "US").strip().upper()
+        if normalized in STATE_DISPLAY_NAMES:
+            return normalized
+        return "US"
+
+    def _filing_status_display(self, filing_status: FilingStatus) -> str:
+        mapping = {
+            FilingStatus.SINGLE: "single filers",
+            FilingStatus.MARRIED_JOINTLY: "married filers",
+            FilingStatus.MARRIED_SEPARATELY: "married-separate filers",
+            FilingStatus.HEAD_OF_HOUSEHOLD: "head-of-household filers",
+            FilingStatus.QUALIFYING_WIDOW: "qualifying surviving spouse filers",
+        }
+        return mapping.get(filing_status, "taxpayers")
+
+    def _income_range_display(self, income_range: str) -> str:
+        mapping = {
+            "under_50k": "under $50K",
+            "50k_75k": "$50K-$75K",
+            "75k_100k": "$75K-$100K",
+            "100k_150k": "$100K-$150K",
+            "150k_200k": "$150K-$200K",
+            "200k_500k": "$200K-$500K",
+            "over_500k": "over $500K",
+            "50k_100k": "$50K-$100K",
+            "100k_200k": "$100K-$200K",
+            "over_200k": "over $200K",
+        }
+        return mapping.get(income_range, income_range)
+
+    def _normalize_occupation_type(self, occupation_type: Optional[str], profile: Optional[TaxProfile] = None) -> str:
+        """Normalize occupation type to a controlled taxonomy."""
+        normalized = (occupation_type or "").strip().lower().replace("-", "_").replace(" ", "_")
+        allowed = {"w2", "self_employed", "business_owner", "investor", "mixed"}
+        if normalized in allowed:
+            return normalized
+
+        if profile:
+            sources = {s.value if hasattr(s, "value") else str(s) for s in profile.income_sources}
+            if "self_employed" in sources or profile.has_business:
+                return "business_owner"
+            if "investments" in sources and len(sources) > 1:
+                return "mixed"
+            if "investments" in sources:
+                return "investor"
+
+        return "w2"
+
+    def _occupation_display(self, profile: TaxProfile) -> str:
+        normalized = self._normalize_occupation_type(profile.occupation_type, profile)
+        mapping = {
+            "w2": "W-2 households",
+            "self_employed": "self-employed households",
+            "business_owner": "business-owner households",
+            "investor": "investor households",
+            "mixed": "mixed-income households",
+        }
+        return mapping.get(normalized, "W-2 households")
+
+    def _build_personalization_payload(
+        self,
+        profile: Optional[TaxProfile],
+        complexity: TaxComplexity,
+        savings_low: float,
+        savings_high: float,
+    ) -> Dict[str, Any]:
+        """Build taxpayer-facing personalization tokens used across funnel steps."""
+        if not profile:
+            return {
+                "line": "Your answers suggest meaningful tax optimization opportunities.",
+                "tokens": {},
+            }
+
+        state_code = self._normalize_state_code(profile.state_code)
+        state_name = STATE_DISPLAY_NAMES.get(state_code, "your state")
+        filing_label = self._filing_status_display(profile.filing_status)
+        occupation_label = self._occupation_display(profile)
+        income_label = self._income_range_display(profile.income_range)
+        complexity_label = complexity.value.replace("_", " ").title()
+        avg_savings = int(round((savings_low + savings_high) / 2)) if (savings_low or savings_high) else 0
+
+        line = (
+            f"For {filing_label} and {occupation_label} in {state_name} with {income_label} income, "
+            f"profiles like yours commonly miss around ${avg_savings:,.0f} in savings."
+        )
+
+        return {
+            "line": line,
+            "tokens": {
+                "occupation_type": self._normalize_occupation_type(profile.occupation_type, profile),
+                "filing_status": profile.filing_status.value,
+                "filing_status_label": filing_label,
+                "occupation_type_label": occupation_label,
+                "state_code": state_code,
+                "state_name": state_name,
+                "income_range_label": income_label,
+                "complexity_label": complexity_label,
+                "avg_missed_savings": avg_savings,
+            },
+        }
+
+    def _build_deadline_payload(self) -> Dict[str, Any]:
+        """
+        Build deadline urgency context for tax-season-aware messaging.
+        Uses the next April 15 filing deadline.
+        """
+        today = date.today()
+        deadline = date(today.year, 4, 15)
+        if today > deadline:
+            deadline = date(today.year + 1, 4, 15)
+
+        days_remaining = (deadline - today).days
+        if days_remaining <= 30:
+            urgency = "critical"
+        elif days_remaining <= 75:
+            urgency = "high"
+        elif days_remaining <= 150:
+            urgency = "moderate"
+        else:
+            urgency = "planning"
+
+        if urgency == "critical":
+            message = f"Tax deadline in {days_remaining} days. High-impact moves should be prioritized now."
+        elif urgency == "high":
+            message = f"{days_remaining} days until the tax deadline. There is still time to lock in savings."
+        elif urgency == "moderate":
+            message = f"{days_remaining} days to filing day. This is the best window for proactive planning."
+        else:
+            message = f"{days_remaining} days until the next filing deadline. Planning early increases tax control."
+
+        return {
+            "deadline_date": deadline.isoformat(),
+            "deadline_display": deadline.strftime("%b %d, %Y"),
+            "days_remaining": days_remaining,
+            "urgency": urgency,
+            "message": message,
+        }
+
+    def _build_comparison_chart_payload(
+        self,
+        savings_low: float,
+        savings_high: float,
+        score_overall: int,
+    ) -> Dict[str, Any]:
+        """Build chart payload for teaser/report comparison visualizations."""
+        missed_mid = max(0, int(round((savings_low + savings_high) / 2)))
+        current_path = max(1200, int(round(missed_mid * 2.2)))
+        optimized_path = max(0, current_path - missed_mid)
+        optimized_pct = int(round((optimized_path / current_path) * 100)) if current_path else 0
+
+        return {
+            "bars": [
+                {"label": "Current Tax Path", "value": current_path},
+                {"label": "Optimized Path", "value": optimized_path},
+            ],
+            "waterfall": [
+                {"label": "Current Path", "value": current_path, "kind": "base"},
+                {"label": "Missed Savings", "value": -missed_mid, "kind": "delta"},
+                {"label": "Optimized Path", "value": optimized_path, "kind": "total"},
+            ],
+            "score_to_savings_ratio": round(missed_mid / max(score_overall, 1), 2),
+            "optimized_vs_current_percent": optimized_pct,
+        }
+
+    def _build_strategy_waterfall_payload(
+        self,
+        insights: List[TaxInsight],
+        limit: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """
+        Build canonical strategy waterfall payload consumed by teaser/report templates.
+
+        Contract:
+        {
+            "bars": [{"label", "value", "percent", "cumulative"}],
+            "total_value": int,
+            "currency": "USD"
+        }
+        """
+        selected = insights[:limit] if isinstance(limit, int) and limit > 0 else insights
+        impacts: List[Tuple[str, int]] = []
+        for insight in selected:
+            value = int(round((insight.savings_low + insight.savings_high) / 2))
+            impacts.append((insight.title, max(0, value)))
+
+        max_value = max((value for _, value in impacts), default=0)
+        running_total = 0
+        bars: List[Dict[str, Any]] = []
+        for label, value in impacts:
+            running_total += value
+            percent = int(round((value / max_value) * 100)) if max_value > 0 else 0
+            bars.append({
+                "label": label,
+                "value": value,
+                "percent": percent,
+                "cumulative": running_total,
+            })
+
+        return {
+            "bars": bars,
+            "total_value": running_total,
+            "currency": "USD",
+        }
+
+    def _build_tax_calendar_payload(self, max_items: int = 5) -> List[Dict[str, Any]]:
+        """
+        Build dynamic taxpayer calendar events relative to current date.
+        Never hardcodes year and always returns month/day display fields.
+        """
+        today = date.today()
+        years = (today.year, today.year + 1)
+        candidates: List[Tuple[date, str, str]] = []
+
+        for year in years:
+            candidates.extend([
+                (
+                    date(year, 1, 15),
+                    "Q4 Estimated Tax Payment Due",
+                    "Fourth-quarter estimated payment deadline.",
+                ),
+                (
+                    date(year, 4, 15),
+                    "Federal Filing Deadline",
+                    "File return or extension; IRA/HSA contribution deadline.",
+                ),
+                (
+                    date(year, 6, 15),
+                    "Q2 Estimated Tax Payment Due",
+                    "Second-quarter estimated payment deadline.",
+                ),
+                (
+                    date(year, 9, 15),
+                    "Q3 Estimated Tax Payment Due",
+                    "Third-quarter estimated payment deadline.",
+                ),
+                (
+                    date(year, 10, 15),
+                    "Extension Filing Deadline",
+                    "Extended individual return due date.",
+                ),
+            ])
+
+        upcoming = sorted(
+            [entry for entry in candidates if entry[0] >= today],
+            key=lambda entry: entry[0],
+        )[:max_items]
+
+        payload: List[Dict[str, Any]] = []
+        for entry_date, title, description in upcoming:
+            days_remaining = (entry_date - today).days
+            if days_remaining <= 7:
+                urgency = "critical"
+            elif days_remaining <= 30:
+                urgency = "high"
+            elif days_remaining <= 60:
+                urgency = "moderate"
+            else:
+                urgency = "low"
+            payload.append({
+                "date_iso": entry_date.isoformat(),
+                "month": entry_date.strftime("%b"),
+                "day": entry_date.strftime("%d"),
+                "title": title,
+                "description": description,
+                "days_remaining": days_remaining,
+                "urgency": urgency,
+            })
+
+        return payload
+
+    def _build_share_payload(
+        self,
+        session_id: str,
+        score_overall: int,
+        score_band: str,
+        state_code: str,
+        cpa_slug: Optional[str] = None,
+        estimated_savings: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Build share text/url payload for organic funnel distribution."""
+        share_text = (
+            f"My Tax Health Score is {score_overall}/100 ({score_band}). "
+            f"I found hidden tax opportunities in {state_code}. Check your score."
+        )
+        if cpa_slug:
+            share_url = f"/lead-magnet/?cpa={cpa_slug}&share=1&score={score_overall}"
+        else:
+            share_url = f"/lead-magnet/?share=1&score={score_overall}"
+        share_image_params = {
+            "score": int(score_overall),
+            "band": score_band,
+        }
+        if cpa_slug:
+            share_image_params["cpa"] = cpa_slug
+        if estimated_savings and estimated_savings > 0:
+            share_image_params["savings"] = f"${estimated_savings:,.0f}"
+        share_image_url = f"/lead-magnet/share-card.svg?{urlencode(share_image_params)}"
+        return {
+            "text": share_text,
+            "url": share_url,
+            "image_url": share_image_url,
+        }
+
     # =========================================================================
     # CONTACT CAPTURE & LEAD CREATION
     # =========================================================================
@@ -1039,7 +1795,7 @@ class LeadMagnetService:
         lead = LeadMagnetLead(
             lead_id=lead_id,
             session_id=session_id,
-            cpa_id=session.cpa_profile.cpa_id if session.cpa_profile else None,
+            cpa_id=self._persistable_cpa_id(session.cpa_profile),
             first_name=first_name,
             email=email,
             phone=phone,
@@ -1062,7 +1818,7 @@ class LeadMagnetService:
             # Update session
             cursor.execute("""
                 UPDATE lead_magnet_sessions SET
-                    contact_captured = 1,
+                    contact_captured = TRUE,
                     current_screen = 'report',
                     completed_at = ?,
                     last_activity = ?
@@ -1230,6 +1986,178 @@ class LeadMagnetService:
 
         return score, temperature, engagement_value
 
+    def _build_tax_health_score(
+        self,
+        profile: Optional[TaxProfile],
+        complexity: TaxComplexity,
+        insights: List[TaxInsight],
+        savings_low: float,
+        savings_high: float,
+    ) -> Dict[str, Any]:
+        """
+        Build proprietary Tax Health Score with explainable sub-scores.
+
+        Lower score => larger optimization gap / urgency to consult CPA.
+        """
+        source_values = {
+            s.value if hasattr(s, "value") else str(s)
+            for s in (profile.income_sources if profile else [])
+        }
+        life_events = {
+            e.value if hasattr(e, "value") else str(e)
+            for e in (profile.life_events if profile else [])
+        }
+        state_code = self._normalize_state_code(profile.state_code if profile else None)
+
+        opportunity_pressure = min(42, len(insights) * 4)
+        opportunity_pressure += min(18, int(savings_high / 3000)) if savings_high else 0
+        deduction_score = max(30, 88 - opportunity_pressure)
+
+        structure_score = 84
+        if "self_employed" in source_values or (profile and profile.has_business):
+            structure_score -= 18
+        if "rental" in source_values:
+            structure_score -= 7
+        if profile and profile.filing_status == FilingStatus.MARRIED_SEPARATELY:
+            structure_score -= 6
+        structure_score = max(30, structure_score)
+
+        timing_score = 82
+        if "investments" in source_values:
+            timing_score -= 10
+        if "new_job" in life_events or "business_start" in life_events:
+            timing_score -= 8
+        if profile and profile.retirement_savings == "none":
+            timing_score -= 8
+        timing_score = max(30, timing_score)
+
+        risk_map = {
+            TaxComplexity.SIMPLE: 86,
+            TaxComplexity.MODERATE: 72,
+            TaxComplexity.COMPLEX: 60,
+            TaxComplexity.PROFESSIONAL: 52,
+        }
+        risk_score = max(30, risk_map.get(complexity, 70))
+
+        confidence_points = 44
+        if profile:
+            confidence_points += 8 if profile.filing_status else 0
+            confidence_points += 8 if profile.income_range else 0
+            confidence_points += min(12, len(source_values) * 4)
+            confidence_points += 7 if (profile.is_homeowner or profile.children_under_17) else 0
+            confidence_points += 5 if profile.retirement_savings else 0
+            confidence_points += 5 if state_code != "US" else 0
+        confidence_score = min(92, max(38, confidence_points))
+
+        state_tax_score = 82
+        if state_code in HIGH_TAX_STATES:
+            state_tax_score -= 11
+        if state_code in PROPERTY_TAX_HEAVY_STATES and profile and profile.is_homeowner:
+            state_tax_score -= 8
+        if "self_employed" in source_values and state_code in {"CA", "NY", "NJ", "MA", "OR"}:
+            state_tax_score -= 6
+        state_tax_score = max(30, state_tax_score)
+
+        weights = get_score_weights()
+        overall = int(round(
+            (deduction_score * weights["deduction_optimization"]) +
+            (structure_score * weights["entity_structure"]) +
+            (timing_score * weights["timing_strategy"]) +
+            (risk_score * weights["compliance_risk"]) +
+            (state_tax_score * weights["state_tax_efficiency"]) +
+            (confidence_score * weights["confidence"])
+        ))
+        overall = max(28, min(95, overall))
+
+        if overall >= 80:
+            band = "Strong"
+            band_color = "green"
+        elif overall >= 65:
+            band = "Watchlist"
+            band_color = "amber"
+        elif overall >= 50:
+            band = "Needs Attention"
+            band_color = "orange"
+        else:
+            band = "High Opportunity"
+            band_color = "red"
+
+        subscores = {
+            "deduction_optimization": int(deduction_score),
+            "entity_structure": int(structure_score),
+            "timing_strategy": int(timing_score),
+            "compliance_risk": int(risk_score),
+            "state_tax_efficiency": int(state_tax_score),
+            "confidence": int(confidence_score),
+        }
+
+        explanation_map = {
+            "deduction_optimization": "Multiple deduction and credit opportunities are currently unclaimed.",
+            "entity_structure": "Entity and filing setup may not yet be optimized for your profile.",
+            "timing_strategy": "Income and deduction timing can be improved to lower annual tax burden.",
+            "compliance_risk": "Complexity indicators suggest stronger compliance planning is needed.",
+            "state_tax_efficiency": "State-level tax rules indicate additional optimization is available.",
+            "confidence": "A few more profile details would improve precision and strategy targeting.",
+        }
+
+        actions_map = {
+            "deduction_optimization": "Prioritize deduction substantiation and credit eligibility review.",
+            "entity_structure": "Run an entity and filing-status optimization review with your CPA.",
+            "timing_strategy": "Model contribution and expense-timing scenarios before filing.",
+            "compliance_risk": "Validate recordkeeping and estimated payment coverage.",
+            "state_tax_efficiency": "Apply state-specific deduction and withholding adjustments.",
+            "confidence": "Upload documents for higher-confidence strategy scoring.",
+        }
+
+        sorted_subscores = sorted(subscores.items(), key=lambda item: item[1])
+        lowest_keys = [key for key, _ in sorted_subscores[:3]]
+
+        explainers = [
+            explanation_map.get(lowest_keys[0], "Your profile has meaningful tax optimization opportunities."),
+            f"We identified {len(insights)} strategy candidates from your initial answers.",
+            f"Potential missed savings estimate: ${savings_low:,.0f} - ${savings_high:,.0f}.",
+        ]
+
+        recommended_actions = [
+            {
+                "key": key,
+                "label": key.replace("_", " ").title(),
+                "next_step": actions_map.get(key, "Review this area with your CPA."),
+            }
+            for key in lowest_keys
+        ]
+
+        benchmark_average = SCORE_BENCHMARKS["average_taxpayer"]
+        benchmark_cpa_client = SCORE_BENCHMARKS["cpa_optimized_target"]
+
+        return {
+            "overall": overall,
+            "band": band,
+            "band_color": band_color,
+            "zones": {
+                "critical": {"min": 0, "max": 40, "label": "Critical", "color": "#dc2626"},
+                "needs_attention": {"min": 41, "max": 60, "label": "Needs Attention", "color": "#f97316"},
+                "good": {"min": 61, "max": 80, "label": "Good", "color": "#84cc16"},
+                "excellent": {"min": 81, "max": 100, "label": "Excellent", "color": "#16a34a"},
+            },
+            "missed_savings_range": f"${savings_low:,.0f} - ${savings_high:,.0f}",
+            "subscores": subscores,
+            "explainers": explainers,
+            "recommended_actions": recommended_actions,
+            "confidence_label": "high" if confidence_score >= 80 else ("medium" if confidence_score >= 60 else "low"),
+            "benchmark": {
+                "average_taxpayer": benchmark_average,
+                "cpa_optimized_target": benchmark_cpa_client,
+                "delta_vs_average": overall - benchmark_average,
+                "delta_to_target": benchmark_cpa_client - overall,
+                "average_score": benchmark_average,
+                "cpa_planned_average": benchmark_cpa_client,
+            },
+            "average_score": benchmark_average,
+            "cpa_planned_average": benchmark_cpa_client,
+            "weights": weights,
+        }
+
     # =========================================================================
     # LEAD MANAGEMENT (CPA SIDE)
     # =========================================================================
@@ -1308,14 +2236,14 @@ class LeadMagnetService:
             cursor = conn.cursor()
             cursor.execute("""
                 UPDATE lead_magnet_leads SET
-                    engaged = 1,
+                    engaged = TRUE,
                     engaged_at = ?,
                     engagement_letter_acknowledged = ?,
                     engagement_letter_acknowledged_at = ?
                 WHERE lead_id = ?
             """, (
                 datetime.utcnow().isoformat(),
-                1 if engagement_letter_acknowledged else 0,
+                bool(engagement_letter_acknowledged),
                 datetime.utcnow().isoformat() if engagement_letter_acknowledged else None,
                 lead_id
             ))
@@ -1351,7 +2279,7 @@ class LeadMagnetService:
             cursor = conn.cursor()
             cursor.execute("""
                 UPDATE lead_magnet_leads SET
-                    engagement_letter_acknowledged = 1,
+                    engagement_letter_acknowledged = TRUE,
                     engagement_letter_acknowledged_at = ?
                 WHERE lead_id = ?
             """, (datetime.utcnow().isoformat(), lead_id))
@@ -1438,7 +2366,7 @@ class LeadMagnetService:
             params = [cpa_id]
 
             if not include_engaged:
-                query += " AND engaged = 0"
+                query += " AND engaged = FALSE"
 
             query += " ORDER BY lead_score DESC, created_at DESC"
 
@@ -1481,21 +2409,38 @@ class LeadMagnetService:
         cpa_slug: Optional[str] = None,
         assessment_mode: str = "quick",
         referral_source: Optional[str] = None,
+        variant_id: Optional[str] = None,
+        utm_source: Optional[str] = None,
+        utm_medium: Optional[str] = None,
+        utm_campaign: Optional[str] = None,
+        device_type: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Alias for start_assessment - API route compatibility. Returns dict."""
-        session = self.start_assessment(cpa_slug, assessment_mode, referral_source)
+        session = self.start_assessment(
+            cpa_slug=cpa_slug,
+            assessment_mode=assessment_mode,
+            referral_source=referral_source,
+            variant_id=variant_id,
+            utm_source=utm_source,
+            utm_medium=utm_medium,
+            utm_campaign=utm_campaign,
+            device_type=device_type,
+        )
         return {
             "session_id": session.session_id,
             "cpa_profile": session.cpa_profile.to_dict() if session.cpa_profile else None,
             "assessment_mode": session.assessment_mode.value,
             "current_screen": session.current_screen,
             "referral_source": session.referral_source,
+            "variant_id": session.variant_id,
         }
 
     def submit_tax_profile(
         self,
         session_id: str,
         filing_status: str,
+        state_code: str = "US",
+        occupation_type: Optional[str] = None,
         dependents_count: int = 0,
         has_children_under_17: bool = False,
         income_range: str = "",
@@ -1512,6 +2457,8 @@ class LeadMagnetService:
         # Build profile data dict
         profile_data = {
             "filing_status": filing_status,
+            "state_code": self._normalize_state_code(state_code),
+            "occupation_type": self._normalize_occupation_type(occupation_type),
             "dependents_count": dependents_count,
             "children_under_17": has_children_under_17,
             "income_range": income_range,
@@ -1525,15 +2472,46 @@ class LeadMagnetService:
         # Add business to income sources if indicated
         if has_business and "self_employed" not in (income_sources or []):
             profile_data["income_sources"].append("self_employed")
+            if profile_data["occupation_type"] == "w2":
+                profile_data["occupation_type"] = "business_owner"
 
         # Call core method
         session, complexity, insights = self.submit_profile(session_id, profile_data)
+        savings_low = sum(i.savings_low for i in insights)
+        savings_high = sum(i.savings_high for i in insights)
+        score = self._build_tax_health_score(
+            session.tax_profile,
+            complexity,
+            insights,
+            savings_low,
+            savings_high,
+        )
+        personalization = self._build_personalization_payload(
+            session.tax_profile,
+            complexity,
+            savings_low,
+            savings_high,
+        )
+        comparison_chart = self._build_comparison_chart_payload(
+            savings_low=savings_low,
+            savings_high=savings_high,
+            score_overall=score["overall"],
+        )
+        deadline_context = self._build_deadline_payload()
 
         return {
             "session_id": session_id,
             "complexity": complexity.value,
             "insights_count": len(insights),
             "insights_preview": [i.to_dict(tier=1) for i in insights[:3]],
+            "score_preview": score["overall"],
+            "score_band": score["band"],
+            "missed_savings_range": score["missed_savings_range"],
+            "personalization_line": personalization["line"],
+            "personalization_tokens": personalization["tokens"],
+            "comparison_chart": comparison_chart,
+            "deadline_context": deadline_context,
+            "score_benchmark": score.get("benchmark", {}),
         }
 
     def capture_contact_and_create_lead(
@@ -1544,12 +2522,15 @@ class LeadMagnetService:
         phone: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Capture contact and create lead - API route compatibility. Returns dict."""
+        session = self.get_session(session_id)
         lead, insights = self.capture_contact(session_id, first_name, email, phone)
         return {
             "lead_id": lead.lead_id,
             "session_id": session_id,
             "first_name": lead.first_name,
             "email": lead.email,
+            "cpa_email": session.cpa_profile.email if session and session.cpa_profile else None,
+            "cpa_name": session.cpa_profile.display_name if session and session.cpa_profile else None,
             "lead_score": lead.lead_score,
             "lead_temperature": lead.lead_temperature.value,
             "complexity": lead.complexity.value,
@@ -1635,6 +2616,40 @@ class LeadMagnetService:
         generated_insights = []
         if session.tax_profile:
             generated_insights = self._generate_insights(session.tax_profile, complexity)
+            if not lead:
+                savings_low = sum(i.savings_low for i in generated_insights)
+                savings_high = sum(i.savings_high for i in generated_insights)
+        score_payload = self._build_tax_health_score(
+            session.tax_profile,
+            complexity,
+            generated_insights,
+            savings_low,
+            savings_high,
+        )
+        personalization = self._build_personalization_payload(
+            session.tax_profile,
+            complexity,
+            savings_low,
+            savings_high,
+        )
+        comparison_chart = self._build_comparison_chart_payload(
+            savings_low=savings_low,
+            savings_high=savings_high,
+            score_overall=score_payload["overall"],
+        )
+        deadline_context = self._build_deadline_payload()
+        estimated_savings_midpoint = int(round((savings_low + savings_high) / 2))
+        share_payload = self._build_share_payload(
+            session_id=session_id,
+            score_overall=score_payload["overall"],
+            score_band=score_payload["band"],
+            state_code=self._normalize_state_code(session.tax_profile.state_code if session.tax_profile else None),
+            cpa_slug=cpa_profile.cpa_slug if cpa_profile else None,
+            estimated_savings=estimated_savings_midpoint,
+        )
+        teaser_insights = [i.to_dict(tier=1) for i in generated_insights[:3]] if generated_insights else []
+        locked_titles = [i.title for i in generated_insights[3:8]] if generated_insights else []
+        strategy_waterfall = self._build_strategy_waterfall_payload(generated_insights, limit=6)
 
         return {
             "session_id": session_id,
@@ -1647,14 +2662,23 @@ class LeadMagnetService:
             "booking_link": cpa_profile.booking_link or "#contact",
             "client_name": lead.first_name if lead else "Valued Client",
             "filing_status": profile_data.get("filing_status", "single"),
+            "state_code": profile_data.get("state_code", "US"),
             "complexity": complexity.value,
             "savings_range": f"${savings_low:,.0f} - ${savings_high:,.0f}",
             "insights": [
                 i.to_dict(tier=1) for i in generated_insights[:5]
             ] if generated_insights else [],
+            "teaser_insights": teaser_insights,
+            "locked_strategy_titles": locked_titles,
             "total_insights": len(generated_insights) if generated_insights else 3,
             "locked_count": max(0, len(generated_insights) - 5) if generated_insights else 3,
             "cta_text": f"Schedule a consultation with {cpa_profile.first_name} to unlock your full analysis",
+            "tax_health_score": score_payload,
+            "personalization": personalization,
+            "comparison_chart": comparison_chart,
+            "strategy_waterfall": strategy_waterfall,
+            "deadline_context": deadline_context,
+            "share_payload": share_payload,
             "report_html": "",  # Can generate HTML if needed
         }
 
@@ -1701,18 +2725,15 @@ class LeadMagnetService:
                         "irs_reference": insight.irs_reference or "",
                     })
 
-        # Generate tax calendar
-        tax_calendar = [
-            {"date": "2025-04-15", "title": "Tax Filing Deadline", "description": "Federal and state returns due"},
-            {"date": "2025-01-15", "title": "Q4 Estimated Tax", "description": "Fourth quarter estimated payment due"},
-            {"date": "2025-06-15", "title": "Q2 Estimated Tax", "description": "Second quarter estimated payment due"},
-        ]
+        strategy_waterfall = self._build_strategy_waterfall_payload(all_insights)
+        tax_calendar = self._build_tax_calendar_payload()
 
         report.update({
             "total_savings": f"${total_savings:,.0f}",
             "total_savings_amount": total_savings,
             "all_insights": [i.to_dict(tier=2) for i in all_insights],
             "action_items": action_items,
+            "strategy_waterfall": strategy_waterfall,
             "tax_calendar": tax_calendar,
             "locked_count": 0,
         })
@@ -1862,6 +2883,130 @@ class LeadMagnetService:
 
         return stats
 
+    def get_funnel_kpis(
+        self,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None,
+        variant_id: Optional[str] = None,
+        utm_source: Optional[str] = None,
+        device_type: Optional[str] = None,
+        cpa_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Return funnel KPI aggregates by date window and experiment variant."""
+        where_clauses = ["1=1"]
+        params: List[Any] = []
+        if date_from:
+            where_clauses.append("date(created_at) >= date(?)")
+            params.append(date_from)
+        if date_to:
+            where_clauses.append("date(created_at) <= date(?)")
+            params.append(date_to)
+        if variant_id:
+            where_clauses.append("variant_id = ?")
+            params.append(variant_id)
+        if utm_source:
+            where_clauses.append("utm_source = ?")
+            params.append(utm_source)
+        if device_type:
+            where_clauses.append("device_type = ?")
+            params.append(device_type)
+        if cpa_id:
+            where_clauses.append("cpa_id = ?")
+            params.append(cpa_id)
+
+        clause = " AND ".join(where_clauses)
+        event_counts: Dict[Tuple[str, Optional[str]], int] = {}
+        total_events = 0
+        score_interactions = 0
+
+        try:
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                f"""
+                SELECT event_name, step, COUNT(*) AS cnt
+                FROM lead_magnet_events
+                WHERE {clause}
+                GROUP BY event_name, step
+                """,
+                params,
+            )
+            rows = cursor.fetchall()
+            for row in rows:
+                key = (row["event_name"], row["step"])
+                count = int(row["cnt"] or 0)
+                event_counts[key] = count
+                total_events += count
+
+            cursor.execute(
+                f"""
+                SELECT COUNT(*) AS cnt
+                FROM lead_magnet_events
+                WHERE {clause}
+                  AND event_name = 'step_complete'
+                  AND (
+                    step = 'score_interaction'
+                    OR metadata_json LIKE '%subscore_click%'
+                  )
+                """,
+                params,
+            )
+            score_interactions = int((cursor.fetchone() or {"cnt": 0})["cnt"] or 0)
+            conn.close()
+        except Exception as exc:
+            logger.error("Failed to compute funnel KPIs: %s", exc)
+            return {
+                "filters": {
+                    "date_from": date_from,
+                    "date_to": date_to,
+                    "variant_id": variant_id,
+                    "utm_source": utm_source,
+                    "device_type": device_type,
+                    "cpa_id": cpa_id,
+                },
+                "error": str(exc),
+            }
+
+        starts = sum(count for (name, _), count in event_counts.items() if name == "start")
+        profile_complete = event_counts.get(("step_complete", "profile"), 0)
+        teaser_views = event_counts.get(("step_complete", "teaser_view"), 0)
+        contact_views = event_counts.get(("step_complete", "contact_view"), 0)
+        lead_submits = sum(count for (name, _), count in event_counts.items() if name == "lead_submit")
+        report_views = sum(count for (name, _), count in event_counts.items() if name == "report_view")
+
+        def _rate(numerator: int, denominator: int) -> float:
+            if denominator <= 0:
+                return 0.0
+            return round((numerator / denominator) * 100.0, 2)
+
+        return {
+            "filters": {
+                "date_from": date_from,
+                "date_to": date_to,
+                "variant_id": variant_id,
+                "utm_source": utm_source,
+                "device_type": device_type,
+                "cpa_id": cpa_id,
+            },
+            "counts": {
+                "events_total": total_events,
+                "start": starts,
+                "profile_complete": profile_complete,
+                "teaser_view": teaser_views,
+                "contact_view": contact_views,
+                "lead_submit": lead_submits,
+                "report_view": report_views,
+                "score_interaction": score_interactions,
+            },
+            "rates": {
+                "start_to_profile_pct": _rate(profile_complete, starts),
+                "profile_to_teaser_pct": _rate(teaser_views, profile_complete),
+                "teaser_to_contact_submit_pct": _rate(lead_submits, teaser_views),
+                "contact_submit_to_report_pct": _rate(report_views, lead_submits),
+                "score_interaction_rate_pct": _rate(score_interactions, teaser_views + report_views),
+            },
+        }
+
     def convert_lead(self, lead_id: str) -> Dict[str, Any]:
         """Convert a lead to a client."""
         lead = self.get_lead(lead_id)
@@ -1878,7 +3023,7 @@ class LeadMagnetService:
             cursor = conn.cursor()
             cursor.execute("""
                 UPDATE lead_magnet_leads SET
-                    converted = 1,
+                    converted = TRUE,
                     converted_at = ?
                 WHERE lead_id = ?
             """, (now.isoformat(), lead_id))

@@ -102,17 +102,25 @@ class ScenarioService:
         if not base_return:
             raise ValueError(f"Return not found: {return_id}")
 
+        # Remove identity fields that are irrelevant for tax math and can break
+        # scenario recalculation due to masking/validation mismatches.
+        base_snapshot = self._strip_identity_fields(base_return)
+
         # Create scenario
         scenario = Scenario(
             return_id=UUID(return_id),
             name=name,
             scenario_type=scenario_type,
             description=description,
-            base_snapshot=copy.deepcopy(base_return),
+            base_snapshot=base_snapshot,
             modifications=[
                 ScenarioModification(
                     field_path=m["field_path"],
-                    original_value=m.get("original_value"),
+                    original_value=(
+                        m["original_value"]
+                        if "original_value" in m
+                        else self._get_nested_value(base_snapshot, m["field_path"])
+                    ),
                     new_value=m["new_value"],
                     description=m.get("description")
                 )
@@ -168,9 +176,11 @@ class ScenarioService:
 
         start_time = time.time()
 
-        # Apply modifications to base snapshot
+        # Apply modifications to base snapshot used for tax calculations.
+        base_snapshot = self._strip_identity_fields(scenario.base_snapshot)
+        scenario.base_snapshot = base_snapshot
         modified_data = self._apply_modifications(
-            scenario.base_snapshot,
+            base_snapshot,
             scenario.modifications
         )
 
@@ -234,7 +244,7 @@ class ScenarioService:
                 )
 
             # Get base snapshot for comparison (also use snapshot model)
-            base_hash = compute_input_hash(scenario.base_snapshot)
+            base_hash = compute_input_hash(base_snapshot)
             base_snapshot = self._snapshot_persistence.get_snapshot_by_hash(base_hash)
 
             if not base_snapshot:
@@ -359,19 +369,47 @@ class ScenarioService:
         Returns:
             Comparison results
         """
-        scenarios = []
-        for sid in scenario_ids:
-            scenario = self._load_scenario_from_db(sid)
-            if scenario:
-                # Calculate if not already done
-                if scenario.result is None:
-                    self.calculate_scenario(sid)
-                    # Reload after calculation
-                    scenario = self._load_scenario_from_db(sid)
-                scenarios.append(scenario)
+        unique_ids = list(dict.fromkeys(scenario_ids))
+        if len(unique_ids) < 2:
+            raise ValueError("At least 2 distinct scenario IDs are required")
 
-        if not scenarios:
-            raise ValueError("No valid scenarios found")
+        expected_return_id = str(return_id) if return_id else None
+        invalid_ids: List[str] = []
+        scenarios: List[Scenario] = []
+
+        # Validate all scenario IDs before comparison work.
+        for sid in unique_ids:
+            scenario = self._load_scenario_from_db(sid)
+            if not scenario:
+                invalid_ids.append(sid)
+                continue
+
+            scenario_return_id = str(scenario.return_id)
+            if expected_return_id and scenario_return_id != expected_return_id:
+                if return_id:
+                    invalid_ids.append(sid)
+                    continue
+                raise ValueError("All scenarios must belong to the same return")
+
+            if not expected_return_id:
+                expected_return_id = scenario_return_id
+
+            scenarios.append(scenario)
+
+        if invalid_ids:
+            raise ValueError(f"Invalid or out-of-scope scenario IDs: {', '.join(invalid_ids)}")
+
+        if len(scenarios) < 2:
+            raise ValueError("At least 2 valid scenarios are required")
+
+        # Calculate scenarios that don't have results yet.
+        for idx, scenario in enumerate(scenarios):
+            if scenario.result is None:
+                self.calculate_scenario(str(scenario.scenario_id))
+                reloaded = self._load_scenario_from_db(str(scenario.scenario_id))
+                if not reloaded or reloaded.result is None:
+                    raise RuntimeError(f"Failed to calculate scenario: {scenario.scenario_id}")
+                scenarios[idx] = reloaded
 
         # Find the winner (lowest tax)
         winner = min(scenarios, key=lambda s: s.result.total_tax if s.result else float('inf'))
@@ -386,7 +424,7 @@ class ScenarioService:
         # Build comparison data
         comparison = {
             "comparison_id": str(comparison_id),
-            "return_id": return_id,
+            "return_id": expected_return_id,
             "scenarios": [s.to_comparison_dict() for s in scenarios],
             "winner": {
                 "scenario_id": str(winner.scenario_id),
@@ -401,7 +439,7 @@ class ScenarioService:
         # Publish event
         publish_event(ScenarioCompared(
             comparison_id=comparison_id,
-            return_id=UUID(return_id) if return_id else winner.return_id,
+            return_id=UUID(expected_return_id) if expected_return_id else winner.return_id,
             scenario_ids=[s.scenario_id for s in scenarios],
             winner_scenario_id=winner.scenario_id,
             max_savings=max_savings,
@@ -555,8 +593,10 @@ class ScenarioService:
         return_id = str(scenario.return_id)
 
         # Apply modifications
+        base_snapshot = self._strip_identity_fields(scenario.base_snapshot)
+        scenario.base_snapshot = base_snapshot
         modified_data = self._apply_modifications(
-            scenario.base_snapshot,
+            base_snapshot,
             scenario.modifications
         )
 
@@ -565,7 +605,8 @@ class ScenarioService:
             return_id=return_id,
             session_id=session_id,
             updates=modified_data,
-            recalculate=True
+            recalculate=True,
+            fail_on_recalc_error=True,
         )
 
         # Mark scenario as applied and save
@@ -594,6 +635,20 @@ class ScenarioService:
             self._set_nested_value(data, mod.field_path, mod.new_value)
 
         return data
+
+    def _strip_identity_fields(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Remove identity fields that are not needed for tax math.
+
+        Scenario calculations should be stable regardless of whether SSNs are
+        masked in persistence.
+        """
+        sanitized = copy.deepcopy(data)
+        taxpayer = sanitized.get("taxpayer")
+        if isinstance(taxpayer, dict):
+            taxpayer.pop("ssn", None)
+            taxpayer.pop("spouse_ssn", None)
+        return sanitized
 
     def _set_nested_value(
         self,
