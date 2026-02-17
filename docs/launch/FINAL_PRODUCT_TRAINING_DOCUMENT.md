@@ -4,6 +4,8 @@ Date: 2026-02-17
 Product: Jorss-GBO White-Label Tax Advisory Funnel for CPAs  
 Primary GTM Objective: Convert anonymous taxpayer traffic into warm, data-rich CPA leads through a Connor-style emotional funnel.
 
+Companion deep dive: `docs/launch/FINAL_PRODUCT_TRAINING_UI_UX_DEEP_DIVE.md` (screen-level UI/UX behavior, role flows, events, contracts, mobile/A11y standards).
+
 ## 1) Training Purpose
 
 This is the operational training manual for launch and scale of the live product as implemented in code.
@@ -463,4 +465,3 @@ Primary code:
 - `/src/cpa_panel/services/lead_magnet_service.py`
 - `/src/cpa_panel/config/lead_magnet_score_config.py`
 - `/src/web/static/js/lead_magnet_analytics.js`
-
