@@ -61,6 +61,11 @@ class TaxYearConfig:
     eitc_phaseout_end: Optional[Dict[str, Dict[int, float]]] = None
     eitc_investment_income_limit: float = 11950.0  # 2025 limit
 
+    # EITC phase-in parameters per IRS Pub. 596
+    # Phase-in: Credit = earned_income * phase_in_rate (capped at max)
+    eitc_phase_in_rate: Optional[Dict[int, float]] = None  # {0: 0.0765, 1: 0.34, ...}
+    eitc_phase_in_end: Optional[Dict[int, float]] = None   # Earned income where phase-in ends
+
     # Contribution limits
     traditional_ira_limit: float = 7000.0
     ira_catchup_50_plus: float = 1000.0
@@ -364,6 +369,22 @@ class TaxYearConfig:
             "qualifying_widow": {0: 25511.0, 1: 56004.0, 2: 62688.0, 3: 66819.0},
         }
 
+        # EITC phase-in rates by number of qualifying children (Pub. 596)
+        eitc_phase_in_rates = {
+            0: 0.0765,  # 7.65%
+            1: 0.34,    # 34%
+            2: 0.40,    # 40%
+            3: 0.45,    # 45% (3 or more)
+        }
+
+        # EITC phase-in end thresholds (earned income where max credit reached)
+        eitc_phase_in_ends = {
+            0: 8490.0,
+            1: 12730.0,
+            2: 17880.0,
+            3: 17880.0,  # Same as 2 children
+        }
+
         # Student loan interest deduction phaseouts (BR2-0007, BR2-0008)
         # IRS Rev. Proc. 2024-40 - MFS cannot claim this deduction
         student_loan_phase_start = {
@@ -502,6 +523,9 @@ class TaxYearConfig:
             eitc_phaseout_start=eitc_phase_start,
             eitc_phaseout_end=eitc_phase_end,
             eitc_investment_income_limit=11950.0,
+            # EITC phase-in
+            eitc_phase_in_rate=eitc_phase_in_rates,
+            eitc_phase_in_end=eitc_phase_in_ends,
             # Contribution limits (2025)
             traditional_ira_limit=7000.0,
             ira_catchup_50_plus=1000.0,
