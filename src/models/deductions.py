@@ -439,8 +439,16 @@ class Deductions(BaseModel):
             contribution_limit = 8000.0 if is_age_50_plus else 7000.0
             ira_deduction = min(self.ira_contributions, contribution_limit)
 
+        # Cap educator expenses per IRC §62(a)(2)(D)
+        # $300 per educator, $600 max for MFJ with two educators
+        if filing_status == "married_joint":
+            educator_cap = 600.0
+        else:
+            educator_cap = 300.0
+        educator_deduction = min(self.educator_expenses, educator_cap)
+
         return (
-            self.educator_expenses +
+            educator_deduction +
             student_loan_deduction +
             self.hsa_contributions +
             ira_deduction +
@@ -450,7 +458,22 @@ class Deductions(BaseModel):
             self.alimony_paid +
             self.other_adjustments
         )
-    
+
+    def get_educator_expense_excess(self, filing_status: str = "single") -> float:
+        """
+        Calculate educator expenses exceeding the IRC §62(a)(2)(D) cap.
+
+        Returns the amount that cannot be deducted, useful for user notification.
+
+        Args:
+            filing_status: Filing status determines cap ($300 or $600 for MFJ)
+
+        Returns:
+            Amount of educator expenses exceeding the deductible limit
+        """
+        cap = 600.0 if filing_status == "married_joint" else 300.0
+        return max(0.0, self.educator_expenses - cap)
+
     def get_deduction_amount(
         self,
         filing_status: str,
