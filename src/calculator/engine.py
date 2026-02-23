@@ -2606,7 +2606,10 @@ class FederalTaxEngine:
             num_children = get_eitc_qualifying_children(tax_return.taxpayer, agi)
         else:
             credits = tax_return.credits if hasattr(tax_return, 'credits') else None
-            num_children = getattr(credits, 'num_qualifying_children', 0) if credits else 0
+            # Try num_qualifying_children first, fallback to child_tax_credit_children
+            num_children = getattr(credits, 'num_qualifying_children', None) if credits else None
+            if num_children is None:
+                num_children = getattr(credits, 'child_tax_credit_children', 0) if credits else 0
             num_children = min(num_children, 3)  # Max 3 for EITC purposes
 
         # Check investment income limit
@@ -2634,8 +2637,17 @@ class FederalTaxEngine:
         if income_for_eitc >= phaseout_end:
             return 0.0
 
+        # Get phase-in parameters
+        phase_in_end = self.config.eitc_phase_in_end.get(num_children, 0) if self.config.eitc_phase_in_end else 0
+        phase_in_rate = self.config.eitc_phase_in_rate.get(num_children, 0) if self.config.eitc_phase_in_rate else 0
+
+        # Phase-in range: Credit builds up based on earned_income x rate
+        if earned_income <= phase_in_end and phase_in_rate > 0:
+            credit = earned_income * phase_in_rate
+            return float(money(min(credit, max_credit)))
+
+        # Plateau range: Full max credit
         if income_for_eitc <= phaseout_start:
-            # In phase-in range - simplified calculation
             return max_credit
 
         # In phaseout range
