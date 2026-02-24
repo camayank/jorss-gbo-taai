@@ -84,6 +84,9 @@ class QBIBreakdown:
     taxable_income_limit: Decimal = Decimal("0")  # 20% of (taxable income - net capital gain)
     final_qbi_deduction: Decimal = Decimal("0")  # Final deduction amount
 
+    # Per-business breakdown for IRC §199A(b)(2)(B) compliance
+    business_details: list = field(default_factory=list)  # List[QBIBusinessDetail]
+
 
 class QBICalculator:
     """
