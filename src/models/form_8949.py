@@ -95,6 +95,16 @@ class WashSaleInfo(BaseModel):
     basis_adjustment: float = Field(
         default=0.0, description="Amount added to replacement share basis"
     )
+    # New fields for enforcement
+    holding_period_adjustment_days: int = Field(
+        default=0, description="Days to add to replacement shares holding period per IRC §1223"
+    )
+    is_permanent_disallowance: bool = Field(
+        default=False, description="True if replacement in IRA - loss permanently disallowed"
+    )
+    replacement_account_type: Optional[str] = Field(
+        None, description="Account type of replacement purchase (taxable, ira, 401k, etc.)"
+    )
 
     def calculate_adjusted_loss(self, original_loss: float) -> float:
         """Calculate the allowable loss after wash sale adjustment."""
