@@ -5,7 +5,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from models._decimal_utils import money, to_decimal
 
 from models.schedule_c import ScheduleCBusiness
-from models.form_8949 import SecuritiesPortfolio
+from models.form_8949 import SecuritiesPortfolio, WashSaleInfo
 from models.form_8889 import Form8889, HSAInfo, HSACoverageType
 from models.form_8606 import Form8606, IRAInfo, IRAType
 from models.form_5329 import Form5329, EarlyDistributionExceptionCode
@@ -2839,7 +2839,7 @@ class Income(BaseModel):
             self.securities_portfolio.get_net_long_term_gain_loss()
         )
 
-    def detect_wash_sales(self) -> List[dict]:
+    def detect_wash_sales(self) -> List[WashSaleInfo]:
         """
         Detect potential wash sales in securities portfolio.
 

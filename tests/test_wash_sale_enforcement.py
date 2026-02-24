@@ -106,3 +106,62 @@ class TestSecurityTransactionHoldingPeriod:
             cost_basis=6000.0,
         )
         assert txn.adjusted_holding_period_days == 0
+
+
+def make_transaction(
+    ticker: str,
+    date_acquired: str,
+    date_sold: str,
+    proceeds: float,
+    cost_basis: float,
+    shares: float = 100.0,
+    account_type: str = "taxable",
+) -> SecurityTransaction:
+    """Helper to create SecurityTransaction for tests."""
+    return SecurityTransaction(
+        description=f"{shares:.0f} sh {ticker}",
+        ticker_symbol=ticker,
+        date_acquired=date_acquired,
+        date_sold=date_sold,
+        proceeds=proceeds,
+        cost_basis=cost_basis,
+        shares_sold=shares,
+        account_type=account_type,
+    )
+
+
+class TestDetectWashSalesEnhanced:
+    """Test enhanced detect_wash_sales with new fields."""
+
+    def test_detect_returns_wash_sale_info_objects(self):
+        """detect_wash_sales should return WashSaleInfo objects."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        # Sell at loss on Jan 15, repurchase on Jan 20 (within 30 days)
+        portfolio = SecuritiesPortfolio(
+            additional_transactions=[
+                make_transaction("XYZ", "2024-06-01", "2025-01-15", 5000, 6000),  # Loss sale
+                make_transaction("XYZ", "2025-01-20", "2025-12-01", 7000, 5000),  # Repurchase
+            ]
+        )
+        wash_sales = portfolio.detect_wash_sales()
+        assert len(wash_sales) >= 1
+        # Should now return WashSaleInfo objects
+        assert hasattr(wash_sales[0], 'is_wash_sale')
+        assert wash_sales[0].is_wash_sale is True
+
+    def test_detect_identifies_ira_permanent_disallowance(self):
+        """detect_wash_sales should identify IRA replacements as permanent disallowance."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        portfolio = SecuritiesPortfolio(
+            additional_transactions=[
+                make_transaction("XYZ", "2024-06-01", "2025-01-15", 5000, 6000, account_type="taxable"),
+                make_transaction("XYZ", "2025-01-20", "2025-12-01", 7000, 5000, account_type="ira"),
+            ]
+        )
+        wash_sales = portfolio.detect_wash_sales()
+        assert len(wash_sales) >= 1
+        ws = wash_sales[0]
+        assert ws.is_permanent_disallowance is True
+        assert ws.replacement_account_type == "ira"

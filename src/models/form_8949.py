@@ -721,14 +721,14 @@ class SecuritiesPortfolio(BaseModel):
             'transaction_count': summary.get_transaction_count(),
         }
 
-    def detect_wash_sales(self, lookback_days: int = 30, lookforward_days: int = 30) -> List[dict]:
+    def detect_wash_sales(self, lookback_days: int = 30, lookforward_days: int = 30) -> List[WashSaleInfo]:
         """
         Detect potential wash sales in the transaction list.
 
         A wash sale occurs when substantially identical securities are
         purchased within 30 days before or after a sale at a loss.
 
-        Returns list of detected wash sales for review.
+        Returns list of WashSaleInfo objects for detected wash sales.
         """
         wash_sales = []
         transactions = self.get_all_transactions()
@@ -748,7 +748,8 @@ class SecuritiesPortfolio(BaseModel):
         # Check each transaction for potential wash sale
         for i, (sold_date, transaction) in enumerate(dated_transactions):
             # Only check losses
-            if transaction.calculate_gain_loss() >= 0:
+            gain_loss = transaction.calculate_gain_loss()
+            if gain_loss >= 0:
                 continue
 
             ticker = transaction.ticker_symbol or transaction.description
@@ -777,14 +778,27 @@ class SecuritiesPortfolio(BaseModel):
                 days_diff = (acquired_date - sold_date).days
 
                 if -lookback_days <= days_diff <= lookforward_days:
-                    wash_sales.append({
-                        'loss_transaction': transaction.description,
-                        'loss_date': transaction.date_sold,
-                        'loss_amount': transaction.calculate_gain_loss(),
-                        'replacement_transaction': other_trans.description,
-                        'replacement_date': other_trans.date_acquired,
-                        'days_difference': days_diff,
-                    })
+                    # Calculate holding period of original shares
+                    try:
+                        orig_acquired = datetime.strptime(transaction.date_acquired, '%Y-%m-%d')
+                        holding_days = (sold_date - orig_acquired).days
+                    except ValueError:
+                        holding_days = 0
+
+                    # Detect IRA permanent disallowance
+                    is_permanent = other_trans.account_type in ("ira", "roth_ira", "401k", "403b")
+
+                    wash_sale_info = WashSaleInfo(
+                        is_wash_sale=True,
+                        disallowed_loss=abs(gain_loss),
+                        replacement_shares_date=other_trans.date_acquired,
+                        replacement_shares_quantity=other_trans.shares_sold,
+                        basis_adjustment=abs(gain_loss),
+                        holding_period_adjustment_days=holding_days,
+                        is_permanent_disallowance=is_permanent,
+                        replacement_account_type=other_trans.account_type,
+                    )
+                    wash_sales.append(wash_sale_info)
 
         return wash_sales
 

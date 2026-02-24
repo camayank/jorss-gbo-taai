@@ -485,10 +485,14 @@ async def detect_wash_sales(session_id: str):
         "wash_sales_detected": len(wash_sales),
         "wash_sales": [
             {
-                "security": ws.get("security_description"),
-                "loss_date": str(ws.get("loss_date")),
-                "disallowed_loss": float(ws.get("disallowed_loss", 0)),
-                "replacement_date": str(ws.get("replacement_date")) if ws.get("replacement_date") else None
+                "is_wash_sale": ws.is_wash_sale,
+                "disallowed_loss": float(ws.disallowed_loss),
+                "replacement_date": ws.replacement_shares_date,
+                "replacement_shares": float(ws.replacement_shares_quantity),
+                "basis_adjustment": float(ws.basis_adjustment),
+                "holding_period_adjustment_days": ws.holding_period_adjustment_days,
+                "is_permanent_disallowance": ws.is_permanent_disallowance,
+                "replacement_account_type": ws.replacement_account_type,
             }
             for ws in wash_sales
         ]

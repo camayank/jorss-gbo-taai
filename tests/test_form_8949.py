@@ -535,7 +535,7 @@ class TestWashSaleDetection:
 
         wash_sales = portfolio.detect_wash_sales()
         assert len(wash_sales) == 1
-        assert wash_sales[0]['days_difference'] == 5
+        assert wash_sales[0].is_wash_sale is True
 
     def test_no_wash_sale_outside_window(self):
         """No wash sale when replacement is outside 30-day window."""
