@@ -24,6 +24,32 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class QBIBusinessDetail:
+    """Per-business QBI breakdown for W-2 wage limitation per IRC §199A(b)(2)(B)."""
+
+    business_name: str = ""
+    business_type: str = "sole_proprietorship"  # sole_proprietorship, partnership, s_corporation
+    ein: str = ""
+
+    # QBI components
+    qualified_business_income: Decimal = Decimal("0")
+
+    # W-2 wage limitation inputs
+    w2_wages: Decimal = Decimal("0")
+    ubia: Decimal = Decimal("0")
+    is_sstb: bool = False
+
+    # Calculated limitation values
+    wage_limit_50_pct: Decimal = Decimal("0")  # 50% of W-2 wages
+    wage_limit_25_2_5_pct: Decimal = Decimal("0")  # 25% of W-2 wages + 2.5% of UBIA
+    wage_limitation: Decimal = Decimal("0")  # Greater of the two
+
+    # Deduction calculation
+    tentative_deduction: Decimal = Decimal("0")  # 20% of QBI
+    limited_deduction: Decimal = Decimal("0")  # After applying wage limitation
+
+
+@dataclass
 class QBIBreakdown:
     """Detailed breakdown of QBI deduction calculation."""
 
