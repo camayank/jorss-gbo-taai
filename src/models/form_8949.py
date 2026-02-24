@@ -567,6 +567,13 @@ class SecuritiesPortfolio(BaseModel):
         transactions.extend(self.additional_transactions)
         return transactions
 
+    def _find_transaction(self, description: str, date_sold: str) -> Optional[SecurityTransaction]:
+        """Find a transaction by description and sale date."""
+        for t in self.get_all_transactions():
+            if t.description == description and t.date_sold == date_sold:
+                return t
+        return None
+
     def calculate_summary(self, filing_status: str = "single") -> Form8949Summary:
         """
         Calculate Form 8949 summary totals by box.

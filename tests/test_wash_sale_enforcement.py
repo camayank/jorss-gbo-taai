@@ -165,3 +165,29 @@ class TestDetectWashSalesEnhanced:
         ws = wash_sales[0]
         assert ws.is_permanent_disallowance is True
         assert ws.replacement_account_type == "ira"
+
+
+class TestFindTransactionHelper:
+    """Test _find_transaction helper method."""
+
+    def test_find_transaction_by_description_and_date(self):
+        """Should find transaction by description and sale date."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        txn1 = make_transaction("XYZ", "2024-06-01", "2025-01-15", 5000, 6000)
+        txn2 = make_transaction("ABC", "2024-07-01", "2025-01-20", 7000, 5000)
+        portfolio = SecuritiesPortfolio(additional_transactions=[txn1, txn2])
+
+        found = portfolio._find_transaction("100 sh XYZ", "2025-01-15")
+        assert found is not None
+        assert found.ticker_symbol == "XYZ"
+
+    def test_find_transaction_returns_none_if_not_found(self):
+        """Should return None if transaction not found."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        txn1 = make_transaction("XYZ", "2024-06-01", "2025-01-15", 5000, 6000)
+        portfolio = SecuritiesPortfolio(additional_transactions=[txn1])
+
+        found = portfolio._find_transaction("100 sh NOTFOUND", "2025-01-15")
+        assert found is None
