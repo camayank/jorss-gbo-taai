@@ -199,6 +199,12 @@ class SecurityTransaction(BaseModel):
     # Quantity tracking
     shares_sold: float = Field(default=0.0, ge=0, description="Number of shares sold")
 
+    # Account type for wash sale IRA detection
+    account_type: str = Field(
+        default="taxable",
+        description="Account type: taxable, ira, roth_ira, 401k, 403b"
+    )
+
     @field_validator('date_sold')
     @classmethod
     def validate_date_sold(cls, v: str) -> str:
