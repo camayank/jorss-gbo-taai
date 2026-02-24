@@ -191,3 +191,42 @@ class TestFindTransactionHelper:
 
         found = portfolio._find_transaction("100 sh NOTFOUND", "2025-01-15")
         assert found is None
+
+
+class TestFindReplacementHelper:
+    """Test _find_replacement_in_window helper method."""
+
+    def test_find_replacement_within_30_days_after(self):
+        """Should find replacement purchased within 30 days after sale."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        loss_txn = make_transaction("XYZ", "2024-06-01", "2025-01-15", 5000, 6000)
+        replacement_txn = make_transaction("XYZ", "2025-01-20", "2025-12-01", 7000, 5000)
+        portfolio = SecuritiesPortfolio(additional_transactions=[loss_txn, replacement_txn])
+
+        found = portfolio._find_replacement_in_window(loss_txn)
+        assert found is not None
+        assert found.date_acquired == "2025-01-20"
+
+    def test_find_replacement_within_30_days_before(self):
+        """Should find replacement purchased within 30 days before sale."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        replacement_txn = make_transaction("XYZ", "2025-01-01", "2025-12-01", 7000, 5000)
+        loss_txn = make_transaction("XYZ", "2024-06-01", "2025-01-15", 5000, 6000)
+        portfolio = SecuritiesPortfolio(additional_transactions=[replacement_txn, loss_txn])
+
+        found = portfolio._find_replacement_in_window(loss_txn)
+        assert found is not None
+        assert found.date_acquired == "2025-01-01"
+
+    def test_no_replacement_outside_window(self):
+        """Should not find replacement purchased outside 30-day window."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        loss_txn = make_transaction("XYZ", "2024-06-01", "2025-01-15", 5000, 6000)
+        replacement_txn = make_transaction("XYZ", "2025-03-01", "2025-12-01", 7000, 5000)  # 45 days later
+        portfolio = SecuritiesPortfolio(additional_transactions=[loss_txn, replacement_txn])
+
+        found = portfolio._find_replacement_in_window(loss_txn)
+        assert found is None

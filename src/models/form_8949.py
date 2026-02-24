@@ -574,6 +574,45 @@ class SecuritiesPortfolio(BaseModel):
                 return t
         return None
 
+    def _find_replacement_in_window(
+        self,
+        loss_transaction: SecurityTransaction,
+        lookback_days: int = 30,
+        lookforward_days: int = 30,
+    ) -> Optional[SecurityTransaction]:
+        """Find a replacement transaction within the wash sale window."""
+        if loss_transaction.date_sold.upper() == 'VARIOUS':
+            return None
+
+        try:
+            sold_date = datetime.strptime(loss_transaction.date_sold, '%Y-%m-%d')
+        except ValueError:
+            return None
+
+        ticker = loss_transaction.ticker_symbol or loss_transaction.description
+
+        for t in self.get_all_transactions():
+            if t is loss_transaction:
+                continue
+
+            other_ticker = t.ticker_symbol or t.description
+            if ticker.lower() != other_ticker.lower():
+                continue
+
+            if t.date_acquired.upper() == 'VARIOUS':
+                continue
+
+            try:
+                acquired_date = datetime.strptime(t.date_acquired, '%Y-%m-%d')
+            except ValueError:
+                continue
+
+            days_diff = (acquired_date - sold_date).days
+            if -lookback_days <= days_diff <= lookforward_days:
+                return t
+
+        return None
+
     def calculate_summary(self, filing_status: str = "single") -> Form8949Summary:
         """
         Calculate Form 8949 summary totals by box.
