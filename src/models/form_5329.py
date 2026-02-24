@@ -697,6 +697,28 @@ class Form5329(BaseModel):
         )
         self.rmd_failures.append(failure)
 
+    def get_rmd_starting_age(self, birth_year: int) -> int:
+        """
+        Get RMD starting age based on birth year per SECURE 2.0.
+
+        SECURE Act 2.0 (2022) changed RMD ages:
+        - Birth year 1950 or earlier: Age 72
+        - Birth year 1951-1959: Age 73
+        - Birth year 1960 or later: Age 75
+
+        Args:
+            birth_year: Year the account owner was born
+
+        Returns:
+            Age at which RMDs must begin
+        """
+        if birth_year <= 1950:
+            return 72
+        elif birth_year <= 1959:
+            return 73
+        else:
+            return 75
+
 
 # ========== IRA Contribution Limits for Reference ==========
 

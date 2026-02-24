@@ -675,6 +675,31 @@ class TestContributionLimits:
         assert limit == 8000.0  # 7000 + 1000 catchup
 
 
+class TestSecure2RmdAge:
+    """Test SECURE 2.0 RMD starting age determination."""
+
+    def test_birth_year_1950_age_72(self):
+        """Birth year 1950 or earlier: RMD starts at 72."""
+        form = Form5329()
+        assert form.get_rmd_starting_age(1950) == 72
+        assert form.get_rmd_starting_age(1945) == 72
+        assert form.get_rmd_starting_age(1940) == 72
+
+    def test_birth_year_1951_1959_age_73(self):
+        """Birth years 1951-1959: RMD starts at 73."""
+        form = Form5329()
+        assert form.get_rmd_starting_age(1951) == 73
+        assert form.get_rmd_starting_age(1955) == 73
+        assert form.get_rmd_starting_age(1959) == 73
+
+    def test_birth_year_1960_plus_age_75(self):
+        """Birth year 1960 or later: RMD starts at 75."""
+        form = Form5329()
+        assert form.get_rmd_starting_age(1960) == 75
+        assert form.get_rmd_starting_age(1965) == 75
+        assert form.get_rmd_starting_age(1980) == 75
+
+
 class TestEdgeCases:
     """Test edge cases and boundary conditions."""
 
