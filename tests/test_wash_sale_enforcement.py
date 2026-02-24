@@ -323,3 +323,77 @@ class TestPermanentDisallowanceWarnings:
         warnings = portfolio.get_permanent_disallowance_warnings()
 
         assert len(warnings) == 0
+
+
+class TestWashSaleEdgeCases:
+    """Test edge cases for wash sale enforcement."""
+
+    def test_no_wash_sale_outside_30_day_window(self):
+        """Sale with repurchase at day 31 should not be wash sale."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        loss_txn = make_transaction("XYZ", "2024-06-01", "2025-01-15", 5000, 6000)
+        # 31 days after Jan 15 = Feb 15
+        replacement_txn = make_transaction("XYZ", "2025-02-16", "2025-12-01", 7000, 5000)
+        portfolio = SecuritiesPortfolio(additional_transactions=[loss_txn, replacement_txn])
+
+        wash_sales = portfolio.detect_wash_sales()
+        assert len(wash_sales) == 0
+
+    def test_no_wash_sale_for_gain(self):
+        """Gain transaction should not trigger wash sale."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        gain_txn = make_transaction("XYZ", "2024-06-01", "2025-01-15", 7000, 5000)  # Gain
+        replacement_txn = make_transaction("XYZ", "2025-01-20", "2025-12-01", 8000, 7000)
+        portfolio = SecuritiesPortfolio(additional_transactions=[gain_txn, replacement_txn])
+
+        wash_sales = portfolio.detect_wash_sales()
+        assert len(wash_sales) == 0
+
+    def test_no_wash_sale_different_security(self):
+        """Different securities should not trigger wash sale."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        loss_txn = make_transaction("XYZ", "2024-06-01", "2025-01-15", 5000, 6000)
+        replacement_txn = make_transaction("ABC", "2025-01-20", "2025-12-01", 7000, 5000)
+        portfolio = SecuritiesPortfolio(additional_transactions=[loss_txn, replacement_txn])
+
+        wash_sales = portfolio.detect_wash_sales()
+        assert len(wash_sales) == 0
+
+    def test_wash_sale_at_boundary_30_days(self):
+        """Repurchase exactly at day 30 should be wash sale."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        loss_txn = make_transaction("XYZ", "2024-06-01", "2025-01-15", 5000, 6000)
+        # Exactly 30 days after Jan 15 = Feb 14
+        replacement_txn = make_transaction("XYZ", "2025-02-14", "2025-12-01", 7000, 5000)
+        portfolio = SecuritiesPortfolio(additional_transactions=[loss_txn, replacement_txn])
+
+        wash_sales = portfolio.detect_wash_sales()
+        assert len(wash_sales) >= 1
+
+    def test_wash_sale_401k_is_permanent(self):
+        """401k replacement should also be permanent disallowance."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        loss_txn = make_transaction("XYZ", "2024-06-01", "2025-01-15", 5000, 6000, account_type="taxable")
+        replacement_txn = make_transaction("XYZ", "2025-01-20", "2025-12-01", 7000, 5000, account_type="401k")
+        portfolio = SecuritiesPortfolio(additional_transactions=[loss_txn, replacement_txn])
+
+        wash_sales = portfolio.detect_wash_sales()
+        assert len(wash_sales) >= 1
+        assert wash_sales[0].is_permanent_disallowance is True
+
+    def test_wash_sale_roth_ira_is_permanent(self):
+        """Roth IRA replacement should also be permanent disallowance."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        loss_txn = make_transaction("XYZ", "2024-06-01", "2025-01-15", 5000, 6000, account_type="taxable")
+        replacement_txn = make_transaction("XYZ", "2025-01-20", "2025-12-01", 7000, 5000, account_type="roth_ira")
+        portfolio = SecuritiesPortfolio(additional_transactions=[loss_txn, replacement_txn])
+
+        wash_sales = portfolio.detect_wash_sales()
+        assert len(wash_sales) >= 1
+        assert wash_sales[0].is_permanent_disallowance is True
