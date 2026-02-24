@@ -767,6 +767,53 @@ class SecuritiesPortfolio(BaseModel):
             'transaction_count': summary.get_transaction_count(),
         }
 
+    def enforce_wash_sales(self) -> List[WashSaleInfo]:
+        """
+        Detect and automatically apply wash sale adjustments.
+
+        Per IRC §1091:
+        1. Disallow loss on sale
+        2. Add disallowed loss to basis of replacement shares
+        3. Tack holding period from sold shares to replacement (except IRA)
+        4. Flag permanent disallowance for IRA replacements
+
+        Returns list of WashSaleInfo for applied wash sales.
+        """
+        wash_sales = self.detect_wash_sales()
+
+        for ws in wash_sales:
+            # Find the loss transaction by matching the disallowed loss amount
+            loss_txn = None
+            for t in self.get_all_transactions():
+                gain_loss = t.calculate_gain_loss()
+                if gain_loss < 0 and abs(gain_loss) == ws.disallowed_loss:
+                    loss_txn = t
+                    break
+
+            if loss_txn is None:
+                continue
+
+            # Find replacement transaction
+            replacement_txn = self._find_replacement_in_window(loss_txn)
+            if replacement_txn is None:
+                continue
+
+            # Apply wash sale to loss transaction
+            loss_txn.apply_wash_sale(
+                disallowed_loss=ws.disallowed_loss,
+                replacement_date=ws.replacement_shares_date,
+                replacement_quantity=ws.replacement_shares_quantity,
+            )
+
+            # Cascade basis to replacement shares
+            replacement_txn.cost_basis += ws.disallowed_loss
+
+            # Tack holding period (only for non-IRA)
+            if not ws.is_permanent_disallowance:
+                replacement_txn.adjusted_holding_period_days += ws.holding_period_adjustment_days
+
+        return wash_sales
+
     def detect_wash_sales(self, lookback_days: int = 30, lookforward_days: int = 30) -> List[WashSaleInfo]:
         """
         Detect potential wash sales in the transaction list.

@@ -230,3 +230,64 @@ class TestFindReplacementHelper:
 
         found = portfolio._find_replacement_in_window(loss_txn)
         assert found is None
+
+
+class TestEnforceWashSales:
+    """Test enforce_wash_sales method."""
+
+    def test_enforce_disallows_loss(self):
+        """enforce_wash_sales should mark loss transaction with wash sale."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        loss_txn = make_transaction("XYZ", "2024-06-01", "2025-01-15", 5000, 6000)  # $1000 loss
+        replacement_txn = make_transaction("XYZ", "2025-01-20", "2025-12-01", 7000, 5000)
+        portfolio = SecuritiesPortfolio(additional_transactions=[loss_txn, replacement_txn])
+
+        wash_sales = portfolio.enforce_wash_sales()
+
+        assert len(wash_sales) >= 1
+        # Loss transaction should have wash sale applied
+        assert loss_txn.wash_sale is not None
+        assert loss_txn.wash_sale.is_wash_sale is True
+        assert loss_txn.wash_sale.disallowed_loss == 1000.0
+
+    def test_enforce_cascades_basis_to_replacement(self):
+        """enforce_wash_sales should add disallowed loss to replacement basis."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        loss_txn = make_transaction("XYZ", "2024-06-01", "2025-01-15", 5000, 6000)  # $1000 loss
+        replacement_txn = make_transaction("XYZ", "2025-01-20", "2025-12-01", 7000, 5000)
+        original_basis = replacement_txn.cost_basis
+        portfolio = SecuritiesPortfolio(additional_transactions=[loss_txn, replacement_txn])
+
+        portfolio.enforce_wash_sales()
+
+        # Replacement basis should be increased by disallowed loss
+        assert replacement_txn.cost_basis == original_basis + 1000.0
+
+    def test_enforce_tacks_holding_period(self):
+        """enforce_wash_sales should add holding period to replacement shares."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        # Loss sale held for ~228 days (June 1 to Jan 15)
+        loss_txn = make_transaction("XYZ", "2024-06-01", "2025-01-15", 5000, 6000)
+        replacement_txn = make_transaction("XYZ", "2025-01-20", "2025-12-01", 7000, 5000)
+        portfolio = SecuritiesPortfolio(additional_transactions=[loss_txn, replacement_txn])
+
+        portfolio.enforce_wash_sales()
+
+        # Replacement should have holding period added (June 1 to Jan 15 = ~228 days)
+        assert replacement_txn.adjusted_holding_period_days > 200
+
+    def test_enforce_no_holding_period_tack_for_ira(self):
+        """enforce_wash_sales should NOT tack holding period for IRA replacements."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        loss_txn = make_transaction("XYZ", "2024-06-01", "2025-01-15", 5000, 6000, account_type="taxable")
+        replacement_txn = make_transaction("XYZ", "2025-01-20", "2025-12-01", 7000, 5000, account_type="ira")
+        portfolio = SecuritiesPortfolio(additional_transactions=[loss_txn, replacement_txn])
+
+        portfolio.enforce_wash_sales()
+
+        # IRA replacement should NOT have holding period tacked
+        assert replacement_txn.adjusted_holding_period_days == 0
