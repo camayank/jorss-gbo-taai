@@ -814,6 +814,26 @@ class SecuritiesPortfolio(BaseModel):
 
         return wash_sales
 
+    def get_permanent_disallowance_warnings(self) -> List[str]:
+        """
+        Return warnings for permanently disallowed losses (IRA wash sales).
+
+        Per IRS rules, when replacement shares are purchased in an IRA,
+        the loss is permanently disallowed and cannot be recovered through
+        increased basis (since IRA transactions aren't taxable).
+        """
+        warnings = []
+        wash_sales = self.detect_wash_sales()
+
+        for ws in wash_sales:
+            if ws.is_permanent_disallowance:
+                warnings.append(
+                    f"Loss of ${ws.disallowed_loss:,.2f} permanently disallowed - "
+                    f"replacement purchased in {ws.replacement_account_type}"
+                )
+
+        return warnings
+
     def detect_wash_sales(self, lookback_days: int = 30, lookforward_days: int = 30) -> List[WashSaleInfo]:
         """
         Detect potential wash sales in the transaction list.

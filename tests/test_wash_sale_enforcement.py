@@ -291,3 +291,35 @@ class TestEnforceWashSales:
 
         # IRA replacement should NOT have holding period tacked
         assert replacement_txn.adjusted_holding_period_days == 0
+
+
+class TestPermanentDisallowanceWarnings:
+    """Test get_permanent_disallowance_warnings method."""
+
+    def test_warning_generated_for_ira_wash_sale(self):
+        """Should generate warning for IRA wash sale."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        loss_txn = make_transaction("XYZ", "2024-06-01", "2025-01-15", 5000, 6000, account_type="taxable")
+        replacement_txn = make_transaction("XYZ", "2025-01-20", "2025-12-01", 7000, 5000, account_type="ira")
+        portfolio = SecuritiesPortfolio(additional_transactions=[loss_txn, replacement_txn])
+
+        portfolio.enforce_wash_sales()
+        warnings = portfolio.get_permanent_disallowance_warnings()
+
+        assert len(warnings) >= 1
+        assert "permanently disallowed" in warnings[0].lower()
+        assert "ira" in warnings[0].lower()
+
+    def test_no_warning_for_taxable_wash_sale(self):
+        """Should NOT generate warning for taxable-to-taxable wash sale."""
+        from models.form_8949 import SecuritiesPortfolio
+
+        loss_txn = make_transaction("XYZ", "2024-06-01", "2025-01-15", 5000, 6000, account_type="taxable")
+        replacement_txn = make_transaction("XYZ", "2025-01-20", "2025-12-01", 7000, 5000, account_type="taxable")
+        portfolio = SecuritiesPortfolio(additional_transactions=[loss_txn, replacement_txn])
+
+        portfolio.enforce_wash_sales()
+        warnings = portfolio.get_permanent_disallowance_warnings()
+
+        assert len(warnings) == 0
