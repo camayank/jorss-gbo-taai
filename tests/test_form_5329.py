@@ -675,6 +675,74 @@ class TestContributionLimits:
         assert limit == 8000.0  # 7000 + 1000 catchup
 
 
+class TestSecure2RmdPenaltyRates:
+    """Test SECURE 2.0 reduced RMD penalty rates."""
+
+    def test_standard_penalty_25_percent(self):
+        """Standard RMD failure penalty is 25% (reduced from 50%)."""
+        form = Form5329()
+        form.add_rmd_failure(
+            required_amount=10000.0,
+            actual_amount=0.0,
+            rmd_year=2025,
+            is_corrected=False,
+        )
+        result = form.calculate_part_viii_rmd_penalty()
+        # 25% of $10,000 shortfall = $2,500
+        assert result['total_penalty'] == pytest.approx(2500.0, rel=0.01)
+
+    def test_corrected_penalty_10_percent(self):
+        """Timely corrected RMD failure penalty is 10%."""
+        form = Form5329()
+        form.add_rmd_failure(
+            required_amount=10000.0,
+            actual_amount=0.0,
+            rmd_year=2025,
+            is_corrected=True,
+        )
+        result = form.calculate_part_viii_rmd_penalty()
+        # 10% of $10,000 shortfall = $1,000
+        assert result['total_penalty'] == pytest.approx(1000.0, rel=0.01)
+
+    def test_partial_shortfall_standard_rate(self):
+        """Partial shortfall at 25% rate."""
+        form = Form5329()
+        form.add_rmd_failure(
+            required_amount=10000.0,
+            actual_amount=6000.0,  # $4,000 shortfall
+            rmd_year=2025,
+            is_corrected=False,
+        )
+        result = form.calculate_part_viii_rmd_penalty()
+        # 25% of $4,000 = $1,000
+        assert result['total_penalty'] == pytest.approx(1000.0, rel=0.01)
+
+    def test_partial_shortfall_corrected_rate(self):
+        """Partial shortfall at 10% corrected rate."""
+        form = Form5329()
+        form.add_rmd_failure(
+            required_amount=10000.0,
+            actual_amount=6000.0,  # $4,000 shortfall
+            rmd_year=2025,
+            is_corrected=True,
+        )
+        result = form.calculate_part_viii_rmd_penalty()
+        # 10% of $4,000 = $400
+        assert result['total_penalty'] == pytest.approx(400.0, rel=0.01)
+
+    def test_waiver_requested_zero_penalty(self):
+        """Waiver request results in zero penalty (taxpayer must justify)."""
+        form = Form5329()
+        form.add_rmd_failure(
+            required_amount=10000.0,
+            actual_amount=0.0,
+            rmd_year=2025,
+            waiver_requested=True,
+        )
+        result = form.calculate_part_viii_rmd_penalty()
+        assert result['total_penalty'] == 0.0
+
+
 class TestSecure2RmdAge:
     """Test SECURE 2.0 RMD starting age determination."""
 
