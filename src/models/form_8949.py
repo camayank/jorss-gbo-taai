@@ -205,6 +205,12 @@ class SecurityTransaction(BaseModel):
         description="Account type: taxable, ira, roth_ira, 401k, 403b"
     )
 
+    # Holding period adjustment from wash sale tacking
+    adjusted_holding_period_days: int = Field(
+        default=0,
+        description="Additional holding period days from wash sale tacking per IRC §1223"
+    )
+
     @field_validator('date_sold')
     @classmethod
     def validate_date_sold(cls, v: str) -> str:

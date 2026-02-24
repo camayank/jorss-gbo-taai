@@ -79,3 +79,30 @@ class TestSecurityTransactionAccountType:
             cost_basis=6000.0,
         )
         assert txn.account_type == "taxable"
+
+
+class TestSecurityTransactionHoldingPeriod:
+    """Test SecurityTransaction adjusted holding period field."""
+
+    def test_adjusted_holding_period_days_field_exists(self):
+        """SecurityTransaction should have adjusted_holding_period_days field."""
+        txn = SecurityTransaction(
+            description="100 sh XYZ",
+            date_acquired="2025-01-15",
+            date_sold="2025-02-20",
+            proceeds=5000.0,
+            cost_basis=6000.0,
+            adjusted_holding_period_days=180,
+        )
+        assert txn.adjusted_holding_period_days == 180
+
+    def test_adjusted_holding_period_days_defaults_to_zero(self):
+        """adjusted_holding_period_days should default to 0."""
+        txn = SecurityTransaction(
+            description="100 sh XYZ",
+            date_acquired="2025-01-15",
+            date_sold="2025-02-20",
+            proceeds=5000.0,
+            cost_basis=6000.0,
+        )
+        assert txn.adjusted_holding_period_days == 0
