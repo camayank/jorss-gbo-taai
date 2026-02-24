@@ -85,7 +85,7 @@ class QBIBreakdown:
     final_qbi_deduction: Decimal = Decimal("0")  # Final deduction amount
 
     # Per-business breakdown for IRC §199A(b)(2)(B) compliance
-    business_details: list = field(default_factory=list)  # List[QBIBusinessDetail]
+    business_details: list[QBIBusinessDetail] = field(default_factory=list)
 
 
 class QBICalculator:
