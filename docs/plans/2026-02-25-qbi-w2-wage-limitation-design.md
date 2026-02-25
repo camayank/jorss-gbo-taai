@@ -1,7 +1,7 @@
 # QBI W-2 Wage Limitation Design Document
 
 **Date:** 2026-02-25
-**Status:** Approved
+**Status:** Implemented
 **Approach:** Refactor QBICalculator for Per-Business Limitation
 
 ## Overview
