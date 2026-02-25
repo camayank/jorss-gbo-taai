@@ -586,6 +586,34 @@
                 </div>
 
                 <div class="nav-section">
+                    <div class="nav-section-title">Tax Tools</div>
+                    <a href="/capital-gains" class="nav-item {% if active_page == 'capital_gains' %}active{% endif %}">
+                        <span class="nav-icon">{{ icon('arrow-trending-up') }}</span>
+                        <span>Capital Gains</span>
+                    </a>
+                    <a href="/k1-basis" class="nav-item {% if active_page == 'k1_basis' %}active{% endif %}">
+                        <span class="nav-icon">{{ icon('document-text') }}</span>
+                        <span>K-1 Basis</span>
+                    </a>
+                    <a href="/rental-depreciation" class="nav-item {% if active_page == 'rental_depreciation' %}active{% endif %}">
+                        <span class="nav-icon">{{ icon('home') }}</span>
+                        <span>Rental Depreciation</span>
+                    </a>
+                    <a href="/scenarios" class="nav-item {% if active_page == 'scenarios' %}active{% endif %}">
+                        <span class="nav-icon">{{ icon('arrows-right-left') }}</span>
+                        <span>Scenarios</span>
+                    </a>
+                    <a href="/computation-worksheet" class="nav-item {% if active_page == 'worksheet' %}active{% endif %}">
+                        <span class="nav-icon">{{ icon('calculator') }}</span>
+                        <span>Worksheet</span>
+                    </a>
+                    <a href="/draft-forms" class="nav-item {% if active_page == 'draft_forms' %}active{% endif %}">
+                        <span class="nav-icon">{{ icon('document-duplicate') }}</span>
+                        <span>Draft Forms</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
                     <div class="nav-section-title">Clients</div>
                     <a href="/cpa/clients" class="nav-item {% if active_page == 'clients' %}active{% endif %}">
                         <span class="nav-icon">{{ icon('users') }}</span>

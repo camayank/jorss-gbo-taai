@@ -1354,6 +1354,14 @@
             Support Tickets
             <span class="nav-item-badge" aria-label="12 tickets">12</span>
           </a>
+          <a href="/admin/refunds" class="nav-item" data-page="refunds">
+            <span class="nav-item-icon" aria-hidden="true">&#128176;</span>
+            Refund Management
+          </a>
+          <a href="/admin/impersonation" class="nav-item" data-page="impersonation">
+            <span class="nav-item-icon" aria-hidden="true">&#128101;</span>
+            User Impersonation
+          </a>
         </div>
 
         <div class="nav-section" role="group" aria-labelledby="nav-system-title">
@@ -1369,6 +1377,10 @@
           <a href="/admin/health" class="nav-item" data-page="health">
             <span class="nav-item-icon">&#128154;</span>
             System Health
+          </a>
+          <a href="/admin/api-keys" class="nav-item" data-page="api-keys">
+            <span class="nav-item-icon" aria-hidden="true">&#128273;</span>
+            API Keys
           </a>
         </div>
 
@@ -3906,6 +3918,9 @@
       'features': { title: 'Feature Flags', subtitle: 'Platform feature configuration', section: 'section-features' },
       'rbac': { title: 'RBAC Configuration', subtitle: 'Roles and permissions', section: 'section-rbac' },
       'health': { title: 'System Health', subtitle: 'Infrastructure status', section: 'section-health' },
+      'refunds': { title: 'Refund Management', subtitle: 'Review and process refund requests', section: 'section-overview' },
+      'impersonation': { title: 'User Impersonation', subtitle: 'Support mode for troubleshooting', section: 'section-overview' },
+      'api-keys': { title: 'API Keys', subtitle: 'Manage API keys and integrations', section: 'section-overview' },
     };
 
     function getCurrentPage() {
