@@ -33,7 +33,7 @@
 }
 
 .mobile-header-logo {
-  height: 32px;
+  height: var(--space-8);
   width: auto;
 }
 
@@ -63,7 +63,7 @@
 
 .hamburger-btn:hover,
 .hamburger-btn:focus-visible {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--white-alpha-10);
 }
 
 .hamburger-btn svg,
@@ -128,7 +128,7 @@
 .sidebar-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay-light);
   z-index: calc(var(--z-modal) - 1);
   opacity: 0;
   visibility: hidden;
@@ -156,12 +156,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--white-alpha-10);
   flex-shrink: 0;
 }
 
 .sidebar-logo {
-  height: 32px;
+  height: var(--space-8);
   width: auto;
 }
 
@@ -183,8 +183,8 @@
 }
 
 .sidebar-toggle {
-  width: 32px;
-  height: 32px;
+  width: var(--space-8);
+  height: var(--space-8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -316,11 +316,11 @@
 
 .sidebar.collapsed .nav-badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 8px;
-  height: 8px;
-  min-width: 8px;
+  top: var(--space-1);
+  right: var(--space-1);
+  width: var(--space-2);
+  height: var(--space-2);
+  min-width: var(--space-2);
   padding: 0;
 }
 
@@ -334,7 +334,7 @@
 
 .sidebar-footer {
   padding: var(--space-4);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--white-alpha-10);
 }
 
 /* =========================

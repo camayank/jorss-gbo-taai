@@ -78,7 +78,7 @@
 .form-textarea:focus {
   outline: none;
   border-color: var(--color-accent-500);
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  box-shadow: var(--focus-ring-accent);
 }
 
 .form-input:disabled,
@@ -132,7 +132,7 @@
 .form-check-input {
   width: 18px;
   height: 18px;
-  margin-top: 2px;
+  margin-top: var(--space-0-5);
   flex-shrink: 0;
   cursor: pointer;
   accent-color: var(--color-primary-600);
@@ -204,7 +204,7 @@
 
 .toggle-track {
   width: 44px;
-  height: 24px;
+  height: var(--space-6);
   background-color: var(--color-gray-300);
   border-radius: var(--radius-full);
   transition: background-color var(--transition-fast);
@@ -217,10 +217,10 @@
 .toggle-track::after {
   content: '';
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
+  top: var(--space-0-5);
+  left: var(--space-0-5);
+  width: var(--space-5);
+  height: var(--space-5);
   background-color: white;
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-sm);
@@ -395,8 +395,8 @@
 }
 
 .file-input-icon {
-  width: 40px;
-  height: 40px;
+  width: var(--space-10);
+  height: var(--space-10);
   color: var(--color-gray-400);
   margin-bottom: var(--space-3);
 }
@@ -424,6 +424,6 @@
   .form-input,
   .form-select,
   .form-textarea {
-    font-size: 16px;
+    font-size: var(--text-base);
   }
 }

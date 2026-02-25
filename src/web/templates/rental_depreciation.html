@@ -1,0 +1,1399 @@
+{% extends 'base_modern.html' %}
+{% block title %}Rental Property Depreciation{% endblock %}
+{% block theme %}default{% endblock %}
+
+{% block head_extra %}
+<style>
+  /* ===========================
+     Rental Depreciation Styles
+     =========================== */
+  .rd-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: var(--space-8) var(--space-6);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  /* Header */
+  .rd-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-8);
+    flex-wrap: wrap;
+    gap: var(--space-4);
+  }
+  .rd-header-text h1 {
+    font-size: 1.75rem;
+    font-weight: var(--font-bold);
+    color: var(--color-primary-500);
+    margin: 0 0 var(--space-1-5) 0;
+    line-height: 1.3;
+  }
+  .rd-header-text p {
+    font-size: 0.9rem;
+    color: var(--color-gray-500);
+    margin: 0;
+    line-height: var(--leading-normal);
+  }
+  .rd-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2-5) var(--space-5);
+    background: var(--color-primary-500);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
+    font-weight: var(--font-semibold);
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    white-space: nowrap;
+  }
+  .rd-btn-primary:hover {
+    background: var(--color-primary-700);
+    transform: translateY(-1px);
+  }
+  .rd-btn-primary:active {
+    transform: translateY(0);
+  }
+  .rd-btn-primary svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  /* Summary Bar */
+  .rd-summary-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-5);
+    margin-bottom: var(--space-8);
+  }
+  .rd-stat-card {
+    background: var(--white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-xl);
+    padding: var(--space-5) var(--space-6);
+    transition: box-shadow 0.2s;
+  }
+  .rd-stat-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  }
+  .rd-stat-label {
+    font-size: 0.8rem;
+    font-weight: var(--font-medium);
+    color: var(--color-gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--space-2);
+  }
+  .rd-stat-value {
+    font-size: 1.5rem;
+    font-weight: var(--font-bold);
+    color: var(--color-gray-900);
+    line-height: 1.2;
+  }
+  .rd-stat-value.teal { color: var(--color-accent-500); }
+  .rd-stat-value.navy { color: var(--color-primary-500); }
+  .rd-stat-sub {
+    font-size: 0.8rem;
+    color: var(--color-gray-400);
+    margin-top: var(--space-1);
+  }
+
+  /* Property Grid */
+  .rd-property-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+    gap: var(--space-5);
+    margin-bottom: var(--space-8);
+  }
+
+  /* Property Card */
+  .rd-property-card {
+    background: var(--white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+  .rd-property-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border-color: var(--color-gray-300);
+  }
+  .rd-property-card-header {
+    padding: var(--space-5) var(--space-6) 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+  .rd-property-name {
+    font-size: 1.05rem;
+    font-weight: var(--font-semibold);
+    color: var(--color-gray-900);
+    margin: 0 0 var(--space-1) 0;
+    line-height: 1.4;
+  }
+  .rd-property-address {
+    font-size: 0.825rem;
+    color: var(--color-gray-500);
+    margin: 0;
+  }
+  .rd-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--space-1) var(--space-2-5);
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: var(--font-semibold);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .rd-badge-residential {
+    background: var(--color-success-50);
+    color: var(--color-success-500);
+  }
+  .rd-badge-commercial {
+    background: var(--color-info-50);
+    color: var(--color-primary-500);
+  }
+  .rd-badge-improvement {
+    background: var(--color-warning-100);
+    color: var(--color-warning-600);
+    font-size: 0.7rem;
+    padding: 2px var(--space-2);
+    margin-left: var(--space-1-5);
+  }
+
+  .rd-property-body {
+    padding: var(--space-4) var(--space-6);
+  }
+  .rd-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3) var(--space-5);
+    margin-bottom: var(--space-4);
+  }
+  .rd-detail-item label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: var(--font-medium);
+    color: var(--color-gray-400);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+  }
+  .rd-detail-item span {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: var(--font-medium);
+    color: var(--color-gray-700);
+  }
+
+  /* Depreciation highlight */
+  .rd-depreciation-highlight {
+    background: linear-gradient(135deg, var(--color-accent-50), var(--color-success-50));
+    border: 1px solid var(--color-accent-200);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-4);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .rd-depreciation-highlight .rd-dep-label {
+    font-size: 0.8rem;
+    color: var(--color-accent-600);
+    font-weight: var(--font-medium);
+  }
+  .rd-depreciation-highlight .rd-dep-amount {
+    font-size: 1.1rem;
+    font-weight: var(--font-bold);
+    color: var(--color-accent-500);
+  }
+
+  /* Progress bar */
+  .rd-progress-wrapper {
+    margin-bottom: var(--space-4);
+  }
+  .rd-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-1-5);
+  }
+  .rd-progress-label {
+    font-size: 0.75rem;
+    color: var(--color-gray-500);
+    font-weight: var(--font-medium);
+  }
+  .rd-progress-pct {
+    font-size: 0.75rem;
+    color: var(--color-accent-500);
+    font-weight: var(--font-semibold);
+  }
+  .rd-progress-track {
+    height: 8px;
+    background: var(--color-gray-100);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .rd-progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--color-accent-500), var(--color-success-500));
+    transition: width var(--transition-slower);
+    min-width: 0;
+  }
+
+  /* Accumulated depreciation row */
+  .rd-accumulated-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-2) 0;
+    border-top: 1px dashed var(--color-gray-200);
+    margin-bottom: var(--space-2);
+  }
+  .rd-accumulated-label {
+    font-size: 0.8rem;
+    color: var(--color-gray-500);
+  }
+  .rd-accumulated-value {
+    font-size: 0.9rem;
+    font-weight: var(--font-semibold);
+    color: var(--color-gray-700);
+  }
+
+  /* Card actions */
+  .rd-property-actions {
+    padding: var(--space-3) var(--space-6) var(--space-5);
+    display: flex;
+    gap: var(--space-2);
+    border-top: 1px solid var(--color-gray-100);
+  }
+  .rd-btn-sm {
+    padding: 7px var(--space-3-5);
+    border-radius: var(--radius-md);
+    font-size: 0.8rem;
+    font-weight: var(--font-medium);
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .rd-btn-sm svg {
+    width: 14px;
+    height: 14px;
+  }
+  .rd-btn-outline {
+    background: var(--white);
+    color: var(--color-gray-700);
+    border-color: var(--color-gray-200);
+  }
+  .rd-btn-outline:hover {
+    background: var(--color-gray-50);
+    border-color: var(--color-gray-300);
+  }
+  .rd-btn-teal {
+    background: var(--color-accent-500);
+    color: var(--white);
+    border-color: var(--color-accent-500);
+  }
+  .rd-btn-teal:hover {
+    background: var(--color-accent-600);
+    border-color: var(--color-accent-600);
+  }
+  .rd-btn-danger {
+    background: var(--white);
+    color: var(--color-error-500);
+    border-color: var(--color-error-200);
+  }
+  .rd-btn-danger:hover {
+    background: var(--color-error-50);
+    border-color: #fca5a5;
+  }
+
+  /* Empty State */
+  .rd-empty-state {
+    text-align: center;
+    padding: var(--space-16) var(--space-6);
+    background: var(--white);
+    border: 2px dashed var(--color-gray-200);
+    border-radius: var(--radius-xl);
+    margin-bottom: var(--space-8);
+  }
+  .rd-empty-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto var(--space-5);
+    background: var(--color-accent-50);
+    border-radius: var(--radius-2xl);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .rd-empty-icon svg {
+    width: 32px;
+    height: 32px;
+    color: var(--color-accent-500);
+  }
+  .rd-empty-state h3 {
+    font-size: 1.1rem;
+    font-weight: var(--font-semibold);
+    color: var(--color-gray-700);
+    margin-bottom: var(--space-2);
+  }
+  .rd-empty-state p {
+    font-size: 0.875rem;
+    color: var(--color-gray-500);
+    margin-bottom: var(--space-6);
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Schedule Panel */
+  .rd-schedule-panel {
+    background: var(--white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    margin-bottom: var(--space-8);
+  }
+  .rd-schedule-header {
+    padding: var(--space-6);
+    border-bottom: 1px solid var(--color-gray-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+  }
+  .rd-schedule-header h2 {
+    font-size: 1.15rem;
+    font-weight: var(--font-semibold);
+    color: var(--color-primary-500);
+    margin: 0 0 var(--space-1) 0;
+  }
+  .rd-schedule-header p {
+    font-size: 0.825rem;
+    color: var(--color-gray-500);
+    margin: 0;
+  }
+  .rd-close-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-gray-200);
+    background: var(--white);
+    color: var(--color-gray-500);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .rd-close-btn:hover {
+    background: var(--color-gray-100);
+    color: var(--color-gray-700);
+  }
+  .rd-close-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .rd-schedule-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-4);
+    padding: var(--space-5) var(--space-6);
+    background: var(--color-gray-50);
+    border-bottom: 1px solid var(--color-gray-200);
+  }
+  .rd-schedule-detail label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: var(--font-medium);
+    color: var(--color-gray-400);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+  }
+  .rd-schedule-detail span {
+    font-size: 0.875rem;
+    font-weight: var(--font-semibold);
+    color: var(--color-gray-700);
+  }
+
+  /* Schedule Table */
+  .rd-schedule-table-wrapper {
+    overflow-x: auto;
+    padding: 0;
+  }
+  .rd-schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .rd-schedule-table thead th {
+    background: var(--color-gray-50);
+    padding: var(--space-3) var(--space-4);
+    text-align: left;
+    font-weight: var(--font-semibold);
+    color: var(--color-gray-500);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--color-gray-200);
+    white-space: nowrap;
+  }
+  .rd-schedule-table thead th:not(:first-child) {
+    text-align: right;
+  }
+  .rd-schedule-table tbody td {
+    padding: var(--space-2-5) var(--space-4);
+    border-bottom: 1px solid var(--color-gray-100);
+    color: var(--color-gray-700);
+  }
+  .rd-schedule-table tbody td:not(:first-child) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .rd-schedule-table tbody tr:hover {
+    background: var(--color-gray-50);
+  }
+  .rd-schedule-table tbody tr.rd-current-year {
+    background: var(--color-accent-50);
+    font-weight: var(--font-semibold);
+  }
+  .rd-schedule-table tbody tr.rd-current-year td {
+    color: var(--color-accent-600);
+    border-bottom-color: var(--color-accent-200);
+  }
+  .rd-schedule-table tbody tr.rd-current-year td:first-child {
+    position: relative;
+  }
+  .rd-schedule-table tbody tr.rd-current-year td:first-child::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 4px;
+    width: 3px;
+    background: var(--color-accent-500);
+    border-radius: 0 2px 2px 0;
+  }
+
+  /* Mid-month note */
+  .rd-convention-note {
+    padding: var(--space-4) var(--space-6);
+    background: var(--color-warning-50);
+    border-top: 1px solid var(--color-warning-200);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2-5);
+    font-size: 0.8rem;
+    color: var(--color-warning-800);
+    line-height: var(--leading-normal);
+  }
+  .rd-convention-note svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--color-warning-600);
+  }
+
+  /* Improvements section in schedule */
+  .rd-improvements-section {
+    padding: var(--space-5) var(--space-6);
+    border-top: 1px solid var(--color-gray-200);
+  }
+  .rd-improvements-section h3 {
+    font-size: 0.95rem;
+    font-weight: var(--font-semibold);
+    color: var(--color-gray-700);
+    margin-bottom: var(--space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .rd-improvement-item {
+    background: var(--color-gray-50);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3-5) var(--space-4);
+    margin-bottom: var(--space-3);
+  }
+  .rd-improvement-item:last-child {
+    margin-bottom: 0;
+  }
+  .rd-improvement-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-2);
+  }
+  .rd-improvement-name {
+    font-size: 0.875rem;
+    font-weight: var(--font-semibold);
+    color: var(--color-gray-700);
+  }
+  .rd-improvement-cost {
+    font-size: 0.875rem;
+    font-weight: var(--font-semibold);
+    color: var(--color-accent-500);
+  }
+  .rd-improvement-meta {
+    font-size: 0.775rem;
+    color: var(--color-gray-400);
+    display: flex;
+    gap: var(--space-4);
+  }
+  .rd-no-improvements {
+    text-align: center;
+    padding: var(--space-6);
+    color: var(--color-gray-400);
+    font-size: 0.85rem;
+  }
+
+  /* Modal */
+  .rd-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: var(--space-6);
+    backdrop-filter: blur(4px);
+  }
+  .rd-modal {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  }
+  .rd-modal-header {
+    padding: var(--space-5) var(--space-6) 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .rd-modal-header h2 {
+    font-size: 1.1rem;
+    font-weight: var(--font-semibold);
+    color: var(--color-gray-900);
+    margin: 0;
+  }
+  .rd-modal-body {
+    padding: var(--space-5) var(--space-6);
+  }
+  .rd-modal-footer {
+    padding: 0 var(--space-6) var(--space-6);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2-5);
+  }
+
+  /* Form styles */
+  .rd-form-group {
+    margin-bottom: var(--space-4);
+  }
+  .rd-form-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: var(--font-medium);
+    color: var(--color-gray-700);
+    margin-bottom: 5px;
+  }
+  .rd-form-group label .rd-required {
+    color: var(--color-error-500);
+  }
+  .rd-form-input {
+    width: 100%;
+    padding: 9px var(--space-3-5);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
+    color: var(--color-gray-900);
+    background: var(--white);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+  }
+  .rd-form-input:focus {
+    outline: none;
+    border-color: var(--color-accent-500);
+    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+  }
+  .rd-form-select {
+    width: 100%;
+    padding: 9px var(--space-3-5);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
+    color: var(--color-gray-900);
+    background: var(--white) url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") right 10px center no-repeat;
+    background-size: 16px;
+    appearance: none;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+  }
+  .rd-form-select:focus {
+    outline: none;
+    border-color: var(--color-accent-500);
+    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+  }
+  .rd-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+  }
+  .rd-form-hint {
+    font-size: 0.75rem;
+    color: var(--color-gray-400);
+    margin-top: var(--space-1);
+  }
+  .rd-calculated-field {
+    background: var(--color-accent-50);
+    border: 1px solid var(--color-accent-200);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3) var(--space-4);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .rd-calculated-field label {
+    font-size: 0.8rem;
+    font-weight: var(--font-medium);
+    color: var(--color-accent-600);
+    margin-bottom: 0 !important;
+  }
+  .rd-calculated-field .rd-calc-value {
+    font-size: 1rem;
+    font-weight: var(--font-bold);
+    color: var(--color-accent-500);
+  }
+
+  .rd-btn-cancel {
+    padding: 9px 18px;
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-lg);
+    background: var(--white);
+    color: var(--color-gray-700);
+    font-size: 0.85rem;
+    font-weight: var(--font-medium);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .rd-btn-cancel:hover {
+    background: var(--color-gray-50);
+    border-color: var(--color-gray-300);
+  }
+  .rd-btn-submit {
+    padding: 9px 18px;
+    border: none;
+    border-radius: var(--radius-lg);
+    background: var(--color-accent-500);
+    color: var(--white);
+    font-size: 0.85rem;
+    font-weight: var(--font-semibold);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .rd-btn-submit:hover {
+    background: var(--color-accent-600);
+  }
+  .rd-btn-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Loading spinner */
+  .rd-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-12) var(--space-6);
+  }
+  .rd-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--color-gray-200);
+    border-top-color: var(--color-accent-500);
+    border-radius: 50%;
+    animation: rd-spin 0.7s linear infinite;
+  }
+  @keyframes rd-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .rd-container {
+      padding: var(--space-5) var(--space-4);
+    }
+    .rd-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .rd-summary-bar {
+      grid-template-columns: 1fr;
+    }
+    .rd-property-grid {
+      grid-template-columns: 1fr;
+    }
+    .rd-detail-grid {
+      grid-template-columns: 1fr;
+    }
+    .rd-form-row {
+      grid-template-columns: 1fr;
+    }
+    .rd-schedule-details {
+      grid-template-columns: 1fr 1fr;
+    }
+    .rd-property-actions {
+      flex-wrap: wrap;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rd-container" x-data="rentalDepreciationManager()" x-cloak>
+
+  <!-- ==================== HEADER ==================== -->
+  <div class="rd-header">
+    <div class="rd-header-text">
+      <h1>Rental Property Depreciation</h1>
+      <p>MACRS depreciation schedules for residential and commercial properties</p>
+    </div>
+    <button class="rd-btn-primary" @click="showAddProperty = true">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
+      </svg>
+      Add Property
+    </button>
+  </div>
+
+  <!-- ==================== SUMMARY BAR ==================== -->
+  <div class="rd-summary-bar">
+    <div class="rd-stat-card">
+      <div class="rd-stat-label">Total Properties</div>
+      <div class="rd-stat-value navy" x-text="properties.length">0</div>
+      <div class="rd-stat-sub">Tracked in portfolio</div>
+    </div>
+    <div class="rd-stat-card">
+      <div class="rd-stat-label">Current Year Depreciation</div>
+      <div class="rd-stat-value teal" x-text="formatCurrency(totalDepreciation?.current_year_total || 0)">$0.00</div>
+      <div class="rd-stat-sub" x-text="'Tax year ' + new Date().getFullYear()"></div>
+    </div>
+    <div class="rd-stat-card">
+      <div class="rd-stat-label">Total Property Value</div>
+      <div class="rd-stat-value" x-text="formatCurrency(properties.reduce((sum, p) => sum + (p.total_cost || 0), 0))">$0.00</div>
+      <div class="rd-stat-sub">Combined cost basis</div>
+    </div>
+  </div>
+
+  <!-- ==================== LOADING ==================== -->
+  <div class="rd-loading" x-show="loading">
+    <div class="rd-spinner"></div>
+  </div>
+
+  <!-- ==================== EMPTY STATE ==================== -->
+  <template x-if="!loading && properties.length === 0">
+    <div class="rd-empty-state">
+      <div class="rd-empty-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z"/>
+        </svg>
+      </div>
+      <h3>No Properties Added</h3>
+      <p>Add your first rental property to begin tracking MACRS depreciation schedules and maximize your tax deductions.</p>
+      <button class="rd-btn-primary" @click="showAddProperty = true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
+        </svg>
+        Add Your First Property
+      </button>
+    </div>
+  </template>
+
+  <!-- ==================== PROPERTY CARDS GRID ==================== -->
+  <div class="rd-property-grid" x-show="!loading && properties.length > 0">
+    <template x-for="prop in properties" :key="prop.property_id">
+      <div class="rd-property-card">
+        <!-- Card Header -->
+        <div class="rd-property-card-header">
+          <div>
+            <h3 class="rd-property-name" x-text="prop.property_name || 'Unnamed Property'"></h3>
+            <p class="rd-property-address" x-text="prop.address || ''"></p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="rd-badge"
+                  :class="prop.property_type === 'commercial' ? 'rd-badge-commercial' : 'rd-badge-residential'"
+                  x-text="prop.property_type === 'commercial' ? 'Commercial (39 yr)' : 'Residential (27.5 yr)'">
+            </span>
+            <span class="rd-badge rd-badge-improvement"
+                  x-show="(prop.improvements || []).length > 0"
+                  x-text="(prop.improvements || []).length + ' improvement' + ((prop.improvements || []).length !== 1 ? 's' : '')">
+            </span>
+          </div>
+        </div>
+
+        <!-- Card Body -->
+        <div class="rd-property-body">
+          <!-- Detail Grid -->
+          <div class="rd-detail-grid">
+            <div class="rd-detail-item">
+              <label>Purchase Date</label>
+              <span x-text="formatDate(prop.purchase_date)"></span>
+            </div>
+            <div class="rd-detail-item">
+              <label>Placed in Service</label>
+              <span x-text="formatDate(prop.placed_in_service_date)"></span>
+            </div>
+            <div class="rd-detail-item">
+              <label>Cost Basis</label>
+              <span x-text="formatCurrency(prop.total_cost)"></span>
+            </div>
+            <div class="rd-detail-item">
+              <label>Land Value</label>
+              <span x-text="formatCurrency(prop.land_value)"></span>
+            </div>
+            <div class="rd-detail-item" style="grid-column: 1 / -1;">
+              <label>Depreciable Basis</label>
+              <span style="font-weight: 600; color: #1e3a5f;" x-text="formatCurrency(prop.depreciable_basis)"></span>
+            </div>
+          </div>
+
+          <!-- Current Year Depreciation Highlight -->
+          <div class="rd-depreciation-highlight">
+            <span class="rd-dep-label">Current Year Depreciation</span>
+            <span class="rd-dep-amount" x-text="formatCurrency(prop.current_year_depreciation || 0)"></span>
+          </div>
+
+          <!-- Accumulated + Progress -->
+          <div class="rd-accumulated-row">
+            <span class="rd-accumulated-label">Accumulated Depreciation</span>
+            <span class="rd-accumulated-value" x-text="formatCurrency(prop.accumulated_depreciation || 0)"></span>
+          </div>
+
+          <div class="rd-progress-wrapper">
+            <div class="rd-progress-header">
+              <span class="rd-progress-label">Depreciation Progress</span>
+              <span class="rd-progress-pct" x-text="depreciationProgress(prop).toFixed(1) + '%'"></span>
+            </div>
+            <div class="rd-progress-track">
+              <div class="rd-progress-fill" :style="'width: ' + depreciationProgress(prop) + '%'"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card Actions -->
+        <div class="rd-property-actions">
+          <button class="rd-btn-sm rd-btn-teal" @click="viewSchedule(prop.property_id)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm1 8a1 1 0 100 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h3a1 1 0 100-2H7z" clip-rule="evenodd"/>
+            </svg>
+            View Schedule
+          </button>
+          <button class="rd-btn-sm rd-btn-outline" @click="selectedProperty = prop; showAddImprovement = true;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/>
+            </svg>
+            Add Improvement
+          </button>
+          <button class="rd-btn-sm rd-btn-danger" @click="deleteProperty(prop.property_id)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+            Delete
+          </button>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- ==================== DEPRECIATION SCHEDULE PANEL ==================== -->
+  <div class="rd-schedule-panel" x-show="selectedProperty && schedule" x-transition>
+    <div class="rd-schedule-header">
+      <div>
+        <h2 x-text="'Depreciation Schedule: ' + (selectedProperty?.property_name || 'Property')"></h2>
+        <p x-text="(selectedProperty?.property_type === 'commercial' ? 'Commercial' : 'Residential') + ' MACRS ' + (selectedProperty?.property_type === 'commercial' ? '39-Year' : '27.5-Year') + ' Schedule'"></p>
+      </div>
+      <button class="rd-close-btn" @click="selectedProperty = null; schedule = null;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Property Details -->
+    <div class="rd-schedule-details">
+      <div class="rd-schedule-detail">
+        <label>Placed in Service</label>
+        <span x-text="formatDate(selectedProperty?.placed_in_service_date)"></span>
+      </div>
+      <div class="rd-schedule-detail">
+        <label>Depreciable Basis</label>
+        <span x-text="formatCurrency(selectedProperty?.depreciable_basis)"></span>
+      </div>
+      <div class="rd-schedule-detail">
+        <label>Property Type</label>
+        <span x-text="selectedProperty?.property_type === 'commercial' ? 'Commercial (39 yr)' : 'Residential (27.5 yr)'"></span>
+      </div>
+      <div class="rd-schedule-detail">
+        <label>Recovery Period</label>
+        <span x-text="selectedProperty?.property_type === 'commercial' ? '39 years' : '27.5 years'"></span>
+      </div>
+    </div>
+
+    <!-- Depreciation Table -->
+    <div class="rd-schedule-table-wrapper">
+      <table class="rd-schedule-table">
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th>Beginning Basis</th>
+            <th>Depreciation</th>
+            <th>Accumulated</th>
+            <th>Remaining Basis</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-if="schedule && schedule.schedule">
+            <template x-for="(row, idx) in schedule.schedule" :key="idx">
+              <tr :class="{ 'rd-current-year': row.year === new Date().getFullYear() }">
+                <td>
+                  <span x-text="row.year"></span>
+                  <template x-if="row.year === new Date().getFullYear()">
+                    <span style="display: inline-block; margin-left: 6px; font-size: 0.65rem; background: #14b8a6; color: #fff; padding: 1px 6px; border-radius: 4px; font-weight: 600; vertical-align: middle;">CURRENT</span>
+                  </template>
+                </td>
+                <td x-text="formatCurrency(row.beginning_basis)"></td>
+                <td x-text="formatCurrency(row.depreciation)"></td>
+                <td x-text="formatCurrency(row.accumulated)"></td>
+                <td x-text="formatCurrency(row.remaining_basis)"></td>
+              </tr>
+            </template>
+          </template>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mid-Month Convention Note -->
+    <div class="rd-convention-note">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+      </svg>
+      <div>
+        <strong>Mid-Month Convention:</strong> Under MACRS, rental property uses the mid-month convention. The property is treated as placed in service at the midpoint of the month, regardless of the actual date. This means the first and last years of depreciation will be partial-year amounts based on the month placed in service.
+      </div>
+    </div>
+
+    <!-- Improvements Section -->
+    <div class="rd-improvements-section">
+      <h3>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style="width: 18px; height: 18px; color: #d97706;">
+          <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+        </svg>
+        Capital Improvements
+        <span class="rd-badge rd-badge-improvement"
+              x-show="(selectedProperty?.improvements || []).length > 0"
+              x-text="(selectedProperty?.improvements || []).length">
+        </span>
+      </h3>
+
+      <!-- Improvement List -->
+      <template x-if="(selectedProperty?.improvements || []).length > 0">
+        <div>
+          <template x-for="imp in selectedProperty.improvements" :key="imp.improvement_id || imp.description">
+            <div class="rd-improvement-item">
+              <div class="rd-improvement-header">
+                <span class="rd-improvement-name" x-text="imp.description"></span>
+                <span class="rd-improvement-cost" x-text="formatCurrency(imp.cost)"></span>
+              </div>
+              <div class="rd-improvement-meta">
+                <span x-text="'Placed in service: ' + formatDate(imp.date_placed_in_service)"></span>
+                <span x-text="'Useful life: ' + (imp.useful_life || (selectedProperty?.property_type === 'commercial' ? 39 : 27.5)) + ' years'"></span>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <!-- No Improvements -->
+      <template x-if="(selectedProperty?.improvements || []).length === 0">
+        <div class="rd-no-improvements">
+          <p>No capital improvements recorded for this property.</p>
+          <button class="rd-btn-sm rd-btn-outline" style="margin-top: 8px;" @click="showAddImprovement = true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/>
+            </svg>
+            Add Improvement
+          </button>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- ==================== ADD PROPERTY MODAL ==================== -->
+  <template x-if="showAddProperty">
+    <div class="rd-modal-overlay" @click.self="showAddProperty = false" @keydown.escape.window="showAddProperty = false">
+      <div class="rd-modal" @click.stop>
+        <div class="rd-modal-header">
+          <h2>Add Rental Property</h2>
+          <button class="rd-close-btn" @click="showAddProperty = false">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+        </div>
+        <div class="rd-modal-body">
+          <div class="rd-form-group">
+            <label>Property Name / Address <span class="rd-required">*</span></label>
+            <input type="text" class="rd-form-input" x-model="newProperty.property_name" placeholder="e.g., 123 Main Street Duplex">
+          </div>
+
+          <div class="rd-form-group">
+            <label>Property Type <span class="rd-required">*</span></label>
+            <select class="rd-form-select" x-model="newProperty.property_type">
+              <option value="residential">Residential (27.5-year recovery)</option>
+              <option value="commercial">Commercial (39-year recovery)</option>
+            </select>
+          </div>
+
+          <div class="rd-form-row">
+            <div class="rd-form-group">
+              <label>Purchase Date <span class="rd-required">*</span></label>
+              <input type="date" class="rd-form-input" x-model="newProperty.purchase_date">
+            </div>
+            <div class="rd-form-group">
+              <label>Date Placed in Service <span class="rd-required">*</span></label>
+              <input type="date" class="rd-form-input" x-model="newProperty.placed_in_service_date">
+              <div class="rd-form-hint">When the property was first available for rent</div>
+            </div>
+          </div>
+
+          <div class="rd-form-row">
+            <div class="rd-form-group">
+              <label>Total Cost <span class="rd-required">*</span></label>
+              <input type="number" class="rd-form-input" x-model.number="newProperty.total_cost" placeholder="0.00" min="0" step="0.01">
+              <div class="rd-form-hint">Purchase price plus closing costs</div>
+            </div>
+            <div class="rd-form-group">
+              <label>Land Value <span class="rd-required">*</span></label>
+              <input type="number" class="rd-form-input" x-model.number="newProperty.land_value" placeholder="0.00" min="0" step="0.01">
+              <div class="rd-form-hint">Land is not depreciable</div>
+            </div>
+          </div>
+
+          <div class="rd-calculated-field" style="margin-top: 4px;">
+            <label>Depreciable Basis (auto-calculated)</label>
+            <span class="rd-calc-value" x-text="formatCurrency(Math.max(0, (newProperty.total_cost || 0) - (newProperty.land_value || 0)))"></span>
+          </div>
+        </div>
+        <div class="rd-modal-footer">
+          <button class="rd-btn-cancel" @click="showAddProperty = false">Cancel</button>
+          <button class="rd-btn-submit"
+                  :disabled="!newProperty.property_name || !newProperty.purchase_date || !newProperty.placed_in_service_date || !newProperty.total_cost"
+                  @click="addProperty()">
+            Add Property
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ==================== ADD IMPROVEMENT MODAL ==================== -->
+  <template x-if="showAddImprovement">
+    <div class="rd-modal-overlay" @click.self="showAddImprovement = false" @keydown.escape.window="showAddImprovement = false">
+      <div class="rd-modal" @click.stop>
+        <div class="rd-modal-header">
+          <h2>Add Capital Improvement</h2>
+          <button class="rd-close-btn" @click="showAddImprovement = false">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+        </div>
+        <div class="rd-modal-body">
+          <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 0.825rem; color: #0369a1;">
+            Adding improvement to: <strong x-text="selectedProperty?.property_name || 'Selected Property'"></strong>
+          </div>
+
+          <div class="rd-form-group">
+            <label>Description <span class="rd-required">*</span></label>
+            <input type="text" class="rd-form-input" x-model="newImprovement.description" placeholder="e.g., New HVAC system, Roof replacement">
+          </div>
+
+          <div class="rd-form-row">
+            <div class="rd-form-group">
+              <label>Date Placed in Service <span class="rd-required">*</span></label>
+              <input type="date" class="rd-form-input" x-model="newImprovement.date_placed_in_service">
+            </div>
+            <div class="rd-form-group">
+              <label>Cost <span class="rd-required">*</span></label>
+              <input type="number" class="rd-form-input" x-model.number="newImprovement.cost" placeholder="0.00" min="0" step="0.01">
+            </div>
+          </div>
+
+          <div class="rd-form-group">
+            <label>Useful Life (years)</label>
+            <input type="number" class="rd-form-input"
+                   x-model.number="newImprovement.useful_life"
+                   :placeholder="selectedProperty?.property_type === 'commercial' ? '39' : '27.5'"
+                   min="1" step="0.5">
+            <div class="rd-form-hint" x-text="'Defaults to ' + (selectedProperty?.property_type === 'commercial' ? '39' : '27.5') + ' years based on property type if left blank'"></div>
+          </div>
+        </div>
+        <div class="rd-modal-footer">
+          <button class="rd-btn-cancel" @click="showAddImprovement = false">Cancel</button>
+          <button class="rd-btn-submit"
+                  :disabled="!newImprovement.description || !newImprovement.date_placed_in_service || !newImprovement.cost"
+                  @click="addImprovement()">
+            Add Improvement
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+function rentalDepreciationManager() {
+    return {
+        sessionId: 'default',
+        properties: [],
+        selectedProperty: null,
+        schedule: null,
+        totalDepreciation: null,
+        loading: false,
+        showAddProperty: false,
+        showAddImprovement: false,
+        newProperty: {
+            property_name: '',
+            property_type: 'residential',
+            purchase_date: '',
+            placed_in_service_date: '',
+            total_cost: 0,
+            land_value: 0
+        },
+        newImprovement: {
+            description: '',
+            date_placed_in_service: '',
+            cost: 0,
+            useful_life: null
+        },
+
+        async init() {
+            await this.loadProperties();
+            await this.loadTotalDepreciation();
+        },
+
+        async loadProperties() {
+            this.loading = true;
+            try {
+                const res = await fetch(`/api/v1/rental-depreciation/session/${this.sessionId}/properties`);
+                if (res.ok) {
+                    const data = await res.json();
+                    this.properties = data.properties || [];
+                }
+            } catch (e) {
+                console.error('Failed to load properties:', e);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async loadTotalDepreciation() {
+            try {
+                const res = await fetch(`/api/v1/rental-depreciation/session/${this.sessionId}/total-depreciation`);
+                if (res.ok) {
+                    this.totalDepreciation = await res.json();
+                }
+            } catch (e) {
+                console.error('Failed to load total depreciation:', e);
+            }
+        },
+
+        async addProperty() {
+            try {
+                const depreciableBasis = Math.max(0, (this.newProperty.total_cost || 0) - (this.newProperty.land_value || 0));
+                const payload = {
+                    ...this.newProperty,
+                    depreciable_basis: depreciableBasis
+                };
+                const res = await fetch(`/api/v1/rental-depreciation/session/${this.sessionId}/property`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    this.showAddProperty = false;
+                    this.resetNewProperty();
+                    await this.loadProperties();
+                    await this.loadTotalDepreciation();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.detail || 'Failed to add property. Please check your inputs.');
+                }
+            } catch (e) {
+                console.error('Failed to add property:', e);
+                alert('Failed to add property. Please try again.');
+            }
+        },
+
+        async viewSchedule(propertyId) {
+            try {
+                // Refresh property data
+                const res = await fetch(`/api/v1/rental-depreciation/session/${this.sessionId}/properties`);
+                if (res.ok) {
+                    const data = await res.json();
+                    this.selectedProperty = (data.properties || []).find(p => p.property_id === propertyId) || null;
+                }
+
+                if (!this.selectedProperty) {
+                    alert('Property not found.');
+                    return;
+                }
+
+                // Get the depreciation schedule
+                const schedRes = await fetch('/api/v1/rental-depreciation/schedule', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        depreciable_basis: this.selectedProperty.depreciable_basis || 0,
+                        property_type: this.selectedProperty.property_type || 'residential',
+                        placed_in_service_date: this.selectedProperty.placed_in_service_date
+                    })
+                });
+                if (schedRes.ok) {
+                    this.schedule = await schedRes.json();
+                } else {
+                    console.error('Failed to load schedule');
+                    this.schedule = null;
+                }
+
+                // Scroll to the schedule panel
+                this.$nextTick(() => {
+                    const panel = document.querySelector('.rd-schedule-panel');
+                    if (panel) {
+                        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            } catch (e) {
+                console.error('Failed to load schedule:', e);
+                alert('Failed to load depreciation schedule.');
+            }
+        },
+
+        async addImprovement() {
+            if (!this.selectedProperty) return;
+            try {
+                const payload = { ...this.newImprovement };
+                if (!payload.useful_life) {
+                    payload.useful_life = this.selectedProperty.property_type === 'commercial' ? 39 : 27.5;
+                }
+                const res = await fetch(`/api/v1/rental-depreciation/session/${this.sessionId}/property/${this.selectedProperty.property_id}/improvement`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    this.showAddImprovement = false;
+                    this.resetNewImprovement();
+                    await this.loadProperties();
+                    await this.viewSchedule(this.selectedProperty.property_id);
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.detail || 'Failed to add improvement.');
+                }
+            } catch (e) {
+                console.error('Failed to add improvement:', e);
+                alert('Failed to add improvement. Please try again.');
+            }
+        },
+
+        async deleteProperty(propertyId) {
+            if (!confirm('Are you sure you want to delete this property? This action cannot be undone.')) return;
+            try {
+                await fetch(`/api/v1/rental-depreciation/session/${this.sessionId}/property/${propertyId}`, {
+                    method: 'DELETE'
+                });
+                if (this.selectedProperty?.property_id === propertyId) {
+                    this.selectedProperty = null;
+                    this.schedule = null;
+                }
+                await this.loadProperties();
+                await this.loadTotalDepreciation();
+            } catch (e) {
+                console.error('Failed to delete property:', e);
+                alert('Failed to delete property.');
+            }
+        },
+
+        depreciationProgress(prop) {
+            if (!prop || !prop.depreciable_basis || prop.depreciable_basis <= 0) return 0;
+            return Math.min(100, ((prop.accumulated_depreciation || 0) / prop.depreciable_basis) * 100);
+        },
+
+        formatCurrency(val) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(val || 0);
+        },
+
+        formatDate(d) {
+            if (!d) return '-';
+            return new Date(d).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+        },
+
+        resetNewProperty() {
+            this.newProperty = {
+                property_name: '',
+                property_type: 'residential',
+                purchase_date: '',
+                placed_in_service_date: '',
+                total_cost: 0,
+                land_value: 0
+            };
+        },
+
+        resetNewImprovement() {
+            this.newImprovement = {
+                description: '',
+                date_placed_in_service: '',
+                cost: 0,
+                useful_life: null
+            };
+        }
+    };
+}
+</script>
+{% endblock %}

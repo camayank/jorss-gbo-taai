@@ -50,7 +50,7 @@
 
     /* Neutral Colors - Using Core Grays */
     --bg: var(--color-gray-50, #f9fafb);
-    --surface: #ffffff;
+    --surface: var(--white);
     --surface-light: var(--color-gray-100, #f3f4f6);
     --border: var(--color-gray-200, #e5e7eb);
     --border-light: var(--color-gray-100, #f3f4f6);
@@ -64,7 +64,7 @@
     --text-primary: var(--color-gray-900, #111827);
     --text-secondary: var(--color-gray-600, #4b5563);
     --text-muted: var(--color-gray-500, #6b7280);
-    --text-inverse: #ffffff;
+    --text-inverse: var(--white);
 
     /* Shadows - Using Core Shadows */
     --shadow-sm: var(--shadow-sm, 0 1px 3px 0 rgb(0 0 0 / 0.1));
@@ -148,13 +148,13 @@ body {
 .advisory-report-title {
     color: var(--text-inverse);
     font-size: var(--font-size-3xl);
-    font-weight: 700;
+    font-weight: var(--font-bold);
     margin-bottom: var(--spacing-sm);
 }
 
 .header .subtitle,
 .advisory-report-subtitle {
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--white-alpha-80);
     font-size: var(--font-size-lg);
 }
 
@@ -191,7 +191,7 @@ body {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border);
-    transition: all 0.2s ease;
+    transition: all var(--transition-base);
 }
 
 .metric-card:hover,
@@ -213,14 +213,14 @@ body {
 .advisory-metric-value {
     color: var(--primary);
     font-size: 26px;
-    font-weight: 700;
+    font-weight: var(--font-bold);
 }
 
 .metric-card .subvalue,
 .advisory-metric-sublabel {
     color: var(--text-muted);
     font-size: var(--font-size-sm);
-    margin-top: 6px;
+    margin-top: var(--space-1-5);
 }
 
 .metric-card.savings {
@@ -238,13 +238,13 @@ body {
 
 .btn,
 .advisory-btn {
-    padding: 12px 24px;
+    padding: var(--space-3) var(--space-6);
     border: none;
     border-radius: var(--radius-md);
     font-size: var(--font-size-base);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--transition-base);
     text-decoration: none;
     display: inline-flex;
     align-items: center;
@@ -289,7 +289,7 @@ body {
 .action-buttons,
 .advisory-actions {
     display: flex;
-    gap: 12px;
+    gap: var(--space-3);
     margin-bottom: var(--spacing-lg);
     flex-wrap: wrap;
 }
@@ -305,15 +305,15 @@ body {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border);
-    margin-bottom: 20px;
+    margin-bottom: var(--space-5);
 }
 
 .section h2,
 .advisory-section-title {
     color: var(--primary);
     font-size: var(--font-size-xl);
-    margin-bottom: 20px;
-    padding-bottom: 12px;
+    margin-bottom: var(--space-5);
+    padding-bottom: var(--space-3);
     border-bottom: 1px solid var(--border);
 }
 
@@ -321,8 +321,8 @@ body {
 .advisory-section-header {
     color: var(--text-secondary);
     font-size: var(--font-size-lg);
-    margin-top: 20px;
-    margin-bottom: 12px;
+    margin-top: var(--space-5);
+    margin-bottom: var(--space-3);
 }
 
 .advisory-section-toggle {
@@ -347,9 +347,9 @@ table {
 table th {
     background: var(--primary);
     color: var(--text-inverse);
-    padding: 12px 16px;
+    padding: var(--space-3) var(--space-4);
     text-align: left;
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     font-size: var(--font-size-sm);
 }
 
@@ -358,7 +358,7 @@ table th:last-child {
 }
 
 table td {
-    padding: 12px 16px;
+    padding: var(--space-3) var(--space-4);
     border-bottom: 1px solid var(--border);
     font-size: var(--font-size-base);
 }
@@ -376,12 +376,12 @@ table tr:last-child td {
 }
 
 .amount {
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     color: var(--primary);
 }
 
 .savings-amount {
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     color: var(--success);
 }
 
@@ -392,7 +392,7 @@ table tr:last-child td {
 .recommendation,
 .advisory-recommendation-item {
     background: var(--bg);
-    padding: 20px;
+    padding: var(--space-5);
     border-radius: var(--radius-md);
     margin: 15px 0;
     border-left: 4px solid var(--primary);
@@ -401,24 +401,24 @@ table tr:last-child td {
 .recommendation h4,
 .advisory-recommendation-title {
     color: var(--primary);
-    margin-bottom: 10px;
+    margin-bottom: var(--space-2-5);
     font-size: var(--font-size-lg);
 }
 
 .recommendation .savings,
 .advisory-recommendation-savings {
     color: var(--success);
-    font-weight: 700;
-    font-size: 18px;
-    margin: 10px 0;
+    font-weight: var(--font-bold);
+    font-size: var(--text-lg);
+    margin: var(--space-2-5) 0;
 }
 
 .recommendation .action {
     background: var(--surface);
-    padding: 12px;
+    padding: var(--space-3);
     border-radius: var(--radius-sm);
-    margin-top: 12px;
-    font-weight: 500;
+    margin-top: var(--space-3);
+    font-weight: var(--font-medium);
     border: 1px solid var(--border);
 }
 
@@ -426,12 +426,12 @@ table tr:last-child td {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: var(--space-7);
+    height: var(--space-7);
     background: var(--primary);
     color: var(--text-inverse);
     border-radius: 50%;
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     font-size: var(--font-size-sm);
     margin-right: var(--spacing-sm);
 }
@@ -456,11 +456,11 @@ table tr:last-child td {
 .savings-visualization h3 {
     color: var(--primary);
     font-size: var(--font-size-2xl);
-    margin-bottom: 20px;
+    margin-bottom: var(--space-5);
 }
 
 .savings-bar-item {
-    margin-bottom: 20px;
+    margin-bottom: var(--space-5);
 }
 
 .savings-bar-label {
@@ -471,14 +471,14 @@ table tr:last-child td {
 }
 
 .savings-bar-amount {
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     color: var(--success);
 }
 
 .savings-bar-track {
     background: var(--advisory-bg-tertiary);
     height: 32px;
-    border-radius: 16px;
+    border-radius: var(--radius-2xl);
     overflow: hidden;
 }
 
@@ -488,9 +488,9 @@ table tr:last-child td {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    padding-right: 12px;
+    padding-right: var(--space-3);
     color: var(--text-inverse);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     transition: width 0.8s ease;
     min-width: 60px;
 }
@@ -514,8 +514,8 @@ table tr:last-child td {
     align-items: center;
     justify-content: center;
     color: var(--text-inverse);
-    font-weight: 600;
-    transition: width 0.5s ease;
+    font-weight: var(--font-semibold);
+    transition: width var(--transition-slower);
     min-width: 50px;
 }
 
@@ -531,7 +531,7 @@ table tr:last-child td {
 
 .action-list li {
     padding: 15px;
-    margin: 10px 0;
+    margin: var(--space-2-5) 0;
     background: var(--advisory-bg-secondary);
     border-radius: var(--radius-sm);
     border-left: 4px solid var(--primary);
@@ -549,10 +549,10 @@ table tr:last-child td {
 
 .priority-badge {
     display: inline-block;
-    padding: 4px 12px;
-    border-radius: 12px;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-xl);
     font-size: var(--font-size-xs);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -578,7 +578,7 @@ table tr:last-child td {
 
 .loading,
 .advisory-loading {
-    padding: 20px;
+    padding: var(--space-5);
     text-align: center;
 }
 
@@ -612,7 +612,7 @@ table tr:last-child td {
 .skeleton-metrics {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
+    gap: var(--space-5);
     margin-bottom: 30px;
 }
 
@@ -623,7 +623,7 @@ table tr:last-child td {
 
 .skeleton-section {
     height: 300px;
-    margin-bottom: 20px;
+    margin-bottom: var(--space-5);
     border-radius: var(--radius-lg);
 }
 
@@ -650,21 +650,21 @@ table tr:last-child td {
 .disclaimer {
     background: var(--warning-lighter);
     border: 1px solid var(--warning);
-    padding: 20px;
+    padding: var(--space-5);
     border-radius: var(--radius-md);
     margin-top: 30px;
 }
 
 .disclaimer h4 {
     color: var(--warning-hover);
-    margin-bottom: 10px;
+    margin-bottom: var(--space-2-5);
     font-size: var(--font-size-lg);
 }
 
 .disclaimer p {
     color: var(--warning-hover);
     font-size: var(--font-size-base);
-    line-height: 1.5;
+    line-height: var(--leading-normal);
 }
 
 /* ============================================================================
@@ -673,15 +673,15 @@ table tr:last-child td {
 
 .notification {
     position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 16px 24px;
+    top: var(--space-5);
+    right: var(--space-5);
+    padding: var(--space-4) var(--space-6);
     color: var(--text-inverse);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
     z-index: 10000;
-    animation: slideInRight 0.3s ease;
-    font-weight: 500;
+    animation: slideInRight var(--transition-slow);
+    font-weight: var(--font-medium);
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
@@ -757,7 +757,7 @@ table tr:last-child td {
 
 .advisory-preview-title {
     font-size: var(--font-size-xl);
-    font-weight: 700;
+    font-weight: var(--font-bold);
     margin-bottom: var(--spacing-xs);
 }
 
@@ -795,8 +795,8 @@ table tr:last-child td {
 }
 
 .savings-card .savings-amount {
-    font-size: 48px;
-    font-weight: 700;
+    font-size: var(--text-5xl);
+    font-weight: var(--font-bold);
     color: var(--text-inverse);
 }
 
@@ -808,11 +808,11 @@ table tr:last-child td {
 
 .complexity-badge {
     display: inline-block;
-    padding: 6px 16px;
+    padding: var(--space-1-5) var(--space-4);
     border-radius: var(--radius-full);
     font-size: var(--font-size-sm);
-    font-weight: 600;
-    background: rgba(255, 255, 255, 0.2);
+    font-weight: var(--font-semibold);
+    background: var(--white-alpha-20);
     margin-top: var(--spacing-md);
 }
 
@@ -838,7 +838,7 @@ table tr:last-child td {
 
 .cpa-name {
     font-size: var(--font-size-lg);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     color: var(--primary);
 }
 
@@ -887,12 +887,12 @@ table tr:last-child td {
 
 .insight-savings {
     color: var(--success);
-    font-weight: 700;
+    font-weight: var(--font-bold);
     font-size: var(--font-size-lg);
 }
 
 .insight-title {
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     color: var(--text);
     margin-bottom: var(--spacing-sm);
 }
@@ -900,7 +900,7 @@ table tr:last-child td {
 .insight-description {
     color: var(--text-secondary);
     font-size: var(--font-size-sm);
-    line-height: 1.5;
+    line-height: var(--leading-normal);
 }
 
 /* ============================================================================
@@ -917,7 +917,7 @@ table tr:last-child td {
 }
 
 .locked-icon {
-    font-size: 48px;
+    font-size: var(--text-5xl);
     margin-bottom: var(--spacing-md);
 }
 
@@ -964,7 +964,7 @@ table tr:last-child td {
 
 .cta-title {
     font-size: var(--font-size-2xl);
-    font-weight: 700;
+    font-weight: var(--font-bold);
     margin-bottom: var(--spacing-sm);
 }
 
@@ -978,12 +978,12 @@ table tr:last-child td {
     display: inline-block;
     background: var(--text-inverse);
     color: var(--primary);
-    padding: 16px 32px;
+    padding: var(--space-4) var(--space-8);
     border-radius: var(--radius-md);
     font-size: var(--font-size-lg);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition: all var(--transition-base);
 }
 
 .cta-button:hover {
@@ -1021,7 +1021,7 @@ table tr:last-child td {
 }
 
 .footer-cpa {
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     color: var(--primary);
 }
 
@@ -1060,7 +1060,7 @@ table tr:last-child td {
     .advisory-report-header {
         background: white !important;
         color: black !important;
-        border: 2px solid #333;
+        border: 2px solid var(--color-gray-700);
         page-break-after: avoid;
     }
 
@@ -1075,7 +1075,7 @@ table tr:last-child td {
     .advisory-metric-card {
         page-break-inside: avoid;
         box-shadow: none !important;
-        border: 1px solid #ddd;
+        border: 1px solid var(--color-gray-300);
     }
 
     table {
@@ -1083,7 +1083,7 @@ table tr:last-child td {
     }
 
     table th {
-        background: #333 !important;
+        background: var(--color-gray-700) !important;
         color: white !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
@@ -1092,7 +1092,7 @@ table tr:last-child td {
     .recommendation,
     .advisory-recommendation-item {
         page-break-inside: avoid;
-        border-left-color: #333 !important;
+        border-left-color: var(--color-gray-700) !important;
     }
 
     .disclaimer {
@@ -1119,7 +1119,7 @@ table tr:last-child td {
     }
 
     .amount {
-        color: #1e3a5f !important;
+        color: var(--color-primary-500) !important;
     }
 
     /* Page breaks */
@@ -1149,7 +1149,7 @@ table tr:last-child td {
     }
 
     .savings-card .savings-amount {
-        font-size: 36px;
+        font-size: var(--text-4xl);
     }
 
     .action-buttons,

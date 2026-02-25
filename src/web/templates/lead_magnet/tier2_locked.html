@@ -22,10 +22,10 @@
         :root {
             --primary-color: {{ cpa.primary_color or '#1e3a5f' }};
             --secondary-color: {{ cpa.secondary_color or '#152b47' }};
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
-            --bg-light: #f9fafb;
-            --white: #ffffff;
+            --text-dark: var(--color-gray-800);
+            --text-muted: var(--color-gray-500);
+            --bg-light: var(--color-gray-50);
+            --white: var(--white);
         }
 
         body {
@@ -37,7 +37,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: var(--space-5);
         }
 
         .container {
@@ -48,7 +48,7 @@
         .locked-card {
             background: var(--white);
             border-radius: 24px;
-            padding: 50px 40px;
+            padding: 50px var(--space-10);
             text-align: center;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
         }
@@ -56,18 +56,18 @@
         .locked-icon {
             width: 100px;
             height: 100px;
-            background: #fef3c7;
+            background: var(--color-warning-100);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 24px;
+            margin: 0 auto var(--space-6);
             font-size: 3rem;
         }
 
         h1 {
             font-size: 1.6rem;
-            margin-bottom: 12px;
+            margin-bottom: var(--space-3);
         }
 
         .description {
@@ -78,15 +78,15 @@
         /* Requirements */
         .requirements {
             background: var(--bg-light);
-            border-radius: 16px;
-            padding: 24px;
+            border-radius: var(--radius-2xl);
+            padding: var(--space-6);
             text-align: left;
             margin-bottom: 30px;
         }
 
         .requirements-title {
-            font-weight: 600;
-            margin-bottom: 16px;
+            font-weight: var(--font-semibold);
+            margin-bottom: var(--space-4);
             font-size: 0.9rem;
             color: var(--text-muted);
             text-transform: uppercase;
@@ -96,9 +96,9 @@
         .requirement-item {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px 0;
-            border-bottom: 1px solid #e5e7eb;
+            gap: var(--space-3);
+            padding: var(--space-3) 0;
+            border-bottom: 1px solid var(--color-gray-200);
         }
 
         .requirement-item:last-child {
@@ -117,12 +117,12 @@
 
         .status-complete {
             background: #dcfce7;
-            color: #166534;
+            color: var(--color-success-700);
         }
 
         .status-pending {
-            background: #fee2e2;
-            color: #991b1b;
+            background: var(--color-error-100);
+            color: var(--color-error-800);
         }
 
         .requirement-text {
@@ -130,7 +130,7 @@
         }
 
         .requirement-label {
-            font-weight: 600;
+            font-weight: var(--font-semibold);
         }
 
         .requirement-desc {
@@ -140,7 +140,7 @@
 
         /* CTA */
         .cta-section {
-            margin-bottom: 20px;
+            margin-bottom: var(--space-5);
         }
 
         .cta-button {
@@ -148,14 +148,14 @@
             width: 100%;
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
-            padding: 16px 30px;
-            border-radius: 12px;
+            padding: var(--space-4) 30px;
+            border-radius: var(--radius-xl);
             font-size: 1rem;
-            font-weight: 600;
+            font-weight: var(--font-semibold);
             text-decoration: none;
             border: none;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all var(--transition-base);
             box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
         }
 
@@ -168,16 +168,16 @@
             background: var(--bg-light);
             color: var(--text-dark);
             box-shadow: none;
-            border: 1px solid #e5e7eb;
+            border: 1px solid var(--color-gray-200);
         }
 
         .cta-button.secondary:hover {
-            background: #f3f4f6;
+            background: var(--color-gray-100);
         }
 
         .back-link {
             display: inline-block;
-            margin-top: 16px;
+            margin-top: var(--space-4);
             color: var(--text-muted);
             text-decoration: none;
         }
@@ -189,23 +189,23 @@
         /* CPA Contact */
         .cpa-contact {
             margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e7eb;
+            padding-top: var(--space-5);
+            border-top: 1px solid var(--color-gray-200);
         }
 
         .cpa-contact-title {
             font-size: 0.85rem;
             color: var(--text-muted);
-            margin-bottom: 8px;
+            margin-bottom: var(--space-2);
         }
 
         .cpa-name {
-            font-weight: 600;
+            font-weight: var(--font-semibold);
         }
 
         @media (max-width: 640px) {
             .locked-card {
-                padding: 30px 20px;
+                padding: 30px var(--space-5);
             }
 
             h1 {

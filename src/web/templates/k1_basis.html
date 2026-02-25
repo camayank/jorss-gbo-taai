@@ -1,0 +1,1404 @@
+{% extends 'base_modern.html' %}
+
+{% block title %}K-1 Basis Tracker{% endblock %}
+{% block theme %}default{% endblock %}
+
+{% block head_extra %}
+<style>
+  /* ── K-1 Basis Tracker Styles ─────────────────────────────── */
+  :root {
+    --k1-navy: var(--color-primary-500);
+    --k1-navy-dark: var(--color-primary-700);
+    --k1-navy-light: #2d5a8e;
+    --k1-teal: var(--color-accent-500);
+    --k1-teal-light: var(--color-accent-100);
+    --k1-success: var(--color-success-500);
+    --k1-success-light: var(--color-success-100);
+    --k1-error: var(--color-error-500);
+    --k1-error-light: var(--color-error-100);
+    --k1-warning: var(--color-warning-500);
+    --k1-warning-light: var(--color-warning-100);
+    --k1-gray-50: var(--color-gray-50);
+    --k1-gray-100: var(--color-gray-100);
+    --k1-gray-200: var(--color-gray-200);
+    --k1-gray-300: var(--color-gray-300);
+    --k1-gray-400: var(--color-gray-400);
+    --k1-gray-500: var(--color-gray-500);
+    --k1-gray-600: var(--color-gray-600);
+    --k1-gray-700: var(--color-gray-700);
+    --k1-gray-800: var(--color-gray-800);
+    --k1-gray-900: var(--color-gray-900);
+  }
+
+  .k1-page {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: var(--space-8) var(--space-6) var(--space-16);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--k1-gray-900);
+  }
+
+  /* ── Header ────────────────────────────────────────────────── */
+  .k1-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: var(--space-7);
+    flex-wrap: wrap;
+    gap: var(--space-4);
+  }
+  .k1-page-header h1 {
+    font-size: 1.75rem;
+    font-weight: var(--font-bold);
+    color: var(--k1-navy);
+    margin: 0;
+    line-height: 1.2;
+  }
+  .k1-page-header p {
+    font-size: 0.9rem;
+    color: var(--k1-gray-500);
+    margin: var(--space-1) 0 0;
+  }
+
+  /* ── Buttons ───────────────────────────────────────────────── */
+  .k1-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1-5);
+    padding: var(--space-2-5) var(--space-5);
+    border: none;
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
+    font-weight: var(--font-semibold);
+    cursor: pointer;
+    transition: all 180ms ease;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .k1-btn:focus-visible {
+    outline: 2px solid var(--k1-teal);
+    outline-offset: 2px;
+  }
+  .k1-btn-primary {
+    background: var(--k1-navy);
+    color: var(--white);
+  }
+  .k1-btn-primary:hover { background: var(--k1-navy-dark); }
+  .k1-btn-teal {
+    background: var(--k1-teal);
+    color: var(--white);
+  }
+  .k1-btn-teal:hover { background: var(--color-accent-700); }
+  .k1-btn-outline {
+    background: var(--white);
+    color: var(--k1-gray-700);
+    border: 1px solid var(--k1-gray-300);
+  }
+  .k1-btn-outline:hover { background: var(--k1-gray-50); border-color: var(--k1-gray-400); }
+  .k1-btn-ghost {
+    background: transparent;
+    color: var(--k1-gray-500);
+    padding: var(--space-2) var(--space-3);
+  }
+  .k1-btn-ghost:hover { background: var(--k1-gray-100); color: var(--k1-gray-700); }
+  .k1-btn-danger-ghost {
+    background: transparent;
+    color: var(--k1-gray-400);
+    padding: var(--space-2) var(--space-3);
+  }
+  .k1-btn-danger-ghost:hover { background: var(--k1-error-light); color: var(--k1-error); }
+  .k1-btn-sm { padding: 6px 12px; font-size: 0.8125rem; }
+  .k1-btn-xs { padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; }
+
+  /* ── Filter Pills ──────────────────────────────────────────── */
+  .k1-filters {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-6);
+    flex-wrap: wrap;
+  }
+  .k1-pill {
+    padding: 7px 18px;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: var(--font-medium);
+    border: 1px solid var(--k1-gray-200);
+    background: var(--white);
+    color: var(--k1-gray-600);
+    cursor: pointer;
+    transition: all 160ms ease;
+  }
+  .k1-pill:hover { border-color: var(--k1-gray-400); }
+  .k1-pill.active {
+    background: var(--k1-navy);
+    color: var(--white);
+    border-color: var(--k1-navy);
+  }
+
+  /* ── Card Grid ─────────────────────────────────────────────── */
+  .k1-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-5);
+    margin-bottom: var(--space-8);
+  }
+  @media (max-width: 860px) { .k1-grid { grid-template-columns: 1fr; } }
+
+  .k1-card {
+    background: var(--white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    transition: box-shadow 180ms ease, border-color 180ms ease;
+  }
+  .k1-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); border-color: var(--k1-gray-300); }
+
+  .k1-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+  }
+  .k1-card-head h3 {
+    font-size: 1.05rem;
+    font-weight: var(--font-semibold);
+    color: var(--k1-gray-900);
+    margin: 0;
+  }
+
+  .k1-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px var(--space-2-5);
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: var(--font-semibold);
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+  }
+
+  .k1-ein {
+    font-size: 0.8rem;
+    color: var(--k1-gray-400);
+    margin-bottom: var(--space-4);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+
+  .k1-basis-display {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2-5);
+    margin-bottom: var(--space-2);
+  }
+  .k1-basis-display .k1-amount {
+    font-size: 1.6rem;
+    font-weight: var(--font-bold);
+    color: var(--k1-navy);
+    letter-spacing: -0.02em;
+  }
+  .k1-basis-display .k1-label {
+    font-size: 0.75rem;
+    color: var(--k1-gray-400);
+    font-weight: var(--font-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .k1-at-risk-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-5);
+    font-size: 0.85rem;
+  }
+  .k1-at-risk-row .k1-atr-amount {
+    color: var(--k1-gray-600);
+    font-weight: var(--font-medium);
+  }
+  .k1-at-risk-row .k1-atr-label {
+    color: var(--k1-gray-400);
+    font-size: 0.78rem;
+  }
+  .k1-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .k1-status-ok { background: var(--k1-success); }
+  .k1-status-limited { background: var(--k1-warning); }
+  .k1-status-exceeded { background: var(--k1-error); }
+
+  .k1-card-actions {
+    display: flex;
+    gap: var(--space-1-5);
+    flex-wrap: wrap;
+    border-top: 1px solid var(--k1-gray-100);
+    padding-top: var(--space-4);
+  }
+
+  /* ── Detail / Worksheet Panel ──────────────────────────────── */
+  .k1-detail-panel {
+    background: var(--white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-xl);
+    margin-bottom: var(--space-8);
+    overflow: hidden;
+  }
+  .k1-detail-header {
+    background: linear-gradient(135deg, var(--k1-navy) 0%, var(--k1-navy-light) 100%);
+    padding: var(--space-7) var(--space-8);
+    color: var(--white);
+  }
+  .k1-detail-header h2 {
+    font-size: 1.3rem;
+    font-weight: var(--font-bold);
+    margin: 0 0 var(--space-1);
+  }
+  .k1-detail-header-meta {
+    display: flex;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+    margin-top: var(--space-3);
+    font-size: 0.8rem;
+    opacity: 0.85;
+  }
+  .k1-detail-header-meta span {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1-5);
+  }
+  .k1-detail-close {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: var(--white);
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: background 160ms ease;
+  }
+  .k1-detail-close:hover { background: rgba(255,255,255,0.25); }
+  .k1-detail-body { padding: 32px; }
+
+  /* ── IRS-style Worksheet ───────────────────────────────────── */
+  .k1-worksheet {
+    margin-bottom: var(--space-8);
+  }
+  .k1-worksheet-title {
+    font-size: 1rem;
+    font-weight: var(--font-bold);
+    color: var(--k1-navy);
+    margin-bottom: var(--space-1);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .k1-worksheet-subtitle {
+    font-size: 0.78rem;
+    color: var(--k1-gray-400);
+    margin-bottom: var(--space-4);
+  }
+
+  .k1-ws-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .k1-ws-table th {
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: var(--font-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--k1-gray-400);
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 2px solid var(--k1-gray-200);
+  }
+  .k1-ws-table th:last-child { text-align: right; }
+  .k1-ws-table td {
+    padding: var(--space-2-5) var(--space-3);
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--k1-gray-100);
+    color: var(--k1-gray-700);
+  }
+  .k1-ws-table td:first-child {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.78rem;
+    color: var(--k1-gray-400);
+    width: 44px;
+    text-align: center;
+  }
+  .k1-ws-table td:last-child {
+    text-align: right;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-weight: var(--font-medium);
+    font-size: 0.875rem;
+    white-space: nowrap;
+  }
+
+  .k1-ws-row-section td {
+    font-weight: var(--font-bold);
+    color: var(--k1-gray-900);
+    background: var(--k1-gray-50);
+    border-bottom: 1px solid var(--k1-gray-200);
+  }
+  .k1-ws-row-indent td:nth-child(2) {
+    padding-left: var(--space-7);
+    color: var(--k1-gray-600);
+  }
+  .k1-ws-row-total td {
+    font-weight: var(--font-bold);
+    color: var(--k1-navy);
+    border-top: 2px solid var(--k1-gray-300);
+    border-bottom: 2px solid var(--k1-gray-300);
+    background: rgba(30, 58, 95, 0.03);
+  }
+  .k1-ws-row-subtotal td {
+    font-weight: var(--font-semibold);
+    color: var(--k1-gray-800);
+    border-top: 1px solid var(--k1-gray-200);
+  }
+  .k1-ws-negative { color: var(--k1-error) !important; }
+  .k1-ws-positive { color: var(--k1-success) !important; }
+
+  /* ── Limitation Sections ───────────────────────────────────── */
+  .k1-limit-section {
+    background: var(--k1-gray-50);
+    border: 1px solid var(--k1-gray-200);
+    border-radius: 10px;
+    padding: var(--space-6);
+    margin-bottom: var(--space-6);
+  }
+  .k1-limit-section h4 {
+    font-size: 0.9rem;
+    font-weight: var(--font-bold);
+    color: var(--k1-gray-800);
+    margin: 0 0 var(--space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .k1-limit-section h4 .k1-icon-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+  .k1-limit-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+  }
+  @media (max-width: 700px) { .k1-limit-grid { grid-template-columns: 1fr; } }
+  .k1-limit-stat label {
+    font-size: 0.7rem;
+    font-weight: var(--font-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--k1-gray-400);
+    display: block;
+    margin-bottom: var(--space-1);
+  }
+  .k1-limit-stat .k1-stat-val {
+    font-size: 1.15rem;
+    font-weight: var(--font-bold);
+  }
+
+  /* ── Timeline ──────────────────────────────────────────────── */
+  .k1-timeline {
+    position: relative;
+    padding-left: var(--space-7);
+  }
+  .k1-timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: var(--k1-gray-200);
+    border-radius: 1px;
+  }
+  .k1-timeline-item {
+    position: relative;
+    padding-bottom: var(--space-5);
+  }
+  .k1-timeline-item:last-child { padding-bottom: 0; }
+  .k1-timeline-dot {
+    position: absolute;
+    left: -24px;
+    top: 4px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--white);
+    box-shadow: 0 0 0 2px var(--k1-gray-300);
+  }
+  .k1-timeline-dot.positive { background: var(--k1-success); box-shadow: 0 0 0 2px var(--k1-success-light); }
+  .k1-timeline-dot.negative { background: var(--k1-error); box-shadow: 0 0 0 2px var(--k1-error-light); }
+  .k1-timeline-dot.neutral { background: var(--k1-gray-400); box-shadow: 0 0 0 2px var(--k1-gray-200); }
+  .k1-timeline-date {
+    font-size: 0.72rem;
+    color: var(--k1-gray-400);
+    margin-bottom: 2px;
+  }
+  .k1-timeline-desc {
+    font-size: 0.84rem;
+    color: var(--k1-gray-700);
+    font-weight: var(--font-medium);
+  }
+  .k1-timeline-amt {
+    font-size: 0.84rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-weight: var(--font-semibold);
+    margin-top: 2px;
+  }
+
+  /* ── Modal ─────────────────────────────────────────────────── */
+  .k1-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: var(--space-6);
+  }
+  .k1-modal {
+    background: var(--white);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+  }
+  .k1-modal-head {
+    padding: var(--space-6) var(--space-7) 0;
+  }
+  .k1-modal-head h3 {
+    font-size: 1.1rem;
+    font-weight: var(--font-bold);
+    color: var(--k1-gray-900);
+    margin: 0 0 var(--space-1);
+  }
+  .k1-modal-head p {
+    font-size: 0.82rem;
+    color: var(--k1-gray-400);
+    margin: 0;
+  }
+  .k1-modal-body {
+    padding: var(--space-5) var(--space-7) var(--space-7);
+  }
+  .k1-modal-foot {
+    padding: 0 var(--space-7) var(--space-6);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2-5);
+  }
+
+  /* ── Forms ─────────────────────────────────────────────────── */
+  .k1-form-group {
+    margin-bottom: var(--space-4);
+  }
+  .k1-form-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: var(--font-semibold);
+    color: var(--k1-gray-700);
+    margin-bottom: var(--space-1-5);
+  }
+  .k1-input, .k1-select {
+    width: 100%;
+    padding: var(--space-2-5) var(--space-3-5);
+    border: 1px solid var(--k1-gray-300);
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
+    font-family: inherit;
+    color: var(--k1-gray-900);
+    background: var(--white);
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+  .k1-input:focus, .k1-select:focus {
+    outline: none;
+    border-color: var(--k1-teal);
+    box-shadow: 0 0 0 3px rgba(20,184,166,0.15);
+  }
+  .k1-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+  }
+
+  /* ── Empty State ───────────────────────────────────────────── */
+  .k1-empty {
+    text-align: center;
+    padding: 56px var(--space-6);
+    grid-column: 1 / -1;
+  }
+  .k1-empty-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--k1-gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--space-5);
+    font-size: 2rem;
+  }
+  .k1-empty h3 {
+    font-size: 1.05rem;
+    font-weight: var(--font-semibold);
+    color: var(--k1-gray-800);
+    margin: 0 0 var(--space-1-5);
+  }
+  .k1-empty p {
+    font-size: 0.85rem;
+    color: var(--k1-gray-400);
+    max-width: 360px;
+    margin: 0 auto;
+  }
+
+  /* ── Loading Spinner ───────────────────────────────────────── */
+  .k1-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--k1-gray-200);
+    border-top-color: var(--k1-teal);
+    border-radius: 50%;
+    animation: k1spin 0.6s linear infinite;
+  }
+  @keyframes k1spin { to { transform: rotate(360deg); } }
+
+  .k1-loading-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2-5);
+    padding: var(--space-12) var(--space-6);
+    color: var(--k1-gray-400);
+    font-size: 0.875rem;
+  }
+
+  /* ── Section Divider ───────────────────────────────────────── */
+  .k1-section-divider {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: var(--space-7) 0 var(--space-5);
+    font-size: 0.8rem;
+    font-weight: var(--font-bold);
+    color: var(--k1-gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .k1-section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--k1-gray-200);
+  }
+
+  /* ── Tabs ──────────────────────────────────────────────────── */
+  .k1-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--k1-gray-200);
+    margin-bottom: var(--space-6);
+  }
+  .k1-tab {
+    padding: var(--space-2-5) var(--space-5);
+    font-size: 0.84rem;
+    font-weight: var(--font-medium);
+    color: var(--k1-gray-400);
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 160ms ease;
+  }
+  .k1-tab:hover { color: var(--k1-gray-700); }
+  .k1-tab.active {
+    color: var(--k1-navy);
+    border-bottom-color: var(--k1-navy);
+    font-weight: var(--font-semibold);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="k1-page" x-data="k1BasisManager()">
+
+  {# ── Page Header ──────────────────────────────────────────── #}
+  <header class="k1-page-header">
+    <div>
+      <h1>K-1 Basis Tracker</h1>
+      <p>Track partnership, S-corp, and trust basis for Schedule K-1</p>
+    </div>
+    <button class="k1-btn k1-btn-primary" @click="showAddEntity = true">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
+      Add Entity
+    </button>
+  </header>
+
+  {# ── Entity Type Filter ───────────────────────────────────── #}
+  <div class="k1-filters">
+    <button class="k1-pill" :class="{ active: activeFilter === 'all' }" @click="activeFilter = 'all'">All</button>
+    <button class="k1-pill" :class="{ active: activeFilter === 'partnership' }" @click="activeFilter = 'partnership'">Partnership</button>
+    <button class="k1-pill" :class="{ active: activeFilter === 's_corporation' }" @click="activeFilter = 's_corporation'">S-Corporation</button>
+    <button class="k1-pill" :class="{ active: activeFilter === 'trust_estate' }" @click="activeFilter = 'trust_estate'">Trust/Estate</button>
+  </div>
+
+  {# ── Loading State ────────────────────────────────────────── #}
+  <div x-show="loading && records.length === 0" class="k1-loading-overlay">
+    <span class="k1-spinner"></span>
+    Loading entities&hellip;
+  </div>
+
+  {# ── Entity Cards Grid ────────────────────────────────────── #}
+  <div class="k1-grid" x-show="!loading || records.length > 0">
+
+    {# Empty State #}
+    <template x-if="filteredRecords.length === 0 && !loading">
+      <div class="k1-empty">
+        <div class="k1-empty-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="12" y1="18" x2="12" y2="12"/>
+            <line x1="9" y1="15" x2="15" y2="15"/>
+          </svg>
+        </div>
+        <h3 x-text="activeFilter === 'all' ? 'No entities yet' : 'No ' + activeFilter.replace('_', ' ') + ' entities'"></h3>
+        <p x-text="activeFilter === 'all' ? 'Add your first partnership, S-corp, or trust entity to begin tracking K-1 basis.' : 'No entities match the selected filter. Try a different filter or add a new entity.'"></p>
+      </div>
+    </template>
+
+    {# Entity Cards #}
+    <template x-for="entity in filteredRecords" :key="entity.entity_id">
+      <div class="k1-card">
+        {# Card Header #}
+        <div class="k1-card-head">
+          <h3 x-text="entity.entity_name"></h3>
+          <span class="k1-badge"
+                :style="`background: ${entityTypeBadge(entity.entity_type).bg}; color: ${entityTypeBadge(entity.entity_type).color};`"
+                x-text="entityTypeBadge(entity.entity_type).label">
+          </span>
+        </div>
+
+        {# EIN #}
+        <div class="k1-ein" x-show="entity.ein">
+          EIN: <span x-text="entity.ein"></span>
+        </div>
+
+        {# Current Basis #}
+        <div class="k1-basis-display">
+          <span class="k1-amount" x-text="formatCurrency(entity.current_basis)"></span>
+          <span class="k1-label">Current Basis</span>
+        </div>
+
+        {# At-Risk Amount #}
+        <div class="k1-at-risk-row">
+          <span class="k1-status-dot"
+                :class="{
+                  'k1-status-ok': (entity.at_risk_amount || 0) >= (entity.current_basis || 0),
+                  'k1-status-limited': (entity.at_risk_amount || 0) > 0 && (entity.at_risk_amount || 0) < (entity.current_basis || 0),
+                  'k1-status-exceeded': (entity.at_risk_amount || 0) <= 0
+                }">
+          </span>
+          <span class="k1-atr-amount" x-text="formatCurrency(entity.at_risk_amount)"></span>
+          <span class="k1-atr-label">At Risk</span>
+          <span style="font-size:0.72rem; font-weight:600; padding:2px 8px; border-radius:9999px;"
+                :style="(entity.at_risk_amount || 0) >= (entity.current_basis || 0)
+                  ? 'background:#d1fae5; color:#065f46;'
+                  : (entity.at_risk_amount || 0) > 0
+                    ? 'background:#fef3c7; color:#92400e;'
+                    : 'background:#fee2e2; color:#991b1b;'"
+                x-text="(entity.at_risk_amount || 0) >= (entity.current_basis || 0) ? 'OK' : (entity.at_risk_amount || 0) > 0 ? 'Limited' : 'Exceeded'">
+          </span>
+        </div>
+
+        {# Actions #}
+        <div class="k1-card-actions">
+          <button class="k1-btn k1-btn-teal k1-btn-sm" @click="viewWorksheet(entity.entity_id)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            View Worksheet
+          </button>
+          <button class="k1-btn k1-btn-outline k1-btn-sm" @click="selectedEntity = entity; showAddAdjustment = true; newAdjustment = { adjustment_type: 'capital_contribution', amount: 0, description: '', date: new Date().toISOString().split('T')[0] };">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Adjustment
+          </button>
+          <button class="k1-btn k1-btn-outline k1-btn-sm" @click="selectedEntity = entity; showAddAdjustment = true; newAdjustment = { adjustment_type: 'distribution', amount: 0, description: '', date: new Date().toISOString().split('T')[0] };">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 11 12 6 17 11"/><line x1="12" y1="6" x2="12" y2="18"/></svg>
+            Add Distribution
+          </button>
+          <button class="k1-btn k1-btn-danger-ghost k1-btn-sm" @click="deleteEntity(entity.entity_id)" title="Delete entity">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  {# ── Entity Detail / Worksheet Panel ──────────────────────── #}
+  <div x-show="selectedEntity && worksheet" x-cloak
+       x-transition:enter="transition ease-out duration-200"
+       x-transition:enter-start="opacity-0 transform translate-y-2"
+       x-transition:enter-end="opacity-100 transform translate-y-0"
+       class="k1-detail-panel"
+       style="position: relative;">
+
+    {# Detail Header #}
+    <div class="k1-detail-header">
+      <button class="k1-detail-close" @click="selectedEntity = null; worksheet = null;" title="Close">&times;</button>
+      <h2 x-text="selectedEntity?.entity_name"></h2>
+      <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+        <span class="k1-badge" style="font-size:0.68rem;"
+              :style="`background: rgba(255,255,255,0.15); color: #fff;`"
+              x-text="entityTypeBadge(selectedEntity?.entity_type).label">
+        </span>
+      </div>
+      <div class="k1-detail-header-meta">
+        <span x-show="selectedEntity?.ein">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V5a4 4 0 0 0-8 0v2"/></svg>
+          EIN: <span x-text="selectedEntity?.ein"></span>
+        </span>
+        <span x-show="selectedEntity?.tax_year">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Tax Year: <span x-text="selectedEntity?.tax_year"></span>
+        </span>
+        <span x-show="selectedEntity?.ownership_percentage">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+          Ownership: <span x-text="(selectedEntity?.ownership_percentage || 0) + '%'"></span>
+        </span>
+      </div>
+    </div>
+
+    {# Detail Body #}
+    <div class="k1-detail-body">
+
+      {# ── Basis Worksheet (IRS-style) ────────────────────────── #}
+      <div class="k1-worksheet">
+        <div class="k1-worksheet-title">Basis Computation Worksheet</div>
+        <div class="k1-worksheet-subtitle">Schedule K-1 &mdash; Partner's / Shareholder's Basis Worksheet</div>
+
+        <table class="k1-ws-table">
+          <thead>
+            <tr>
+              <th style="width:44px;">Line</th>
+              <th>Description</th>
+              <th style="text-align:right; width:160px;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {# Section: Beginning Basis #}
+            <tr class="k1-ws-row-section">
+              <td></td>
+              <td>Beginning Basis</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>1</td>
+              <td>Adjusted basis at beginning of tax year</td>
+              <td x-text="formatCurrency(worksheet?.beginning_basis || 0)"></td>
+            </tr>
+
+            {# Section: Increases #}
+            <tr class="k1-ws-row-section">
+              <td></td>
+              <td>Increases to Basis</td>
+              <td></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>2a</td>
+              <td>Capital contributions (cash)</td>
+              <td class="k1-ws-positive" x-text="formatCurrency(worksheet?.contributions?.cash || 0)"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>2b</td>
+              <td>Capital contributions (property)</td>
+              <td class="k1-ws-positive" x-text="formatCurrency(worksheet?.contributions?.property || 0)"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>3a</td>
+              <td>Ordinary business income (loss)</td>
+              <td x-text="formatCurrency(worksheet?.income_allocations?.ordinary || 0)"
+                  :class="(worksheet?.income_allocations?.ordinary || 0) >= 0 ? 'k1-ws-positive' : 'k1-ws-negative'"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>3b</td>
+              <td>Net rental real estate income (loss)</td>
+              <td x-text="formatCurrency(worksheet?.income_allocations?.rental || 0)"
+                  :class="(worksheet?.income_allocations?.rental || 0) >= 0 ? 'k1-ws-positive' : 'k1-ws-negative'"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>3c</td>
+              <td>Other net rental income (loss)</td>
+              <td x-text="formatCurrency(worksheet?.income_allocations?.other_rental || 0)"
+                  :class="(worksheet?.income_allocations?.other_rental || 0) >= 0 ? 'k1-ws-positive' : 'k1-ws-negative'"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>3d</td>
+              <td>Interest income</td>
+              <td class="k1-ws-positive" x-text="formatCurrency(worksheet?.income_allocations?.interest || 0)"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>3e</td>
+              <td>Dividend income</td>
+              <td class="k1-ws-positive" x-text="formatCurrency(worksheet?.income_allocations?.dividends || 0)"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>3f</td>
+              <td>Royalties</td>
+              <td class="k1-ws-positive" x-text="formatCurrency(worksheet?.income_allocations?.royalties || 0)"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>3g</td>
+              <td>Net short-term capital gain (loss)</td>
+              <td x-text="formatCurrency(worksheet?.income_allocations?.short_term_capital || 0)"
+                  :class="(worksheet?.income_allocations?.short_term_capital || 0) >= 0 ? 'k1-ws-positive' : 'k1-ws-negative'"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>3h</td>
+              <td>Net long-term capital gain (loss)</td>
+              <td x-text="formatCurrency(worksheet?.income_allocations?.long_term_capital || 0)"
+                  :class="(worksheet?.income_allocations?.long_term_capital || 0) >= 0 ? 'k1-ws-positive' : 'k1-ws-negative'"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>3i</td>
+              <td>Section 1231 gain (loss)</td>
+              <td x-text="formatCurrency(worksheet?.income_allocations?.section_1231 || 0)"
+                  :class="(worksheet?.income_allocations?.section_1231 || 0) >= 0 ? 'k1-ws-positive' : 'k1-ws-negative'"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>3j</td>
+              <td>Other income (loss)</td>
+              <td x-text="formatCurrency(worksheet?.income_allocations?.other || 0)"
+                  :class="(worksheet?.income_allocations?.other || 0) >= 0 ? 'k1-ws-positive' : 'k1-ws-negative'"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>4</td>
+              <td>Tax-exempt income</td>
+              <td class="k1-ws-positive" x-text="formatCurrency(worksheet?.income_allocations?.tax_exempt || 0)"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>5</td>
+              <td>Increase in entity liabilities (partner's share)</td>
+              <td class="k1-ws-positive" x-text="formatCurrency(worksheet?.liability_increases || 0)"></td>
+            </tr>
+            <tr class="k1-ws-row-subtotal">
+              <td>6</td>
+              <td>Total increases (add lines 2a through 5)</td>
+              <td class="k1-ws-positive" x-text="formatCurrency(worksheet?.total_increases || 0)"></td>
+            </tr>
+
+            {# Section: Decreases #}
+            <tr class="k1-ws-row-section">
+              <td></td>
+              <td>Decreases to Basis</td>
+              <td></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>7a</td>
+              <td>Distributions &mdash; cash and marketable securities</td>
+              <td class="k1-ws-negative" x-text="formatCurrency(worksheet?.distributions?.cash || 0)"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>7b</td>
+              <td>Distributions &mdash; property (at adjusted basis)</td>
+              <td class="k1-ws-negative" x-text="formatCurrency(worksheet?.distributions?.property || 0)"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>8</td>
+              <td>Non-deductible expenses</td>
+              <td class="k1-ws-negative" x-text="formatCurrency(worksheet?.nondeductible_expenses || 0)"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>9</td>
+              <td>Decrease in entity liabilities (partner's share)</td>
+              <td class="k1-ws-negative" x-text="formatCurrency(worksheet?.liability_decreases || 0)"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>10</td>
+              <td>Depletion (in excess of basis)</td>
+              <td class="k1-ws-negative" x-text="formatCurrency(worksheet?.depletion || 0)"></td>
+            </tr>
+            <tr class="k1-ws-row-subtotal">
+              <td>11</td>
+              <td>Total decreases (add lines 7a through 10)</td>
+              <td class="k1-ws-negative" x-text="formatCurrency(worksheet?.total_decreases || 0)"></td>
+            </tr>
+
+            {# Section: Loss Allocations #}
+            <tr class="k1-ws-row-section">
+              <td></td>
+              <td>Loss Limitation</td>
+              <td></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>12</td>
+              <td>Basis before loss limitation (line 1 + line 6 - line 11)</td>
+              <td x-text="formatCurrency(worksheet?.basis_before_loss || 0)"
+                  :class="(worksheet?.basis_before_loss || 0) >= 0 ? '' : 'k1-ws-negative'"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>13</td>
+              <td>Total allocated losses (current year)</td>
+              <td class="k1-ws-negative" x-text="formatCurrency(worksheet?.total_losses || 0)"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>14</td>
+              <td>Allowed losses (limited to basis)</td>
+              <td class="k1-ws-negative" x-text="formatCurrency(worksheet?.allowed_losses || 0)"></td>
+            </tr>
+            <tr class="k1-ws-row-indent">
+              <td>15</td>
+              <td>Suspended losses (carried forward)</td>
+              <td x-text="formatCurrency(worksheet?.suspended_losses || 0)"
+                  :class="(worksheet?.suspended_losses || 0) > 0 ? 'k1-ws-negative' : ''"></td>
+            </tr>
+
+            {# Total / Ending Basis #}
+            <tr class="k1-ws-row-total">
+              <td>16</td>
+              <td>Adjusted basis at end of tax year</td>
+              <td x-text="formatCurrency(worksheet?.ending_basis || selectedEntity?.current_basis || 0)"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {# ── At-Risk Limitation Section ─────────────────────────── #}
+      <div class="k1-limit-section">
+        <h4>
+          <span class="k1-icon-circle" style="background: #dbeafe; color: #1e40af;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </span>
+          At-Risk Limitation (IRC &sect;465)
+        </h4>
+        <div class="k1-limit-grid">
+          <div class="k1-limit-stat">
+            <label>At-Risk Amount</label>
+            <div class="k1-stat-val" style="color: var(--k1-navy);"
+                 x-text="formatCurrency(worksheet?.at_risk?.amount || selectedEntity?.at_risk_amount || 0)"></div>
+          </div>
+          <div class="k1-limit-stat">
+            <label>Losses Limited by At-Risk</label>
+            <div class="k1-stat-val" style="color: var(--k1-error);"
+                 x-text="formatCurrency(worksheet?.at_risk?.limited_losses || 0)"></div>
+          </div>
+          <div class="k1-limit-stat">
+            <label>Status</label>
+            <div class="k1-stat-val">
+              <span style="padding:4px 12px; border-radius:9999px; font-size:0.8rem;"
+                    :style="(worksheet?.at_risk?.amount || selectedEntity?.at_risk_amount || 0) > 0
+                      ? 'background: #d1fae5; color: #065f46;'
+                      : 'background: #fee2e2; color: #991b1b;'"
+                    x-text="(worksheet?.at_risk?.amount || selectedEntity?.at_risk_amount || 0) > 0 ? 'Within Limits' : 'At-Risk Exceeded'">
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ── Passive Activity Limitation Section ────────────────── #}
+      <div class="k1-limit-section">
+        <h4>
+          <span class="k1-icon-circle" style="background: #ede9fe; color: #5b21b6;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </span>
+          Passive Activity Limitation (IRC &sect;469)
+        </h4>
+        <div class="k1-limit-grid">
+          <div class="k1-limit-stat">
+            <label>Passive Income</label>
+            <div class="k1-stat-val" style="color: var(--k1-success);"
+                 x-text="formatCurrency(worksheet?.passive_activity?.income || 0)"></div>
+          </div>
+          <div class="k1-limit-stat">
+            <label>Passive Losses</label>
+            <div class="k1-stat-val" style="color: var(--k1-error);"
+                 x-text="formatCurrency(worksheet?.passive_activity?.losses || 0)"></div>
+          </div>
+          <div class="k1-limit-stat">
+            <label>Suspended Passive Losses</label>
+            <div class="k1-stat-val" style="color: var(--k1-warning);"
+                 x-text="formatCurrency(worksheet?.passive_activity?.suspended || 0)"></div>
+          </div>
+        </div>
+        <div style="margin-top:16px; display:flex; align-items:center; gap:8px;">
+          <span style="font-size:0.78rem; color:var(--k1-gray-400);">Material Participation:</span>
+          <span style="padding:3px 10px; border-radius:9999px; font-size:0.72rem; font-weight:600;"
+                :style="worksheet?.passive_activity?.material_participation
+                  ? 'background:#d1fae5; color:#065f46;'
+                  : 'background:#fef3c7; color:#92400e;'"
+                x-text="worksheet?.passive_activity?.material_participation ? 'Yes - Active' : 'No - Passive'">
+          </span>
+        </div>
+      </div>
+
+      {# ── Adjustment Timeline ────────────────────────────────── #}
+      <div class="k1-section-divider">Adjustment History</div>
+
+      <template x-if="worksheet?.adjustments && worksheet.adjustments.length > 0">
+        <div class="k1-timeline">
+          <template x-for="adj in worksheet.adjustments" :key="adj.id || adj.date + adj.description">
+            <div class="k1-timeline-item">
+              <div class="k1-timeline-dot"
+                   :class="{
+                     'positive': adj.amount > 0,
+                     'negative': adj.amount < 0,
+                     'neutral': adj.amount === 0
+                   }"></div>
+              <div class="k1-timeline-date" x-text="adj.date ? new Date(adj.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No date'"></div>
+              <div class="k1-timeline-desc" x-text="adj.description || adj.adjustment_type?.replace(/_/g, ' ')"></div>
+              <div class="k1-timeline-amt"
+                   :style="adj.amount >= 0 ? 'color: var(--k1-success);' : 'color: var(--k1-error);'"
+                   x-text="(adj.amount >= 0 ? '+' : '') + formatCurrency(adj.amount)"></div>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <template x-if="!worksheet?.adjustments || worksheet.adjustments.length === 0">
+        <div style="text-align:center; padding:32px 16px;">
+          <div style="font-size:0.85rem; color:var(--k1-gray-400);">No adjustments recorded yet.</div>
+          <button class="k1-btn k1-btn-outline k1-btn-sm" style="margin-top:12px;"
+                  @click="showAddAdjustment = true; newAdjustment = { adjustment_type: 'capital_contribution', amount: 0, description: '', date: new Date().toISOString().split('T')[0] };">
+            Add First Adjustment
+          </button>
+        </div>
+      </template>
+
+    </div>
+  </div>
+
+  {# ══════════════════════════════════════════════════════════════
+     MODALS
+     ══════════════════════════════════════════════════════════════ #}
+
+  {# ── Add Entity Modal ─────────────────────────────────────── #}
+  <div x-show="showAddEntity" x-cloak
+       class="k1-modal-backdrop"
+       @keydown.escape.window="showAddEntity = false"
+       x-transition:enter="transition ease-out duration-200"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100"
+       x-transition:leave="transition ease-in duration-150"
+       x-transition:leave-start="opacity-100"
+       x-transition:leave-end="opacity-0">
+    <div class="k1-modal" @click.outside="showAddEntity = false">
+      <div class="k1-modal-head">
+        <h3>Add New Entity</h3>
+        <p>Enter the entity details to begin tracking K-1 basis.</p>
+      </div>
+      <div class="k1-modal-body">
+        <div class="k1-form-group">
+          <label for="add-entity-name">Entity Name</label>
+          <input id="add-entity-name" type="text" class="k1-input" placeholder="e.g., ABC Holdings LP"
+                 x-model="newEntity.entity_name">
+        </div>
+        <div class="k1-form-row">
+          <div class="k1-form-group">
+            <label for="add-entity-ein">EIN</label>
+            <input id="add-entity-ein" type="text" class="k1-input" placeholder="XX-XXXXXXX"
+                   x-model="newEntity.ein" maxlength="10">
+          </div>
+          <div class="k1-form-group">
+            <label for="add-entity-type">Entity Type</label>
+            <select id="add-entity-type" class="k1-select" x-model="newEntity.entity_type">
+              <option value="partnership">Partnership</option>
+              <option value="s_corporation">S-Corporation</option>
+              <option value="trust_estate">Trust / Estate</option>
+            </select>
+          </div>
+        </div>
+        <div class="k1-form-row">
+          <div class="k1-form-group">
+            <label for="add-entity-year">Tax Year</label>
+            <input id="add-entity-year" type="number" class="k1-input" min="2000" max="2099"
+                   x-model.number="newEntity.tax_year">
+          </div>
+          <div class="k1-form-group">
+            <label for="add-entity-ownership">Ownership %</label>
+            <input id="add-entity-ownership" type="number" class="k1-input" min="0" max="100" step="0.01"
+                   placeholder="e.g., 25.5"
+                   x-model.number="newEntity.ownership_percentage">
+          </div>
+        </div>
+        <div class="k1-form-group">
+          <label for="add-entity-basis">Initial Basis Amount ($)</label>
+          <input id="add-entity-basis" type="number" class="k1-input" min="0" step="0.01"
+                 placeholder="0.00"
+                 x-model.number="newEntity.initial_basis">
+        </div>
+      </div>
+      <div class="k1-modal-foot">
+        <button class="k1-btn k1-btn-outline" @click="showAddEntity = false">Cancel</button>
+        <button class="k1-btn k1-btn-primary"
+                :disabled="!newEntity.entity_name.trim()"
+                @click="addEntity()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg>
+          Add Entity
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {# ── Add Adjustment Modal ─────────────────────────────────── #}
+  <div x-show="showAddAdjustment" x-cloak
+       class="k1-modal-backdrop"
+       @keydown.escape.window="showAddAdjustment = false"
+       x-transition:enter="transition ease-out duration-200"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100"
+       x-transition:leave="transition ease-in duration-150"
+       x-transition:leave-start="opacity-100"
+       x-transition:leave-end="opacity-0">
+    <div class="k1-modal" @click.outside="showAddAdjustment = false">
+      <div class="k1-modal-head">
+        <h3>Add Adjustment</h3>
+        <p>Record a basis adjustment for <strong x-text="selectedEntity?.entity_name || 'this entity'"></strong>.</p>
+      </div>
+      <div class="k1-modal-body">
+        <div class="k1-form-group">
+          <label for="adj-type">Adjustment Type</label>
+          <select id="adj-type" class="k1-select" x-model="newAdjustment.adjustment_type">
+            <option value="capital_contribution">Capital Contribution</option>
+            <option value="income_allocation">Income Allocation</option>
+            <option value="loss_allocation">Loss Allocation</option>
+            <option value="distribution">Distribution</option>
+            <option value="loan_to_entity">Loan to Entity</option>
+            <option value="loan_repayment">Loan Repayment</option>
+            <option value="other">Other Adjustment</option>
+          </select>
+        </div>
+        <div class="k1-form-row">
+          <div class="k1-form-group">
+            <label for="adj-amount">Amount ($)</label>
+            <input id="adj-amount" type="number" class="k1-input" step="0.01"
+                   placeholder="0.00"
+                   x-model.number="newAdjustment.amount">
+          </div>
+          <div class="k1-form-group">
+            <label for="adj-date">Date</label>
+            <input id="adj-date" type="date" class="k1-input"
+                   x-model="newAdjustment.date">
+          </div>
+        </div>
+        <div class="k1-form-group">
+          <label for="adj-desc">Description</label>
+          <input id="adj-desc" type="text" class="k1-input"
+                 placeholder="e.g., Q1 2025 cash contribution"
+                 x-model="newAdjustment.description">
+        </div>
+      </div>
+      <div class="k1-modal-foot">
+        <button class="k1-btn k1-btn-outline" @click="showAddAdjustment = false">Cancel</button>
+        <button class="k1-btn k1-btn-teal"
+                :disabled="!newAdjustment.amount"
+                @click="addAdjustment()">
+          Save Adjustment
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+function k1BasisManager() {
+    return {
+        sessionId: 'default',
+        records: [],
+        selectedEntity: null,
+        worksheet: null,
+        activeFilter: 'all',
+        showAddEntity: false,
+        showAddAdjustment: false,
+        loading: false,
+        newEntity: {
+            entity_name: '',
+            ein: '',
+            entity_type: 'partnership',
+            tax_year: 2025,
+            initial_basis: 0,
+            ownership_percentage: 0
+        },
+        newAdjustment: {
+            adjustment_type: 'capital_contribution',
+            amount: 0,
+            description: '',
+            date: ''
+        },
+
+        /* ── Lifecycle ─────────────────────────────────────────── */
+        async init() {
+            this.newAdjustment.date = new Date().toISOString().split('T')[0];
+            await this.loadRecords();
+        },
+
+        /* ── Data Loading ──────────────────────────────────────── */
+        async loadRecords() {
+            this.loading = true;
+            try {
+                const res = await fetch(`/api/v1/k1-basis/session/${this.sessionId}/records`);
+                if (res.ok) {
+                    const data = await res.json();
+                    this.records = data.records || [];
+                }
+            } catch (e) {
+                console.error('Failed to load K-1 records:', e);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /* ── Computed ──────────────────────────────────────────── */
+        get filteredRecords() {
+            if (this.activeFilter === 'all') return this.records;
+            return this.records.filter(r => r.entity_type === this.activeFilter);
+        },
+
+        /* ── Entity CRUD ───────────────────────────────────────── */
+        async addEntity() {
+            if (!this.newEntity.entity_name.trim()) return;
+            try {
+                const res = await fetch(`/api/v1/k1-basis/session/${this.sessionId}/record`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.newEntity)
+                });
+                if (res.ok) {
+                    this.showAddEntity = false;
+                    this.newEntity = {
+                        entity_name: '',
+                        ein: '',
+                        entity_type: 'partnership',
+                        tax_year: 2025,
+                        initial_basis: 0,
+                        ownership_percentage: 0
+                    };
+                    await this.loadRecords();
+                } else {
+                    const err = await res.json().catch(() => null);
+                    alert(err?.detail || 'Failed to add entity. Please check the form and try again.');
+                }
+            } catch (e) {
+                console.error('Add entity error:', e);
+                alert('Failed to add entity. Please check your connection and try again.');
+            }
+        },
+
+        async deleteEntity(entityId) {
+            if (!confirm('Delete this entity and all its records? This action cannot be undone.')) return;
+            try {
+                await fetch(`/api/v1/k1-basis/session/${this.sessionId}/record/${entityId}`, {
+                    method: 'DELETE'
+                });
+                if (this.selectedEntity?.entity_id === entityId) {
+                    this.selectedEntity = null;
+                    this.worksheet = null;
+                }
+                await this.loadRecords();
+            } catch (e) {
+                console.error('Delete entity error:', e);
+                alert('Failed to delete entity.');
+            }
+        },
+
+        /* ── Worksheet ─────────────────────────────────────────── */
+        async viewWorksheet(entityId) {
+            try {
+                const res = await fetch(`/api/v1/k1-basis/session/${this.sessionId}/record/${entityId}/worksheet`);
+                if (res.ok) {
+                    this.worksheet = await res.json();
+                    this.selectedEntity = this.records.find(r => r.entity_id === entityId) || null;
+                    // Scroll to the detail panel
+                    this.$nextTick(() => {
+                        const panel = document.querySelector('.k1-detail-panel');
+                        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    });
+                } else {
+                    alert('Failed to load worksheet. The server returned an error.');
+                }
+            } catch (e) {
+                console.error('View worksheet error:', e);
+                alert('Failed to load worksheet. Please check your connection.');
+            }
+        },
+
+        /* ── Adjustments ───────────────────────────────────────── */
+        async addAdjustment() {
+            if (!this.selectedEntity) return;
+            if (!this.newAdjustment.amount) return;
+
+            const isDistribution = this.newAdjustment.adjustment_type === 'distribution';
+            const endpoint = isDistribution
+                ? `/api/v1/k1-basis/session/${this.sessionId}/record/${this.selectedEntity.entity_id}/distribution`
+                : `/api/v1/k1-basis/session/${this.sessionId}/record/${this.selectedEntity.entity_id}/adjustment`;
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(this.newAdjustment)
+                });
+                if (res.ok) {
+                    this.showAddAdjustment = false;
+                    this.newAdjustment = {
+                        adjustment_type: 'capital_contribution',
+                        amount: 0,
+                        description: '',
+                        date: new Date().toISOString().split('T')[0]
+                    };
+                    await this.loadRecords();
+                    await this.viewWorksheet(this.selectedEntity.entity_id);
+                } else {
+                    const err = await res.json().catch(() => null);
+                    alert(err?.detail || 'Failed to add adjustment.');
+                }
+            } catch (e) {
+                console.error('Add adjustment error:', e);
+                alert('Failed to add adjustment. Please check your connection.');
+            }
+        },
+
+        /* ── Helpers ───────────────────────────────────────────── */
+        entityTypeBadge(type) {
+            const badges = {
+                partnership: { label: 'Partnership', bg: '#dbeafe', color: '#1e40af' },
+                s_corporation: { label: 'S-Corp', bg: '#ede9fe', color: '#5b21b6' },
+                trust_estate: { label: 'Trust/Estate', bg: '#fef3c7', color: '#92400e' }
+            };
+            return badges[type] || badges.partnership;
+        },
+
+        formatCurrency(val) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(val || 0);
+        }
+    };
+}
+</script>
+{% endblock %}

@@ -107,8 +107,8 @@
    ========================= */
 
 .toast-close {
-  width: 24px;
-  height: 24px;
+  width: var(--space-6);
+  height: var(--space-6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -334,7 +334,7 @@
 .loading-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: var(--overlay-white-heavy);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -351,8 +351,8 @@
 }
 
 .loading-spinner {
-  width: 40px;
-  height: 40px;
+  width: var(--space-10);
+  height: var(--space-10);
   border: 3px solid var(--color-gray-200);
   border-top-color: var(--color-primary-600);
   border-radius: var(--radius-full);

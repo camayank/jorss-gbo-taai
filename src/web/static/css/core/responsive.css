@@ -248,8 +248,8 @@
 }
 
 .touch-target-lg {
-  min-height: 48px;
-  min-width: 48px;
+  min-height: var(--space-12);
+  min-width: var(--space-12);
 }
 
 /* =========================
@@ -295,7 +295,7 @@
   color: white;
   padding: var(--space-2) var(--space-4);
   z-index: var(--z-toast);
-  transition: top 0.3s ease;
+  transition: top var(--transition-slow);
 }
 
 .skip-link:focus {

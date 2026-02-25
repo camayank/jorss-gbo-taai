@@ -10,7 +10,7 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--overlay-light);
   z-index: var(--z-modal-backdrop);
   opacity: 0;
   visibility: hidden;
@@ -174,8 +174,8 @@
 }
 
 .modal-confirm .modal-icon {
-  width: 64px;
-  height: 64px;
+  width: var(--space-16);
+  height: var(--space-16);
   margin: 0 auto var(--space-4);
   display: flex;
   align-items: center;
@@ -283,8 +283,8 @@
 }
 
 .sheet-handle {
-  width: 40px;
-  height: 4px;
+  width: var(--space-10);
+  height: var(--space-1);
   background-color: var(--color-gray-300);
   border-radius: var(--radius-full);
   margin: var(--space-3) auto;

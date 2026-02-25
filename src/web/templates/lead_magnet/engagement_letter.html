@@ -21,10 +21,10 @@
         :root {
             --primary-color: {{ cpa.primary_color or '#1e3a5f' }};
             --secondary-color: {{ cpa.secondary_color or '#152b47' }};
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
-            --bg-light: #f9fafb;
-            --white: #ffffff;
+            --text-dark: var(--color-gray-800);
+            --text-muted: var(--color-gray-500);
+            --bg-light: var(--color-gray-50);
+            --white: var(--white);
         }
 
         body {
@@ -37,32 +37,32 @@
         .container {
             max-width: 800px;
             margin: 0 auto;
-            padding: 40px 20px;
+            padding: var(--space-10) var(--space-5);
         }
 
         /* Header */
         .letter-header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: var(--space-10);
         }
 
         .cpa-brand {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
-            margin-bottom: 24px;
+            gap: var(--space-3);
+            margin-bottom: var(--space-6);
         }
 
         .cpa-logo {
             width: 60px;
             height: 60px;
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
         }
 
         .cpa-info h1 {
             font-size: 1.5rem;
-            font-weight: 600;
+            font-weight: var(--font-semibold);
         }
 
         .cpa-info p {
@@ -71,8 +71,8 @@
 
         .letter-title {
             font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 8px;
+            font-weight: var(--font-bold);
+            margin-bottom: var(--space-2);
         }
 
         .letter-subtitle {
@@ -82,8 +82,8 @@
         /* Letter Content */
         .letter-card {
             background: var(--white);
-            border-radius: 16px;
-            padding: 40px;
+            border-radius: var(--radius-2xl);
+            padding: var(--space-10);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             margin-bottom: 30px;
         }
@@ -91,38 +91,38 @@
         .letter-date {
             color: var(--text-muted);
             font-size: 0.9rem;
-            margin-bottom: 24px;
+            margin-bottom: var(--space-6);
         }
 
         .letter-section {
-            margin-bottom: 24px;
+            margin-bottom: var(--space-6);
         }
 
         .letter-section h2 {
             font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 12px;
+            font-weight: var(--font-semibold);
+            margin-bottom: var(--space-3);
             color: var(--primary-color);
         }
 
         .letter-section p {
-            margin-bottom: 12px;
+            margin-bottom: var(--space-3);
         }
 
         .letter-section ul {
-            margin-left: 24px;
-            margin-bottom: 12px;
+            margin-left: var(--space-6);
+            margin-bottom: var(--space-3);
         }
 
         .letter-section li {
-            margin-bottom: 8px;
+            margin-bottom: var(--space-2);
         }
 
         /* Signature Section */
         .signature-section {
-            border-top: 1px solid #e5e7eb;
-            padding-top: 24px;
-            margin-top: 40px;
+            border-top: 1px solid var(--color-gray-200);
+            padding-top: var(--space-6);
+            margin-top: var(--space-10);
         }
 
         .signature-line {
@@ -138,8 +138,8 @@
         }
 
         .signature-name {
-            font-weight: 600;
-            margin-top: 8px;
+            font-weight: var(--font-semibold);
+            margin-top: var(--space-2);
         }
 
         .signature-title {
@@ -150,23 +150,23 @@
         /* Acknowledgment */
         .acknowledgment-card {
             background: var(--white);
-            border-radius: 16px;
+            border-radius: var(--radius-2xl);
             padding: 30px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
 
         .acknowledgment-title {
             font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 20px;
+            font-weight: var(--font-semibold);
+            margin-bottom: var(--space-5);
         }
 
         .checkbox-group {
             display: flex;
             align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 24px;
-            padding: 16px;
+            gap: var(--space-3);
+            margin-bottom: var(--space-6);
+            padding: var(--space-4);
             background: var(--bg-light);
             border-radius: 10px;
         }
@@ -188,13 +188,13 @@
             width: 100%;
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
-            padding: 16px 30px;
-            border-radius: 12px;
+            padding: var(--space-4) 30px;
+            border-radius: var(--radius-xl);
             font-size: 1.1rem;
-            font-weight: 600;
+            font-weight: var(--font-semibold);
             border: none;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all var(--transition-base);
             box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
         }
 
@@ -211,7 +211,7 @@
         .back-link {
             display: block;
             text-align: center;
-            margin-top: 20px;
+            margin-top: var(--space-5);
             color: var(--text-muted);
             text-decoration: none;
         }
@@ -240,8 +240,8 @@
 
         .loading-card {
             background: var(--white);
-            padding: 40px;
-            border-radius: 16px;
+            padding: var(--space-10);
+            border-radius: var(--radius-2xl);
             text-align: center;
         }
 
@@ -252,7 +252,7 @@
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
+            margin: 0 auto var(--space-4);
         }
 
         @keyframes spin {
@@ -269,11 +269,11 @@
 
         @media (max-width: 640px) {
             .container {
-                padding: 20px;
+                padding: var(--space-5);
             }
 
             .letter-card {
-                padding: 24px;
+                padding: var(--space-6);
             }
 
             .letter-title {

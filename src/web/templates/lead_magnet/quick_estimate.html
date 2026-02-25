@@ -25,12 +25,12 @@
             --primary-color: {{ cpa.primary_color or '#1e3a5f' }};
             --secondary-color: {{ cpa.secondary_color or '#152b47' }};
             --accent-color: {{ cpa.accent_color or '#059669' }};
-            --text-dark: #1e293b;
-            --text-muted: #64748b;
+            --text-dark: var(--color-slate-800);
+            --text-muted: var(--color-slate-500);
             --bg-light: #f8fafc;
-            --white: #ffffff;
-            --error: #dc2626;
-            --success: #059669;
+            --white: var(--white);
+            --error: var(--color-error-600);
+            --success: var(--color-success-600);
         }
 
         body {
@@ -39,7 +39,7 @@
             color: var(--text-dark);
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: var(--space-5);
         }
 
         .container {
@@ -52,7 +52,7 @@
             background: rgba(255, 255, 255, 0.2);
             border-radius: 10px;
             height: 8px;
-            margin-bottom: 20px;
+            margin-bottom: var(--space-5);
             overflow: hidden;
         }
 
@@ -60,13 +60,13 @@
             background: var(--white);
             height: 100%;
             border-radius: 10px;
-            transition: width 0.3s ease;
+            transition: width var(--transition-slow);
         }
 
         .progress-text {
             color: var(--white);
             font-size: 0.85rem;
-            margin-bottom: 10px;
+            margin-bottom: var(--space-2-5);
             display: flex;
             justify-content: space-between;
         }
@@ -75,38 +75,38 @@
         .form-card {
             background: var(--white);
             border-radius: 20px;
-            padding: 40px;
+            padding: var(--space-10);
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
         }
 
         .cpa-header {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--space-3);
             margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: var(--space-5);
+            border-bottom: 1px solid var(--color-gray-200);
         }
 
         .cpa-logo {
             width: 40px;
             height: 40px;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
         }
 
         .cpa-name {
-            font-weight: 600;
+            font-weight: var(--font-semibold);
             color: var(--text-dark);
         }
 
         .persona-hint {
-            margin-bottom: 20px;
-            padding: 10px 12px;
+            margin-bottom: var(--space-5);
+            padding: var(--space-2-5) var(--space-3);
             border-radius: 10px;
-            background: #eff6ff;
+            background: var(--color-info-50);
             color: #1d4ed8;
             font-size: 0.82rem;
-            font-weight: 500;
+            font-weight: var(--font-medium);
         }
 
         /* Question Steps */
@@ -134,50 +134,50 @@
             color: var(--white);
             border-radius: 50%;
             font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 12px;
+            font-weight: var(--font-semibold);
+            margin-bottom: var(--space-3);
         }
 
         .question-title {
             font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 8px;
+            font-weight: var(--font-semibold);
+            margin-bottom: var(--space-2);
             color: var(--text-dark);
         }
 
         .question-subtitle {
             color: var(--text-muted);
-            margin-bottom: 24px;
+            margin-bottom: var(--space-6);
             font-size: 0.95rem;
         }
 
         /* Option Cards */
         .options-grid {
             display: grid;
-            gap: 12px;
+            gap: var(--space-3);
         }
 
         .option-card {
             position: relative;
             background: var(--bg-light);
             border: 2px solid transparent;
-            border-radius: 12px;
-            padding: 16px 20px;
+            border-radius: var(--radius-xl);
+            padding: var(--space-4) var(--space-5);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all var(--transition-base);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--space-3);
         }
 
         .option-card:hover {
             border-color: var(--primary-color);
-            background: #eff6ff;
+            background: var(--color-info-50);
         }
 
         .option-card.selected {
             border-color: var(--primary-color);
-            background: #eff6ff;
+            background: var(--color-info-50);
         }
 
         .option-card input {
@@ -195,7 +195,7 @@
         }
 
         .option-label {
-            font-weight: 600;
+            font-weight: var(--font-semibold);
             color: var(--text-dark);
         }
 
@@ -207,13 +207,13 @@
         .option-checkmark {
             width: 24px;
             height: 24px;
-            border: 2px solid #d1d5db;
+            border: 2px solid var(--color-gray-300);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            transition: all 0.2s ease;
+            transition: all var(--transition-base);
         }
 
         .option-card.selected .option-checkmark {
@@ -232,9 +232,9 @@
         .state-select {
             width: 100%;
             border: 2px solid #dbe4ef;
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             background: #f8fafc;
-            padding: 14px 16px;
+            padding: var(--space-3-5) var(--space-4);
             font-size: 1rem;
             color: var(--text-dark);
         }
@@ -242,7 +242,7 @@
         .state-select:focus {
             outline: none;
             border-color: var(--primary-color);
-            background: #ffffff;
+            background: var(--white);
             box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
         }
 
@@ -254,7 +254,7 @@
         .options-grid.multi-select .option-card.selected .option-checkmark::after {
             content: '{{ icon('check') }}';
             color: var(--white);
-            font-size: 14px;
+            font-size: var(--text-sm);
             font-weight: bold;
             background: none;
         }
@@ -262,18 +262,18 @@
         /* Buttons */
         .button-row {
             display: flex;
-            gap: 12px;
+            gap: var(--space-3);
             margin-top: 30px;
         }
 
         .btn {
             flex: 1;
-            padding: 14px 24px;
+            padding: var(--space-3-5) var(--space-6);
             border-radius: 10px;
             font-size: 1rem;
-            font-weight: 600;
+            font-weight: var(--font-semibold);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all var(--transition-base);
             border: none;
             text-align: center;
         }
@@ -297,11 +297,11 @@
         .btn-secondary {
             background: var(--bg-light);
             color: var(--text-dark);
-            border: 1px solid #e5e7eb;
+            border: 1px solid var(--color-gray-200);
         }
 
         .btn-secondary:hover {
-            background: #f3f4f6;
+            background: var(--color-gray-100);
         }
 
         /* Loading State */
@@ -324,8 +324,8 @@
 
         .loading-card {
             background: var(--white);
-            padding: 40px;
-            border-radius: 16px;
+            padding: var(--space-10);
+            border-radius: var(--radius-2xl);
             text-align: center;
             min-width: 320px;
             max-width: 420px;
@@ -338,7 +338,7 @@
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
+            margin: 0 auto var(--space-4);
         }
 
         @keyframes spin {
@@ -347,15 +347,15 @@
         }
 
         .processing-title {
-            font-weight: 600;
+            font-weight: var(--font-semibold);
             color: #0f172a;
-            margin-bottom: 8px;
+            margin-bottom: var(--space-2);
         }
 
         .processing-subtitle {
             font-size: 0.82rem;
-            color: #475569;
-            margin-bottom: 12px;
+            color: var(--color-slate-600);
+            margin-bottom: var(--space-3);
         }
 
         .processing-checklist {
@@ -364,20 +364,20 @@
             padding: 0;
             text-align: left;
             display: grid;
-            gap: 8px;
+            gap: var(--space-2);
         }
 
         .processing-step {
             display: grid;
             grid-template-columns: 20px 1fr;
-            gap: 8px;
+            gap: var(--space-2);
             align-items: center;
-            color: #64748b;
+            color: var(--color-slate-500);
             font-size: 0.82rem;
         }
 
         .processing-step.done {
-            color: #166534;
+            color: var(--color-success-700);
         }
 
         .processing-dot {
@@ -385,13 +385,13 @@
             height: 14px;
             border-radius: 999px;
             border: 2px solid #cbd5e1;
-            background: #ffffff;
+            background: var(--white);
             position: relative;
         }
 
         .processing-step.done .processing-dot {
-            border-color: #22c55e;
-            background: #22c55e;
+            border-color: var(--color-success-500);
+            background: var(--color-success-500);
         }
 
         .processing-step.done .processing-dot::after {
@@ -401,26 +401,26 @@
             top: 1px;
             width: 4px;
             height: 7px;
-            border: solid #ffffff;
+            border: solid var(--white);
             border-width: 0 2px 2px 0;
             transform: rotate(45deg);
         }
 
         /* Disclaimer */
         .disclaimer {
-            margin-top: 24px;
-            padding: 12px 16px;
-            background: #f3f4f6;
-            border-radius: 8px;
+            margin-top: var(--space-6);
+            padding: var(--space-3) var(--space-4);
+            background: var(--color-gray-100);
+            border-radius: var(--radius-lg);
             font-size: 0.75rem;
-            color: #6b7280;
-            border-left: 3px solid #d1d5db;
+            color: var(--color-gray-500);
+            border-left: 3px solid var(--color-gray-300);
         }
 
         /* Mobile Responsive */
         @media (max-width: 640px) {
             .form-card {
-                padding: 24px;
+                padding: var(--space-6);
             }
 
             .question-title {

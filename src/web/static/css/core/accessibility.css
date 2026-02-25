@@ -108,7 +108,7 @@ a:focus-visible {
   font-weight: var(--font-semibold);
   text-decoration: none;
   border-radius: 0 0 var(--radius-md) var(--radius-md);
-  transition: top 0.2s ease;
+  transition: top var(--transition-base);
 }
 
 .skip-link:focus {
@@ -191,8 +191,8 @@ a:focus-visible {
 
 /* Larger touch targets for important actions */
 .touch-target-lg {
-  min-height: 48px;
-  min-width: 48px;
+  min-height: var(--space-12);
+  min-width: var(--space-12);
 }
 
 /* Ensure buttons and links meet touch target size on mobile */
@@ -229,7 +229,7 @@ a:focus-visible {
   background: var(--color-error-500);
   color: white;
   font-size: 10px;
-  padding: 2px 4px;
+  padding: var(--space-0-5) var(--space-1);
   border-radius: var(--radius-sm);
 }
 
@@ -309,7 +309,7 @@ textarea[aria-invalid="true"] {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay-light);
   z-index: var(--z-modal-backdrop);
 }
 

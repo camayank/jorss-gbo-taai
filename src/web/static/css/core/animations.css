@@ -249,7 +249,7 @@
 }
 
 .hover-glow:hover {
-  box-shadow: 0 0 20px rgba(30, 58, 95, 0.3);
+  box-shadow: var(--shadow-primary-glow);
 }
 
 /* =========================
@@ -278,8 +278,8 @@
 }
 
 .skeleton-avatar {
-  width: 40px;
-  height: 40px;
+  width: var(--space-10);
+  height: var(--space-10);
   border-radius: var(--radius-full);
 }
 
