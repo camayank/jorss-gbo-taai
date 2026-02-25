@@ -203,7 +203,7 @@ class TestSmartDocumentProcessor:
     def test_initialization(self):
         """Test processor initializes correctly."""
         processor = SmartDocumentProcessor()
-        assert processor.tax_year == 2024
+        assert processor.tax_year == 2025
         assert processor.confidence_scorer is not None
 
     def test_process_w2_document(self):
