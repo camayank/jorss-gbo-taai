@@ -120,7 +120,7 @@ class CreateScenarioRequest(BaseModel):
     """Request to create a scenario."""
     name: str
     scenario_type: ScenarioType
-    tax_year: int = 2024
+    tax_year: int = 2025
     description: Optional[str] = None
     tax_return_id: Optional[str] = None
     # For CPA creating on behalf of client
@@ -242,7 +242,7 @@ def _row_to_scenario(row) -> TaxScenario:
         description=scenario_data.get("description"),
         scenario_type=_db_type_to_scenario(row[3]),
         status=_db_status_to_api(row[4]),
-        tax_year=scenario_data.get("tax_year", 2024),
+        tax_year=scenario_data.get("tax_year", 2025),
         variables=variables,
         baseline=baseline,
         projected=projected,
@@ -437,7 +437,7 @@ async def list_scenarios(
             name=row[2],
             scenario_type=_db_type_to_scenario(row[3]),
             status=_db_status_to_api(row[4]),
-            tax_year=scenario_data.get("tax_year", 2024),
+            tax_year=scenario_data.get("tax_year", 2025),
             savings=scenario_data.get("savings", 0.0),
             updated_at=_parse_dt(row[8]) or datetime.utcnow()
         ))
