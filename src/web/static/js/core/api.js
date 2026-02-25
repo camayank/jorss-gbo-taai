@@ -239,10 +239,31 @@ async function request(url, options = {}) {
       clearTimeout(timeoutId);
       lastError = error;
 
-      // Don't retry on client errors (4xx) or if it's an abort
-      if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
-        // Loading state already handled in response.ok check
-        throw error;
+      // Handle client errors (4xx)
+      if (error instanceof ApiError) {
+        // Attempt token refresh on 401 before giving up
+        if (error.status === 401 && !options._isRetryAfterRefresh) {
+          try {
+            const refreshResp = await fetch('/api/v1/auth/refresh', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'same-origin',
+            });
+            if (refreshResp.ok) {
+              // Retry the original request once with fresh token
+              return request(url, { ...options, _isRetryAfterRefresh: true });
+            }
+          } catch (_refreshErr) {
+            // Refresh failed — fall through to login redirect
+          }
+          // Redirect to login with return URL
+          window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+          return;
+        }
+
+        if (error.status >= 400 && error.status < 500) {
+          throw error;
+        }
       }
 
       if (error.name === 'AbortError') {
