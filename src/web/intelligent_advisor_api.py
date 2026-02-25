@@ -73,6 +73,30 @@ def should_require_professional_review(profile: dict) -> bool:
     return False
 
 
+def calculate_response_confidence(
+    profile_completeness: float,
+    has_complex_scenario: bool = False
+) -> tuple:
+    """
+    Calculate confidence level for a response based on data quality.
+
+    Args:
+        profile_completeness: 0.0 to 1.0 indicating how complete the profile is
+        has_complex_scenario: True if complex tax situation detected
+
+    Returns:
+        tuple of (confidence_level, reason)
+    """
+    if profile_completeness >= 0.70 and not has_complex_scenario:
+        return ("high", None)
+    elif profile_completeness >= 0.40:
+        if has_complex_scenario:
+            return ("medium", "Complex tax situation - verify with professional")
+        return ("medium", "Some profile data missing")
+    else:
+        return ("low", "Limited data available - estimates may vary significantly")
+
+
 import uuid
 import json
 import threading
@@ -641,6 +665,10 @@ class ChatResponse(BaseModel):
     # Liability disclaimers
     disclaimer: Optional[str] = None
     requires_professional_review: bool = False
+
+    # Response confidence
+    response_confidence: str = "high"  # high, medium, low
+    confidence_reason: Optional[str] = None  # Why confidence is reduced
 
 
 class FullAnalysisRequest(BaseModel):
