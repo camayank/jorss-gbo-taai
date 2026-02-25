@@ -4,6 +4,7 @@ Core RBAC middleware (lightweight, compatibility-focused).
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from typing import Optional, Set
 from uuid import UUID
@@ -96,6 +97,22 @@ class RBACMiddleware(BaseHTTPMiddleware):
             return True
         return any(path.startswith(prefix) for prefix in self.config.public_path_prefixes)
 
+    async def _is_token_revoked(self, jti: str) -> bool:
+        """Check if token jti is in Redis revocation blacklist."""
+        try:
+            import redis.asyncio as aioredis
+
+            r = aioredis.from_url(
+                os.environ.get("REDIS_URL", "redis://localhost:6379"),
+                decode_responses=True,
+            )
+            result = await r.sismember("revoked_jtis", jti)
+            await r.aclose()
+            return bool(result)
+        except Exception:
+            # Graceful fallback: if Redis unavailable, skip revocation check
+            return False
+
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
         if self._is_public_path(path) or not self.config.rbac_v2_enabled:
@@ -129,6 +146,13 @@ class RBACMiddleware(BaseHTTPMiddleware):
         if auth_header.startswith("Bearer "):
             payload = decode_token_safe(auth_header[7:])
             if payload:
+                # Check jti revocation blacklist
+                jti = payload.get("jti")
+                if jti and await self._is_token_revoked(jti):
+                    return JSONResponse(
+                        status_code=401,
+                        content={"detail": "Token has been revoked"},
+                    )
                 ctx = _build_context_from_token_payload(payload)
                 if ctx:
                     request.state.rbac = ctx

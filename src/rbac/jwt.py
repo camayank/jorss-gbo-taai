@@ -7,7 +7,7 @@ Simple JWT encoding/decoding for authentication.
 import os
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
-from uuid import UUID
+from uuid import UUID, uuid4
 import jwt
 
 from .roles import Role
@@ -113,6 +113,7 @@ def create_access_token(
         "name": name,
         "role": role.value,
         "user_type": user_type,
+        "jti": str(uuid4()),
         "iat": issued_at,
         "exp": expire,
         "type": "access",
@@ -144,6 +145,7 @@ def create_refresh_token(
     payload = {
         "sub": str(user_id),
         "user_type": user_type,
+        "jti": str(uuid4()),
         "exp": expire,
         "type": "refresh",
     }

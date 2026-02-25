@@ -340,7 +340,30 @@ async def logout(
     Logout user and invalidate refresh token.
 
     Clears server-side session if refresh token is provided.
+    Revokes token jti via Redis blacklist for immediate invalidation.
     """
+    # Revoke token jti via Redis blacklist
+    if refresh_token:
+        try:
+            import os
+            import time as _time
+            import redis.asyncio as aioredis
+            from rbac.jwt import decode_token_safe
+
+            payload = decode_token_safe(refresh_token)
+            if payload and payload.get("jti"):
+                ttl = max(int(payload.get("exp", 0) - _time.time()), 0)
+                if ttl > 0:
+                    r = aioredis.from_url(
+                        os.environ.get("REDIS_URL", "redis://localhost:6379"),
+                        decode_responses=True,
+                    )
+                    await r.sadd("revoked_jtis", payload["jti"])
+                    await r.expire("revoked_jtis", ttl)
+                    await r.aclose()
+        except Exception:
+            pass  # Graceful fallback — don't block logout if Redis is down
+
     return await auth_service.logout(refresh_token)
 
 
