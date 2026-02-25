@@ -5825,6 +5825,29 @@
       return disclaimer;
     }
 
+    // Render confidence badge for API response-level confidence
+    function renderConfidenceBadge(confidence, reason) {
+      if (!confidence || confidence === 'high') {
+        // Don't show badge for high confidence (default)
+        return '';
+      }
+
+      const badges = {
+        high: { icon: '🟢', label: 'High Confidence', className: 'high' },
+        medium: { icon: '🟡', label: 'Moderate Confidence', className: 'medium' },
+        low: { icon: '🔴', label: 'Limited Data', className: 'low' }
+      };
+
+      const badge = badges[confidence] || badges.medium;
+      const tooltipAttr = reason ? ` title="${reason}"` : '';
+
+      return `<div class="confidence-badge ${badge.className}"${tooltipAttr} style="margin-top: 12px;">
+        <span class="confidence-dot"></span>
+        <span>${badge.label}</span>
+        ${reason ? `<span style="font-size: 10px; opacity: 0.8; margin-left: 4px;">${reason}</span>` : ''}
+      </div>`;
+    }
+
     function addMessage(type, text, quickActions = [], options = {}) {
       DevLogger.log('====== addMessage CALLED ======');
       DevLogger.log('Type:', type);
@@ -11752,8 +11775,13 @@
         }
 
         // Show AI response with quick actions from API
-        const aiResponse = data.response || "I'm here to help. Could you please clarify?";
+        let aiResponse = data.response || "I'm here to help. Could you please clarify?";
         const quickActions = data.quick_actions || generateSmartQuickActions();
+
+        // Add confidence badge for calculation/strategy/report responses
+        if (data.response_type === 'calculation' || data.response_type === 'strategy' || data.response_type === 'report') {
+          aiResponse += renderConfidenceBadge(data.response_confidence, data.confidence_reason);
+        }
 
         addMessage('ai', aiResponse, quickActions);
 
