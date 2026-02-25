@@ -23,6 +23,13 @@ from datetime import datetime
 from enum import Enum
 import logging
 import os
+
+# Liability disclaimer constant
+STANDARD_DISCLAIMER = (
+    "This is AI-generated information for educational purposes only, "
+    "not professional tax advice. Consult a licensed CPA or EA for "
+    "your specific situation."
+)
 import uuid
 import json
 import threading
@@ -587,6 +594,10 @@ class ChatResponse(BaseModel):
     key_insights: Optional[List[str]] = []
     warnings: Optional[List[str]] = []
     total_potential_savings: float = 0.0
+
+    # Liability disclaimers
+    disclaimer: Optional[str] = None
+    requires_professional_review: bool = False
 
 
 class FullAnalysisRequest(BaseModel):
