@@ -30,6 +30,49 @@ STANDARD_DISCLAIMER = (
     "not professional tax advice. Consult a licensed CPA or EA for "
     "your specific situation."
 )
+
+
+def should_require_professional_review(profile: dict) -> bool:
+    """
+    Determine if a tax profile is complex enough to require professional review.
+
+    Complex scenarios:
+    - Income > $200,000
+    - Multi-state income
+    - Cryptocurrency transactions
+    - Foreign income
+    - Passive activity losses
+    """
+    # High income
+    total_income = (
+        profile.get("wages", 0) +
+        profile.get("self_employment_income", 0) +
+        profile.get("investment_income", 0) +
+        profile.get("rental_income", 0)
+    )
+    if total_income > 200000:
+        return True
+
+    # Multi-state
+    states = profile.get("states", [])
+    if len(states) > 1:
+        return True
+
+    # Crypto
+    if profile.get("has_crypto", False):
+        return True
+
+    # Foreign income
+    if profile.get("foreign_income", 0) > 0:
+        return True
+
+    # Passive losses
+    if profile.get("passive_losses", 0) < 0:
+        return True
+
+    return False
+
+
 import uuid
 import json
 import threading

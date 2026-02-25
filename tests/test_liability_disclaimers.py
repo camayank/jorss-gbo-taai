@@ -101,3 +101,35 @@ To get started, what's your filing status?"""
 
         for phrase in expected_phrases:
             assert phrase in greeting, f"Missing phrase: {phrase}"
+
+
+class TestComplexScenarioDetection:
+    """Tests for complex scenario professional review flag."""
+
+    def test_high_income_requires_professional_review(self):
+        """Income over $200K should flag requires_professional_review."""
+        from src.web.intelligent_advisor_api import should_require_professional_review
+
+        profile = {"filing_status": "single", "wages": 250000}
+        assert should_require_professional_review(profile) is True
+
+    def test_multi_state_requires_professional_review(self):
+        """Multi-state income should flag requires_professional_review."""
+        from src.web.intelligent_advisor_api import should_require_professional_review
+
+        profile = {"states": ["CA", "NY"]}
+        assert should_require_professional_review(profile) is True
+
+    def test_crypto_income_requires_professional_review(self):
+        """Crypto income should flag requires_professional_review."""
+        from src.web.intelligent_advisor_api import should_require_professional_review
+
+        profile = {"has_crypto": True}
+        assert should_require_professional_review(profile) is True
+
+    def test_simple_scenario_no_professional_review(self):
+        """Simple W-2 income should not require professional review."""
+        from src.web.intelligent_advisor_api import should_require_professional_review
+
+        profile = {"filing_status": "single", "wages": 75000}
+        assert should_require_professional_review(profile) is False
