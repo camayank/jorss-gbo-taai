@@ -3812,6 +3812,12 @@
         <span class="phase-label" id="currentPhaseLabel">Getting Started</span>
       </div>
 
+      <!-- Scope Limitation Banner - Circular 230 Compliance -->
+      <div class="scope-banner" id="scopeBanner" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; font-size: 12px; color: var(--accent-gold); display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 16px;">⚠️</span>
+        <span><strong>Estimation Tool Only:</strong> This provides tax estimates and educational information. Always consult a qualified tax professional before filing.</span>
+      </div>
+
       <div class="messages" id="messages" role="log" aria-live="polite" aria-label="Conversation with AI tax advisor">
         <!-- Premium initial message -->
         <div class="message ai" role="article" aria-label="AI assistant message">
@@ -15059,6 +15065,95 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
   <!-- Workflow Selector Component -->
   {% include 'components/workflow_selector.html' %}
+
+  <!-- Professional Standards Acknowledgment Modal - Circular 230 Compliance -->
+  <div id="acknowledgment-modal" class="acknowledgment-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 10000;">
+    <div style="background: var(--bg-elevated); border-radius: 16px; padding: 32px; max-width: 560px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+      <h2 style="color: var(--primary); margin: 0 0 20px 0; font-size: 24px;">⚠️ Professional Standards Notice</h2>
+      <div style="font-size: 14px; line-height: 1.7; color: var(--text-secondary);">
+        <p style="margin-bottom: 16px;">This tax advisory tool provides <strong style="color: var(--text-primary);">estimates and educational information only</strong>.</p>
+        <p style="margin-bottom: 16px;">By using this tool, you acknowledge and agree that:</p>
+        <ol style="margin: 0 0 20px 0; padding-left: 24px;">
+          <li style="margin: 8px 0;">This is <strong>NOT</strong> professional tax advice</li>
+          <li style="margin: 8px 0;">This tool is <strong>NOT</strong> a licensed CPA, EA, or tax attorney</li>
+          <li style="margin: 8px 0;">Calculations are estimates that may not reflect your actual tax liability</li>
+          <li style="margin: 8px 0;">You should consult a qualified tax professional before filing</li>
+          <li style="margin: 8px 0;">You are responsible for the accuracy of information you provide</li>
+          <li style="margin: 8px 0;">Tax laws change frequently; this tool may not reflect recent changes</li>
+        </ol>
+        <div style="margin: 24px 0; padding: 16px; background: rgba(99, 102, 241, 0.1); border-radius: 8px;">
+          <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; margin-bottom: 16px;">
+            <input type="checkbox" id="ack-limitations" style="margin-top: 4px; width: 18px; height: 18px; accent-color: var(--primary);">
+            <span>I have read and understand these limitations</span>
+          </label>
+          <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
+            <input type="checkbox" id="ack-consult" style="margin-top: 4px; width: 18px; height: 18px; accent-color: var(--primary);">
+            <span>I agree to consult a tax professional for my specific situation</span>
+          </label>
+        </div>
+        <button id="ack-continue-btn" disabled style="width: 100%; padding: 16px; font-size: 16px; font-weight: 600; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; opacity: 0.5; transition: opacity 0.2s;">
+          I Acknowledge and Continue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Professional Standards Acknowledgment
+    (function() {
+      const modal = document.getElementById('acknowledgment-modal');
+      const ackLimitations = document.getElementById('ack-limitations');
+      const ackConsult = document.getElementById('ack-consult');
+      const ackBtn = document.getElementById('ack-continue-btn');
+
+      function checkAcknowledgmentRequired() {
+        const acknowledged = sessionStorage.getItem('professional_acknowledged');
+        if (!acknowledged && modal) {
+          modal.style.display = 'flex';
+        }
+      }
+
+      function updateAckButton() {
+        if (ackBtn && ackLimitations && ackConsult) {
+          const canContinue = ackLimitations.checked && ackConsult.checked;
+          ackBtn.disabled = !canContinue;
+          ackBtn.style.opacity = canContinue ? '1' : '0.5';
+        }
+      }
+
+      if (ackLimitations) ackLimitations.addEventListener('change', updateAckButton);
+      if (ackConsult) ackConsult.addEventListener('change', updateAckButton);
+
+      if (ackBtn) {
+        ackBtn.addEventListener('click', async () => {
+          sessionStorage.setItem('professional_acknowledged', 'true');
+          sessionStorage.setItem('professional_acknowledged_at', new Date().toISOString());
+          if (modal) modal.style.display = 'none';
+
+          // Log to server
+          try {
+            await fetch('/api/intelligent-advisor/acknowledge-standards', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                session_id: typeof sessionId !== 'undefined' ? sessionId : 'unknown',
+                acknowledged_at: new Date().toISOString()
+              })
+            });
+          } catch (e) {
+            console.warn('Could not log acknowledgment:', e);
+          }
+        });
+      }
+
+      // Check on page load
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', checkAcknowledgmentRequired);
+      } else {
+        checkAcknowledgmentRequired();
+      }
+    })();
+  </script>
 
 </body>
 </html>

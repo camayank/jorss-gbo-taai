@@ -4958,8 +4958,16 @@ To get started, what's your filing status?"""
     has_complex = should_require_professional_review(profile) if profile else False
     response_confidence, confidence_reason = calculate_response_confidence(completeness, has_complex)
 
+    # Add tax law citations for calculation/strategy/report responses
+    if response_type in ["calculation", "strategy", "report"]:
+        try:
+            from tax_references.citations import add_citations_to_response
+            response_text = add_citations_to_response(response_text)
+        except ImportError:
+            pass  # Citations module not available
+
     try:
-        return ChatResponse(
+        chat_response = ChatResponse(
             session_id=request.session_id,
             response=response_text,
             response_type=response_type,
@@ -4980,6 +4988,29 @@ To get started, what's your filing status?"""
             response_confidence=response_confidence,
             confidence_reason=confidence_reason
         )
+
+        # Log AI response for audit trail
+        try:
+            from audit.audit_models import AIResponseAuditEvent
+            from audit.audit_logger import log_ai_response, get_prompt_hash
+
+            audit_event = AIResponseAuditEvent(
+                session_id=request.session_id,
+                model_version="gpt-4-turbo-2024",
+                prompt_hash=get_prompt_hash(),
+                response_type=response_type,
+                profile_completeness=completeness,
+                response_confidence=response_confidence,
+                confidence_reason=confidence_reason,
+                user_message=request.message[:500] if request.message else "",
+                response_summary=response_text[:200] if response_text else "",
+                warnings_triggered=warnings or []
+            )
+            log_ai_response(audit_event)
+        except Exception as audit_err:
+            logger.warning(f"Audit logging failed: {audit_err}")
+
+        return chat_response
     except Exception as e:
         # Catch any response building errors
         logger.error(f"Response building error in intelligent_chat: {e}")
@@ -4995,6 +5026,30 @@ To get started, what's your filing status?"""
                 {"label": "Start Over", "value": "reset"}
             ]
         )
+
+
+class AcknowledgmentRequest(BaseModel):
+    """Request model for professional standards acknowledgment."""
+    session_id: str
+    acknowledged_at: str
+
+
+@router.post("/acknowledge-standards")
+async def acknowledge_standards(request: AcknowledgmentRequest):
+    """
+    Record user acknowledgment of professional standards limitations.
+    Required for Circular 230 compliance.
+    """
+    try:
+        store_acknowledgment(
+            session_id=request.session_id,
+            ip_address=None,  # Would come from request headers in production
+            user_agent=None
+        )
+        return {"status": "acknowledged", "session_id": request.session_id}
+    except Exception as e:
+        logger.error(f"Acknowledgment error: {e}")
+        return {"status": "error", "message": str(e)}
 
 
 @router.post("/analyze", response_model=FullAnalysisResponse)
