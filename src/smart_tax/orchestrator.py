@@ -54,7 +54,7 @@ class SmartTaxSession:
     # User info
     filing_status: str = "single"
     num_dependents: int = 0
-    tax_year: int = 2024
+    tax_year: int = 2025
 
     # Documents
     documents: List[Dict[str, Any]] = field(default_factory=list)
@@ -156,7 +156,7 @@ class SmartTaxOrchestrator:
         self,
         filing_status: str = "single",
         num_dependents: int = 0,
-        tax_year: int = 2024,
+        tax_year: int = 2025,
         user_id: Optional[str] = None,
     ) -> UnifiedFilingSession:
         """
