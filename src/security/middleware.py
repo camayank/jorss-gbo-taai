@@ -456,16 +456,24 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.url.path in self.exempt_paths:
             return await call_next(request)
 
-        # Get client IP
+        # Determine rate limit key and limit based on auth status
         client_ip = self._get_client_ip(request)
+        rbac_ctx = getattr(getattr(request, 'state', None), 'rbac', None)
+
+        if rbac_ctx and getattr(rbac_ctx, 'is_authenticated', False):
+            rate_key = f"user:{rbac_ctx.user_id}"
+            rate_limit = self.requests_per_minute * 2  # 2x limit for authenticated
+        else:
+            rate_key = f"ip:{client_ip}"
+            rate_limit = self.requests_per_minute
 
         # Check rate limit
         allowed = self._backend.check_rate_limit(
-            client_ip, self.requests_per_minute, self.burst_size
+            rate_key, rate_limit, self.burst_size
         )
 
         if not allowed:
-            logger.warning(f"Rate limit exceeded for IP: {client_ip}")
+            logger.warning(f"Rate limit exceeded for {rate_key}")
             return JSONResponse(
                 status_code=429,
                 content={"detail": "Too many requests. Please try again later."},
