@@ -1672,7 +1672,7 @@ def cpa_payment_settings(request: Request):
     - Configure payment preferences
     - View payment history
     """
-    denied = _require_any_auth(request)
+    denied = _require_cpa_or_admin_access(request)
     if denied:
         return denied
     return templates.TemplateResponse("cpa_payment_settings.html", {"request": request})
@@ -1689,7 +1689,7 @@ def cpa_branding_settings(request: Request):
     - Custom messaging
     - Lead magnet branding
     """
-    denied = _require_any_auth(request)
+    denied = _require_cpa_or_admin_access(request)
     if denied:
         return denied
     return templates.TemplateResponse("cpa_branding_settings.html", {"request": request})
@@ -1864,11 +1864,13 @@ def projections_redirect(request: Request, session_id: str = None):
 
 @app.get("/settings", response_class=HTMLResponse)
 def settings_redirect(request: Request):
-    """Redirect to appropriate settings page."""
-    # Check if user has CPA cookie
-    if request.cookies.get("cpa_id"):
+    """Redirect to appropriate settings page based on role."""
+    role_bucket = _resolve_request_role_bucket(request)
+    if role_bucket == "admin":
+        return RedirectResponse(url="/admin/settings", status_code=302)
+    if role_bucket == "cpa":
         return RedirectResponse(url="/cpa/settings", status_code=302)
-    return RedirectResponse(url="/cpa/settings", status_code=302)
+    return RedirectResponse(url="/app/settings", status_code=302)
 
 
 @app.get("/documents", response_class=HTMLResponse)
@@ -1966,6 +1968,16 @@ def _require_admin_page_access(request: Request) -> Optional[RedirectResponse]:
     if role_bucket == "client":
         return RedirectResponse(url="/app/portal", status_code=302)
     return RedirectResponse(url="/login?next=/admin", status_code=302)
+
+
+def _require_cpa_or_admin_access(request: Request) -> Optional[RedirectResponse]:
+    """Restrict page to CPA or admin roles."""
+    role_bucket = _resolve_request_role_bucket(request)
+    if role_bucket in ("cpa", "admin"):
+        return None
+    if role_bucket == "client":
+        return RedirectResponse(url="/app/portal", status_code=302)
+    return RedirectResponse(url=f"/login?next={request.url.path}", status_code=302)
 
 
 def _require_any_auth(request: Request) -> Optional[RedirectResponse]:
@@ -3195,12 +3207,15 @@ async def resilience_status():
 
 
 @app.post("/api/health/resilience/reset")
-async def reset_circuit_breakers():
-    """Reset all circuit breakers to closed state.
+async def reset_circuit_breakers(request: Request):
+    """Reset all circuit breakers to closed state. Admin only.
 
     Use with caution - this will allow requests through to potentially
     failing services.
     """
+    redirect = _require_admin_page_access(request)
+    if redirect:
+        return JSONResponse(status_code=403, content={"detail": "Admin access required"})
     try:
         from resilience import get_circuit_breaker_registry
 
@@ -3259,12 +3274,15 @@ async def cache_status():
 
 
 @app.post("/api/health/cache/flush")
-async def flush_cache():
-    """Flush all cached calculations.
+async def flush_cache(request: Request):
+    """Flush all cached calculations. Admin only.
 
     Use with caution - this will clear all cached data and may
     temporarily increase computation load.
     """
+    redirect = _require_admin_page_access(request)
+    if redirect:
+        return JSONResponse(status_code=403, content={"detail": "Admin access required"})
     try:
         from cache import CacheInvalidator, get_calculation_cache
 
