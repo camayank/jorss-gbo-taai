@@ -4917,6 +4917,10 @@ To get started, what's your filing status?"""
     conversation.append({"role": "assistant", "content": response_text, "timestamp": datetime.now().isoformat()})
     session["conversation"] = chat_engine._prune_conversation(conversation)
 
+    # Calculate response confidence
+    has_complex = should_require_professional_review(profile) if profile else False
+    response_confidence, confidence_reason = calculate_response_confidence(completeness, has_complex)
+
     try:
         return ChatResponse(
             session_id=request.session_id,
@@ -4935,7 +4939,9 @@ To get started, what's your filing status?"""
             days_to_deadline=days_to_deadline,
             key_insights=key_insights,
             warnings=warnings,
-            total_potential_savings=total_potential_savings
+            total_potential_savings=total_potential_savings,
+            response_confidence=response_confidence,
+            confidence_reason=confidence_reason
         )
     except Exception as e:
         # Catch any response building errors
