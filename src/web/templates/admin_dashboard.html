@@ -65,7 +65,7 @@
       height: var(--space-10);
 
       background: linear-gradient(135deg, var(--primary) 0%, var(--purple) 100%);
-      border-radius: 10px;
+      border-radius: var(--radius-lg-plus);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -85,7 +85,7 @@
       color: var(--gray-900);
       padding: var(--space-0-5) var(--space-1-5);
 
-      border-radius: 4px;
+      border-radius: var(--radius-base);
       font-weight: var(--font-semibold);
       margin-left: -var(--space-2);
       margin-top: -var(--space-3);
@@ -145,11 +145,11 @@
       margin-left: auto;
       background: var(--error);
       color: white;
-      font-size: 11px;
+      font-size: var(--text-2xs);
       font-weight: var(--font-semibold);
       padding: var(--space-0-5) var(--space-1-5);
 
-      border-radius: 10px;
+      border-radius: var(--radius-lg-plus);
     }
 
     .sidebar-footer {
@@ -190,13 +190,13 @@
     }
 
     .user-name {
-      font-size: 13px;
+      font-size: var(--text-xs-plus);
       font-weight: var(--font-semibold);
       color: white;
     }
 
     .user-role {
-      font-size: 11px;
+      font-size: var(--text-2xs);
       color: var(--warning);
       font-weight: var(--font-medium);
     }
@@ -236,7 +236,7 @@
     }
 
     .header-subtitle {
-      font-size: 13px;
+      font-size: var(--text-xs-plus);
       color: var(--gray-500);
     }
 
@@ -335,7 +335,7 @@
     }
 
     .stat-label {
-      font-size: 13px;
+      font-size: var(--text-xs-plus);
       color: var(--gray-500);
     }
 
@@ -442,7 +442,7 @@
     }
 
     .bar-link {
-      font-size: 11px;
+      font-size: var(--text-2xs);
       color: var(--primary);
       opacity: 0;
       transition: opacity var(--transition-base);
@@ -497,7 +497,7 @@
       gap: var(--space-1-5);
       padding: var(--space-2) var(--space-4);
       border-radius: var(--radius-sm);
-      font-size: 13px;
+      font-size: var(--text-xs-plus);
       font-weight: var(--font-medium);
       cursor: pointer;
       border: none;
@@ -584,7 +584,7 @@
     }
 
     .data-table th {
-      font-size: 11px;
+      font-size: var(--text-2xs);
       font-weight: var(--font-semibold);
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -593,7 +593,7 @@
     }
 
     .data-table td {
-      font-size: 13px;
+      font-size: var(--text-xs-plus);
       color: var(--gray-700);
     }
 
@@ -626,7 +626,7 @@
       align-items: center;
       padding: var(--space-1) var(--space-2-5);
       border-radius: var(--radius-xl);
-      font-size: 11px;
+      font-size: var(--text-2xs);
       font-weight: var(--font-semibold);
     }
 
@@ -640,7 +640,7 @@
     /* Tier Badges */
     .tier-badge {
       padding: var(--space-1) var(--space-2);
-      border-radius: 4px;
+      border-radius: var(--radius-base);
       font-size: 10px;
       font-weight: var(--font-bold);
       text-transform: uppercase;
@@ -721,7 +721,7 @@
       padding: var(--space-2) var(--space-3);
       border: 1px solid var(--gray-200);
       border-radius: var(--radius-md);
-      font-size: 13px;
+      font-size: var(--text-xs-plus);
       color: var(--gray-700);
       background: white;
       outline: none;
@@ -735,7 +735,7 @@
       padding: var(--space-2) var(--space-3);
       border: 1px solid var(--gray-200);
       border-radius: var(--radius-md);
-      font-size: 13px;
+      font-size: var(--text-xs-plus);
       width: 250px;
       outline: none;
     }
@@ -800,7 +800,7 @@
     }
 
     .firm-cell-id {
-      font-size: 11px;
+      font-size: var(--text-2xs);
       color: var(--gray-400);
       font-family: monospace;
     }
@@ -845,7 +845,7 @@
     }
 
     .activity-text {
-      font-size: 13px;
+      font-size: var(--text-xs-plus);
       color: var(--gray-700);
     }
 
@@ -854,7 +854,7 @@
     }
 
     .activity-meta {
-      font-size: 11px;
+      font-size: var(--text-2xs);
       color: var(--gray-400);
       margin-top: var(--space-1);
     }
@@ -868,7 +868,7 @@
       align-items: center;
       justify-content: center;
       color: var(--gray-400);
-      font-size: 13px;
+      font-size: var(--text-xs-plus);
     }
 
     /* Detail Panel */
@@ -925,7 +925,7 @@
 
     .tab {
       padding: var(--space-3) var(--space-5);
-      font-size: 13px;
+      font-size: var(--text-xs-plus);
       font-weight: var(--font-medium);
       color: var(--gray-500);
       border-bottom: 2px solid transparent;
@@ -2579,7 +2579,7 @@
                     <tbody>
                       ${(perms.permissions || []).map(p => `
                         <tr>
-                          <td><code style="background: var(--gray-100); padding: var(--space-1) var(--space-2); border-radius: 4px;">${escapeHtml(p.id)}</code></td>
+                          <td><code style="background: var(--gray-100); padding: var(--space-1) var(--space-2); border-radius: var(--radius-base);">${escapeHtml(p.id)}</code></td>
                           <td><span class="badge badge-gray">${escapeHtml(p.category)}</span></td>
                           <td>${escapeHtml(p.description || '')}</td>
                         </tr>
@@ -2707,11 +2707,11 @@
         return `
           <div class="distribution-bar" onclick="navigateTo('firms', {tier: '${tier.key}'})" title="View ${tier.name} firms">
             <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-2); align-items: center;">
-              <span style="font-size: 13px; color: var(--gray-700);">${tier.name}<span class="bar-link">View firms &#8594;</span></span>
-              <span style="font-size: 13px; font-weight: var(--font-semibold);">${formatNumber(count)} firms (${formatCurrency(mrr)} MRR)</span>
+              <span style="font-size: var(--text-xs-plus); color: var(--gray-700);">${tier.name}<span class="bar-link">View firms &#8594;</span></span>
+              <span style="font-size: var(--text-xs-plus); font-weight: var(--font-semibold);">${formatNumber(count)} firms (${formatCurrency(mrr)} MRR)</span>
             </div>
-            <div style="height: 8px; background: var(--gray-100); border-radius: 4px; overflow: hidden;">
-              <div style="width: ${percent}%; height: 100%; background: ${tier.color}; border-radius: 4px;"></div>
+            <div style="height: 8px; background: var(--gray-100); border-radius: var(--radius-base); overflow: hidden;">
+              <div style="width: ${percent}%; height: 100%; background: ${tier.color}; border-radius: var(--radius-base);"></div>
             </div>
           </div>
         `;
@@ -2933,15 +2933,15 @@
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); margin-bottom: var(--space-4);">
               <div>
                 <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--gray-900);">${formatNumber(partner.firms_count || 0)}</div>
-                <div style="font-size: 11px; color: var(--gray-500);">Firms</div>
+                <div style="font-size: var(--text-2xs); color: var(--gray-500);">Firms</div>
               </div>
               <div>
                 <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--gray-900);">${formatNumber(partner.users_count || 0)}</div>
-                <div style="font-size: 11px; color: var(--gray-500);">Users</div>
+                <div style="font-size: var(--text-2xs); color: var(--gray-500);">Users</div>
               </div>
               <div>
                 <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--success);">${formatCurrency(partner.mrr || 0)}</div>
-                <div style="font-size: 11px; color: var(--gray-500);">MRR</div>
+                <div style="font-size: var(--text-2xs); color: var(--gray-500);">MRR</div>
               </div>
             </div>
             <div style="display: flex; gap: var(--space-2);">
@@ -4060,7 +4060,7 @@
                 <div style="flex: 1;">
                   <div style="font-size: var(--text-xs); color: var(--gray-500); margin-bottom: var(--space-1);">Health Score</div>
                   <div style="display: flex; align-items: center; gap: var(--space-2);">
-                    <div style="flex: 1; height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden;">
+                    <div style="flex: 1; height: 8px; background: var(--gray-200); border-radius: var(--radius-base); overflow: hidden;">
                       <div style="width: ${firm.health_score || 0}%; height: 100%; background: ${(firm.health_score || 0) >= 80 ? 'var(--success)' : (firm.health_score || 0) >= 60 ? 'var(--warning)' : 'var(--danger)'};"></div>
                     </div>
                     <span style="font-weight: var(--font-semibold);">${firm.health_score || 0}%</span>

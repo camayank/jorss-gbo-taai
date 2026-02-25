@@ -32,7 +32,7 @@
       <p style="margin: 0; font-size: 15px; font-weight: var(--font-bold); color: #92400e; letter-spacing: 0.5px;">
         DRAFT &mdash; FOR REVIEW ONLY
       </p>
-      <p style="margin: var(--space-1) 0 0 0; font-size: 13px; color: #92400e;">
+      <p style="margin: var(--space-1) 0 0 0; font-size: var(--text-xs-plus); color: #92400e;">
         These forms are not final and should not be filed with the IRS.
       </p>
     </div>
@@ -52,7 +52,7 @@
     <p style="margin: 0; font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--color-primary-500);">
       Generating draft form&hellip;
     </p>
-    <p style="margin: var(--space-1-5) 0 0 0; font-size: 13px; color: #6b7280;" x-text="'Preparing ' + (availableForms.find(f => f.id === generatingForm)?.name || generatingForm)"></p>
+    <p style="margin: var(--space-1-5) 0 0 0; font-size: var(--text-xs-plus); color: #6b7280;" x-text="'Preparing ' + (availableForms.find(f => f.id === generatingForm)?.name || generatingForm)"></p>
     <div style="margin-top: 18px; width: 220px; height: 6px; background: var(--color-gray-200); border-radius: 3px;
                 display: inline-block; overflow: hidden;">
       <div style="height: 100%; width: 60%; background: linear-gradient(90deg, var(--color-accent-500), var(--color-success-500));
@@ -77,7 +77,7 @@
           {# Top row: icon + info + badge #}
           <div style="display: flex; align-items: flex-start; gap: var(--space-3-5);">
             {# Form icon #}
-            <div style="flex-shrink: 0; width: 44px; height: 44px; border-radius: 10px;
+            <div style="flex-shrink: 0; width: 44px; height: 44px; border-radius: var(--radius-lg-plus);
                         display: flex; align-items: center; justify-content: center;"
                  :style="form.status === 'ready'
                    ? 'background:#eef9f6; color:#14b8a6'
@@ -94,12 +94,12 @@
             <div style="flex: 1; min-width: 0;">
               <div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;">
                 <span style="font-size: 15px; font-weight: var(--font-semibold); color: var(--color-primary-500);" x-text="form.name"></span>
-                <span style="font-size: 11px; font-weight: var(--font-semibold); padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-full);
+                <span style="font-size: var(--text-2xs); font-weight: var(--font-semibold); padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-full);
                              white-space: nowrap;"
                       :style="`background:${statusBadge(form.status).bg}; color:${statusBadge(form.status).color}`"
                       x-text="statusBadge(form.status).label"></span>
               </div>
-              <p style="margin: var(--space-1) 0 0 0; font-size: 13px; color: #6b7280; line-height: 1.4;"
+              <p style="margin: var(--space-1) 0 0 0; font-size: var(--text-xs-plus); color: #6b7280; line-height: 1.4;"
                  x-text="form.desc"></p>
             </div>
           </div>
@@ -110,7 +110,7 @@
               <button @click="generateForm(form.id)"
                       :disabled="generating"
                       style="background: var(--color-primary-500); color: #fff; border: none; border-radius: var(--radius-lg);
-                             padding: var(--space-2) 18px; font-size: 13px; font-weight: var(--font-semibold); cursor: pointer;
+                             padding: var(--space-2) 18px; font-size: var(--text-xs-plus); font-weight: var(--font-semibold); cursor: pointer;
                              display: inline-flex; align-items: center; gap: var(--space-1-5);
                              transition: background 0.15s;"
                       @mouseenter="!generating && ($el.style.background='#14b8a6')"
@@ -180,7 +180,7 @@
                   <div>
                     <span style="font-weight: var(--font-semibold); color: var(--color-primary-500);" x-text="gf.name"></span>
                     <span style="display: inline-block; margin-left: var(--space-2); font-size: 10px; font-weight: var(--font-bold);
-                                 padding: var(--space-px) var(--space-1-5); border-radius: 4px; background: var(--color-warning-100); color: #92400e;
+                                 padding: var(--space-px) var(--space-1-5); border-radius: var(--radius-base); background: var(--color-warning-100); color: #92400e;
                                  letter-spacing: 0.5px;">DRAFT</span>
                   </div>
                 </div>
@@ -252,7 +252,7 @@
     <p style="font-size: 15px; font-weight: var(--font-semibold); color: var(--color-gray-700); margin: 0 0 var(--space-1-5) 0;">
       No draft forms generated yet
     </p>
-    <p style="font-size: 13px; color: #9ca3af; margin: 0;">
+    <p style="font-size: var(--text-xs-plus); color: #9ca3af; margin: 0;">
       Select a form above and click "Generate Draft" to create a preview.
     </p>
   </div>
@@ -274,13 +274,13 @@
           <h3 style="margin: 0; font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--color-primary-500);">
             PDF Preview
           </h3>
-          <span style="font-size: 10px; font-weight: var(--font-bold); padding: var(--space-0-5) var(--space-2); border-radius: 4px;
+          <span style="font-size: 10px; font-weight: var(--font-bold); padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-base);
                        background: var(--color-warning-100); color: #92400e; letter-spacing: 0.5px;">DRAFT</span>
         </div>
         <div style="display: flex; align-items: center; gap: var(--space-2);">
           <button @click="generatedForms.length && downloadForm(previewUrl, generatedForms.find(g => g.url === previewUrl)?.name || 'form')"
                   style="background: var(--color-primary-500); color: #fff; border: none; border-radius: var(--radius-lg);
-                         padding: var(--space-2) var(--space-4); font-size: 13px; font-weight: var(--font-semibold); cursor: pointer;
+                         padding: var(--space-2) var(--space-4); font-size: var(--text-xs-plus); font-weight: var(--font-semibold); cursor: pointer;
                          display: inline-flex; align-items: center; gap: var(--space-1-5); transition: background 0.15s;"
                   @mouseenter="$el.style.background='#14b8a6'"
                   @mouseleave="$el.style.background='#1e3a5f'">
@@ -292,7 +292,7 @@
           </button>
           <button @click="closePreview()"
                   style="background: var(--color-gray-100); color: var(--color-gray-700); border: none; border-radius: var(--radius-lg);
-                         padding: var(--space-2) var(--space-4); font-size: 13px; font-weight: var(--font-semibold); cursor: pointer;
+                         padding: var(--space-2) var(--space-4); font-size: var(--text-xs-plus); font-weight: var(--font-semibold); cursor: pointer;
                          transition: background 0.15s;"
                   @mouseenter="$el.style.background='#e5e7eb'"
                   @mouseleave="$el.style.background='#f3f4f6'">

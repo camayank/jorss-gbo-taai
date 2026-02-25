@@ -41,11 +41,11 @@
   <!-- ========== TAX YEAR / FILING STATUS BAR ========== -->
   <div style="background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-xl); padding: var(--space-4) var(--space-6); margin-bottom: var(--space-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-4);">
     <div style="display: flex; align-items: center; gap: var(--space-3);">
-      <span style="font-size: 13px; font-weight: var(--font-semibold); color: var(--color-gray-500); text-transform: uppercase; letter-spacing: var(--tracking-wider);">Tax Year</span>
+      <span style="font-size: var(--text-xs-plus); font-weight: var(--font-semibold); color: var(--color-gray-500); text-transform: uppercase; letter-spacing: var(--tracking-wider);">Tax Year</span>
       <span style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--color-primary-500);" x-text="taxYear"></span>
     </div>
     <div class="no-print" style="display: flex; align-items: center; gap: var(--space-3);">
-      <label style="font-size: 13px; font-weight: var(--font-semibold); color: var(--color-gray-500); text-transform: uppercase; letter-spacing: var(--tracking-wider);">Filing Status</label>
+      <label style="font-size: var(--text-xs-plus); font-weight: var(--font-semibold); color: var(--color-gray-500); text-transform: uppercase; letter-spacing: var(--tracking-wider);">Filing Status</label>
       <select x-model="filingStatus"
               style="padding: var(--space-2) var(--space-3); border: 1px solid var(--color-gray-300); border-radius: var(--radius-lg); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); background: white; cursor: pointer; min-width: 200px;">
         <option value="single">Single</option>
@@ -63,7 +63,7 @@
     <button @click="toggleSection('income')" class="no-print"
             style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-6); background: var(--color-primary-500); color: white; border: none; cursor: pointer; text-align: left;">
       <div style="display: flex; align-items: center; gap: var(--space-3);">
-        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; font-size: 13px; font-weight: var(--font-bold);">1</span>
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; font-size: var(--text-xs-plus); font-weight: var(--font-bold);">1</span>
         <span style="font-size: var(--text-base); font-weight: var(--font-semibold);">Income Summary</span>
       </div>
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -75,7 +75,7 @@
     <div style="display: none; padding: var(--space-4) var(--space-6); background: var(--color-primary-500); color: white;"
          class="print-section-header">
       <div style="display: flex; align-items: center; gap: var(--space-3);">
-        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; font-size: 13px; font-weight: var(--font-bold);">1</span>
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; font-size: var(--text-xs-plus); font-weight: var(--font-bold);">1</span>
         <span style="font-size: var(--text-base); font-weight: var(--font-semibold);">Income Summary</span>
       </div>
     </div>
@@ -200,7 +200,7 @@
     <button @click="toggleSection('adjustments')" class="no-print"
             style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-6); background: var(--color-primary-500); color: white; border: none; cursor: pointer; text-align: left;">
       <div style="display: flex; align-items: center; gap: var(--space-3);">
-        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; font-size: 13px; font-weight: var(--font-bold);">2</span>
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; font-size: var(--text-xs-plus); font-weight: var(--font-bold);">2</span>
         <span style="font-size: var(--text-base); font-weight: var(--font-semibold);">Adjustments to Income</span>
       </div>
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -287,7 +287,7 @@
     <button @click="toggleSection('deductions')" class="no-print"
             style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-6); background: var(--color-primary-500); color: white; border: none; cursor: pointer; text-align: left;">
       <div style="display: flex; align-items: center; gap: var(--space-3);">
-        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; font-size: 13px; font-weight: var(--font-bold);">3</span>
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; font-size: var(--text-xs-plus); font-weight: var(--font-bold);">3</span>
         <span style="font-size: var(--text-base); font-weight: var(--font-semibold);">Deductions</span>
       </div>
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -430,7 +430,7 @@
     <button @click="toggleSection('computation')" class="no-print"
             style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-6); background: var(--color-primary-500); color: white; border: none; cursor: pointer; text-align: left;">
       <div style="display: flex; align-items: center; gap: var(--space-3);">
-        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; font-size: 13px; font-weight: var(--font-bold);">4</span>
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; font-size: var(--text-xs-plus); font-weight: var(--font-bold);">4</span>
         <span style="font-size: var(--text-base); font-weight: var(--font-semibold);">Tax Computation</span>
       </div>
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -443,8 +443,8 @@
       <div style="padding: 0;">
         <!-- Tax Bracket Table -->
         <div style="padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--color-gray-200);">
-          <h3 style="font-size: 13px; font-weight: var(--font-semibold); color: var(--color-gray-500); text-transform: uppercase; letter-spacing: var(--tracking-wider); margin: 0 0 var(--space-3) 0;">2025 Tax Brackets</h3>
-          <div style="display: grid; grid-template-columns: 1fr 100px; gap: 0; border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); overflow: hidden; font-size: 13px;">
+          <h3 style="font-size: var(--text-xs-plus); font-weight: var(--font-semibold); color: var(--color-gray-500); text-transform: uppercase; letter-spacing: var(--tracking-wider); margin: 0 0 var(--space-3) 0;">2025 Tax Brackets</h3>
+          <div style="display: grid; grid-template-columns: 1fr 100px; gap: 0; border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); overflow: hidden; font-size: var(--text-xs-plus);">
             <div style="padding: var(--space-2) var(--space-3); background: var(--color-gray-50); font-weight: var(--font-semibold); color: var(--color-gray-500); border-bottom: 1px solid var(--color-gray-200);">Taxable Income Range</div>
             <div style="padding: var(--space-2) var(--space-3); background: var(--color-gray-50); font-weight: var(--font-semibold); color: var(--color-gray-500); border-bottom: 1px solid var(--color-gray-200); text-align: center;">Rate</div>
 
@@ -529,7 +529,7 @@
 
         <!-- Credits Header -->
         <div style="padding: var(--space-3) var(--space-6); background: var(--color-gray-50); border-bottom: 1px solid var(--color-gray-200);">
-          <span style="font-size: 13px; font-weight: var(--font-semibold); color: var(--color-gray-500); text-transform: uppercase; letter-spacing: var(--tracking-wider);">Tax Credits</span>
+          <span style="font-size: var(--text-xs-plus); font-weight: var(--font-semibold); color: var(--color-gray-500); text-transform: uppercase; letter-spacing: var(--tracking-wider);">Tax Credits</span>
         </div>
 
         <!-- Line 20: Child Tax Credit -->
@@ -602,7 +602,7 @@
     <button @click="toggleSection('payments')" class="no-print"
             style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-6); background: var(--color-primary-500); color: white; border: none; cursor: pointer; text-align: left;">
       <div style="display: flex; align-items: center; gap: var(--space-3);">
-        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; font-size: 13px; font-weight: var(--font-bold);">5</span>
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; font-size: var(--text-xs-plus); font-weight: var(--font-bold);">5</span>
         <span style="font-size: var(--text-base); font-weight: var(--font-semibold);">Payments & Refund</span>
       </div>
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -688,7 +688,7 @@
       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
     </svg>
     <div>
-      <p style="font-size: 13px; font-weight: var(--font-semibold); color: var(--color-warning-800); margin: 0 0 var(--space-1) 0;">Disclaimer</p>
+      <p style="font-size: var(--text-xs-plus); font-weight: var(--font-semibold); color: var(--color-warning-800); margin: 0 0 var(--space-1) 0;">Disclaimer</p>
       <p style="font-size: var(--text-xs); color: #78350f; margin: 0; line-height: var(--leading-normal);">This worksheet is for estimation purposes only and should not be used as a substitute for professional tax advice. Actual tax liability may differ based on individual circumstances. Consult a qualified tax professional for filing guidance.</p>
     </div>
   </div>

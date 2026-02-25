@@ -18,7 +18,7 @@
         Form 8949 / Schedule D Calculator
       </p>
     </div>
-    <div style="display: flex; align-items: center; gap: var(--space-2); background: var(--color-gray-100); padding: var(--space-1-5) var(--space-3-5); border-radius: var(--radius-lg); font-size: 13px; color: #6b7280;">
+    <div style="display: flex; align-items: center; gap: var(--space-2); background: var(--color-gray-100); padding: var(--space-1-5) var(--space-3-5); border-radius: var(--radius-lg); font-size: var(--text-xs-plus); color: #6b7280;">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
       </svg>
@@ -39,7 +39,7 @@
             <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd"/>
           </svg>
         </div>
-        <span style="font-size: 13px; font-weight: var(--font-medium); color: #6b7280;">Total Gains</span>
+        <span style="font-size: var(--text-xs-plus); font-weight: var(--font-medium); color: #6b7280;">Total Gains</span>
       </div>
       <div style="font-size: var(--text-2xl); font-weight: var(--font-bold);"
            :style="{ color: (summary && summary.total_gains > 0) ? '#10b981' : '#374151' }"
@@ -56,7 +56,7 @@
             <path fill-rule="evenodd" d="M12 13a1 1 0 100 2h5a1 1 0 001-1V9a1 1 0 10-2 0v2.586l-4.293-4.293a1 1 0 00-1.414 0L8 9.586 3.707 5.293a1 1 0 00-1.414 1.414l5 5a1 1 0 001.414 0L11 9.414 14.586 13H12z" clip-rule="evenodd"/>
           </svg>
         </div>
-        <span style="font-size: 13px; font-weight: var(--font-medium); color: #6b7280;">Total Losses</span>
+        <span style="font-size: var(--text-xs-plus); font-weight: var(--font-medium); color: #6b7280;">Total Losses</span>
       </div>
       <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--color-error-500);"
            x-text="summary ? formatCurrency(summary.total_losses) : '$0.00'">
@@ -72,7 +72,7 @@
             <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
           </svg>
         </div>
-        <span style="font-size: 13px; font-weight: var(--font-medium); color: #6b7280;">Net Gain/Loss</span>
+        <span style="font-size: var(--text-xs-plus); font-weight: var(--font-medium); color: #6b7280;">Net Gain/Loss</span>
       </div>
       <div style="font-size: var(--text-2xl); font-weight: var(--font-bold);"
            :style="{ color: summary ? (summary.net_gain_loss >= 0 ? '#10b981' : '#ef4444') : '#374151' }"
@@ -89,7 +89,7 @@
             <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
           </svg>
         </div>
-        <span style="font-size: 13px; font-weight: var(--font-medium); color: #6b7280;">Est. Tax Impact</span>
+        <span style="font-size: var(--text-xs-plus); font-weight: var(--font-medium); color: #6b7280;">Est. Tax Impact</span>
       </div>
       <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--color-warning-500);"
            x-text="summary ? formatCurrency(summary.estimated_tax_impact) : '$0.00'">
@@ -173,7 +173,7 @@
 
           <!-- Description -->
           <div style="grid-column: 1 / -1;">
-            <label style="display: block; font-size: 13px; font-weight: var(--font-medium); color: var(--color-gray-700); margin-bottom: var(--space-1-5);">
+            <label style="display: block; font-size: var(--text-xs-plus); font-weight: var(--font-medium); color: var(--color-gray-700); margin-bottom: var(--space-1-5);">
               Description / Security Name
             </label>
             <input
@@ -189,7 +189,7 @@
 
           <!-- Date Acquired -->
           <div>
-            <label style="display: block; font-size: 13px; font-weight: var(--font-medium); color: var(--color-gray-700); margin-bottom: var(--space-1-5);">
+            <label style="display: block; font-size: var(--text-xs-plus); font-weight: var(--font-medium); color: var(--color-gray-700); margin-bottom: var(--space-1-5);">
               Date Acquired
             </label>
             <input
@@ -204,7 +204,7 @@
 
           <!-- Date Sold -->
           <div>
-            <label style="display: block; font-size: 13px; font-weight: var(--font-medium); color: var(--color-gray-700); margin-bottom: var(--space-1-5);">
+            <label style="display: block; font-size: var(--text-xs-plus); font-weight: var(--font-medium); color: var(--color-gray-700); margin-bottom: var(--space-1-5);">
               Date Sold
             </label>
             <input
@@ -219,7 +219,7 @@
 
           <!-- Proceeds -->
           <div>
-            <label style="display: block; font-size: 13px; font-weight: var(--font-medium); color: var(--color-gray-700); margin-bottom: var(--space-1-5);">
+            <label style="display: block; font-size: var(--text-xs-plus); font-weight: var(--font-medium); color: var(--color-gray-700); margin-bottom: var(--space-1-5);">
               Proceeds (Sale Price)
             </label>
             <div style="position: relative;">
@@ -239,7 +239,7 @@
 
           <!-- Cost Basis -->
           <div>
-            <label style="display: block; font-size: 13px; font-weight: var(--font-medium); color: var(--color-gray-700); margin-bottom: var(--space-1-5);">
+            <label style="display: block; font-size: var(--text-xs-plus); font-weight: var(--font-medium); color: var(--color-gray-700); margin-bottom: var(--space-1-5);">
               Cost Basis
             </label>
             <div style="position: relative;">
@@ -259,7 +259,7 @@
 
           <!-- Adjustment Code (optional) -->
           <div>
-            <label style="display: block; font-size: 13px; font-weight: var(--font-medium); color: var(--color-gray-700); margin-bottom: var(--space-1-5);">
+            <label style="display: block; font-size: var(--text-xs-plus); font-weight: var(--font-medium); color: var(--color-gray-700); margin-bottom: var(--space-1-5);">
               Adjustment Code <span style="color: #9ca3af;">(optional)</span>
             </label>
             <select
@@ -360,7 +360,7 @@
                     x-text="formatCurrency(tx.proceeds - tx.cost_basis)">
                 </td>
                 <td style="padding: var(--space-3) var(--space-4); text-align: center;">
-                  <span style="display: inline-block; padding: 3px var(--space-2-5); border-radius: 20px; font-size: var(--text-xs); font-weight: var(--font-semibold);"
+                  <span style="display: inline-block; padding: 3px var(--space-2-5); border-radius: var(--radius-2xl-plus); font-size: var(--text-xs); font-weight: var(--font-semibold);"
                         :style="{
                           background: isLongTerm(tx.date_acquired, tx.date_sold) ? '#eef3f9' : '#fef3c7',
                           color: isLongTerm(tx.date_acquired, tx.date_sold) ? '#1e3a5f' : '#92400e'
@@ -382,7 +382,7 @@
                   <div style="display: flex; align-items: center; justify-content: center; gap: var(--space-2);">
                     <button @click="editTransaction(tx)"
                             title="Edit"
-                            style="background: none; border: none; cursor: pointer; padding: var(--space-1); border-radius: 4px; color: #6b7280; transition: color 150ms ease;"
+                            style="background: none; border: none; cursor: pointer; padding: var(--space-1); border-radius: var(--radius-base); color: #6b7280; transition: color 150ms ease;"
                             onmouseover="this.style.color='#1e3a5f'" onmouseout="this.style.color='#6b7280'">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
@@ -390,7 +390,7 @@
                     </button>
                     <button @click="deleteTransaction(tx.id)"
                             title="Delete"
-                            style="background: none; border: none; cursor: pointer; padding: var(--space-1); border-radius: 4px; color: #6b7280; transition: color 150ms ease;"
+                            style="background: none; border: none; cursor: pointer; padding: var(--space-1); border-radius: var(--radius-base); color: #6b7280; transition: color 150ms ease;"
                             onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#6b7280'">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
@@ -442,7 +442,7 @@
             </div>
             <div>
               <h3 style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--color-primary-500); margin: 0;">Part I &mdash; Short-Term Capital Gains and Losses</h3>
-              <p style="font-size: 13px; color: #6b7280; margin: var(--space-0-5) 0 0 0;">Assets held one year or less</p>
+              <p style="font-size: var(--text-xs-plus); color: #6b7280; margin: var(--space-0-5) 0 0 0;">Assets held one year or less</p>
             </div>
           </div>
 
@@ -451,27 +451,27 @@
               <table style="width: 100%; border-collapse: collapse; min-width: 760px;">
                 <thead>
                   <tr style="background: var(--color-gray-50);">
-                    <th style="padding: var(--space-2-5) var(--space-3); text-align: left; font-size: 11px; font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(a) Description</th>
-                    <th style="padding: var(--space-2-5) var(--space-3); text-align: center; font-size: 11px; font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(b) Date Acquired</th>
-                    <th style="padding: var(--space-2-5) var(--space-3); text-align: center; font-size: 11px; font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(c) Date Sold</th>
-                    <th style="padding: var(--space-2-5) var(--space-3); text-align: right; font-size: 11px; font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(d) Proceeds</th>
-                    <th style="padding: var(--space-2-5) var(--space-3); text-align: right; font-size: 11px; font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(e) Cost Basis</th>
-                    <th style="padding: var(--space-2-5) var(--space-3); text-align: center; font-size: 11px; font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(f) Code</th>
-                    <th style="padding: var(--space-2-5) var(--space-3); text-align: right; font-size: 11px; font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(g) Adjustment</th>
-                    <th style="padding: var(--space-2-5) var(--space-3); text-align: right; font-size: 11px; font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(h) Gain/Loss</th>
+                    <th style="padding: var(--space-2-5) var(--space-3); text-align: left; font-size: var(--text-2xs); font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(a) Description</th>
+                    <th style="padding: var(--space-2-5) var(--space-3); text-align: center; font-size: var(--text-2xs); font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(b) Date Acquired</th>
+                    <th style="padding: var(--space-2-5) var(--space-3); text-align: center; font-size: var(--text-2xs); font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(c) Date Sold</th>
+                    <th style="padding: var(--space-2-5) var(--space-3); text-align: right; font-size: var(--text-2xs); font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(d) Proceeds</th>
+                    <th style="padding: var(--space-2-5) var(--space-3); text-align: right; font-size: var(--text-2xs); font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(e) Cost Basis</th>
+                    <th style="padding: var(--space-2-5) var(--space-3); text-align: center; font-size: var(--text-2xs); font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(f) Code</th>
+                    <th style="padding: var(--space-2-5) var(--space-3); text-align: right; font-size: var(--text-2xs); font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(g) Adjustment</th>
+                    <th style="padding: var(--space-2-5) var(--space-3); text-align: right; font-size: var(--text-2xs); font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(h) Gain/Loss</th>
                   </tr>
                 </thead>
                 <tbody>
                   <template x-for="item in form8949.short_term" :key="item.id || item.description">
                     <tr style="border-bottom: 1px solid var(--color-gray-100);">
-                      <td style="padding: var(--space-2-5) var(--space-3); font-size: 13px; color: var(--color-gray-700); font-weight: var(--font-medium);" x-text="item.description"></td>
-                      <td style="padding: var(--space-2-5) var(--space-3); font-size: 13px; color: var(--color-gray-700); text-align: center;" x-text="formatDate(item.date_acquired)"></td>
-                      <td style="padding: var(--space-2-5) var(--space-3); font-size: 13px; color: var(--color-gray-700); text-align: center;" x-text="formatDate(item.date_sold)"></td>
-                      <td style="padding: var(--space-2-5) var(--space-3); font-size: 13px; color: var(--color-gray-700); text-align: right; font-family: monospace; font-variant-numeric: tabular-nums;" x-text="formatCurrency(item.proceeds)"></td>
-                      <td style="padding: var(--space-2-5) var(--space-3); font-size: 13px; color: var(--color-gray-700); text-align: right; font-family: monospace; font-variant-numeric: tabular-nums;" x-text="formatCurrency(item.cost_basis)"></td>
-                      <td style="padding: var(--space-2-5) var(--space-3); font-size: 13px; color: #6b7280; text-align: center;" x-text="item.adjustment_code || '-'"></td>
-                      <td style="padding: var(--space-2-5) var(--space-3); font-size: 13px; color: var(--color-gray-700); text-align: right; font-family: monospace; font-variant-numeric: tabular-nums;" x-text="item.adjustment_amount ? formatCurrency(item.adjustment_amount) : '-'"></td>
-                      <td style="padding: var(--space-2-5) var(--space-3); font-size: 13px; font-weight: var(--font-semibold); text-align: right; font-family: monospace; font-variant-numeric: tabular-nums;"
+                      <td style="padding: var(--space-2-5) var(--space-3); font-size: var(--text-xs-plus); color: var(--color-gray-700); font-weight: var(--font-medium);" x-text="item.description"></td>
+                      <td style="padding: var(--space-2-5) var(--space-3); font-size: var(--text-xs-plus); color: var(--color-gray-700); text-align: center;" x-text="formatDate(item.date_acquired)"></td>
+                      <td style="padding: var(--space-2-5) var(--space-3); font-size: var(--text-xs-plus); color: var(--color-gray-700); text-align: center;" x-text="formatDate(item.date_sold)"></td>
+                      <td style="padding: var(--space-2-5) var(--space-3); font-size: var(--text-xs-plus); color: var(--color-gray-700); text-align: right; font-family: monospace; font-variant-numeric: tabular-nums;" x-text="formatCurrency(item.proceeds)"></td>
+                      <td style="padding: var(--space-2-5) var(--space-3); font-size: var(--text-xs-plus); color: var(--color-gray-700); text-align: right; font-family: monospace; font-variant-numeric: tabular-nums;" x-text="formatCurrency(item.cost_basis)"></td>
+                      <td style="padding: var(--space-2-5) var(--space-3); font-size: var(--text-xs-plus); color: #6b7280; text-align: center;" x-text="item.adjustment_code || '-'"></td>
+                      <td style="padding: var(--space-2-5) var(--space-3); font-size: var(--text-xs-plus); color: var(--color-gray-700); text-align: right; font-family: monospace; font-variant-numeric: tabular-nums;" x-text="item.adjustment_amount ? formatCurrency(item.adjustment_amount) : '-'"></td>
+                      <td style="padding: var(--space-2-5) var(--space-3); font-size: var(--text-xs-plus); font-weight: var(--font-semibold); text-align: right; font-family: monospace; font-variant-numeric: tabular-nums;"
                           :style="{ color: (item.gain_loss >= 0) ? '#10b981' : '#ef4444' }"
                           x-text="formatCurrency(item.gain_loss)"></td>
                     </tr>
@@ -479,12 +479,12 @@
                 </tbody>
                 <tfoot>
                   <tr style="background: var(--color-gray-50); border-top: 2px solid var(--color-gray-200);">
-                    <td colspan="3" style="padding: var(--space-3); font-size: 13px; font-weight: var(--font-bold); color: var(--color-primary-500);">Totals &mdash; Short-Term</td>
-                    <td style="padding: var(--space-3); font-size: 13px; font-weight: var(--font-bold); text-align: right; font-family: monospace; color: var(--color-gray-700);" x-text="formatCurrency(form8949.short_term_totals?.proceeds)"></td>
-                    <td style="padding: var(--space-3); font-size: 13px; font-weight: var(--font-bold); text-align: right; font-family: monospace; color: var(--color-gray-700);" x-text="formatCurrency(form8949.short_term_totals?.cost_basis)"></td>
+                    <td colspan="3" style="padding: var(--space-3); font-size: var(--text-xs-plus); font-weight: var(--font-bold); color: var(--color-primary-500);">Totals &mdash; Short-Term</td>
+                    <td style="padding: var(--space-3); font-size: var(--text-xs-plus); font-weight: var(--font-bold); text-align: right; font-family: monospace; color: var(--color-gray-700);" x-text="formatCurrency(form8949.short_term_totals?.proceeds)"></td>
+                    <td style="padding: var(--space-3); font-size: var(--text-xs-plus); font-weight: var(--font-bold); text-align: right; font-family: monospace; color: var(--color-gray-700);" x-text="formatCurrency(form8949.short_term_totals?.cost_basis)"></td>
                     <td style="padding: var(--space-3);"></td>
-                    <td style="padding: var(--space-3); font-size: 13px; font-weight: var(--font-bold); text-align: right; font-family: monospace; color: var(--color-gray-700);" x-text="form8949.short_term_totals?.adjustment ? formatCurrency(form8949.short_term_totals.adjustment) : '-'"></td>
-                    <td style="padding: var(--space-3); font-size: 13px; font-weight: var(--font-bold); text-align: right; font-family: monospace;"
+                    <td style="padding: var(--space-3); font-size: var(--text-xs-plus); font-weight: var(--font-bold); text-align: right; font-family: monospace; color: var(--color-gray-700);" x-text="form8949.short_term_totals?.adjustment ? formatCurrency(form8949.short_term_totals.adjustment) : '-'"></td>
+                    <td style="padding: var(--space-3); font-size: var(--text-xs-plus); font-weight: var(--font-bold); text-align: right; font-family: monospace;"
                         :style="{ color: (form8949.short_term_totals?.gain_loss >= 0) ? '#10b981' : '#ef4444' }"
                         x-text="formatCurrency(form8949.short_term_totals?.gain_loss)"></td>
                   </tr>
@@ -505,7 +505,7 @@
             </div>
             <div>
               <h3 style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--color-primary-500); margin: 0;">Part II &mdash; Long-Term Capital Gains and Losses</h3>
-              <p style="font-size: 13px; color: #6b7280; margin: var(--space-0-5) 0 0 0;">Assets held more than one year</p>
+              <p style="font-size: var(--text-xs-plus); color: #6b7280; margin: var(--space-0-5) 0 0 0;">Assets held more than one year</p>
             </div>
           </div>
 
@@ -514,27 +514,27 @@
               <table style="width: 100%; border-collapse: collapse; min-width: 760px;">
                 <thead>
                   <tr style="background: var(--color-gray-50);">
-                    <th style="padding: var(--space-2-5) var(--space-3); text-align: left; font-size: 11px; font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(a) Description</th>
-                    <th style="padding: var(--space-2-5) var(--space-3); text-align: center; font-size: 11px; font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(b) Date Acquired</th>
-                    <th style="padding: var(--space-2-5) var(--space-3); text-align: center; font-size: 11px; font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(c) Date Sold</th>
-                    <th style="padding: var(--space-2-5) var(--space-3); text-align: right; font-size: 11px; font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(d) Proceeds</th>
-                    <th style="padding: var(--space-2-5) var(--space-3); text-align: right; font-size: 11px; font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(e) Cost Basis</th>
-                    <th style="padding: var(--space-2-5) var(--space-3); text-align: center; font-size: 11px; font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(f) Code</th>
-                    <th style="padding: var(--space-2-5) var(--space-3); text-align: right; font-size: 11px; font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(g) Adjustment</th>
-                    <th style="padding: var(--space-2-5) var(--space-3); text-align: right; font-size: 11px; font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(h) Gain/Loss</th>
+                    <th style="padding: var(--space-2-5) var(--space-3); text-align: left; font-size: var(--text-2xs); font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(a) Description</th>
+                    <th style="padding: var(--space-2-5) var(--space-3); text-align: center; font-size: var(--text-2xs); font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(b) Date Acquired</th>
+                    <th style="padding: var(--space-2-5) var(--space-3); text-align: center; font-size: var(--text-2xs); font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(c) Date Sold</th>
+                    <th style="padding: var(--space-2-5) var(--space-3); text-align: right; font-size: var(--text-2xs); font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(d) Proceeds</th>
+                    <th style="padding: var(--space-2-5) var(--space-3); text-align: right; font-size: var(--text-2xs); font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(e) Cost Basis</th>
+                    <th style="padding: var(--space-2-5) var(--space-3); text-align: center; font-size: var(--text-2xs); font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(f) Code</th>
+                    <th style="padding: var(--space-2-5) var(--space-3); text-align: right; font-size: var(--text-2xs); font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(g) Adjustment</th>
+                    <th style="padding: var(--space-2-5) var(--space-3); text-align: right; font-size: var(--text-2xs); font-weight: var(--font-semibold); color: #6b7280; text-transform: uppercase; letter-spacing: var(--tracking-wider); border-bottom: 1px solid var(--color-gray-200);">(h) Gain/Loss</th>
                   </tr>
                 </thead>
                 <tbody>
                   <template x-for="item in form8949.long_term" :key="item.id || item.description">
                     <tr style="border-bottom: 1px solid var(--color-gray-100);">
-                      <td style="padding: var(--space-2-5) var(--space-3); font-size: 13px; color: var(--color-gray-700); font-weight: var(--font-medium);" x-text="item.description"></td>
-                      <td style="padding: var(--space-2-5) var(--space-3); font-size: 13px; color: var(--color-gray-700); text-align: center;" x-text="formatDate(item.date_acquired)"></td>
-                      <td style="padding: var(--space-2-5) var(--space-3); font-size: 13px; color: var(--color-gray-700); text-align: center;" x-text="formatDate(item.date_sold)"></td>
-                      <td style="padding: var(--space-2-5) var(--space-3); font-size: 13px; color: var(--color-gray-700); text-align: right; font-family: monospace; font-variant-numeric: tabular-nums;" x-text="formatCurrency(item.proceeds)"></td>
-                      <td style="padding: var(--space-2-5) var(--space-3); font-size: 13px; color: var(--color-gray-700); text-align: right; font-family: monospace; font-variant-numeric: tabular-nums;" x-text="formatCurrency(item.cost_basis)"></td>
-                      <td style="padding: var(--space-2-5) var(--space-3); font-size: 13px; color: #6b7280; text-align: center;" x-text="item.adjustment_code || '-'"></td>
-                      <td style="padding: var(--space-2-5) var(--space-3); font-size: 13px; color: var(--color-gray-700); text-align: right; font-family: monospace; font-variant-numeric: tabular-nums;" x-text="item.adjustment_amount ? formatCurrency(item.adjustment_amount) : '-'"></td>
-                      <td style="padding: var(--space-2-5) var(--space-3); font-size: 13px; font-weight: var(--font-semibold); text-align: right; font-family: monospace; font-variant-numeric: tabular-nums;"
+                      <td style="padding: var(--space-2-5) var(--space-3); font-size: var(--text-xs-plus); color: var(--color-gray-700); font-weight: var(--font-medium);" x-text="item.description"></td>
+                      <td style="padding: var(--space-2-5) var(--space-3); font-size: var(--text-xs-plus); color: var(--color-gray-700); text-align: center;" x-text="formatDate(item.date_acquired)"></td>
+                      <td style="padding: var(--space-2-5) var(--space-3); font-size: var(--text-xs-plus); color: var(--color-gray-700); text-align: center;" x-text="formatDate(item.date_sold)"></td>
+                      <td style="padding: var(--space-2-5) var(--space-3); font-size: var(--text-xs-plus); color: var(--color-gray-700); text-align: right; font-family: monospace; font-variant-numeric: tabular-nums;" x-text="formatCurrency(item.proceeds)"></td>
+                      <td style="padding: var(--space-2-5) var(--space-3); font-size: var(--text-xs-plus); color: var(--color-gray-700); text-align: right; font-family: monospace; font-variant-numeric: tabular-nums;" x-text="formatCurrency(item.cost_basis)"></td>
+                      <td style="padding: var(--space-2-5) var(--space-3); font-size: var(--text-xs-plus); color: #6b7280; text-align: center;" x-text="item.adjustment_code || '-'"></td>
+                      <td style="padding: var(--space-2-5) var(--space-3); font-size: var(--text-xs-plus); color: var(--color-gray-700); text-align: right; font-family: monospace; font-variant-numeric: tabular-nums;" x-text="item.adjustment_amount ? formatCurrency(item.adjustment_amount) : '-'"></td>
+                      <td style="padding: var(--space-2-5) var(--space-3); font-size: var(--text-xs-plus); font-weight: var(--font-semibold); text-align: right; font-family: monospace; font-variant-numeric: tabular-nums;"
                           :style="{ color: (item.gain_loss >= 0) ? '#10b981' : '#ef4444' }"
                           x-text="formatCurrency(item.gain_loss)"></td>
                     </tr>
@@ -542,12 +542,12 @@
                 </tbody>
                 <tfoot>
                   <tr style="background: var(--color-gray-50); border-top: 2px solid var(--color-gray-200);">
-                    <td colspan="3" style="padding: var(--space-3); font-size: 13px; font-weight: var(--font-bold); color: var(--color-primary-500);">Totals &mdash; Long-Term</td>
-                    <td style="padding: var(--space-3); font-size: 13px; font-weight: var(--font-bold); text-align: right; font-family: monospace; color: var(--color-gray-700);" x-text="formatCurrency(form8949.long_term_totals?.proceeds)"></td>
-                    <td style="padding: var(--space-3); font-size: 13px; font-weight: var(--font-bold); text-align: right; font-family: monospace; color: var(--color-gray-700);" x-text="formatCurrency(form8949.long_term_totals?.cost_basis)"></td>
+                    <td colspan="3" style="padding: var(--space-3); font-size: var(--text-xs-plus); font-weight: var(--font-bold); color: var(--color-primary-500);">Totals &mdash; Long-Term</td>
+                    <td style="padding: var(--space-3); font-size: var(--text-xs-plus); font-weight: var(--font-bold); text-align: right; font-family: monospace; color: var(--color-gray-700);" x-text="formatCurrency(form8949.long_term_totals?.proceeds)"></td>
+                    <td style="padding: var(--space-3); font-size: var(--text-xs-plus); font-weight: var(--font-bold); text-align: right; font-family: monospace; color: var(--color-gray-700);" x-text="formatCurrency(form8949.long_term_totals?.cost_basis)"></td>
                     <td style="padding: var(--space-3);"></td>
-                    <td style="padding: var(--space-3); font-size: 13px; font-weight: var(--font-bold); text-align: right; font-family: monospace; color: var(--color-gray-700);" x-text="form8949.long_term_totals?.adjustment ? formatCurrency(form8949.long_term_totals.adjustment) : '-'"></td>
-                    <td style="padding: var(--space-3); font-size: 13px; font-weight: var(--font-bold); text-align: right; font-family: monospace;"
+                    <td style="padding: var(--space-3); font-size: var(--text-xs-plus); font-weight: var(--font-bold); text-align: right; font-family: monospace; color: var(--color-gray-700);" x-text="form8949.long_term_totals?.adjustment ? formatCurrency(form8949.long_term_totals.adjustment) : '-'"></td>
+                    <td style="padding: var(--space-3); font-size: var(--text-xs-plus); font-weight: var(--font-bold); text-align: right; font-family: monospace;"
                         :style="{ color: (form8949.long_term_totals?.gain_loss >= 0) ? '#10b981' : '#ef4444' }"
                         x-text="formatCurrency(form8949.long_term_totals?.gain_loss)"></td>
                   </tr>
@@ -572,7 +572,7 @@
         </div>
         <h3 style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--color-gray-700); margin: 0 0 var(--space-2) 0;">Form 8949 not generated</h3>
         <p style="font-size: var(--text-sm); color: #6b7280; margin: 0 0 var(--space-1) 0;">Add transactions first, then switch to this tab to generate your Form 8949.</p>
-        <p style="font-size: 13px; color: #9ca3af; margin: 0;">Data is loaded automatically when you open this tab.</p>
+        <p style="font-size: var(--text-xs-plus); color: #9ca3af; margin: 0;">Data is loaded automatically when you open this tab.</p>
       </div>
     </template>
   </div>
@@ -592,7 +592,7 @@
             </div>
             <div>
               <h3 style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--color-primary-500); margin: 0;">Part I &mdash; Short-Term Capital Gains and Losses</h3>
-              <p style="font-size: 13px; color: #6b7280; margin: var(--space-0-5) 0 0 0;">Assets held one year or less</p>
+              <p style="font-size: var(--text-xs-plus); color: #6b7280; margin: var(--space-0-5) 0 0 0;">Assets held one year or less</p>
             </div>
           </div>
           <div style="display: grid; gap: var(--space-3);">
@@ -613,7 +613,7 @@
             </div>
             <div>
               <h3 style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--color-primary-500); margin: 0;">Part II &mdash; Long-Term Capital Gains and Losses</h3>
-              <p style="font-size: 13px; color: #6b7280; margin: var(--space-0-5) 0 0 0;">Assets held more than one year</p>
+              <p style="font-size: var(--text-xs-plus); color: #6b7280; margin: var(--space-0-5) 0 0 0;">Assets held more than one year</p>
             </div>
           </div>
           <div style="display: grid; gap: var(--space-3);">
@@ -634,7 +634,7 @@
             </div>
             <div>
               <h3 style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--color-primary-500); margin: 0;">Part III &mdash; Summary</h3>
-              <p style="font-size: 13px; color: #6b7280; margin: var(--space-0-5) 0 0 0;">Combined results and loss limitations</p>
+              <p style="font-size: var(--text-xs-plus); color: #6b7280; margin: var(--space-0-5) 0 0 0;">Combined results and loss limitations</p>
             </div>
           </div>
 
@@ -673,7 +673,7 @@
                     <p style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: #92400e; margin: 0 0 var(--space-1) 0;">
                       Capital Loss Limitation Applies
                     </p>
-                    <p style="font-size: 13px; color: #78350f; margin: 0 0 var(--space-2) 0;">
+                    <p style="font-size: var(--text-xs-plus); color: #78350f; margin: 0 0 var(--space-2) 0;">
                       The IRS limits capital loss deductions to <strong>$3,000 per year</strong> ($1,500 if married filing separately).
                       Your excess loss can be carried forward to future tax years.
                     </p>
@@ -717,7 +717,7 @@
         </div>
         <h3 style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--color-gray-700); margin: 0 0 var(--space-2) 0;">Schedule D not generated</h3>
         <p style="font-size: var(--text-sm); color: #6b7280; margin: 0 0 var(--space-1) 0;">Add transactions first, then switch to this tab to generate your Schedule D summary.</p>
-        <p style="font-size: 13px; color: #9ca3af; margin: 0;">Data is loaded automatically when you open this tab.</p>
+        <p style="font-size: var(--text-xs-plus); color: #9ca3af; margin: 0;">Data is loaded automatically when you open this tab.</p>
       </div>
     </template>
   </div>
@@ -747,7 +747,7 @@
       </svg>
       <div>
         <p style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: #92400e; margin: 0 0 var(--space-1) 0;">What is a Wash Sale?</p>
-        <p style="font-size: 13px; color: #78350f; margin: 0;">
+        <p style="font-size: var(--text-xs-plus); color: #78350f; margin: 0;">
           A wash sale occurs when you sell a security at a loss and repurchase substantially identical securities within 30 days before or after the sale.
           The IRS disallows the loss deduction, but the disallowed amount is added to the cost basis of the replacement shares.
         </p>
@@ -778,7 +778,7 @@
                   <td style="padding: var(--space-3) var(--space-4); font-size: var(--text-sm); color: var(--color-gray-700); text-align: center;" x-text="formatDate(ws.date_sold || ws.sale_date)"></td>
                   <td style="padding: var(--space-3) var(--space-4); font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--color-error-500); text-align: right; font-family: monospace; font-variant-numeric: tabular-nums;" x-text="formatCurrency(ws.loss_amount)"></td>
                   <td style="padding: var(--space-3) var(--space-4); font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--color-warning-500); text-align: right; font-family: monospace; font-variant-numeric: tabular-nums;" x-text="formatCurrency(ws.disallowed_amount)"></td>
-                  <td style="padding: var(--space-3) var(--space-4); font-size: 13px; color: #6b7280; max-width: 260px;" x-text="ws.adjusted_basis_note || ('Disallowed loss of ' + formatCurrency(ws.disallowed_amount) + ' added to replacement shares cost basis')"></td>
+                  <td style="padding: var(--space-3) var(--space-4); font-size: var(--text-xs-plus); color: #6b7280; max-width: 260px;" x-text="ws.adjusted_basis_note || ('Disallowed loss of ' + formatCurrency(ws.disallowed_amount) + ' added to replacement shares cost basis')"></td>
                 </tr>
               </template>
             </tbody>

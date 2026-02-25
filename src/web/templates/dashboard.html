@@ -169,7 +169,7 @@
       box-shadow: var(--shadow-sm);
     }
     .stat-label {
-      font-size: 13px;
+      font-size: var(--text-xs-plus);
       color: var(--text-tertiary);
       font-weight: var(--font-medium);
 
@@ -301,11 +301,11 @@
       color: var(--text-primary);
     }
     .client-email {
-      font-size: 13px;
+      font-size: var(--text-xs-plus);
       color: var(--text-tertiary);
     }
     .client-id {
-      font-size: 13px;
+      font-size: var(--text-xs-plus);
       color: var(--text-hint);
       font-family: monospace;
     }
@@ -320,7 +320,7 @@
 
       font-weight: var(--font-medium);
 
-      border-radius: 20px;
+      border-radius: var(--radius-2xl-plus);
     }
     .status-new {
       background: var(--info-light);
@@ -368,7 +368,7 @@
     .action-btn {
       padding: var(--space-1-5) var(--space-3);
 
-      font-size: 13px;
+      font-size: var(--text-xs-plus);
       font-weight: var(--font-medium);
 
       border-radius: var(--radius-md);
@@ -469,7 +469,7 @@
     }
     .form-label {
       display: block;
-      font-size: 13px;
+      font-size: var(--text-xs-plus);
       font-weight: var(--font-medium);
 
       color: var(--text-secondary);
@@ -510,7 +510,7 @@
       border-top: 1px solid var(--border-light);
     }
     .pagination-info {
-      font-size: 13px;
+      font-size: var(--text-xs-plus);
       color: var(--text-tertiary);
     }
     .pagination-buttons {
@@ -521,7 +521,7 @@
     .page-btn {
       padding: var(--space-1-5) var(--space-3);
 
-      font-size: 13px;
+      font-size: var(--text-xs-plus);
       border-radius: var(--radius-md);
 
       border: 1px solid var(--border-light);
@@ -685,13 +685,13 @@
       }
 
       .stat-label {
-        font-size: 11px;
+        font-size: var(--text-2xs);
       }
 
       .card {
         padding: var(--space-3);
 
-        border-radius: 10px;
+        border-radius: var(--radius-lg-plus);
       }
 
       .card-header {
@@ -1034,7 +1034,7 @@
             <td role="gridcell">${documents}</td>
             <td role="gridcell" class="metric-cell ${refundClass}" aria-label="Estimated ${refund > 0 ? 'refund' : 'owed'}: ${refundOwed}">${refundOwed}</td>
             <td role="gridcell" class="metric-cell ${savings ? 'metric-positive' : ''}" aria-label="Potential savings: ${savings ? formatCurrency(savings) : 'none'}">${savings ? formatCurrency(savings) : '-'}</td>
-            <td role="gridcell" style="color: var(--text-tertiary); font-size: 13px;">${lastAccessed}</td>
+            <td role="gridcell" style="color: var(--text-tertiary); font-size: var(--text-xs-plus);">${lastAccessed}</td>
             <td role="gridcell">
               <button class="action-btn" onclick="openClient('${safeClientId}')" aria-label="Open ${safeName}'s tax return">Open</button>
             </td>

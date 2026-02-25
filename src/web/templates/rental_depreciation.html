@@ -149,7 +149,7 @@
     display: inline-flex;
     align-items: center;
     padding: var(--space-1) var(--space-2-5);
-    border-radius: 20px;
+    border-radius: var(--radius-2xl-plus);
     font-size: 0.7rem;
     font-weight: var(--font-semibold);
     letter-spacing: 0.02em;
@@ -245,12 +245,12 @@
     height: var(--space-2);
 
     background: var(--color-gray-100);
-    border-radius: 4px;
+    border-radius: var(--radius-base);
     overflow: hidden;
   }
   .rd-progress-fill {
     height: 100%;
-    border-radius: 4px;
+    border-radius: var(--radius-base);
     background: linear-gradient(90deg, var(--color-accent-500), var(--color-success-500));
     transition: width var(--transition-slower);
     min-width: 0;
@@ -1006,7 +1006,7 @@
                 <td>
                   <span x-text="row.year"></span>
                   <template x-if="row.year === new Date().getFullYear()">
-                    <span style="display: inline-block; margin-left: var(--space-1-5); font-size: 0.65rem; background: var(--color-accent-500); color: white; padding: var(--space-px) var(--space-1-5); border-radius: 4px; font-weight: var(--font-semibold); vertical-align: middle;">CURRENT</span>
+                    <span style="display: inline-block; margin-left: var(--space-1-5); font-size: 0.65rem; background: var(--color-accent-500); color: white; padding: var(--space-px) var(--space-1-5); border-radius: var(--radius-base); font-weight: var(--font-semibold); vertical-align: middle;">CURRENT</span>
                   </template>
                 </td>
                 <td x-text="formatCurrency(row.beginning_basis)"></td>

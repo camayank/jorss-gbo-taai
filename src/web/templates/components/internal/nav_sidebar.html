@@ -102,7 +102,7 @@
         {% endif %}
         <div class="user-name">
           {{ user.name if user else 'User' }}
-          <div style="font-size: 11px; opacity: 0.7;">{{ user.role if user else portal_type | upper }}</div>
+          <div style="font-size: var(--text-2xs); opacity: 0.7;">{{ user.role if user else portal_type | upper }}</div>
         </div>
       </div>
     </div>

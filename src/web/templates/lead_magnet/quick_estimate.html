@@ -51,7 +51,7 @@
         /* Progress Bar */
         .progress-bar {
             background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
+            border-radius: var(--radius-lg-plus);
             height: var(--space-2);
 
             margin-bottom: var(--space-5);
@@ -61,7 +61,7 @@
         .progress-fill {
             background: var(--white);
             height: 100%;
-            border-radius: 10px;
+            border-radius: var(--radius-lg-plus);
             transition: width var(--transition-slow);
         }
 
@@ -76,7 +76,7 @@
         /* Form Card */
         .form-card {
             background: var(--white);
-            border-radius: 20px;
+            border-radius: var(--radius-2xl-plus);
             padding: var(--space-10);
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
         }
@@ -106,7 +106,7 @@
         .persona-hint {
             margin-bottom: var(--space-5);
             padding: var(--space-2-5) var(--space-3);
-            border-radius: 10px;
+            border-radius: var(--radius-lg-plus);
             background: var(--color-info-50);
             color: #1d4ed8;
             font-size: 0.82rem;
@@ -258,7 +258,7 @@
 
         /* Multi-select for checkboxes */
         .options-grid.multi-select .option-checkmark {
-            border-radius: 4px;
+            border-radius: var(--radius-base);
         }
 
         .options-grid.multi-select .option-card.selected .option-checkmark::after {
@@ -279,7 +279,7 @@
         .btn {
             flex: 1;
             padding: var(--space-3-5) var(--space-6);
-            border-radius: 10px;
+            border-radius: var(--radius-lg-plus);
             font-size: 1rem;
             font-weight: var(--font-semibold);
             cursor: pointer;
