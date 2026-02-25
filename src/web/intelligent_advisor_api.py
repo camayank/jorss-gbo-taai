@@ -97,6 +97,43 @@ def calculate_response_confidence(
         return ("low", "Limited data available - estimates may vary significantly")
 
 
+# Circular 230 Compliance - Professional Standards Acknowledgment
+class ProfessionalAcknowledgment(BaseModel):
+    """Track user acknowledgment of professional standards limitations."""
+    session_id: str
+    acknowledged: bool = False
+    acknowledged_at: Optional[datetime] = None
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+
+# Store acknowledgments in memory (production would use database)
+_acknowledgments: dict = {}
+
+
+def check_acknowledgment(session_id: str) -> bool:
+    """Check if user has acknowledged professional standards."""
+    ack = _acknowledgments.get(session_id)
+    return ack is not None and ack.acknowledged
+
+
+def store_acknowledgment(session_id: str, ip_address: str = None, user_agent: str = None):
+    """Store user acknowledgment of professional standards."""
+    ack = ProfessionalAcknowledgment(
+        session_id=session_id,
+        acknowledged=True,
+        acknowledged_at=datetime.utcnow(),
+        ip_address=ip_address,
+        user_agent=user_agent
+    )
+    _acknowledgments[session_id] = ack
+    return ack
+
+
+def get_acknowledgment(session_id: str):
+    """Get acknowledgment details for a session."""
+    return _acknowledgments.get(session_id)
+
+
 import uuid
 import json
 import threading
