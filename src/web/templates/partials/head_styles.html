@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="/static/css/core/typography.css">
 <link rel="stylesheet" href="/static/css/core/layout.css">
 <link rel="stylesheet" href="/static/css/core/animations.css">
+<link rel="stylesheet" href="/static/css/core/responsive.css">
 
 {# Component CSS #}
 <link rel="stylesheet" href="/static/css/components/buttons.css">
@@ -31,9 +32,7 @@
 
 {# Theme-specific styles are now handled via data-theme attribute in variables.css #}
 {# To use a theme, set data-theme="admin|advisor|cpa" on the <html> element #}
-{% if theme == 'advisor' %}
-<link rel="stylesheet" href="/static/css/themes/advisor.css">
-{% endif %}
+{# advisor.css deprecated - styles now in unified-theme.css #}
 
 {# Page-specific CSS (if specified) #}
 {% if page_css %}

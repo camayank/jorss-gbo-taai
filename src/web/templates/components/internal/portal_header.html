@@ -98,7 +98,8 @@
     .page-header {
       background: var(--card-bg, white);
       border-bottom: 1px solid var(--color-gray-200);
-      padding: 0 24px;
+      padding: 0 var(--space-6);
+
       height: var(--header-height, 64px);
       display: flex;
       align-items: center;
@@ -111,14 +112,16 @@
     .page-title-section {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: var(--space-4);
+
     }
 
     .hamburger-btn {
       display: none;
       background: none;
       border: none;
-      padding: 8px;
+      padding: var(--space-2);
+
       cursor: pointer;
       color: var(--color-gray-600);
       border-radius: var(--radius-md);
@@ -138,7 +141,8 @@
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: var(--space-3);
+
     }
 
     .header-search {
@@ -147,7 +151,8 @@
 
     .header-search-icon {
       position: absolute;
-      left: 12px;
+      left: var(--space-3);
+
       top: 50%;
       transform: translateY(-50%);
       color: var(--color-gray-400);
@@ -155,8 +160,10 @@
     }
 
     .header-btn {
-      width: 40px;
-      height: 40px;
+      width: var(--space-10);
+
+      height: var(--space-10);
+
       border-radius: var(--radius-lg);
       background: var(--color-gray-100);
       border: none;
@@ -176,10 +183,14 @@
 
     .notification-dot {
       position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 8px;
-      height: 8px;
+      top: var(--space-2);
+
+      right: var(--space-2);
+
+      width: var(--space-2);
+
+      height: var(--space-2);
+
       background: var(--color-error-500);
       border-radius: 50%;
     }
@@ -196,7 +207,8 @@
 
     @media (max-width: 640px) {
       .page-header {
-        padding: 0 16px;
+        padding: 0 var(--space-4);
+
       }
 
       .page-title {

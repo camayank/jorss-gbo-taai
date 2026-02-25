@@ -9,14 +9,18 @@
     .metrics-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 24px;
-        margin-bottom: 32px;
+        gap: var(--space-6);
+
+        margin-bottom: var(--space-8);
+
     }
 
     .metric-card {
         background: var(--white);
-        border-radius: 16px;
-        padding: 24px;
+        border-radius: var(--radius-2xl);
+
+        padding: var(--space-6);
+
         border: 1px solid var(--border-color);
     }
 
@@ -24,18 +28,22 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 20px;
+        margin-bottom: var(--space-5);
+
     }
 
     .metric-title {
-        font-weight: 600;
+        font-weight: var(--font-semibold);
+
         color: var(--text-muted);
         font-size: 0.9rem;
     }
 
     .metric-icon {
-        width: 40px;
-        height: 40px;
+        width: var(--space-10);
+
+        height: var(--space-10);
+
         border-radius: 10px;
         background: var(--bg-light);
         display: flex;
@@ -46,14 +54,17 @@
 
     .metric-value {
         font-size: 2.5rem;
-        font-weight: 700;
-        margin-bottom: 8px;
+        font-weight: var(--font-bold);
+
+        margin-bottom: var(--space-2);
+
     }
 
     .metric-change {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: var(--space-1-5);
+
         font-size: 0.9rem;
     }
 
@@ -64,8 +75,10 @@
     .charts-grid {
         display: grid;
         grid-template-columns: 2fr 1fr;
-        gap: 24px;
-        margin-bottom: 32px;
+        gap: var(--space-6);
+
+        margin-bottom: var(--space-8);
+
     }
 
     @media (max-width: 1024px) {
@@ -76,13 +89,15 @@
 
     .chart-card {
         background: var(--white);
-        border-radius: 16px;
+        border-radius: var(--radius-2xl);
+
         border: 1px solid var(--border-color);
         overflow: hidden;
     }
 
     .chart-header {
-        padding: 20px 24px;
+        padding: var(--space-5) var(--space-6);
+
         border-bottom: 1px solid var(--border-color);
         display: flex;
         align-items: center;
@@ -90,12 +105,14 @@
     }
 
     .chart-title {
-        font-weight: 600;
+        font-weight: var(--font-semibold);
+
         font-size: 1.1rem;
     }
 
     .chart-body {
-        padding: 24px;
+        padding: var(--space-6);
+
         min-height: 300px;
         display: flex;
         align-items: center;
@@ -109,7 +126,8 @@
 
     .chart-placeholder-icon {
         font-size: 3rem;
-        margin-bottom: 12px;
+        margin-bottom: var(--space-3);
+
     }
 
     /* Funnel Visualization */
@@ -121,8 +139,10 @@
     .funnel-stage {
         display: flex;
         align-items: center;
-        gap: 16px;
-        margin-bottom: 16px;
+        gap: var(--space-4);
+
+        margin-bottom: var(--space-4);
+
     }
 
     .funnel-bar-container {
@@ -131,13 +151,17 @@
     }
 
     .funnel-bar {
-        height: 40px;
-        border-radius: 8px;
+        height: var(--space-10);
+
+        border-radius: var(--radius-lg);
+
         display: flex;
         align-items: center;
-        padding: 0 16px;
+        padding: 0 var(--space-4);
+
         color: white;
-        font-weight: 600;
+        font-weight: var(--font-semibold);
+
         transition: width 0.5s ease;
     }
 
@@ -150,33 +174,39 @@
     .funnel-count {
         width: 50px;
         text-align: right;
-        font-weight: 600;
+        font-weight: var(--font-semibold);
+
     }
 
     /* Conversion Stats */
     .conversion-stats {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 16px;
+        gap: var(--space-4);
+
     }
 
     .conversion-stat {
-        padding: 16px;
+        padding: var(--space-4);
+
         background: var(--bg-light);
-        border-radius: 12px;
+        border-radius: var(--radius-xl);
+
         text-align: center;
     }
 
     .conversion-stat-value {
         font-size: 1.75rem;
-        font-weight: 700;
+        font-weight: var(--font-bold);
+
         color: var(--primary-color);
     }
 
     .conversion-stat-label {
         font-size: 0.85rem;
         color: var(--text-muted);
-        margin-top: 4px;
+        margin-top: var(--space-1);
+
     }
 </style>
 {% endblock %}

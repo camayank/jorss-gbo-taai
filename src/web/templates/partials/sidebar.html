@@ -50,16 +50,16 @@
         {'label': 'Dashboard', 'url': '/cpa', 'icon': 'chart-bar'},
         {'label': 'Clients', 'url': '/cpa/clients', 'icon': 'users'},
         {'label': 'Leads', 'url': '/cpa/leads', 'icon': 'funnel'},
-        {'label': 'Review Queue', 'url': '/cpa/review', 'icon': 'clipboard-document-list'},
-        {'label': 'Advisory Reports', 'url': '/cpa/reports', 'icon': 'document-text'}
+        {'label': 'Review Queue', 'url': '/cpa/returns/queue', 'icon': 'clipboard-document-list'},
+        {'label': 'Analytics', 'url': '/cpa/analytics', 'icon': 'chart-bar'}
       ]
     },
     {
       'label': 'Settings',
       'items': [
         {'label': 'Team', 'url': '/cpa/team', 'icon': 'users'},
-        {'label': 'Branding', 'url': '/cpa/settings/branding', 'icon': 'sparkles'},
-        {'label': 'Payments', 'url': '/cpa/settings/payments', 'icon': 'credit-card'},
+        {'label': 'Branding', 'url': '/cpa/branding', 'icon': 'sparkles'},
+        {'label': 'Payments', 'url': '/cpa/billing', 'icon': 'credit-card'},
         {'label': 'Settings', 'url': '/cpa/settings', 'icon': 'cog-6-tooth'}
       ]
     }
@@ -67,17 +67,16 @@
   'client': [
     {
       'items': [
-        {'label': 'Dashboard', 'url': '/portal', 'icon': 'home'},
-        {'label': 'Tax Returns', 'url': '/portal/returns', 'icon': 'document-text'},
-        {'label': 'Documents', 'url': '/portal/documents', 'icon': 'folder'},
-        {'label': 'Messages', 'url': '/portal/messages', 'icon': 'envelope'}
+        {'label': 'Dashboard', 'url': '/app/portal', 'icon': 'home'},
+        {'label': 'Tax Returns', 'url': '/returns', 'icon': 'document-text'},
+        {'label': 'Documents', 'url': '/documents', 'icon': 'folder'}
       ]
     },
     {
       'label': 'Account',
       'items': [
-        {'label': 'Profile', 'url': '/portal/profile', 'icon': 'user'},
-        {'label': 'Settings', 'url': '/portal/settings', 'icon': 'cog-6-tooth'}
+        {'label': 'Profile', 'url': '/profile', 'icon': 'user'},
+        {'label': 'Settings', 'url': '/settings', 'icon': 'cog-6-tooth'}
       ]
     }
   ]
@@ -224,11 +223,11 @@
            x-transition:enter="transition-fast"
            x-transition:enter-start="opacity-0 translate-y-2"
            x-transition:enter-end="opacity-100 translate-y-0">
-        <a href="/app/profile">
+        <a href="/profile">
           {{ icon('user', 'sm') }}
           <span>Profile</span>
         </a>
-        <a href="/app/settings">
+        <a href="/settings">
           {{ icon('cog-6-tooth', 'sm') }}
           <span>Settings</span>
         </a>

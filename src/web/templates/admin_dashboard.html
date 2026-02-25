@@ -60,8 +60,10 @@
     }
 
     .sidebar-logo-icon {
-      width: 40px;
-      height: 40px;
+      width: var(--space-10);
+
+      height: var(--space-10);
+
       background: linear-gradient(135deg, var(--primary) 0%, var(--purple) 100%);
       border-radius: 10px;
       display: flex;
@@ -81,7 +83,8 @@
       font-size: 10px;
       background: var(--warning);
       color: var(--gray-900);
-      padding: 2px var(--space-1-5);
+      padding: var(--space-0-5) var(--space-1-5);
+
       border-radius: 4px;
       font-weight: var(--font-semibold);
       margin-left: -var(--space-2);
@@ -119,7 +122,8 @@
       font-size: var(--text-sm);
       font-weight: var(--font-medium);
       transition: all 0.15s ease;
-      margin-bottom: 2px;
+      margin-bottom: var(--space-0-5);
+
     }
 
     .nav-item:hover {
@@ -143,7 +147,8 @@
       color: white;
       font-size: 11px;
       font-weight: var(--font-semibold);
-      padding: 2px var(--space-1-5);
+      padding: var(--space-0-5) var(--space-1-5);
+
       border-radius: 10px;
     }
 
@@ -166,8 +171,10 @@
     }
 
     .user-avatar {
-      width: 36px;
-      height: 36px;
+      width: var(--space-9);
+
+      height: var(--space-9);
+
       border-radius: 50%;
       background: var(--primary);
       display: flex;
@@ -256,7 +263,8 @@
 
     .header-search input {
       width: 300px;
-      padding: var(--space-2) var(--space-3) var(--space-2) 36px;
+      padding: var(--space-2) var(--space-3) var(--space-2) var(--space-9);
+
       border: 1px solid var(--gray-200);
       border-radius: var(--radius-lg);
       font-size: var(--text-sm);
@@ -271,7 +279,8 @@
 
     .header-search-icon {
       position: absolute;
-      left: 12px;
+      left: var(--space-3);
+
       top: 50%;
       transform: translateY(-50%);
       color: var(--gray-400);
@@ -335,8 +344,10 @@
     }
 
     .stat-icon {
-      width: 36px;
-      height: 36px;
+      width: var(--space-9);
+
+      height: var(--space-9);
+
       border-radius: var(--radius-lg);
       display: flex;
       align-items: center;
@@ -641,8 +652,10 @@
 
     /* Avatar */
     .avatar {
-      width: 32px;
-      height: 32px;
+      width: var(--space-8);
+
+      height: var(--space-8);
+
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -653,12 +666,14 @@
     }
 
     .avatar-sm { width: 24px; height: 24px; font-size: 10px; }
-    .avatar-lg { width: 40px; height: 40px; font-size: 14px; }
+    .avatar-lg { width: 40px; height: 40px; font-size: var(--text-sm); }
 
     /* Firm Logo */
     .firm-logo {
-      width: 40px;
-      height: 40px;
+      width: var(--space-10);
+
+      height: var(--space-10);
+
       border-radius: var(--radius-lg);
       display: flex;
       align-items: center;
@@ -731,8 +746,10 @@
 
     /* Status Indicator */
     .status-dot {
-      width: 8px;
-      height: 8px;
+      width: var(--space-2);
+
+      height: var(--space-2);
+
       border-radius: 50%;
       display: inline-block;
       margin-right: var(--space-1-5);
@@ -806,8 +823,10 @@
     }
 
     .activity-icon {
-      width: 32px;
-      height: 32px;
+      width: var(--space-8);
+
+      height: var(--space-8);
+
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -954,8 +973,10 @@
     /* Toggle Switch */
     .toggle {
       position: relative;
-      width: 44px;
-      height: 24px;
+      width: var(--space-11);
+
+      height: var(--space-6);
+
     }
 
     .toggle input {
@@ -973,7 +994,8 @@
       bottom: 0;
       background-color: var(--gray-300);
       transition: 0.3s;
-      border-radius: 24px;
+      border-radius: var(--radius-3xl);
+
     }
 
     .toggle-slider:before {
@@ -1126,8 +1148,10 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      width: 40px;
-      height: 40px;
+      width: var(--space-10);
+
+      height: var(--space-10);
+
       background: transparent;
       border: none;
       cursor: pointer;
@@ -1141,10 +1165,12 @@
 
     .hamburger-btn span {
       display: block;
-      width: 20px;
+      width: var(--space-5);
+
       height: 2px;
       background: var(--gray-300);
-      margin: 2px 0;
+      margin: var(--space-0-5) 0;
+
       transition: all var(--transition-slow);
     }
 
@@ -1168,13 +1194,16 @@
     }
 
     .mobile-header-spacer {
-      width: 40px;
+      width: var(--space-10);
+
     }
 
     /* Loading Spinners */
     .loading-spinner {
-      width: 40px;
-      height: 40px;
+      width: var(--space-10);
+
+      height: var(--space-10);
+
       border: 3px solid var(--gray-200);
       border-top-color: var(--primary);
       border-radius: 50%;
@@ -1183,8 +1212,10 @@
 
     .loading-spinner-small {
       display: inline-block;
-      width: 16px;
-      height: 16px;
+      width: var(--space-4);
+
+      height: var(--space-4);
+
       border: 2px solid rgba(255,255,255,0.3);
       border-top-color: white;
       border-radius: 50%;

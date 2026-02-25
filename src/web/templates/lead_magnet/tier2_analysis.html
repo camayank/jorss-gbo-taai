@@ -32,7 +32,8 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
+            line-height: var(--leading-relaxed);
+
             color: var(--text-dark);
             background: #f5f7fa;
         }
@@ -86,8 +87,10 @@
         }
 
         .tier-badge svg {
-            width: 16px;
-            height: 16px;
+            width: var(--space-4);
+
+            height: var(--space-4);
+
         }
 
         /* Main Content */
@@ -116,8 +119,10 @@
         }
 
         .section-icon {
-            width: 40px;
-            height: 40px;
+            width: var(--space-10);
+
+            height: var(--space-10);
+
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             border-radius: 10px;
             display: flex;
@@ -175,7 +180,8 @@
         .waterfall-title {
             font-size: 0.82rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: var(--tracking-wider);
+
             color: var(--color-slate-600);
             margin-bottom: var(--space-2-5);
         }
@@ -193,8 +199,9 @@
         .waterfall-track {
             grid-column: 1 / span 2;
             width: 100%;
-            height: 8px;
-            border-radius: 999px;
+            height: var(--space-2);
+
+            border-radius: var(--radius-full);
             background: var(--color-info-100);
             overflow: hidden;
             margin-bottom: var(--space-1);
@@ -202,7 +209,7 @@
 
         .waterfall-fill {
             height: 100%;
-            border-radius: 999px;
+            border-radius: var(--radius-full);
             background: linear-gradient(135deg, var(--color-success-500), #0ea5e9);
         }
 
@@ -240,7 +247,8 @@
 
         .insight-priority {
             font-size: 0.75rem;
-            padding: 2px var(--space-2-5);
+            padding: var(--space-0-5) var(--space-2-5);
+
             border-radius: 10px;
             font-weight: var(--font-semibold);
         }
@@ -321,8 +329,10 @@
         }
 
         .action-number {
-            width: 32px;
-            height: 32px;
+            width: var(--space-8);
+
+            height: var(--space-8);
+
             background: var(--primary-color);
             color: white;
             border-radius: 50%;
@@ -428,8 +438,10 @@
         }
 
         .disclaimer-icon {
-            width: 40px;
-            height: 40px;
+            width: var(--space-10);
+
+            height: var(--space-10);
+
             background: var(--color-warning-500);
             border-radius: 10px;
             display: flex;

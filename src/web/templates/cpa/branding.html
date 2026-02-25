@@ -8,7 +8,8 @@
     .branding-grid {
         display: grid;
         grid-template-columns: 1fr 400px;
-        gap: 32px;
+        gap: var(--space-8);
+
     }
 
     @media (max-width: 1200px) {
@@ -20,39 +21,48 @@
     /* Form Cards */
     .form-card {
         background: var(--white);
-        border-radius: 16px;
+        border-radius: var(--radius-2xl);
+
         border: 1px solid var(--border-color);
-        margin-bottom: 24px;
+        margin-bottom: var(--space-6);
+
     }
 
     .form-card-header {
-        padding: 20px 24px;
+        padding: var(--space-5) var(--space-6);
+
         border-bottom: 1px solid var(--border-color);
     }
 
     .form-card-title {
-        font-weight: 600;
+        font-weight: var(--font-semibold);
+
         font-size: 1.1rem;
     }
 
     .form-card-body {
-        padding: 24px;
+        padding: var(--space-6);
+
     }
 
     .form-group {
-        margin-bottom: 20px;
+        margin-bottom: var(--space-5);
+
     }
 
     .form-label {
         display: block;
-        font-weight: 500;
-        margin-bottom: 8px;
+        font-weight: var(--font-medium);
+
+        margin-bottom: var(--space-2);
+
         font-size: 0.9rem;
     }
 
     .form-input {
         width: 100%;
-        padding: 12px 16px;
+        padding: var(--space-3) var(--space-4);
+
         border: 1px solid var(--border-color);
         border-radius: 10px;
         font-size: 0.95rem;
@@ -68,13 +78,15 @@
     .form-help {
         font-size: 0.8rem;
         color: var(--text-muted);
-        margin-top: 6px;
+        margin-top: var(--space-1-5);
+
     }
 
     /* Color Picker */
     .color-picker-group {
         display: flex;
-        gap: 16px;
+        gap: var(--space-4);
+
         flex-wrap: wrap;
     }
 
@@ -86,12 +98,15 @@
     .color-input-wrapper {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: var(--space-3);
+
     }
 
     .color-preview {
-        width: 48px;
-        height: 48px;
+        width: var(--space-12);
+
+        height: var(--space-12);
+
         border-radius: 10px;
         border: 2px solid var(--border-color);
         cursor: pointer;
@@ -100,16 +115,20 @@
     .color-input {
         opacity: 0;
         position: absolute;
-        width: 48px;
-        height: 48px;
+        width: var(--space-12);
+
+        height: var(--space-12);
+
         cursor: pointer;
     }
 
     .color-hex {
         flex: 1;
-        padding: 10px 14px;
+        padding: var(--space-2-5) var(--space-3-5);
+
         border: 1px solid var(--border-color);
-        border-radius: 8px;
+        border-radius: var(--radius-lg);
+
         font-family: monospace;
         font-size: 0.9rem;
     }
@@ -117,8 +136,10 @@
     /* Logo Upload */
     .logo-upload {
         border: 2px dashed var(--border-color);
-        border-radius: 12px;
-        padding: 32px;
+        border-radius: var(--radius-xl);
+
+        padding: var(--space-8);
+
         text-align: center;
         cursor: pointer;
         transition: all 0.15s ease;
@@ -131,12 +152,14 @@
 
     .logo-upload-icon {
         font-size: 2.5rem;
-        margin-bottom: 12px;
+        margin-bottom: var(--space-3);
+
     }
 
     .logo-upload-text {
         color: var(--text-muted);
-        margin-bottom: 8px;
+        margin-bottom: var(--space-2);
+
     }
 
     .logo-upload-hint {
@@ -147,28 +170,34 @@
     .logo-preview {
         display: flex;
         align-items: center;
-        gap: 16px;
-        padding: 16px;
+        gap: var(--space-4);
+
+        padding: var(--space-4);
+
         background: var(--bg-light);
-        border-radius: 12px;
+        border-radius: var(--radius-xl);
+
     }
 
     .logo-preview img {
         width: 80px;
         height: 80px;
-        border-radius: 12px;
+        border-radius: var(--radius-xl);
+
         object-fit: cover;
     }
 
     .logo-preview-actions {
         display: flex;
-        gap: 8px;
+        gap: var(--space-2);
+
     }
 
     /* Preview Card */
     .preview-card {
         background: var(--white);
-        border-radius: 16px;
+        border-radius: var(--radius-2xl);
+
         border: 1px solid var(--border-color);
         overflow: hidden;
         position: sticky;
@@ -176,7 +205,8 @@
     }
 
     .preview-header {
-        padding: 16px 20px;
+        padding: var(--space-4) var(--space-5);
+
         border-bottom: 1px solid var(--border-color);
         display: flex;
         align-items: center;
@@ -184,7 +214,8 @@
     }
 
     .preview-title {
-        font-weight: 600;
+        font-weight: var(--font-semibold);
+
     }
 
     .preview-body {
@@ -200,13 +231,15 @@
     /* Link Share */
     .link-share {
         display: flex;
-        gap: 12px;
+        gap: var(--space-3);
+
         align-items: center;
     }
 
     .link-input {
         flex: 1;
-        padding: 12px 16px;
+        padding: var(--space-3) var(--space-4);
+
         border: 1px solid var(--border-color);
         border-radius: 10px;
         font-size: 0.9rem;
@@ -216,8 +249,10 @@
     .form-actions {
         display: flex;
         justify-content: flex-end;
-        gap: 12px;
-        padding-top: 20px;
+        gap: var(--space-3);
+
+        padding-top: var(--space-5);
+
         border-top: 1px solid var(--border-color);
     }
 </style>

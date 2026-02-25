@@ -32,7 +32,8 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
+            line-height: var(--leading-relaxed);
+
             color: var(--text-dark);
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             min-height: 100vh;
@@ -47,7 +48,8 @@
         /* Results Card */
         .results-card {
             background: var(--white);
-            border-radius: 24px;
+            border-radius: var(--radius-3xl);
+
             padding: 50px var(--space-10);
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
             text-align: center;
@@ -100,8 +102,10 @@
         }
 
         .success-icon svg {
-            width: 40px;
-            height: 40px;
+            width: var(--space-10);
+
+            height: var(--space-10);
+
             color: white;
         }
 
@@ -156,7 +160,8 @@
 
         .score-value {
             font-size: 1.8rem;
-            font-weight: 800;
+            font-weight: var(--font-extrabold);
+
             color: var(--color-slate-900);
             line-height: 1;
             margin-bottom: var(--space-1-5);
@@ -205,7 +210,8 @@
 
         .score-ring-number {
             font-size: 2rem;
-            font-weight: 800;
+            font-weight: var(--font-extrabold);
+
             color: var(--color-slate-900);
         }
 
@@ -231,8 +237,9 @@
 
         .score-gauge-track {
             width: 100%;
-            height: 16px;
-            border-radius: 999px;
+            height: var(--space-4);
+
+            border-radius: var(--radius-full);
             overflow: hidden;
             background: linear-gradient(90deg, var(--color-error-500) 0%, #f97316 35%, #84cc16 68%, #16a34a 100%);
             position: relative;
@@ -256,7 +263,7 @@
 
         .score-band {
             display: inline-block;
-            border-radius: 999px;
+            border-radius: var(--radius-full);
             font-size: 0.72rem;
             font-weight: var(--font-bold);
             padding: var(--space-1) var(--space-2-5);
@@ -283,7 +290,7 @@
             border: 1px solid var(--color-slate-300);
             background: var(--white);
             color: var(--color-slate-700);
-            border-radius: 999px;
+            border-radius: var(--radius-full);
             padding: var(--space-1-5) var(--space-2-5);
             font-size: 0.74rem;
             font-weight: var(--font-semibold);
@@ -291,7 +298,8 @@
         }
 
         .subscore-chip:hover {
-            border-color: #2563eb;
+            border-color: var(--color-info-600);
+
             color: var(--color-info-700);
         }
 
@@ -336,16 +344,18 @@
 
         .comparison-track {
             width: 100%;
-            height: 8px;
-            border-radius: 999px;
+            height: var(--space-2);
+
+            border-radius: var(--radius-full);
             background: var(--color-info-100);
             overflow: hidden;
         }
 
         .comparison-fill {
             height: 100%;
-            border-radius: 999px;
-            background: linear-gradient(135deg, #2563eb, var(--color-success-500));
+            border-radius: var(--radius-full);
+            background: linear-gradient(135deg, var(--color-info-600), var(--color-success-500));
+
         }
 
         /* Complexity Badge */
@@ -394,7 +404,8 @@
             background: var(--primary-color);
             color: white;
             font-size: 0.75rem;
-            padding: 2px var(--space-2);
+            padding: var(--space-0-5) var(--space-2);
+
             border-radius: 10px;
         }
 
@@ -404,9 +415,10 @@
             gap: var(--space-1-5);
             font-size: 0.72rem;
             font-weight: var(--font-bold);
-            letter-spacing: 0.05em;
+            letter-spacing: var(--tracking-wider);
+
             text-transform: uppercase;
-            border-radius: 999px;
+            border-radius: var(--radius-full);
             padding: var(--space-1) var(--space-2-5);
             margin-bottom: var(--space-2-5);
         }
@@ -435,8 +447,10 @@
 
         .insight-icon {
             flex-shrink: 0;
-            width: 32px;
-            height: 32px;
+            width: var(--space-8);
+
+            height: var(--space-8);
+
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             border-radius: var(--radius-lg);
             display: flex;
@@ -556,7 +570,8 @@
             gap: var(--space-6);
             flex-wrap: wrap;
             margin-top: 30px;
-            padding-top: 20px;
+            padding-top: var(--space-5);
+
             border-top: 1px solid var(--color-gray-200);
         }
 
@@ -569,8 +584,10 @@
         }
 
         .trust-item svg {
-            width: 16px;
-            height: 16px;
+            width: var(--space-4);
+
+            height: var(--space-4);
+
             color: var(--accent-color);
         }
 

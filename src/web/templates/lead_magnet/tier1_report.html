@@ -32,7 +32,8 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
+            line-height: var(--leading-relaxed);
+
             color: var(--text-dark);
             background: var(--color-gray-50);
         }
@@ -152,12 +153,13 @@
 
         .score-overall {
             font-size: 1.5rem;
-            font-weight: 800;
+            font-weight: var(--font-extrabold);
+
             color: var(--color-slate-900);
         }
 
         .score-band {
-            border-radius: 999px;
+            border-radius: var(--radius-full);
             padding: var(--space-1) var(--space-2-5);
             font-size: 0.75rem;
             font-weight: var(--font-bold);
@@ -199,15 +201,17 @@
         .subscore-track {
 
             width: 100%;
-            height: 8px;
-            border-radius: 999px;
+            height: var(--space-2);
+
+            border-radius: var(--radius-full);
             background: var(--color-slate-200);
             overflow: hidden;
         }
 
         .subscore-fill {
             height: 100%;
-            background: linear-gradient(135deg, #2563eb, var(--color-success-500));
+            background: linear-gradient(135deg, var(--color-info-600), var(--color-success-500));
+
         }
 
         .score-explainer {
@@ -249,7 +253,7 @@
         .comparison-bar-track {
             width: 100%;
             height: 9px;
-            border-radius: 999px;
+            border-radius: var(--radius-full);
             background: var(--color-info-100);
             overflow: hidden;
             margin-bottom: var(--space-2-5);
@@ -257,8 +261,9 @@
 
         .comparison-bar-fill {
             height: 100%;
-            border-radius: 999px;
-            background: linear-gradient(135deg, #2563eb, var(--color-success-500));
+            border-radius: var(--radius-full);
+            background: linear-gradient(135deg, var(--color-info-600), var(--color-success-500));
+
         }
 
         .comparison-row {
@@ -308,8 +313,10 @@
         }
 
         .section-icon {
-            width: 32px;
-            height: 32px;
+            width: var(--space-8);
+
+            height: var(--space-8);
+
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             border-radius: var(--radius-lg);
             display: flex;
@@ -368,9 +375,10 @@
             gap: var(--space-1-5);
             font-size: 0.72rem;
             font-weight: var(--font-bold);
-            letter-spacing: 0.05em;
+            letter-spacing: var(--tracking-wider);
+
             text-transform: uppercase;
-            border-radius: 999px;
+            border-radius: var(--radius-full);
             padding: var(--space-1) var(--space-2-5);
             margin-bottom: var(--space-3);
         }
@@ -398,7 +406,8 @@
             color: var(--color-slate-600);
             margin-bottom: var(--space-2-5);
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: var(--tracking-wider);
+
         }
 
         .waterfall-row {
@@ -414,8 +423,9 @@
         .waterfall-track {
             grid-column: 1 / span 2;
             width: 100%;
-            height: 8px;
-            border-radius: 999px;
+            height: var(--space-2);
+
+            border-radius: var(--radius-full);
             background: var(--color-slate-200);
             overflow: hidden;
             margin-bottom: var(--space-1);
@@ -423,7 +433,7 @@
 
         .waterfall-fill {
             height: 100%;
-            border-radius: 999px;
+            border-radius: var(--radius-full);
             background: linear-gradient(135deg, var(--color-success-500), #0ea5e9);
         }
 
@@ -575,7 +585,7 @@
 
         .share-btn {
             border: none;
-            border-radius: 999px;
+            border-radius: var(--radius-full);
             padding: 9px var(--space-3-5);
             font-size: 0.8rem;
             font-weight: var(--font-semibold);

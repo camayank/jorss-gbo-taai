@@ -43,7 +43,8 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
+            line-height: var(--leading-relaxed);
+
             color: var(--text-dark);
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             min-height: 100vh;
@@ -132,7 +133,8 @@
 
         .credential-badge {
             font-size: 0.7rem;
-            padding: 2px var(--space-2);
+            padding: var(--space-0-5) var(--space-2);
+
             background: var(--primary-color);
             color: white;
             border-radius: 10px;
@@ -256,7 +258,7 @@
             display: inline-flex;
             align-items: center;
             gap: var(--space-2);
-            border-radius: 999px;
+            border-radius: var(--radius-full);
             padding: var(--space-2) var(--space-3-5);
             font-size: 0.82rem;
             font-weight: var(--font-semibold);
@@ -316,8 +318,10 @@
 
         .get-item-icon {
             flex-shrink: 0;
-            width: 32px;
-            height: 32px;
+            width: var(--space-8);
+
+            height: var(--space-8);
+
             background: var(--primary-color);
             color: white;
             border-radius: var(--radius-lg);

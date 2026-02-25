@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two-Factor Authentication | {{ branding.platform_name }}</title>
+    <meta name="description" content="Enter your two-factor authentication code to complete sign in.">
+    {% if branding.favicon_url %}
+    <link rel="icon" href="{{ branding.favicon_url }}">
+    {% endif %}
+    <link rel="stylesheet" href="/static/css/core/variables.css">
+    <link rel="stylesheet" href="/static/css/core/reset.css">
+    <link rel="stylesheet" href="/static/css/core/typography.css">
+    <link rel="stylesheet" href="/static/css/unified-theme.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        :root {
+            --primary: var(--color-primary-500);
+            --primary-light: var(--color-primary-300);
+            --primary-dark: #0c1b2f;
+            --bg: #f7fafc;
+            --surface: var(--white);
+            --text: #0c1b2f;
+            --text-light: #4a5568;
+            --text-muted: #718096;
+            --success: #276749;
+            --success-light: #c6f6d5;
+            --error: #c53030;
+            --error-light: #fed7d7;
+            --border: var(--color-slate-200);
+            --border-focus: var(--color-primary-500);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* Header                                                             */
+        /* ------------------------------------------------------------------ */
+        .header {
+            padding: var(--space-5) var(--space-6);
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2-5);
+
+            text-decoration: none;
+            color: white;
+            font-weight: var(--font-bold);
+
+            font-size: 1.25rem;
+        }
+
+        .logo img {
+            height: var(--space-8);
+
+            filter: brightness(0) invert(1);
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1-5);
+
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: white;
+        }
+
+        .back-link svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* Main layout                                                        */
+        /* ------------------------------------------------------------------ */
+        .main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-5);
+
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 440px;
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* Auth Card                                                          */
+        /* ------------------------------------------------------------------ */
+        .auth-card {
+            background: var(--surface);
+            border-radius: 20px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .auth-header {
+            padding: var(--space-10) var(--space-10) var(--space-6);
+
+            text-align: center;
+        }
+
+        .auth-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: var(--radius-2xl);
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto var(--space-5);
+
+        }
+
+        .auth-icon svg {
+            width: var(--space-8);
+
+            height: var(--space-8);
+
+            color: white;
+        }
+
+        .auth-title {
+            font-size: 1.75rem;
+            font-weight: var(--font-bold);
+
+            color: var(--text);
+            margin-bottom: var(--space-2);
+
+        }
+
+        .auth-subtitle {
+            font-size: 1rem;
+            color: var(--text-muted);
+            line-height: var(--leading-normal);
+
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* Card body                                                          */
+        /* ------------------------------------------------------------------ */
+        .auth-body {
+            padding: 0 var(--space-10) var(--space-10);
+
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* Alert                                                              */
+        /* ------------------------------------------------------------------ */
+        .alert {
+            padding: var(--space-3) var(--space-4);
+
+            border-radius: var(--radius-lg);
+
+            margin-bottom: var(--space-5);
+
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: var(--space-2-5);
+
+        }
+
+        .alert-error {
+            background: var(--error-light);
+            color: var(--error);
+        }
+
+        .alert svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* OTP digit inputs                                                   */
+        /* ------------------------------------------------------------------ */
+        .otp-group {
+            display: flex;
+            justify-content: center;
+            gap: var(--space-2-5);
+
+            margin-bottom: var(--space-6);
+
+        }
+
+        .otp-input {
+            width: 50px;
+            height: 60px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: var(--font-bold);
+
+            color: var(--text);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            outline: none;
+            background: var(--surface);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            caret-color: var(--primary);
+            -moz-appearance: textfield;
+        }
+
+        .otp-input::-webkit-outer-spin-button,
+        .otp-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .otp-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
+        }
+
+        .otp-input.filled {
+            border-color: var(--primary-light);
+            background: #f0f5ff;
+        }
+
+        .otp-input.error {
+            border-color: var(--error);
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%      { transform: translateX(-6px); }
+            40%      { transform: translateX(6px); }
+            60%      { transform: translateX(-4px); }
+            80%      { transform: translateX(4px); }
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* Backup code input                                                  */
+        /* ------------------------------------------------------------------ */
+        .backup-input {
+            width: 100%;
+            padding: var(--space-3-5) var(--space-4);
+
+            font-size: 1rem;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+            letter-spacing: var(--tracking-wider);
+
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: var(--surface);
+            color: var(--text);
+            text-align: center;
+            margin-bottom: var(--space-6);
+
+        }
+
+        .backup-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
+        }
+
+        .backup-input::placeholder {
+            color: var(--text-muted);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            letter-spacing: normal;
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* Toggle link                                                        */
+        /* ------------------------------------------------------------------ */
+        .toggle-link {
+            display: block;
+            text-align: center;
+            margin-bottom: var(--space-6);
+
+            font-size: 0.9rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: var(--font-medium);
+
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .toggle-link:hover {
+            color: var(--primary-light);
+            text-decoration: underline;
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* Submit Button                                                      */
+        /* ------------------------------------------------------------------ */
+        .btn-submit {
+            width: 100%;
+            padding: var(--space-4) var(--space-6);
+
+            font-size: 1rem;
+            font-weight: var(--font-semibold);
+
+            color: white;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+            box-shadow: 0 4px 15px rgba(26, 54, 93, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(26, 54, 93, 0.4);
+        }
+
+        .btn-submit:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-spinner {
+            width: var(--space-5);
+
+            height: var(--space-5);
+
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* Help footer                                                        */
+        /* ------------------------------------------------------------------ */
+        .auth-footer {
+            padding: var(--space-5) var(--space-10);
+
+            background: var(--bg);
+            text-align: center;
+            border-top: 1px solid var(--border);
+        }
+
+        .auth-footer p {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            line-height: var(--leading-normal);
+
+        }
+
+        .auth-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: var(--font-semibold);
+
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* Trust Bar                                                          */
+        /* ------------------------------------------------------------------ */
+        .trust-bar {
+            display: flex;
+            justify-content: center;
+            gap: var(--space-6);
+
+            padding: var(--space-5);
+
+            color: rgba(255,255,255,0.8);
+            font-size: 0.85rem;
+        }
+
+        .trust-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1-5);
+
+        }
+
+        .trust-item svg {
+            width: var(--space-4);
+
+            height: var(--space-4);
+
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* Responsive                                                         */
+        /* ------------------------------------------------------------------ */
+        @media (max-width: 480px) {
+            .header {
+                padding: var(--space-4);
+
+            }
+
+            .main {
+                padding: var(--space-4);
+
+            }
+
+            .auth-header {
+                padding: var(--space-8) var(--space-6) var(--space-5);
+
+            }
+
+            .auth-body {
+                padding: 0 var(--space-6) var(--space-8);
+
+            }
+
+            .auth-footer {
+                padding: var(--space-4) var(--space-6);
+
+            }
+
+            .auth-title {
+                font-size: 1.5rem;
+            }
+
+            .otp-group {
+                gap: var(--space-1-5);
+
+            }
+
+            .otp-input {
+                width: var(--space-11);
+
+                height: 52px;
+                font-size: 1.25rem;
+            }
+
+            .trust-bar {
+                flex-direction: column;
+                align-items: center;
+                gap: var(--space-2);
+
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="header">
+        <a href="/" class="logo">
+            {% if branding.logo_url %}
+            <img src="{{ branding.logo_url }}" alt="{{ branding.platform_name }}">
+            {% else %}
+            {{ branding.platform_name }}
+            {% endif %}
+        </a>
+        <a href="/login" class="back-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"/>
+                <polyline points="12 19 5 12 12 5"/>
+            </svg>
+            Back to Login
+        </a>
+    </header>
+
+    <!-- Main -->
+    <main class="main">
+        <div class="auth-container" x-data="mfaVerify()" x-init="init()">
+
+            <!-- Auth Card -->
+            <div class="auth-card">
+                <div class="auth-header">
+                    <!-- Shield / 2FA icon -->
+                    <div class="auth-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            <polyline points="9 12 11 14 15 10"/>
+                        </svg>
+                    </div>
+                    <h1 class="auth-title">Two-Factor Authentication</h1>
+                    <p class="auth-subtitle" x-text="useBackup ? 'Enter one of your backup codes' : 'Enter the 6-digit code from your authenticator app'"></p>
+                </div>
+
+                <div class="auth-body">
+
+                    <!-- Error alert -->
+                    <div class="alert alert-error" x-show="errorMessage" x-cloak x-transition.opacity>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="15" y1="9" x2="9" y2="15"/>
+                            <line x1="9" y1="9" x2="15" y2="15"/>
+                        </svg>
+                        <span x-text="errorMessage"></span>
+                    </div>
+
+                    <!-- TOTP input (6 digit boxes) -->
+                    <template x-if="!useBackup">
+                        <div>
+                            <div class="otp-group">
+                                <template x-for="(digit, index) in digits" :key="index">
+                                    <input
+                                        type="text"
+                                        inputmode="numeric"
+                                        autocomplete="one-time-code"
+                                        maxlength="1"
+                                        class="otp-input"
+                                        :class="{ 'filled': digit !== '', 'error': hasError }"
+                                        :id="'otp-' + index"
+                                        :value="digit"
+                                        @input="onDigitInput($event, index)"
+                                        @keydown="onDigitKeydown($event, index)"
+                                        @paste="onPaste($event)"
+                                        @focus="$event.target.select()"
+                                        :disabled="submitting"
+                                        :aria-label="'Digit ' + (index + 1) + ' of 6'"
+                                    >
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Backup code input -->
+                    <template x-if="useBackup">
+                        <div>
+                            <input
+                                type="text"
+                                class="backup-input"
+                                placeholder="XXXX-XXXX"
+                                x-model="backupCode"
+                                @keydown.enter="submitBackup()"
+                                :disabled="submitting"
+                                x-ref="backupInput"
+                                autocomplete="off"
+                                spellcheck="false"
+                                aria-label="Backup code"
+                            >
+                        </div>
+                    </template>
+
+                    <!-- Toggle between TOTP and backup code -->
+                    <a
+                        href="#"
+                        class="toggle-link"
+                        @click.prevent="toggleMode()"
+                        x-text="useBackup ? 'Use authenticator code instead' : 'Use a backup code'"
+                    ></a>
+
+                    <!-- Submit button -->
+                    <button
+                        type="button"
+                        class="btn-submit"
+                        :disabled="submitting || (!useBackup && !isOtpComplete) || (useBackup && backupCode.trim().length < 4)"
+                        @click="submit()"
+                    >
+                        <template x-if="!submitting">
+                            <span>Verify &amp; Sign In</span>
+                        </template>
+                        <template x-if="submitting">
+                            <div class="btn-spinner"></div>
+                        </template>
+                    </button>
+                </div>
+
+                <!-- Footer help text -->
+                <div class="auth-footer">
+                    <p>Having trouble? <a href="/support">Contact support</a></p>
+                </div>
+            </div>
+
+            <!-- Trust Bar -->
+            <div class="trust-bar">
+                <div class="trust-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    256-bit Encryption
+                </div>
+                <div class="trust-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    SOC 2 Compliant
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        /**
+         * MFA Verification - Alpine.js Component
+         *
+         * Handles TOTP (6-digit code) and backup code verification
+         * during the two-factor authentication login step.
+         */
+        function mfaVerify() {
+            return {
+                /* ---- State ---- */
+                digits: ['', '', '', '', '', ''],
+                backupCode: '',
+                useBackup: false,
+                submitting: false,
+                errorMessage: '',
+                hasError: false,
+
+                /* ---- Computed ---- */
+                get isOtpComplete() {
+                    return this.digits.every(d => d !== '');
+                },
+
+                get otpCode() {
+                    return this.digits.join('');
+                },
+
+                /* ---- Lifecycle ---- */
+                init() {
+                    this.$nextTick(() => {
+                        const first = document.getElementById('otp-0');
+                        if (first) first.focus();
+                    });
+                },
+
+                /* ---- Mode toggle ---- */
+                toggleMode() {
+                    this.useBackup = !this.useBackup;
+                    this.errorMessage = '';
+                    this.hasError = false;
+
+                    if (this.useBackup) {
+                        this.backupCode = '';
+                        this.$nextTick(() => {
+                            if (this.$refs.backupInput) this.$refs.backupInput.focus();
+                        });
+                    } else {
+                        this.clearDigits();
+                        this.$nextTick(() => {
+                            const first = document.getElementById('otp-0');
+                            if (first) first.focus();
+                        });
+                    }
+                },
+
+                /* ---- OTP digit handling ---- */
+                onDigitInput(event, index) {
+                    const value = event.target.value;
+
+                    // Allow only single digit
+                    if (/^\d$/.test(value)) {
+                        this.digits[index] = value;
+                        this.hasError = false;
+                        this.errorMessage = '';
+
+                        // Auto-advance to next input
+                        if (index < 5) {
+                            const next = document.getElementById('otp-' + (index + 1));
+                            if (next) next.focus();
+                        }
+
+                        // Auto-submit when all digits entered
+                        if (this.isOtpComplete) {
+                            this.$nextTick(() => this.submit());
+                        }
+                    } else {
+                        // Reject non-digit input
+                        event.target.value = this.digits[index];
+                    }
+                },
+
+                onDigitKeydown(event, index) {
+                    const key = event.key;
+
+                    if (key === 'Backspace') {
+                        event.preventDefault();
+                        if (this.digits[index] !== '') {
+                            // Clear current digit
+                            this.digits[index] = '';
+                            event.target.value = '';
+                        } else if (index > 0) {
+                            // Move to previous and clear it
+                            const prev = document.getElementById('otp-' + (index - 1));
+                            if (prev) {
+                                this.digits[index - 1] = '';
+                                prev.value = '';
+                                prev.focus();
+                            }
+                        }
+                        this.hasError = false;
+                        this.errorMessage = '';
+                        return;
+                    }
+
+                    if (key === 'ArrowLeft' && index > 0) {
+                        event.preventDefault();
+                        document.getElementById('otp-' + (index - 1)).focus();
+                        return;
+                    }
+
+                    if (key === 'ArrowRight' && index < 5) {
+                        event.preventDefault();
+                        document.getElementById('otp-' + (index + 1)).focus();
+                        return;
+                    }
+
+                    // If a digit key is pressed on a filled box, replace and advance
+                    if (/^\d$/.test(key) && this.digits[index] !== '') {
+                        event.preventDefault();
+                        this.digits[index] = key;
+                        event.target.value = key;
+                        if (index < 5) {
+                            document.getElementById('otp-' + (index + 1)).focus();
+                        }
+                        if (this.isOtpComplete) {
+                            this.$nextTick(() => this.submit());
+                        }
+                    }
+                },
+
+                onPaste(event) {
+                    event.preventDefault();
+                    const pasted = (event.clipboardData || window.clipboardData)
+                        .getData('text')
+                        .replace(/\s/g, '');
+
+                    // Extract up to 6 digits from pasted content
+                    const digitsOnly = pasted.replace(/\D/g, '').slice(0, 6);
+
+                    if (digitsOnly.length === 0) return;
+
+                    for (let i = 0; i < 6; i++) {
+                        this.digits[i] = digitsOnly[i] || '';
+                        const el = document.getElementById('otp-' + i);
+                        if (el) el.value = this.digits[i];
+                    }
+
+                    // Focus the next empty box, or the last one
+                    const nextEmpty = this.digits.findIndex(d => d === '');
+                    const focusIdx = nextEmpty === -1 ? 5 : nextEmpty;
+                    document.getElementById('otp-' + focusIdx).focus();
+
+                    this.hasError = false;
+                    this.errorMessage = '';
+
+                    if (this.isOtpComplete) {
+                        this.$nextTick(() => this.submit());
+                    }
+                },
+
+                clearDigits() {
+                    for (let i = 0; i < 6; i++) {
+                        this.digits[i] = '';
+                        const el = document.getElementById('otp-' + i);
+                        if (el) el.value = '';
+                    }
+                },
+
+                /* ---- Submission ---- */
+                async submit() {
+                    if (this.submitting) return;
+
+                    const code = this.useBackup
+                        ? this.backupCode.trim()
+                        : this.otpCode;
+
+                    if (!code) return;
+
+                    // Basic validation for TOTP mode
+                    if (!this.useBackup && (code.length !== 6 || !/^\d{6}$/.test(code))) {
+                        return;
+                    }
+
+                    this.submitting = true;
+                    this.errorMessage = '';
+                    this.hasError = false;
+
+                    try {
+                        const response = await fetch('/api/mfa/validate', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...this._csrfHeader(),
+                            },
+                            body: JSON.stringify({ code }),
+                        });
+
+                        const result = await response.json();
+
+                        if (response.ok && result.valid) {
+                            // Determine redirect target from ?next= query param
+                            const params = new URLSearchParams(window.location.search);
+                            const next = params.get('next') || '/dashboard';
+                            window.location.href = next;
+                        } else {
+                            this.errorMessage = result.detail || result.message || 'Invalid code. Please try again.';
+                            this.hasError = true;
+                            this.submitting = false;
+
+                            // Clear inputs so user can retry
+                            if (!this.useBackup) {
+                                this.clearDigits();
+                                this.$nextTick(() => {
+                                    const first = document.getElementById('otp-0');
+                                    if (first) first.focus();
+                                });
+                            } else {
+                                this.backupCode = '';
+                                this.$nextTick(() => {
+                                    if (this.$refs.backupInput) this.$refs.backupInput.focus();
+                                });
+                            }
+                        }
+                    } catch (err) {
+                        console.error('MFA validation error:', err);
+                        this.errorMessage = 'Unable to connect. Please try again.';
+                        this.hasError = true;
+                        this.submitting = false;
+                    }
+                },
+
+                submitBackup() {
+                    if (this.backupCode.trim().length >= 4) {
+                        this.submit();
+                    }
+                },
+
+                /* ---- Helpers ---- */
+                _csrfHeader() {
+                    const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+                    if (match) {
+                        return { 'X-CSRF-Token': decodeURIComponent(match[1]) };
+                    }
+                    return {};
+                },
+            };
+        }
+    </script>
+</body>
+</html>

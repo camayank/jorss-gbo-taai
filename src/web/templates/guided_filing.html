@@ -277,7 +277,7 @@
                 <span class="action-icon">📄</span>
                 <span>Download PDF</span>
               </a>
-              <a href="/cpa/review" class="action-card">
+              <a href="/cpa/returns/queue" class="action-card">
                 <span class="action-icon">👁️</span>
                 <span>View in CPA Portal</span>
               </a>
@@ -325,16 +325,19 @@
   }
 
   .progress-wrapper {
-    height: 4px;
+    height: var(--space-1);
+
     background: var(--color-gray-200);
-    border-radius: 2px;
+    border-radius: var(--radius-sm);
+
     margin-bottom: 1rem;
   }
 
   .progress-bar {
     height: 100%;
     background: var(--color-primary-500);
-    border-radius: 2px;
+    border-radius: var(--radius-sm);
+
     transition: width 0.3s ease;
   }
 
@@ -354,7 +357,8 @@
 
   .step-indicator.active {
     color: var(--color-primary-600);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
+
   }
 
   .step-indicator.completed {
@@ -394,7 +398,8 @@
 
   .step-title {
     font-size: 1.75rem;
-    font-weight: 700;
+    font-weight: var(--font-bold);
+
     color: var(--color-gray-900);
     margin-bottom: 0.5rem;
   }
@@ -418,7 +423,8 @@
   }
 
   .form-group label {
-    font-weight: 500;
+    font-weight: var(--font-medium);
+
     color: var(--color-gray-700);
   }
 
@@ -472,7 +478,8 @@
   }
 
   .option-content h3 {
-    font-weight: 600;
+    font-weight: var(--font-semibold);
+
     margin-bottom: 0.25rem;
   }
 
@@ -555,7 +562,8 @@
   }
 
   .summary-row.highlight {
-    font-weight: 600;
+    font-weight: var(--font-semibold);
+
     font-size: 1.125rem;
   }
 

@@ -7,12 +7,12 @@
   <style>
     :root {
       --bg: #f3f7fb;
-      --card: #ffffff;
-      --text: #1f2937;
-      --muted: #6b7280;
-      --primary: #1e3a5f;
+      --card: var(--white);
+      --text: var(--color-gray-800);
+      --muted: var(--color-gray-500);
+      --primary: var(--color-primary-500);
       --border: #dbe4ef;
-      --danger: #dc2626;
+      --danger: var(--color-error-600);
     }
     * { box-sizing: border-box; }
     body {
@@ -23,39 +23,49 @@
       color: var(--text);
       display: grid;
       place-items: center;
-      padding: 20px;
+      padding: var(--space-5);
+
     }
     .card {
       width: 100%;
       max-width: 460px;
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 28px;
+      border-radius: var(--radius-2xl);
+
+      padding: var(--space-7);
+
       box-shadow: 0 10px 24px rgba(30, 58, 95, 0.08);
     }
     h1 {
       font-size: 1.5rem;
-      margin: 0 0 8px;
+      margin: 0 0 var(--space-2);
+
       color: var(--primary);
     }
     p {
-      margin: 0 0 20px;
+      margin: 0 0 var(--space-5);
+
       color: var(--muted);
-      line-height: 1.5;
+      line-height: var(--leading-normal);
+
     }
     label {
       display: block;
-      margin: 0 0 6px;
+      margin: 0 0 var(--space-1-5);
+
       font-size: 0.9rem;
-      font-weight: 600;
+      font-weight: var(--font-semibold);
+
     }
     input {
       width: 100%;
-      height: 48px;
+      height: var(--space-12);
+
       border-radius: 10px;
       border: 1px solid #cfd9e6;
-      padding: 0 14px;
+      padding: 0 var(--space-3-5);
+
       font-size: 1rem;
     }
     input:focus {
@@ -64,14 +74,17 @@
       box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
     }
     button {
-      margin-top: 16px;
+      margin-top: var(--space-4);
+
       width: 100%;
-      height: 48px;
+      height: var(--space-12);
+
       border: 0;
       border-radius: 10px;
       background: var(--primary);
-      color: #fff;
-      font-weight: 700;
+      color: var(--white);
+      font-weight: var(--font-bold);
+
       cursor: pointer;
     }
     button[disabled] {
@@ -79,7 +92,8 @@
       cursor: not-allowed;
     }
     .message {
-      margin-top: 14px;
+      margin-top: var(--space-3-5);
+
       font-size: 0.9rem;
       min-height: 1.2em;
     }

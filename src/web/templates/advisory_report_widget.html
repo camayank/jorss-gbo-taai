@@ -22,7 +22,8 @@
 
   /* Container for advisory report */
   .advisory-report-container {
-    margin-top: 40px;
+    margin-top: var(--space-10);
+
     padding: 30px;
     background: linear-gradient(135deg, var(--color-gray-50) 0%, var(--color-gray-200) 100%);
     border-radius: var(--radius-2xl);
@@ -33,38 +34,46 @@
   .advisory-preview {
     background: white;
     border-radius: var(--radius-xl);
-    padding: 32px;
+    padding: var(--space-8);
+
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   }
 
   .advisory-preview-header {
     text-align: center;
-    margin-bottom: 32px;
+    margin-bottom: var(--space-8);
+
   }
 
   .advisory-preview-title {
     font-size: 28px;
-    font-weight: 700;
+    font-weight: var(--font-bold);
+
     color: var(--color-primary-400);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-2);
+
   }
 
   .advisory-preview-subtitle {
-    font-size: 16px;
+    font-size: var(--text-base);
+
     color: var(--color-gray-500);
   }
 
   .advisory-metrics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 20px;
-    margin-bottom: 32px;
+    gap: var(--space-5);
+
+    margin-bottom: var(--space-8);
+
   }
 
   .advisory-metric-card {
     background: linear-gradient(135deg, var(--color-gray-100) 0%, var(--color-gray-200) 100%);
     border-radius: var(--radius-xl);
-    padding: 24px;
+    padding: var(--space-6);
+
     text-align: center;
     transition: all 0.3s ease;
     border: 2px solid transparent;
@@ -77,19 +86,25 @@
   }
 
   .advisory-metric-label {
-    font-size: 14px;
+    font-size: var(--text-sm);
+
     color: var(--color-gray-500);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 12px;
-    font-weight: 600;
+    margin-bottom: var(--space-3);
+
+    font-weight: var(--font-semibold);
+
   }
 
   .advisory-metric-value {
-    font-size: 36px;
-    font-weight: 700;
+    font-size: var(--text-4xl);
+
+    font-weight: var(--font-bold);
+
     color: var(--color-gray-800);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-2);
+
   }
 
   .advisory-metric-value.savings {
@@ -101,7 +116,8 @@
   }
 
   .advisory-metric-sublabel {
-    font-size: 12px;
+    font-size: var(--text-xs);
+
     color: var(--color-gray-400);
   }
 
@@ -110,28 +126,37 @@
     background: var(--color-info-50);
     border: 2px solid var(--color-primary-400);
     border-radius: var(--radius-xl);
-    padding: 24px;
-    margin-bottom: 32px;
+    padding: var(--space-6);
+
+    margin-bottom: var(--space-8);
+
   }
 
   .advisory-recommendations-title {
-    font-size: 18px;
-    font-weight: 700;
+    font-size: var(--text-lg);
+
+    font-weight: var(--font-bold);
+
     color: var(--color-primary-900);
-    margin-bottom: 16px;
+    margin-bottom: var(--space-4);
+
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
+
   }
 
   .advisory-recommendation-item {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 12px 16px;
+    gap: var(--space-4);
+
+    padding: var(--space-3) var(--space-4);
+
     background: white;
     border-radius: var(--radius-lg);
-    margin-bottom: 12px;
+    margin-bottom: var(--space-3);
+
     transition: all 0.2s ease;
   }
 
@@ -141,44 +166,55 @@
   }
 
   .advisory-recommendation-rank {
-    font-size: 20px;
-    font-weight: 700;
+    font-size: var(--text-xl);
+
+    font-weight: var(--font-bold);
+
     color: var(--color-primary-400);
-    min-width: 32px;
+    min-width: var(--space-8);
+
   }
 
   .advisory-recommendation-title {
     flex: 1;
     font-size: 15px;
-    font-weight: 600;
+    font-weight: var(--font-semibold);
+
     color: var(--color-gray-800);
   }
 
   .advisory-recommendation-savings {
-    font-size: 18px;
-    font-weight: 700;
+    font-size: var(--text-lg);
+
+    font-weight: var(--font-bold);
+
     color: var(--color-success-500);
   }
 
   /* Action Buttons */
   .advisory-actions {
     display: flex;
-    gap: 16px;
+    gap: var(--space-4);
+
     flex-wrap: wrap;
     justify-content: center;
   }
 
   .advisory-btn {
-    padding: 14px 28px;
+    padding: var(--space-3-5) var(--space-7);
+
     border-radius: var(--radius-lg);
-    font-size: 16px;
-    font-weight: 600;
+    font-size: var(--text-base);
+
+    font-weight: var(--font-semibold);
+
     cursor: pointer;
     transition: all 0.3s ease;
     border: none;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
+
     text-decoration: none;
   }
 
@@ -207,8 +243,10 @@
   /* Level 2: Detailed View */
   .advisory-detailed-view {
     display: none;
-    margin-top: 32px;
-    padding: 32px;
+    margin-top: var(--space-8);
+
+    padding: var(--space-8);
+
     background: white;
     border-radius: var(--radius-xl);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
@@ -220,8 +258,10 @@
   }
 
   .advisory-section {
-    margin-bottom: 32px;
-    padding-bottom: 32px;
+    margin-bottom: var(--space-8);
+
+    padding-bottom: var(--space-8);
+
     border-bottom: 2px solid var(--color-gray-200);
   }
 
@@ -234,10 +274,12 @@
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    padding: 16px 20px;
+    padding: var(--space-4) var(--space-5);
+
     background: var(--color-gray-50);
     border-radius: var(--radius-lg);
-    margin-bottom: 16px;
+    margin-bottom: var(--space-4);
+
     transition: all 0.2s ease;
   }
 
@@ -246,16 +288,20 @@
   }
 
   .advisory-section-title {
-    font-size: 20px;
-    font-weight: 700;
+    font-size: var(--text-xl);
+
+    font-weight: var(--font-bold);
+
     color: var(--color-gray-800);
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-3);
+
   }
 
   .advisory-section-toggle {
-    font-size: 24px;
+    font-size: var(--text-2xl);
+
     color: var(--color-gray-500);
     transition: transform 0.3s ease;
   }
@@ -265,7 +311,8 @@
   }
 
   .advisory-section-content {
-    padding: 0 20px;
+    padding: 0 var(--space-5);
+
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.4s ease;
@@ -278,7 +325,8 @@
   /* Level 3: Full Report */
   .advisory-full-report {
     display: none;
-    margin-top: 32px;
+    margin-top: var(--space-8);
+
   }
 
   .advisory-full-report.active {
@@ -289,25 +337,30 @@
   .advisory-report-header {
     background: linear-gradient(135deg, var(--color-primary-400) 0%, var(--color-primary-700) 100%);
     color: white;
-    padding: 40px;
+    padding: var(--space-10);
+
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     text-align: center;
   }
 
   .advisory-report-title {
     font-size: 32px;
-    font-weight: 700;
-    margin-bottom: 8px;
+    font-weight: var(--font-bold);
+
+    margin-bottom: var(--space-2);
+
   }
 
   .advisory-report-subtitle {
-    font-size: 16px;
+    font-size: var(--text-base);
+
     opacity: 0.9;
   }
 
   .advisory-report-body {
     background: white;
-    padding: 40px;
+    padding: var(--space-10);
+
     border-radius: 0 0 var(--radius-xl) var(--radius-xl);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   }
@@ -315,7 +368,8 @@
   /* Loading State */
   .advisory-loading {
     text-align: center;
-    padding: 60px 20px;
+    padding: 60px var(--space-5);
+
   }
 
   .advisory-loading-spinner {
@@ -325,7 +379,8 @@
     border-top-color: var(--color-primary-400);
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin: 0 auto 20px;
+    margin: 0 auto var(--space-5);
+
   }
 
   @keyframes spin {

@@ -102,7 +102,8 @@
       padding: var(--space-2-5) var(--space-5);
       background: rgba(255, 255, 255, 0.15);
       border: 1px solid rgba(255, 255, 255, 0.25);
-      border-radius: 24px;
+      border-radius: var(--radius-3xl);
+
       font-size: 13px;
       color: var(--white);
       font-weight: var(--font-semibold);
@@ -110,8 +111,10 @@
     }
 
     .status-dot {
-      width: 8px;
-      height: 8px;
+      width: var(--space-2);
+
+      height: var(--space-2);
+
       background: var(--color-success-500);
       border-radius: 50%;
       animation: pulse-dot 2s ease-in-out infinite;
@@ -158,7 +161,8 @@
 
     /* Custom Scrollbar */
     .messages::-webkit-scrollbar {
-      width: 6px;
+      width: var(--space-1-5);
+
     }
 
     .messages::-webkit-scrollbar-track {
@@ -198,8 +202,10 @@
     }
 
     .avatar {
-      width: 44px;
-      height: 44px;
+      width: var(--space-11);
+
+      height: var(--space-11);
+
       border-radius: var(--radius-xl);
       display: flex;
       align-items: center;
@@ -377,7 +383,8 @@
     .upload-progress-bar {
       background: var(--color-slate-200);
       border-radius: 4px;
-      height: 6px;
+      height: var(--space-1-5);
+
       overflow: hidden;
     }
 
@@ -493,8 +500,10 @@
 
     .close-preview-btn {
       position: absolute;
-      top: 12px;
-      right: 12px;
+      top: var(--space-3);
+
+      right: var(--space-3);
+
       background: none;
       border: none;
       font-size: var(--text-2xl);
@@ -596,8 +605,10 @@
 
     .close-camera-btn {
       position: absolute;
-      top: 12px;
-      right: 12px;
+      top: var(--space-3);
+
+      right: var(--space-3);
+
       background: none;
       border: none;
       font-size: var(--text-2xl);
@@ -696,8 +707,10 @@
     }
 
     .multi-select-option input[type="checkbox"] {
-      width: 20px;
-      height: 20px;
+      width: var(--space-5);
+
+      height: var(--space-5);
+
       accent-color: var(--color-primary-500);
       cursor: pointer;
     }
@@ -782,8 +795,10 @@
     }
 
     .radio-option input[type="radio"] {
-      width: 20px;
-      height: 20px;
+      width: var(--space-5);
+
+      height: var(--space-5);
+
       accent-color: var(--color-primary-500);
       cursor: pointer;
       flex-shrink: 0;
@@ -804,7 +819,8 @@
     .radio-option .radio-description {
       font-size: 13px;
       color: var(--color-gray-500);
-      margin-top: 2px;
+      margin-top: var(--space-0-5);
+
     }
 
     /* Dropdown Select */
@@ -878,8 +894,10 @@
     }
 
     .tooltip-icon {
-      width: 16px;
-      height: 16px;
+      width: var(--space-4);
+
+      height: var(--space-4);
+
       background: var(--color-slate-200);
       border-radius: 50%;
       display: inline-flex;
@@ -1075,8 +1093,10 @@
     }
 
     .step-number {
-      width: 28px;
-      height: 28px;
+      width: var(--space-7);
+
+      height: var(--space-7);
+
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -1137,7 +1157,8 @@
 
     .currency-symbol {
       position: absolute;
-      left: 14px;
+      left: var(--space-3-5);
+
       font-size: var(--text-base);
       color: var(--color-slate-500);
       font-weight: var(--font-medium);
@@ -1145,7 +1166,8 @@
 
     .currency-input {
       width: 100%;
-      padding: var(--space-3-5) var(--space-3-5) var(--space-3-5) 32px;
+      padding: var(--space-3-5) var(--space-3-5) var(--space-3-5) var(--space-8);
+
       font-size: var(--text-lg);
       font-weight: var(--font-semibold);
       border: 2px solid var(--color-slate-200);
@@ -1179,7 +1201,8 @@
 
     .slider-input {
       width: 100%;
-      height: 8px;
+      height: var(--space-2);
+
       border-radius: 4px;
       background: var(--color-slate-200);
       appearance: none;
@@ -1188,8 +1211,10 @@
 
     .slider-input::-webkit-slider-thumb {
       appearance: none;
-      width: 24px;
-      height: 24px;
+      width: var(--space-6);
+
+      height: var(--space-6);
+
       border-radius: 50%;
       background: var(--color-primary-500);
       cursor: pointer;
@@ -1236,8 +1261,10 @@
     }
 
     .confidence-dot {
-      width: 6px;
-      height: 6px;
+      width: var(--space-1-5);
+
+      height: var(--space-1-5);
+
       border-radius: 50%;
     }
 
@@ -1256,7 +1283,8 @@
 
     .kbd {
       display: inline-block;
-      padding: 2px var(--space-1-5);
+      padding: var(--space-0-5) var(--space-1-5);
+
       background: var(--color-slate-200);
       border: 1px solid var(--color-slate-300);
       border-radius: var(--radius-sm);
@@ -1288,7 +1316,8 @@
       width: 2px;
       height: 1.2em;
       background: var(--color-primary-500);
-      margin-left: 2px;
+      margin-left: var(--space-0-5);
+
       animation: blink 1s infinite;
     }
 
@@ -1302,8 +1331,10 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 24px;
-      height: 24px;
+      width: var(--space-6);
+
+      height: var(--space-6);
+
       background: var(--color-success-500);
       border-radius: 50%;
       color: white;
@@ -1385,7 +1416,8 @@
 
     .insight-card .savings-amount {
       font-size: 28px;
-      font-weight: 800;
+      font-weight: var(--font-extrabold);
+
       color: var(--color-success-800);
     }
 
@@ -1430,7 +1462,8 @@
       color: var(--text);
       outline: none;
       resize: none;
-      min-height: 24px;
+      min-height: var(--space-6);
+
       max-height: 120px;
       font-family: inherit;
       line-height: var(--leading-normal);
@@ -1451,8 +1484,10 @@
       color: var(--text-secondary);
       cursor: pointer;
       font-size: var(--text-xl);
-      width: 44px;
-      height: 44px;
+      width: var(--space-11);
+
+      height: var(--space-11);
+
       border-radius: 10px;
       display: flex;
       align-items: center;
@@ -1525,7 +1560,8 @@
     }
 
     .progress-bar {
-      height: 8px;
+      height: var(--space-2);
+
       background: var(--color-slate-200);
       border-radius: 4px;
       overflow: hidden;
@@ -1596,8 +1632,10 @@
     }
 
     .step-icon {
-      width: 40px;
-      height: 40px;
+      width: var(--space-10);
+
+      height: var(--space-10);
+
       border-radius: 50%;
       background: var(--white);
       border: 2px solid var(--color-slate-200);
@@ -1904,12 +1942,14 @@
     }
 
     .skeleton-text {
-      height: 16px;
+      height: var(--space-4);
+
       margin: var(--space-2) 0;
     }
 
     .skeleton-title {
-      height: 24px;
+      height: var(--space-6);
+
       width: 60%;
       margin-bottom: var(--space-4);
     }
@@ -2004,7 +2044,8 @@
     .data-summary-item {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: var(--space-0-5);
+
     }
 
     .data-summary-label {
@@ -2055,8 +2096,10 @@
     }
 
     .confidence-dot {
-      width: 6px;
-      height: 6px;
+      width: var(--space-1-5);
+
+      height: var(--space-1-5);
+
       border-radius: 50%;
       background: currentColor;
     }
@@ -2092,8 +2135,10 @@
     }
 
     .typing-indicator span {
-      width: 10px;
-      height: 10px;
+      width: var(--space-2-5);
+
+      height: var(--space-2-5);
+
       background: var(--primary-light);
       border-radius: 50%;
       animation: typing 1.4s infinite;
@@ -2197,7 +2242,8 @@
       width: 1px;
       height: 1px;
       padding: 0;
-      margin: -1px;
+      margin: -var(--space-px);
+
       overflow: hidden;
       clip: rect(0, 0, 0, 0);
       white-space: nowrap;
@@ -2339,7 +2385,8 @@
     .consent-body p {
       color: var(--text-secondary);
       margin-bottom: var(--space-4);
-      line-height: 1.6;
+      line-height: var(--leading-relaxed);
+
     }
 
     .consent-item {
@@ -2379,8 +2426,10 @@
     }
 
     .consent-checkbox input {
-      width: 20px;
-      height: 20px;
+      width: var(--space-5);
+
+      height: var(--space-5);
+
       flex-shrink: 0;
       cursor: pointer;
       accent-color: var(--color-primary-500);
@@ -2451,8 +2500,10 @@
     /* Copy Button */
     .copy-btn {
       position: absolute;
-      top: 8px;
-      right: 8px;
+      top: var(--space-2);
+
+      right: var(--space-2);
+
       padding: var(--space-1) var(--space-2);
       background: var(--surface-light);
       border: 1px solid var(--border);
@@ -2543,7 +2594,8 @@
 
       #userInput {
         font-size: var(--text-base); /* Prevents iOS zoom on focus */
-        min-height: 20px;
+        min-height: var(--space-5);
+
       }
 
       .message {
@@ -2554,7 +2606,8 @@
 
       .action-btns button {
         min-width: 44px; /* Touch target minimum */
-        min-height: 44px;
+        min-height: var(--space-11);
+
         padding: var(--space-2-5);
       }
 
@@ -2706,7 +2759,8 @@
       }
 
       .messages-area {
-        padding-bottom: 80px;
+        padding-bottom: var(--space-20);
+
       }
     }
 
@@ -2715,8 +2769,10 @@
       .action-btns button,
       .clear-chat-btn,
       .consent-btn {
-        min-height: 44px;
-        min-width: 44px;
+        min-height: var(--space-11);
+
+        min-width: var(--space-11);
+
       }
 
       /* Remove hover effects on touch devices */
@@ -2753,7 +2809,8 @@
     .field-valid::after {
       content: '✓';
       position: absolute;
-      right: 12px;
+      right: var(--space-3);
+
       top: 50%;
       transform: translateY(-50%);
       color: var(--color-success-500);
@@ -2818,9 +2875,11 @@
     /* Progress indicator */
     .progress-container {
       width: 100%;
-      height: 4px;
+      height: var(--space-1);
+
       background: var(--surface);
-      border-radius: 2px;
+      border-radius: var(--radius-sm);
+
       overflow: hidden;
       margin: var(--space-2) 0;
     }
@@ -2828,7 +2887,8 @@
     .progress-bar {
       height: 100%;
       background: linear-gradient(90deg, var(--primary), var(--accent));
-      border-radius: 2px;
+      border-radius: var(--radius-sm);
+
       transition: width var(--transition-slow);
     }
 
@@ -2890,8 +2950,10 @@
     /* Confetti Animation */
     .confetti {
       position: absolute;
-      width: 10px;
-      height: 10px;
+      width: var(--space-2-5);
+
+      height: var(--space-2-5);
+
       opacity: 0;
       animation: confetti-fall 3s ease-out forwards;
     }
@@ -2937,7 +2999,8 @@
     }
 
     .celebration-toast .celebration-emoji {
-      font-size: 60px;
+      font-size: var(--text-6xl);
+
       display: block;
       margin-bottom: 15px;
       animation: bounce 0.6s ease infinite;
@@ -2960,8 +3023,10 @@
     }
 
     .celebration-toast .celebration-amount {
-      font-size: 36px;
-      font-weight: 800;
+      font-size: var(--text-4xl);
+
+      font-weight: var(--font-extrabold);
+
       color: var(--color-success-500);
       margin-top: var(--space-2-5);
       text-shadow: 0 2px 10px rgba(104, 211, 145, 0.5);
@@ -2970,8 +3035,10 @@
     /* Sparkle Effect */
     .sparkle {
       position: absolute;
-      width: 20px;
-      height: 20px;
+      width: var(--space-5);
+
+      height: var(--space-5);
+
       background: radial-gradient(circle, var(--color-warning-500) 0%, transparent 70%);
       border-radius: 50%;
       animation: sparkle-pop 0.8s ease-out forwards;
@@ -2989,7 +3056,8 @@
       width: 2px;
       height: 1.2em;
       background: var(--primary);
-      margin-left: 2px;
+      margin-left: var(--space-0-5);
+
       animation: cursor-blink 0.7s infinite;
       vertical-align: text-bottom;
     }
@@ -3005,8 +3073,10 @@
 
     /* Voice Input Button */
     .voice-input-btn {
-      width: 48px;
-      height: 48px;
+      width: var(--space-12);
+
+      height: var(--space-12);
+
       border-radius: 50%;
       background: var(--surface);
       border: 2px solid var(--border);
@@ -3041,8 +3111,10 @@
     .voice-input-btn.recording::before {
       content: '';
       position: absolute;
-      width: 12px;
-      height: 12px;
+      width: var(--space-3);
+
+      height: var(--space-3);
+
       background: var(--color-error-500);
       border-radius: 50%;
       animation: pulse-dot 1s infinite;
@@ -3071,7 +3143,8 @@
     .voice-transcript-text {
       color: var(--text);
       font-size: 15px;
-      min-height: 24px;
+      min-height: var(--space-6);
+
     }
 
     .voice-transcript-hint {
@@ -3151,8 +3224,10 @@
 
     .smart-nudge-close {
       position: absolute;
-      top: 10px;
-      right: 10px;
+      top: var(--space-2-5);
+
+      right: var(--space-2-5);
+
       background: none;
       border: none;
       color: var(--text-muted);
@@ -3166,7 +3241,8 @@
       display: inline-flex;
       align-items: center;
       gap: var(--space-1);
-      padding: 2px var(--space-2);
+      padding: var(--space-0-5) var(--space-2);
+
       border-radius: var(--radius-xl);
       font-size: 11px;
       font-weight: var(--font-semibold);
@@ -3291,14 +3367,18 @@
 
     .close-camera-btn {
       position: absolute;
-      top: 20px;
-      right: 20px;
+      top: var(--space-5);
+
+      right: var(--space-5);
+
       background: rgba(255, 255, 255, 0.2);
       border: none;
       color: white;
       font-size: var(--text-2xl);
-      width: 44px;
-      height: 44px;
+      width: var(--space-11);
+
+      height: var(--space-11);
+
       border-radius: 50%;
       cursor: pointer;
     }
@@ -3353,14 +3433,18 @@
 
     .close-options-btn {
       position: absolute;
-      top: 16px;
-      right: 16px;
+      top: var(--space-4);
+
+      right: var(--space-4);
+
       background: var(--surface-light);
       border: none;
       color: var(--text-secondary);
       font-size: var(--text-xl);
-      width: 36px;
-      height: 36px;
+      width: var(--space-9);
+
+      height: var(--space-9);
+
       border-radius: 50%;
       cursor: pointer;
       transition: all 0.2s;
@@ -3482,7 +3566,8 @@
 
     .near-miss-card .near-miss-amount {
       font-size: var(--text-2xl);
-      font-weight: 800;
+      font-weight: var(--font-extrabold);
+
       color: var(--color-warning-700);
       margin: var(--space-2) 0;
     }
@@ -3530,7 +3615,8 @@
 
     .live-savings-amount {
       font-size: 28px;
-      font-weight: 800;
+      font-weight: var(--font-extrabold);
+
     }
 
     .live-savings-amount.counting {
@@ -3589,7 +3675,8 @@
   }
 
   .disclaimer-icon {
-    font-size: 48px;
+    font-size: var(--text-5xl);
+
     margin-bottom: var(--space-4);
   }
 

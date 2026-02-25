@@ -122,7 +122,8 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        min-width: 40px;
+        min-width: var(--space-10);
+
     }
 
     .upcoming-day {
@@ -169,8 +170,10 @@
     }
 
     .legend-dot {
-        width: 12px;
-        height: 12px;
+        width: var(--space-3);
+
+        height: var(--space-3);
+
         border-radius: 50%;
     }
 
@@ -203,8 +206,10 @@
     }
 
     .nav-btn {
-        width: 36px;
-        height: 36px;
+        width: var(--space-9);
+
+        height: var(--space-9);
+
         display: flex;
         align-items: center;
         justify-content: center;
@@ -231,7 +236,8 @@
         display: flex;
         background: var(--color-gray-100);
         border-radius: var(--radius-md);
-        padding: 2px;
+        padding: var(--space-0-5);
+
     }
 
     .view-btn {
@@ -302,8 +308,10 @@
         background: var(--color-primary-600);
         color: white;
         border-radius: 50%;
-        width: 28px;
-        height: 28px;
+        width: var(--space-7);
+
+        height: var(--space-7);
+
         display: flex;
         align-items: center;
         justify-content: center;
@@ -408,8 +416,10 @@
     }
 
     .modal-close {
-        width: 32px;
-        height: 32px;
+        width: var(--space-8);
+
+        height: var(--space-8);
+
         display: flex;
         align-items: center;
         justify-content: center;
@@ -499,7 +509,7 @@
     <div class="page-header">
         <h1 class="page-title">Tax Deadline Calendar</h1>
         <div class="header-actions">
-            <a href="/deadlines/list" class="btn btn-secondary">
+            <a href="/deadlines" class="btn btn-secondary">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M4 6h16M4 12h16M4 18h16"/>
                 </svg>

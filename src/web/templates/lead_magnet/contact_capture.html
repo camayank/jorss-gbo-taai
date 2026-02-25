@@ -32,7 +32,8 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
+            line-height: var(--leading-relaxed);
+
             color: var(--text-dark);
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             min-height: 100vh;
@@ -47,7 +48,8 @@
         /* Form Card */
         .form-card {
             background: var(--white);
-            border-radius: 24px;
+            border-radius: var(--radius-3xl);
+
             padding: var(--space-10);
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
         }
@@ -101,7 +103,7 @@
             gap: var(--space-1-5);
             font-size: 0.78rem;
             font-weight: var(--font-semibold);
-            border-radius: 999px;
+            border-radius: var(--radius-full);
             padding: var(--space-1-5) var(--space-2-5);
             margin: 0 auto var(--space-3);
         }
@@ -137,7 +139,8 @@
         .context-title {
             font-size: 0.8rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: var(--tracking-wider);
+
             color: #1d4ed8;
             margin-bottom: var(--space-1-5);
         }
@@ -173,8 +176,10 @@
         }
 
         .benefit-check {
-            width: 20px;
-            height: 20px;
+            width: var(--space-5);
+
+            height: var(--space-5);
+
             background: var(--accent-color);
             border-radius: 50%;
             display: flex;
@@ -184,8 +189,10 @@
         }
 
         .benefit-check svg {
-            width: 12px;
-            height: 12px;
+            width: var(--space-3);
+
+            height: var(--space-3);
+
             color: white;
         }
 
@@ -256,7 +263,8 @@
             font-size: 0.75rem;
             background: var(--color-gray-200);
             color: var(--text-muted);
-            padding: 2px var(--space-2);
+            padding: var(--space-0-5) var(--space-2);
+
             border-radius: var(--radius-lg);
         }
 
@@ -281,9 +289,12 @@
         }
 
         .consent-checkbox {
-            width: 20px;
-            height: 20px;
-            margin-top: 2px;
+            width: var(--space-5);
+
+            height: var(--space-5);
+
+            margin-top: var(--space-0-5);
+
             cursor: pointer;
             accent-color: var(--primary-color);
         }
@@ -341,8 +352,10 @@
         }
 
         .security-note svg {
-            width: 16px;
-            height: 16px;
+            width: var(--space-4);
+
+            height: var(--space-4);
+
             color: var(--accent-color);
         }
 
@@ -392,8 +405,10 @@
             border: 3px solid #f3f3f3;
             border-top: 3px solid var(--primary-color);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: var(--space-10);
+
+            height: var(--space-10);
+
             animation: spin 1s linear infinite;
             margin: 0 auto var(--space-4);
         }
@@ -423,7 +438,8 @@
         }
 
         .loading-card.success {
-            border: 1px solid #bbf7d0;
+            border: 1px solid var(--color-success-200);
+
             background: #f0fdf4;
         }
 

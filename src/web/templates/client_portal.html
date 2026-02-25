@@ -104,7 +104,8 @@
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--gray-50);
       color: var(--gray-600);
-      line-height: 1.6;
+      line-height: var(--leading-relaxed);
+
       min-height: 100vh;
     }
 
@@ -139,8 +140,10 @@
     }
 
     .logo-icon {
-      width: 36px;
-      height: 36px;
+      width: var(--space-9);
+
+      height: var(--space-9);
+
       background: var(--primary);
       border-radius: var(--radius-lg);
       display: flex;
@@ -199,8 +202,10 @@
     }
 
     .step-circle {
-      width: 40px;
-      height: 40px;
+      width: var(--space-10);
+
+      height: var(--space-10);
+
       border-radius: 50%;
       background: var(--gray-200);
       color: var(--gray-500);
@@ -375,7 +380,8 @@
       cursor: pointer;
       transition: var(--transition);
       border: none;
-      min-height: 44px;
+      min-height: var(--space-11);
+
     }
 
     .btn-primary {
@@ -455,7 +461,8 @@
     }
 
     .upload-icon {
-      font-size: 48px;
+      font-size: var(--text-5xl);
+
       margin-bottom: var(--space-4);
     }
 
@@ -487,8 +494,10 @@
     }
 
     .file-icon {
-      width: 40px;
-      height: 40px;
+      width: var(--space-10);
+
+      height: var(--space-10);
+
       background: var(--primary-light);
       border-radius: var(--radius-lg);
       display: flex;
@@ -600,8 +609,10 @@
     }
 
     .insight-icon {
-      width: 44px;
-      height: 44px;
+      width: var(--space-11);
+
+      height: var(--space-11);
+
       border-radius: 10px;
       display: flex;
       align-items: center;
@@ -620,7 +631,8 @@
       font-weight: var(--font-semibold);
       font-size: var(--text-sm);
       color: var(--gray-700);
-      margin-bottom: 2px;
+      margin-bottom: var(--space-0-5);
+
     }
 
     .insight-desc {
@@ -649,7 +661,8 @@
     .timeline::before {
       content: '';
       position: absolute;
-      left: 8px;
+      left: var(--space-2);
+
       top: 0;
       bottom: 0;
       width: 2px;
@@ -699,7 +712,8 @@
     .timeline-desc {
       font-size: 13px;
       color: var(--gray-500);
-      margin-top: 2px;
+      margin-top: var(--space-0-5);
+
     }
 
     .timeline-time {
@@ -731,7 +745,8 @@
     .consent-text {
       font-size: 13px;
       color: var(--gray-500);
-      line-height: 1.6;
+      line-height: var(--leading-relaxed);
+
     }
 
     .checkbox-group {
@@ -756,9 +771,12 @@
     }
 
     .checkbox-group input {
-      width: 20px;
-      height: 20px;
-      margin-top: 2px;
+      width: var(--space-5);
+
+      height: var(--space-5);
+
+      margin-top: var(--space-0-5);
+
       accent-color: var(--primary);
     }
 
@@ -772,8 +790,10 @@
        LOADING & EMPTY STATES
        ================================================================ */
     .loading-spinner {
-      width: 40px;
-      height: 40px;
+      width: var(--space-10);
+
+      height: var(--space-10);
+
       border: 3px solid var(--gray-200);
       border-top-color: var(--primary);
       border-radius: 50%;
@@ -805,7 +825,8 @@
     }
 
     .empty-icon {
-      font-size: 48px;
+      font-size: var(--text-5xl);
+
       margin-bottom: var(--space-4);
     }
 
@@ -829,7 +850,8 @@
     .toast-container {
       position: fixed;
       top: 80px;
-      right: 24px;
+      right: var(--space-6);
+
       z-index: 1000;
       display: flex;
       flex-direction: column;
@@ -912,7 +934,8 @@
     .cpa-branding h2 {
       font-size: var(--text-lg);
       font-weight: var(--font-bold);
-      margin-bottom: 2px;
+      margin-bottom: var(--space-0-5);
+
     }
 
     .cpa-branding p {
@@ -1002,8 +1025,10 @@
     }
 
     .stepper-btn {
-      width: 36px;
-      height: 36px;
+      width: var(--space-9);
+
+      height: var(--space-9);
+
       border: 2px solid var(--gray-200);
       border-radius: 50%;
       background: var(--white);
@@ -1022,7 +1047,8 @@
     .stepper-value {
       font-size: var(--text-xl);
       font-weight: var(--font-semibold);
-      min-width: 40px;
+      min-width: var(--space-10);
+
       text-align: center;
     }
 
@@ -1034,8 +1060,10 @@
 
     .switch {
       position: relative;
-      width: 48px;
-      height: 28px;
+      width: var(--space-12);
+
+      height: var(--space-7);
+
     }
 
     .switch input {
@@ -1089,7 +1117,8 @@
       font-size: 13px;
       color: var(--color-success-700);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: var(--tracking-wider);
+
       margin-bottom: var(--space-2);
     }
 
@@ -1181,7 +1210,8 @@
     }
 
     .progress-bar {
-      height: 8px;
+      height: var(--space-2);
+
       background: var(--gray-200);
       border-radius: 4px;
       overflow: hidden;
@@ -1237,8 +1267,10 @@
     }
 
     .cpa-avatar {
-      width: 44px;
-      height: 44px;
+      width: var(--space-11);
+
+      height: var(--space-11);
+
       border-radius: 50%;
       background: var(--primary);
       color: var(--white);
@@ -1297,8 +1329,10 @@
     }
 
     .dash-stat-icon {
-      width: 48px;
-      height: 48px;
+      width: var(--space-12);
+
+      height: var(--space-12);
+
       border-radius: var(--radius-xl);
       display: flex;
       align-items: center;
@@ -1396,7 +1430,8 @@
     .progress-step::before {
       content: '';
       position: absolute;
-      top: 8px;
+      top: var(--space-2);
+
       left: -50%;
       right: 50%;
       height: 2px;
@@ -1500,7 +1535,8 @@
       font-weight: var(--font-semibold);
       font-size: var(--text-sm);
       color: var(--gray-700);
-      margin-bottom: 2px;
+      margin-bottom: var(--space-0-5);
+
     }
 
     .action-desc {
@@ -1522,8 +1558,10 @@
     }
 
     .timeline-dot {
-      width: 12px;
-      height: 12px;
+      width: var(--space-3);
+
+      height: var(--space-3);
+
       border-radius: 50%;
       flex-shrink: 0;
       margin-top: var(--space-1);
@@ -1538,7 +1576,8 @@
       font-weight: var(--font-semibold);
       font-size: var(--text-sm);
       color: var(--gray-700);
-      margin-bottom: 2px;
+      margin-bottom: var(--space-0-5);
+
     }
 
     .activity-timeline .timeline-desc {
@@ -1570,7 +1609,8 @@
       font-weight: var(--font-semibold);
       color: var(--gray-500);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: var(--tracking-wider);
+
       border-bottom: 2px solid var(--gray-100);
     }
 
@@ -1654,13 +1694,15 @@
     .doc-desc {
       font-size: 13px;
       color: var(--gray-500);
-      margin-top: 2px;
+      margin-top: var(--space-0-5);
+
     }
 
     .doc-meta {
       font-size: var(--text-xs);
       color: var(--gray-400);
-      margin-top: 2px;
+      margin-top: var(--space-0-5);
+
     }
 
     /* Uploaded Documents */
@@ -1713,8 +1755,10 @@
     }
 
     .message-avatar {
-      width: 36px;
-      height: 36px;
+      width: var(--space-9);
+
+      height: var(--space-9);
+
       border-radius: 50%;
       background: var(--primary);
       color: var(--white);
@@ -1909,7 +1953,8 @@
       }
       .toast {
         max-width: calc(100vw - 48px);
-        right: 12px;
+        right: var(--space-3);
+
       }
     }
 
@@ -1934,7 +1979,8 @@
     .btn-sm {
       padding: var(--space-2) var(--space-4);
       font-size: 13px;
-      min-height: 36px;
+      min-height: var(--space-9);
+
     }
 
     /* Logout Button */

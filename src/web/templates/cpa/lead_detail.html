@@ -10,8 +10,10 @@
     .breadcrumb {
         display: flex;
         align-items: center;
-        gap: 8px;
-        margin-bottom: 24px;
+        gap: var(--space-2);
+
+        margin-bottom: var(--space-6);
+
         font-size: 0.9rem;
     }
 
@@ -30,30 +32,36 @@
 
     .breadcrumb-current {
         color: var(--text-dark);
-        font-weight: 500;
+        font-weight: var(--font-medium);
+
     }
 
     /* Lead Header */
     .lead-header {
         background: var(--white);
-        border-radius: 16px;
-        padding: 24px;
+        border-radius: var(--radius-2xl);
+
+        padding: var(--space-6);
+
         border: 1px solid var(--border-color);
-        margin-bottom: 24px;
+        margin-bottom: var(--space-6);
+
     }
 
     .lead-header-top {
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        gap: 24px;
+        gap: var(--space-6);
+
         flex-wrap: wrap;
     }
 
     .lead-identity {
         display: flex;
         align-items: center;
-        gap: 20px;
+        gap: var(--space-5);
+
     }
 
     .lead-avatar-large {
@@ -65,57 +73,70 @@
         align-items: center;
         justify-content: center;
         color: white;
-        font-weight: 700;
+        font-weight: var(--font-bold);
+
         font-size: 1.75rem;
     }
 
     .lead-name-section h2 {
         font-size: 1.5rem;
-        font-weight: 700;
-        margin-bottom: 4px;
+        font-weight: var(--font-bold);
+
+        margin-bottom: var(--space-1);
+
     }
 
     .lead-meta {
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: var(--space-4);
+
         flex-wrap: wrap;
     }
 
     .lead-meta-item {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: var(--space-1-5);
+
         color: var(--text-muted);
         font-size: 0.9rem;
     }
 
     .lead-header-actions {
         display: flex;
-        gap: 12px;
+        gap: var(--space-3);
+
     }
 
     /* Status Badges Row */
     .status-badges {
         display: flex;
-        gap: 12px;
-        margin-top: 20px;
+        gap: var(--space-3);
+
+        margin-top: var(--space-5);
+
         flex-wrap: wrap;
     }
 
     .status-badge {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        padding: 8px 16px;
-        border-radius: 24px;
+        gap: var(--space-1-5);
+
+        padding: var(--space-2) var(--space-4);
+
+        border-radius: var(--radius-3xl);
+
         font-size: 0.85rem;
-        font-weight: 600;
+        font-weight: var(--font-semibold);
+
     }
 
     .status-badge.state {
         background: var(--color-success-100);
-        color: #047857;
+        color: var(--color-success-700);
+
     }
 
     .status-badge.state.high_leverage { background: #fce7f3; color: #be185d; }
@@ -139,7 +160,8 @@
     .detail-grid {
         display: grid;
         grid-template-columns: 2fr 1fr;
-        gap: 24px;
+        gap: var(--space-6);
+
     }
 
     @media (max-width: 1024px) {
@@ -151,13 +173,16 @@
     /* Info Cards */
     .info-card {
         background: var(--white);
-        border-radius: 12px;
+        border-radius: var(--radius-xl);
+
         border: 1px solid var(--border-color);
-        margin-bottom: 24px;
+        margin-bottom: var(--space-6);
+
     }
 
     .info-card-header {
-        padding: 16px 20px;
+        padding: var(--space-4) var(--space-5);
+
         border-bottom: 1px solid var(--border-color);
         display: flex;
         align-items: center;
@@ -165,33 +190,40 @@
     }
 
     .info-card-title {
-        font-weight: 600;
+        font-weight: var(--font-semibold);
+
         font-size: 1rem;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: var(--space-2);
+
     }
 
     .info-card-body {
-        padding: 20px;
+        padding: var(--space-5);
+
     }
 
     /* Contact Info */
     .contact-list {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: var(--space-4);
+
     }
 
     .contact-item {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: var(--space-3);
+
     }
 
     .contact-icon {
-        width: 40px;
-        height: 40px;
+        width: var(--space-10);
+
+        height: var(--space-10);
+
         border-radius: 10px;
         background: var(--bg-light);
         display: flex;
@@ -208,7 +240,8 @@
     }
 
     .contact-value {
-        font-weight: 500;
+        font-weight: var(--font-medium);
+
     }
 
     .contact-value a {
@@ -224,11 +257,13 @@
     .profile-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 16px;
+        gap: var(--space-4);
+
     }
 
     .profile-item {
-        padding: 12px;
+        padding: var(--space-3);
+
         background: var(--bg-light);
         border-radius: 10px;
     }
@@ -238,16 +273,19 @@
         color: var(--text-muted);
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        margin-bottom: 4px;
+        margin-bottom: var(--space-1);
+
     }
 
     .profile-item-value {
-        font-weight: 600;
+        font-weight: var(--font-semibold);
+
     }
 
     /* Insights */
     .insight-item {
-        padding: 16px;
+        padding: var(--space-4);
+
         border-bottom: 1px solid var(--border-color);
     }
 
@@ -258,29 +296,37 @@
     .insight-header {
         display: flex;
         align-items: center;
-        gap: 12px;
-        margin-bottom: 8px;
+        gap: var(--space-3);
+
+        margin-bottom: var(--space-2);
+
     }
 
     .insight-category {
         font-size: 0.75rem;
-        padding: 4px 8px;
-        border-radius: 6px;
+        padding: var(--space-1) var(--space-2);
+
+        border-radius: var(--radius-md);
+
         background: var(--bg-light);
         color: var(--text-muted);
         text-transform: uppercase;
-        font-weight: 600;
+        font-weight: var(--font-semibold);
+
     }
 
     .insight-savings {
         margin-left: auto;
-        font-weight: 700;
+        font-weight: var(--font-bold);
+
         color: var(--success);
     }
 
     .insight-title {
-        font-weight: 600;
-        margin-bottom: 4px;
+        font-weight: var(--font-semibold);
+
+        margin-bottom: var(--space-1);
+
     }
 
     .insight-description {
@@ -291,43 +337,55 @@
     /* Actions Sidebar */
     .action-card {
         background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-        border-radius: 16px;
-        padding: 24px;
+        border-radius: var(--radius-2xl);
+
+        padding: var(--space-6);
+
         color: white;
-        margin-bottom: 24px;
+        margin-bottom: var(--space-6);
+
     }
 
     .action-card-title {
         font-size: 1.1rem;
-        font-weight: 600;
-        margin-bottom: 16px;
+        font-weight: var(--font-semibold);
+
+        margin-bottom: var(--space-4);
+
     }
 
     .action-card-value {
         font-size: 2.5rem;
-        font-weight: 700;
-        margin-bottom: 8px;
+        font-weight: var(--font-bold);
+
+        margin-bottom: var(--space-2);
+
     }
 
     .action-card-label {
         opacity: 0.8;
-        margin-bottom: 20px;
+        margin-bottom: var(--space-5);
+
     }
 
     .action-buttons {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: var(--space-3);
+
     }
 
     .action-btn {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        padding: 14px 20px;
+        gap: var(--space-2);
+
+        padding: var(--space-3-5) var(--space-5);
+
         border-radius: 10px;
-        font-weight: 600;
+        font-weight: var(--font-semibold);
+
         font-size: 0.95rem;
         cursor: pointer;
         transition: all 0.15s ease;
@@ -357,22 +415,26 @@
     /* Status Timeline */
     .timeline {
         position: relative;
-        padding-left: 24px;
+        padding-left: var(--space-6);
+
     }
 
     .timeline::before {
         content: '';
         position: absolute;
         left: 7px;
-        top: 8px;
-        bottom: 8px;
+        top: var(--space-2);
+
+        bottom: var(--space-2);
+
         width: 2px;
         background: var(--border-color);
     }
 
     .timeline-item {
         position: relative;
-        padding-bottom: 20px;
+        padding-bottom: var(--space-5);
+
     }
 
     .timeline-item:last-child {
@@ -382,9 +444,12 @@
     .timeline-dot {
         position: absolute;
         left: -24px;
-        top: 4px;
-        width: 16px;
-        height: 16px;
+        top: var(--space-1);
+
+        width: var(--space-4);
+
+        height: var(--space-4);
+
         border-radius: 50%;
         background: var(--bg-light);
         border: 3px solid var(--border-color);
@@ -401,8 +466,10 @@
     }
 
     .timeline-title {
-        font-weight: 600;
-        margin-bottom: 4px;
+        font-weight: var(--font-semibold);
+
+        margin-bottom: var(--space-1);
+
     }
 
     .timeline-time {
@@ -414,14 +481,17 @@
     .engagement-status {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: var(--space-3);
+
     }
 
     .engagement-item {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 12px;
+        gap: var(--space-3);
+
+        padding: var(--space-3);
+
         background: var(--bg-light);
         border-radius: 10px;
     }
@@ -435,7 +505,8 @@
     }
 
     .engagement-label {
-        font-weight: 500;
+        font-weight: var(--font-medium);
+
     }
 
     .engagement-status-text {
@@ -444,8 +515,10 @@
     }
 
     .engagement-check {
-        width: 24px;
-        height: 24px;
+        width: var(--space-6);
+
+        height: var(--space-6);
+
         border-radius: 50%;
         display: flex;
         align-items: center;

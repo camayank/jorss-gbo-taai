@@ -75,7 +75,8 @@
             background: linear-gradient(135deg, var(--color-primary-700) 0%, var(--color-primary-500) 50%, var(--color-primary-400) 100%);
             min-height: 100vh;
             color: var(--text-primary);
-            line-height: 1.6;
+            line-height: var(--leading-relaxed);
+
         }
 
         .header {
@@ -98,7 +99,8 @@
 
         .logo {
             font-size: 1.5rem;
-            font-weight: 700;
+            font-weight: var(--font-bold);
+
             color: white;
             text-decoration: none;
         }
@@ -113,7 +115,8 @@
         .nav-links a {
             color: rgba(255, 255, 255, 0.9);
             text-decoration: none;
-            font-weight: 500;
+            font-weight: var(--font-medium);
+
             padding: 0.5rem 1rem;
             border-radius: var(--radius-lg);
             transition: all 0.2s;
@@ -138,7 +141,8 @@
 
         .hero h1 {
             font-size: 2.5rem;
-            font-weight: 700;
+            font-weight: var(--font-bold);
+
             margin-bottom: 1rem;
         }
 
@@ -156,7 +160,8 @@
         .section-title {
             color: white;
             font-size: 1.5rem;
-            font-weight: 600;
+            font-weight: var(--font-semibold);
+
             margin-bottom: 1rem;
             display: flex;
             align-items: center;
@@ -164,8 +169,10 @@
         }
 
         .section-title svg {
-            width: 24px;
-            height: 24px;
+            width: var(--space-6);
+
+            height: var(--space-6);
+
         }
 
         .grid {
@@ -198,8 +205,10 @@
         }
 
         .card-icon {
-            width: 48px;
-            height: 48px;
+            width: var(--space-12);
+
+            height: var(--space-12);
+
             border-radius: var(--radius-xl);
             display: flex;
             align-items: center;
@@ -213,13 +222,16 @@
         .card-icon.red { background: var(--color-error-100); color: var(--danger); }
 
         .card-icon svg {
-            width: 24px;
-            height: 24px;
+            width: var(--space-6);
+
+            height: var(--space-6);
+
         }
 
         .card h3 {
             font-size: 1.125rem;
-            font-weight: 600;
+            font-weight: var(--font-semibold);
+
             color: var(--text-primary);
         }
 
@@ -235,7 +247,8 @@
             gap: 0.5rem;
             color: var(--primary);
             text-decoration: none;
-            font-weight: 500;
+            font-weight: var(--font-medium);
+
             font-size: 0.875rem;
         }
 
@@ -246,9 +259,11 @@
         .badge {
             display: inline-block;
             padding: 0.25rem 0.5rem;
-            border-radius: 6px;
+            border-radius: var(--radius-md);
+
             font-size: 0.75rem;
-            font-weight: 500;
+            font-weight: var(--font-medium);
+
         }
 
         .badge-blue { background: var(--primary-light); color: var(--primary); }
@@ -283,8 +298,10 @@
 
         .flow-list li::before {
             content: "";
-            width: 6px;
-            height: 6px;
+            width: var(--space-1-5);
+
+            height: var(--space-1-5);
+
             border-radius: 50%;
             background: var(--primary);
         }
@@ -307,21 +324,25 @@
         }
 
         .arch-level-num {
-            width: 32px;
-            height: 32px;
+            width: var(--space-8);
+
+            height: var(--space-8);
+
             border-radius: 50%;
             background: var(--primary);
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 600;
+            font-weight: var(--font-semibold);
+
             font-size: 0.875rem;
         }
 
         .arch-level-content h4 {
             font-size: 0.875rem;
-            font-weight: 600;
+            font-weight: var(--font-semibold);
+
             color: var(--text-primary);
         }
 
@@ -347,7 +368,8 @@
 
         .api-group h4 {
             font-size: 0.875rem;
-            font-weight: 600;
+            font-weight: var(--font-semibold);
+
             color: var(--text-primary);
             margin-bottom: 0.5rem;
             display: flex;
@@ -373,7 +395,8 @@
         }
 
         .api-endpoint .method {
-            font-weight: 600;
+            font-weight: var(--font-semibold);
+
         }
 
         .api-endpoint .method.get { color: var(--success); }
@@ -396,7 +419,8 @@
 
         .module-item h5 {
             font-size: 0.875rem;
-            font-weight: 600;
+            font-weight: var(--font-semibold);
+
             color: var(--text-primary);
         }
 
@@ -522,8 +546,10 @@
             }
 
             .section-title svg {
-                width: 20px;
-                height: 20px;
+                width: var(--space-5);
+
+                height: var(--space-5);
+
             }
         }
     </style>

@@ -86,8 +86,10 @@
     /* Toggle Switch */
     .toggle {
         position: relative;
-        width: 44px;
-        height: 24px;
+        width: var(--space-11);
+
+        height: var(--space-6);
+
     }
 
     .toggle input {
@@ -105,7 +107,8 @@
         bottom: 0;
         background-color: var(--color-gray-300);
         transition: 0.3s;
-        border-radius: 24px;
+        border-radius: var(--radius-3xl);
+
     }
 
     .toggle-slider:before {
@@ -203,8 +206,10 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 20px;
-        height: 20px;
+        width: var(--space-5);
+
+        height: var(--space-5);
+
         border: 2px solid var(--color-gray-300);
         border-radius: var(--radius-sm);
         cursor: pointer;
@@ -261,15 +266,18 @@
     }
 
     .frequency-radio {
-        width: 20px;
-        height: 20px;
+        width: var(--space-5);
+
+        height: var(--space-5);
+
         border: 2px solid var(--color-gray-300);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        margin-top: 2px;
+        margin-top: var(--space-0-5);
+
     }
 
     .frequency-option.selected .frequency-radio {
@@ -278,8 +286,10 @@
 
     .frequency-option.selected .frequency-radio::after {
         content: '';
-        width: 10px;
-        height: 10px;
+        width: var(--space-2-5);
+
+        height: var(--space-2-5);
+
         background: var(--color-primary-600);
         border-radius: 50%;
     }

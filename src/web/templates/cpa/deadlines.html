@@ -6,40 +6,40 @@
 
 {% block extra_styles %}
 <style>
-    .deadline-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
-    .stat-card { background: var(--white); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); }
-    .stat-value { font-size: 2rem; font-weight: 700; }
+    .deadline-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); margin-bottom: var(--space-6); }
+    .stat-card { background: var(--white); border-radius: var(--radius-xl); padding: var(--space-5); border: 1px solid var(--border-color); }
+    .stat-value { font-size: 2rem; font-weight: var(--font-bold); }
     .stat-value.urgent { color: var(--color-error-600); }
     .stat-value.warning { color: #d97706; }
     .stat-value.success { color: var(--color-success-600); }
-    .stat-label { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
+    .stat-label { font-size: 0.85rem; color: var(--text-muted); margin-top: var(--space-1); }
 
-    .progress-section { background: var(--white); border-radius: 12px; border: 1px solid var(--border-color); padding: 20px; margin-bottom: 24px; }
-    .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .progress-section { background: var(--white); border-radius: var(--radius-xl); border: 1px solid var(--border-color); padding: var(--space-5); margin-bottom: var(--space-6); }
+    .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2-5); }
     .progress-title { font-weight: 600; font-size: 0.95rem; }
     .progress-pct { font-weight: 700; color: var(--primary-color); }
     .progress-track { width: 100%; height: 10px; background: var(--bg-light); border-radius: 5px; overflow: hidden; }
     .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary-color), var(--success-color, #059669)); border-radius: 5px; transition: width 0.4s ease; }
 
-    .tax-deadlines { background: var(--white); border-radius: 12px; border: 1px solid var(--border-color); padding: 20px; margin-bottom: 24px; }
-    .tax-deadlines-title { font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-    .tax-deadline-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-    .tax-deadline-card { padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-light); }
+    .tax-deadlines { background: var(--white); border-radius: var(--radius-xl); border: 1px solid var(--border-color); padding: var(--space-5); margin-bottom: var(--space-6); }
+    .tax-deadlines-title { font-weight: 600; margin-bottom: var(--space-4); display: flex; align-items: center; gap: var(--space-2); }
+    .tax-deadline-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); }
+    .tax-deadline-card { padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: var(--bg-light); }
     .tax-deadline-date { font-weight: 600; color: var(--primary-color); font-size: 0.95rem; }
-    .tax-deadline-name { font-size: 0.85rem; margin-top: 4px; color: var(--text-muted); }
+    .tax-deadline-name { font-size: 0.85rem; margin-top: var(--space-1); color: var(--text-muted); }
 
-    .deadlines-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-    .deadline-filters { display: flex; gap: 8px; flex-wrap: wrap; }
-    .filter-btn { padding: 8px 16px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--white); cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
+    .deadlines-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-5); flex-wrap: wrap; gap: var(--space-3); }
+    .deadline-filters { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+    .filter-btn { padding: 8px 16px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--white); cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
     .filter-btn:hover, .filter-btn.active { background: var(--primary-color); color: white; border-color: var(--primary-color); }
-    .add-deadline-btn { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+    .add-deadline-btn { background: var(--primary-color); color: white; border: none; padding: var(--space-2-5) var(--space-5); border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-medium); display: flex; align-items: center; gap: var(--space-2); font-size: 0.9rem; }
     .add-deadline-btn:hover { background: var(--primary-hover); }
 
-    .deadline-section { background: var(--white); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; }
-    .section-header { padding: 16px 20px; background: var(--bg-light); border-bottom: 1px solid var(--border-color); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
-    .section-count { background: var(--primary-color); color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.85rem; }
+    .deadline-section { background: var(--white); border-radius: var(--radius-xl); border: 1px solid var(--border-color); overflow: hidden; }
+    .section-header { padding: 16px 20px; background: var(--bg-light); border-bottom: 1px solid var(--border-color); font-weight: var(--font-semibold); display: flex; justify-content: space-between; align-items: center; }
+    .section-count { background: var(--primary-color); color: white; padding: 2px var(--space-2-5); border-radius: var(--radius-xl); font-size: 0.85rem; }
 
-    .deadline-item { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-color); gap: 16px; transition: background 0.15s; }
+    .deadline-item { display: flex; align-items: center; padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border-color); gap: var(--space-4); transition: background 0.15s; }
     .deadline-item:last-child { border-bottom: none; }
     .deadline-item:hover { background: var(--bg-light); }
     .deadline-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
@@ -54,41 +54,41 @@
     .deadline-date-value { font-weight: 600; font-size: 0.9rem; }
     .deadline-date-value.overdue { color: var(--color-error-600); }
     .deadline-days { font-size: 0.8rem; color: var(--text-muted); }
-    .deadline-days.overdue { color: var(--color-error-600); font-weight: 500; }
+    .deadline-days.overdue { color: var(--color-error-600); font-weight: var(--font-medium); }
 
-    .status-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+    .status-badge { display: inline-block; padding: 3px var(--space-2-5); border-radius: var(--radius-xl); font-size: 0.75rem; font-weight: var(--font-semibold); }
     .badge-pending { background: var(--color-warning-100); color: var(--color-warning-800); }
     .badge-in-progress { background: var(--color-info-100); color: var(--color-info-800); }
     .badge-filed { background: var(--color-success-100); color: var(--color-success-800); }
     .badge-extended { background: #ede9fe; color: #5b21b6; }
 
-    .deadline-actions { display: flex; gap: 6px; flex-shrink: 0; }
-    .action-btn { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--white); cursor: pointer; font-size: 0.78rem; transition: all 0.15s; white-space: nowrap; }
+    .deadline-actions { display: flex; gap: var(--space-1-5); flex-shrink: 0; }
+    .action-btn { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--white); cursor: pointer; font-size: 0.78rem; transition: all 0.15s; white-space: nowrap; }
     .action-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
     .action-btn.complete:hover { border-color: var(--color-success-600); color: var(--color-success-600); }
 
-    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+    .empty-state { text-align: center; padding: var(--space-10) var(--space-5); color: var(--text-muted); }
 
     /* Modal */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .modal-content { background: var(--white); border-radius: 12px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; display: flex; align-items: center; justify-content: center; padding: var(--space-5); }
+    .modal-content { background: var(--white); border-radius: var(--radius-xl); width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; }
     .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
     .modal-header h3 { font-weight: 600; font-size: 1.1rem; margin: 0; }
-    .modal-close { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); padding: 4px; }
+    .modal-close { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); padding: var(--space-1); }
     .modal-body { padding: 24px; }
     .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 6px; color: var(--text-dark); }
-    .form-control { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: var(--font-medium); margin-bottom: var(--space-1-5); color: var(--text-dark); }
+    .form-control { width: 100%; padding: var(--space-2-5) var(--space-3); border: 1px solid var(--border-color); border-radius: var(--radius-lg); font-size: 0.9rem; box-sizing: border-box; }
     .form-control:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.1); }
     textarea.form-control { resize: vertical; min-height: 70px; }
-    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; }
-    .btn-cancel { padding: 10px 20px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--white); cursor: pointer; font-size: 0.9rem; }
-    .btn-save { padding: 10px 20px; border: none; border-radius: 8px; background: var(--primary-color); color: white; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: var(--space-2-5); }
+    .btn-cancel { padding: 10px 20px; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: var(--white); cursor: pointer; font-size: 0.9rem; }
+    .btn-save { padding: 10px 20px; border: none; border-radius: var(--radius-lg); background: var(--primary-color); color: white; cursor: pointer; font-size: 0.9rem; font-weight: var(--font-medium); }
     .btn-save:hover { background: var(--primary-hover); }
 
     /* Toast */
-    .toast-container { position: fixed; top: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
-    .toast { padding: 12px 20px; border-radius: 8px; color: white; font-size: 0.9rem; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateX(120%); transition: transform 0.3s ease; }
+    .toast-container { position: fixed; top: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: var(--space-2); }
+    .toast { padding: 12px 20px; border-radius: var(--radius-lg); color: white; font-size: 0.9rem; font-weight: var(--font-medium); box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateX(120%); transition: transform 0.3s ease; }
     .toast.show { transform: translateX(0); }
     .toast-success { background: var(--color-success-600); }
     .toast-info { background: var(--primary-color); }
