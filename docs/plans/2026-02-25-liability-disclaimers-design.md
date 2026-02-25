@@ -1,7 +1,7 @@
 # Liability Disclaimers Design Document
 
 **Date:** 2026-02-25
-**Status:** Approved
+**Status:** Implemented
 **Approach:** Hybrid (Frontend Session Banner + Backend Response Field)
 
 ## Overview
