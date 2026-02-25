@@ -133,3 +133,63 @@ class TestPerBusinessWageLimitation:
 
         # Total should be $20K (per-business), not $40K (aggregate)
         assert result.final_qbi_deduction == Decimal("20000")
+
+
+class TestUBIAAlternativeCalculation:
+    """Tests for 25% W-2 + 2.5% UBIA alternative calculation."""
+
+    def test_ubia_alternative_greater_than_50_pct_wages(self):
+        """
+        When 25% W-2 + 2.5% UBIA > 50% W-2, use the greater amount.
+
+        W-2 wages: $20K → 50% = $10K, 25% = $5K
+        UBIA: $400K → 2.5% = $10K
+        25% + 2.5% = $15K (greater than $10K)
+        """
+        config = TaxYearConfig.for_2025()
+        calculator = QBICalculator()
+
+        k1 = ScheduleK1(
+            k1_type=K1SourceType.S_CORPORATION,
+            entity_name="Capital-Heavy Business",
+            entity_ein="33-3333333",
+            ordinary_business_income=100000.0,
+            qbi_ordinary_income=100000.0,
+            w2_wages_for_qbi=20000.0,
+            ubia_for_qbi=400000.0,  # Large UBIA
+            is_sstb=False,
+        )
+
+        tax_return = TaxReturn(
+            tax_year=2025,
+            taxpayer=TaxpayerInfo(
+                first_name="Test",
+                last_name="User",
+                filing_status=FilingStatus.SINGLE,
+            ),
+            income=Income(schedule_k1_forms=[k1]),
+            deductions=Deductions(use_standard_deduction=True),
+            credits=TaxCredits(),
+        )
+
+        result = calculator.calculate(
+            tax_return=tax_return,
+            taxable_income_before_qbi=300000.0,  # Above threshold
+            net_capital_gain=0.0,
+            filing_status="single",
+            config=config,
+        )
+
+        biz = result.business_details[0]
+
+        # 50% of W-2 = $10K
+        assert biz.wage_limit_50_pct == Decimal("10000")
+
+        # 25% of W-2 + 2.5% of UBIA = $5K + $10K = $15K
+        assert biz.wage_limit_25_2_5_pct == Decimal("15000")
+
+        # Greater of the two = $15K
+        assert biz.wage_limitation == Decimal("15000")
+
+        # Limited deduction = min($20K tentative, $15K limit) = $15K
+        assert biz.limited_deduction == Decimal("15000")
