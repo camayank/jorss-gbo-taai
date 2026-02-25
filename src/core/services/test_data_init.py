@@ -531,7 +531,7 @@ TEST_TAX_RETURNS = [
         "id": "return-007",
         "user_id": "user-client-001",
         "firm_id": "firm-001",
-        "tax_year": 2024,
+        "tax_year": 2025,
         "return_type": "individual",
         "status": "filed",
         "gross_income": 165000.00,
