@@ -595,6 +595,8 @@ _ROUTER_REGISTRY = [
     ("web.routers.admin_api_keys_api", "router", None, "Admin API Keys API"),
     ("web.routers.admin_refunds_api", "router", None, "Admin Refunds API"),
     ("web.routers.admin_compliance_api", "router", None, "Admin Compliance API"),
+    # Feature pages (wires orphaned templates to routes)
+    ("web.routers.feature_pages", "router", None, "Feature Pages"),
 ]
 
 # Special case: config_api exports two routers
@@ -836,7 +838,27 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
             user_message=str(exc.detail)
         )
 
-    # Browser requests get HTML error pages
+    # Browser 401 → redirect to login with return URL
+    if exc.status_code == 401 and not _is_api_request(request):
+        next_url = request.url.path
+        query = str(request.url.query)
+        if query:
+            next_url += f"?{query}"
+        return RedirectResponse(url=f"/login?next={next_url}", status_code=302)
+
+    # Browser requests get Jinja2 error templates if available
+    _error_templates = {403, 404, 500}
+    if exc.status_code in _error_templates:
+        try:
+            return templates.TemplateResponse(
+                f"errors/{exc.status_code}.html",
+                {"request": request},
+                status_code=exc.status_code,
+            )
+        except Exception:
+            pass  # Fall back to inline HTML
+
+    # Fallback: inline HTML error pages
     messages = {
         400: "The request could not be understood. Please check your input and try again.",
         403: "You don't have permission to access this resource.",
@@ -865,7 +887,16 @@ async def general_exception_handler(request: Request, exc: Exception):
             user_message="Something went wrong. Please try again. If the problem persists, contact support."
         )
 
-    # Browser requests get HTML error page
+    # Browser requests get Jinja2 error template if available
+    try:
+        return templates.TemplateResponse(
+            "errors/500.html",
+            {"request": request},
+            status_code=500,
+        )
+    except Exception:
+        pass  # Fall back to inline HTML
+
     html = _create_html_error_page(
         500,
         "Something went wrong on our end. Our team has been notified. Please try again later."
@@ -1396,9 +1427,71 @@ def reset_password_page(request: Request, token: str = None):
     )
 
 
+@app.get("/auth/mfa-setup", response_class=HTMLResponse)
+@app.get("/mfa-setup", response_class=HTMLResponse)
+def mfa_setup_page(request: Request):
+    """MFA Setup Page - Configure two-factor authentication."""
+    return templates.TemplateResponse("auth/mfa_setup.html", {"request": request})
+
+
+@app.get("/auth/mfa-verify", response_class=HTMLResponse)
+@app.get("/mfa-verify", response_class=HTMLResponse)
+def mfa_verify_page(request: Request, next: str = "/dashboard"):
+    """MFA Verification Page - Enter TOTP code during login."""
+    return templates.TemplateResponse(
+        "auth/mfa_verify.html",
+        {"request": request, "next_url": next}
+    )
+
+
+@app.get("/auth/post-login-redirect", response_class=HTMLResponse)
+def post_login_redirect(request: Request):
+    """
+    Role-based post-login redirect.
+
+    Routes authenticated users to the appropriate dashboard based on role:
+    - Admin roles -> /admin
+    - CPA roles -> /cpa/dashboard
+    - Client/taxpayer roles -> /intelligent-advisor
+    - Anonymous/unknown -> /landing
+    """
+    bucket = _resolve_request_role_bucket(request)
+    destinations = {
+        "admin": "/admin",
+        "cpa": "/cpa/dashboard",
+        "client": "/intelligent-advisor",
+        "anonymous": "/landing",
+    }
+    destination = destinations.get(bucket, "/intelligent-advisor")
+
+    # Check for explicit ?next= parameter
+    next_url = request.query_params.get("next")
+    if next_url and next_url.startswith("/"):
+        destination = next_url
+
+    return RedirectResponse(url=destination, status_code=302)
+
+
+@app.get("/profile", response_class=HTMLResponse)
+@app.get("/settings/profile", response_class=HTMLResponse)
+def user_profile_page(request: Request):
+    """User Profile Page - View and edit profile settings."""
+    denied = _require_any_auth(request)
+    if denied:
+        return denied
+    user_context = _ui_user_context(request)
+    return templates.TemplateResponse(
+        "settings/profile.html",
+        {"request": request, "user": user_context}
+    )
+
+
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request):
     """CPA Workspace Dashboard - Multi-client management."""
+    denied = _require_any_auth(request)
+    if denied:
+        return denied
     template_name = get_template_path(request, "dashboard.html")
     response = templates.TemplateResponse(template_name, {"request": request})
     set_ux_version_cookie(response, should_use_ux_v2(request))
@@ -1576,6 +1669,9 @@ def cpa_payment_settings(request: Request):
     - Configure payment preferences
     - View payment history
     """
+    denied = _require_any_auth(request)
+    if denied:
+        return denied
     return templates.TemplateResponse("cpa_payment_settings.html", {"request": request})
 
 
@@ -1590,6 +1686,9 @@ def cpa_branding_settings(request: Request):
     - Custom messaging
     - Lead magnet branding
     """
+    denied = _require_any_auth(request)
+    if denied:
+        return denied
     return templates.TemplateResponse("cpa_branding_settings.html", {"request": request})
 
 
@@ -1741,11 +1840,15 @@ def logout_redirect(request: Request):
 
 
 @app.get("/scenarios", response_class=HTMLResponse)
-def scenarios_redirect(request: Request, session_id: str = None):
-    """Redirect to intelligent advisor for scenario analysis."""
-    if session_id:
-        return RedirectResponse(url=f"/intelligent-advisor?session_id={session_id}", status_code=302)
-    return RedirectResponse(url="/intelligent-advisor", status_code=302)
+def scenarios_page(request: Request, session_id: str = None):
+    """Scenario comparison - compare tax scenarios side by side."""
+    denied = _require_any_auth(request)
+    if denied:
+        return denied
+    return _templates.TemplateResponse(
+        "scenarios.html",
+        {"request": request, "session_id": session_id, "page_title": "Scenario Comparison"}
+    )
 
 
 @app.get("/projections", response_class=HTMLResponse)
@@ -1786,6 +1889,9 @@ def clients_redirect(request: Request):
 @app.get("/advisory-report-preview", response_class=HTMLResponse)
 async def advisory_report_preview(request: Request):
     """Serve advisory report preview page."""
+    denied = _require_any_auth(request)
+    if denied:
+        return denied
     return templates.TemplateResponse("advisory_report_preview.html", {"request": request})
 
 
@@ -1809,7 +1915,7 @@ if _ENABLE_TEST_ROUTES:
         - API Documentation
         - Health checks
         """
-        return templates.TemplateResponse("test_auth.html", {"request": request})
+        return templates.TemplateResponse("_deprecated/test_auth.html", {"request": request})
 
 
 # =============================================================================
@@ -1859,6 +1965,17 @@ def _require_admin_page_access(request: Request) -> Optional[RedirectResponse]:
     return RedirectResponse(url="/login?next=/admin", status_code=302)
 
 
+def _require_any_auth(request: Request) -> Optional[RedirectResponse]:
+    """
+    Restrict page to any authenticated user.
+    Returns None (allow) or RedirectResponse (redirect to login).
+    """
+    role_bucket = _resolve_request_role_bucket(request)
+    if role_bucket != "anonymous":
+        return None  # Any authenticated role is allowed
+    return RedirectResponse(url=f"/login?next={request.url.path}", status_code=302)
+
+
 @app.get("/admin/api-keys", response_class=HTMLResponse)
 def admin_api_keys_page(request: Request):
     """
@@ -1901,6 +2018,9 @@ def system_hub(request: Request):
     - Key business flows and workflows
     - Complete API reference
     """
+    denied = _require_any_auth(request)
+    if denied:
+        return denied
     return templates.TemplateResponse("system_hub.html", {"request": request})
 
 
@@ -1923,6 +2043,9 @@ def workflow_hub(request: Request):
 
     Access: http://127.0.0.1:8000/workflow
     """
+    denied = _require_any_auth(request)
+    if denied:
+        return denied
     return templates.TemplateResponse("workflow_hub.html", {"request": request})
 
 
@@ -1946,7 +2069,7 @@ if _ENABLE_TEST_ROUTES:
 
         Access: http://127.0.0.1:8000/test-hub (only when ENABLE_TEST_ROUTES=true)
         """
-        return templates.TemplateResponse("test_hub.html", {"request": request})
+        return templates.TemplateResponse("_deprecated/test_hub.html", {"request": request})
 
 
 # =============================================================================
@@ -1967,7 +2090,7 @@ def test_dashboard(request: Request):
 
     Access: http://127.0.0.1:8000/test-dashboard or /qa
     """
-    return templates.TemplateResponse("test_dashboard.html", {"request": request})
+    return templates.TemplateResponse("_deprecated/test_dashboard.html", {"request": request})
 
 
 @app.get("/smart-tax", response_class=HTMLResponse)
@@ -2013,6 +2136,9 @@ def guided_filing_page(request: Request, session_id: str = None):
     6. REVIEW - Verify all information
     7. COMPLETE - Submit for CPA review
     """
+    denied = _require_any_auth(request)
+    if denied:
+        return denied
     context = {
         "request": request,
         "session_id": session_id or "",
@@ -2057,6 +2183,9 @@ def filing_results(request: Request, session_id: str = None):
 
     NEW: Premium report gating - free users see teaser only
     """
+    denied = _require_any_auth(request)
+    if denied:
+        return denied
     from config.branding import get_branding_config
     from database.session_persistence import get_session_persistence
     from subscription.tier_control import ReportAccessControl, SubscriptionTier, get_user_tier
