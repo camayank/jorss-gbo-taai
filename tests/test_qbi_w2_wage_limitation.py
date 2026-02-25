@@ -193,3 +193,64 @@ class TestUBIAAlternativeCalculation:
 
         # Limited deduction = min($20K tentative, $15K limit) = $15K
         assert biz.limited_deduction == Decimal("15000")
+
+
+class TestPhaseInRangePerBusiness:
+    """Tests for partial wage limitation in phase-in range."""
+
+    def test_phase_in_partial_limitation(self):
+        """
+        In phase-in range, wage limitation is applied proportionally per business.
+
+        Single threshold: $197,300 start, $247,300 end ($50K range)
+        At $222,300 taxable income: 50% through phase-in
+
+        Business: $100K QBI, $10K W-2 wages
+        Tentative: $20K (20% of $100K)
+        Wage limit: $5K (50% of $10K)
+        Reduction: $15K ($20K - $5K)
+        Phased reduction: $7,500 (50% × $15K)
+        Limited: $12,500 ($20K - $7,500)
+        """
+        config = TaxYearConfig.for_2025()
+        calculator = QBICalculator()
+
+        k1 = ScheduleK1(
+            k1_type=K1SourceType.PARTNERSHIP,
+            entity_name="Phase-In Business",
+            entity_ein="44-4444444",
+            ordinary_business_income=100000.0,
+            qbi_ordinary_income=100000.0,
+            w2_wages_for_qbi=10000.0,
+            ubia_for_qbi=0.0,
+            is_sstb=False,
+        )
+
+        tax_return = TaxReturn(
+            tax_year=2025,
+            taxpayer=TaxpayerInfo(
+                first_name="Test",
+                last_name="User",
+                filing_status=FilingStatus.SINGLE,
+            ),
+            income=Income(schedule_k1_forms=[k1]),
+            deductions=Deductions(use_standard_deduction=True),
+            credits=TaxCredits(),
+        )
+
+        # Exactly 50% through phase-in: ($197,300 + $247,300) / 2 = $222,300
+        result = calculator.calculate(
+            tax_return=tax_return,
+            taxable_income_before_qbi=222300.0,
+            net_capital_gain=0.0,
+            filing_status="single",
+            config=config,
+        )
+
+        assert result.phase_in_ratio == pytest.approx(Decimal("0.5"), rel=0.01)
+
+        biz = result.business_details[0]
+        assert biz.tentative_deduction == Decimal("20000")
+        assert biz.wage_limitation == Decimal("5000")
+        # Limited = $20K - (50% × $15K) = $12,500
+        assert biz.limited_deduction == pytest.approx(Decimal("12500"), rel=0.01)
