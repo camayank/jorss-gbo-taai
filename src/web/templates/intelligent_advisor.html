@@ -3546,6 +3546,136 @@
   <script src="/static/js/loading-states.js" defer></script>
 </head>
 <body>
+  <!-- Liability Disclaimer Banner -->
+  <div id="disclaimer-banner" class="disclaimer-banner" style="display: block;">
+    <div class="disclaimer-content">
+      <div class="disclaimer-icon">⚠️</div>
+      <div class="disclaimer-text">
+        <h3>IMPORTANT: AI Tax Information Disclaimer</h3>
+        <p>This AI assistant provides general tax information only.</p>
+        <ul>
+          <li>I am NOT a licensed CPA, EA, or tax professional</li>
+          <li>This is NOT professional tax advice</li>
+          <li>Consult a licensed professional for your specific situation</li>
+        </ul>
+      </div>
+      <button id="disclaimer-accept-btn" class="disclaimer-accept-btn" onclick="acceptDisclaimer()">
+        I Understand
+      </button>
+    </div>
+  </div>
+
+  <style>
+  .disclaimer-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+  }
+
+  .disclaimer-content {
+    background: #fffbeb;
+    border: 2px solid #f59e0b;
+    border-radius: 12px;
+    padding: 24px 32px;
+    max-width: 500px;
+    text-align: center;
+  }
+
+  .disclaimer-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .disclaimer-text h3 {
+    color: #92400e;
+    margin-bottom: 12px;
+  }
+
+  .disclaimer-text ul {
+    text-align: left;
+    margin: 16px 0;
+  }
+
+  .disclaimer-text li {
+    margin: 8px 0;
+    color: #78350f;
+  }
+
+  .disclaimer-accept-btn {
+    background: #f59e0b;
+    color: white;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 16px;
+  }
+
+  .disclaimer-accept-btn:hover {
+    background: #d97706;
+  }
+
+  .chat-disabled {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+  </style>
+
+  <script>
+  function acceptDisclaimer() {
+    sessionStorage.setItem('disclaimerAccepted', 'true');
+    document.getElementById('disclaimer-banner').style.display = 'none';
+    enableChat();
+  }
+
+  function checkDisclaimerAccepted() {
+    if (sessionStorage.getItem('disclaimerAccepted') === 'true') {
+      document.getElementById('disclaimer-banner').style.display = 'none';
+      enableChat();
+    } else {
+      disableChat();
+    }
+  }
+
+  function disableChat() {
+    const chatInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    if (chatInput) {
+      chatInput.classList.add('chat-disabled');
+      chatInput.disabled = true;
+    }
+    if (sendBtn) {
+      sendBtn.classList.add('chat-disabled');
+      sendBtn.disabled = true;
+    }
+  }
+
+  function enableChat() {
+    const chatInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    if (chatInput) {
+      chatInput.classList.remove('chat-disabled');
+      chatInput.disabled = false;
+    }
+    if (sendBtn) {
+      sendBtn.classList.remove('chat-disabled');
+      sendBtn.disabled = false;
+    }
+  }
+
+  // Check on page load
+  document.addEventListener('DOMContentLoaded', checkDisclaimerAccepted);
+  </script>
+
   <!-- Skip link for keyboard navigation -->
   <a href="#main-content" class="skip-link">Skip to main content</a>
 
