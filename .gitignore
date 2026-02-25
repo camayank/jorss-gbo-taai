@@ -64,3 +64,4 @@ sample_report*.html
 data/
 .venv/
 node_modules/
+.worktrees/
