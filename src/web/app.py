@@ -2872,10 +2872,21 @@ async def list_documents(request: Request):
 
     # C3: Load documents from database
     doc_records = _get_persistence().list_session_documents(session_id)
+
+    # SECURITY: Tenant isolation — filter by user's firm_id
+    user = _request_user_dict(request)
+    user_firm = str(user.get("firm_id") or "") if user else ""
+    user_role = str(user.get("role") or "").lower() if user else ""
+    is_admin = user_role in {Role.ADMIN.value, "super_admin", "platform_admin"}
+
     docs = []
     for doc_record in doc_records:
         result_data = doc_record.result
         if result_data:
+            # Skip documents from other firms (unless admin)
+            doc_firm = str(result_data.get("firm_id") or result_data.get("tenant_id") or "")
+            if doc_firm and user_firm and doc_firm != user_firm and not is_admin:
+                continue
             docs.append({
                 "document_id": doc_record.document_id,
                 "filename": result_data.get("filename"),
@@ -2905,6 +2916,17 @@ async def get_document(document_id: str, request: Request):
         if doc_any:
             raise HTTPException(status_code=403, detail="Access denied")
         raise HTTPException(status_code=404, detail="Document not found")
+
+    # SECURITY: Tenant isolation — verify document belongs to user's firm
+    user = _request_user_dict(request)
+    if user and hasattr(doc_record, 'result') and doc_record.result:
+        user_role = str(user.get("role") or "").lower()
+        is_admin = user_role in {Role.ADMIN.value, "super_admin", "platform_admin"}
+        user_firm = str(user.get("firm_id") or "")
+        doc_firm = str(doc_record.result.get("firm_id") or doc_record.result.get("tenant_id") or "")
+        if doc_firm and user_firm and doc_firm != user_firm and not is_admin:
+            logger.warning(f"Tenant isolation: User firm {user_firm} tried to access document {document_id} from firm {doc_firm}")
+            raise HTTPException(status_code=403, detail="Access denied")
 
     result_data = doc_record.result
     return JSONResponse({
