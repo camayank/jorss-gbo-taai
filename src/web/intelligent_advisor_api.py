@@ -4068,16 +4068,22 @@ async def intelligent_chat(request: ChatRequest):
     import re
     is_greeting = any(re.match(p, msg_lower) for p in greeting_patterns)
     if is_greeting:
-        greeting_response = "Hello! I'm your AI tax advisor. I can help you:\n\n"
-        greeting_response += "• **Estimate your taxes** for 2025\n"
-        greeting_response += "• **Find tax savings** opportunities\n"
-        greeting_response += "• **Generate professional reports**\n\n"
-        greeting_response += "To get started, what's your filing status?"
+        greeting_response = """Hello! I'm your AI tax advisor.
+
+⚠️ **Important:** I provide general tax information only—not professional tax advice. For your specific situation, consult a licensed CPA or EA.
+
+I can help you:
+• **Estimate your taxes** for 2025
+• **Find tax savings** opportunities
+• **Generate professional reports**
+
+To get started, what's your filing status?"""
 
         return ChatResponse(
             session_id=request.session_id,
             response=greeting_response,
             response_type="greeting",
+            disclaimer=STANDARD_DISCLAIMER,
             profile_completeness=chat_engine.calculate_profile_completeness(profile),
             lead_score=chat_engine.calculate_lead_score(profile),
             complexity=chat_engine.determine_complexity(profile),

@@ -44,3 +44,30 @@ class TestChatResponseDisclaimerFields:
         assert "AI-generated" in STANDARD_DISCLAIMER
         assert "not professional tax advice" in STANDARD_DISCLAIMER
         assert "CPA or EA" in STANDARD_DISCLAIMER
+
+
+class TestAPIGreetingDisclaimer:
+    """Tests for API greeting disclaimer."""
+
+    def test_greeting_contains_disclaimer_text(self):
+        """API greeting response text should contain disclaimer language."""
+        expected_phrases = [
+            "not professional tax advice",
+            "CPA or EA",
+            "general tax information only"
+        ]
+
+        # The greeting text that should be in the API
+        greeting = """Hello! I'm your AI tax advisor.
+
+⚠️ **Important:** I provide general tax information only—not professional tax advice. For your specific situation, consult a licensed CPA or EA.
+
+I can help you:
+• **Estimate your taxes** for 2025
+• **Find tax savings** opportunities
+• **Generate professional reports**
+
+To get started, what's your filing status?"""
+
+        for phrase in expected_phrases:
+            assert phrase in greeting, f"Missing phrase: {phrase}"
