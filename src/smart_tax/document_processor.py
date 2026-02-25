@@ -211,7 +211,7 @@ class SmartDocumentProcessor:
         DocumentType.FORM_1099_DIV: ["ordinary_dividends", "payer_tin"],
     }
 
-    def __init__(self, tax_year: int = 2024):
+    def __init__(self, tax_year: int = 2025):
         self.tax_year = tax_year
         self.confidence_scorer = ConfidenceScorer()
         self.inference_engine = FieldInferenceEngine(tax_year=tax_year)
