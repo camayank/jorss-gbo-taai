@@ -254,3 +254,92 @@ class TestPhaseInRangePerBusiness:
         assert biz.wage_limitation == Decimal("5000")
         # Limited = $20K - (50% × $15K) = $12,500
         assert biz.limited_deduction == pytest.approx(Decimal("12500"), rel=0.01)
+
+
+class TestQBIWarnings:
+    """Tests for QBI warning generation."""
+
+    def test_scorp_with_zero_wages_generates_warning(self):
+        """S-corp with QBI but $0 W-2 wages should generate warning."""
+        config = TaxYearConfig.for_2025()
+        calculator = QBICalculator()
+
+        k1 = ScheduleK1(
+            k1_type=K1SourceType.S_CORPORATION,
+            entity_name="Zero Wage S-Corp",
+            entity_ein="55-5555555",
+            ordinary_business_income=100000.0,
+            qbi_ordinary_income=100000.0,
+            w2_wages_for_qbi=0.0,  # No wages!
+            ubia_for_qbi=0.0,
+            is_sstb=False,
+        )
+
+        tax_return = TaxReturn(
+            tax_year=2025,
+            taxpayer=TaxpayerInfo(
+                first_name="Test",
+                last_name="User",
+                filing_status=FilingStatus.SINGLE,
+            ),
+            income=Income(schedule_k1_forms=[k1]),
+            deductions=Deductions(use_standard_deduction=True),
+            credits=TaxCredits(),
+        )
+
+        result = calculator.calculate(
+            tax_return=tax_return,
+            taxable_income_before_qbi=150000.0,  # Below threshold for now
+            net_capital_gain=0.0,
+            filing_status="single",
+            config=config,
+        )
+
+        warnings = calculator.get_qbi_warnings(result)
+
+        assert len(warnings) >= 1
+        assert "Zero Wage S-Corp" in warnings[0]
+        assert "$0 W-2 wages" in warnings[0]
+        assert "K-1 Box 17 Code V" in warnings[0]
+
+    def test_partnership_above_threshold_with_zero_wages_generates_warning(self):
+        """Partnership above threshold with $0 wages should warn about limitation."""
+        config = TaxYearConfig.for_2025()
+        calculator = QBICalculator()
+
+        k1 = ScheduleK1(
+            k1_type=K1SourceType.PARTNERSHIP,
+            entity_name="Zero Wage Partnership",
+            entity_ein="66-6666666",
+            ordinary_business_income=100000.0,
+            qbi_ordinary_income=100000.0,
+            w2_wages_for_qbi=0.0,
+            ubia_for_qbi=0.0,
+            is_sstb=False,
+        )
+
+        tax_return = TaxReturn(
+            tax_year=2025,
+            taxpayer=TaxpayerInfo(
+                first_name="Test",
+                last_name="User",
+                filing_status=FilingStatus.SINGLE,
+            ),
+            income=Income(schedule_k1_forms=[k1]),
+            deductions=Deductions(use_standard_deduction=True),
+            credits=TaxCredits(),
+        )
+
+        result = calculator.calculate(
+            tax_return=tax_return,
+            taxable_income_before_qbi=300000.0,  # Above threshold
+            net_capital_gain=0.0,
+            filing_status="single",
+            config=config,
+        )
+
+        warnings = calculator.get_qbi_warnings(result)
+
+        assert len(warnings) >= 1
+        assert "Zero Wage Partnership" in warnings[0]
+        assert "$0 W-2 wage limitation" in warnings[0]

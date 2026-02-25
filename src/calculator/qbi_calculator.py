@@ -299,3 +299,36 @@ class QBICalculator:
         # as income increases from threshold_start to threshold_end
         result = subtract(Decimal("1"), phase_in_ratio)
         return max_decimal(Decimal("0"), result)
+
+    def get_qbi_warnings(self, breakdown: QBIBreakdown) -> list[str]:
+        """
+        Generate warnings for QBI calculation issues.
+
+        Key warnings:
+        1. S-corp shareholders with QBI but $0 W-2 wages
+        2. Businesses with $0 wage limitation when above threshold
+        """
+        warnings = []
+
+        for biz in breakdown.business_details:
+            # Warning 1: S-corp with QBI but no W-2 wages
+            if biz.business_type == "s_corporation" and biz.w2_wages == Decimal("0"):
+                if biz.qualified_business_income > Decimal("0"):
+                    warnings.append(
+                        f"S-corporation '{biz.business_name}' has QBI of "
+                        f"${to_float(biz.qualified_business_income):,.2f} but $0 W-2 wages reported. "
+                        "This may limit your QBI deduction if taxable income exceeds threshold. "
+                        "Verify K-1 Box 17 Code V for W-2 wages."
+                    )
+
+            # Warning 2: Zero wage limitation above threshold
+            if not breakdown.is_below_threshold:
+                if biz.qualified_business_income > Decimal("0") and biz.wage_limitation == Decimal("0"):
+                    warnings.append(
+                        f"Business '{biz.business_name}' has $0 W-2 wage limitation. "
+                        f"Your QBI deduction is reduced. "
+                        f"W-2 wages: ${to_float(biz.w2_wages):,.2f}, "
+                        f"UBIA: ${to_float(biz.ubia):,.2f}."
+                    )
+
+        return warnings
