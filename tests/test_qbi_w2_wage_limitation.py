@@ -343,3 +343,122 @@ class TestQBIWarnings:
         assert len(warnings) >= 1
         assert "Zero Wage Partnership" in warnings[0]
         assert "$0 W-2 wage limitation" in warnings[0]
+
+
+class TestQBIEdgeCases:
+    """Edge case tests for per-business QBI calculation."""
+
+    def test_sole_proprietorship_no_wage_limit_below_threshold(self):
+        """Sole prop below threshold should get full 20% (no wage limitation)."""
+        config = TaxYearConfig.for_2025()
+        calculator = QBICalculator()
+
+        tax_return = TaxReturn(
+            tax_year=2025,
+            taxpayer=TaxpayerInfo(
+                first_name="Test",
+                last_name="User",
+                filing_status=FilingStatus.SINGLE,
+            ),
+            income=Income(
+                self_employment_income=50000.0,
+                self_employment_expenses=0.0,
+            ),
+            deductions=Deductions(use_standard_deduction=True),
+            credits=TaxCredits(),
+        )
+
+        result = calculator.calculate(
+            tax_return=tax_return,
+            taxable_income_before_qbi=50000.0,
+            net_capital_gain=0.0,
+            filing_status="single",
+            config=config,
+        )
+
+        assert len(result.business_details) == 1
+        biz = result.business_details[0]
+        assert biz.business_type == "sole_proprietorship"
+        assert biz.limited_deduction == Decimal("10000")  # Full 20%
+
+    def test_mixed_se_and_k1_businesses(self):
+        """Mixed self-employment and K-1 income should create separate businesses."""
+        config = TaxYearConfig.for_2025()
+        calculator = QBICalculator()
+
+        k1 = ScheduleK1(
+            k1_type=K1SourceType.PARTNERSHIP,
+            entity_name="K1 Business",
+            entity_ein="77-7777777",
+            ordinary_business_income=30000.0,
+            qbi_ordinary_income=30000.0,
+            w2_wages_for_qbi=0.0,
+            ubia_for_qbi=0.0,
+            is_sstb=False,
+        )
+
+        tax_return = TaxReturn(
+            tax_year=2025,
+            taxpayer=TaxpayerInfo(
+                first_name="Test",
+                last_name="User",
+                filing_status=FilingStatus.SINGLE,
+            ),
+            income=Income(
+                self_employment_income=20000.0,
+                self_employment_expenses=0.0,
+                schedule_k1_forms=[k1],
+            ),
+            deductions=Deductions(use_standard_deduction=True),
+            credits=TaxCredits(),
+        )
+
+        result = calculator.calculate(
+            tax_return=tax_return,
+            taxable_income_before_qbi=50000.0,
+            net_capital_gain=0.0,
+            filing_status="single",
+            config=config,
+        )
+
+        # Should have 2 businesses
+        assert len(result.business_details) == 2
+
+        # First is Schedule C
+        assert result.business_details[0].business_name == "Self-Employment (Schedule C)"
+        assert result.business_details[0].qualified_business_income == Decimal("20000")
+
+        # Second is K-1
+        assert result.business_details[1].business_name == "K1 Business"
+        assert result.business_details[1].qualified_business_income == Decimal("30000")
+
+        # Total QBI = $50K, deduction = $10K
+        assert result.final_qbi_deduction == Decimal("10000")
+
+    def test_no_qbi_returns_empty_business_details(self):
+        """No QBI income should return empty business_details."""
+        config = TaxYearConfig.for_2025()
+        calculator = QBICalculator()
+
+        tax_return = TaxReturn(
+            tax_year=2025,
+            taxpayer=TaxpayerInfo(
+                first_name="Test",
+                last_name="User",
+                filing_status=FilingStatus.SINGLE,
+            ),
+            income=Income(wages=100000.0),  # Only W-2 wages, no QBI
+            deductions=Deductions(use_standard_deduction=True),
+            credits=TaxCredits(),
+        )
+
+        result = calculator.calculate(
+            tax_return=tax_return,
+            taxable_income_before_qbi=100000.0,
+            net_capital_gain=0.0,
+            filing_status="single",
+            config=config,
+        )
+
+        assert len(result.business_details) == 0
+        assert result.final_qbi_deduction == Decimal("0")
