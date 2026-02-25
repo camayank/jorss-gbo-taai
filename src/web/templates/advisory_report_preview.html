@@ -12,15 +12,15 @@
     <link rel="stylesheet" href="/static/css/unified-theme.css">
     <style>
         :root {
-            --primary: #1e3a5f;
-            --primary-light: #5387c1;
+            --primary: var(--color-primary-500);
+            --primary-light: var(--color-primary-300);
             --success: #276749;
             --success-light: #38a169;
-            --warning: #f59e0b;
+            --warning: var(--color-warning-500);
             --danger: #c53030;
             --bg: #f7fafc;
-            --surface: #ffffff;
-            --border: #e2e8f0;
+            --surface: var(--white);
+            --border: var(--color-slate-200);
             --text: #0c1b2f;
             --text-secondary: #4a5568;
             --text-muted: #718096;
@@ -51,7 +51,7 @@
             background: var(--primary);
             color: white;
             padding: 32px;
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             margin-bottom: 24px;
         }
 
@@ -119,7 +119,7 @@
         .btn {
             padding: 12px 24px;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
@@ -226,7 +226,7 @@
         .recommendation {
             background: var(--bg);
             padding: 20px;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             margin: 15px 0;
             border-left: 4px solid var(--primary);
         }
@@ -247,7 +247,7 @@
         .recommendation .action {
             background: var(--surface);
             padding: 12px;
-            border-radius: 6px;
+            border-radius: var(--radius-md);
             margin-top: 12px;
             font-weight: 500;
             border: 1px solid var(--border);
@@ -331,7 +331,7 @@
             padding: 15px;
             margin: 10px 0;
             background: var(--advisory-bg-secondary);
-            border-radius: 6px;
+            border-radius: var(--radius-md);
             border-left: 4px solid var(--advisory-primary);
         }
 
@@ -344,7 +344,7 @@
         .priority-badge {
             display: inline-block;
             padding: 4px 12px;
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             font-size: 12px;
             font-weight: 600;
             text-transform: uppercase;
@@ -379,7 +379,7 @@
             );
             background-size: 200% 100%;
             animation: shimmer 1.5s ease-in-out infinite;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
         }
 
         @keyframes shimmer {
@@ -434,7 +434,7 @@
             background: var(--warning-lighter);
             border: 1px solid var(--warning);
             padding: 20px;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             margin-top: 30px;
         }
 
@@ -456,7 +456,7 @@
             right: 20px;
             padding: 16px 24px;
             color: var(--text-inverse);
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             box-shadow: var(--advisory-shadow-lg);
             z-index: 10000;
             animation: slideInRight 0.3s ease;
@@ -1029,7 +1029,7 @@
                     <h3 style="color: #dc3545;">Error Loading Report</h3>
                     <p>${escapeHtml(error.message)}</p>
                     <button class="btn btn-primary" onclick="location.reload()">Retry</button>
-                    <button class="btn btn-secondary" onclick="window.close()" style="margin-left: 10px;">Close</button>
+                    <button class="btn btn-secondary" onclick="window.close()" style="margin-left: var(--space-2-5);">Close</button>
                 `;
             }
         }
@@ -1176,7 +1176,7 @@
                         <div class="savings">Potential Savings: $${savings.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
                         <p>${description}</p>
                         <div class="action"><strong>Action Required:</strong> ${actionRequired}</div>
-                        ${irsReference ? `<p style="font-size: 0.9em; color: #666; margin-top: 10px;"><em>IRS Reference: ${irsReference}</em></p>` : ''}
+                        ${irsReference ? `<p style="font-size: 0.9em; color: #666; margin-top: var(--space-2-5);"><em>IRS Reference: ${irsReference}</em></p>` : ''}
                     `;
                     recsDiv.appendChild(recDiv);
                 });

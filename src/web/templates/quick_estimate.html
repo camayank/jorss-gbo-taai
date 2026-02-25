@@ -15,19 +15,19 @@
     <link rel="stylesheet" href="/static/css/unified-theme.css">
     <style>
         :root {
-            --primary: #1e3a5f;
-            --primary-light: #5387c1;
+            --primary: var(--color-primary-500);
+            --primary-light: var(--color-primary-300);
             --primary-dark: #0c1b2f;
             --bg: #f7fafc;
-            --surface: #ffffff;
+            --surface: var(--white);
             --text: #0c1b2f;
             --text-light: #4a5568;
             --text-muted: #718096;
             --success: #276749;
             --success-light: #c6f6d5;
             --success-bg: #f0fff4;
-            --warning: #f59e0b;
-            --border: #e2e8f0;
+            --warning: var(--color-warning-500);
+            --border: var(--color-slate-200);
             --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
             --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
             --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
@@ -233,7 +233,7 @@
             gap: 16px;
             padding: 18px 20px;
             border: 2px solid var(--border);
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             cursor: pointer;
             transition: all 0.2s ease;
             background: var(--surface);
@@ -427,7 +427,7 @@
             width: 48px;
             height: 48px;
             background: var(--bg);
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -825,15 +825,15 @@
                     </div>
                     <div class="results-body">
                         <!-- Opportunities Found -->
-                        <div id="opportunities-list" style="text-align: left; margin-bottom: 24px; padding: 16px; background: #f0fff4; border-radius: 12px; border: 1px solid #c6f6d5;">
-                            <div style="font-weight: 600; color: #276749; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <div id="opportunities-list" style="text-align: left; margin-bottom: var(--space-6); padding: var(--space-4); background: #f0fff4; border-radius: var(--radius-xl); border: 1px solid #c6f6d5;">
+                            <div style="font-weight: var(--font-semibold); color: #276749; margin-bottom: var(--space-3); display: flex; align-items: center; gap: var(--space-2);">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                                     <polyline points="22 4 12 14.01 9 11.01"/>
                                 </svg>
                                 Opportunities Found For You:
                             </div>
-                            <ul id="opportunity-items" style="list-style: none; padding: 0; margin: 0; display: grid; gap: 8px;">
+                            <ul id="opportunity-items" style="list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-2);">
                                 <!-- Dynamically populated -->
                             </ul>
                         </div>
@@ -874,19 +874,19 @@
                         </div>
 
                         <!-- Email Capture -->
-                        <div id="email-capture" style="margin-bottom: 20px;">
-                            <div style="font-size: 0.95rem; color: var(--text); margin-bottom: 12px; font-weight: 500;">
+                        <div id="email-capture" style="margin-bottom: var(--space-5);">
+                            <div style="font-size: 0.95rem; color: var(--text); margin-bottom: var(--space-3); font-weight: var(--font-medium);">
                                 Get your detailed analysis sent to your email:
                             </div>
-                            <div style="display: flex; gap: 8px;">
+                            <div style="display: flex; gap: var(--space-2);">
                                 <input type="email" id="lead-email" placeholder="Enter your email"
-                                    style="flex: 1; padding: 14px 16px; border: 2px solid var(--border); border-radius: 10px; font-size: 1rem; outline: none; transition: border-color 0.2s;"
+                                    style="flex: 1; padding: var(--space-3-5) var(--space-4); border: 2px solid var(--border); border-radius: 10px; font-size: 1rem; outline: none; transition: border-color 0.2s;"
                                     onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">
                                 <button onclick="captureLeadAndContinue()" class="btn btn-primary" style="white-space: nowrap;">
                                     Get Analysis
                                 </button>
                             </div>
-                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--space-2);">
                                 Free, no credit card required. We respect your privacy.
                             </div>
                         </div>
@@ -899,9 +899,9 @@
                                     <polyline points="12 5 19 12 12 19"/>
                                 </svg>
                             </a>
-                            <div style="margin-top: 12px;">
+                            <div style="margin-top: var(--space-3);">
                                 <a href="/login?next=/advisor&estimate=true" style="color: var(--text-muted); font-size: 0.85rem; text-decoration: none;">
-                                    Already have an account? <span style="color: var(--primary); font-weight: 600;">Sign in</span>
+                                    Already have an account? <span style="color: var(--primary); font-weight: var(--font-semibold);">Sign in</span>
                                 </a>
                             </div>
                         </div>
@@ -1140,10 +1140,10 @@
         function populateOpportunities(opportunities) {
             const list = document.getElementById('opportunity-items');
             list.innerHTML = opportunities.map(opp => `
-                <li style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(39, 103, 73, 0.1);">
+                <li style="display: flex; align-items: center; gap: var(--space-2-5); padding: var(--space-2) 0; border-bottom: 1px solid rgba(39, 103, 73, 0.1);">
                     <span style="font-size: 1.1rem;">${opp.icon}</span>
                     <span style="flex: 1; color: var(--text);">${opp.text}</span>
-                    ${opp.amount ? `<span style="font-weight: 600; color: var(--success); font-size: 0.85rem;">${opp.amount}</span>` : ''}
+                    ${opp.amount ? `<span style="font-weight: var(--font-semibold); color: var(--success); font-size: 0.85rem;">${opp.amount}</span>` : ''}
                 </li>
             `).join('');
         }

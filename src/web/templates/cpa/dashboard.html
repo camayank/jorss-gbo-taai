@@ -43,8 +43,8 @@
     }
 
     .summary-card-icon.new { background: #eef3f9; }
-    .summary-card-icon.contacted { background: #fef3c7; }
-    .summary-card-icon.engaged { background: #d1fae5; }
+    .summary-card-icon.contacted { background: var(--color-warning-100); }
+    .summary-card-icon.engaged { background: var(--color-success-100); }
     .summary-card-icon.converted { background: #ede9fe; }
     .summary-card-icon.revenue { background: #fce7f3; }
 
@@ -136,10 +136,10 @@
         font-weight: 600;
     }
 
-    .state-badge.browsing { background: #f3f4f6; color: #6b7280; }
-    .state-badge.curious { background: #eef3f9; color: #1e3a5f; }
-    .state-badge.evaluating { background: #fef3c7; color: #b45309; }
-    .state-badge.advisory_ready { background: #d1fae5; color: #047857; }
+    .state-badge.browsing { background: var(--color-gray-100); color: var(--color-gray-500); }
+    .state-badge.curious { background: #eef3f9; color: var(--color-primary-500); }
+    .state-badge.evaluating { background: var(--color-warning-100); color: #b45309; }
+    .state-badge.advisory_ready { background: var(--color-success-100); color: #047857; }
     .state-badge.high_leverage { background: #fce7f3; color: #be185d; }
 
     /* Temperature Badge */
@@ -153,9 +153,9 @@
         font-weight: 600;
     }
 
-    .temp-badge.hot { background: #fee2e2; color: #b91c1c; }
-    .temp-badge.warm { background: #fef3c7; color: #b45309; }
-    .temp-badge.cold { background: #eef3f9; color: #1e3a5f; }
+    .temp-badge.hot { background: var(--color-error-100); color: #b91c1c; }
+    .temp-badge.warm { background: var(--color-warning-100); color: #b45309; }
+    .temp-badge.cold { background: #eef3f9; color: var(--color-primary-500); }
 
     /* Savings Value */
     .savings-value {
@@ -331,8 +331,8 @@
 
 {% block content %}
 <!-- Welcome Banner -->
-<div style="margin-bottom: 24px;">
-    <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">
+<div style="margin-bottom: var(--space-6);">
+    <h2 style="font-size: 1.5rem; font-weight: var(--font-bold); margin-bottom: var(--space-1);">
         Welcome back{% if cpa.first_name %}, {{ cpa.first_name }}{% endif %}!
     </h2>
     <p style="color: var(--text-muted);">Here's what's happening with your leads today.</p>
@@ -442,7 +442,7 @@
             <div class="empty-state-icon">📭</div>
             <div class="empty-state-title">No leads yet</div>
             <p>Share your lead magnet link to start capturing leads.</p>
-            <a href="/cpa/branding" class="btn btn-primary" style="margin-top: 16px;">
+            <a href="/cpa/branding" class="btn btn-primary" style="margin-top: var(--space-4);">
                 Set Up Lead Magnet
             </a>
         </div>
@@ -452,7 +452,7 @@
     <!-- Right Column -->
     <div>
         <!-- Priority Queue -->
-        <div class="card" style="margin-bottom: 24px;">
+        <div class="card" style="margin-bottom: var(--space-6);">
             <div class="card-header">
                 <h3 class="card-title">Priority Queue</h3>
             </div>
@@ -474,7 +474,7 @@
                 </div>
                 {% endfor %}
                 {% else %}
-                <div class="empty-state" style="padding: 32px 24px;">
+                <div class="empty-state" style="padding: var(--space-8) var(--space-6);">
                     <div class="empty-state-icon">{{ icon('clipboard-document-list') }}</div>
                     <div class="empty-state-title">Queue is empty</div>
                     <p>Priority leads will appear here.</p>
@@ -511,7 +511,7 @@
         </div>
 
         <!-- Recent Activity -->
-        <div class="card" style="margin-top: 24px;">
+        <div class="card" style="margin-top: var(--space-6);">
             <div class="card-header">
                 <h3 class="card-title">Recent Activity</h3>
             </div>
@@ -535,7 +535,7 @@
                 </div>
                 {% endfor %}
                 {% else %}
-                <div class="empty-state" style="padding: 24px;">
+                <div class="empty-state" style="padding: var(--space-6);">
                     <div class="empty-state-icon">📜</div>
                     <p>Activity will appear here as leads engage.</p>
                 </div>

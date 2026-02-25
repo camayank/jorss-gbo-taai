@@ -91,7 +91,7 @@
   <!-- Confirmation Modal -->
   <div class="modal modal-sm {{ class_name }}" id="{{ id }}" role="alertdialog" aria-modal="true" aria-labelledby="{{ id }}-title">
     <div class="modal-content">
-      <div class="modal-body modal-confirm" style="padding: 32px;">
+      <div class="modal-body modal-confirm" style="padding: var(--space-8);">
         <div class="modal-icon {{ icon_type }}">
           {{ icons.get(icon_type, icons.warning) | safe }}
         </div>

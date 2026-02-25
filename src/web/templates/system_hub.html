@@ -17,45 +17,45 @@
                UNIFIED DESIGN SYSTEM
                ========================= */
             /* Primary Colors - Indigo (Unified across platform) */
-            --primary: #1e3a5f;
-            --primary-dark: #152b47;
-            --primary-hover: #152b47;
-            --primary-light: #eef3f9;
-            --primary-50: #eef3f9;
+            --primary: var(--color-primary-500);
+            --primary-dark: var(--color-primary-700);
+            --primary-hover: var(--color-primary-700);
+            --primary-light: var(--color-primary-50);
+            --primary-50: var(--color-primary-50);
 
             /* Semantic Colors */
-            --success: #10b981;
-            --success-light: #d1fae5;
-            --warning: #f59e0b;
-            --warning-light: #fef3c7;
-            --error: #ef4444;
-            --danger: #ef4444;
-            --info: #5387c1;
-            --purple: #5387c1;
-            --purple-light: #ede9fe;
+            --success: var(--color-success-500);
+            --success-light: var(--color-success-100);
+            --warning: var(--color-warning-500);
+            --warning-light: var(--color-warning-100);
+            --error: var(--color-error-500);
+            --danger: var(--color-error-500);
+            --info: var(--color-primary-400);
+            --purple: var(--color-primary-400);
+            --purple-light: var(--color-purple-100);
 
             /* Grayscale */
-            --gray-50: #f9fafb;
-            --gray-100: #f3f4f6;
-            --gray-200: #e5e7eb;
-            --gray-300: #d1d5db;
-            --gray-400: #9ca3af;
-            --gray-500: #6b7280;
-            --gray-600: #4b5563;
-            --gray-700: #374151;
-            --gray-800: #1f2937;
-            --gray-900: #111827;
+            --gray-50: var(--color-gray-50);
+            --gray-100: var(--color-gray-100);
+            --gray-200: var(--color-gray-200);
+            --gray-300: var(--color-gray-300);
+            --gray-400: var(--color-gray-400);
+            --gray-500: var(--color-gray-500);
+            --gray-600: var(--color-gray-600);
+            --gray-700: var(--color-gray-700);
+            --gray-800: var(--color-gray-800);
+            --gray-900: var(--color-gray-900);
 
             /* Text Colors */
-            --text-primary: #111827;
-            --text-secondary: #4b5563;
-            --text-tertiary: #6b7280;
+            --text-primary: var(--color-gray-900);
+            --text-secondary: var(--color-gray-600);
+            --text-tertiary: var(--color-gray-500);
 
             /* Background Colors */
-            --bg-primary: #ffffff;
-            --bg-secondary: #f9fafb;
-            --bg-tertiary: #f3f4f6;
-            --border-light: #e5e7eb;
+            --bg-primary: var(--white);
+            --bg-secondary: var(--color-gray-50);
+            --bg-tertiary: var(--color-gray-100);
+            --border-light: var(--color-gray-200);
 
             /* Shadows */
             --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -72,7 +72,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #152b47 0%, #1e3a5f 50%, #5387c1 100%);
+            background: linear-gradient(135deg, var(--color-primary-700) 0%, var(--color-primary-500) 50%, var(--color-primary-400) 100%);
             min-height: 100vh;
             color: var(--text-primary);
             line-height: 1.6;
@@ -103,7 +103,7 @@
             text-decoration: none;
         }
 
-        .logo span { color: #c7d2fe; /* Indigo-200 for contrast */ }
+        .logo span { color: var(--color-primary-50); /* Indigo-200 for contrast */ }
 
         .nav-links {
             display: flex;
@@ -115,7 +115,7 @@
             text-decoration: none;
             font-weight: 500;
             padding: 0.5rem 1rem;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             transition: all 0.2s;
         }
 
@@ -179,7 +179,7 @@
 
         .card {
             background: var(--bg-primary);
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             padding: 1.5rem;
             box-shadow: var(--shadow-lg);
             transition: transform 0.2s, box-shadow 0.2s;
@@ -200,7 +200,7 @@
         .card-icon {
             width: 48px;
             height: 48px;
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -210,7 +210,7 @@
         .card-icon.green { background: var(--success-light); color: var(--success); }
         .card-icon.orange { background: var(--warning-light); color: var(--warning); }
         .card-icon.purple { background: var(--purple-light); color: var(--purple); }
-        .card-icon.red { background: #fee2e2; color: var(--danger); }
+        .card-icon.red { background: var(--color-error-100); color: var(--danger); }
 
         .card-icon svg {
             width: 24px;
@@ -291,7 +291,7 @@
 
         .architecture-diagram {
             background: var(--bg-primary);
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             padding: 2rem;
             box-shadow: var(--shadow-lg);
         }
@@ -302,7 +302,7 @@
             gap: 1rem;
             padding: 1rem;
             background: var(--bg-secondary);
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             margin-bottom: 0.5rem;
         }
 
@@ -332,7 +332,7 @@
 
         .api-section {
             background: var(--bg-primary);
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             padding: 1.5rem;
             box-shadow: var(--shadow-lg);
         }
@@ -389,7 +389,7 @@
 
         .module-item {
             background: var(--bg-secondary);
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             padding: 0.75rem 1rem;
             border-left: 3px solid var(--primary);
         }
@@ -570,7 +570,7 @@
                     <span class="card-link">Open CPA Panel &rarr;</span>
                 </a>
 
-                <a href="/admin" class="card access-card" style="border: 2px solid var(--warning); background: linear-gradient(135deg, #fffbeb, white);">
+                <a href="/admin" class="card access-card" style="border: 2px solid var(--warning); background: linear-gradient(135deg, var(--color-warning-50), white);">
                     <div class="card-header">
                         <div class="card-icon orange">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
@@ -584,7 +584,7 @@
                     <span class="card-link">Open Admin Panel &rarr;</span>
                 </a>
 
-                <a href="/client" class="card access-card" style="border: 2px solid var(--purple); background: linear-gradient(135deg, #faf5ff, white);">
+                <a href="/client" class="card access-card" style="border: 2px solid var(--purple); background: linear-gradient(135deg, var(--color-purple-50), white);">
                     <div class="card-header">
                         <div class="card-icon purple">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
@@ -598,7 +598,7 @@
                     <span class="card-link">Open Client Portal &rarr;</span>
                 </a>
 
-                <a href="/docs" class="card access-card" style="border: 2px solid var(--primary); background: linear-gradient(135deg, #eff6ff, white);">
+                <a href="/docs" class="card access-card" style="border: 2px solid var(--primary); background: linear-gradient(135deg, var(--color-info-50), white);">
                     <div class="card-header">
                         <div class="card-icon blue">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>

@@ -2289,7 +2289,7 @@
               <div class="form-group">
                 <div class="question-number">Question 5 of 8</div>
                 <label class="form-label">Are you a homeowner?</label>
-                <div class="toggle-switch" style="margin-top: 8px;">
+                <div class="toggle-switch" style="margin-top: var(--space-2);">
                   <label class="switch">
                     <input type="checkbox" id="is-homeowner" onchange="updateProgress()">
                     <span class="slider"></span>
@@ -2338,7 +2338,7 @@
             </div>
 
             <!-- Additional toggles -->
-            <div class="question-grid" style="margin-top: 16px;">
+            <div class="question-grid" style="margin-top: var(--space-4);">
               <div class="toggle-switch">
                 <label class="switch">
                   <input type="checkbox" id="has-student-loans">
@@ -2374,7 +2374,7 @@
             <p class="card-subtitle">Uploading your prior year 1040 improves accuracy, but is not required</p>
           </div>
           <div class="card-body">
-            <div class="consent-section" style="background: var(--accent-light); margin-bottom: 20px;">
+            <div class="consent-section" style="background: var(--accent-light); margin-bottom: var(--space-5);">
               <div class="consent-title" style="color: var(--accent);">&#128161; Optional Enhancement</div>
               <div class="consent-text">
                 Upload your prior year's 1040 for more accurate insights.
@@ -2396,7 +2396,7 @@
               <span>&#8592;</span> Back
             </button>
             <div>
-              <button class="btn btn-secondary" onclick="skipDocuments()" style="margin-right: 8px;">
+              <button class="btn btn-secondary" onclick="skipDocuments()" style="margin-right: var(--space-2);">
                 Skip for now
               </button>
               <button class="btn btn-primary" onclick="nextStep()">
@@ -2422,7 +2422,7 @@
               <div class="savings-note">Based on your tax profile</div>
             </div>
 
-            <div class="consent-section" style="background: var(--secondary-light); margin-bottom: 20px;">
+            <div class="consent-section" style="background: var(--secondary-light); margin-bottom: var(--space-5);">
               <div class="consent-title" style="color: var(--secondary);">&#127881; Your FREE Report Includes:</div>
               <div class="consent-text">
                 &#10003; Personalized tax savings estimate<br>
@@ -2481,11 +2481,11 @@
             <div class="stats-grid">
               <div class="stat-card">
                 <div class="stat-label">Filing Status</div>
-                <div class="stat-value" id="report-filing-status" style="font-size: 18px;">Single</div>
+                <div class="stat-value" id="report-filing-status" style="font-size: var(--text-lg);">Single</div>
               </div>
               <div class="stat-card">
                 <div class="stat-label">Complexity</div>
-                <div class="stat-value" id="report-complexity" style="font-size: 18px; color: var(--accent);">Moderate</div>
+                <div class="stat-value" id="report-complexity" style="font-size: var(--text-lg); color: var(--accent);">Moderate</div>
               </div>
               <div class="stat-card" style="background: var(--secondary-light);">
                 <div class="stat-label" style="color: var(--secondary);">Potential Savings</div>
@@ -2494,8 +2494,8 @@
             </div>
 
             <!-- Teaser Insights -->
-            <div style="margin-top: 24px;">
-              <h3 class="card-title" style="font-size: 16px; margin-bottom: 16px;">
+            <div style="margin-top: var(--space-6);">
+              <h3 class="card-title" style="font-size: var(--text-base); margin-bottom: var(--space-4);">
                 &#128161; Tax Optimization Opportunities (<span id="report-insights-shown">3</span> of <span id="report-insights-total">8</span>)
               </h3>
 
@@ -2509,7 +2509,7 @@
               </div>
 
               <!-- Locked Insights -->
-              <div class="consent-section" style="background: var(--gray-100); text-align: center; margin-top: 16px;">
+              <div class="consent-section" style="background: var(--gray-100); text-align: center; margin-top: var(--space-4);">
                 <div class="consent-title">&#128274; <span id="report-locked-count">5</span> More Insights Available</div>
                 <div class="consent-text">
                   Contact <span id="unlock-cpa-name">your tax professional</span> to unlock your complete analysis
@@ -2525,14 +2525,14 @@
               <a href="#" class="btn btn-primary" id="report-booking-link" style="background: white; color: var(--primary);">
                 Schedule Free Consultation
               </a>
-              <div style="margin-top: 16px; font-size: 14px; opacity: 0.9;">
+              <div style="margin-top: var(--space-4); font-size: var(--text-sm); opacity: 0.9;">
                 <span id="report-cpa-email"></span>
-                <span id="report-cpa-phone" style="margin-left: 16px;"></span>
+                <span id="report-cpa-phone" style="margin-left: var(--space-4);"></span>
               </div>
             </div>
 
             <!-- Disclaimer -->
-            <div class="consent-section" style="margin-top: 24px;">
+            <div class="consent-section" style="margin-top: var(--space-6);">
               <div class="consent-title">&#9888; Important Disclaimer</div>
               <div class="consent-text" style="font-size: 11px;">
                 This report provides general tax information based on the information you provided
@@ -2686,7 +2686,7 @@
           </div>
 
           <!-- Recent Activity -->
-          <div class="card" style="margin-top: 24px;">
+          <div class="card" style="margin-top: var(--space-6);">
             <div class="card-header">
               <h3 class="card-title">Recent Activity</h3>
             </div>
@@ -4452,7 +4452,7 @@
 
       if (items.length === 0) {
         container.innerHTML = `
-          <div class="empty-state" style="padding: 24px;">
+          <div class="empty-state" style="padding: var(--space-6);">
             <div class="empty-icon">&#10003;</div>
             <div class="empty-title">All caught up!</div>
             <div class="empty-desc">No action items at this time.</div>
@@ -4484,7 +4484,7 @@
 
         const tbody = document.getElementById('returns-table-body');
         if (returns.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px;">No tax returns yet.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: var(--space-10);">No tax returns yet.</td></tr>`;
           return;
         }
 
@@ -4544,7 +4544,7 @@
         // Update requests list
         const requestsList = document.getElementById('doc-requests-list');
         if (requests.length === 0) {
-          requestsList.innerHTML = `<div style="text-align: center; padding: 24px; color: var(--gray-500);">No documents needed at this time.</div>`;
+          requestsList.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--gray-500);">No documents needed at this time.</div>`;
         } else {
           requestsList.innerHTML = requests.filter(d => d.status === 'pending').map((doc, i) => `
             <div class="doc-request ${doc.required ? 'urgent' : ''}">
@@ -4563,7 +4563,7 @@
         // Update uploads list
         const uploadsList = document.getElementById('uploaded-docs-list');
         if (uploads.length === 0) {
-          uploadsList.innerHTML = `<div style="text-align: center; padding: 24px; color: var(--gray-500);">No documents uploaded yet.</div>`;
+          uploadsList.innerHTML = `<div style="text-align: center; padding: var(--space-6); color: var(--gray-500);">No documents uploaded yet.</div>`;
         } else {
           uploadsList.innerHTML = uploads.map(doc => `
             <div class="uploaded-doc">
@@ -4903,7 +4903,7 @@
 
         const tbody = document.getElementById('invoices-table-body');
         if (invoices.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px;">No invoices yet.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: var(--space-10);">No invoices yet.</td></tr>`;
           return;
         }
 

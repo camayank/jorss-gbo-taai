@@ -843,7 +843,7 @@
             <h3 class="rd-property-name" x-text="prop.property_name || 'Unnamed Property'"></h3>
             <p class="rd-property-address" x-text="prop.address || ''"></p>
           </div>
-          <div style="display: flex; align-items: center; gap: 6px;">
+          <div style="display: flex; align-items: center; gap: var(--space-1-5);">
             <span class="rd-badge"
                   :class="prop.property_type === 'commercial' ? 'rd-badge-commercial' : 'rd-badge-residential'"
                   x-text="prop.property_type === 'commercial' ? 'Commercial (39 yr)' : 'Residential (27.5 yr)'">
@@ -877,7 +877,7 @@
             </div>
             <div class="rd-detail-item" style="grid-column: 1 / -1;">
               <label>Depreciable Basis</label>
-              <span style="font-weight: 600; color: #1e3a5f;" x-text="formatCurrency(prop.depreciable_basis)"></span>
+              <span style="font-weight: var(--font-semibold); color: var(--color-primary-500);" x-text="formatCurrency(prop.depreciable_basis)"></span>
             </div>
           </div>
 
@@ -982,7 +982,7 @@
                 <td>
                   <span x-text="row.year"></span>
                   <template x-if="row.year === new Date().getFullYear()">
-                    <span style="display: inline-block; margin-left: 6px; font-size: 0.65rem; background: #14b8a6; color: #fff; padding: 1px 6px; border-radius: 4px; font-weight: 600; vertical-align: middle;">CURRENT</span>
+                    <span style="display: inline-block; margin-left: var(--space-1-5); font-size: 0.65rem; background: var(--color-accent-500); color: white; padding: var(--space-px) var(--space-1-5); border-radius: 4px; font-weight: var(--font-semibold); vertical-align: middle;">CURRENT</span>
                   </template>
                 </td>
                 <td x-text="formatCurrency(row.beginning_basis)"></td>
@@ -1009,7 +1009,7 @@
     <!-- Improvements Section -->
     <div class="rd-improvements-section">
       <h3>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style="width: 18px; height: 18px; color: #d97706;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" style="width: 18px; height: 18px; color: var(--color-warning-600);">
           <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
         </svg>
         Capital Improvements
@@ -1041,7 +1041,7 @@
       <template x-if="(selectedProperty?.improvements || []).length === 0">
         <div class="rd-no-improvements">
           <p>No capital improvements recorded for this property.</p>
-          <button class="rd-btn-sm rd-btn-outline" style="margin-top: 8px;" @click="showAddImprovement = true">
+          <button class="rd-btn-sm rd-btn-outline" style="margin-top: var(--space-2);" @click="showAddImprovement = true">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/>
             </svg>
@@ -1103,7 +1103,7 @@
             </div>
           </div>
 
-          <div class="rd-calculated-field" style="margin-top: 4px;">
+          <div class="rd-calculated-field" style="margin-top: var(--space-1);">
             <label>Depreciable Basis (auto-calculated)</label>
             <span class="rd-calc-value" x-text="formatCurrency(Math.max(0, (newProperty.total_cost || 0) - (newProperty.land_value || 0)))"></span>
           </div>
@@ -1133,7 +1133,7 @@
           </button>
         </div>
         <div class="rd-modal-body">
-          <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 0.825rem; color: #0369a1;">
+          <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); font-size: 0.825rem; color: #0369a1;">
             Adding improvement to: <strong x-text="selectedProperty?.property_name || 'Selected Property'"></strong>
           </div>
 

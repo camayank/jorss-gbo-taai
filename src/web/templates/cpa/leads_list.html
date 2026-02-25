@@ -171,10 +171,10 @@
         white-space: nowrap;
     }
 
-    .state-badge.browsing { background: #f3f4f6; color: #6b7280; }
-    .state-badge.curious { background: #eef3f9; color: #1e3a5f; }
-    .state-badge.evaluating { background: #fef3c7; color: #b45309; }
-    .state-badge.advisory_ready { background: #d1fae5; color: #047857; }
+    .state-badge.browsing { background: var(--color-gray-100); color: var(--color-gray-500); }
+    .state-badge.curious { background: #eef3f9; color: var(--color-primary-500); }
+    .state-badge.evaluating { background: var(--color-warning-100); color: #b45309; }
+    .state-badge.advisory_ready { background: var(--color-success-100); color: #047857; }
     .state-badge.high_leverage { background: #fce7f3; color: #be185d; }
     .state-badge.converted { background: #ede9fe; color: #5b21b6; }
 
@@ -189,9 +189,9 @@
         font-weight: 600;
     }
 
-    .temp-badge.hot { background: #fee2e2; color: #b91c1c; }
-    .temp-badge.warm { background: #fef3c7; color: #b45309; }
-    .temp-badge.cold { background: #eef3f9; color: #1e3a5f; }
+    .temp-badge.hot { background: var(--color-error-100); color: #b91c1c; }
+    .temp-badge.warm { background: var(--color-warning-100); color: #b45309; }
+    .temp-badge.cold { background: #eef3f9; color: var(--color-primary-500); }
 
     /* Savings Value */
     .savings-value {
@@ -215,10 +215,10 @@
         color: var(--text-muted);
     }
 
-    .complexity-badge.professional { background: #fee2e2; color: #991b1b; }
-    .complexity-badge.complex { background: #fef3c7; color: #92400e; }
-    .complexity-badge.moderate { background: #eef3f9; color: #1e3a5f; }
-    .complexity-badge.simple { background: #d1fae5; color: #065f46; }
+    .complexity-badge.professional { background: var(--color-error-100); color: var(--color-error-800); }
+    .complexity-badge.complex { background: var(--color-warning-100); color: var(--color-warning-800); }
+    .complexity-badge.moderate { background: #eef3f9; color: var(--color-primary-500); }
+    .complexity-badge.simple { background: var(--color-success-100); color: var(--color-success-800); }
 
     /* Actions Column */
     .actions-cell {
@@ -506,7 +506,7 @@
                     {{ p }}
                 </button>
                 {% elif p == 4 or p == total_pages - 2 %}
-                <span style="padding: 0 8px;">...</span>
+                <span style="padding: 0 var(--space-2);">...</span>
                 {% endif %}
             {% endfor %}
             <button class="pagination-btn" onclick="goToPage({{ page + 1 }})" {% if page >= total_pages %}disabled{% endif %}>

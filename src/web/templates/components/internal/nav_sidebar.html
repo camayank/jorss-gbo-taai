@@ -49,7 +49,7 @@
         <div class="sidebar-brand-text">
           {% if portal_type == 'admin' %}
             <span>TaxFlow</span>
-            <span class="badge badge-warning" style="font-size: 10px; margin-left: 8px;">ADMIN</span>
+            <span class="badge badge-warning" style="font-size: 10px; margin-left: var(--space-2);">ADMIN</span>
           {% else %}
             {{ branding.firm_name if branding else 'Tax Practice' }}
           {% endif %}
@@ -96,7 +96,7 @@
         {% if user and user.avatar_url %}
           <img src="{{ user.avatar_url }}" alt="" class="user-avatar">
         {% else %}
-          <div class="user-avatar" style="background: var(--color-primary-600); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600;">
+          <div class="user-avatar" style="background: var(--color-primary-600); color: white; display: flex; align-items: center; justify-content: center; font-weight: var(--font-semibold);">
             {{ (user.name if user else 'U')[0] | upper }}
           </div>
         {% endif %}

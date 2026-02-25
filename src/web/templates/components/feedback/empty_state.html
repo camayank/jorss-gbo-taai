@@ -91,7 +91,7 @@
     {% endif %}
 
     {% if action_text %}
-      <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+      <div style="display: flex; gap: var(--space-3); flex-wrap: wrap; justify-content: center;">
         <a href="{{ action_href | default('#') }}" class="btn btn-{{ action_variant }}">
           {{ action_text }}
         </a>
@@ -118,15 +118,15 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 40px;
+    padding: var(--space-10);
   ">
-    <div style="width: 64px; height: 64px; color: var(--color-gray-300); margin-bottom: 16px;">
+    <div style="width: 64px; height: 64px; color: var(--color-gray-300); margin-bottom: var(--space-4);">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
       </svg>
     </div>
 
-    <h3 style="font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--color-gray-900); margin: 0 0 8px;">
+    <h3 style="font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--color-gray-900); margin: 0 0 var(--space-2);">
       {% if search_term %}
         No results for "{{ search_term }}"
       {% else %}
@@ -134,16 +134,16 @@
       {% endif %}
     </h3>
 
-    <p style="font-size: var(--text-base); color: var(--color-gray-500); margin: 0 0 16px;">
+    <p style="font-size: var(--text-base); color: var(--color-gray-500); margin: 0 0 var(--space-4);">
       Try adjusting your search or filter criteria
     </p>
 
     {% if suggestions %}
-      <div style="margin-bottom: 16px;">
-        <p style="font-size: var(--text-sm); color: var(--color-gray-600); margin-bottom: 8px;">Suggestions:</p>
+      <div style="margin-bottom: var(--space-4);">
+        <p style="font-size: var(--text-sm); color: var(--color-gray-600); margin-bottom: var(--space-2);">Suggestions:</p>
         <ul style="list-style: none; padding: 0; margin: 0; font-size: var(--text-sm); color: var(--color-gray-500);">
           {% for suggestion in suggestions %}
-            <li style="margin-bottom: 4px;">{{ suggestion }}</li>
+            <li style="margin-bottom: var(--space-1);">{{ suggestion }}</li>
           {% endfor %}
         </ul>
       </div>

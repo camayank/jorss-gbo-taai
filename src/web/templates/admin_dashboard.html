@@ -1252,8 +1252,8 @@
       <span class="hamburger-line"></span>
     </button>
     <div class="mobile-logo">
-      <div class="sidebar-logo-icon" style="width: 32px; height: 32px; font-size: 12px;">TF</div>
-      <span style="font-weight: 600; color: white;">TaxFlow Admin</span>
+      <div class="sidebar-logo-icon" style="width: 32px; height: 32px; font-size: var(--text-xs);">TF</div>
+      <span style="font-weight: var(--font-semibold); color: white;">TaxFlow Admin</span>
     </div>
     <div style="width: 40px;"></div>
   </header>
@@ -1451,8 +1451,8 @@
                 <button class="btn btn-ghost btn-sm" onclick="navigateTo('audit')">View All</button>
               </div>
               <div class="card-body no-padding">
-                <div class="activity-feed" id="platform-activity-feed" style="padding: 0 20px;">
-                  <div style="padding: 40px; text-align: center; color: var(--gray-400);">Loading activity...</div>
+                <div class="activity-feed" id="platform-activity-feed" style="padding: 0 var(--space-5);">
+                  <div style="padding: var(--space-10); text-align: center; color: var(--gray-400);">Loading activity...</div>
                 </div>
               </div>
             </div>
@@ -1463,13 +1463,13 @@
                 <h2 class="card-title">Subscription Distribution</h2>
               </div>
               <div class="card-body" id="subscription-distribution">
-                <div style="padding: 40px; text-align: center; color: var(--gray-400);">Loading distribution...</div>
+                <div style="padding: var(--space-10); text-align: center; color: var(--gray-400);">Loading distribution...</div>
               </div>
             </div>
           </div>
 
           <!-- Top Firms Table -->
-          <div class="card" style="margin-top: 20px;">
+          <div class="card" style="margin-top: var(--space-5);">
             <div class="card-header">
               <h2 class="card-title">Top Firms by Activity</h2>
               <button class="btn btn-secondary btn-sm" onclick="navigateTo('firms')">View All Firms</button>
@@ -1487,7 +1487,7 @@
                   </tr>
                 </thead>
                 <tbody id="top-firms-table">
-                  <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--gray-400);">Loading firms...</td></tr>
+                  <tr><td colspan="6" style="text-align: center; padding: var(--space-10); color: var(--gray-400);">Loading firms...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -1544,7 +1544,7 @@
                   </tr>
                 </thead>
                 <tbody id="firms-table">
-                  <tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--gray-400);">Loading firms...</td></tr>
+                  <tr><td colspan="9" style="text-align: center; padding: var(--space-10); color: var(--gray-400);">Loading firms...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -1597,7 +1597,7 @@
                   </tr>
                 </thead>
                 <tbody id="users-table">
-                  <tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--gray-400);">Loading users...</td></tr>
+                  <tr><td colspan="7" style="text-align: center; padding: var(--space-10); color: var(--gray-400);">Loading users...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -1623,7 +1623,7 @@
 
           <div class="grid-3" id="partners-grid">
             <div class="card">
-              <div class="card-body" style="text-align: center; padding: 40px; color: var(--gray-400);">
+              <div class="card-body" style="text-align: center; padding: var(--space-10); color: var(--gray-400);">
                 Loading partners...
               </div>
             </div>
@@ -1670,7 +1670,7 @@
             </div>
           </div>
 
-          <div class="grid-2" style="margin-top: 20px;">
+          <div class="grid-2" style="margin-top: var(--space-5);">
             <div class="card">
               <div class="card-header">
                 <h2 class="card-title">Recent Subscription Changes</h2>
@@ -1770,9 +1770,9 @@
                   <div class="feature-flag-name">AI Tax Advisor v2</div>
                   <div class="feature-flag-desc">New AI-powered tax optimization recommendations engine</div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: var(--space-4);">
                   <span class="badge badge-warning">Beta</span>
-                  <span style="font-size: 12px; color: var(--gray-500);">42 firms</span>
+                  <span style="font-size: var(--text-xs); color: var(--gray-500);">42 firms</span>
                   <label class="toggle">
                     <input type="checkbox" checked>
                     <span class="toggle-slider"></span>
@@ -1784,9 +1784,9 @@
                   <div class="feature-flag-name">Multi-State Filing</div>
                   <div class="feature-flag-desc">Support for multi-state tax return filing</div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: var(--space-4);">
                   <span class="badge badge-success">GA</span>
-                  <span style="font-size: 12px; color: var(--gray-500);">All firms</span>
+                  <span style="font-size: var(--text-xs); color: var(--gray-500);">All firms</span>
                   <label class="toggle">
                     <input type="checkbox" checked>
                     <span class="toggle-slider"></span>
@@ -1798,9 +1798,9 @@
                   <div class="feature-flag-name">Crypto Tax Support</div>
                   <div class="feature-flag-desc">Cryptocurrency transaction import and tax calculation</div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: var(--space-4);">
                   <span class="badge badge-info">Enterprise</span>
-                  <span style="font-size: 12px; color: var(--gray-500);">Enterprise only</span>
+                  <span style="font-size: var(--text-xs); color: var(--gray-500);">Enterprise only</span>
                   <label class="toggle">
                     <input type="checkbox" checked>
                     <span class="toggle-slider"></span>
@@ -1812,9 +1812,9 @@
                   <div class="feature-flag-name">Dark Mode</div>
                   <div class="feature-flag-desc">Dark theme for CPA and Client portals</div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: var(--space-4);">
                   <span class="badge badge-gray">Disabled</span>
-                  <span style="font-size: 12px; color: var(--gray-500);">0 firms</span>
+                  <span style="font-size: var(--text-xs); color: var(--gray-500);">0 firms</span>
                   <label class="toggle">
                     <input type="checkbox">
                     <span class="toggle-slider"></span>
@@ -1826,9 +1826,9 @@
                   <div class="feature-flag-name">API v3</div>
                   <div class="feature-flag-desc">New REST API with GraphQL support</div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: var(--space-4);">
                   <span class="badge badge-purple">Alpha</span>
-                  <span style="font-size: 12px; color: var(--gray-500);">5 firms</span>
+                  <span style="font-size: var(--text-xs); color: var(--gray-500);">5 firms</span>
                   <label class="toggle">
                     <input type="checkbox" checked>
                     <span class="toggle-slider"></span>
@@ -1843,7 +1843,7 @@
         <div class="page-section" id="section-health">
           <div class="section-header">
             <h2 class="section-title">System Health</h2>
-            <span class="badge badge-success" style="font-size: 14px; padding: 8px 16px;">All Systems Operational</span>
+            <span class="badge badge-success" style="font-size: var(--text-sm); padding: var(--space-2) var(--space-4);">All Systems Operational</span>
           </div>
 
           <div class="platform-stats" style="grid-template-columns: repeat(4, 1fr);">
@@ -1877,7 +1877,7 @@
             </div>
           </div>
 
-          <div class="grid-2" style="margin-top: 20px;">
+          <div class="grid-2" style="margin-top: var(--space-5);">
             <div class="card">
               <div class="card-header">
                 <h2 class="card-title">Service Status</h2>
@@ -1968,7 +1968,7 @@
           </div>
 
           <!-- RBAC Stats -->
-          <div class="platform-stats" style="margin-bottom: 24px;">
+          <div class="platform-stats" style="margin-bottom: var(--space-6);">
             <div class="stat-card">
               <div class="stat-value" id="rbac-total-users">---</div>
               <div class="stat-label">Total Users</div>
@@ -2011,7 +2011,7 @@
                     </thead>
                     <tbody id="rbac-roles-table">
                       <tr>
-                        <td colspan="4" style="text-align: center; padding: 40px; color: var(--gray-400);">Loading roles...</td>
+                        <td colspan="4" style="text-align: center; padding: var(--space-10); color: var(--gray-400);">Loading roles...</td>
                       </tr>
                     </tbody>
                   </table>
@@ -2023,7 +2023,7 @@
                   <h2 class="card-title">Permission Categories</h2>
                 </div>
                 <div class="card-body" id="rbac-categories">
-                  <div style="text-align: center; padding: 40px; color: var(--gray-400);">Loading...</div>
+                  <div style="text-align: center; padding: var(--space-10); color: var(--gray-400);">Loading...</div>
                 </div>
               </div>
             </div>
@@ -2070,8 +2070,8 @@
                 </thead>
                 <tbody>
                   <tr>
-                    <td colspan="6" style="text-align: center; padding: 40px; color: var(--gray-400);">
-                      <div class="loading-spinner" style="margin: 0 auto 12px;"></div>
+                    <td colspan="6" style="text-align: center; padding: var(--space-10); color: var(--gray-400);">
+                      <div class="loading-spinner" style="margin: 0 auto var(--space-3);"></div>
                       Loading audit logs...
                     </td>
                   </tr>
@@ -2352,9 +2352,9 @@
     function showLoading(elementId) {
       const el = document.getElementById(elementId);
       if (el) {
-        el.innerHTML = `<div class="loading-spinner" style="display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--gray-400);">
-          <span style="font-size: 24px; animation: spin 1s linear infinite;">&#9696;</span>
-          <span style="margin-left: 12px;">Loading...</span>
+        el.innerHTML = `<div class="loading-spinner" style="display: flex; align-items: center; justify-content: center; padding: var(--space-10); color: var(--gray-400);">
+          <span style="font-size: var(--text-2xl); animation: spin 1s linear infinite;">&#9696;</span>
+          <span style="margin-left: var(--space-3);">Loading...</span>
         </div>`;
       }
     }
@@ -2365,9 +2365,9 @@
     function showError(elementId, message) {
       const el = document.getElementById(elementId);
       if (el) {
-        el.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--error);">
-          <span style="font-size: 24px;">&#9888;</span>
-          <span style="margin-left: 12px;">${escapeHtml(message)}</span>
+        el.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; padding: var(--space-10); color: var(--error);">
+          <span style="font-size: var(--text-2xl);">&#9888;</span>
+          <span style="margin-left: var(--space-3);">${escapeHtml(message)}</span>
         </div>`;
       }
     }
@@ -2464,7 +2464,7 @@
       } catch (error) {
         console.error('Failed to load RBAC data:', error);
         document.getElementById('rbac-roles-table').innerHTML = `
-          <tr><td colspan="4" style="text-align: center; padding: 40px; color: var(--danger);">Failed to load RBAC data</td></tr>
+          <tr><td colspan="4" style="text-align: center; padding: var(--space-10); color: var(--danger);">Failed to load RBAC data</td></tr>
         `;
       }
     }
@@ -2501,14 +2501,14 @@
               <td>${role.permissions_count || 0}</td>
             </tr>
           `;
-        }).join('') || '<tr><td colspan="4" style="text-align: center; padding: 20px;">No roles found</td></tr>';
+        }).join('') || '<tr><td colspan="4" style="text-align: center; padding: var(--space-5);">No roles found</td></tr>';
       }
 
       // Update categories
       const categoriesDiv = document.getElementById('rbac-categories');
       if (categoriesDiv && data.permission_categories) {
         categoriesDiv.innerHTML = data.permission_categories.map(cat => `
-          <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--gray-100);">
+          <div style="display: flex; justify-content: space-between; padding: var(--space-3) 0; border-bottom: 1px solid var(--gray-100);">
             <span style="text-transform: capitalize;">${escapeHtml(cat.category)}</span>
             <span class="badge badge-gray">${cat.permissions} permissions</span>
           </div>
@@ -2528,7 +2528,7 @@
 
       switch(tab) {
         case 'permissions':
-          content.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading-spinner"></div></div>';
+          content.innerHTML = '<div style="text-align: center; padding: var(--space-10);"><div class="loading-spinner"></div></div>';
           try {
             const perms = await api('/rbac/permissions');
             content.innerHTML = `
@@ -2548,7 +2548,7 @@
                     <tbody>
                       ${(perms.permissions || []).map(p => `
                         <tr>
-                          <td><code style="background: var(--gray-100); padding: 4px 8px; border-radius: 4px;">${escapeHtml(p.id)}</code></td>
+                          <td><code style="background: var(--gray-100); padding: var(--space-1) var(--space-2); border-radius: 4px;">${escapeHtml(p.id)}</code></td>
                           <td><span class="badge badge-gray">${escapeHtml(p.category)}</span></td>
                           <td>${escapeHtml(p.description || '')}</td>
                         </tr>
@@ -2559,7 +2559,7 @@
               </div>
             `;
           } catch (error) {
-            content.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--danger);">Failed to load permissions</div>';
+            content.innerHTML = '<div style="text-align: center; padding: var(--space-10); color: var(--danger);">Failed to load permissions</div>';
           }
           break;
         case 'admins':
@@ -2656,7 +2656,7 @@
     function updateSubscriptionDistribution(distribution) {
       const container = document.getElementById('subscription-distribution');
       if (!container || !distribution) {
-        if (container) container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--gray-400);">No distribution data</div>';
+        if (container) container.innerHTML = '<div style="text-align: center; padding: var(--space-5); color: var(--gray-400);">No distribution data</div>';
         return;
       }
 
@@ -2675,9 +2675,9 @@
         const percent = total > 0 ? (count / total * 100) : 0;
         return `
           <div class="distribution-bar" onclick="navigateTo('firms', {tier: '${tier.key}'})" title="View ${tier.name} firms">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-2); align-items: center;">
               <span style="font-size: 13px; color: var(--gray-700);">${tier.name}<span class="bar-link">View firms &#8594;</span></span>
-              <span style="font-size: 13px; font-weight: 600;">${formatNumber(count)} firms (${formatCurrency(mrr)} MRR)</span>
+              <span style="font-size: 13px; font-weight: var(--font-semibold);">${formatNumber(count)} firms (${formatCurrency(mrr)} MRR)</span>
             </div>
             <div style="height: 8px; background: var(--gray-100); border-radius: 4px; overflow: hidden;">
               <div style="width: ${percent}%; height: 100%; background: ${tier.color}; border-radius: 4px;"></div>
@@ -2699,7 +2699,7 @@
         const activities = await api('/activity').catch(() => []);
 
         if (!activities || activities.length === 0) {
-          container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--gray-400);">No recent activity</div>';
+          container.innerHTML = '<div style="padding: var(--space-5); text-align: center; color: var(--gray-400);">No recent activity</div>';
           return;
         }
 
@@ -2732,7 +2732,7 @@
         }).join('');
       } catch (error) {
         console.error('Failed to load platform activity:', error);
-        container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--error);">Failed to load activity</div>';
+        container.innerHTML = '<div style="padding: var(--space-5); text-align: center; color: var(--error);">Failed to load activity</div>';
       }
     }
 
@@ -2744,7 +2744,7 @@
       if (!tbody) return;
 
       if (!firmsData || firmsData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--gray-400);">No firms data</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: var(--space-10); color: var(--gray-400);">No firms data</td></tr>';
         return;
       }
 
@@ -2790,7 +2790,7 @@
       if (!tbody) return;
 
       if (!firms || firms.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--gray-400);">No firms found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: var(--space-10); color: var(--gray-400);">No firms found</td></tr>';
         return;
       }
 
@@ -2828,7 +2828,7 @@
       if (!tbody) return;
 
       if (!users || users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--gray-400);">No users found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: var(--space-10); color: var(--gray-400);">No users found</td></tr>';
         return;
       }
 
@@ -2880,9 +2880,9 @@
         container.innerHTML = `
           <div class="card">
             <div class="card-body" style="text-align: center; padding: 60px; color: var(--gray-400);">
-              <div style="font-size: 48px; margin-bottom: 16px;">&#129309;</div>
+              <div style="font-size: var(--text-5xl); margin-bottom: var(--space-4);">&#129309;</div>
               <div>No partners yet</div>
-              <button class="btn btn-primary" style="margin-top: 16px;" onclick="openAddPartnerModal()">Add First Partner</button>
+              <button class="btn btn-primary" style="margin-top: var(--space-4);" onclick="openAddPartnerModal()">Add First Partner</button>
             </div>
           </div>
         `;
@@ -2892,28 +2892,28 @@
       container.innerHTML = partners.map(partner => `
         <div class="card">
           <div class="card-body">
-            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-              <div class="firm-logo" style="background: ${getColorForName(partner.name)}; width: 56px; height: 56px; font-size: 20px;">${getInitials(partner.name)}</div>
+            <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+              <div class="firm-logo" style="background: ${getColorForName(partner.name)}; width: 56px; height: 56px; font-size: var(--text-xl);">${getInitials(partner.name)}</div>
               <div>
-                <div style="font-weight: 600; font-size: 16px; color: var(--gray-900);">${escapeHtml(partner.name)}</div>
-                <div style="font-size: 12px; color: var(--gray-500);">${escapeHtml(partner.domain || '')}</div>
+                <div style="font-weight: var(--font-semibold); font-size: var(--text-base); color: var(--gray-900);">${escapeHtml(partner.name)}</div>
+                <div style="font-size: var(--text-xs); color: var(--gray-500);">${escapeHtml(partner.domain || '')}</div>
               </div>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); margin-bottom: var(--space-4);">
               <div>
-                <div style="font-size: 20px; font-weight: 700; color: var(--gray-900);">${formatNumber(partner.firms_count || 0)}</div>
+                <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--gray-900);">${formatNumber(partner.firms_count || 0)}</div>
                 <div style="font-size: 11px; color: var(--gray-500);">Firms</div>
               </div>
               <div>
-                <div style="font-size: 20px; font-weight: 700; color: var(--gray-900);">${formatNumber(partner.users_count || 0)}</div>
+                <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--gray-900);">${formatNumber(partner.users_count || 0)}</div>
                 <div style="font-size: 11px; color: var(--gray-500);">Users</div>
               </div>
               <div>
-                <div style="font-size: 20px; font-weight: 700; color: var(--success);">${formatCurrency(partner.mrr || 0)}</div>
+                <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--success);">${formatCurrency(partner.mrr || 0)}</div>
                 <div style="font-size: 11px; color: var(--gray-500);">MRR</div>
               </div>
             </div>
-            <div style="display: flex; gap: 8px;">
+            <div style="display: flex; gap: var(--space-2);">
               <button class="btn btn-secondary btn-sm" style="flex: 1;" onclick="openPartnerDetail('${escapeHtml(partner.partner_id)}')">Manage</button>
               <button class="btn btn-ghost btn-sm" onclick="openPartnerSettings('${escapeHtml(partner.partner_id)}')">&#9881;</button>
             </div>
@@ -2934,7 +2934,7 @@
       if (!container) return;
 
       if (!flags || flags.length === 0) {
-        container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--gray-400);">No feature flags configured</div>';
+        container.innerHTML = '<div style="text-align: center; padding: var(--space-10); color: var(--gray-400);">No feature flags configured</div>';
         return;
       }
 
@@ -2948,9 +2948,9 @@
               <div class="feature-flag-name">${escapeHtml(flag.name)}</div>
               <div class="feature-flag-desc">${escapeHtml(flag.description || '')}</div>
             </div>
-            <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: var(--space-4);">
               <span class="badge ${statusBadge}">${statusText}</span>
-              <span style="font-size: 12px; color: var(--gray-500);">${formatNumber(flag.enabled_firms || 0)} firms</span>
+              <span style="font-size: var(--text-xs); color: var(--gray-500);">${formatNumber(flag.enabled_firms || 0)} firms</span>
               <label class="toggle">
                 <input type="checkbox" ${flag.is_enabled_globally ? 'checked' : ''} onchange="toggleFeatureFlag('${escapeHtml(flag.flag_id)}', this.checked)">
                 <span class="toggle-slider"></span>
@@ -3084,7 +3084,7 @@
       if (!tbody) return;
 
       if (!logs || logs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--gray-400);">No audit logs found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: var(--space-10); color: var(--gray-400);">No audit logs found</td></tr>';
         return;
       }
 
@@ -3100,7 +3100,7 @@
         const actionColor = actionColors[log.action] || 'badge-gray';
         return `
           <tr>
-            <td style="font-family: monospace; font-size: 12px;">${new Date(log.timestamp).toISOString().replace('T', ' ').slice(0, 19)}</td>
+            <td style="font-family: monospace; font-size: var(--text-xs);">${new Date(log.timestamp).toISOString().replace('T', ' ').slice(0, 19)}</td>
             <td>${escapeHtml(log.user_email || log.user_id || 'system')}</td>
             <td><span class="badge ${actionColor}">${escapeHtml(log.action)}</span></td>
             <td>${escapeHtml(log.resource_type || '')} ${escapeHtml(log.resource_id || '')}</td>
@@ -3363,23 +3363,23 @@
     function openAddFirmModal() {
       const modal = createModal('Add New Firm', `
         <form id="add-firm-form">
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Firm Name *</label>
-            <input type="text" name="name" required class="form-input" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-medium);">Firm Name *</label>
+            <input type="text" name="name" required class="form-input" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
           </div>
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Admin Email *</label>
-            <input type="email" name="admin_email" required class="form-input" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}" title="Enter a valid email address" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-medium);">Admin Email *</label>
+            <input type="email" name="admin_email" required class="form-input" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}" title="Enter a valid email address" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
           </div>
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Subscription Tier</label>
-            <select name="subscription_tier" class="form-select" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-medium);">Subscription Tier</label>
+            <select name="subscription_tier" class="form-select" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
               <option value="starter">Starter</option>
               <option value="professional" selected>Professional</option>
               <option value="enterprise">Enterprise</option>
             </select>
           </div>
-          <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+          <div style="display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-6);">
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
             <button type="submit" class="btn btn-primary">Create Firm</button>
           </div>
@@ -3404,28 +3404,28 @@
     function openInviteUserModal() {
       const modal = createModal('Invite User', `
         <form id="invite-user-form">
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Email Address *</label>
-            <input type="email" name="email" required class="form-input" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}" title="Enter a valid email address" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-medium);">Email Address *</label>
+            <input type="email" name="email" required class="form-input" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}" title="Enter a valid email address" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
           </div>
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Firm *</label>
-            <select name="firm_id" required class="form-select" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-medium);">Firm *</label>
+            <select name="firm_id" required class="form-select" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
               <option value="">Select a firm...</option>
               ${(firmsData || []).map(f => `<option value="${escapeHtml(f.firm_id)}">${escapeHtml(f.name)}</option>`).join('')}
             </select>
           </div>
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Role</label>
-            <select name="role" class="form-select" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-medium);">Role</label>
+            <select name="role" class="form-select" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
               <option value="preparer">Preparer</option>
               <option value="senior_preparer">Senior Preparer</option>
               <option value="reviewer">Reviewer</option>
               <option value="firm_admin">Firm Admin</option>
             </select>
           </div>
-          <div id="invite-error" style="display: none; color: var(--danger); margin-bottom: 16px; padding: 10px; background: #fef2f2; border-radius: 6px;"></div>
-          <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+          <div id="invite-error" style="display: none; color: var(--danger); margin-bottom: var(--space-4); padding: var(--space-2-5); background: var(--color-error-50); border-radius: var(--radius-md);"></div>
+          <div style="display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-6);">
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
             <button type="submit" class="btn btn-primary" id="invite-submit-btn">Send Invitation</button>
           </div>
@@ -3481,25 +3481,25 @@
     function openAddPartnerModal() {
       const modal = createModal('Add Partner', `
         <form id="add-partner-form">
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Partner Name *</label>
-            <input type="text" name="name" required class="form-input" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-medium);">Partner Name *</label>
+            <input type="text" name="name" required class="form-input" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
           </div>
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Domain</label>
-            <input type="text" name="domain" placeholder="partner.com" class="form-input" pattern="^[a-zA-Z0-9][a-zA-Z0-9\-]*(\.[a-zA-Z]{2,})+$" title="Enter a valid domain (e.g., partner.com)" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-medium);">Domain</label>
+            <input type="text" name="domain" placeholder="partner.com" class="form-input" pattern="^[a-zA-Z0-9][a-zA-Z0-9\-]*(\.[a-zA-Z]{2,})+$" title="Enter a valid domain (e.g., partner.com)" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
           </div>
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Contact Email *</label>
-            <input type="email" name="contact_email" required class="form-input" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}" title="Enter a valid email address" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-medium);">Contact Email *</label>
+            <input type="email" name="contact_email" required class="form-input" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}" title="Enter a valid email address" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
           </div>
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Revenue Share %</label>
-            <input type="number" name="revenue_share" min="0" max="50" step="0.5" value="10" class="form-input" title="Commission percentage (0-50%)" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
-            <small style="color: var(--gray-500); font-size: 12px;">Partner commission percentage (0-50%)</small>
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-medium);">Revenue Share %</label>
+            <input type="number" name="revenue_share" min="0" max="50" step="0.5" value="10" class="form-input" title="Commission percentage (0-50%)" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
+            <small style="color: var(--gray-500); font-size: var(--text-xs);">Partner commission percentage (0-50%)</small>
           </div>
-          <div id="partner-error" style="display: none; color: var(--danger); margin-bottom: 16px; padding: 10px; background: #fef2f2; border-radius: 6px;"></div>
-          <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+          <div id="partner-error" style="display: none; color: var(--danger); margin-bottom: var(--space-4); padding: var(--space-2-5); background: var(--color-error-50); border-radius: var(--radius-md);"></div>
+          <div style="display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-6);">
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
             <button type="submit" class="btn btn-primary" id="partner-submit-btn">Add Partner</button>
           </div>
@@ -3575,9 +3575,9 @@
         animation: slideIn 0.3s ease-out;
       `;
       toast.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: var(--space-3);">
           <span>${escapeHtml(message)}</span>
-          <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; cursor: pointer; font-size: 18px;">&times;</button>
+          <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; cursor: pointer; font-size: var(--text-lg);">&times;</button>
         </div>
       `;
 
@@ -3609,12 +3609,12 @@
       overlay.onclick = (e) => { if (e.target === overlay) closeModal(); };
 
       overlay.innerHTML = `
-        <div role="dialog" aria-modal="true" aria-labelledby="${titleId}" style="background: white; border-radius: 12px; width: 480px; max-width: 90vw; max-height: 90vh; overflow: auto;">
-          <div style="padding: 20px; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center;">
-            <h2 id="${titleId}" style="font-size: 18px; font-weight: 600;">${escapeHtml(title)}</h2>
-            <button onclick="closeModal()" aria-label="Close dialog" style="background: none; border: none; cursor: pointer; font-size: 20px;">&times;</button>
+        <div role="dialog" aria-modal="true" aria-labelledby="${titleId}" style="background: white; border-radius: var(--radius-xl); width: 480px; max-width: 90vw; max-height: 90vh; overflow: auto;">
+          <div style="padding: var(--space-5); border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center;">
+            <h2 id="${titleId}" style="font-size: var(--text-lg); font-weight: var(--font-semibold);">${escapeHtml(title)}</h2>
+            <button onclick="closeModal()" aria-label="Close dialog" style="background: none; border: none; cursor: pointer; font-size: var(--text-xl);">&times;</button>
           </div>
-          <div style="padding: 20px;">
+          <div style="padding: var(--space-5);">
             ${content}
           </div>
         </div>
@@ -3653,7 +3653,7 @@
       const panel = document.getElementById('detail-panel');
       document.getElementById('detail-panel-title').textContent = 'Partner Details';
       document.getElementById('detail-panel-body').innerHTML = `
-        <div style="display: flex; justify-content: center; padding: 40px;">
+        <div style="display: flex; justify-content: center; padding: var(--space-10);">
           <div class="loading-spinner"></div>
         </div>
       `;
@@ -3665,46 +3665,46 @@
         const color = getColorForName(partner.name || 'Unknown');
 
         document.getElementById('detail-panel-body').innerHTML = `
-          <div style="margin-bottom: 24px;">
-            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
-              <div class="firm-logo" style="background: ${color}; width: 64px; height: 64px; font-size: 24px;">${escapeHtml(initials)}</div>
+          <div style="margin-bottom: var(--space-6);">
+            <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-5);">
+              <div class="firm-logo" style="background: ${color}; width: 64px; height: 64px; font-size: var(--text-2xl);">${escapeHtml(initials)}</div>
               <div>
-                <div style="font-size: 20px; font-weight: 600;">${escapeHtml(partner.name || 'Unknown Partner')}</div>
+                <div style="font-size: var(--text-xl); font-weight: var(--font-semibold);">${escapeHtml(partner.name || 'Unknown Partner')}</div>
                 <div style="color: var(--gray-500);">${escapeHtml(partner.domain || 'No domain')}</div>
                 <span class="badge badge-${partner.status === 'active' ? 'success' : 'warning'}">${escapeHtml(partner.status || 'Unknown')}</span>
               </div>
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
-            <div style="background: var(--gray-50); padding: 16px; border-radius: 8px;">
-              <div style="font-size: 24px; font-weight: 700;">${formatNumber(partner.firms_count || 0)}</div>
-              <div style="font-size: 12px; color: var(--gray-500);">Firms</div>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4); margin-bottom: var(--space-6);">
+            <div style="background: var(--gray-50); padding: var(--space-4); border-radius: var(--radius-lg);">
+              <div style="font-size: var(--text-2xl); font-weight: var(--font-bold);">${formatNumber(partner.firms_count || 0)}</div>
+              <div style="font-size: var(--text-xs); color: var(--gray-500);">Firms</div>
             </div>
-            <div style="background: var(--gray-50); padding: 16px; border-radius: 8px;">
-              <div style="font-size: 24px; font-weight: 700;">${formatNumber(partner.users_count || 0)}</div>
-              <div style="font-size: 12px; color: var(--gray-500);">Users</div>
+            <div style="background: var(--gray-50); padding: var(--space-4); border-radius: var(--radius-lg);">
+              <div style="font-size: var(--text-2xl); font-weight: var(--font-bold);">${formatNumber(partner.users_count || 0)}</div>
+              <div style="font-size: var(--text-xs); color: var(--gray-500);">Users</div>
             </div>
-            <div style="background: var(--gray-50); padding: 16px; border-radius: 8px;">
-              <div style="font-size: 24px; font-weight: 700; color: var(--success);">${formatCurrency(partner.mrr || 0)}</div>
-              <div style="font-size: 12px; color: var(--gray-500);">Monthly Revenue</div>
+            <div style="background: var(--gray-50); padding: var(--space-4); border-radius: var(--radius-lg);">
+              <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--success);">${formatCurrency(partner.mrr || 0)}</div>
+              <div style="font-size: var(--text-xs); color: var(--gray-500);">Monthly Revenue</div>
             </div>
-            <div style="background: var(--gray-50); padding: 16px; border-radius: 8px;">
-              <div style="font-size: 24px; font-weight: 700;">${partner.revenue_share_percent || 0}%</div>
-              <div style="font-size: 12px; color: var(--gray-500);">Revenue Share</div>
+            <div style="background: var(--gray-50); padding: var(--space-4); border-radius: var(--radius-lg);">
+              <div style="font-size: var(--text-2xl); font-weight: var(--font-bold);">${partner.revenue_share_percent || 0}%</div>
+              <div style="font-size: var(--text-xs); color: var(--gray-500);">Revenue Share</div>
             </div>
           </div>
 
-          <div style="margin-bottom: 24px;">
-            <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Contact Information</h4>
-            <div style="background: var(--gray-50); padding: 16px; border-radius: 8px;">
-              <div style="margin-bottom: 8px;"><strong>Email:</strong> ${escapeHtml(partner.contact_email || 'N/A')}</div>
+          <div style="margin-bottom: var(--space-6);">
+            <h4 style="font-size: var(--text-sm); font-weight: var(--font-semibold); margin-bottom: var(--space-3);">Contact Information</h4>
+            <div style="background: var(--gray-50); padding: var(--space-4); border-radius: var(--radius-lg);">
+              <div style="margin-bottom: var(--space-2);"><strong>Email:</strong> ${escapeHtml(partner.contact_email || 'N/A')}</div>
               <div><strong>Phone:</strong> ${escapeHtml(partner.contact_phone || 'N/A')}</div>
             </div>
           </div>
 
-          <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Quick Actions</h3>
-          <div style="display: flex; flex-direction: column; gap: 8px;">
+          <h3 style="font-size: var(--text-sm); font-weight: var(--font-semibold); margin-bottom: var(--space-3);">Quick Actions</h3>
+          <div style="display: flex; flex-direction: column; gap: var(--space-2);">
             <button class="btn btn-secondary" style="justify-content: flex-start;" onclick="viewPartnerFirms('${partnerId}')">&#128188; View Partner Firms</button>
             <button class="btn btn-secondary" style="justify-content: flex-start;" onclick="openPartnerSettings('${partnerId}')">&#9881; Partner Settings</button>
             <button class="btn btn-secondary" style="justify-content: flex-start;" onclick="viewPartnerPayouts('${partnerId}')">&#128176; Payout History</button>
@@ -3713,10 +3713,10 @@
       } catch (error) {
         console.error('Failed to load partner details:', error);
         document.getElementById('detail-panel-body').innerHTML = `
-          <div style="text-align: center; padding: 40px; color: var(--danger);">
+          <div style="text-align: center; padding: var(--space-10); color: var(--danger);">
             <p>Failed to load partner details</p>
-            <p style="font-size: 12px; color: var(--gray-500);">${escapeHtml(error.message)}</p>
-            <button class="btn btn-secondary" onclick="openPartnerDetail('${partnerId}')" style="margin-top: 16px;">Retry</button>
+            <p style="font-size: var(--text-xs); color: var(--gray-500);">${escapeHtml(error.message)}</p>
+            <button class="btn btn-secondary" onclick="openPartnerDetail('${partnerId}')" style="margin-top: var(--space-4);">Retry</button>
           </div>
         `;
       }
@@ -3731,19 +3731,19 @@
         const modal = createModal('Partner Firms', `
           <div style="max-height: 400px; overflow-y: auto;">
             ${(result.firms || []).map(f => `
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--gray-100);">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--gray-100);">
                 <div>
-                  <div style="font-weight: 600;">${escapeHtml(f.name)}</div>
-                  <div style="font-size: 12px; color: var(--gray-500);">${f.users} users</div>
+                  <div style="font-weight: var(--font-semibold);">${escapeHtml(f.name)}</div>
+                  <div style="font-size: var(--text-xs); color: var(--gray-500);">${f.users} users</div>
                 </div>
                 <div style="text-align: right;">
                   <span class="badge badge-info">${escapeHtml(f.subscription_tier)}</span>
-                  <div style="font-size: 12px; color: var(--success);">${formatCurrency(f.mrr || 0)}/mo</div>
+                  <div style="font-size: var(--text-xs); color: var(--success);">${formatCurrency(f.mrr || 0)}/mo</div>
                 </div>
               </div>
             `).join('') || '<p style="text-align: center; color: var(--gray-500);">No firms found</p>'}
           </div>
-          <div style="margin-top: 16px; text-align: right;">
+          <div style="margin-top: var(--space-4); text-align: right;">
             <button class="btn btn-secondary" onclick="closeModal()">Close</button>
           </div>
         `);
@@ -3763,26 +3763,26 @@
       const partner = partnersData.find(p => p.partner_id === partnerId) || {};
       const modal = createModal('Partner Settings', `
         <form id="partner-settings-form">
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Partner Name</label>
-            <input type="text" name="name" value="${escapeHtml(partner.name || '')}" class="form-input" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-medium);">Partner Name</label>
+            <input type="text" name="name" value="${escapeHtml(partner.name || '')}" class="form-input" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
           </div>
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Domain</label>
-            <input type="text" name="domain" value="${escapeHtml(partner.domain || '')}" class="form-input" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-medium);">Domain</label>
+            <input type="text" name="domain" value="${escapeHtml(partner.domain || '')}" class="form-input" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
           </div>
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Revenue Share %</label>
-            <input type="number" name="revenue_share" value="${partner.revenue_share_percent || 10}" min="0" max="50" class="form-input" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-medium);">Revenue Share %</label>
+            <input type="number" name="revenue_share" value="${partner.revenue_share_percent || 10}" min="0" max="50" class="form-input" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
           </div>
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 500;">Status</label>
-            <select name="status" class="form-select" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-medium);">Status</label>
+            <select name="status" class="form-select" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
               <option value="active" ${partner.status === 'active' ? 'selected' : ''}>Active</option>
               <option value="inactive" ${partner.status === 'inactive' ? 'selected' : ''}>Inactive</option>
             </select>
           </div>
-          <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+          <div style="display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-6);">
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
             <button type="submit" class="btn btn-primary" id="partner-settings-btn">Save Changes</button>
           </div>
@@ -3975,7 +3975,7 @@
       const panel = document.getElementById('detail-panel');
       document.getElementById('detail-panel-title').textContent = 'Firm Details';
       document.getElementById('detail-panel-body').innerHTML = `
-        <div style="display: flex; justify-content: center; padding: 40px;">
+        <div style="display: flex; justify-content: center; padding: var(--space-10);">
           <div class="loading-spinner"></div>
         </div>
       `;
@@ -3988,76 +3988,76 @@
         const color = getColorForName(firm.name || 'Unknown');
 
         document.getElementById('detail-panel-body').innerHTML = `
-          <div style="margin-bottom: 24px;">
-            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
-              <div class="firm-logo" style="background: ${color}; width: 64px; height: 64px; font-size: 24px;">${escapeHtml(initials)}</div>
+          <div style="margin-bottom: var(--space-6);">
+            <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-5);">
+              <div class="firm-logo" style="background: ${color}; width: 64px; height: 64px; font-size: var(--text-2xl);">${escapeHtml(initials)}</div>
               <div>
-                <div style="font-size: 20px; font-weight: 600;">${escapeHtml(firm.name || 'Unknown Firm')}</div>
+                <div style="font-size: var(--text-xl); font-weight: var(--font-semibold);">${escapeHtml(firm.name || 'Unknown Firm')}</div>
                 <div style="color: var(--gray-500);">${escapeHtml(firmId)}</div>
                 <span class="badge badge-${firm.subscription_status === 'active' ? 'success' : 'warning'}">${escapeHtml(firm.subscription_tier || 'Unknown')}</span>
               </div>
             </div>
           </div>
-          <div class="tabs" style="margin-bottom: 20px;">
+          <div class="tabs" style="margin-bottom: var(--space-5);">
             <div class="tab active" onclick="showFirmTab('overview', '${firmId}')">Overview</div>
             <div class="tab" onclick="showFirmTab('users', '${firmId}')">Users</div>
             <div class="tab" onclick="showFirmTab('billing', '${firmId}')">Billing</div>
             <div class="tab" onclick="showFirmTab('settings', '${firmId}')">Settings</div>
           </div>
           <div id="firm-detail-content">
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
-              <div style="background: var(--gray-50); padding: 16px; border-radius: 8px;">
-                <div style="font-size: 24px; font-weight: 700;">${formatNumber(firm.team_members || 0)}</div>
-                <div style="font-size: 12px; color: var(--gray-500);">Team Members</div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4); margin-bottom: var(--space-6);">
+              <div style="background: var(--gray-50); padding: var(--space-4); border-radius: var(--radius-lg);">
+                <div style="font-size: var(--text-2xl); font-weight: var(--font-bold);">${formatNumber(firm.team_members || 0)}</div>
+                <div style="font-size: var(--text-xs); color: var(--gray-500);">Team Members</div>
               </div>
-              <div style="background: var(--gray-50); padding: 16px; border-radius: 8px;">
-                <div style="font-size: 24px; font-weight: 700;">${formatNumber(firm.clients || 0)}</div>
-                <div style="font-size: 12px; color: var(--gray-500);">Clients</div>
+              <div style="background: var(--gray-50); padding: var(--space-4); border-radius: var(--radius-lg);">
+                <div style="font-size: var(--text-2xl); font-weight: var(--font-bold);">${formatNumber(firm.clients || 0)}</div>
+                <div style="font-size: var(--text-xs); color: var(--gray-500);">Clients</div>
               </div>
-              <div style="background: var(--gray-50); padding: 16px; border-radius: 8px;">
-                <div style="font-size: 24px; font-weight: 700;">${formatNumber(firm.returns_this_month || 0)}</div>
-                <div style="font-size: 12px; color: var(--gray-500);">Returns This Month</div>
+              <div style="background: var(--gray-50); padding: var(--space-4); border-radius: var(--radius-lg);">
+                <div style="font-size: var(--text-2xl); font-weight: var(--font-bold);">${formatNumber(firm.returns_this_month || 0)}</div>
+                <div style="font-size: var(--text-xs); color: var(--gray-500);">Returns This Month</div>
               </div>
-              <div style="background: var(--gray-50); padding: 16px; border-radius: 8px;">
-                <div style="font-size: 24px; font-weight: 700; color: var(--success);">${formatCurrency(firm.usage_this_month?.mrr || 0)}</div>
-                <div style="font-size: 12px; color: var(--gray-500);">Monthly Revenue</div>
+              <div style="background: var(--gray-50); padding: var(--space-4); border-radius: var(--radius-lg);">
+                <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--success);">${formatCurrency(firm.usage_this_month?.mrr || 0)}</div>
+                <div style="font-size: var(--text-xs); color: var(--gray-500);">Monthly Revenue</div>
               </div>
             </div>
-            <div style="margin-bottom: 24px;">
-              <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Health Metrics</h4>
-              <div style="display: flex; gap: 16px;">
+            <div style="margin-bottom: var(--space-6);">
+              <h4 style="font-size: var(--text-sm); font-weight: var(--font-semibold); margin-bottom: var(--space-3);">Health Metrics</h4>
+              <div style="display: flex; gap: var(--space-4);">
                 <div style="flex: 1;">
-                  <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">Health Score</div>
-                  <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="font-size: var(--text-xs); color: var(--gray-500); margin-bottom: var(--space-1);">Health Score</div>
+                  <div style="display: flex; align-items: center; gap: var(--space-2);">
                     <div style="flex: 1; height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden;">
                       <div style="width: ${firm.health_score || 0}%; height: 100%; background: ${(firm.health_score || 0) >= 80 ? 'var(--success)' : (firm.health_score || 0) >= 60 ? 'var(--warning)' : 'var(--danger)'};"></div>
                     </div>
-                    <span style="font-weight: 600;">${firm.health_score || 0}%</span>
+                    <span style="font-weight: var(--font-semibold);">${firm.health_score || 0}%</span>
                   </div>
                 </div>
                 <div>
-                  <div style="font-size: 12px; color: var(--gray-500); margin-bottom: 4px;">Churn Risk</div>
+                  <div style="font-size: var(--text-xs); color: var(--gray-500); margin-bottom: var(--space-1);">Churn Risk</div>
                   <span class="badge badge-${firm.churn_risk === 'low' ? 'success' : firm.churn_risk === 'medium' ? 'warning' : 'danger'}">${escapeHtml(firm.churn_risk || 'unknown')}</span>
                 </div>
               </div>
             </div>
           </div>
-          <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Quick Actions</h3>
-          <div style="display: flex; flex-direction: column; gap: 8px;">
+          <h3 style="font-size: var(--text-sm); font-weight: var(--font-semibold); margin-bottom: var(--space-3);">Quick Actions</h3>
+          <div style="display: flex; flex-direction: column; gap: var(--space-2);">
             <button class="btn btn-secondary" style="justify-content: flex-start;" onclick="impersonateFirm('${firmId}')">&#128100; Impersonate Firm Admin</button>
             <button class="btn btn-secondary" style="justify-content: flex-start;" onclick="viewFirmBilling('${firmId}')">&#128179; View Billing Details</button>
             <button class="btn btn-secondary" style="justify-content: flex-start;" onclick="manageFirmPermissions('${firmId}')">&#128274; Manage Permissions</button>
             <button class="btn btn-secondary" style="justify-content: flex-start;" onclick="viewFirmAuditLogs('${firmId}')">&#128196; View Audit Logs</button>
-            <button class="btn btn-danger" style="justify-content: flex-start; margin-top: 16px;" onclick="suspendFirm('${firmId}')">&#128683; Suspend Firm</button>
+            <button class="btn btn-danger" style="justify-content: flex-start; margin-top: var(--space-4);" onclick="suspendFirm('${firmId}')">&#128683; Suspend Firm</button>
           </div>
         `;
       } catch (error) {
         console.error('Failed to load firm details:', error);
         document.getElementById('detail-panel-body').innerHTML = `
-          <div style="text-align: center; padding: 40px; color: var(--danger);">
+          <div style="text-align: center; padding: var(--space-10); color: var(--danger);">
             <p>Failed to load firm details</p>
-            <p style="font-size: 12px; color: var(--gray-500);">${escapeHtml(error.message)}</p>
-            <button class="btn btn-secondary" onclick="openFirmDetail('${firmId}')" style="margin-top: 16px;">Retry</button>
+            <p style="font-size: var(--text-xs); color: var(--gray-500);">${escapeHtml(error.message)}</p>
+            <button class="btn btn-secondary" onclick="openFirmDetail('${firmId}')" style="margin-top: var(--space-4);">Retry</button>
           </div>
         `;
       }
@@ -4073,15 +4073,15 @@
 
       switch(tab) {
         case 'users':
-          content.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--gray-500);">Loading users...</div>';
+          content.innerHTML = '<div style="padding: var(--space-5); text-align: center; color: var(--gray-500);">Loading users...</div>';
           loadFirmUsers(firmId);
           break;
         case 'billing':
-          content.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--gray-500);">Loading billing...</div>';
+          content.innerHTML = '<div style="padding: var(--space-5); text-align: center; color: var(--gray-500);">Loading billing...</div>';
           loadFirmBilling(firmId);
           break;
         case 'settings':
-          content.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--gray-500);">Loading settings...</div>';
+          content.innerHTML = '<div style="padding: var(--space-5); text-align: center; color: var(--gray-500);">Loading settings...</div>';
           loadFirmSettings(firmId);
           break;
         default:
@@ -4093,8 +4093,8 @@
       // Would load users for this firm
       const content = document.getElementById('firm-detail-content');
       content.innerHTML = `
-        <div style="padding: 20px;">
-          <h4 style="margin-bottom: 16px;">Team Members</h4>
+        <div style="padding: var(--space-5);">
+          <h4 style="margin-bottom: var(--space-4);">Team Members</h4>
           <p style="color: var(--gray-500);">User list will be loaded from API</p>
         </div>
       `;
@@ -4103,8 +4103,8 @@
     async function loadFirmBilling(firmId) {
       const content = document.getElementById('firm-detail-content');
       content.innerHTML = `
-        <div style="padding: 20px;">
-          <h4 style="margin-bottom: 16px;">Billing Information</h4>
+        <div style="padding: var(--space-5);">
+          <h4 style="margin-bottom: var(--space-4);">Billing Information</h4>
           <p style="color: var(--gray-500);">Billing details will be loaded from API</p>
         </div>
       `;
@@ -4116,101 +4116,101 @@
       const branding = firm.branding || {};
 
       content.innerHTML = `
-        <div style="padding: 20px;">
-          <h4 style="margin-bottom: 20px;">Branding Settings</h4>
+        <div style="padding: var(--space-5);">
+          <h4 style="margin-bottom: var(--space-5);">Branding Settings</h4>
 
           <!-- Logo Upload Section -->
-          <div style="margin-bottom: 24px; padding: 20px; background: var(--gray-50); border-radius: 8px;">
-            <label style="display: block; margin-bottom: 12px; font-weight: 600;">Firm Logo</label>
-            <div style="display: flex; align-items: center; gap: 20px;">
-              <div id="logo-preview" style="width: 80px; height: 80px; border: 2px dashed var(--gray-300); border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: white;">
+          <div style="margin-bottom: var(--space-6); padding: var(--space-5); background: var(--gray-50); border-radius: var(--radius-lg);">
+            <label style="display: block; margin-bottom: var(--space-3); font-weight: var(--font-semibold);">Firm Logo</label>
+            <div style="display: flex; align-items: center; gap: var(--space-5);">
+              <div id="logo-preview" style="width: 80px; height: 80px; border: 2px dashed var(--gray-300); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; overflow: hidden; background: white;">
                 ${branding.logo_url
                   ? `<img src="${escapeHtml(branding.logo_url)}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="Logo">`
-                  : `<span style="color: var(--gray-400); font-size: 12px;">No logo</span>`
+                  : `<span style="color: var(--gray-400); font-size: var(--text-xs);">No logo</span>`
                 }
               </div>
               <div>
                 <input type="file" id="logo-upload-input" accept="image/png,image/jpeg,image/svg+xml" style="display: none;" onchange="handleLogoUpload(event, '${firmId}')">
-                <button class="btn btn-primary" onclick="document.getElementById('logo-upload-input').click()" style="margin-bottom: 8px;">
+                <button class="btn btn-primary" onclick="document.getElementById('logo-upload-input').click()" style="margin-bottom: var(--space-2);">
                   {{ icon('arrow-up-tray') }} Upload Logo
                 </button>
-                <div style="font-size: 12px; color: var(--gray-500);">PNG, JPG, or SVG. Max 2MB.</div>
+                <div style="font-size: var(--text-xs); color: var(--gray-500);">PNG, JPG, or SVG. Max 2MB.</div>
               </div>
             </div>
-            <div id="logo-upload-status" style="margin-top: 12px; display: none;"></div>
+            <div id="logo-upload-status" style="margin-top: var(--space-3); display: none;"></div>
           </div>
 
           <!-- Color Settings -->
-          <div style="margin-bottom: 24px;">
-            <label style="display: block; margin-bottom: 12px; font-weight: 600;">Brand Colors</label>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div style="margin-bottom: var(--space-6);">
+            <label style="display: block; margin-bottom: var(--space-3); font-weight: var(--font-semibold);">Brand Colors</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
               <div>
-                <label style="display: block; margin-bottom: 6px; font-size: 14px; color: var(--gray-600);">Primary Color</label>
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <label style="display: block; margin-bottom: var(--space-1-5); font-size: var(--text-sm); color: var(--gray-600);">Primary Color</label>
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
                   <input type="color" id="primary-color" value="${escapeHtml(branding.primary_color || '#059669')}" style="width: 50px; height: 36px; border: none; cursor: pointer;">
-                  <input type="text" id="primary-color-text" value="${escapeHtml(branding.primary_color || '#059669')}" style="flex: 1; padding: 8px; border: 1px solid var(--gray-200); border-radius: 6px;" pattern="^#[0-9A-Fa-f]{6}$">
+                  <input type="text" id="primary-color-text" value="${escapeHtml(branding.primary_color || '#059669')}" style="flex: 1; padding: var(--space-2); border: 1px solid var(--gray-200); border-radius: var(--radius-md);" pattern="^#[0-9A-Fa-f]{6}$">
                 </div>
               </div>
               <div>
-                <label style="display: block; margin-bottom: 6px; font-size: 14px; color: var(--gray-600);">Secondary Color</label>
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <label style="display: block; margin-bottom: var(--space-1-5); font-size: var(--text-sm); color: var(--gray-600);">Secondary Color</label>
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
                   <input type="color" id="secondary-color" value="${escapeHtml(branding.secondary_color || '#1e3a5f')}" style="width: 50px; height: 36px; border: none; cursor: pointer;">
-                  <input type="text" id="secondary-color-text" value="${escapeHtml(branding.secondary_color || '#1e3a5f')}" style="flex: 1; padding: 8px; border: 1px solid var(--gray-200); border-radius: 6px;" pattern="^#[0-9A-Fa-f]{6}$">
+                  <input type="text" id="secondary-color-text" value="${escapeHtml(branding.secondary_color || '#1e3a5f')}" style="flex: 1; padding: var(--space-2); border: 1px solid var(--gray-200); border-radius: var(--radius-md);" pattern="^#[0-9A-Fa-f]{6}$">
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Text Settings -->
-          <div style="margin-bottom: 24px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 600;">Welcome Message</label>
-            <input type="text" id="welcome-message" value="${escapeHtml(branding.welcome_message || '')}" placeholder="Welcome to our tax portal" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          <div style="margin-bottom: var(--space-6);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-semibold);">Welcome Message</label>
+            <input type="text" id="welcome-message" value="${escapeHtml(branding.welcome_message || '')}" placeholder="Welcome to our tax portal" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
           </div>
 
-          <div style="margin-bottom: 24px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 600;">Email Signature</label>
-            <input type="text" id="email-signature" value="${escapeHtml(branding.email_signature || '')}" placeholder="Powered by Your Firm Name" style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px;">
+          <div style="margin-bottom: var(--space-6);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-semibold);">Email Signature</label>
+            <input type="text" id="email-signature" value="${escapeHtml(branding.email_signature || '')}" placeholder="Powered by Your Firm Name" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
           </div>
 
-          <div style="margin-bottom: 24px;">
-            <label style="display: block; margin-bottom: 6px; font-weight: 600;">Disclaimer Text</label>
-            <textarea id="disclaimer-text" rows="3" placeholder="Legal disclaimer for reports..." style="width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 6px; resize: vertical;">${escapeHtml(branding.disclaimer_text || '')}</textarea>
+          <div style="margin-bottom: var(--space-6);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-semibold);">Disclaimer Text</label>
+            <textarea id="disclaimer-text" rows="3" placeholder="Legal disclaimer for reports..." style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md); resize: vertical;">${escapeHtml(branding.disclaimer_text || '')}</textarea>
           </div>
 
           <!-- Live Branding Preview -->
-          <div style="margin-bottom: 24px;">
-            <label style="display: block; margin-bottom: 12px; font-weight: 600;">{{ icon('magnifying-glass') }} Live Preview</label>
-            <div id="branding-preview" style="border: 1px solid var(--gray-200); border-radius: 8px; overflow: hidden; background: white;">
+          <div style="margin-bottom: var(--space-6);">
+            <label style="display: block; margin-bottom: var(--space-3); font-weight: var(--font-semibold);">{{ icon('magnifying-glass') }} Live Preview</label>
+            <div id="branding-preview" style="border: 1px solid var(--gray-200); border-radius: var(--radius-lg); overflow: hidden; background: white;">
               <!-- Preview Header -->
-              <div id="preview-header" style="padding: 12px 20px; display: flex; align-items: center; gap: 12px; background: ${escapeHtml(branding.primary_color || '#059669')};">
-                <div id="preview-logo" style="width: 40px; height: 40px; background: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+              <div id="preview-header" style="padding: var(--space-3) var(--space-5); display: flex; align-items: center; gap: var(--space-3); background: ${escapeHtml(branding.primary_color || 'var(--color-success-600)')};">
+                <div id="preview-logo" style="width: 40px; height: 40px; background: white; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; overflow: hidden;">
                   ${branding.logo_url
                     ? `<img src="${escapeHtml(branding.logo_url)}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="Logo">`
                     : `<span style="color: #999; font-size: 10px;">Logo</span>`
                   }
                 </div>
-                <span style="color: white; font-weight: 600; font-size: 16px;">${escapeHtml(firm.name || 'Firm Name')}</span>
+                <span style="color: white; font-weight: var(--font-semibold); font-size: var(--text-base);">${escapeHtml(firm.name || 'Firm Name')}</span>
               </div>
               <!-- Preview Content -->
-              <div style="padding: 20px;">
-                <p id="preview-welcome" style="margin: 0 0 16px 0; font-size: 18px; color: var(--gray-900);">${escapeHtml(branding.welcome_message || 'Welcome to our tax portal')}</p>
-                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-                  <button id="preview-btn-primary" style="padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; color: white; background: ${escapeHtml(branding.primary_color || '#059669')};">Primary Button</button>
-                  <button id="preview-btn-secondary" style="padding: 8px 16px; border: 2px solid ${escapeHtml(branding.secondary_color || '#1e3a5f')}; border-radius: 6px; cursor: pointer; font-weight: 500; background: white; color: ${escapeHtml(branding.secondary_color || '#1e3a5f')};">Secondary Button</button>
+              <div style="padding: var(--space-5);">
+                <p id="preview-welcome" style="margin: 0 0 var(--space-4) 0; font-size: var(--text-lg); color: var(--gray-900);">${escapeHtml(branding.welcome_message || 'Welcome to our tax portal')}</p>
+                <div style="display: flex; gap: var(--space-3); margin-bottom: var(--space-4);">
+                  <button id="preview-btn-primary" style="padding: var(--space-2) var(--space-4); border: none; border-radius: var(--radius-md); cursor: pointer; font-weight: var(--font-medium); color: white; background: ${escapeHtml(branding.primary_color || 'var(--color-success-600)')};">Primary Button</button>
+                  <button id="preview-btn-secondary" style="padding: var(--space-2) var(--space-4); border: 2px solid ${escapeHtml(branding.secondary_color || 'var(--color-primary-500)')}; border-radius: var(--radius-md); cursor: pointer; font-weight: var(--font-medium); background: white; color: ${escapeHtml(branding.secondary_color || 'var(--color-primary-500)')};">Secondary Button</button>
                 </div>
-                <p style="margin: 0; font-size: 14px; color: var(--gray-600);">
-                  Sample text with a <a id="preview-link" href="#" style="color: ${escapeHtml(branding.primary_color || '#059669')}; text-decoration: none;">primary link</a> and some content.
+                <p style="margin: 0; font-size: var(--text-sm); color: var(--gray-600);">
+                  Sample text with a <a id="preview-link" href="#" style="color: ${escapeHtml(branding.primary_color || 'var(--color-success-600)')}; text-decoration: none;">primary link</a> and some content.
                 </p>
               </div>
               <!-- Preview Footer -->
-              <div style="padding: 12px 20px; background: var(--gray-50); border-top: 1px solid var(--gray-200);">
-                <p id="preview-signature" style="margin: 0; font-size: 12px; color: var(--gray-500);">${escapeHtml(branding.email_signature || 'Powered by Your Firm Name')}</p>
+              <div style="padding: var(--space-3) var(--space-5); background: var(--gray-50); border-top: 1px solid var(--gray-200);">
+                <p id="preview-signature" style="margin: 0; font-size: var(--text-xs); color: var(--gray-500);">${escapeHtml(branding.email_signature || 'Powered by Your Firm Name')}</p>
               </div>
             </div>
           </div>
 
           <!-- Save Button -->
-          <div style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 16px; border-top: 1px solid var(--gray-200);">
+          <div style="display: flex; justify-content: flex-end; gap: var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--gray-200);">
             <button class="btn btn-primary" onclick="saveFirmBranding('${firmId}')">Save Branding Settings</button>
           </div>
         </div>

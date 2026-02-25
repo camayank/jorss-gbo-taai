@@ -1,0 +1,195 @@
+{% extends 'base_modern.html' %}
+
+{% block title %}My Profile{% endblock %}
+{% block theme %}default{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto; padding: var(--space-8) var(--space-6);">
+    <header style="margin-bottom: var(--space-8);">
+        <h1 style="font-size: 1.5rem; font-weight: var(--font-semibold); color: var(--text-dark, #1f2937);">My Profile</h1>
+        <p style="color: var(--text-muted, #6b7280); margin-top: var(--space-1);">Manage your account settings and preferences</p>
+    </header>
+
+    <div x-data="profileManager()" x-init="init()">
+        <!-- Profile Information Card -->
+        <div style="background: white; border-radius: var(--radius-xl); border: 1px solid var(--border-color, var(--color-gray-200)); margin-bottom: var(--space-6);">
+            <div style="padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--border-color, var(--color-gray-200));">
+                <h2 style="font-size: 1.1rem; font-weight: var(--font-semibold);">Personal Information</h2>
+            </div>
+            <div style="padding: var(--space-6);">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5);">
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: var(--font-medium); margin-bottom: var(--space-1-5); color: var(--text-dark, #374151);">Full Name</label>
+                        <input type="text" x-model="profile.name"
+                               style="width: 100%; padding: var(--space-2-5) var(--space-3-5); border: 1px solid var(--border-color, #e2e8f0); border-radius: var(--radius-lg); font-size: 0.9rem;"
+                               placeholder="Your full name">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: var(--font-medium); margin-bottom: var(--space-1-5); color: var(--text-dark, #374151);">Email Address</label>
+                        <input type="email" x-model="profile.email"
+                               style="width: 100%; padding: var(--space-2-5) var(--space-3-5); border: 1px solid var(--border-color, #e2e8f0); border-radius: var(--radius-lg); font-size: 0.9rem;"
+                               placeholder="your@email.com">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: var(--font-medium); margin-bottom: var(--space-1-5); color: var(--text-dark, #374151);">Phone Number</label>
+                        <input type="tel" x-model="profile.phone"
+                               style="width: 100%; padding: var(--space-2-5) var(--space-3-5); border: 1px solid var(--border-color, #e2e8f0); border-radius: var(--radius-lg); font-size: 0.9rem;"
+                               placeholder="(555) 123-4567">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: var(--font-medium); margin-bottom: var(--space-1-5); color: var(--text-dark, #374151);">Role</label>
+                        <input type="text" :value="profile.role" disabled
+                               style="width: 100%; padding: var(--space-2-5) var(--space-3-5); border: 1px solid var(--border-color, #e2e8f0); border-radius: var(--radius-lg); font-size: 0.9rem; background: var(--color-gray-50); color: #6b7280;">
+                    </div>
+                </div>
+                <div style="margin-top: var(--space-5); display: flex; justify-content: flex-end;">
+                    <button @click="saveProfile()"
+                            :disabled="saving"
+                            style="padding: var(--space-2-5) var(--space-6); background: var(--color-primary-500); color: white; border: none; border-radius: var(--radius-lg); font-size: 0.9rem; font-weight: var(--font-medium); cursor: pointer;">
+                        <span x-show="!saving">Save Changes</span>
+                        <span x-show="saving">Saving...</span>
+                    </button>
+                </div>
+                <div x-show="saveMessage" x-transition
+                     :style="saveError ? 'color: #c53030; margin-top: 12px; font-size: 0.85rem;' : 'color: #276749; margin-top: 12px; font-size: 0.85rem;'"
+                     x-text="saveMessage"></div>
+            </div>
+        </div>
+
+        <!-- Security Card -->
+        <div style="background: white; border-radius: var(--radius-xl); border: 1px solid var(--border-color, var(--color-gray-200)); margin-bottom: var(--space-6);">
+            <div style="padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--border-color, var(--color-gray-200));">
+                <h2 style="font-size: 1.1rem; font-weight: var(--font-semibold);">Security</h2>
+            </div>
+            <div style="padding: var(--space-6);">
+                <!-- Password Change -->
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) 0; border-bottom: 1px solid var(--color-gray-100);">
+                    <div>
+                        <h3 style="font-size: 0.95rem; font-weight: var(--font-medium);">Password</h3>
+                        <p style="color: #6b7280; font-size: 0.85rem; margin-top: var(--space-0-5);">Change your account password</p>
+                    </div>
+                    <a href="/forgot-password" style="padding: var(--space-2) var(--space-4); background: var(--color-gray-100); color: var(--color-gray-700); border-radius: var(--radius-lg); font-size: 0.85rem; text-decoration: none; font-weight: var(--font-medium);">Change Password</a>
+                </div>
+
+                <!-- MFA -->
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) 0;">
+                    <div>
+                        <h3 style="font-size: 0.95rem; font-weight: var(--font-medium);">Two-Factor Authentication</h3>
+                        <p style="color: #6b7280; font-size: 0.85rem; margin-top: var(--space-0-5);">
+                            <span x-show="mfaEnabled" style="color: #276749;">Enabled - Your account is protected with 2FA</span>
+                            <span x-show="!mfaEnabled" style="color: #c53030;">Not enabled - Add an extra layer of security</span>
+                        </p>
+                    </div>
+                    <a x-show="!mfaEnabled" href="/auth/mfa-setup" style="padding: var(--space-2) var(--space-4); background: var(--color-primary-500); color: white; border-radius: var(--radius-lg); font-size: 0.85rem; text-decoration: none; font-weight: var(--font-medium);">Enable 2FA</a>
+                    <button x-show="mfaEnabled" @click="disableMfa()"
+                            style="padding: var(--space-2) var(--space-4); background: var(--color-error-100); color: #c53030; border: none; border-radius: var(--radius-lg); font-size: 0.85rem; cursor: pointer; font-weight: var(--font-medium);">Disable 2FA</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preferences Card -->
+        <div style="background: white; border-radius: var(--radius-xl); border: 1px solid var(--border-color, var(--color-gray-200));">
+            <div style="padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--border-color, var(--color-gray-200));">
+                <h2 style="font-size: 1.1rem; font-weight: var(--font-semibold);">Preferences</h2>
+            </div>
+            <div style="padding: var(--space-6);">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5);">
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: var(--font-medium); margin-bottom: var(--space-1-5);">Default Tax Year</label>
+                        <select x-model="profile.defaultTaxYear"
+                                style="width: 100%; padding: var(--space-2-5) var(--space-3-5); border: 1px solid var(--border-color, #e2e8f0); border-radius: var(--radius-lg); font-size: 0.9rem;">
+                            <option value="2025">2025</option>
+                            <option value="2024">2024</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; font-weight: var(--font-medium); margin-bottom: var(--space-1-5);">Email Notifications</label>
+                        <select x-model="profile.emailNotifications"
+                                style="width: 100%; padding: var(--space-2-5) var(--space-3-5); border: 1px solid var(--border-color, #e2e8f0); border-radius: var(--radius-lg); font-size: 0.9rem;">
+                            <option value="all">All notifications</option>
+                            <option value="important">Important only</option>
+                            <option value="none">None</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div style="margin-top: var(--space-8); padding: var(--space-5) var(--space-6); border: 1px solid var(--color-error-200); border-radius: var(--radius-xl); background: var(--color-error-50);">
+            <h3 style="color: #991b1b; font-size: 0.95rem; font-weight: var(--font-semibold); margin-bottom: var(--space-2);">Danger Zone</h3>
+            <p style="color: #7f1d1d; font-size: 0.85rem; margin-bottom: var(--space-4);">Once you delete your account, there is no going back.</p>
+            <button style="padding: var(--space-2) var(--space-4); background: white; color: #c53030; border: 1px solid var(--color-error-200); border-radius: var(--radius-lg); font-size: 0.85rem; cursor: pointer; font-weight: var(--font-medium);"
+                    onclick="if(confirm('Are you sure you want to delete your account? This cannot be undone.')) { alert('Account deletion not yet implemented. Contact support.'); }">
+                Delete Account
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function profileManager() {
+    return {
+        profile: {
+            name: '{{ user.name | default("", true) }}',
+            email: '{{ user.email | default("", true) }}',
+            phone: '',
+            role: '{{ user.role | default("user", true) }}',
+            defaultTaxYear: '2025',
+            emailNotifications: 'all'
+        },
+        mfaEnabled: false,
+        saving: false,
+        saveMessage: '',
+        saveError: false,
+
+        async init() {
+            // Check MFA status
+            try {
+                const res = await fetch('/api/mfa/status');
+                if (res.ok) {
+                    const data = await res.json();
+                    this.mfaEnabled = data.mfa_enabled || false;
+                }
+            } catch (e) {
+                // MFA status check failed - assume not enabled
+            }
+        },
+
+        async saveProfile() {
+            this.saving = true;
+            this.saveMessage = '';
+            try {
+                // Profile save would go to an API endpoint
+                // For now, update cookies for client-side persistence
+                document.cookie = `user_name=${encodeURIComponent(this.profile.name)};path=/;max-age=31536000`;
+                document.cookie = `user_email=${encodeURIComponent(this.profile.email)};path=/;max-age=31536000`;
+                this.saveMessage = 'Profile updated successfully.';
+                this.saveError = false;
+            } catch (e) {
+                this.saveMessage = 'Failed to save profile. Please try again.';
+                this.saveError = true;
+            } finally {
+                this.saving = false;
+                setTimeout(() => { this.saveMessage = ''; }, 3000);
+            }
+        },
+
+        async disableMfa() {
+            if (!confirm('Are you sure you want to disable two-factor authentication?')) return;
+            try {
+                const res = await fetch('/api/mfa/disable', { method: 'POST' });
+                if (res.ok) {
+                    this.mfaEnabled = false;
+                    alert('Two-factor authentication has been disabled.');
+                } else {
+                    alert('Failed to disable 2FA. Please try again.');
+                }
+            } catch (e) {
+                alert('An error occurred. Please try again.');
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

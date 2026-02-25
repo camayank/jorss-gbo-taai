@@ -11,226 +11,472 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 24px;
-    }
-
-    .tasks-filters {
-        display: flex;
+        flex-wrap: wrap;
         gap: 12px;
     }
-
+    .tasks-filters { display: flex; gap: 8px; flex-wrap: wrap; }
     .filter-btn {
         padding: 8px 16px;
         border: 1px solid var(--border-color);
         border-radius: 6px;
-        background: white;
+        background: var(--white);
         cursor: pointer;
         font-size: 0.9rem;
         transition: all 0.2s;
+        color: var(--text-dark);
     }
-
-    .filter-btn:hover,
-    .filter-btn.active {
+    .filter-btn:hover, .filter-btn.active {
         background: var(--primary-color);
         color: white;
         border-color: var(--primary-color);
     }
-
     .task-stats {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 16px;
         margin-bottom: 24px;
     }
-
-    .task-stat-card {
-        background: white;
-        border-radius: 8px;
+    .stat-card {
+        background: var(--white);
+        border-radius: 12px;
         padding: 20px;
         border: 1px solid var(--border-color);
     }
-
-    .task-stat-value {
+    .stat-value {
         font-size: 2rem;
         font-weight: 700;
         color: var(--primary-color);
     }
-
-    .task-stat-label {
+    .stat-label {
         font-size: 0.85rem;
         color: var(--text-muted);
         margin-top: 4px;
     }
-
     .task-list {
-        background: white;
-        border-radius: 8px;
+        background: var(--white);
+        border-radius: 12px;
         border: 1px solid var(--border-color);
     }
-
     .task-item {
         display: flex;
         align-items: center;
         padding: 16px 20px;
         border-bottom: 1px solid var(--border-color);
         gap: 16px;
+        transition: background 0.15s;
     }
-
-    .task-item:last-child {
-        border-bottom: none;
-    }
-
-    .task-item:hover {
-        background: var(--bg-light);
-    }
-
+    .task-item:last-child { border-bottom: none; }
+    .task-item:hover { background: var(--bg-light); }
+    .task-item.completed .task-title { text-decoration: line-through; color: var(--text-muted); }
     .task-checkbox {
-        width: 20px;
-        height: 20px;
+        width: 22px; height: 22px; min-width: 22px;
         border: 2px solid var(--border-color);
-        border-radius: 4px;
+        border-radius: 6px;
         cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.15s;
+        background: var(--white);
+        color: transparent;
     }
-
-    .task-checkbox.completed {
+    .task-checkbox:hover { border-color: var(--primary-color); }
+    .task-checkbox.done {
         background: var(--success-color);
         border-color: var(--success-color);
+        color: white;
     }
-
-    .task-content {
-        flex: 1;
-    }
-
-    .task-title {
-        font-weight: 500;
-        margin-bottom: 4px;
-    }
-
-    .task-meta {
+    .task-content { flex: 1; min-width: 0; }
+    .task-title { font-weight: 500; margin-bottom: 4px; }
+    .task-desc {
         font-size: 0.85rem;
         color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
-
+    .task-meta {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-shrink: 0;
+        flex-wrap: wrap;
+    }
     .task-priority {
-        padding: 4px 8px;
-        border-radius: 4px;
+        padding: 4px 10px;
+        border-radius: 20px;
         font-size: 0.75rem;
         font-weight: 600;
         text-transform: uppercase;
+        letter-spacing: 0.3px;
     }
-
-    .priority-high {
-        background: #fee2e2;
-        color: #dc2626;
-    }
-
-    .priority-medium {
-        background: #fef3c7;
-        color: #d97706;
-    }
-
-    .priority-low {
-        background: #d1fae5;
-        color: #059669;
-    }
-
+    .priority-high { background: var(--color-error-100); color: var(--color-error-600); }
+    .priority-medium { background: var(--color-warning-100); color: #d97706; }
+    .priority-low { background: var(--color-success-100); color: var(--color-success-600); }
     .task-due {
         font-size: 0.85rem;
         color: var(--text-muted);
+        white-space: nowrap;
     }
-
-    .task-due.overdue {
-        color: #dc2626;
+    .task-due.overdue { color: var(--color-error-600); font-weight: 600; }
+    .task-assignee {
+        display: flex; align-items: center; gap: 6px;
+        font-size: 0.85rem; color: var(--text-muted);
     }
-
+    .assignee-avatar {
+        width: 24px; height: 24px; border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color, #6366f1));
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-weight: 600; font-size: 0.65rem;
+    }
+    .task-client {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        background: var(--bg-light);
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+    .task-actions {
+        display: flex; gap: 4px; flex-shrink: 0;
+    }
+    .task-actions button {
+        background: none; border: none; cursor: pointer;
+        padding: 6px; border-radius: 6px;
+        color: var(--text-muted); transition: all 0.15s;
+        display: flex; align-items: center;
+    }
+    .task-actions button:hover { background: var(--bg-light); color: var(--text-dark); }
+    .task-actions button.delete-btn:hover { color: var(--color-error-600); }
     .empty-state {
         text-align: center;
         padding: 60px 20px;
         color: var(--text-muted);
     }
-
-    .empty-state svg {
-        width: 64px;
-        height: 64px;
-        margin-bottom: 16px;
-        opacity: 0.5;
-    }
-
+    .empty-state svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.4; }
+    .empty-state h3 { font-size: 1.1rem; color: var(--text-dark); margin-bottom: 6px; }
     .add-task-btn {
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 8px;
+        background: var(--primary-color); color: white; border: none;
+        padding: 10px 20px; border-radius: 8px; cursor: pointer;
+        font-weight: 500; display: inline-flex; align-items: center; gap: 8px;
+        font-size: 0.9rem; transition: all 0.15s;
     }
-
-    .add-task-btn:hover {
-        background: var(--primary-hover);
+    .add-task-btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    /* Modal */
+    .modal-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+        z-index: 100; display: flex; align-items: center; justify-content: center;
+        padding: 16px;
+    }
+    .modal {
+        background: var(--white); border-radius: 12px;
+        width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    }
+    .modal-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 20px 24px; border-bottom: 1px solid var(--border-color);
+    }
+    .modal-header h2 { font-size: 1.1rem; font-weight: 600; }
+    .modal-close {
+        background: none; border: none; cursor: pointer;
+        color: var(--text-muted); padding: 4px; border-radius: 6px;
+        display: flex; transition: all 0.15s;
+    }
+    .modal-close:hover { background: var(--bg-light); color: var(--text-dark); }
+    .modal-body { padding: 24px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+        display: block; font-size: 0.85rem; font-weight: 500;
+        color: var(--text-dark); margin-bottom: 6px;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%; padding: 10px 12px; border: 1px solid var(--border-color);
+        border-radius: 8px; font-size: 0.9rem; font-family: inherit;
+        background: var(--white); transition: border-color 0.15s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+        outline: none; border-color: var(--primary-color);
+    }
+    .form-group textarea { resize: vertical; min-height: 72px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-footer {
+        padding: 16px 24px; border-top: 1px solid var(--border-color);
+        display: flex; justify-content: flex-end; gap: 8px;
+    }
+    .btn-cancel {
+        padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border-color);
+        background: var(--white); cursor: pointer; font-size: 0.9rem;
+        color: var(--text-dark); transition: all 0.15s;
+    }
+    .btn-cancel:hover { background: var(--bg-light); }
+    .btn-save {
+        padding: 10px 20px; border-radius: 8px; border: none;
+        background: var(--primary-color); color: white; cursor: pointer;
+        font-size: 0.9rem; font-weight: 500; transition: all 0.15s;
+    }
+    .btn-save:hover { background: var(--primary-hover); }
+    /* Toast */
+    .toast {
+        position: fixed; bottom: 24px; right: 24px; z-index: 200;
+        background: var(--color-gray-800); color: white; padding: 14px 20px;
+        border-radius: 10px; font-size: 0.9rem; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        display: flex; align-items: center; gap: 10px;
+        transform: translateY(100px); opacity: 0;
+        transition: all 0.3s ease;
+    }
+    .toast.visible { transform: translateY(0); opacity: 1; }
+    .toast svg { color: var(--color-success-400); }
+    @media (max-width: 768px) {
+        .task-stats { grid-template-columns: repeat(2, 1fr); }
+        .task-meta { gap: 8px; }
+        .task-client, .task-assignee { display: none; }
+        .form-row { grid-template-columns: 1fr; }
     }
 </style>
 {% endblock %}
 
+{% block breadcrumbs %}
+<div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-6); font-size: 0.9rem;">
+    <a href="/cpa/dashboard" style="color: var(--text-muted, #6b7280); text-decoration: none;">Dashboard</a>
+    <span style="color: var(--text-light, #9ca3af);">&rsaquo;</span>
+    <span style="color: var(--text-dark, #1f2937); font-weight: var(--font-medium);">Tasks</span>
+</div>
+{% endblock %}
+
 {% block content %}
-<div class="tasks-header">
-    <div class="tasks-filters">
-        <button class="filter-btn active">All Tasks</button>
-        <button class="filter-btn">My Tasks</button>
-        <button class="filter-btn">Due Today</button>
-        <button class="filter-btn">Overdue</button>
+<div x-data="taskManager()">
+    <!-- Header -->
+    <div class="tasks-header">
+        <div class="tasks-filters">
+            <template x-for="f in filters" :key="f.key">
+                <button class="filter-btn" :class="{ active: activeFilter === f.key }"
+                    @click="activeFilter = f.key" x-text="f.label"></button>
+            </template>
+        </div>
+        <button class="add-task-btn" @click="openAdd()">
+            {{ icon('plus') }} Add Task
+        </button>
     </div>
-    <button class="add-task-btn">
-        {{ icon('plus') }}
-        Add Task
-    </button>
-</div>
 
-<div class="task-stats">
-    <div class="task-stat-card">
-        <div class="task-stat-value">0</div>
-        <div class="task-stat-label">Total Tasks</div>
+    <!-- Stats -->
+    <div class="task-stats">
+        <div class="stat-card">
+            <div class="stat-value" x-text="tasks.length"></div>
+            <div class="stat-label">Total Tasks</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" x-text="tasks.filter(t => !t.completed).length"></div>
+            <div class="stat-label">In Progress</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" x-text="tasks.filter(t => isDueToday(t) && !t.completed).length"></div>
+            <div class="stat-label">Due Today</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color: var(--success-color)" x-text="tasks.filter(t => t.completed).length"></div>
+            <div class="stat-label">Completed</div>
+        </div>
     </div>
-    <div class="task-stat-card">
-        <div class="task-stat-value">0</div>
-        <div class="task-stat-label">In Progress</div>
-    </div>
-    <div class="task-stat-card">
-        <div class="task-stat-value">0</div>
-        <div class="task-stat-label">Due Today</div>
-    </div>
-    <div class="task-stat-card">
-        <div class="task-stat-value">0</div>
-        <div class="task-stat-label">Completed</div>
-    </div>
-</div>
 
-<div class="task-list">
-    <div class="empty-state">
-        {{ icon('clipboard-list') }}
-        <h3>No tasks yet</h3>
-        <p>Create your first task to start tracking your work.</p>
+    <!-- Task List -->
+    <div class="task-list">
+        <template x-if="filteredTasks().length === 0">
+            <div class="empty-state">
+                {{ icon('clipboard-list', 'xl') }}
+                <h3>No tasks match this filter</h3>
+                <p>Try a different filter or create a new task.</p>
+            </div>
+        </template>
+        <template x-for="task in filteredTasks()" :key="task.id">
+            <div class="task-item" :class="{ completed: task.completed }">
+                <div class="task-checkbox" :class="{ done: task.completed }"
+                     @click="toggleComplete(task.id)">
+                    <template x-if="task.completed">
+                        {{ icon('check', 'sm') }}
+                    </template>
+                </div>
+                <div class="task-content">
+                    <div class="task-title" x-text="task.title"></div>
+                    <div class="task-desc" x-text="task.description"></div>
+                </div>
+                <div class="task-meta">
+                    <span class="task-client" x-text="task.client"></span>
+                    <span class="task-priority" :class="'priority-' + task.priority" x-text="task.priority"></span>
+                    <span class="task-due" :class="{ overdue: isOverdue(task) && !task.completed }"
+                          x-text="formatDue(task.dueDate)"></span>
+                    <span class="task-assignee">
+                        <span class="assignee-avatar" x-text="task.assignedTo.charAt(0)"></span>
+                        <span x-text="task.assignedTo.split(' ')[0]"></span>
+                    </span>
+                </div>
+                <div class="task-actions">
+                    <button @click="openEdit(task)" title="Edit">{{ icon('pencil', 'sm') }}</button>
+                    <button class="delete-btn" @click="deleteTask(task.id)" title="Delete">{{ icon('trash', 'sm') }}</button>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- Modal -->
+    <template x-if="showModal">
+        <div class="modal-overlay" @click.self="showModal = false" @keydown.escape.window="showModal = false">
+            <div class="modal" @click.stop>
+                <div class="modal-header">
+                    <h2 x-text="editingId ? 'Edit Task' : 'Add New Task'"></h2>
+                    <button class="modal-close" @click="showModal = false">{{ icon('x-mark') }}</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="taskTitle">Title</label>
+                        <input id="taskTitle" type="text" x-model="form.title" placeholder="e.g. Review Q4 financials">
+                    </div>
+                    <div class="form-group">
+                        <label for="taskDesc">Description</label>
+                        <textarea id="taskDesc" x-model="form.description" placeholder="Details about this task..."></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="taskPriority">Priority</label>
+                            <select id="taskPriority" x-model="form.priority">
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="taskDue">Due Date</label>
+                            <input id="taskDue" type="date" x-model="form.dueDate">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="taskAssign">Assign To</label>
+                            <select id="taskAssign" x-model="form.assignedTo">
+                                <template x-for="m in teamMembers" :key="m">
+                                    <option :value="m" x-text="m"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="taskClient">Client</label>
+                            <select id="taskClient" x-model="form.client">
+                                <template x-for="c in clientList" :key="c">
+                                    <option :value="c" x-text="c"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cancel" @click="showModal = false">Cancel</button>
+                    <button class="btn-save" @click="saveTask()" x-text="editingId ? 'Update Task' : 'Create Task'"></button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Toast -->
+    <div class="toast" :class="{ visible: toast.show }">
+        {{ icon('check-circle', 'sm') }}
+        <span x-text="toast.message"></span>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Filter button handling
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-        });
-    });
+function taskManager() {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const fmt = (d) => d.toISOString().split('T')[0];
+    const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
 
-    // Add task button
-    document.querySelector('.add-task-btn')?.addEventListener('click', function() {
-        alert('Task creation coming soon!');
-    });
-});
+    return {
+        activeFilter: 'all',
+        showModal: false,
+        editingId: null,
+        toast: { show: false, message: '' },
+        currentUser: 'Sarah Mitchell',
+        filters: [
+            { key: 'all', label: 'All Tasks' },
+            { key: 'mine', label: 'My Tasks' },
+            { key: 'today', label: 'Due Today' },
+            { key: 'overdue', label: 'Overdue' }
+        ],
+        teamMembers: ['Sarah Mitchell', 'James Parker', 'Maria Gonzalez', 'David Kim'],
+        clientList: ['Apex Industries LLC', 'Greenfield Holdings', 'Thompson Family Trust', 'NovaTech Solutions', 'Birch & Associates'],
+        form: { title: '', description: '', priority: 'medium', dueDate: '', assignedTo: 'Sarah Mitchell', client: 'Apex Industries LLC' },
+        tasks: [
+            { id: 1, title: 'Prepare Q4 estimated tax payments', description: 'Calculate and file Q4 federal and state estimated payments for corporate clients', priority: 'high', dueDate: fmt(addDays(today, -2)), assignedTo: 'Sarah Mitchell', client: 'Apex Industries LLC', completed: false },
+            { id: 2, title: 'Review 1099 filings for accuracy', description: 'Cross-check all 1099-NEC and 1099-MISC forms against vendor records', priority: 'high', dueDate: fmt(today), assignedTo: 'James Parker', client: 'Greenfield Holdings', completed: false },
+            { id: 3, title: 'Trust tax return - Form 1041', description: 'Complete annual fiduciary income tax return and K-1 distribution schedules', priority: 'medium', dueDate: fmt(addDays(today, 3)), assignedTo: 'Sarah Mitchell', client: 'Thompson Family Trust', completed: false },
+            { id: 4, title: 'R&D tax credit analysis', description: 'Compile qualifying research expenditures and compute Section 41 credit', priority: 'medium', dueDate: fmt(addDays(today, 7)), assignedTo: 'Maria Gonzalez', client: 'NovaTech Solutions', completed: false },
+            { id: 5, title: 'Year-end payroll reconciliation', description: 'Reconcile W-2 totals against quarterly 941 filings and resolve discrepancies', priority: 'low', dueDate: fmt(addDays(today, 0)), assignedTo: 'David Kim', client: 'Birch & Associates', completed: false },
+            { id: 6, title: 'Send engagement letter for new client', description: 'Draft and send engagement letter outlining scope, fees, and timeline', priority: 'low', dueDate: fmt(addDays(today, -5)), assignedTo: 'Sarah Mitchell', client: 'Greenfield Holdings', completed: true }
+        ],
+
+        isDueToday(task) {
+            return task.dueDate === fmt(today);
+        },
+        isOverdue(task) {
+            return new Date(task.dueDate + 'T00:00:00') < today;
+        },
+        filteredTasks() {
+            let list = this.tasks;
+            if (this.activeFilter === 'mine') list = list.filter(t => t.assignedTo === this.currentUser);
+            else if (this.activeFilter === 'today') list = list.filter(t => this.isDueToday(t) && !t.completed);
+            else if (this.activeFilter === 'overdue') list = list.filter(t => this.isOverdue(t) && !t.completed);
+            return list.sort((a, b) => {
+                if (a.completed !== b.completed) return a.completed ? 1 : -1;
+                const pri = { high: 0, medium: 1, low: 2 };
+                return pri[a.priority] - pri[b.priority] || new Date(a.dueDate) - new Date(b.dueDate);
+            });
+        },
+        formatDue(dateStr) {
+            const d = new Date(dateStr + 'T00:00:00');
+            const diff = Math.round((d - today) / 86400000);
+            const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            if (diff < 0) return label + ' (overdue)';
+            if (diff === 0) return 'Today';
+            if (diff === 1) return 'Tomorrow';
+            return label;
+        },
+        toggleComplete(id) {
+            const task = this.tasks.find(t => t.id === id);
+            if (task) {
+                task.completed = !task.completed;
+                this.showToast(task.completed ? 'Task marked complete' : 'Task reopened');
+            }
+        },
+        openAdd() {
+            this.editingId = null;
+            this.form = { title: '', description: '', priority: 'medium', dueDate: fmt(addDays(today, 7)), assignedTo: this.currentUser, client: this.clientList[0] };
+            this.showModal = true;
+        },
+        openEdit(task) {
+            this.editingId = task.id;
+            this.form = { title: task.title, description: task.description, priority: task.priority, dueDate: task.dueDate, assignedTo: task.assignedTo, client: task.client };
+            this.showModal = true;
+        },
+        saveTask() {
+            if (!this.form.title.trim()) return;
+            if (this.editingId) {
+                const task = this.tasks.find(t => t.id === this.editingId);
+                if (task) Object.assign(task, { ...this.form });
+                this.showToast('Task updated');
+            } else {
+                this.tasks.push({ id: Date.now(), ...this.form, completed: false });
+                this.showToast('Task created');
+            }
+            this.showModal = false;
+        },
+        deleteTask(id) {
+            this.tasks = this.tasks.filter(t => t.id !== id);
+            this.showToast('Task deleted');
+        },
+        showToast(msg) {
+            this.toast.message = msg;
+            this.toast.show = true;
+            setTimeout(() => { this.toast.show = false; }, 2500);
+        }
+    };
+}
 </script>
 {% endblock %}

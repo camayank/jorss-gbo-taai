@@ -796,34 +796,34 @@
             <div class="document-canvas" id="documentCanvas">
                 <div class="document-page" id="documentPage">
                     <!-- Document preview would be rendered here -->
-                    <div style="width: 600px; height: 800px; background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%); display: flex; flex-direction: column; padding: 40px;">
+                    <div style="width: 600px; height: 800px; background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%); display: flex; flex-direction: column; padding: var(--space-10);">
                         <div style="text-align: center; margin-bottom: 30px;">
-                            <div style="font-size: 24px; font-weight: bold; color: #1e293b;">W-2 Wage and Tax Statement</div>
-                            <div style="font-size: 14px; color: #64748b; margin-top: 8px;">Tax Year 2024</div>
+                            <div style="font-size: var(--text-2xl); font-weight: bold; color: #1e293b;">W-2 Wage and Tax Statement</div>
+                            <div style="font-size: var(--text-sm); color: #64748b; margin-top: var(--space-2);">Tax Year 2024</div>
                         </div>
-                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; flex: 1;">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                                <div style="padding: 12px; background: #f8fafc; border-radius: 4px;">
-                                    <div style="font-size: 10px; color: #64748b; margin-bottom: 4px;">1. Wages, tips, other compensation</div>
-                                    <div style="font-size: 16px; font-weight: 600; color: #1e293b;">$85,420.00</div>
+                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: var(--radius-lg); padding: var(--space-6); flex: 1;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+                                <div style="padding: var(--space-3); background: #f8fafc; border-radius: 4px;">
+                                    <div style="font-size: 10px; color: #64748b; margin-bottom: var(--space-1);">1. Wages, tips, other compensation</div>
+                                    <div style="font-size: var(--text-base); font-weight: var(--font-semibold); color: #1e293b;">$85,420.00</div>
                                 </div>
-                                <div style="padding: 12px; background: #f8fafc; border-radius: 4px;">
-                                    <div style="font-size: 10px; color: #64748b; margin-bottom: 4px;">2. Federal income tax withheld</div>
-                                    <div style="font-size: 16px; font-weight: 600; color: #1e293b;">$12,813.00</div>
+                                <div style="padding: var(--space-3); background: #f8fafc; border-radius: 4px;">
+                                    <div style="font-size: 10px; color: #64748b; margin-bottom: var(--space-1);">2. Federal income tax withheld</div>
+                                    <div style="font-size: var(--text-base); font-weight: var(--font-semibold); color: #1e293b;">$12,813.00</div>
                                 </div>
-                                <div style="padding: 12px; background: #f8fafc; border-radius: 4px;">
-                                    <div style="font-size: 10px; color: #64748b; margin-bottom: 4px;">3. Social security wages</div>
-                                    <div style="font-size: 16px; font-weight: 600; color: #1e293b;">$85,420.00</div>
+                                <div style="padding: var(--space-3); background: #f8fafc; border-radius: 4px;">
+                                    <div style="font-size: 10px; color: #64748b; margin-bottom: var(--space-1);">3. Social security wages</div>
+                                    <div style="font-size: var(--text-base); font-weight: var(--font-semibold); color: #1e293b;">$85,420.00</div>
                                 </div>
-                                <div style="padding: 12px; background: #f8fafc; border-radius: 4px;">
-                                    <div style="font-size: 10px; color: #64748b; margin-bottom: 4px;">4. Social security tax withheld</div>
-                                    <div style="font-size: 16px; font-weight: 600; color: #1e293b;">$5,296.04</div>
+                                <div style="padding: var(--space-3); background: #f8fafc; border-radius: 4px;">
+                                    <div style="font-size: 10px; color: #64748b; margin-bottom: var(--space-1);">4. Social security tax withheld</div>
+                                    <div style="font-size: var(--text-base); font-weight: var(--font-semibold); color: #1e293b;">$5,296.04</div>
                                 </div>
                             </div>
-                            <div style="margin-top: 24px; padding: 16px; border: 1px dashed #cbd5e1; border-radius: 4px;">
-                                <div style="font-size: 12px; color: #64748b;">Employer Information</div>
-                                <div style="font-size: 14px; font-weight: 500; color: #1e293b; margin-top: 8px;">ACME Corporation</div>
-                                <div style="font-size: 12px; color: #64748b;">EIN: 12-3456789</div>
+                            <div style="margin-top: var(--space-6); padding: var(--space-4); border: 1px dashed #cbd5e1; border-radius: 4px;">
+                                <div style="font-size: var(--text-xs); color: #64748b;">Employer Information</div>
+                                <div style="font-size: var(--text-sm); font-weight: var(--font-medium); color: #1e293b; margin-top: var(--space-2);">ACME Corporation</div>
+                                <div style="font-size: var(--text-xs); color: #64748b;">EIN: 12-3456789</div>
                             </div>
                         </div>
                     </div>
@@ -854,7 +854,7 @@
                             </span>
                         </div>
                         <div class="ocr-confidence">
-                            <span style="font-size: 12px; color: var(--color-gray-600);">Confidence:</span>
+                            <span style="font-size: var(--text-xs); color: var(--color-gray-600);">Confidence:</span>
                             <div class="confidence-bar">
                                 <div class="confidence-fill" style="width: 94%"></div>
                             </div>

@@ -6,263 +6,366 @@
 
 {% block extra_styles %}
 <style>
-    .appointments-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
+    [x-cloak] { display: none !important; }
+    .appt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .calendar-nav { display: flex; align-items: center; gap: 12px; }
+    .nav-btn { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--white); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s; }
+    .nav-btn:hover { background: var(--bg-light); }
+    .current-period { font-weight: 600; font-size: 1.1rem; min-width: 180px; text-align: center; }
+    .view-toggle { display: flex; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; }
+    .view-btn { padding: 8px 16px; border: none; background: var(--white); cursor: pointer; font-size: 0.9rem; border-right: 1px solid var(--border-color); transition: all 0.15s; }
+    .view-btn:last-child { border-right: none; }
+    .view-btn:hover, .view-btn.active { background: var(--primary-color); color: white; }
+    .schedule-btn { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; transition: background 0.15s; }
+    .schedule-btn:hover { background: var(--primary-hover); }
+    .appt-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--white); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); }
+    .stat-value { font-size: 2rem; font-weight: 700; color: var(--primary-color); }
+    .stat-label { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
+    .calendar-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+    .calendar-container { background: var(--white); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; }
+    .calendar-header { display: grid; grid-template-columns: repeat(7, 1fr); background: var(--bg-light); border-bottom: 1px solid var(--border-color); }
+    .calendar-header-cell { padding: 12px; text-align: center; font-weight: 600; font-size: 0.85rem; color: var(--text-muted); }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+    .calendar-cell { min-height: 100px; border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); padding: 8px; cursor: pointer; transition: background 0.1s; }
+    .calendar-cell:nth-child(7n) { border-right: none; }
+    .calendar-cell:hover { background: var(--bg-light); }
+    .calendar-cell.selected-cell { background: #eef2ff; }
+    .calendar-cell.other-month { opacity: 0.35; }
+    .calendar-date { font-weight: 500; margin-bottom: 6px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+    .calendar-date.today { background: var(--primary-color); color: white; border-radius: 50%; }
+    .appt-pill { padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: white; font-weight: 500; }
+    .appt-pill.type-initial { background: #6366f1; }
+    .appt-pill.type-review { background: #0891b2; }
+    .appt-pill.type-followup { background: var(--color-success-600); }
+    .appt-pill.type-other { background: var(--color-purple-500); }
+    .day-panel { background: var(--white); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; }
+    .day-panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); font-weight: 600; }
+    .day-panel-body { padding: 12px; }
+    .day-appt-item { padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 8px; transition: box-shadow 0.15s; }
+    .day-appt-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .day-appt-time { font-size: 0.8rem; color: var(--primary-color); font-weight: 600; }
+    .day-appt-client { font-weight: 600; margin: 4px 0 2px; }
+    .day-appt-type { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 500; color: white; }
+    .day-appt-notes { font-size: 0.8rem; color: var(--text-muted); margin-top: 6px; }
+    .day-appt-actions { margin-top: 8px; display: flex; gap: 8px; }
+    .day-appt-actions button { padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; border: 1px solid var(--border-color); background: var(--white); transition: all 0.15s; }
+    .day-appt-actions .cancel-btn:hover { background: var(--color-error-100); border-color: #fca5a5; color: var(--color-error-600); }
+    .empty-day { text-align: center; padding: 32px 16px; color: var(--text-muted); font-size: 0.9rem; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .modal-box { background: var(--white); border-radius: 12px; width: 480px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 1.1rem; }
+    .modal-close { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 1.2rem; padding: 4px; }
+    .modal-close:hover { color: var(--text-dark); }
+    .modal-body { padding: 24px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; color: var(--text-dark); }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.9rem; font-family: inherit; transition: border-color 0.15s; box-sizing: border-box; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary-color); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; }
+    .btn-cancel { padding: 10px 20px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--white); cursor: pointer; font-size: 0.9rem; }
+    .btn-cancel:hover { background: var(--bg-light); }
+    .btn-save { padding: 10px 20px; border: none; border-radius: 8px; background: var(--primary-color); color: white; cursor: pointer; font-weight: 500; font-size: 0.9rem; }
+    .btn-save:hover { background: var(--primary-hover); }
+    .toast-container { position: fixed; top: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+    .toast { padding: 12px 20px; border-radius: 8px; color: white; font-size: 0.9rem; font-weight: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.15); animation: slideIn 0.3s ease; }
+    .toast.success { background: var(--success-color, #059669); }
+    .toast.info { background: var(--primary-color); }
+    .toast.error { background: var(--color-error-600); }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @media (max-width: 900px) {
+        .appt-stats { grid-template-columns: repeat(2, 1fr); }
+        .calendar-layout { grid-template-columns: 1fr; }
     }
-
-    .view-toggle {
-        display: flex;
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        overflow: hidden;
-    }
-
-    .view-btn {
-        padding: 8px 16px;
-        border: none;
-        background: white;
-        cursor: pointer;
-        font-size: 0.9rem;
-        border-right: 1px solid var(--border-color);
-    }
-
-    .view-btn:last-child {
-        border-right: none;
-    }
-
-    .view-btn:hover,
-    .view-btn.active {
-        background: var(--primary-color);
-        color: white;
-    }
-
-    .calendar-nav {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-    }
-
-    .nav-btn {
-        padding: 8px 12px;
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        background: white;
-        cursor: pointer;
-    }
-
-    .nav-btn:hover {
-        background: var(--bg-light);
-    }
-
-    .current-period {
-        font-weight: 600;
-        font-size: 1.1rem;
-    }
-
-    .appointments-stats {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 16px;
-        margin-bottom: 24px;
-    }
-
-    .stat-card {
-        background: white;
-        border-radius: 8px;
-        padding: 20px;
-        border: 1px solid var(--border-color);
-    }
-
-    .stat-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--primary-color);
-    }
-
-    .stat-label {
-        font-size: 0.85rem;
-        color: var(--text-muted);
-        margin-top: 4px;
-    }
-
-    .calendar-container {
-        background: white;
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-        overflow: hidden;
-    }
-
-    .calendar-header {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        background: var(--bg-light);
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .calendar-header-cell {
-        padding: 12px;
-        text-align: center;
-        font-weight: 600;
-        font-size: 0.85rem;
-        color: var(--text-muted);
-    }
-
-    .calendar-grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-    }
-
-    .calendar-cell {
-        min-height: 100px;
-        border-right: 1px solid var(--border-color);
-        border-bottom: 1px solid var(--border-color);
-        padding: 8px;
-    }
-
-    .calendar-cell:nth-child(7n) {
-        border-right: none;
-    }
-
-    .calendar-date {
-        font-weight: 500;
-        margin-bottom: 8px;
-    }
-
-    .calendar-date.today {
-        background: var(--primary-color);
-        color: white;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .appointment-item {
-        background: var(--primary-color);
-        color: white;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        margin-bottom: 4px;
-        cursor: pointer;
-    }
-
-    .appointment-item:hover {
-        opacity: 0.9;
-    }
-
-    .add-appointment-btn {
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .add-appointment-btn:hover {
-        background: var(--primary-hover);
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 60px 20px;
-        color: var(--text-muted);
-    }
-
-    .empty-state svg {
-        width: 64px;
-        height: 64px;
-        margin-bottom: 16px;
-        opacity: 0.5;
+    @media (max-width: 640px) {
+        .appt-header { flex-direction: column; align-items: stretch; }
+        .appt-stats { grid-template-columns: 1fr 1fr; }
+        .calendar-cell { min-height: 70px; padding: 4px; }
+        .appt-pill { font-size: 0.6rem; }
     }
 </style>
 {% endblock %}
 
+{% block breadcrumbs %}
+<div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-6); font-size: 0.9rem;">
+    <a href="/cpa/dashboard" style="color: var(--text-muted, #6b7280); text-decoration: none;">Dashboard</a>
+    <span style="color: var(--text-light, #9ca3af);">&rsaquo;</span>
+    <span style="color: var(--text-dark, #1f2937); font-weight: var(--font-medium);">Appointments</span>
+</div>
+{% endblock %}
+
 {% block content %}
-<div class="appointments-header">
-    <div class="calendar-nav">
-        <button class="nav-btn">{{ icon('chevron-left') }}</button>
-        <span class="current-period">January 2026</span>
-        <button class="nav-btn">{{ icon('chevron-right') }}</button>
-        <button class="nav-btn">Today</button>
+<div x-data="appointmentManager()" x-cloak>
+    <!-- Toast notifications -->
+    <div class="toast-container">
+        <template x-for="(t, i) in toasts" :key="i">
+            <div class="toast" :class="t.type" x-text="t.message"
+                 x-transition x-init="setTimeout(() => toasts.splice(i, 1), 3000)"></div>
+        </template>
     </div>
-    <div style="display: flex; gap: 12px;">
-        <div class="view-toggle">
-            <button class="view-btn">Day</button>
-            <button class="view-btn">Week</button>
-            <button class="view-btn active">Month</button>
-        </div>
-        <button class="add-appointment-btn">
-            {{ icon('plus') }}
-            Schedule Appointment
-        </button>
-    </div>
-</div>
 
-<div class="appointments-stats">
-    <div class="stat-card">
-        <div class="stat-value">0</div>
-        <div class="stat-label">This Week</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-value">0</div>
-        <div class="stat-label">This Month</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-value">0</div>
-        <div class="stat-label">Upcoming</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-value">0</div>
-        <div class="stat-label">Completed</div>
-    </div>
-</div>
-
-<div class="calendar-container">
-    <div class="calendar-header">
-        <div class="calendar-header-cell">Sun</div>
-        <div class="calendar-header-cell">Mon</div>
-        <div class="calendar-header-cell">Tue</div>
-        <div class="calendar-header-cell">Wed</div>
-        <div class="calendar-header-cell">Thu</div>
-        <div class="calendar-header-cell">Fri</div>
-        <div class="calendar-header-cell">Sat</div>
-    </div>
-    <div class="calendar-grid">
-        {% for i in range(35) %}
-        <div class="calendar-cell">
-            <div class="calendar-date {% if i == 28 %}today{% endif %}">{{ (i % 31) + 1 }}</div>
+    <!-- Header -->
+    <div class="appt-header">
+        <div class="calendar-nav">
+            <button class="nav-btn" @click="prevMonth">{{ icon('chevron-left') }}</button>
+            <span class="current-period" x-text="monthYearLabel"></span>
+            <button class="nav-btn" @click="nextMonth">{{ icon('chevron-right') }}</button>
+            <button class="nav-btn" @click="goToday" style="font-size:0.85rem;">Today</button>
         </div>
-        {% endfor %}
+        <div style="display:flex; gap:var(--space-3); align-items:center;">
+            <div class="view-toggle">
+                <template x-for="v in ['Day','Week','Month']" :key="v">
+                    <button class="view-btn" :class="{ active: currentView === v }" @click="currentView = v" x-text="v"></button>
+                </template>
+            </div>
+            <button class="schedule-btn" @click="openModal()">
+                {{ icon('plus') }} Schedule Appointment
+            </button>
+        </div>
     </div>
+
+    <!-- Stats -->
+    <div class="appt-stats">
+        <div class="stat-card">
+            <div class="stat-value" x-text="statsThisWeek"></div>
+            <div class="stat-label">This Week</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" x-text="statsThisMonth"></div>
+            <div class="stat-label">This Month</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" x-text="statsUpcoming"></div>
+            <div class="stat-label">Upcoming</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" x-text="statsCompleted"></div>
+            <div class="stat-label">Completed</div>
+        </div>
+    </div>
+
+    <!-- Calendar + Day Panel -->
+    <div class="calendar-layout">
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <template x-for="d in ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']" :key="d">
+                    <div class="calendar-header-cell" x-text="d"></div>
+                </template>
+            </div>
+            <div class="calendar-grid">
+                <template x-for="(cell, idx) in calendarCells" :key="idx">
+                    <div class="calendar-cell"
+                         :class="{ 'other-month': !cell.currentMonth, 'selected-cell': selectedDate === cell.dateStr }"
+                         @click="selectDate(cell.dateStr)">
+                        <div class="calendar-date" :class="{ today: cell.isToday }" x-text="cell.day"></div>
+                        <template x-for="appt in getAppointmentsForDate(cell.dateStr).slice(0, 3)" :key="appt.id">
+                            <div class="appt-pill" :class="'type-' + appt.typeClass" x-text="appt.time + ' ' + appt.client"></div>
+                        </template>
+                        <template x-if="getAppointmentsForDate(cell.dateStr).length > 3">
+                            <div style="font-size:0.7rem; color:var(--text-muted); padding-left:var(--space-1);"
+                                 x-text="'+' + (getAppointmentsForDate(cell.dateStr).length - 3) + ' more'"></div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Day detail panel -->
+        <div class="day-panel">
+            <div class="day-panel-header" x-text="selectedDateLabel"></div>
+            <div class="day-panel-body">
+                <template x-if="selectedDayAppointments.length === 0">
+                    <div class="empty-day">
+                        <p>No appointments scheduled.</p>
+                        <button class="schedule-btn" style="margin-top:var(--space-3); font-size:0.85rem; padding:var(--space-2) var(--space-4);"
+                                @click="openModal(selectedDate)">{{ icon('plus') }} Schedule</button>
+                    </div>
+                </template>
+                <template x-for="appt in selectedDayAppointments" :key="appt.id">
+                    <div class="day-appt-item">
+                        <div class="day-appt-time" x-text="appt.time + ' (' + appt.duration + ' min)'"></div>
+                        <div class="day-appt-client" x-text="appt.client"></div>
+                        <span class="day-appt-type" :class="'type-' + appt.typeClass" x-text="appt.type"></span>
+                        <template x-if="appt.notes">
+                            <div class="day-appt-notes" x-text="appt.notes"></div>
+                        </template>
+                        <div class="day-appt-actions">
+                            <button class="cancel-btn" @click="cancelAppointment(appt.id)">Cancel</button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Modal -->
+    <template x-if="showModal">
+        <div class="modal-overlay" @click.self="showModal = false" @keydown.escape.window="showModal = false">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <span>Schedule Appointment</span>
+                    <button class="modal-close" @click="showModal = false">{{ icon('x-mark') }}</button>
+                </div>
+                <form @submit.prevent="saveAppointment">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="appt-client">Client Name</label>
+                            <input id="appt-client" type="text" x-model="form.client" required placeholder="e.g. John Smith">
+                        </div>
+                        <div class="form-group">
+                            <label for="appt-type">Appointment Type</label>
+                            <select id="appt-type" x-model="form.type" required>
+                                <option value="">Select type...</option>
+                                <option value="Initial Consult">Initial Consult</option>
+                                <option value="Tax Review">Tax Review</option>
+                                <option value="Follow-up">Follow-up</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="appt-date">Date</label>
+                                <input id="appt-date" type="date" x-model="form.date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="appt-time">Time</label>
+                                <input id="appt-time" type="time" x-model="form.time" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="appt-duration">Duration</label>
+                            <select id="appt-duration" x-model="form.duration" required>
+                                <option value="30">30 minutes</option>
+                                <option value="60">60 minutes</option>
+                                <option value="90">90 minutes</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="appt-notes">Notes</label>
+                            <textarea id="appt-notes" x-model="form.notes" rows="3" placeholder="Optional notes..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-cancel" @click="showModal = false">Cancel</button>
+                        <button type="submit" class="btn-save">Schedule Appointment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </template>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // View toggle handling
-    document.querySelectorAll('.view-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-        });
-    });
+function appointmentManager() {
+    const today = new Date();
+    const y = today.getFullYear(), m = today.getMonth();
+    const pad = (n) => String(n).padStart(2, '0');
+    const ds = (yr, mo, dy) => `${yr}-${pad(mo + 1)}-${pad(dy)}`;
+    const todayStr = ds(y, m, today.getDate());
+    const mockData = [
+        { id: 1, client: 'Sarah Thompson', type: 'Tax Review', date: ds(y, m, 3), time: '09:00', duration: 60, notes: 'Annual tax return review', status: 'completed' },
+        { id: 2, client: 'Michael Chen', type: 'Initial Consult', date: ds(y, m, 7), time: '10:30', duration: 30, notes: 'New client intake for small business', status: 'completed' },
+        { id: 3, client: 'Rachel Green', type: 'Follow-up', date: ds(y, m, 12), time: '14:00', duration: 30, notes: 'Discuss amended return status', status: 'completed' },
+        { id: 4, client: 'James Wilson', type: 'Tax Review', date: ds(y, m, Math.min(today.getDate() + 1, 28)), time: '11:00', duration: 90, notes: 'Complex multi-state filing review', status: 'upcoming' },
+        { id: 5, client: 'Maria Lopez', type: 'Initial Consult', date: ds(y, m, Math.min(today.getDate() + 3, 28)), time: '09:30', duration: 60, notes: '', status: 'upcoming' },
+        { id: 6, client: 'David Park', type: 'Follow-up', date: ds(y, m, Math.min(today.getDate() + 3, 28)), time: '15:00', duration: 30, notes: 'Review estimated quarterly payments', status: 'upcoming' },
+        { id: 7, client: 'Emily Foster', type: 'Other', date: ds(y, m, Math.min(today.getDate() + 7, 28)), time: '13:00', duration: 60, notes: 'Estate planning consultation', status: 'upcoming' },
+        { id: 8, client: 'Robert Kim', type: 'Tax Review', date: ds(y, m, Math.min(today.getDate() + 10, 28)), time: '10:00', duration: 60, notes: 'Partnership K-1 review', status: 'upcoming' }
+    ];
+    return {
+        viewYear: y, viewMonth: m, currentView: 'Month', selectedDate: todayStr,
+        appointments: mockData, showModal: false, toasts: [], nextId: 100,
+        form: { client: '', type: '', date: todayStr, time: '09:00', duration: '60', notes: '' },
 
-    // Add appointment button
-    document.querySelector('.add-appointment-btn')?.addEventListener('click', function() {
-        alert('Appointment scheduling coming soon!');
-    });
-});
+        get monthYearLabel() {
+            return new Date(this.viewYear, this.viewMonth, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+        },
+        get calendarCells() {
+            const first = new Date(this.viewYear, this.viewMonth, 1).getDay();
+            const dim = new Date(this.viewYear, this.viewMonth + 1, 0).getDate();
+            const dip = new Date(this.viewYear, this.viewMonth, 0).getDate();
+            const cells = [];
+            for (let i = first - 1; i >= 0; i--) {
+                const d = dip - i, pm = this.viewMonth === 0 ? 11 : this.viewMonth - 1;
+                const py = this.viewMonth === 0 ? this.viewYear - 1 : this.viewYear;
+                cells.push({ day: d, dateStr: ds(py, pm, d), currentMonth: false, isToday: false });
+            }
+            for (let d = 1; d <= dim; d++) {
+                const dateStr = ds(this.viewYear, this.viewMonth, d);
+                cells.push({ day: d, dateStr, currentMonth: true, isToday: dateStr === todayStr });
+            }
+            const rem = 42 - cells.length;
+            for (let d = 1; d <= rem; d++) {
+                const nm = this.viewMonth === 11 ? 0 : this.viewMonth + 1;
+                const ny = this.viewMonth === 11 ? this.viewYear + 1 : this.viewYear;
+                cells.push({ day: d, dateStr: ds(ny, nm, d), currentMonth: false, isToday: false });
+            }
+            return cells;
+        },
+        get selectedDateLabel() {
+            if (!this.selectedDate) return 'Select a date';
+            const [sy, sm, sd] = this.selectedDate.split('-').map(Number);
+            return new Date(sy, sm - 1, sd).toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        },
+        get selectedDayAppointments() {
+            return this.getAppointmentsForDate(this.selectedDate).sort((a, b) => a.time.localeCompare(b.time));
+        },
+        get statsThisWeek() {
+            const now = new Date(), sow = new Date(now);
+            sow.setDate(now.getDate() - now.getDay()); sow.setHours(0,0,0,0);
+            const eow = new Date(sow); eow.setDate(sow.getDate() + 7);
+            return this.appointments.filter(a => { const d = new Date(a.date + 'T00:00:00'); return d >= sow && d < eow; }).length;
+        },
+        get statsThisMonth() {
+            const prefix = `${y}-${pad(m + 1)}`;
+            return this.appointments.filter(a => a.date.startsWith(prefix)).length;
+        },
+        get statsUpcoming() { return this.appointments.filter(a => a.status === 'upcoming').length; },
+        get statsCompleted() { return this.appointments.filter(a => a.status === 'completed').length; },
+
+        typeClass(type) {
+            const map = { 'Initial Consult': 'initial', 'Tax Review': 'review', 'Follow-up': 'followup' };
+            return map[type] || 'other';
+        },
+        getAppointmentsForDate(dateStr) {
+            return this.appointments.filter(a => a.date === dateStr).map(a => ({ ...a, typeClass: this.typeClass(a.type) }));
+        },
+        selectDate(dateStr) { this.selectedDate = dateStr; },
+        prevMonth() {
+            if (this.viewMonth === 0) { this.viewMonth = 11; this.viewYear--; } else { this.viewMonth--; }
+        },
+        nextMonth() {
+            if (this.viewMonth === 11) { this.viewMonth = 0; this.viewYear++; } else { this.viewMonth++; }
+        },
+        goToday() { this.viewYear = y; this.viewMonth = m; this.selectedDate = todayStr; },
+        openModal(prefillDate) {
+            this.form = { client: '', type: '', date: prefillDate || this.selectedDate || todayStr, time: '09:00', duration: '60', notes: '' };
+            this.showModal = true;
+        },
+        saveAppointment() {
+            if (!this.form.client || !this.form.type || !this.form.date || !this.form.time) return;
+            const isUpcoming = new Date(this.form.date + 'T00:00:00') >= new Date(todayStr + 'T00:00:00');
+            this.appointments.push({
+                id: this.nextId++, client: this.form.client, type: this.form.type,
+                date: this.form.date, time: this.form.time, duration: parseInt(this.form.duration),
+                notes: this.form.notes, status: isUpcoming ? 'upcoming' : 'completed'
+            });
+            this.selectedDate = this.form.date;
+            this.showModal = false;
+            this.addToast('Appointment scheduled for ' + this.form.client, 'success');
+        },
+        cancelAppointment(id) {
+            const appt = this.appointments.find(a => a.id === id);
+            if (!appt) return;
+            this.appointments = this.appointments.filter(a => a.id !== id);
+            this.addToast('Appointment with ' + appt.client + ' cancelled', 'info');
+        },
+        addToast(message, type) { this.toasts.push({ message, type }); }
+    };
+}
 </script>
 {% endblock %}

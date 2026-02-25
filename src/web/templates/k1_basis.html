@@ -722,7 +722,7 @@
           </span>
           <span class="k1-atr-amount" x-text="formatCurrency(entity.at_risk_amount)"></span>
           <span class="k1-atr-label">At Risk</span>
-          <span style="font-size:0.72rem; font-weight:600; padding:2px 8px; border-radius:9999px;"
+          <span style="font-size:0.72rem; font-weight:var(--font-semibold); padding:var(--space-0-5) var(--space-2); border-radius:var(--radius-full);"
                 :style="(entity.at_risk_amount || 0) >= (entity.current_basis || 0)
                   ? 'background:#d1fae5; color:#065f46;'
                   : (entity.at_risk_amount || 0) > 0
@@ -766,7 +766,7 @@
     <div class="k1-detail-header">
       <button class="k1-detail-close" @click="selectedEntity = null; worksheet = null;" title="Close">&times;</button>
       <h2 x-text="selectedEntity?.entity_name"></h2>
-      <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+      <div style="display:flex; align-items:center; gap:var(--space-2); margin-top:var(--space-1);">
         <span class="k1-badge" style="font-size:0.68rem;"
               :style="`background: rgba(255,255,255,0.15); color: #fff;`"
               x-text="entityTypeBadge(selectedEntity?.entity_type).label">
@@ -985,7 +985,7 @@
       {# ── At-Risk Limitation Section ─────────────────────────── #}
       <div class="k1-limit-section">
         <h4>
-          <span class="k1-icon-circle" style="background: #dbeafe; color: #1e40af;">
+          <span class="k1-icon-circle" style="background: var(--color-info-100); color: #1e40af;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </span>
           At-Risk Limitation (IRC &sect;465)
@@ -1004,7 +1004,7 @@
           <div class="k1-limit-stat">
             <label>Status</label>
             <div class="k1-stat-val">
-              <span style="padding:4px 12px; border-radius:9999px; font-size:0.8rem;"
+              <span style="padding:var(--space-1) var(--space-3); border-radius:var(--radius-full); font-size:0.8rem;"
                     :style="(worksheet?.at_risk?.amount || selectedEntity?.at_risk_amount || 0) > 0
                       ? 'background: #d1fae5; color: #065f46;'
                       : 'background: #fee2e2; color: #991b1b;'"
@@ -1018,7 +1018,7 @@
       {# ── Passive Activity Limitation Section ────────────────── #}
       <div class="k1-limit-section">
         <h4>
-          <span class="k1-icon-circle" style="background: #ede9fe; color: #5b21b6;">
+          <span class="k1-icon-circle" style="background: var(--color-purple-100); color: #5b21b6;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           </span>
           Passive Activity Limitation (IRC &sect;469)
@@ -1040,9 +1040,9 @@
                  x-text="formatCurrency(worksheet?.passive_activity?.suspended || 0)"></div>
           </div>
         </div>
-        <div style="margin-top:16px; display:flex; align-items:center; gap:8px;">
+        <div style="margin-top:var(--space-4); display:flex; align-items:center; gap:var(--space-2);">
           <span style="font-size:0.78rem; color:var(--k1-gray-400);">Material Participation:</span>
-          <span style="padding:3px 10px; border-radius:9999px; font-size:0.72rem; font-weight:600;"
+          <span style="padding:3px var(--space-2-5); border-radius:var(--radius-full); font-size:0.72rem; font-weight:var(--font-semibold);"
                 :style="worksheet?.passive_activity?.material_participation
                   ? 'background:#d1fae5; color:#065f46;'
                   : 'background:#fef3c7; color:#92400e;'"
@@ -1075,9 +1075,9 @@
       </template>
 
       <template x-if="!worksheet?.adjustments || worksheet.adjustments.length === 0">
-        <div style="text-align:center; padding:32px 16px;">
+        <div style="text-align:center; padding:var(--space-8) var(--space-4);">
           <div style="font-size:0.85rem; color:var(--k1-gray-400);">No adjustments recorded yet.</div>
-          <button class="k1-btn k1-btn-outline k1-btn-sm" style="margin-top:12px;"
+          <button class="k1-btn k1-btn-outline k1-btn-sm" style="margin-top:var(--space-3);"
                   @click="showAddAdjustment = true; newAdjustment = { adjustment_type: 'capital_contribution', amount: 0, description: '', date: new Date().toISOString().split('T')[0] };">
             Add First Adjustment
           </button>

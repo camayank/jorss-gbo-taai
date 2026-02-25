@@ -1,0 +1,444 @@
+{% extends 'base_modern.html' %}
+
+{% block title %}Draft Tax Forms{% endblock %}
+{% block theme %}default{% endblock %}
+
+{% block content %}
+<div x-data="draftFormsManager()" x-cloak
+     style="max-width: 1280px; margin: 0 auto; padding: var(--space-6) var(--space-4); font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
+
+  {# ── Page Header ── #}
+  <div style="margin-bottom: var(--space-6);">
+    <h1 style="font-size: 28px; font-weight: var(--font-bold); color: var(--color-primary-500); margin: 0 0 var(--space-1-5) 0;">
+      Draft Tax Forms
+    </h1>
+    <p style="font-size: 15px; color: #6b7280; margin: 0;">
+      Generate and review draft IRS forms before filing
+    </p>
+  </div>
+
+  {# ── DRAFT Watermark Banner ── #}
+  <div style="background: linear-gradient(135deg, var(--color-warning-100), var(--color-warning-200)); border: 2px solid var(--color-warning-500);
+              border-radius: var(--radius-xl); padding: var(--space-4) var(--space-6); margin-bottom: var(--space-7);
+              display: flex; align-items: center; gap: var(--space-3-5); position: sticky; top: 0; z-index: 40;">
+    <div style="flex-shrink: 0; width: 44px; height: 44px; background: var(--color-warning-500); border-radius: 50%;
+                display: flex; align-items: center; justify-content: center;">
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M12 9v2m0 4h.01M10.29 3.86l-8.8 15.32A1 1 0 002.36 21h17.28a1 1 0 00.87-1.5l-8.8-15.32a1 1 0 00-1.72 0z"/>
+      </svg>
+    </div>
+    <div>
+      <p style="margin: 0; font-size: 15px; font-weight: var(--font-bold); color: #92400e; letter-spacing: 0.5px;">
+        DRAFT &mdash; FOR REVIEW ONLY
+      </p>
+      <p style="margin: var(--space-1) 0 0 0; font-size: 13px; color: #92400e;">
+        These forms are not final and should not be filed with the IRS.
+      </p>
+    </div>
+  </div>
+
+  {# ── Generation Progress Overlay ── #}
+  <div x-show="generating" x-transition.opacity
+       style="background: rgba(255,255,255,0.92); border: 1px solid var(--color-gray-200); border-radius: var(--radius-xl);
+              padding: var(--space-8); margin-bottom: var(--space-7); text-align: center;">
+    <div style="display: inline-block; margin-bottom: var(--space-4);">
+      <svg width="48" height="48" viewBox="0 0 48 48" style="animation: draftSpin 1s linear infinite;">
+        <circle cx="24" cy="24" r="20" fill="none" stroke="#e5e7eb" stroke-width="4"/>
+        <circle cx="24" cy="24" r="20" fill="none" stroke="#14b8a6" stroke-width="4"
+                stroke-dasharray="80 126" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <p style="margin: 0; font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--color-primary-500);">
+      Generating draft form&hellip;
+    </p>
+    <p style="margin: var(--space-1-5) 0 0 0; font-size: 13px; color: #6b7280;" x-text="'Preparing ' + (availableForms.find(f => f.id === generatingForm)?.name || generatingForm)"></p>
+    <div style="margin-top: 18px; width: 220px; height: 6px; background: var(--color-gray-200); border-radius: 3px;
+                display: inline-block; overflow: hidden;">
+      <div style="height: 100%; width: 60%; background: linear-gradient(90deg, var(--color-accent-500), var(--color-success-500));
+                  border-radius: 3px; animation: draftProgress 2s ease-in-out infinite;"></div>
+    </div>
+  </div>
+
+  {# ── Available Forms Grid ── #}
+  <div style="margin-bottom: var(--space-9);">
+    <h2 style="font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--color-primary-500); margin: 0 0 var(--space-4) 0;">
+      Available Forms
+    </h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: var(--space-4);">
+      <template x-for="form in availableForms" :key="form.id">
+        <div style="background: #fff; border: 1px solid var(--color-gray-200); border-radius: var(--radius-xl);
+                    padding: var(--space-5) 22px; display: flex; flex-direction: column; gap: var(--space-3);
+                    transition: box-shadow 0.2s, border-color 0.2s;"
+             :style="form.status === 'ready' ? 'cursor:pointer;' : ''"
+             @mouseenter="$el.style.boxShadow='0 4px 16px rgba(30,58,95,0.08)'; $el.style.borderColor='#cbd5e1'"
+             @mouseleave="$el.style.boxShadow='none'; $el.style.borderColor='#e5e7eb'">
+
+          {# Top row: icon + info + badge #}
+          <div style="display: flex; align-items: flex-start; gap: var(--space-3-5);">
+            {# Form icon #}
+            <div style="flex-shrink: 0; width: 44px; height: 44px; border-radius: 10px;
+                        display: flex; align-items: center; justify-content: center;"
+                 :style="form.status === 'ready'
+                   ? 'background:#eef9f6; color:#14b8a6'
+                   : form.status === 'missing_data'
+                     ? 'background:#fef9ee; color:#f59e0b'
+                     : 'background:#f3f4f6; color:#9ca3af'">
+              <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+            </div>
+
+            {# Text #}
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;">
+                <span style="font-size: 15px; font-weight: var(--font-semibold); color: var(--color-primary-500);" x-text="form.name"></span>
+                <span style="font-size: 11px; font-weight: var(--font-semibold); padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-full);
+                             white-space: nowrap;"
+                      :style="`background:${statusBadge(form.status).bg}; color:${statusBadge(form.status).color}`"
+                      x-text="statusBadge(form.status).label"></span>
+              </div>
+              <p style="margin: var(--space-1) 0 0 0; font-size: 13px; color: #6b7280; line-height: 1.4;"
+                 x-text="form.desc"></p>
+            </div>
+          </div>
+
+          {# Action row #}
+          <div style="display: flex; justify-content: flex-end; padding-top: var(--space-1);">
+            <template x-if="form.status === 'ready'">
+              <button @click="generateForm(form.id)"
+                      :disabled="generating"
+                      style="background: var(--color-primary-500); color: #fff; border: none; border-radius: var(--radius-lg);
+                             padding: var(--space-2) 18px; font-size: 13px; font-weight: var(--font-semibold); cursor: pointer;
+                             display: inline-flex; align-items: center; gap: var(--space-1-5);
+                             transition: background 0.15s;"
+                      @mouseenter="!generating && ($el.style.background='#14b8a6')"
+                      @mouseleave="$el.style.background='#1e3a5f'"
+                      :style="generating ? 'opacity:0.5; cursor:not-allowed;' : ''">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 12h6m-6 0l3-3m-3 3l3 3M4 4v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6H6a2 2 0 00-2 2z"/>
+                </svg>
+                Generate Draft
+              </button>
+            </template>
+            <template x-if="form.status === 'missing_data'">
+              <span style="font-size: var(--text-xs); color: #92400e; display: inline-flex; align-items: center; gap: var(--space-1);">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 9v2m0 4h.01M12 3a9 9 0 100 18 9 9 0 000-18z"/>
+                </svg>
+                Complete required data first
+              </span>
+            </template>
+            <template x-if="form.status === 'not_applicable'">
+              <span style="font-size: var(--text-xs); color: #9ca3af;">
+                Not applicable to your return
+              </span>
+            </template>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  {# ── Generated Forms List ── #}
+  <div x-show="generatedForms.length > 0" x-transition style="margin-bottom: var(--space-9);">
+    <h2 style="font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--color-primary-500); margin: 0 0 var(--space-4) 0;">
+      Generated Drafts
+    </h2>
+    <div style="background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-xl); overflow: hidden;">
+      <table style="width: 100%; border-collapse: collapse; font-size: var(--text-sm);">
+        <thead>
+          <tr style="background: var(--color-gray-50);">
+            <th style="text-align: left; padding: var(--space-3) var(--space-4); font-weight: var(--font-semibold); color: var(--color-gray-700); border-bottom: 1px solid var(--color-gray-200);">
+              Form Name
+            </th>
+            <th style="text-align: left; padding: var(--space-3) var(--space-4); font-weight: var(--font-semibold); color: var(--color-gray-700); border-bottom: 1px solid var(--color-gray-200);">
+              Generated Date
+            </th>
+            <th style="text-align: right; padding: var(--space-3) var(--space-4); font-weight: var(--font-semibold); color: var(--color-gray-700); border-bottom: 1px solid var(--color-gray-200);">
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="(gf, idx) in generatedForms" :key="gf.id + '-' + idx">
+            <tr style="border-bottom: 1px solid var(--color-gray-100);"
+                @mouseenter="$el.style.background='#f9fafb'"
+                @mouseleave="$el.style.background='transparent'">
+              <td style="padding: var(--space-3) var(--space-4);">
+                <div style="display: flex; align-items: center; gap: var(--space-2-5);">
+                  <div style="width: 32px; height: 32px; background: #eef9f6; border-radius: var(--radius-lg);
+                              display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#14b8a6" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <span style="font-weight: var(--font-semibold); color: var(--color-primary-500);" x-text="gf.name"></span>
+                    <span style="display: inline-block; margin-left: var(--space-2); font-size: 10px; font-weight: var(--font-bold);
+                                 padding: var(--space-px) var(--space-1-5); border-radius: 4px; background: var(--color-warning-100); color: #92400e;
+                                 letter-spacing: 0.5px;">DRAFT</span>
+                  </div>
+                </div>
+              </td>
+              <td style="padding: var(--space-3) var(--space-4); color: #6b7280;" x-text="formatDate(gf.generatedAt)"></td>
+              <td style="padding: var(--space-3) var(--space-4); text-align: right;">
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1-5);">
+                  {# View PDF #}
+                  <button @click="previewForm(gf.url)"
+                          title="View PDF"
+                          style="background: #eef9f6; color: var(--color-accent-500); border: none; border-radius: var(--radius-md);
+                                 width: 34px; height: 34px; cursor: pointer; display: inline-flex;
+                                 align-items: center; justify-content: center; transition: background 0.15s;"
+                          @mouseenter="$el.style.background='#ccfbf1'"
+                          @mouseleave="$el.style.background='#eef9f6'">
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                  </button>
+                  {# Download #}
+                  <button @click="downloadForm(gf.url, gf.name)"
+                          title="Download PDF"
+                          style="background: var(--color-info-50); color: var(--color-primary-500); border: none; border-radius: var(--radius-md);
+                                 width: 34px; height: 34px; cursor: pointer; display: inline-flex;
+                                 align-items: center; justify-content: center; transition: background 0.15s;"
+                          @mouseenter="$el.style.background='#dbeafe'"
+                          @mouseleave="$el.style.background='#eff6ff'">
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3"/>
+                    </svg>
+                  </button>
+                  {# Delete #}
+                  <button @click="removeGenerated(idx)"
+                          title="Remove"
+                          style="background: var(--color-error-50); color: var(--color-error-500); border: none; border-radius: var(--radius-md);
+                                 width: 34px; height: 34px; cursor: pointer; display: inline-flex;
+                                 align-items: center; justify-content: center; transition: background 0.15s;"
+                          @mouseenter="$el.style.background='#fee2e2'"
+                          @mouseleave="$el.style.background='#fef2f2'">
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {# ── Empty State (no generated forms yet) ── #}
+  <div x-show="generatedForms.length === 0 && !generating" x-transition
+       style="background: #fff; border: 1px solid var(--color-gray-200); border-radius: var(--radius-xl);
+              padding: var(--space-12) var(--space-6); text-align: center; margin-bottom: var(--space-9);">
+    <div style="width: 56px; height: 56px; margin: 0 auto var(--space-4); background: var(--color-gray-100); border-radius: 50%;
+                display: flex; align-items: center; justify-content: center;">
+      <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#9ca3af" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+    </div>
+    <p style="font-size: 15px; font-weight: var(--font-semibold); color: var(--color-gray-700); margin: 0 0 var(--space-1-5) 0;">
+      No draft forms generated yet
+    </p>
+    <p style="font-size: 13px; color: #9ca3af; margin: 0;">
+      Select a form above and click "Generate Draft" to create a preview.
+    </p>
+  </div>
+
+  {# ── PDF Preview Panel ── #}
+  <div x-show="previewUrl" x-transition.opacity
+       style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50;
+              display: flex; align-items: center; justify-content: center; padding: var(--space-6);"
+       @keydown.escape.window="closePreview()">
+    <div @click.outside="closePreview()"
+         style="background: #fff; border-radius: var(--radius-xl); width: 100%; max-width: 900px;
+                height: 85vh; display: flex; flex-direction: column; overflow: hidden;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.25);">
+
+      {# Preview Header #}
+      <div style="display: flex; align-items: center; justify-content: space-between;
+                  padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--color-gray-200); flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: var(--space-2-5);">
+          <h3 style="margin: 0; font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--color-primary-500);">
+            PDF Preview
+          </h3>
+          <span style="font-size: 10px; font-weight: var(--font-bold); padding: var(--space-0-5) var(--space-2); border-radius: 4px;
+                       background: var(--color-warning-100); color: #92400e; letter-spacing: 0.5px;">DRAFT</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: var(--space-2);">
+          <button @click="generatedForms.length && downloadForm(previewUrl, generatedForms.find(g => g.url === previewUrl)?.name || 'form')"
+                  style="background: var(--color-primary-500); color: #fff; border: none; border-radius: var(--radius-lg);
+                         padding: var(--space-2) var(--space-4); font-size: 13px; font-weight: var(--font-semibold); cursor: pointer;
+                         display: inline-flex; align-items: center; gap: var(--space-1-5); transition: background 0.15s;"
+                  @mouseenter="$el.style.background='#14b8a6'"
+                  @mouseleave="$el.style.background='#1e3a5f'">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3"/>
+            </svg>
+            Download
+          </button>
+          <button @click="closePreview()"
+                  style="background: var(--color-gray-100); color: var(--color-gray-700); border: none; border-radius: var(--radius-lg);
+                         padding: var(--space-2) var(--space-4); font-size: 13px; font-weight: var(--font-semibold); cursor: pointer;
+                         transition: background 0.15s;"
+                  @mouseenter="$el.style.background='#e5e7eb'"
+                  @mouseleave="$el.style.background='#f3f4f6'">
+            Close
+          </button>
+        </div>
+      </div>
+
+      {# Draft Watermark Reminder #}
+      <div style="background: var(--color-warning-50); padding: var(--space-2) var(--space-5); border-bottom: 1px solid var(--color-warning-200);
+                  display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0;">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 9v2m0 4h.01M10.29 3.86l-8.8 15.32A1 1 0 002.36 21h17.28a1 1 0 00.87-1.5l-8.8-15.32a1 1 0 00-1.72 0z"/>
+        </svg>
+        <span style="font-size: var(--text-xs); color: #92400e; font-weight: var(--font-medium);">
+          This is a DRAFT document for review purposes only. Do not file this form.
+        </span>
+      </div>
+
+      {# PDF iframe #}
+      <div style="flex: 1; position: relative; overflow: hidden;">
+        <iframe :src="previewUrl" style="width: 100%; height: 100%; border: none;"></iframe>
+        {# Watermark overlay #}
+        <div style="position: absolute; inset: 0; pointer-events: none; display: flex;
+                    align-items: center; justify-content: center; opacity: 0.06;">
+          <span style="font-size: 96px; font-weight: var(--font-black); color: var(--color-error-500); transform: rotate(-30deg);
+                       letter-spacing: 12px; user-select: none;">DRAFT</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{# ── Keyframe Animations ── #}
+<style>
+  @keyframes draftSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  @keyframes draftProgress {
+    0%   { width: 15%; margin-left: 0; }
+    50%  { width: 60%; margin-left: 20%; }
+    100% { width: 15%; margin-left: 85%; }
+  }
+</style>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+function draftFormsManager() {
+    return {
+        availableForms: [
+            { id: 'form-1040', name: 'Form 1040', desc: 'U.S. Individual Income Tax Return', status: 'ready' },
+            { id: 'schedule-a', name: 'Schedule A', desc: 'Itemized Deductions', status: 'ready' },
+            { id: 'schedule-b', name: 'Schedule B', desc: 'Interest and Ordinary Dividends', status: 'ready' },
+            { id: 'schedule-c', name: 'Schedule C', desc: 'Profit or Loss from Business', status: 'missing_data' },
+            { id: 'schedule-d', name: 'Schedule D', desc: 'Capital Gains and Losses', status: 'ready' },
+            { id: 'schedule-e', name: 'Schedule E', desc: 'Supplemental Income and Loss', status: 'missing_data' },
+            { id: 'schedule-se', name: 'Schedule SE', desc: 'Self-Employment Tax', status: 'not_applicable' },
+            { id: 'form-8949', name: 'Form 8949', desc: 'Sales and Dispositions of Capital Assets', status: 'ready' },
+            { id: 'form-8995', name: 'Form 8995', desc: 'Qualified Business Income Deduction', status: 'not_applicable' }
+        ],
+        generatedForms: [],
+        previewUrl: null,
+        generating: false,
+        generatingForm: '',
+
+        async generateForm(formId) {
+            this.generating = true;
+            this.generatingForm = formId;
+            try {
+                let endpoint, body;
+                if (formId === 'form-1040') {
+                    endpoint = '/api/v1/draft-forms/form-1040';
+                    body = { tax_year: 2025 };
+                } else {
+                    endpoint = '/api/v1/draft-forms/schedule';
+                    body = { schedule_type: formId.replace('schedule-', '').toUpperCase(), tax_year: 2025 };
+                }
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    const form = this.availableForms.find(f => f.id === formId);
+                    this.generatedForms.unshift({
+                        id: formId,
+                        name: form?.name || formId,
+                        generatedAt: new Date().toISOString(),
+                        url: url
+                    });
+                } else {
+                    alert('Failed to generate form. Please check required data.');
+                }
+            } catch (e) {
+                alert('Form generation failed');
+            } finally {
+                this.generating = false;
+                this.generatingForm = '';
+            }
+        },
+
+        previewForm(url) {
+            this.previewUrl = url;
+        },
+
+        closePreview() {
+            this.previewUrl = null;
+        },
+
+        downloadForm(url, name) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `DRAFT_${name}_${new Date().toISOString().split('T')[0]}.pdf`;
+            a.click();
+        },
+
+        removeGenerated(idx) {
+            URL.revokeObjectURL(this.generatedForms[idx].url);
+            this.generatedForms.splice(idx, 1);
+        },
+
+        statusBadge(status) {
+            const badges = {
+                ready: { label: 'Ready', bg: '#d1fae5', color: '#065f46' },
+                missing_data: { label: 'Missing Data', bg: '#fef3c7', color: '#92400e' },
+                not_applicable: { label: 'N/A', bg: '#f3f4f6', color: '#6b7280' }
+            };
+            return badges[status] || badges.not_applicable;
+        },
+
+        formatDate(d) {
+            return new Date(d).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+    };
+}
+</script>
+{% endblock %}

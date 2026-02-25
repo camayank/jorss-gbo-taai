@@ -1023,7 +1023,7 @@
             {% if cpa.firm_name %} of {{ cpa.firm_name }}{% endif %}
         </p>
         <p>Report ID: {{ session_id }} | Generated: {{ now().strftime('%B %d, %Y at %I:%M %p') if now else 'Today' }}</p>
-        <p style="margin-top: 12px; color: #9ca3af;">
+        <p style="margin-top: var(--space-3); color: #9ca3af;">
             &copy; {{ now().year if now else '2024' }} {{ cpa.firm_name or cpa.display_name }}. All rights reserved.
         </p>
     </footer>

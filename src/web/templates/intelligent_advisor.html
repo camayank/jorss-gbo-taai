@@ -3699,7 +3699,7 @@
       <div class="logo-subtitle">AI-Powered Wealth Strategy</div>
     </div>
     <div class="header-right">
-      <button class="workflow-mode-btn" onclick="openWorkflowSelector()" title="Choose filing workflow" aria-label="Choose filing workflow" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; margin-right: 12px; transition: all 0.2s;">
+      <button class="workflow-mode-btn" onclick="openWorkflowSelector()" title="Choose filing workflow" aria-label="Choose filing workflow" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; padding: var(--space-2) var(--space-4); border-radius: var(--radius-lg); cursor: pointer; font-size: 13px; font-weight: var(--font-semibold); margin-right: var(--space-3); transition: all 0.2s;">
         ⚡ Choose Workflow
       </button>
       <button class="clear-chat-btn" onclick="clearConversation()" title="Start new conversation" aria-label="Start new conversation">
@@ -3769,7 +3769,7 @@
     <div class="camera-controls">
       <button class="capture-btn" onclick="PhotoCapture.capture()" aria-label="Take photo"></button>
     </div>
-    <div style="color: white; text-align: center; margin-top: 20px; font-size: 14px;">
+    <div style="color: white; text-align: center; margin-top: var(--space-5); font-size: var(--text-sm);">
       Supported: W-2, 1099, 1098, K-1, and other tax documents
     </div>
   </div>
@@ -3813,8 +3813,8 @@
       </div>
 
       <!-- Scope Limitation Banner - Circular 230 Compliance -->
-      <div class="scope-banner" id="scopeBanner" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 10px 16px; margin-bottom: 16px; font-size: 12px; color: var(--accent-gold); display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 16px;">⚠️</span>
+      <div class="scope-banner" id="scopeBanner" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-lg); padding: var(--space-2-5) var(--space-4); margin-bottom: var(--space-4); font-size: var(--text-xs); color: var(--accent-gold); display: flex; align-items: center; gap: var(--space-2);">
+        <span style="font-size: var(--text-base);">⚠️</span>
         <span><strong>Estimation Tool Only:</strong> This provides tax estimates and educational information. Always consult a qualified tax professional before filing.</span>
       </div>
 
@@ -3823,20 +3823,20 @@
         <div class="message ai" role="article" aria-label="AI assistant message">
           <div class="avatar" aria-hidden="true">💼</div>
           <div class="bubble">
-            <div style="margin-bottom: 16px;">
-              <span style="font-size: 24px; font-weight: 700; color: var(--accent-light);">Welcome to Your Tax Advisory Session</span>
+            <div style="margin-bottom: var(--space-4);">
+              <span style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--accent-light);">Welcome to Your Tax Advisory Session</span>
             </div>
             I'm your AI-powered tax strategist, trained on thousands of tax scenarios to help you <strong>maximize savings</strong> and <strong>minimize liability</strong>.<br><br>
-            <div class="insight-card" style="margin: 16px 0;">
+            <div class="insight-card" style="margin: var(--space-4) 0;">
               <div class="insight-header">
                 <span>📊</span>
                 <span>Average Client Savings</span>
               </div>
               <div class="savings-amount">$4,200 - $12,500</div>
-              <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">per year through strategic tax planning</div>
+              <div style="font-size: 13px; color: var(--text-secondary); margin-top: var(--space-2);">per year through strategic tax planning</div>
             </div>
             <strong>How would you like to begin?</strong>
-            <div class="quick-actions" id="initialQuickActions" style="margin-top: 20px;" role="group" aria-label="Quick response options">
+            <div class="quick-actions" id="initialQuickActions" style="margin-top: var(--space-5);" role="group" aria-label="Quick response options">
               <button class="quick-action primary" data-action="no_manual" aria-label="Start guided analysis">Start Guided Analysis →</button>
               <button class="quick-action" data-action="yes_upload" aria-label="Upload tax documents">Upload Documents</button>
               <button class="quick-action" data-action="what_docs" aria-label="Learn more about the process">Learn More</button>
@@ -3890,7 +3890,7 @@
 
       <div class="panel-card">
         <div class="panel-header">💡 Strategic Recommendations</div>
-        <div id="insights" style="font-size: 14px; color: var(--text-secondary);">
+        <div id="insights" style="font-size: var(--text-sm); color: var(--text-secondary);">
           I'll share personalized recommendations as we review your financial situation...
         </div>
       </div>
@@ -3898,9 +3898,9 @@
       <div class="panel-card" id="uploadPanel">
         <div class="panel-header">📁 Quick Upload</div>
         <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
-          <div style="font-size: 32px; margin-bottom: 8px;">📄</div>
-          <div style="font-size: 14px; margin-bottom: 4px;">Drop documents here</div>
-          <div style="font-size: 12px; color: var(--text-secondary);">or click to browse</div>
+          <div style="font-size: 32px; margin-bottom: var(--space-2);">📄</div>
+          <div style="font-size: var(--text-sm); margin-bottom: var(--space-1);">Drop documents here</div>
+          <div style="font-size: var(--text-xs); color: var(--text-secondary);">or click to browse</div>
         </div>
         <input type="file" id="fileInput" style="display: none" onchange="handleFileSelect(event)" accept=".pdf,.jpg,.jpeg,.png" multiple aria-label="Upload tax documents">
       </div>
@@ -5755,19 +5755,19 @@
       DevLogger.log('sendInitialGreeting called');
 
       // Clean post-login greeting - leads to full robust chatbot
-      addMessage('ai', `<div style="margin-bottom: 16px;">
-        <span style="font-size: 24px; font-weight: 700; color: var(--primary);">Welcome to Your Tax Advisory Session</span>
+      addMessage('ai', `<div style="margin-bottom: var(--space-4);">
+        <span style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--primary);">Welcome to Your Tax Advisory Session</span>
       </div>
       I'm your AI-powered tax strategist ready to help you <strong>maximize your savings</strong>.<br><br>
-      <div style="display: grid; gap: 12px; margin: 16px 0;">
-        <div style="display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(26, 54, 93, 0.05); border-radius: 8px;">
-          <span style="font-size: 18px;">📄</span>
+      <div style="display: grid; gap: var(--space-3); margin: var(--space-4) 0;">
+        <div style="display: flex; align-items: center; gap: var(--space-2-5); padding: var(--space-3); background: rgba(26, 54, 93, 0.05); border-radius: var(--radius-lg);">
+          <span style="font-size: var(--text-lg);">📄</span>
           <div>
             <strong>Upload Documents</strong> - I'll extract data from your W-2s, 1099s automatically
           </div>
         </div>
-        <div style="display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(26, 54, 93, 0.05); border-radius: 8px;">
-          <span style="font-size: 18px;">💬</span>
+        <div style="display: flex; align-items: center; gap: var(--space-2-5); padding: var(--space-3); background: rgba(26, 54, 93, 0.05); border-radius: var(--radius-lg);">
+          <span style="font-size: var(--text-lg);">💬</span>
           <div>
             <strong>Answer Questions</strong> - Smart guided conversation with AI assistance
           </div>
@@ -5823,7 +5823,7 @@
       }
 
       if (includeIRS) {
-        disclaimer += `<div style="font-size: 11px; color: var(--text-secondary); margin-top: 8px;">
+        disclaimer += `<div style="font-size: 11px; color: var(--text-secondary); margin-top: var(--space-2);">
           📋 Based on 2025 IRS guidelines. See <a href="https://www.irs.gov/forms-instructions" target="_blank" rel="noopener" style="color: var(--primary);">IRS.gov</a> for official forms.
         </div>`;
       }
@@ -5847,10 +5847,10 @@
       const badge = badges[confidence] || badges.medium;
       const tooltipAttr = reason ? ` title="${reason}"` : '';
 
-      return `<div class="confidence-badge ${badge.className}"${tooltipAttr} style="margin-top: 12px;">
+      return `<div class="confidence-badge ${badge.className}"${tooltipAttr} style="margin-top: var(--space-3);">
         <span class="confidence-dot"></span>
         <span>${badge.label}</span>
-        ${reason ? `<span style="font-size: 10px; opacity: 0.8; margin-left: 4px;">${reason}</span>` : ''}
+        ${reason ? `<span style="font-size: 10px; opacity: 0.8; margin-left: var(--space-1);">${reason}</span>` : ''}
       </div>`;
     }
 
@@ -6632,8 +6632,8 @@
         setTimeout(() => {
           hideTyping();
           addMessage('ai', `<strong>Let's get to know your tax situation.</strong><br><br>
-          <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 1 of 5</span>
+          <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 1 of 5</span>
           </div>
           <strong>What best describes your situation?</strong>`, [
             { label: "💼 W-2 Employee", value: 'guided_type_w2', primary: true },
@@ -6663,8 +6663,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 2 of 5</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 2 of 5</span>
           </div>
           <strong>What's your filing status?</strong>`, [
             { label: "Single", value: 'guided_filing_single' },
@@ -6685,8 +6685,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 3 of 5</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 3 of 5</span>
           </div>
           <strong>What's your approximate annual income?</strong>`, [
             { label: "Under $50k", value: 'guided_income_50k' },
@@ -6708,8 +6708,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 4 of 5</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 4 of 5</span>
           </div>
           <strong>Any dependents?</strong>`, [
             { label: "No dependents", value: 'guided_deps_0' },
@@ -6746,8 +6746,8 @@
           }
           deductionOptions.push({ label: "➡️ None - Get My Results", value: 'guided_ded_none' });
 
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 5 of 5</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 5 of 5</span>
           </div>
           <strong>Any of these apply?</strong> <span style="color: var(--text-secondary);">(Select any that apply)</span>`, deductionOptions);
         }, 600);
@@ -6776,10 +6776,10 @@
         showTyping();
         setTimeout(async () => {
           hideTyping();
-          addMessage('ai', `<div style="text-align: center; padding: 20px;">
-            <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
-            <div style="font-size: 20px; font-weight: 700; color: var(--primary); margin-bottom: 8px;">Profile Complete!</div>
-            <div style="color: var(--text-secondary); margin-bottom: 20px;">Generating your personalized tax analysis...</div>
+          addMessage('ai', `<div style="text-align: center; padding: var(--space-5);">
+            <div style="font-size: var(--text-5xl); margin-bottom: var(--space-4);">✅</div>
+            <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--primary); margin-bottom: var(--space-2);">Profile Complete!</div>
+            <div style="color: var(--text-secondary); margin-bottom: var(--space-5);">Generating your personalized tax analysis...</div>
           </div>`, []);
           await performTaxCalculation();
         }, 800);
@@ -6795,8 +6795,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 2 of 5</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 2 of 5</span>
           </div>
           <strong>What's your approximate annual income?</strong>`, [
             { label: "Under $50k", value: 'express_income_50k' },
@@ -6818,8 +6818,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 3 of 5</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 3 of 5</span>
           </div>
           <strong>Which state do you live in?</strong>`, [
             { label: "California", value: 'express_state_CA' },
@@ -6861,8 +6861,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 4 of 5</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 4 of 5</span>
           </div>
           <strong>Any dependents (children, elderly parents)?</strong>`, [
             { label: "No dependents", value: 'express_deps_0' },
@@ -6884,8 +6884,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 5 of 5</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 5 of 5</span>
           </div>
           <strong>Any of these deductions?</strong> <span style="color: var(--text-secondary);">(Select all that apply)</span>`, [
             { label: "🏠 Mortgage interest", value: 'express_ded_mortgage' },
@@ -6922,10 +6922,10 @@
         setTimeout(async () => {
           hideTyping();
           // Show completion message
-          addMessage('ai', `<div style="text-align: center; padding: 20px;">
-            <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
-            <div style="font-size: 20px; font-weight: 700; color: var(--accent-light); margin-bottom: 8px;">Profile Complete!</div>
-            <div style="color: var(--text-secondary); margin-bottom: 20px;">Generating your personalized tax analysis...</div>
+          addMessage('ai', `<div style="text-align: center; padding: var(--space-5);">
+            <div style="font-size: var(--text-5xl); margin-bottom: var(--space-4);">✅</div>
+            <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--accent-light); margin-bottom: var(--space-2);">Profile Complete!</div>
+            <div style="color: var(--text-secondary); margin-bottom: var(--space-5);">Generating your personalized tax analysis...</div>
           </div>`, []);
 
           // Calculate and show results
@@ -6945,8 +6945,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 2 of 6</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 2 of 6</span>
           </div>
           <strong>Combined household income?</strong>`, [
             { label: "Under $75k", value: 'express_fam_inc_75k' },
@@ -6968,8 +6968,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 3 of 6</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 3 of 6</span>
           </div>
           <strong>Do you pay for childcare?</strong>`, [
             { label: "Yes, daycare/preschool", value: 'express_fam_care_yes' },
@@ -6992,8 +6992,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 4 of 6</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 4 of 6</span>
           </div>
           <strong>Which state?</strong>`, [
             { label: "California", value: 'express_fam_state_CA' },
@@ -7032,8 +7032,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 5 of 6</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 5 of 6</span>
           </div>
           <strong>Do you own a home?</strong>`, [
             { label: "Yes, with mortgage", value: 'express_fam_home_yes' },
@@ -7058,8 +7058,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 6 of 6</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 6 of 6</span>
           </div>
           <strong>401k or retirement contributions?</strong>`, [
             { label: "Yes, contributing", value: 'express_fam_ret_yes' },
@@ -7081,10 +7081,10 @@
         showTyping();
         setTimeout(async () => {
           hideTyping();
-          addMessage('ai', `<div style="text-align: center; padding: 20px;">
-            <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
-            <div style="font-size: 20px; font-weight: 700; color: var(--accent-light); margin-bottom: 8px;">Family Profile Complete!</div>
-            <div style="color: var(--text-secondary); margin-bottom: 20px;">Calculating your Child Tax Credits and deductions...</div>
+          addMessage('ai', `<div style="text-align: center; padding: var(--space-5);">
+            <div style="font-size: var(--text-5xl); margin-bottom: var(--space-4);">✅</div>
+            <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--accent-light); margin-bottom: var(--space-2);">Family Profile Complete!</div>
+            <div style="color: var(--text-secondary); margin-bottom: var(--space-5);">Calculating your Child Tax Credits and deductions...</div>
           </div>`, []);
           await performTaxCalculation();
         }, 800);
@@ -7101,8 +7101,8 @@
           showTyping();
           setTimeout(() => {
             hideTyping();
-            addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-              <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 2 of 7</span>
+            addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+              <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 2 of 7</span>
             </div>
             <strong>What type of self-employment?</strong>`, [
               { label: "Freelance/Consulting", value: 'express_se_type_freelance' },
@@ -7124,8 +7124,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 3 of 7</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 3 of 7</span>
           </div>
           <strong>Annual self-employment income?</strong>`, [
             { label: "Under $50k", value: 'express_se_inc_50k' },
@@ -7148,8 +7148,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 4 of 7</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 4 of 7</span>
           </div>
           <strong>Common business expenses?</strong> <span style="color: var(--text-secondary);">(Select all)</span>`, [
             { label: "🏠 Home office", value: 'express_se_exp_home' },
@@ -7186,8 +7186,8 @@
           showTyping();
           setTimeout(() => {
             hideTyping();
-            addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-              <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 5 of 7</span>
+            addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+              <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 5 of 7</span>
             </div>
             <strong>Which state?</strong>`, [
               { label: "California", value: 'express_se_state_CA' },
@@ -7224,8 +7224,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 6 of 7</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 6 of 7</span>
           </div>
           <strong>Do you pay quarterly estimated taxes?</strong>`, [
             { label: "Yes, I pay quarterly", value: 'express_se_est_yes' },
@@ -7243,8 +7243,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 7 of 7</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 7 of 7</span>
           </div>
           <strong>Any retirement contributions (SEP-IRA, Solo 401k)?</strong>`, [
             { label: "Yes", value: 'express_se_ret_yes' },
@@ -7270,10 +7270,10 @@
         showTyping();
         setTimeout(async () => {
           hideTyping();
-          addMessage('ai', `<div style="text-align: center; padding: 20px;">
-            <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
-            <div style="font-size: 20px; font-weight: 700; color: var(--accent-light); margin-bottom: 8px;">Self-Employment Profile Complete!</div>
-            <div style="color: var(--text-secondary); margin-bottom: 20px;">Finding your QBI deduction and business write-offs...</div>
+          addMessage('ai', `<div style="text-align: center; padding: var(--space-5);">
+            <div style="font-size: var(--text-5xl); margin-bottom: var(--space-4);">✅</div>
+            <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--accent-light); margin-bottom: var(--space-2);">Self-Employment Profile Complete!</div>
+            <div style="color: var(--text-secondary); margin-bottom: var(--space-5);">Finding your QBI deduction and business write-offs...</div>
           </div>`, []);
           await performTaxCalculation();
         }, 800);
@@ -7290,8 +7290,8 @@
           showTyping();
           setTimeout(() => {
             hideTyping();
-            addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-              <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 2 of 6</span>
+            addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+              <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 2 of 6</span>
             </div>
             <strong>Annual household income?</strong>`, [
               { label: "Under $75k", value: 'express_hm_inc_75k' },
@@ -7314,8 +7314,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 3 of 6</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 3 of 6</span>
           </div>
           <strong>Annual mortgage interest paid?</strong>`, [
             { label: "Under $5,000", value: 'express_hm_mort_5k' },
@@ -7338,8 +7338,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 4 of 6</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 4 of 6</span>
           </div>
           <strong>Annual property taxes paid?</strong>`, [
             { label: "Under $3,000", value: 'express_hm_prop_3k' },
@@ -7361,8 +7361,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 5 of 6</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 5 of 6</span>
           </div>
           <strong>Which state?</strong>`, [
             { label: "California", value: 'express_hm_state_CA' },
@@ -7400,8 +7400,8 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Step 6 of 6</span>
+          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Step 6 of 6</span>
           </div>
           <strong>Any dependents?</strong>`, [
             { label: "No dependents", value: 'express_hm_deps_0' },
@@ -7422,10 +7422,10 @@
         showTyping();
         setTimeout(async () => {
           hideTyping();
-          addMessage('ai', `<div style="text-align: center; padding: 20px;">
-            <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
-            <div style="font-size: 20px; font-weight: 700; color: var(--accent-light); margin-bottom: 8px;">Homeowner Profile Complete!</div>
-            <div style="color: var(--text-secondary); margin-bottom: 20px;">Calculating your itemized deduction potential...</div>
+          addMessage('ai', `<div style="text-align: center; padding: var(--space-5);">
+            <div style="font-size: var(--text-5xl); margin-bottom: var(--space-4);">✅</div>
+            <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--accent-light); margin-bottom: var(--space-2);">Homeowner Profile Complete!</div>
+            <div style="color: var(--text-secondary); margin-bottom: var(--space-5);">Calculating your itemized deduction potential...</div>
           </div>`, []);
           await performTaxCalculation();
         }, 800);
@@ -7438,7 +7438,7 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `Perfect! Please enter your full name below so I can personalize your tax advisory report.<br><br><input type="text" id="nameInput" placeholder="Your full name" style="width: 100%; padding: 14px; margin: 12px 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: 8px; color: var(--text); font-size: 16px;" onkeypress="if(event.key==='Enter') captureName()"><br><button onclick="captureName()" style="padding: 12px 32px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 8px;">Continue →</button>`);
+          addMessage('ai', `Perfect! Please enter your full name below so I can personalize your tax advisory report.<br><br><input type="text" id="nameInput" placeholder="Your full name" style="width: 100%; padding: var(--space-3-5); margin: var(--space-3) 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: var(--radius-lg); color: var(--text); font-size: var(--text-base);" onkeypress="if(event.key==='Enter') captureName()"><br><button onclick="captureName()" style="padding: var(--space-3) var(--space-8); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold); margin-top: var(--space-2);">Continue →</button>`);
           setTimeout(() => document.getElementById('nameInput').focus(), 100);
         }, 1000);
 
@@ -7452,7 +7452,7 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `Great! Please enter your email address below.<br><br><input type="email" id="emailInput" placeholder="your.email@example.com" style="width: 100%; padding: 14px; margin: 12px 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: 8px; color: var(--text); font-size: 16px;" onkeypress="if(event.key==='Enter') captureEmail()"><br><button onclick="captureEmail()" style="padding: 12px 32px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 8px;">Continue →</button>`);
+          addMessage('ai', `Great! Please enter your email address below.<br><br><input type="email" id="emailInput" placeholder="your.email@example.com" style="width: 100%; padding: var(--space-3-5); margin: var(--space-3) 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: var(--radius-lg); color: var(--text); font-size: var(--text-base);" onkeypress="if(event.key==='Enter') captureEmail()"><br><button onclick="captureEmail()" style="padding: var(--space-3) var(--space-8); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold); margin-top: var(--space-2);">Continue →</button>`);
           setTimeout(() => document.getElementById('emailInput').focus(), 100);
         }, 1000);
 
@@ -7469,7 +7469,7 @@
           showTyping();
           setTimeout(() => {
             hideTyping();
-            addMessage('ai', `<strong>Perfect! Let's use our Express Lane document analysis.</strong><br><br>📄 <strong>Upload any of these documents:</strong><br>• W-2 forms (employment income)<br>• 1099 forms (freelance, interest, dividends)<br>• Previous tax returns<br>• Business financial statements<br>• Receipts for deductions<br><br>I'll use advanced OCR and AI to extract all relevant information automatically.<br><br><div style="text-align: center; margin: 20px 0;"><button onclick="document.getElementById('fileInput').click()" style="padding: 16px 40px; background: var(--gradient); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 18px;">📤 Upload Documents</button></div>Or <strong>drag and drop</strong> files anywhere on this page.`);
+            addMessage('ai', `<strong>Perfect! Let's use our Express Lane document analysis.</strong><br><br>📄 <strong>Upload any of these documents:</strong><br>• W-2 forms (employment income)<br>• 1099 forms (freelance, interest, dividends)<br>• Previous tax returns<br>• Business financial statements<br>• Receipts for deductions<br><br>I'll use advanced OCR and AI to extract all relevant information automatically.<br><br><div style="text-align: center; margin: var(--space-5) 0;"><button onclick="document.getElementById('fileInput').click()" style="padding: var(--space-4) var(--space-10); background: var(--gradient); color: white; border: none; border-radius: var(--radius-xl); cursor: pointer; font-weight: var(--font-bold); font-size: var(--text-lg);">📤 Upload Documents</button></div>Or <strong>drag and drop</strong> files anywhere on this page.`);
           }, 1000);
         } else {
           // Conversational mode - start smart Q&A
@@ -7483,17 +7483,17 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div style="background: linear-gradient(135deg, rgba(33, 150, 243, 0.1), rgba(76, 175, 80, 0.1)); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-            <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">📄 Smart Document Analysis</div>
+          addMessage('ai', `<div style="background: linear-gradient(135deg, rgba(33, 150, 243, 0.1), rgba(76, 175, 80, 0.1)); border-radius: var(--radius-xl); padding: var(--space-4); margin-bottom: var(--space-4);">
+            <div style="font-size: var(--text-lg); font-weight: var(--font-semibold); margin-bottom: var(--space-2);">📄 Smart Document Analysis</div>
             <div style="font-size: 13px; color: var(--text-secondary);">I'll extract all tax data automatically using AI</div>
           </div>
           <strong>Supported documents:</strong> W-2, 1099, 1098, Prior Tax Returns<br><br>
-          <div style="text-align: center; margin: 16px 0;">
-            <button onclick="document.getElementById('fileInput').click()" style="padding: 16px 32px; background: var(--gradient); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 16px;">
+          <div style="text-align: center; margin: var(--space-4) 0;">
+            <button onclick="document.getElementById('fileInput').click()" style="padding: var(--space-4) var(--space-8); background: var(--gradient); color: white; border: none; border-radius: var(--radius-xl); cursor: pointer; font-weight: var(--font-bold); font-size: var(--text-base);">
               📤 Select Files to Upload
             </button>
           </div>
-          <div style="font-size: 12px; color: var(--text-secondary); text-align: center;">Or drag & drop files anywhere on this page</div>`, [
+          <div style="font-size: var(--text-xs); color: var(--text-secondary); text-align: center;">Or drag & drop files anywhere on this page</div>`, [
             { label: '💬 Skip upload, answer questions', value: 'no_manual' }
           ]);
         }, 800);
@@ -7538,8 +7538,8 @@
           hideTyping();
           // Check if state is needed
           if (!extractedData.tax_profile.state) {
-            addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-              <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Quick Question 2</span>
+            addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+              <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Quick Question 2</span>
             </div>
             <strong>Which state?</strong>`, [
               { label: 'California', value: 'post_upload_state_CA' },
@@ -7556,9 +7556,9 @@
             ]);
           } else {
             // All done - generate report
-            addMessage('ai', `<div style="text-align: center; padding: 16px;">
-              <div style="font-size: 32px; margin-bottom: 12px;">✅</div>
-              <div style="font-size: 18px; font-weight: 600;">Ready to Generate Report!</div>
+            addMessage('ai', `<div style="text-align: center; padding: var(--space-4);">
+              <div style="font-size: 32px; margin-bottom: var(--space-3);">✅</div>
+              <div style="font-size: var(--text-lg); font-weight: var(--font-semibold);">Ready to Generate Report!</div>
             </div>`, [
               { label: '📊 Generate My Tax Report', value: 'generate_report', primary: true }
             ]);
@@ -7590,8 +7590,8 @@
         setTimeout(() => {
           hideTyping();
           if (!extractedData.tax_profile.dependents && extractedData.tax_profile.dependents !== 0) {
-            addMessage('ai', `<div style="display: flex; gap: 8px; margin-bottom: 12px;">
-              <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Last Question</span>
+            addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+              <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Last Question</span>
             </div>
             <strong>Any dependents?</strong>`, [
               { label: 'No dependents', value: 'post_upload_deps_0' },
@@ -7599,9 +7599,9 @@
               { label: '3+ dependents', value: 'post_upload_deps_3plus' }
             ]);
           } else {
-            addMessage('ai', `<div style="text-align: center; padding: 16px;">
-              <div style="font-size: 32px; margin-bottom: 12px;">✅</div>
-              <div style="font-size: 18px; font-weight: 600;">Ready to Generate Report!</div>
+            addMessage('ai', `<div style="text-align: center; padding: var(--space-4);">
+              <div style="font-size: 32px; margin-bottom: var(--space-3);">✅</div>
+              <div style="font-size: var(--text-lg); font-weight: var(--font-semibold);">Ready to Generate Report!</div>
             </div>`, [
               { label: '📊 Generate My Tax Report', value: 'generate_report', primary: true }
             ]);
@@ -7618,10 +7618,10 @@
         showTyping();
         setTimeout(async () => {
           hideTyping();
-          addMessage('ai', `<div style="text-align: center; padding: 20px;">
-            <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
-            <div style="font-size: 20px; font-weight: 700; color: var(--accent-light); margin-bottom: 8px;">Profile Complete!</div>
-            <div style="color: var(--text-secondary); margin-bottom: 20px;">Generating your personalized tax analysis...</div>
+          addMessage('ai', `<div style="text-align: center; padding: var(--space-5);">
+            <div style="font-size: var(--text-5xl); margin-bottom: var(--space-4);">✅</div>
+            <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--accent-light); margin-bottom: var(--space-2);">Profile Complete!</div>
+            <div style="color: var(--text-secondary); margin-bottom: var(--space-5);">Generating your personalized tax analysis...</div>
           </div>`, []);
           await performTaxCalculation();
         }, 600);
@@ -7887,7 +7887,7 @@
           showTyping();
           setTimeout(() => {
             hideTyping();
-            addMessage('ai', `Please enter your total annual income for 2025:<br><br><input type="number" id="incomeInput" placeholder="Enter amount" style="width: 100%; padding: 14px; margin: 12px 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: 8px; color: var(--text); font-size: 16px;" onkeypress="if(event.key==='Enter') captureIncome()"><br><button onclick="captureIncome()" style="padding: 12px 32px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 8px;">Continue →</button>`);
+            addMessage('ai', `Please enter your total annual income for 2025:<br><br><input type="number" id="incomeInput" placeholder="Enter amount" style="width: 100%; padding: var(--space-3-5); margin: var(--space-3) 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: var(--radius-lg); color: var(--text); font-size: var(--text-base);" onkeypress="if(event.key==='Enter') captureIncome()"><br><button onclick="captureIncome()" style="padding: var(--space-3) var(--space-8); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold); margin-top: var(--space-2);">Continue →</button>`);
             setTimeout(() => document.getElementById('incomeInput').focus(), 100);
           }, 1000);
           return;
@@ -11049,7 +11049,7 @@
           if (reportResponse.ok) {
             const reportData = await reportResponse.json();
             updateProgress(100);
-            addMessage('ai', `<div class="insight-card"><div class="insight-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;"><span style="font-size: 32px;">🎉</span><strong style="font-size: 20px;">Your Tax Advisory Report is Ready!</strong></div><div style="color: var(--text-secondary); line-height: 1.6;">I've completed a comprehensive analysis of your tax situation. Your personalized report includes strategic recommendations that could save you thousands of dollars.</div></div><br><strong>What would you like to do next?</strong>`, [
+            addMessage('ai', `<div class="insight-card"><div class="insight-header" style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3);"><span style="font-size: 32px;">🎉</span><strong style="font-size: var(--text-xl);">Your Tax Advisory Report is Ready!</strong></div><div style="color: var(--text-secondary); line-height: 1.6;">I've completed a comprehensive analysis of your tax situation. Your personalized report includes strategic recommendations that could save you thousands of dollars.</div></div><br><strong>What would you like to do next?</strong>`, [
               { label: '📥 Download Full Report (PDF)', value: 'download_report' },
               { label: '👀 View Report Online', value: 'view_report' },
               { label: '📧 Email Report to Me', value: 'email_report' },
@@ -11101,7 +11101,7 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `I'd be happy to email your report to you.<br><br><strong>What email address should I send it to?</strong><br><br><input type="email" id="emailInput" placeholder="your.email@example.com" style="width: 100%; padding: 12px; margin: 12px 0; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;"><button onclick="sendReportEmail()" style="padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Send Report</button>`);
+          addMessage('ai', `I'd be happy to email your report to you.<br><br><strong>What email address should I send it to?</strong><br><br><input type="email" id="emailInput" placeholder="your.email@example.com" style="width: 100%; padding: var(--space-3); margin: var(--space-3) 0; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: var(--radius-lg); color: var(--text); font-size: var(--text-sm);"><button onclick="sendReportEmail()" style="padding: var(--space-3) var(--space-6); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold);">Send Report</button>`);
         }, 1000);
 
       } else if (value === 'schedule_consult') {
@@ -11175,7 +11175,7 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `<div class="insight-card"><strong style="font-size: 18px;">🎉 Thank you for choosing Premium Tax Advisory!</strong><br><br>Your comprehensive tax profile has been saved securely. You can return anytime to:<br>• Access your advisory report<br>• Update your information<br>• Ask additional questions<br>• Schedule consultations<br><br>Remember, strategic tax planning is an ongoing process. We're here to support you throughout the year, not just during tax season.<br><br><em>Wishing you maximum savings and financial success!</em></div>`);
+          addMessage('ai', `<div class="insight-card"><strong style="font-size: var(--text-lg);">🎉 Thank you for choosing Premium Tax Advisory!</strong><br><br>Your comprehensive tax profile has been saved securely. You can return anytime to:<br>• Access your advisory report<br>• Update your information<br>• Ask additional questions<br>• Schedule consultations<br><br>Remember, strategic tax planning is an ongoing process. We're here to support you throughout the year, not just during tax season.<br><br><em>Wishing you maximum savings and financial success!</em></div>`);
 
           // Add confetti or celebration animation here if desired
           updateInsights(['Your tax advisory session is complete!', 'Report saved to your account', 'Next steps emailed to you']);
@@ -11296,7 +11296,7 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `What's your correct total annual income?<br><br><input type="number" id="incomeInput" placeholder="Enter amount" style="width: 100%; padding: 14px; margin: 12px 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: 8px; color: var(--text); font-size: 16px;" onkeypress="if(event.key==='Enter') captureIncome()"><br><button onclick="captureIncome()" style="padding: 12px 32px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 8px;">Update Income</button>`);
+          addMessage('ai', `What's your correct total annual income?<br><br><input type="number" id="incomeInput" placeholder="Enter amount" style="width: 100%; padding: var(--space-3-5); margin: var(--space-3) 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: var(--radius-lg); color: var(--text); font-size: var(--text-base);" onkeypress="if(event.key==='Enter') captureIncome()"><br><button onclick="captureIncome()" style="padding: var(--space-3) var(--space-8); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold); margin-top: var(--space-2);">Update Income</button>`);
           setTimeout(() => document.getElementById('incomeInput').focus(), 100);
         }, 500);
 
@@ -12466,7 +12466,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
             if (!extractedData.tax_profile.dependents && extractedData.tax_profile.dependents !== 0) missingFields.push('dependents');
 
             const incomeDisplay = extractedData.tax_profile.total_income
-              ? `<div style="background: rgba(76, 175, 80, 0.15); padding: 12px; border-radius: 8px; margin: 12px 0;">
+              ? `<div style="background: rgba(76, 175, 80, 0.15); padding: var(--space-3); border-radius: var(--radius-lg); margin: var(--space-3) 0;">
                   <span style="color: var(--accent-light);">✓ Income detected:</span>
                   <strong>$${extractedData.tax_profile.total_income.toLocaleString()}</strong>
                 </div>`
@@ -12475,10 +12475,10 @@ If they're ready to move forward, suggest generating their comprehensive advisor
             if (missingFields.length > 0) {
               // Ask the first missing question in Express style
               if (!extractedData.tax_profile.filing_status) {
-                addMessage('ai', `<div style="font-size: 18px; font-weight: 600; margin-bottom: 12px;">📋 Document Analyzed!</div>
+                addMessage('ai', `<div style="font-size: var(--text-lg); font-weight: var(--font-semibold); margin-bottom: var(--space-3);">📋 Document Analyzed!</div>
                 ${incomeDisplay}
-                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                  <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">Quick Question 1 of ${missingFields.length}</span>
+                <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
+                  <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: 11px;">Quick Question 1 of ${missingFields.length}</span>
                 </div>
                 <strong>What's your filing status?</strong>`, [
                   { label: 'Single', value: 'post_upload_filing_single' },
@@ -12487,7 +12487,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
                   { label: 'Married Filing Separately', value: 'post_upload_filing_mfs' }
                 ]);
               } else if (!extractedData.tax_profile.state) {
-                addMessage('ai', `<div style="font-size: 18px; font-weight: 600; margin-bottom: 12px;">📋 Almost Done!</div>
+                addMessage('ai', `<div style="font-size: var(--text-lg); font-weight: var(--font-semibold); margin-bottom: var(--space-3);">📋 Almost Done!</div>
                 ${incomeDisplay}
                 <strong>Which state do you live in?</strong>`, [
                   { label: 'California', value: 'post_upload_state_CA' },
@@ -12497,7 +12497,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
                   { label: 'Other →', value: 'post_upload_state_other' }
                 ]);
               } else {
-                addMessage('ai', `<div style="font-size: 18px; font-weight: 600; margin-bottom: 12px;">📋 One More Question!</div>
+                addMessage('ai', `<div style="font-size: var(--text-lg); font-weight: var(--font-semibold); margin-bottom: var(--space-3);">📋 One More Question!</div>
                 ${incomeDisplay}
                 <strong>Any dependents?</strong>`, [
                   { label: 'No dependents', value: 'post_upload_deps_0' },
@@ -12507,9 +12507,9 @@ If they're ready to move forward, suggest generating their comprehensive advisor
               }
             } else {
               // All data present - offer to generate report
-              addMessage('ai', `<div style="text-align: center; padding: 16px;">
-                <div style="font-size: 32px; margin-bottom: 12px;">✅</div>
-                <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Document Analysis Complete!</div>
+              addMessage('ai', `<div style="text-align: center; padding: var(--space-4);">
+                <div style="font-size: 32px; margin-bottom: var(--space-3);">✅</div>
+                <div style="font-size: var(--text-lg); font-weight: var(--font-semibold); margin-bottom: var(--space-2);">Document Analysis Complete!</div>
                 ${incomeDisplay}
                 <div style="color: var(--text-secondary);">I have everything needed for your analysis.</div>
               </div>`, [
@@ -12813,37 +12813,37 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       const priorityColor = priorityColors[strategy.priority] || '#4a5568';
 
       addMessage('ai', `
-        <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="margin-bottom: var(--space-4); display: flex; justify-content: space-between; align-items: center;">
           <span style="font-size: 13px; color: #718096;">Strategy ${currentStrategyIndex + 1} of ${taxStrategies.length}</span>
-          <span style="background: ${priorityColor}; color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase;">${strategy.priority} priority</span>
+          <span style="background: ${priorityColor}; color: white; padding: var(--space-1) var(--space-2-5); border-radius: 4px; font-size: 11px; font-weight: var(--font-semibold); text-transform: uppercase;">${strategy.priority} priority</span>
         </div>
 
-        <div style="font-size: 18px; font-weight: 700; color: #1e3a5f; margin-bottom: 8px;">
+        <div style="font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--color-primary-500); margin-bottom: var(--space-2);">
           ${strategy.title}
         </div>
 
-        <div class="insight-card" style="margin: 16px 0;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div class="insight-card" style="margin: var(--space-4) 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
             <span style="color: #718096; font-size: 13px;">Estimated Annual Savings</span>
-            <span style="font-size: 24px; font-weight: 800; color: #276749;">$${Math.round(strategy.estimated_savings).toLocaleString()}</span>
+            <span style="font-size: var(--text-2xl); font-weight: var(--font-extrabold); color: #276749;">$${Math.round(strategy.estimated_savings).toLocaleString()}</span>
           </div>
         </div>
 
-        <div style="font-size: 14px; color: #4a5568; line-height: 1.7; margin-bottom: 16px;">
+        <div style="font-size: var(--text-sm); color: #4a5568; line-height: 1.7; margin-bottom: var(--space-4);">
           ${strategy.detailed_explanation || strategy.summary}
         </div>
 
         ${strategy.action_steps && strategy.action_steps.length > 0 ? `
-          <div style="background: #ebf8ff; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-            <div style="font-weight: 600; color: #1e3a5f; margin-bottom: 10px;">Action Steps:</div>
-            <ol style="margin: 0; padding-left: 20px; color: #4a5568; font-size: 14px; line-height: 1.8;">
+          <div style="background: #ebf8ff; border-radius: var(--radius-lg); padding: var(--space-4); margin-bottom: var(--space-4);">
+            <div style="font-weight: var(--font-semibold); color: var(--color-primary-500); margin-bottom: var(--space-2-5);">Action Steps:</div>
+            <ol style="margin: 0; padding-left: var(--space-5); color: #4a5568; font-size: var(--text-sm); line-height: 1.8;">
               ${strategy.action_steps.map(step => `<li>${step}</li>`).join('')}
             </ol>
           </div>
         ` : ''}
 
         ${strategy.irs_reference ? `
-          <div style="font-size: 12px; color: #718096; font-style: italic;">
+          <div style="font-size: var(--text-xs); color: #718096; font-style: italic;">
             Reference: ${strategy.irs_reference}
           </div>
         ` : ''}
@@ -12871,36 +12871,36 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       const highPriority = taxStrategies.filter(s => s.priority === 'high');
 
       let strategyList = taxStrategies.map((s, i) => `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: ${i % 2 === 0 ? '#f7fafc' : '#ffffff'}; border-bottom: 1px solid #e2e8f0;">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <span style="width: 24px; height: 24px; background: #1e3a5f; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">${i + 1}</span>
-            <span style="font-size: 14px; color: #0c1b2f;">${s.title}</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3); background: ${i % 2 === 0 ? '#f7fafc' : 'white'}; border-bottom: 1px solid #e2e8f0;">
+          <div style="display: flex; align-items: center; gap: var(--space-3);">
+            <span style="width: 24px; height: 24px; background: var(--color-primary-500); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: var(--text-xs); font-weight: var(--font-semibold);">${i + 1}</span>
+            <span style="font-size: var(--text-sm); color: var(--color-primary-900);">${s.title}</span>
           </div>
-          <span style="font-weight: 700; color: #276749;">$${Math.round(s.estimated_savings).toLocaleString()}</span>
+          <span style="font-weight: var(--font-bold); color: #276749;">$${Math.round(s.estimated_savings).toLocaleString()}</span>
         </div>
       `).join('');
 
       addMessage('ai', `
-        <div style="margin-bottom: 20px;">
-          <span style="font-size: 18px; font-weight: 700; color: #1e3a5f;">Your Tax Optimization Summary</span>
+        <div style="margin-bottom: var(--space-5);">
+          <span style="font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--color-primary-500);">Your Tax Optimization Summary</span>
         </div>
 
-        <div class="insight-card" style="margin-bottom: 20px;">
+        <div class="insight-card" style="margin-bottom: var(--space-5);">
           <div style="text-align: center;">
-            <div style="font-size: 13px; color: #718096; margin-bottom: 8px;">Total Potential Savings</div>
-            <div style="font-size: 32px; font-weight: 800; color: #276749;">$${Math.round(totalSavings).toLocaleString()}</div>
-            <div style="font-size: 13px; color: #4a5568; margin-top: 8px;">${taxStrategies.length} strategies • ${highPriority.length} high priority</div>
+            <div style="font-size: 13px; color: #718096; margin-bottom: var(--space-2);">Total Potential Savings</div>
+            <div style="font-size: 32px; font-weight: var(--font-extrabold); color: #276749;">$${Math.round(totalSavings).toLocaleString()}</div>
+            <div style="font-size: 13px; color: #4a5568; margin-top: var(--space-2);">${taxStrategies.length} strategies • ${highPriority.length} high priority</div>
           </div>
         </div>
 
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
-          <div style="background: #1e3a5f; color: white; padding: 12px 16px; font-weight: 600; font-size: 14px;">
+        <div style="background: white; border: 1px solid #e2e8f0; border-radius: var(--radius-lg); overflow: hidden; margin-bottom: var(--space-5);">
+          <div style="background: var(--color-primary-500); color: white; padding: var(--space-3) var(--space-4); font-weight: var(--font-semibold); font-size: var(--text-sm);">
             Strategy Breakdown
           </div>
           ${strategyList}
         </div>
 
-        <div style="font-size: 14px; color: #4a5568; line-height: 1.6; margin-bottom: 16px;">
+        <div style="font-size: var(--text-sm); color: #4a5568; line-height: 1.6; margin-bottom: var(--space-4);">
           I recommend starting with the high-priority strategies first. Would you like a comprehensive report you can share with a tax professional?
         </div>
       `, [
@@ -13206,7 +13206,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         if (profile.state === 'OTHER' && !profile.state_name && !wasQuestionAsked('state_name')) {
           markQuestionAsked('state_name');
           addMessage('ai', `Which state do you reside in?<br><br>
-            <select id="stateSelect" style="width: 100%; padding: 12px; margin: 8px 0; border: 2px solid var(--border); border-radius: 8px; font-size: 15px; background: white;">
+            <select id="stateSelect" style="width: 100%; padding: var(--space-3); margin: var(--space-2) 0; border: 2px solid var(--border); border-radius: var(--radius-lg); font-size: 15px; background: white;">
               <option value="">Select your state...</option>
               <option value="AL">Alabama</option><option value="AK">Alaska</option><option value="AZ">Arizona</option>
               <option value="AR">Arkansas</option><option value="CO">Colorado</option><option value="CT">Connecticut</option>
@@ -13225,7 +13225,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
               <option value="VA">Virginia</option><option value="WA">Washington</option><option value="WV">West Virginia</option>
               <option value="WI">Wisconsin</option><option value="WY">Wyoming</option>
             </select>
-            <button onclick="selectOtherState()" style="padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 8px;">Continue →</button>`);
+            <button onclick="selectOtherState()" style="padding: var(--space-3) var(--space-6); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold); margin-top: var(--space-2);">Continue →</button>`);
           return;
         }
 
@@ -13830,17 +13830,17 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         };
 
         additionalDetails += `
-          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
-            <div style="font-weight: 600; color: #1e3a5f; margin-bottom: 10px;">Business Details</div>
-            ${profile.business_type ? `<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid #e2e8f0;">
+            <div style="font-weight: var(--font-semibold); color: var(--color-primary-500); margin-bottom: var(--space-2-5);">Business Details</div>
+            ${profile.business_type ? `<div style="display: flex; justify-content: space-between; margin-bottom: var(--space-1-5);">
               <span style="color: #4a5568;">Business Type:</span>
               <strong>${bizTypeLabels[profile.business_type] || profile.business_type}</strong>
             </div>` : ''}
-            ${profile.entity_type ? `<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            ${profile.entity_type ? `<div style="display: flex; justify-content: space-between; margin-bottom: var(--space-1-5);">
               <span style="color: #4a5568;">Entity Structure:</span>
               <strong>${entityLabels[profile.entity_type] || profile.entity_type}</strong>
             </div>` : ''}
-            ${profile.business_revenue ? `<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            ${profile.business_revenue ? `<div style="display: flex; justify-content: space-between; margin-bottom: var(--space-1-5);">
               <span style="color: #4a5568;">Business Revenue:</span>
               <strong>$${profile.business_revenue.toLocaleString()}</strong>
             </div>` : ''}
@@ -13856,13 +13856,13 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         };
 
         additionalDetails += `
-          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
-            <div style="font-weight: 600; color: #1e3a5f; margin-bottom: 10px;">Investment Profile</div>
-            ${profile.investment_type ? `<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid #e2e8f0;">
+            <div style="font-weight: var(--font-semibold); color: var(--color-primary-500); margin-bottom: var(--space-2-5);">Investment Profile</div>
+            ${profile.investment_type ? `<div style="display: flex; justify-content: space-between; margin-bottom: var(--space-1-5);">
               <span style="color: #4a5568;">Investment Type:</span>
               <strong>${investLabels[profile.investment_type] || profile.investment_type}</strong>
             </div>` : ''}
-            ${profile.rental_property_count ? `<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            ${profile.rental_property_count ? `<div style="display: flex; justify-content: space-between; margin-bottom: var(--space-1-5);">
               <span style="color: #4a5568;">Rental Properties:</span>
               <strong>${profile.rental_property_count === '5plus' ? '5+' : profile.rental_property_count === '2_4' ? '2-4' : '1'}</strong>
             </div>` : ''}
@@ -13880,9 +13880,9 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
       if (taxItemsList.length > 0) {
         additionalDetails += `
-          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
-            <div style="font-weight: 600; color: #1e3a5f; margin-bottom: 10px;">Deductions & Credits</div>
-            ${taxItemsList.map(item => `<div style="color: #4a5568; font-size: 13px; margin-bottom: 4px;">• ${item}</div>`).join('')}
+          <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid #e2e8f0;">
+            <div style="font-weight: var(--font-semibold); color: var(--color-primary-500); margin-bottom: var(--space-2-5);">Deductions & Credits</div>
+            ${taxItemsList.map(item => `<div style="color: #4a5568; font-size: 13px; margin-bottom: var(--space-1);">• ${item}</div>`).join('')}
           </div>
         `;
       }
@@ -13894,7 +13894,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           'business': 'Starting a business', 'retirement': 'Retiring soon', 'sale': 'Selling major asset'
         };
         additionalDetails += `
-          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+          <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid #e2e8f0;">
             <div style="display: flex; justify-content: space-between;">
               <span style="color: #4a5568;">Life Event:</span>
               <strong>${eventLabels[profile.life_event_type] || profile.life_event_type}</strong>
@@ -13904,15 +13904,15 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       }
 
       addMessage('ai', `
-        <div style="margin-bottom: 16px;">
-          <strong style="font-size: 18px; color: #1e3a5f;">Your Tax Profile Summary</strong>
-          <div style="margin-top: 8px; display: inline-block; background: #f0fdfa; color: #14b8a6; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">
+        <div style="margin-bottom: var(--space-4);">
+          <strong style="font-size: var(--text-lg); color: var(--color-primary-500);">Your Tax Profile Summary</strong>
+          <div style="margin-top: var(--space-2); display: inline-block; background: var(--color-accent-50); color: var(--color-accent-500); padding: var(--space-1) var(--space-3); border-radius: var(--radius-xl); font-size: var(--text-xs); font-weight: var(--font-semibold);">
             ${complexityIndicator} Tax Situation
           </div>
         </div>
 
-        <div style="background: #f7fafc; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-          <div style="display: grid; gap: 10px;">
+        <div style="background: #f7fafc; border-radius: var(--radius-lg); padding: var(--space-4); margin-bottom: var(--space-4);">
+          <div style="display: grid; gap: var(--space-2-5);">
             <div style="display: flex; justify-content: space-between;">
               <span style="color: #4a5568;">Filing Status:</span>
               <strong>${filingLabel}</strong>
@@ -13945,7 +13945,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           ${additionalDetails}
         </div>
 
-        <div style="font-size: 14px; color: #4a5568; line-height: 1.6;">
+        <div style="font-size: var(--text-sm); color: #4a5568; line-height: 1.6;">
           ${isVeryHighEarner ? '<strong>High-income analysis:</strong> I\'ll identify advanced strategies including Backdoor Roth, tax-loss harvesting, and deferred compensation options.<br><br>' : ''}
           ${profile.is_self_employed ? '<strong>Business owner analysis:</strong> I\'ll evaluate entity structure optimization, QBI deduction, and self-employment tax strategies.<br><br>' : ''}
           Ready to run your personalized tax analysis and identify savings opportunities.
@@ -13979,41 +13979,41 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
         // Phase 1: Show initial tax breakdown
         addMessage('ai', `
-          <div style="margin-bottom: 20px;">
-            <span style="font-size: 18px; font-weight: 700; color: #1e3a5f;">Tax Analysis Complete</span>
+          <div style="margin-bottom: var(--space-5);">
+            <span style="font-size: var(--text-lg); font-weight: var(--font-bold); color: var(--color-primary-500);">Tax Analysis Complete</span>
           </div>
 
-          <div style="background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-            <div style="font-size: 13px; color: #4a5568; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px;">Your 2025 Tax Summary</div>
+          <div style="background: #f7fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-5);">
+            <div style="font-size: 13px; color: #4a5568; margin-bottom: var(--space-4); text-transform: uppercase; letter-spacing: 0.5px;">Your 2025 Tax Summary</div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin-bottom: var(--space-4);">
               <div>
-                <div style="font-size: 12px; color: #718096;">Federal Tax</div>
-                <div style="font-size: 22px; font-weight: 700; color: #1e3a5f;">$${Math.round(calc.federal_tax).toLocaleString()}</div>
+                <div style="font-size: var(--text-xs); color: #718096;">Federal Tax</div>
+                <div style="font-size: 22px; font-weight: var(--font-bold); color: var(--color-primary-500);">$${Math.round(calc.federal_tax).toLocaleString()}</div>
               </div>
               <div>
-                <div style="font-size: 12px; color: #718096;">State Tax</div>
-                <div style="font-size: 22px; font-weight: 700; color: #1e3a5f;">$${Math.round(calc.state_tax).toLocaleString()}</div>
+                <div style="font-size: var(--text-xs); color: #718096;">State Tax</div>
+                <div style="font-size: 22px; font-weight: var(--font-bold); color: var(--color-primary-500);">$${Math.round(calc.state_tax).toLocaleString()}</div>
               </div>
             </div>
 
-            <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="border-top: 1px solid #e2e8f0; padding-top: var(--space-4); display: flex; justify-content: space-between; align-items: center;">
               <div>
-                <div style="font-size: 12px; color: #718096;">Total Tax Liability</div>
-                <div style="font-size: 26px; font-weight: 800; color: #1e3a5f;">$${Math.round(calc.total_tax).toLocaleString()}</div>
+                <div style="font-size: var(--text-xs); color: #718096;">Total Tax Liability</div>
+                <div style="font-size: 26px; font-weight: var(--font-extrabold); color: var(--color-primary-500);">$${Math.round(calc.total_tax).toLocaleString()}</div>
               </div>
               <div style="text-align: right;">
-                <div style="font-size: 12px; color: #718096;">Effective Rate</div>
-                <div style="font-size: 20px; font-weight: 700; color: #5387c1;">${calc.effective_rate}%</div>
+                <div style="font-size: var(--text-xs); color: #718096;">Effective Rate</div>
+                <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--color-primary-400);">${calc.effective_rate}%</div>
               </div>
             </div>
           </div>
 
-          <div style="font-size: 14px; color: #4a5568; line-height: 1.6;">
+          <div style="font-size: var(--text-sm); color: #4a5568; line-height: 1.6;">
             Based on your profile, I've identified <strong>${strategies.length} tax optimization strategies</strong> that could potentially save you <strong style="color: #276749;">$${Math.round(totalSavings).toLocaleString()}</strong>.
           </div>
 
-          <div style="margin-top: 16px; font-size: 14px; color: #4a5568;">
+          <div style="margin-top: var(--space-4); font-size: var(--text-sm); color: #4a5568;">
             Would you like me to walk you through each strategy in detail?
           </div>
         `, [
@@ -14069,9 +14069,9 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       }
 
       let strategyHTML = `
-        <div style="margin-bottom: 20px;">
-          <span style="font-size: 20px; font-weight: 700; color: var(--accent-light);">Your Personalized Tax Strategies</span>
-          <div style="font-size: 14px; color: var(--text-secondary); margin-top: 8px;">
+        <div style="margin-bottom: var(--space-5);">
+          <span style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--accent-light);">Your Personalized Tax Strategies</span>
+          <div style="font-size: var(--text-sm); color: var(--text-secondary); margin-top: var(--space-2);">
             ${taxStrategies.length} strategies • Total potential savings: $${taxStrategies.reduce((sum, s) => sum + s.estimated_savings, 0).toLocaleString()}
           </div>
         </div>
@@ -14086,32 +14086,32 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         const priorityColor = priorityColors[strategy.priority] || '#64748b';
 
         strategyHTML += `
-          <div class="insight-card" style="margin: 16px 0; padding: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+          <div class="insight-card" style="margin: var(--space-4) 0; padding: var(--space-5);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-3);">
               <div>
-                <span style="background: ${priorityColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; margin-right: 8px;">${strategy.priority}</span>
-                <span style="background: var(--surface-light); color: var(--text-secondary); padding: 2px 8px; border-radius: 4px; font-size: 11px;">${strategy.category}</span>
+                <span style="background: ${priorityColor}; color: white; padding: var(--space-0-5) var(--space-2); border-radius: 4px; font-size: 11px; font-weight: var(--font-semibold); text-transform: uppercase; margin-right: var(--space-2);">${strategy.priority}</span>
+                <span style="background: var(--surface-light); color: var(--text-secondary); padding: var(--space-0-5) var(--space-2); border-radius: 4px; font-size: 11px;">${strategy.category}</span>
               </div>
-              <div class="savings-amount" style="font-size: 20px;">$${Math.round(strategy.estimated_savings).toLocaleString()}</div>
+              <div class="savings-amount" style="font-size: var(--text-xl);">$${Math.round(strategy.estimated_savings).toLocaleString()}</div>
             </div>
-            <div style="font-size: 16px; font-weight: 600; color: var(--accent-light); margin-bottom: 8px;">${strategy.title}</div>
-            <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">${strategy.summary}</div>
+            <div style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--accent-light); margin-bottom: var(--space-2);">${strategy.title}</div>
+            <div style="font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: var(--space-3);">${strategy.summary}</div>
             <details style="cursor: pointer;">
-              <summary style="color: var(--accent-light); font-weight: 500;">View Details & Action Steps</summary>
-              <div style="padding: 12px 0; font-size: 13px; color: var(--text-secondary); white-space: pre-line;">${strategy.detailed_explanation}</div>
-              <div style="margin-top: 12px;">
+              <summary style="color: var(--accent-light); font-weight: var(--font-medium);">View Details & Action Steps</summary>
+              <div style="padding: var(--space-3) 0; font-size: 13px; color: var(--text-secondary); white-space: pre-line;">${strategy.detailed_explanation}</div>
+              <div style="margin-top: var(--space-3);">
                 <strong style="font-size: 13px;">Action Steps:</strong>
-                <ul style="margin: 8px 0 0 20px; font-size: 13px; color: var(--text-secondary);">
-                  ${strategy.action_steps.map(step => `<li style="margin: 4px 0;">${step}</li>`).join('')}
+                <ul style="margin: var(--space-2) 0 0 var(--space-5); font-size: 13px; color: var(--text-secondary);">
+                  ${strategy.action_steps.map(step => `<li style="margin: var(--space-1) 0;">${step}</li>`).join('')}
                 </ul>
               </div>
-              ${strategy.irs_reference ? `<div style="margin-top: 12px; font-size: 12px; color: var(--text-muted);">📚 Reference: ${strategy.irs_reference}</div>` : ''}
+              ${strategy.irs_reference ? `<div style="margin-top: var(--space-3); font-size: var(--text-xs); color: var(--text-muted);">📚 Reference: ${strategy.irs_reference}</div>` : ''}
             </details>
           </div>
         `;
       });
 
-      strategyHTML += `<div style="margin-top: 20px;"><strong>Ready to implement these strategies?</strong></div>`;
+      strategyHTML += `<div style="margin-top: var(--space-5);"><strong>Ready to implement these strategies?</strong></div>`;
 
       addMessage('ai', strategyHTML, [
         { label: 'Generate My Report →', value: 'generate_report', primary: true },
@@ -15068,30 +15068,30 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
   <!-- Professional Standards Acknowledgment Modal - Circular 230 Compliance -->
   <div id="acknowledgment-modal" class="acknowledgment-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 10000;">
-    <div style="background: var(--bg-elevated); border-radius: 16px; padding: 32px; max-width: 560px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
-      <h2 style="color: var(--primary); margin: 0 0 20px 0; font-size: 24px;">⚠️ Professional Standards Notice</h2>
-      <div style="font-size: 14px; line-height: 1.7; color: var(--text-secondary);">
-        <p style="margin-bottom: 16px;">This tax advisory tool provides <strong style="color: var(--text-primary);">estimates and educational information only</strong>.</p>
-        <p style="margin-bottom: 16px;">By using this tool, you acknowledge and agree that:</p>
-        <ol style="margin: 0 0 20px 0; padding-left: 24px;">
-          <li style="margin: 8px 0;">This is <strong>NOT</strong> professional tax advice</li>
-          <li style="margin: 8px 0;">This tool is <strong>NOT</strong> a licensed CPA, EA, or tax attorney</li>
-          <li style="margin: 8px 0;">Calculations are estimates that may not reflect your actual tax liability</li>
-          <li style="margin: 8px 0;">You should consult a qualified tax professional before filing</li>
-          <li style="margin: 8px 0;">You are responsible for the accuracy of information you provide</li>
-          <li style="margin: 8px 0;">Tax laws change frequently; this tool may not reflect recent changes</li>
+    <div style="background: var(--bg-elevated); border-radius: var(--radius-2xl); padding: var(--space-8); max-width: 560px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+      <h2 style="color: var(--primary); margin: 0 0 var(--space-5) 0; font-size: var(--text-2xl);">⚠️ Professional Standards Notice</h2>
+      <div style="font-size: var(--text-sm); line-height: 1.7; color: var(--text-secondary);">
+        <p style="margin-bottom: var(--space-4);">This tax advisory tool provides <strong style="color: var(--text-primary);">estimates and educational information only</strong>.</p>
+        <p style="margin-bottom: var(--space-4);">By using this tool, you acknowledge and agree that:</p>
+        <ol style="margin: 0 0 var(--space-5) 0; padding-left: var(--space-6);">
+          <li style="margin: var(--space-2) 0;">This is <strong>NOT</strong> professional tax advice</li>
+          <li style="margin: var(--space-2) 0;">This tool is <strong>NOT</strong> a licensed CPA, EA, or tax attorney</li>
+          <li style="margin: var(--space-2) 0;">Calculations are estimates that may not reflect your actual tax liability</li>
+          <li style="margin: var(--space-2) 0;">You should consult a qualified tax professional before filing</li>
+          <li style="margin: var(--space-2) 0;">You are responsible for the accuracy of information you provide</li>
+          <li style="margin: var(--space-2) 0;">Tax laws change frequently; this tool may not reflect recent changes</li>
         </ol>
-        <div style="margin: 24px 0; padding: 16px; background: rgba(99, 102, 241, 0.1); border-radius: 8px;">
-          <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; margin-bottom: 16px;">
-            <input type="checkbox" id="ack-limitations" style="margin-top: 4px; width: 18px; height: 18px; accent-color: var(--primary);">
+        <div style="margin: var(--space-6) 0; padding: var(--space-4); background: rgba(99, 102, 241, 0.1); border-radius: var(--radius-lg);">
+          <label style="display: flex; align-items: flex-start; gap: var(--space-3); cursor: pointer; margin-bottom: var(--space-4);">
+            <input type="checkbox" id="ack-limitations" style="margin-top: var(--space-1); width: 18px; height: 18px; accent-color: var(--primary);">
             <span>I have read and understand these limitations</span>
           </label>
-          <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
-            <input type="checkbox" id="ack-consult" style="margin-top: 4px; width: 18px; height: 18px; accent-color: var(--primary);">
+          <label style="display: flex; align-items: flex-start; gap: var(--space-3); cursor: pointer;">
+            <input type="checkbox" id="ack-consult" style="margin-top: var(--space-1); width: 18px; height: 18px; accent-color: var(--primary);">
             <span>I agree to consult a tax professional for my specific situation</span>
           </label>
         </div>
-        <button id="ack-continue-btn" disabled style="width: 100%; padding: 16px; font-size: 16px; font-weight: 600; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; opacity: 0.5; transition: opacity 0.2s;">
+        <button id="ack-continue-btn" disabled style="width: 100%; padding: var(--space-4); font-size: var(--text-base); font-weight: var(--font-semibold); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; opacity: 0.5; transition: opacity 0.2s;">
           I Acknowledge and Continue
         </button>
       </div>

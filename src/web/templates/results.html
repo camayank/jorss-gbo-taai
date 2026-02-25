@@ -23,8 +23,8 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             line-height: 1.6;
-            color: #333;
-            background: #f7fafc;
+            color: var(--color-gray-700);
+            background: var(--color-gray-50);
             padding: 20px;
         }
 
@@ -40,19 +40,19 @@
 
         h1 {
             font-size: 2.5rem;
-            color: #2d3748;
+            color: var(--color-gray-800);
             margin-bottom: 10px;
         }
 
         .subtitle {
-            color: #718096;
+            color: var(--color-gray-500);
             font-size: 1.1rem;
         }
 
         /* Results card */
         .results-card {
             background: white;
-            border-radius: 16px;
+            border-radius: var(--radius-2xl);
             padding: 40px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             margin-bottom: 30px;
@@ -65,7 +65,7 @@
 
         .amount-label {
             font-size: 1rem;
-            color: #718096;
+            color: var(--color-gray-500);
             margin-bottom: 10px;
         }
 
@@ -76,11 +76,11 @@
         }
 
         .amount-value.refund {
-            color: #48bb78;
+            color: var(--color-success-500);
         }
 
         .amount-value.owed {
-            color: #f56565;
+            color: var(--color-error-500);
         }
 
         .status-badge {
@@ -92,13 +92,13 @@
         }
 
         .status-badge.draft {
-            background: #feebc8;
-            color: #c05621;
+            background: var(--color-warning-100);
+            color: var(--color-warning-700);
         }
 
         .status-badge.complete {
-            background: #c6f6d5;
-            color: #2f855a;
+            background: var(--color-success-200);
+            color: var(--color-success-700);
         }
 
         /* Stats grid */
@@ -112,20 +112,20 @@
         .stat {
             text-align: center;
             padding: 20px;
-            background: #f7fafc;
-            border-radius: 12px;
+            background: var(--color-gray-50);
+            border-radius: var(--radius-xl);
         }
 
         .stat-value {
             font-size: 1.5rem;
             font-weight: 700;
-            color: #2d3748;
+            color: var(--color-gray-800);
             margin-bottom: 5px;
         }
 
         .stat-label {
             font-size: 0.9rem;
-            color: #718096;
+            color: var(--color-gray-500);
         }
 
         /* Action buttons */
@@ -138,7 +138,7 @@
         .btn {
             flex: 1;
             padding: 16px 24px;
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             font-size: 1rem;
             font-weight: 600;
             text-align: center;
@@ -165,13 +165,13 @@
         }
 
         .btn-secondary:hover {
-            background: #f7fafc;
+            background: var(--color-gray-50);
         }
 
         /* Next steps section */
         .next-steps {
             background: white;
-            border-radius: 16px;
+            border-radius: var(--radius-2xl);
             padding: 40px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             margin-bottom: 30px;
@@ -179,15 +179,15 @@
 
         .next-steps h2 {
             font-size: 1.5rem;
-            color: #2d3748;
+            color: var(--color-gray-800);
             margin-bottom: 20px;
         }
 
         .step {
             padding: 20px;
             border-left: 4px solid {{ branding.primary_color }};
-            background: #f7fafc;
-            border-radius: 8px;
+            background: var(--color-gray-50);
+            border-radius: var(--radius-lg);
             margin-bottom: 15px;
         }
 
@@ -206,12 +206,12 @@
 
         .step-title {
             font-weight: 600;
-            color: #2d3748;
+            color: var(--color-gray-800);
             margin-bottom: 5px;
         }
 
         .step-description {
-            color: #718096;
+            color: var(--color-gray-500);
             font-size: 0.95rem;
         }
 
@@ -220,7 +220,7 @@
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
             padding: 30px;
-            border-radius: 16px;
+            border-radius: var(--radius-2xl);
             margin-top: 30px;
             text-align: center;
         }
@@ -316,7 +316,8 @@
                 <a href="/api/export/json?session_id={{ session_id }}" class="btn btn-outline" download>
                     Export JSON
                 </a>
-                <a href="/file/review?session_id={{ session_id }}" class="btn btn-secondary">
+                <!-- Flow fix: Changed dead /file/review link to computation worksheet -->
+                <a href="/computation-worksheet" class="btn btn-secondary">
                     Review Details
                 </a>
             </div>
@@ -328,6 +329,25 @@
                 <a href="/scenarios?session_id={{ session_id }}" class="btn">
                     Explore Scenarios →
                 </a>
+            </div>
+
+            <!-- Cross-flow: Related Tools -->
+            <div style="margin-top: 2rem; padding: 1.5rem; background: var(--color-gray-50); border-radius: var(--radius-xl); border: 1px solid var(--color-gray-200);">
+                <h3 style="font-size: 1rem; font-weight: var(--font-semibold); color: var(--color-gray-800); margin-bottom: 1rem;">Related Tools</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-3);">
+                    <a href="/computation-worksheet" style="display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2-5) var(--space-3-5); background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); color: var(--color-gray-700); text-decoration: none; font-size: 0.875rem; transition: border-color 0.15s;">
+                        {{ icon('calculator') }} Computation Worksheet
+                    </a>
+                    <a href="/draft-forms" style="display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2-5) var(--space-3-5); background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); color: var(--color-gray-700); text-decoration: none; font-size: 0.875rem;">
+                        {{ icon('document-text') }} Draft Forms
+                    </a>
+                    <a href="/filing-package" style="display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2-5) var(--space-3-5); background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); color: var(--color-gray-700); text-decoration: none; font-size: 0.875rem;">
+                        {{ icon('folder') }} Filing Package
+                    </a>
+                    <a href="/intelligent-advisor" style="display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2-5) var(--space-3-5); background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); color: var(--color-gray-700); text-decoration: none; font-size: 0.875rem;">
+                        {{ icon('chat-bubble-left-right') }} AI Advisor
+                    </a>
+                </div>
             </div>
         </div>
 
@@ -373,7 +393,7 @@
                     <div class="step-description">
                         Based on your 2024 return, see your 5-year tax projection
                         <br>
-                        <a href="/projections?session_id={{ session_id }}" style="color: #f093fb; font-weight: 600;">
+                        <a href="/projections?session_id={{ session_id }}" style="color: #f093fb; font-weight: var(--font-semibold);">
                             View Projections →
                         </a>
                     </div>
@@ -383,10 +403,10 @@
     </div>
 
     <!-- Legal Footer -->
-    <footer style="background-color: #1f2937; color: #9ca3af; padding: 2rem 1rem; margin-top: 3rem;">
+    <footer style="background-color: var(--color-gray-800); color: #9ca3af; padding: 2rem 1rem; margin-top: 3rem;">
         <div style="max-width: 800px; margin: 0 auto; text-align: center;">
-            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem;">
-                <p style="color: #991b1b; font-weight: 600; font-size: 0.875rem; margin: 0;">
+            <div style="background: var(--color-error-50); border: 1px solid var(--color-error-200); border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem;">
+                <p style="color: #991b1b; font-weight: var(--font-semibold); font-size: 0.875rem; margin: 0;">
                     IMPORTANT: This is a DRAFT for reference only. Do NOT file this with the IRS.
                     Always consult a licensed CPA before making any tax decisions.
                 </p>

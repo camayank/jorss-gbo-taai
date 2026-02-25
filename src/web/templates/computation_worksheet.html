@@ -1,0 +1,885 @@
+{% extends 'base_modern.html' %}
+{% block title %}Tax Computation Worksheet{% endblock %}
+{% block theme %}default{% endblock %}
+
+{% block head_extra %}
+<style>
+  @media print {
+    .no-print, .no-print * { display: none !important; }
+    .main-content { margin: 0 !important; padding: 0 !important; }
+    body { background: white !important; }
+    input[type="number"] {
+      border: none !important;
+      background: transparent !important;
+      -moz-appearance: textfield !important;
+      appearance: textfield !important;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { display: none !important; }
+    button { display: none !important; }
+    select { border: none !important; background: transparent !important; appearance: none !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="worksheetManager()" style="max-width: 960px; margin: 0 auto; padding: var(--space-6) var(--space-4); font-family: 'Inter', sans-serif;">
+
+  <!-- ========== HEADER ========== -->
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-6);">
+    <div>
+      <h1 style="font-size: 28px; font-weight: var(--font-bold); color: var(--color-primary-500); margin: 0 0 var(--space-1) 0;">Tax Computation Worksheet</h1>
+      <p style="font-size: var(--text-sm); color: var(--color-gray-500); margin: 0;">Step-by-step tax calculation breakdown</p>
+    </div>
+    <button class="no-print" @click="printWorksheet()"
+            style="display: inline-flex; align-items: center; gap: var(--space-1-5); padding: var(--space-2-5) var(--space-5); background: var(--color-primary-500); color: white; border: none; border-radius: var(--radius-lg); font-size: var(--text-sm); font-weight: var(--font-semibold); cursor: pointer;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Print
+    </button>
+  </div>
+
+  <!-- ========== TAX YEAR / FILING STATUS BAR ========== -->
+  <div style="background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-xl); padding: var(--space-4) var(--space-6); margin-bottom: var(--space-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-4);">
+    <div style="display: flex; align-items: center; gap: var(--space-3);">
+      <span style="font-size: 13px; font-weight: var(--font-semibold); color: var(--color-gray-500); text-transform: uppercase; letter-spacing: var(--tracking-wider);">Tax Year</span>
+      <span style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--color-primary-500);" x-text="taxYear"></span>
+    </div>
+    <div class="no-print" style="display: flex; align-items: center; gap: var(--space-3);">
+      <label style="font-size: 13px; font-weight: var(--font-semibold); color: var(--color-gray-500); text-transform: uppercase; letter-spacing: var(--tracking-wider);">Filing Status</label>
+      <select x-model="filingStatus"
+              style="padding: var(--space-2) var(--space-3); border: 1px solid var(--color-gray-300); border-radius: var(--radius-lg); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); background: white; cursor: pointer; min-width: 200px;">
+        <option value="single">Single</option>
+        <option value="mfj">Married Filing Jointly</option>
+        <option value="mfs">Married Filing Separately</option>
+        <option value="hoh">Head of Household</option>
+        <option value="qss">Qualifying Surviving Spouse</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- ========== SECTION 1: INCOME SUMMARY ========== -->
+  <div style="background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-xl); margin-bottom: var(--space-4); overflow: hidden;">
+    <!-- Section Header -->
+    <button @click="toggleSection('income')" class="no-print"
+            style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-6); background: var(--color-primary-500); color: white; border: none; cursor: pointer; text-align: left;">
+      <div style="display: flex; align-items: center; gap: var(--space-3);">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; font-size: 13px; font-weight: var(--font-bold);">1</span>
+        <span style="font-size: var(--text-base); font-weight: var(--font-semibold);">Income Summary</span>
+      </div>
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+           :style="sections.income ? 'transform: rotate(180deg); transition: transform 0.2s;' : 'transform: rotate(0deg); transition: transform 0.2s;'">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </button>
+    <!-- Print-only header -->
+    <div style="display: none; padding: var(--space-4) var(--space-6); background: var(--color-primary-500); color: white;"
+         class="print-section-header">
+      <div style="display: flex; align-items: center; gap: var(--space-3);">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; font-size: 13px; font-weight: var(--font-bold);">1</span>
+        <span style="font-size: var(--text-base); font-weight: var(--font-semibold);">Income Summary</span>
+      </div>
+    </div>
+
+    <div x-show="sections.income" x-collapse>
+      <div style="padding: 0;">
+        <!-- Table Header -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-2-5) var(--space-6); background: var(--color-gray-50); border-bottom: 1px solid var(--color-gray-200); font-size: var(--text-xs); font-weight: var(--font-semibold); color: var(--color-gray-500); text-transform: uppercase; letter-spacing: var(--tracking-wider);">
+          <span>Line</span>
+          <span>Description</span>
+          <span style="text-align: right;">Amount</span>
+        </div>
+
+        <!-- Line 1: Wages/Salaries -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">1</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">Wages, salaries, tips</span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="income.wages"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   min="0" step="1">
+          </div>
+        </div>
+
+        <!-- Line 2a: Taxable Interest -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">2a</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">Taxable interest</span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="income.interestTaxable"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   min="0" step="1">
+          </div>
+        </div>
+
+        <!-- Line 2b: Tax-Exempt Interest -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">2b</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700); padding-left: var(--space-4);">Tax-exempt interest</span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="income.interestExempt"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   min="0" step="1">
+          </div>
+        </div>
+
+        <!-- Line 3a: Ordinary Dividends -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">3a</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">Ordinary dividends</span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="income.dividendsOrdinary"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   min="0" step="1">
+          </div>
+        </div>
+
+        <!-- Line 3b: Qualified Dividends -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">3b</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700); padding-left: var(--space-4);">Qualified dividends</span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="income.dividendsQualified"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   min="0" step="1">
+          </div>
+        </div>
+
+        <!-- Line 4: Business Income -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">4</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">Business income/loss <span style="font-size: var(--text-xs); color: var(--color-gray-400);">(Schedule C)</span></span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="income.businessIncome"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   step="1">
+          </div>
+        </div>
+
+        <!-- Line 5: Capital Gains -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">5</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">Capital gains/losses <span style="font-size: var(--text-xs); color: var(--color-gray-400);">(Schedule D)</span></span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="income.capitalGains"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   step="1">
+          </div>
+        </div>
+
+        <!-- Line 6: Other Income -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">6</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">Other income</span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="income.otherIncome"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   step="1">
+          </div>
+        </div>
+
+        <!-- Line 7: Total Income (Summary Row) -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3-5) var(--space-6); background: var(--color-info-50); align-items: center; border-top: 2px solid #bfdbfe;">
+          <span style="font-size: var(--text-xs); color: var(--color-primary-500); font-weight: var(--font-bold);">7</span>
+          <span style="font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-bold);">Total Income</span>
+          <span style="text-align: right; font-size: var(--text-base); color: var(--color-primary-500); font-weight: var(--font-bold);" x-text="formatCurrency(totalIncome)"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SECTION 2: ADJUSTMENTS TO INCOME ========== -->
+  <div style="background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-xl); margin-bottom: var(--space-4); overflow: hidden;">
+    <button @click="toggleSection('adjustments')" class="no-print"
+            style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-6); background: var(--color-primary-500); color: white; border: none; cursor: pointer; text-align: left;">
+      <div style="display: flex; align-items: center; gap: var(--space-3);">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; font-size: 13px; font-weight: var(--font-bold);">2</span>
+        <span style="font-size: var(--text-base); font-weight: var(--font-semibold);">Adjustments to Income</span>
+      </div>
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+           :style="sections.adjustments ? 'transform: rotate(180deg); transition: transform 0.2s;' : 'transform: rotate(0deg); transition: transform 0.2s;'">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </button>
+
+    <div x-show="sections.adjustments" x-collapse>
+      <div style="padding: 0;">
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-2-5) var(--space-6); background: var(--color-gray-50); border-bottom: 1px solid var(--color-gray-200); font-size: var(--text-xs); font-weight: var(--font-semibold); color: var(--color-gray-500); text-transform: uppercase; letter-spacing: var(--tracking-wider);">
+          <span>Line</span>
+          <span>Description</span>
+          <span style="text-align: right;">Amount</span>
+        </div>
+
+        <!-- Line 8: IRA Deduction -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">8</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">IRA deduction</span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="adjustments.ira"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   min="0" step="1">
+          </div>
+        </div>
+
+        <!-- Line 9: Student Loan Interest -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">9</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">Student loan interest deduction</span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="adjustments.studentLoan"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   min="0" step="1">
+          </div>
+        </div>
+
+        <!-- Line 10: HSA Deduction -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">10</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">HSA deduction</span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="adjustments.hsa"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   min="0" step="1">
+          </div>
+        </div>
+
+        <!-- Line 11: Self-Employment Tax -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">11</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">Deductible self-employment tax <span style="font-size: var(--text-xs); color: var(--color-gray-400);">(50%)</span></span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="adjustments.selfEmployment"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   min="0" step="1">
+          </div>
+        </div>
+
+        <!-- Total Adjustments -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-200); background: var(--color-gray-50); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-500); font-weight: var(--font-semibold);">12</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700); font-weight: var(--font-semibold);">Total adjustments</span>
+          <span style="text-align: right; font-size: var(--text-sm); color: var(--color-gray-700); font-weight: var(--font-semibold);" x-text="formatCurrency(totalAdjustments)"></span>
+        </div>
+
+        <!-- AGI (Summary Row) -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3-5) var(--space-6); background: var(--color-info-50); align-items: center; border-top: 2px solid #bfdbfe;">
+          <span style="font-size: var(--text-xs); color: var(--color-primary-500); font-weight: var(--font-bold);">13</span>
+          <span style="font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-bold);">Adjusted Gross Income (AGI)</span>
+          <span style="text-align: right; font-size: var(--text-base); color: var(--color-primary-500); font-weight: var(--font-bold);" x-text="formatCurrency(agi)"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SECTION 3: DEDUCTIONS ========== -->
+  <div style="background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-xl); margin-bottom: var(--space-4); overflow: hidden;">
+    <button @click="toggleSection('deductions')" class="no-print"
+            style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-6); background: var(--color-primary-500); color: white; border: none; cursor: pointer; text-align: left;">
+      <div style="display: flex; align-items: center; gap: var(--space-3);">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; font-size: 13px; font-weight: var(--font-bold);">3</span>
+        <span style="font-size: var(--text-base); font-weight: var(--font-semibold);">Deductions</span>
+      </div>
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+           :style="sections.deductions ? 'transform: rotate(180deg); transition: transform 0.2s;' : 'transform: rotate(0deg); transition: transform 0.2s;'">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </button>
+
+    <div x-show="sections.deductions" x-collapse>
+      <div style="padding: 0;">
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-2-5) var(--space-6); background: var(--color-gray-50); border-bottom: 1px solid var(--color-gray-200); font-size: var(--text-xs); font-weight: var(--font-semibold); color: var(--color-gray-500); text-transform: uppercase; letter-spacing: var(--tracking-wider);">
+          <span>Line</span>
+          <span>Description</span>
+          <span style="text-align: right;">Amount</span>
+        </div>
+
+        <!-- Standard vs Itemized Toggle -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">14</span>
+          <div class="no-print" style="display: flex; align-items: center; gap: var(--space-4);">
+            <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer; font-size: var(--text-sm); color: var(--color-gray-700);">
+              <input type="radio" :value="true" x-model="useStandardDeduction"
+                     style="width: 16px; height: 16px; accent-color: var(--color-primary-500);">
+              <span>Standard Deduction</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer; font-size: var(--text-sm); color: var(--color-gray-700);">
+              <input type="radio" :value="false" x-model="useStandardDeduction"
+                     style="width: 16px; height: 16px; accent-color: var(--color-primary-500);">
+              <span>Itemized Deductions</span>
+            </label>
+          </div>
+          <span></span>
+        </div>
+
+        <!-- Standard Deduction Display -->
+        <template x-if="useStandardDeduction">
+          <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center; background: #f0fdf4;">
+            <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">14a</span>
+            <span style="font-size: var(--text-sm); color: var(--color-gray-700);">
+              Standard deduction
+              <span style="font-size: var(--text-xs); color: var(--color-success-500); font-weight: var(--font-medium); margin-left: var(--space-2);">(Based on filing status)</span>
+            </span>
+            <span style="text-align: right; font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-semibold);" x-text="formatCurrency(standardDeduction)"></span>
+          </div>
+        </template>
+
+        <!-- Itemized Deductions -->
+        <template x-if="!useStandardDeduction">
+          <div>
+            <!-- Medical -->
+            <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+              <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">14a</span>
+              <span style="font-size: var(--text-sm); color: var(--color-gray-700); padding-left: var(--space-4);">Medical and dental expenses <span style="font-size: var(--text-xs); color: var(--color-gray-400);">(exceeding 7.5% AGI)</span></span>
+              <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+                <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+                <input type="number" x-model.number="itemized.medical"
+                       style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                       min="0" step="1">
+              </div>
+            </div>
+            <!-- SALT -->
+            <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+              <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">14b</span>
+              <span style="font-size: var(--text-sm); color: var(--color-gray-700); padding-left: var(--space-4);">State and local taxes (SALT) <span style="font-size: var(--text-xs); color: var(--color-gray-400);">(max $10,000)</span></span>
+              <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+                <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+                <input type="number" x-model.number="itemized.salt"
+                       style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                       min="0" step="1">
+              </div>
+            </div>
+            <!-- Mortgage Interest -->
+            <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+              <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">14c</span>
+              <span style="font-size: var(--text-sm); color: var(--color-gray-700); padding-left: var(--space-4);">Home mortgage interest</span>
+              <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+                <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+                <input type="number" x-model.number="itemized.mortgage"
+                       style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                       min="0" step="1">
+              </div>
+            </div>
+            <!-- Charitable -->
+            <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+              <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">14d</span>
+              <span style="font-size: var(--text-sm); color: var(--color-gray-700); padding-left: var(--space-4);">Charitable contributions</span>
+              <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+                <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+                <input type="number" x-model.number="itemized.charitable"
+                       style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                       min="0" step="1">
+              </div>
+            </div>
+            <!-- Other Itemized -->
+            <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+              <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">14e</span>
+              <span style="font-size: var(--text-sm); color: var(--color-gray-700); padding-left: var(--space-4);">Other itemized deductions</span>
+              <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+                <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+                <input type="number" x-model.number="itemized.other"
+                       style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                       min="0" step="1">
+              </div>
+            </div>
+            <!-- Total Itemized -->
+            <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center; background: var(--color-gray-50);">
+              <span style="font-size: var(--text-xs); color: var(--color-gray-500); font-weight: var(--font-semibold);">14f</span>
+              <span style="font-size: var(--text-sm); color: var(--color-gray-700); font-weight: var(--font-semibold); padding-left: var(--space-4);">Total itemized deductions</span>
+              <span style="text-align: right; font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-semibold);" x-text="formatCurrency(totalItemized)"></span>
+            </div>
+          </div>
+        </template>
+
+        <!-- QBI Deduction -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">15</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">Qualified business income deduction <span style="font-size: var(--text-xs); color: var(--color-gray-400);">(Section 199A)</span></span>
+          <span style="text-align: right; font-size: var(--text-sm); color: var(--color-gray-500);">--</span>
+        </div>
+
+        <!-- Deduction Amount -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-200); background: var(--color-gray-50); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-500); font-weight: var(--font-semibold);">16</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700); font-weight: var(--font-semibold);">Total deductions</span>
+          <span style="text-align: right; font-size: var(--text-sm); color: var(--color-gray-700); font-weight: var(--font-semibold);" x-text="formatCurrency(deduction)"></span>
+        </div>
+
+        <!-- Taxable Income (Summary Row) -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3-5) var(--space-6); background: var(--color-info-50); align-items: center; border-top: 2px solid #bfdbfe;">
+          <span style="font-size: var(--text-xs); color: var(--color-primary-500); font-weight: var(--font-bold);">17</span>
+          <span style="font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-bold);">Taxable Income</span>
+          <span style="text-align: right; font-size: var(--text-base); color: var(--color-primary-500); font-weight: var(--font-bold);" x-text="formatCurrency(taxableIncome)"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SECTION 4: TAX COMPUTATION ========== -->
+  <div style="background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-xl); margin-bottom: var(--space-4); overflow: hidden;">
+    <button @click="toggleSection('computation')" class="no-print"
+            style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-6); background: var(--color-primary-500); color: white; border: none; cursor: pointer; text-align: left;">
+      <div style="display: flex; align-items: center; gap: var(--space-3);">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; font-size: 13px; font-weight: var(--font-bold);">4</span>
+        <span style="font-size: var(--text-base); font-weight: var(--font-semibold);">Tax Computation</span>
+      </div>
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+           :style="sections.computation ? 'transform: rotate(180deg); transition: transform 0.2s;' : 'transform: rotate(0deg); transition: transform 0.2s;'">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </button>
+
+    <div x-show="sections.computation" x-collapse>
+      <div style="padding: 0;">
+        <!-- Tax Bracket Table -->
+        <div style="padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--color-gray-200);">
+          <h3 style="font-size: 13px; font-weight: var(--font-semibold); color: var(--color-gray-500); text-transform: uppercase; letter-spacing: var(--tracking-wider); margin: 0 0 var(--space-3) 0;">2025 Tax Brackets</h3>
+          <div style="display: grid; grid-template-columns: 1fr 100px; gap: 0; border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); overflow: hidden; font-size: 13px;">
+            <div style="padding: var(--space-2) var(--space-3); background: var(--color-gray-50); font-weight: var(--font-semibold); color: var(--color-gray-500); border-bottom: 1px solid var(--color-gray-200);">Taxable Income Range</div>
+            <div style="padding: var(--space-2) var(--space-3); background: var(--color-gray-50); font-weight: var(--font-semibold); color: var(--color-gray-500); border-bottom: 1px solid var(--color-gray-200); text-align: center;">Rate</div>
+
+            <template x-if="filingStatus === 'single' || filingStatus === 'mfs'">
+              <div style="display: contents;">
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); color: var(--color-gray-700);">$0 - $11,925</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">10%</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); color: var(--color-gray-700);">$11,926 - $48,475</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">12%</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); color: var(--color-gray-700);">$48,476 - $103,350</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">22%</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); color: var(--color-gray-700);">$103,351 - $197,300</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">24%</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); color: var(--color-gray-700);">$197,301 - $250,525</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">32%</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); color: var(--color-gray-700);">$250,526 - $626,350</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">35%</div>
+                <div style="padding: var(--space-1-5) var(--space-3); color: var(--color-gray-700);">Over $626,350</div>
+                <div style="padding: var(--space-1-5) var(--space-3); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">37%</div>
+              </div>
+            </template>
+
+            <template x-if="filingStatus === 'mfj' || filingStatus === 'qss'">
+              <div style="display: contents;">
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); color: var(--color-gray-700);">$0 - $23,850</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">10%</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); color: var(--color-gray-700);">$23,851 - $96,950</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">12%</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); color: var(--color-gray-700);">$96,951 - $206,700</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">22%</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); color: var(--color-gray-700);">$206,701 - $394,600</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">24%</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); color: var(--color-gray-700);">$394,601 - $501,050</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">32%</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); color: var(--color-gray-700);">$501,051 - $751,600</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">35%</div>
+                <div style="padding: var(--space-1-5) var(--space-3); color: var(--color-gray-700);">Over $751,600</div>
+                <div style="padding: var(--space-1-5) var(--space-3); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">37%</div>
+              </div>
+            </template>
+
+            <template x-if="filingStatus === 'hoh'">
+              <div style="display: contents;">
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); color: var(--color-gray-700);">$0 - $17,000</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">10%</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); color: var(--color-gray-700);">$17,001 - $64,850</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">12%</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); color: var(--color-gray-700);">$64,851 - $103,350</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">22%</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); color: var(--color-gray-700);">$103,351 - $197,300</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">24%</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); color: var(--color-gray-700);">$197,301 - $250,500</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">32%</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); color: var(--color-gray-700);">$250,501 - $626,350</div>
+                <div style="padding: var(--space-1-5) var(--space-3); border-bottom: 1px solid var(--color-gray-100); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">35%</div>
+                <div style="padding: var(--space-1-5) var(--space-3); color: var(--color-gray-700);">Over $626,350</div>
+                <div style="padding: var(--space-1-5) var(--space-3); text-align: center; color: var(--color-primary-500); font-weight: var(--font-semibold);">37%</div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-2-5) var(--space-6); background: var(--color-gray-50); border-bottom: 1px solid var(--color-gray-200); font-size: var(--text-xs); font-weight: var(--font-semibold); color: var(--color-gray-500); text-transform: uppercase; letter-spacing: var(--tracking-wider);">
+          <span>Line</span>
+          <span>Description</span>
+          <span style="text-align: right;">Amount</span>
+        </div>
+
+        <!-- Line 18: Regular Tax -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">18</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">Tax <span style="font-size: var(--text-xs); color: var(--color-gray-400);">(from bracket computation)</span></span>
+          <span style="text-align: right; font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-semibold);" x-text="formatCurrency(taxAmount)"></span>
+        </div>
+
+        <!-- Line 19: AMT -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">19</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">Alternative minimum tax (AMT) <span style="font-size: var(--text-xs); color: var(--color-gray-400);">(Form 6251)</span></span>
+          <span style="text-align: right; font-size: var(--text-sm); color: var(--color-gray-500);">--</span>
+        </div>
+
+        <!-- Credits Header -->
+        <div style="padding: var(--space-3) var(--space-6); background: var(--color-gray-50); border-bottom: 1px solid var(--color-gray-200);">
+          <span style="font-size: 13px; font-weight: var(--font-semibold); color: var(--color-gray-500); text-transform: uppercase; letter-spacing: var(--tracking-wider);">Tax Credits</span>
+        </div>
+
+        <!-- Line 20: Child Tax Credit -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">20</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">Child tax credit <span style="font-size: var(--text-xs); color: var(--color-gray-400);">(Schedule 8812)</span></span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="credits.childTax"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-success-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   min="0" step="1">
+          </div>
+        </div>
+
+        <!-- Line 21: EITC -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">21</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">Earned income tax credit (EITC)</span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="credits.eitc"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-success-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   min="0" step="1">
+          </div>
+        </div>
+
+        <!-- Line 22: Education Credits -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">22</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">Education credits <span style="font-size: var(--text-xs); color: var(--color-gray-400);">(Form 8863)</span></span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="credits.education"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-success-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   min="0" step="1">
+          </div>
+        </div>
+
+        <!-- Line 23: Other Credits -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">23</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">Other credits</span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="credits.other"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-success-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   min="0" step="1">
+          </div>
+        </div>
+
+        <!-- Total Credits -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-200); background: var(--color-gray-50); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-500); font-weight: var(--font-semibold);">24</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700); font-weight: var(--font-semibold);">Total credits</span>
+          <span style="text-align: right; font-size: var(--text-sm); color: var(--color-success-500); font-weight: var(--font-semibold);" x-text="formatCurrency(totalCredits)"></span>
+        </div>
+
+        <!-- Total Tax (Summary Row) -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3-5) var(--space-6); background: var(--color-primary-500); align-items: center;">
+          <span style="font-size: var(--text-xs); color: rgba(255,255,255,0.7); font-weight: var(--font-bold);">25</span>
+          <span style="font-size: var(--text-sm); color: white; font-weight: var(--font-bold);">Total Tax</span>
+          <span style="text-align: right; font-size: var(--text-base); color: white; font-weight: var(--font-bold);" x-text="formatCurrency(netTax)"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SECTION 5: PAYMENTS & REFUND ========== -->
+  <div style="background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-xl); margin-bottom: var(--space-4); overflow: hidden;">
+    <button @click="toggleSection('payments')" class="no-print"
+            style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-6); background: var(--color-primary-500); color: white; border: none; cursor: pointer; text-align: left;">
+      <div style="display: flex; align-items: center; gap: var(--space-3);">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 50%; font-size: 13px; font-weight: var(--font-bold);">5</span>
+        <span style="font-size: var(--text-base); font-weight: var(--font-semibold);">Payments & Refund</span>
+      </div>
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+           :style="sections.payments ? 'transform: rotate(180deg); transition: transform 0.2s;' : 'transform: rotate(0deg); transition: transform 0.2s;'">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </button>
+
+    <div x-show="sections.payments" x-collapse>
+      <div style="padding: 0;">
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-2-5) var(--space-6); background: var(--color-gray-50); border-bottom: 1px solid var(--color-gray-200); font-size: var(--text-xs); font-weight: var(--font-semibold); color: var(--color-gray-500); text-transform: uppercase; letter-spacing: var(--tracking-wider);">
+          <span>Line</span>
+          <span>Description</span>
+          <span style="text-align: right;">Amount</span>
+        </div>
+
+        <!-- Line 26: Federal Withholding -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">26</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">Federal income tax withheld <span style="font-size: var(--text-xs); color: var(--color-gray-400);">(W-2, 1099)</span></span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="payments.withholding"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   min="0" step="1">
+          </div>
+        </div>
+
+        <!-- Line 27: Estimated Payments -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">27</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">Estimated tax payments</span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="payments.estimated"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   min="0" step="1">
+          </div>
+        </div>
+
+        <!-- Line 28: Other Payments/Credits -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-100); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-400); font-weight: var(--font-medium);">28</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700);">Other payments and refundable credits</span>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: var(--space-1);">
+            <span style="font-size: var(--text-sm); color: var(--color-gray-500);">$</span>
+            <input type="number" x-model.number="payments.other"
+                   style="width: 140px; text-align: right; padding: var(--space-1-5) var(--space-2-5); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-primary-500); font-weight: var(--font-medium); -moz-appearance: textfield;"
+                   min="0" step="1">
+          </div>
+        </div>
+
+        <!-- Total Payments -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-gray-200); background: var(--color-gray-50); align-items: center;">
+          <span style="font-size: var(--text-xs); color: var(--color-gray-500); font-weight: var(--font-semibold);">29</span>
+          <span style="font-size: var(--text-sm); color: var(--color-gray-700); font-weight: var(--font-semibold);">Total payments</span>
+          <span style="text-align: right; font-size: var(--text-sm); color: var(--color-gray-700); font-weight: var(--font-semibold);" x-text="formatCurrency(totalPayments)"></span>
+        </div>
+
+        <!-- Balance Due / Refund (Summary Row) -->
+        <div style="display: grid; grid-template-columns: 60px 1fr 180px; padding: var(--space-4) var(--space-6); align-items: center; border-top: 2px solid;"
+             :style="balanceDue > 0
+               ? 'background: #fef2f2; border-top-color: #fca5a5;'
+               : balanceDue < 0
+                 ? 'background: #f0fdf4; border-top-color: #86efac;'
+                 : 'background: #f9fafb; border-top-color: #d1d5db;'">
+          <span style="font-size: var(--text-xs); font-weight: var(--font-bold);"
+                :style="balanceDue > 0 ? 'color: #ef4444;' : balanceDue < 0 ? 'color: #10b981;' : 'color: #6b7280;'">30</span>
+          <span style="font-size: 15px; font-weight: var(--font-bold);"
+                :style="balanceDue > 0 ? 'color: #ef4444;' : balanceDue < 0 ? 'color: #10b981;' : 'color: #374151;'"
+                x-text="balanceDue > 0 ? 'Balance Due' : balanceDue < 0 ? 'Refund' : 'No Balance Due'"></span>
+          <span style="text-align: right; font-size: var(--text-lg); font-weight: var(--font-bold);"
+                :style="balanceDue > 0 ? 'color: #ef4444;' : balanceDue < 0 ? 'color: #10b981;' : 'color: #374151;'"
+                x-text="formatCurrency(Math.abs(balanceDue))"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== FOOTER DISCLAIMER ========== -->
+  <div style="margin-top: var(--space-6); padding: var(--space-4) var(--space-6); background: var(--color-warning-50); border: 1px solid var(--color-warning-200); border-radius: var(--radius-xl); display: flex; gap: var(--space-3); align-items: flex-start;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: var(--space-0-5);">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+    <div>
+      <p style="font-size: 13px; font-weight: var(--font-semibold); color: var(--color-warning-800); margin: 0 0 var(--space-1) 0;">Disclaimer</p>
+      <p style="font-size: var(--text-xs); color: #78350f; margin: 0; line-height: var(--leading-normal);">This worksheet is for estimation purposes only and should not be used as a substitute for professional tax advice. Actual tax liability may differ based on individual circumstances. Consult a qualified tax professional for filing guidance.</p>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+function worksheetManager() {
+    return {
+        taxYear: 2025,
+        filingStatus: 'single',
+        sections: {
+            income: true,
+            adjustments: true,
+            deductions: true,
+            computation: true,
+            payments: true
+        },
+        useStandardDeduction: true,
+
+        income: {
+            wages: 0,
+            interestTaxable: 0,
+            interestExempt: 0,
+            dividendsOrdinary: 0,
+            dividendsQualified: 0,
+            businessIncome: 0,
+            capitalGains: 0,
+            otherIncome: 0
+        },
+
+        adjustments: {
+            ira: 0,
+            studentLoan: 0,
+            hsa: 0,
+            selfEmployment: 0
+        },
+
+        itemized: {
+            medical: 0,
+            salt: 0,
+            mortgage: 0,
+            charitable: 0,
+            other: 0
+        },
+
+        credits: {
+            childTax: 0,
+            eitc: 0,
+            education: 0,
+            other: 0
+        },
+
+        payments: {
+            withholding: 0,
+            estimated: 0,
+            other: 0
+        },
+
+        get totalIncome() {
+            return Object.values(this.income).reduce((a, b) => a + Number(b), 0);
+        },
+
+        get totalAdjustments() {
+            return Object.values(this.adjustments).reduce((a, b) => a + Number(b), 0);
+        },
+
+        get agi() {
+            return this.totalIncome - this.totalAdjustments;
+        },
+
+        get standardDeduction() {
+            const sd = {
+                single: 15700,
+                mfj: 31400,
+                mfs: 15700,
+                hoh: 23500,
+                qss: 31400
+            };
+            return sd[this.filingStatus] || 15700;
+        },
+
+        get totalItemized() {
+            return Object.values(this.itemized).reduce((a, b) => a + Number(b), 0);
+        },
+
+        get deduction() {
+            return this.useStandardDeduction ? this.standardDeduction : this.totalItemized;
+        },
+
+        get taxableIncome() {
+            return Math.max(0, this.agi - this.deduction);
+        },
+
+        get taxAmount() {
+            return this.computeTax(this.taxableIncome);
+        },
+
+        get totalCredits() {
+            return Object.values(this.credits).reduce((a, b) => a + Number(b), 0);
+        },
+
+        get netTax() {
+            return Math.max(0, this.taxAmount - this.totalCredits);
+        },
+
+        get totalPayments() {
+            return Object.values(this.payments).reduce((a, b) => a + Number(b), 0);
+        },
+
+        get balanceDue() {
+            return this.netTax - this.totalPayments;
+        },
+
+        computeTax(income) {
+            const brackets = {
+                single: [
+                    [11925, 0.10],
+                    [48475, 0.12],
+                    [103350, 0.22],
+                    [197300, 0.24],
+                    [250525, 0.32],
+                    [626350, 0.35],
+                    [Infinity, 0.37]
+                ],
+                mfj: [
+                    [23850, 0.10],
+                    [96950, 0.12],
+                    [206700, 0.22],
+                    [394600, 0.24],
+                    [501050, 0.32],
+                    [751600, 0.35],
+                    [Infinity, 0.37]
+                ],
+                mfs: [
+                    [11925, 0.10],
+                    [48475, 0.12],
+                    [103350, 0.22],
+                    [197300, 0.24],
+                    [250525, 0.32],
+                    [626350, 0.35],
+                    [Infinity, 0.37]
+                ],
+                hoh: [
+                    [17000, 0.10],
+                    [64850, 0.12],
+                    [103350, 0.22],
+                    [197300, 0.24],
+                    [250500, 0.32],
+                    [626350, 0.35],
+                    [Infinity, 0.37]
+                ],
+                qss: [
+                    [23850, 0.10],
+                    [96950, 0.12],
+                    [206700, 0.22],
+                    [394600, 0.24],
+                    [501050, 0.32],
+                    [751600, 0.35],
+                    [Infinity, 0.37]
+                ]
+            };
+            const b = brackets[this.filingStatus] || brackets.single;
+            let tax = 0, prev = 0;
+            for (const [limit, rate] of b) {
+                if (income <= prev) break;
+                const taxable = Math.min(income, limit) - prev;
+                tax += taxable * rate;
+                prev = limit;
+            }
+            return tax;
+        },
+
+        toggleSection(s) {
+            this.sections[s] = !this.sections[s];
+        },
+
+        formatCurrency(val) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0
+            }).format(val || 0);
+        },
+
+        printWorksheet() {
+            window.print();
+        }
+    };
+}
+</script>
+{% endblock %}

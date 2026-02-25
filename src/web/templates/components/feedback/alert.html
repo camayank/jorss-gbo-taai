@@ -64,7 +64,7 @@
     <div class="banner-content">
       <span>{{ message }}</span>
       {% if link_text and link_href %}
-        <a href="{{ link_href }}" style="font-weight: 500; text-decoration: underline;">{{ link_text }}</a>
+        <a href="{{ link_href }}" style="font-weight: var(--font-medium); text-decoration: underline;">{{ link_text }}</a>
       {% endif %}
     </div>
     {% if dismissible %}

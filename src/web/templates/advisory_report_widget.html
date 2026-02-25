@@ -24,15 +24,15 @@
   .advisory-report-container {
     margin-top: 40px;
     padding: 30px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border-radius: 16px;
+    background: linear-gradient(135deg, var(--color-gray-50) 0%, var(--color-gray-200) 100%);
+    border-radius: var(--radius-2xl);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   }
 
   /* Level 1: Preview Summary */
   .advisory-preview {
     background: white;
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
     padding: 32px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   }
@@ -45,13 +45,13 @@
   .advisory-preview-title {
     font-size: 28px;
     font-weight: 700;
-    color: #2c5aa0;
+    color: var(--color-primary-400);
     margin-bottom: 8px;
   }
 
   .advisory-preview-subtitle {
     font-size: 16px;
-    color: #6b7280;
+    color: var(--color-gray-500);
   }
 
   .advisory-metrics-grid {
@@ -62,8 +62,8 @@
   }
 
   .advisory-metric-card {
-    background: linear-gradient(135deg, #f0f4f8 0%, #e6edf5 100%);
-    border-radius: 12px;
+    background: linear-gradient(135deg, var(--color-gray-100) 0%, var(--color-gray-200) 100%);
+    border-radius: var(--radius-xl);
     padding: 24px;
     text-align: center;
     transition: all 0.3s ease;
@@ -71,14 +71,14 @@
   }
 
   .advisory-metric-card:hover {
-    border-color: #2c5aa0;
+    border-color: var(--color-primary-400);
     transform: translateY(-4px);
     box-shadow: 0 6px 20px rgba(44, 90, 160, 0.15);
   }
 
   .advisory-metric-label {
     font-size: 14px;
-    color: #6b7280;
+    color: var(--color-gray-500);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 12px;
@@ -88,28 +88,28 @@
   .advisory-metric-value {
     font-size: 36px;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--color-gray-800);
     margin-bottom: 8px;
   }
 
   .advisory-metric-value.savings {
-    color: #22c55e;
+    color: var(--color-success-500);
   }
 
   .advisory-metric-value.confidence {
-    color: #2c5aa0;
+    color: var(--color-primary-400);
   }
 
   .advisory-metric-sublabel {
     font-size: 12px;
-    color: #9ca3af;
+    color: var(--color-gray-400);
   }
 
   /* Top Recommendations Preview */
   .advisory-recommendations-preview {
-    background: #f0f9ff;
-    border: 2px solid #5387c1;
-    border-radius: 12px;
+    background: var(--color-info-50);
+    border: 2px solid var(--color-primary-400);
+    border-radius: var(--radius-xl);
     padding: 24px;
     margin-bottom: 32px;
   }
@@ -117,7 +117,7 @@
   .advisory-recommendations-title {
     font-size: 18px;
     font-weight: 700;
-    color: #0c1b2f;
+    color: var(--color-primary-900);
     margin-bottom: 16px;
     display: flex;
     align-items: center;
@@ -130,7 +130,7 @@
     gap: 16px;
     padding: 12px 16px;
     background: white;
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     margin-bottom: 12px;
     transition: all 0.2s ease;
   }
@@ -143,7 +143,7 @@
   .advisory-recommendation-rank {
     font-size: 20px;
     font-weight: 700;
-    color: #2c5aa0;
+    color: var(--color-primary-400);
     min-width: 32px;
   }
 
@@ -151,13 +151,13 @@
     flex: 1;
     font-size: 15px;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--color-gray-800);
   }
 
   .advisory-recommendation-savings {
     font-size: 18px;
     font-weight: 700;
-    color: #22c55e;
+    color: var(--color-success-500);
   }
 
   /* Action Buttons */
@@ -170,7 +170,7 @@
 
   .advisory-btn {
     padding: 14px 28px;
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
@@ -183,7 +183,7 @@
   }
 
   .advisory-btn-primary {
-    background: linear-gradient(135deg, #2c5aa0 0%, #1e3a6d 100%);
+    background: linear-gradient(135deg, var(--color-primary-400) 0%, var(--color-primary-700) 100%);
     color: white;
     box-shadow: 0 4px 12px rgba(44, 90, 160, 0.3);
   }
@@ -195,12 +195,12 @@
 
   .advisory-btn-secondary {
     background: white;
-    color: #2c5aa0;
-    border: 2px solid #2c5aa0;
+    color: var(--color-primary-400);
+    border: 2px solid var(--color-primary-400);
   }
 
   .advisory-btn-secondary:hover {
-    background: #2c5aa0;
+    background: var(--color-primary-400);
     color: white;
   }
 
@@ -210,7 +210,7 @@
     margin-top: 32px;
     padding: 32px;
     background: white;
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   }
 
@@ -222,7 +222,7 @@
   .advisory-section {
     margin-bottom: 32px;
     padding-bottom: 32px;
-    border-bottom: 2px solid #e5e7eb;
+    border-bottom: 2px solid var(--color-gray-200);
   }
 
   .advisory-section:last-child {
@@ -235,20 +235,20 @@
     align-items: center;
     cursor: pointer;
     padding: 16px 20px;
-    background: #f9fafb;
-    border-radius: 8px;
+    background: var(--color-gray-50);
+    border-radius: var(--radius-lg);
     margin-bottom: 16px;
     transition: all 0.2s ease;
   }
 
   .advisory-section-header:hover {
-    background: #f3f4f6;
+    background: var(--color-gray-100);
   }
 
   .advisory-section-title {
     font-size: 20px;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--color-gray-800);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -256,7 +256,7 @@
 
   .advisory-section-toggle {
     font-size: 24px;
-    color: #6b7280;
+    color: var(--color-gray-500);
     transition: transform 0.3s ease;
   }
 
@@ -287,10 +287,10 @@
   }
 
   .advisory-report-header {
-    background: linear-gradient(135deg, #2c5aa0 0%, #1e3a6d 100%);
+    background: linear-gradient(135deg, var(--color-primary-400) 0%, var(--color-primary-700) 100%);
     color: white;
     padding: 40px;
-    border-radius: 12px 12px 0 0;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     text-align: center;
   }
 
@@ -308,7 +308,7 @@
   .advisory-report-body {
     background: white;
     padding: 40px;
-    border-radius: 0 0 12px 12px;
+    border-radius: 0 0 var(--radius-xl) var(--radius-xl);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   }
 
@@ -321,8 +321,8 @@
   .advisory-loading-spinner {
     width: 60px;
     height: 60px;
-    border: 4px solid #e5e7eb;
-    border-top-color: #2c5aa0;
+    border: 4px solid var(--color-gray-200);
+    border-top-color: var(--color-primary-400);
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin: 0 auto 20px;
@@ -372,7 +372,7 @@
     <!-- Loading State -->
     <div id="advisoryLoading" class="advisory-loading">
       <div class="advisory-loading-spinner"></div>
-      <div style="font-size: 16px; color: #6b7280;">Analyzing your tax situation...</div>
+      <div style="font-size: var(--text-base); color: #6b7280;">Analyzing your tax situation...</div>
     </div>
 
     <!-- Metrics Grid -->
@@ -424,18 +424,18 @@
 
   <!-- Level 2: Detailed View -->
   <div id="advisoryDetailedView" class="advisory-detailed-view">
-    <button class="advisory-btn advisory-btn-secondary" onclick="backToPreview()" style="margin-bottom: 24px;">
+    <button class="advisory-btn advisory-btn-secondary" onclick="backToPreview()" style="margin-bottom: var(--space-6);">
       ← Back to Summary
     </button>
 
-    <h2 style="font-size: 28px; font-weight: 700; color: #1f2937; margin-bottom: 32px;">
+    <h2 style="font-size: 28px; font-weight: var(--font-bold); color: var(--color-gray-800); margin-bottom: var(--space-8);">
       Detailed Tax Analysis
     </h2>
 
     <!-- Sections will be dynamically added here -->
     <div id="advisoryDetailedSections"></div>
 
-    <div class="advisory-actions" style="margin-top: 32px;">
+    <div class="advisory-actions" style="margin-top: var(--space-8);">
       <button class="advisory-btn advisory-btn-primary" onclick="showAdvisoryFullReport()">
         {{ icon('document-text') }} View Full Report
       </button>
@@ -444,7 +444,7 @@
 
   <!-- Level 3: Full Report -->
   <div id="advisoryFullReport" class="advisory-full-report">
-    <button class="advisory-btn advisory-btn-secondary" onclick="backToPreview()" style="margin-bottom: 24px;">
+    <button class="advisory-btn advisory-btn-secondary" onclick="backToPreview()" style="margin-bottom: var(--space-6);">
       ← Back to Summary
     </button>
 
@@ -457,7 +457,7 @@
       <div id="advisoryFullReportContent"></div>
 
       <!-- Level 4: PDF Export -->
-      <div class="advisory-actions" style="margin-top: 40px; padding-top: 32px; border-top: 2px solid #e5e7eb;">
+      <div class="advisory-actions" style="margin-top: var(--space-10); padding-top: var(--space-8); border-top: 2px solid var(--color-gray-200);">
         <button class="advisory-btn advisory-btn-primary" onclick="downloadAdvisoryPDF()" id="advisoryDownloadPDF">
           {{ icon('arrow-down-tray') }} Download PDF Report
         </button>
@@ -541,7 +541,7 @@
     } catch (error) {
       console.error('Error generating advisory report:', error);
       document.getElementById('advisoryLoading').innerHTML = `
-        <div style="color: #dc2626; font-size: 16px;">
+        <div style="color: var(--color-error-600); font-size: var(--text-base);">
           Unable to generate advisory report. Please try again.
         </div>
       `;
@@ -694,12 +694,12 @@
     if (currentAdvisoryReport.sections) {
       currentAdvisoryReport.sections.forEach(section => {
         const sectionHtml = `
-          <div style="margin-bottom: 40px;">
-            <h2 style="font-size: 24px; font-weight: 700; color: #1f2937; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+          <div style="margin-bottom: var(--space-10);">
+            <h2 style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--color-gray-800); margin-bottom: var(--space-5); display: flex; align-items: center; gap: var(--space-3);">
               <span>${getSectionIcon(section.section_id)}</span>
               <span>${escapeHtml(section.title)}</span>
             </h2>
-            <div style="padding-left: 44px;">
+            <div style="padding-left: var(--space-11);">
               ${renderSectionContent(section)}
             </div>
           </div>
@@ -826,27 +826,27 @@
     Object.entries(section.content).forEach(([key, value]) => {
       if (typeof value === 'object' && !Array.isArray(value)) {
         // Nested object
-        html += `<div style="margin-bottom: 20px;">
-          <h4 style="font-size: 16px; font-weight: 600; color: #374151; margin-bottom: 12px;">
+        html += `<div style="margin-bottom: var(--space-5);">
+          <h4 style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--color-gray-700); margin-bottom: var(--space-3);">
             ${formatKey(key)}
           </h4>
-          <div style="padding-left: 20px;">
+          <div style="padding-left: var(--space-5);">
             ${renderObject(value)}
           </div>
         </div>`;
       } else if (Array.isArray(value)) {
         // Array
-        html += `<div style="margin-bottom: 20px;">
-          <h4 style="font-size: 16px; font-weight: 600; color: #374151; margin-bottom: 12px;">
+        html += `<div style="margin-bottom: var(--space-5);">
+          <h4 style="font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--color-gray-700); margin-bottom: var(--space-3);">
             ${formatKey(key)}
           </h4>
-          <ul style="list-style: disc; padding-left: 32px;">
-            ${value.map(item => `<li style="margin-bottom: 8px;">${formatValue(item)}</li>`).join('')}
+          <ul style="list-style: disc; padding-left: var(--space-8);">
+            ${value.map(item => `<li style="margin-bottom: var(--space-2);">${formatValue(item)}</li>`).join('')}
           </ul>
         </div>`;
       } else {
         // Simple value
-        html += `<p style="margin-bottom: 12px;">
+        html += `<p style="margin-bottom: var(--space-3);">
           <strong>${formatKey(key)}:</strong> ${formatValue(value)}
         </p>`;
       }
@@ -861,7 +861,7 @@
   function renderObject(obj) {
     let html = '';
     Object.entries(obj).forEach(([key, value]) => {
-      html += `<p style="margin-bottom: 8px;">
+      html += `<p style="margin-bottom: var(--space-2);">
         <strong>${formatKey(key)}:</strong> ${formatValue(value)}
       </p>`;
     });

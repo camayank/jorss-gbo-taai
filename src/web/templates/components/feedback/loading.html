@@ -74,7 +74,7 @@
 
 {# Inline Loading - For buttons or inline content #}
 {% macro loading_inline(text='Loading...', size='sm') %}
-  <span style="display: inline-flex; align-items: center; gap: 8px;">
+  <span style="display: inline-flex; align-items: center; gap: var(--space-2);">
     {{ spinner(size=size) }}
     <span>{{ text }}</span>
   </span>
@@ -103,7 +103,7 @@
     <div class="skeleton-avatar {{ class_name }}" style="{{ base_style }} width: 48px; height: 48px; border-radius: var(--radius-full);"></div>
 
   {% elif type == 'card' %}
-    <div class="skeleton-card {{ class_name }}" style="padding: 16px; border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg);">
+    <div class="skeleton-card {{ class_name }}" style="padding: var(--space-4); border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg);">
       <div style="{{ base_style }} height: 120px; margin-bottom: 16px;"></div>
       <div style="{{ base_style }} height: 20px; width: 70%; margin-bottom: 8px;"></div>
       <div style="{{ base_style }} height: 14px; width: 90%; margin-bottom: 4px;"></div>
@@ -111,7 +111,7 @@
     </div>
 
   {% elif type == 'table-row' %}
-    <div class="skeleton-table-row {{ class_name }}" style="display: flex; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--color-gray-200);">
+    <div class="skeleton-table-row {{ class_name }}" style="display: flex; gap: var(--space-4); padding: var(--space-3) 0; border-bottom: 1px solid var(--color-gray-200);">
       <div style="{{ base_style }} height: 16px; width: 80px;"></div>
       <div style="{{ base_style }} height: 16px; flex: 1;"></div>
       <div style="{{ base_style }} height: 16px; width: 120px;"></div>
@@ -119,7 +119,7 @@
     </div>
 
   {% elif type == 'avatar-with-text' %}
-    <div class="skeleton-avatar-text {{ class_name }}" style="display: flex; gap: 12px; align-items: center;">
+    <div class="skeleton-avatar-text {{ class_name }}" style="display: flex; gap: var(--space-3); align-items: center;">
       <div style="{{ base_style }} width: 40px; height: 40px; border-radius: var(--radius-full); flex-shrink: 0;"></div>
       <div style="flex: 1;">
         <div style="{{ base_style }} height: 14px; width: 120px; margin-bottom: 6px;"></div>
@@ -136,7 +136,7 @@
 
   <div class="progress-wrapper {{ class_name }}">
     {% if label or show_percentage %}
-      <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: var(--text-sm);">
+      <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-1-5); font-size: var(--text-sm);">
         {% if label %}<span style="color: var(--color-gray-700);">{{ label }}</span>{% endif %}
         {% if show_percentage %}<span style="color: var(--color-gray-500);">{{ percentage }}%</span>{% endif %}
       </div>

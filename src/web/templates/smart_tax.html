@@ -12,36 +12,36 @@
   <style>
     :root {
       /* Primary Colors - Indigo (Unified Design System) */
-      --primary: #1e3a5f;
-      --primary-dark: #152b47;
-      --primary-light: #5387c1;
-      --primary-50: #eef3f9;
+      --primary: var(--color-primary-500);
+      --primary-dark: var(--color-primary-700);
+      --primary-light: var(--color-primary-400);
+      --primary-50: var(--color-primary-50);
 
       /* Accent - Teal (Unified Design System) */
-      --accent: #14b8a6;
-      --accent-light: #ccfbf1;
+      --accent: var(--color-accent-500);
+      --accent-light: var(--color-accent-100);
 
       /* Grayscale */
-      --gray-50: #f9fafb;
-      --gray-100: #f3f4f6;
-      --gray-200: #e5e7eb;
-      --gray-300: #d1d5db;
-      --gray-400: #9ca3af;
-      --gray-500: #6b7280;
-      --gray-600: #4b5563;
-      --gray-700: #374151;
-      --gray-800: #1f2937;
-      --gray-900: #111827;
+      --gray-50: var(--color-gray-50);
+      --gray-100: var(--color-gray-100);
+      --gray-200: var(--color-gray-200);
+      --gray-300: var(--color-gray-300);
+      --gray-400: var(--color-gray-400);
+      --gray-500: var(--color-gray-500);
+      --gray-600: var(--color-gray-600);
+      --gray-700: var(--color-gray-700);
+      --gray-800: var(--color-gray-800);
+      --gray-900: var(--color-gray-900);
 
       /* Semantic Colors */
-      --success: #10b981;
-      --success-light: #d1fae5;
-      --warning: #f59e0b;
-      --warning-light: #fef3c7;
-      --error: #ef4444;
-      --error-light: #fee2e2;
-      --info: #5387c1;
-      --info-light: #eef3f9;
+      --success: var(--color-success-500);
+      --success-light: var(--color-success-100);
+      --warning: var(--color-warning-500);
+      --warning-light: var(--color-warning-100);
+      --error: var(--color-error-500);
+      --error-light: var(--color-error-100);
+      --info: var(--color-primary-400);
+      --info-light: var(--color-primary-50);
 
       /* Layout */
       --max-width: 800px;
@@ -363,11 +363,11 @@
     }
 
     .estimate-refund {
-      background: linear-gradient(135deg, var(--accent) 0%, #059669 100%);
+      background: linear-gradient(135deg, var(--accent) 0%, var(--color-success-600) 100%);
     }
 
     .estimate-owed {
-      background: linear-gradient(135deg, var(--error) 0%, #dc2626 100%);
+      background: linear-gradient(135deg, var(--error) 0%, var(--color-error-600) 100%);
     }
 
     /* Confidence Meter */
@@ -506,7 +506,7 @@
     }
 
     .btn-success:hover {
-      background: #059669;
+      background: var(--color-success-600);
     }
 
     .btn-lg {
@@ -537,17 +537,17 @@
 
     .alert-warning {
       background: var(--warning-light);
-      color: #92400e;
+      color: var(--color-warning-800);
     }
 
     .alert-info {
       background: var(--info-light);
-      color: #1e3a5f;
+      color: var(--color-primary-500);
     }
 
     .alert-success {
       background: var(--success-light);
-      color: #065f46;
+      color: var(--color-success-800);
     }
 
     .alert-icon {
@@ -675,7 +675,7 @@
 
       .card {
         padding: 20px;
-        border-radius: 12px;
+        border-radius: var(--radius-xl);
       }
 
       .btn {
@@ -805,7 +805,7 @@
       <span class="logo-text">TaxFlow</span>
       <span class="logo-badge">Smart Tax</span>
     </a>
-    <div id="session-info" style="font-size: 14px; color: var(--gray-500);"></div>
+    <div id="session-info" style="font-size: var(--text-sm); color: var(--gray-500);"></div>
   </header>
 
   <!-- Progress Bar -->
@@ -878,8 +878,8 @@
 
       <!-- Quick Start Option -->
       <div class="card" style="text-align: center;" role="region" aria-label="Manual entry option">
-        <h3 style="margin-bottom: 8px;">No documents yet?</h3>
-        <p style="color: var(--gray-500); margin-bottom: 16px;">Get a quick estimate by entering your W-2 info manually</p>
+        <h3 style="margin-bottom: var(--space-2);">No documents yet?</h3>
+        <p style="color: var(--gray-500); margin-bottom: var(--space-4);">Get a quick estimate by entering your W-2 info manually</p>
         <button class="btn btn-secondary" onclick="showManualEntry()" aria-label="Enter tax information manually">Enter Manually</button>
       </div>
     </section>
@@ -905,7 +905,7 @@
         <div id="confirm-alerts"></div>
 
         <div id="confirm-data">
-          <h3 style="margin-bottom: 16px;">Income</h3>
+          <h3 style="margin-bottom: var(--space-4);">Income</h3>
           <table class="data-table" id="income-table">
             <thead>
               <tr>
@@ -917,7 +917,7 @@
             <tbody></tbody>
           </table>
 
-          <h3 style="margin: 24px 0 16px;">Withholding</h3>
+          <h3 style="margin: var(--space-6) 0 var(--space-4);">Withholding</h3>
           <table class="data-table" id="withholding-table">
             <thead>
               <tr>
@@ -999,24 +999,24 @@
           <p class="card-subtitle">How would you like to proceed with your tax return?</p>
         </div>
 
-        <div class="path-options" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 24px;">
-          <div style="border: 2px solid var(--gray-200); border-radius: var(--radius-lg); padding: 32px; cursor: pointer; transition: var(--transition);" onclick="selectOption('self-file')" id="option-self">
-            <div style="font-size: 48px; margin-bottom: 16px;">{{ icon('pencil') }}</div>
+        <div class="path-options" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-6); margin-top: var(--space-6);">
+          <div style="border: 2px solid var(--gray-200); border-radius: var(--radius-lg); padding: var(--space-8); cursor: pointer; transition: var(--transition);" onclick="selectOption('self-file')" id="option-self">
+            <div style="font-size: var(--text-5xl); margin-bottom: var(--space-4);">{{ icon('pencil') }}</div>
             <h3>Self-File</h3>
-            <p style="color: var(--gray-500); margin: 16px 0;">File your return yourself</p>
-            <div style="font-size: 24px; font-weight: 700; color: var(--accent);">Free</div>
+            <p style="color: var(--gray-500); margin: var(--space-4) 0;">File your return yourself</p>
+            <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--accent);">Free</div>
           </div>
 
-          <div style="border: 2px solid var(--primary); border-radius: var(--radius-lg); padding: 32px; cursor: pointer; transition: var(--transition); background: var(--primary-50);" onclick="selectOption('cpa-review')" id="option-cpa">
-            <div style="font-size: 48px; margin-bottom: 16px;">{{ icon('user') }}‍{{ icon('building-office') }}</div>
+          <div style="border: 2px solid var(--primary); border-radius: var(--radius-lg); padding: var(--space-8); cursor: pointer; transition: var(--transition); background: var(--primary-50);" onclick="selectOption('cpa-review')" id="option-cpa">
+            <div style="font-size: var(--text-5xl); margin-bottom: var(--space-4);">{{ icon('user') }}‍{{ icon('building-office') }}</div>
             <h3>CPA Review</h3>
-            <p style="color: var(--gray-500); margin: 16px 0;">Expert review and filing</p>
-            <div style="font-size: 24px; font-weight: 700; color: var(--primary);">$99</div>
-            <div style="font-size: 12px; color: var(--gray-500);">Recommended</div>
+            <p style="color: var(--gray-500); margin: var(--space-4) 0;">Expert review and filing</p>
+            <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--primary);">$99</div>
+            <div style="font-size: var(--text-xs); color: var(--gray-500);">Recommended</div>
           </div>
         </div>
 
-        <div id="cpa-recommendation" style="display: none; margin-top: 24px;">
+        <div id="cpa-recommendation" style="display: none; margin-top: var(--space-6);">
           <div class="alert alert-info">
             <span class="alert-icon">{{ icon('light-bulb') }}</span>
             <div>
@@ -1583,7 +1583,7 @@
           <span class="complexity-badge complexity-${level}">
             ${level.charAt(0).toUpperCase() + level.slice(1)} Return
           </span>
-          <span style="color: var(--gray-500); margin-left: 12px;">${complexity.estimated_time?.[0] || 3}-${complexity.estimated_time?.[1] || 5} min estimated</span>
+          <span style="color: var(--gray-500); margin-left: var(--space-3);">${complexity.estimated_time?.[0] || 3}-${complexity.estimated_time?.[1] || 5} min estimated</span>
         `;
       }
 
@@ -1598,21 +1598,21 @@
         const deductions = intel.deductions;
         recommendationsHtml += `
           <div class="intelligence-section">
-            <h3 style="margin: 24px 0 16px; display: flex; align-items: center; gap: 8px;">
+            <h3 style="margin: var(--space-6) 0 var(--space-4); display: flex; align-items: center; gap: var(--space-2);">
               <span style="font-size: 1.5em;">{{ icon('chart-bar') }}</span> Deduction Analysis
             </h3>
-            <div class="card" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 4px solid #22c55e; padding: 16px;">
-              <p style="font-size: 1.1em; margin-bottom: 8px;">
+            <div class="card" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 4px solid #22c55e; padding: var(--space-4);">
+              <p style="font-size: 1.1em; margin-bottom: var(--space-2);">
                 <strong>Recommendation:</strong> Take the <strong>${deductions.recommendation === 'standard' ? 'Standard Deduction' : 'Itemized Deductions'}</strong>
               </p>
-              <div style="display: flex; gap: 24px; margin-top: 12px;">
+              <div style="display: flex; gap: var(--space-6); margin-top: var(--space-3);">
                 <div>
                   <span style="color: var(--gray-500);">Standard Deduction</span>
-                  <p style="font-size: 1.25em; font-weight: 600;">$${deductions.standard_deduction?.toLocaleString() || '0'}</p>
+                  <p style="font-size: 1.25em; font-weight: var(--font-semibold);">$${deductions.standard_deduction?.toLocaleString() || '0'}</p>
                 </div>
                 <div>
                   <span style="color: var(--gray-500);">Itemized Total</span>
-                  <p style="font-size: 1.25em; font-weight: 600;">$${deductions.total_itemized?.toLocaleString() || '0'}</p>
+                  <p style="font-size: 1.25em; font-weight: var(--font-semibold);">$${deductions.total_itemized?.toLocaleString() || '0'}</p>
                 </div>
               </div>
             </div>
@@ -1622,15 +1622,15 @@
         // Detected Credits
         if (deductions.detected_credits?.length > 0) {
           recommendationsHtml += `
-            <h4 style="margin: 20px 0 12px;">Tax Credits Available</h4>
-            <div style="display: grid; gap: 12px;">
+            <h4 style="margin: var(--space-5) 0 var(--space-3);">Tax Credits Available</h4>
+            <div style="display: grid; gap: var(--space-3);">
               ${deductions.detected_credits.map(credit => `
                 <div class="alert alert-success" style="display: flex; justify-content: space-between; align-items: center;">
                   <div>
                     <strong>${escapeHtml(credit.name)}</strong>
-                    <p style="margin: 4px 0 0; color: var(--gray-600);">${escapeHtml(credit.description)}</p>
+                    <p style="margin: var(--space-1) 0 0; color: var(--gray-600);">${escapeHtml(credit.description)}</p>
                   </div>
-                  <span style="font-size: 1.25em; font-weight: 600; color: #22c55e;">+$${credit.estimated_amount?.toLocaleString() || '0'}</span>
+                  <span style="font-size: 1.25em; font-weight: var(--font-semibold); color: #22c55e;">+$${credit.estimated_amount?.toLocaleString() || '0'}</span>
                 </div>
               `).join('')}
             </div>
@@ -1640,15 +1640,15 @@
         // Missed Opportunities
         if (deductions.missed_opportunities?.length > 0) {
           recommendationsHtml += `
-            <h4 style="margin: 20px 0 12px;">Potential Savings You May Be Missing</h4>
-            <div style="display: grid; gap: 12px;">
+            <h4 style="margin: var(--space-5) 0 var(--space-3);">Potential Savings You May Be Missing</h4>
+            <div style="display: grid; gap: var(--space-3);">
               ${deductions.missed_opportunities.map(opp => `
                 <div class="alert alert-warning">
                   <span class="alert-icon">{{ icon('light-bulb') }}</span>
                   <div>
                     <strong>${escapeHtml(opp.title || opp.name)}</strong>
                     <p>${escapeHtml(opp.description || opp.action)}</p>
-                    ${opp.potential_savings ? `<p style="color: #b45309; font-weight: 600;">Potential savings: $${opp.potential_savings.toLocaleString()}</p>` : ''}
+                    ${opp.potential_savings ? `<p style="color: var(--color-warning-700); font-weight: var(--font-semibold);">Potential savings: $${opp.potential_savings.toLocaleString()}</p>` : ''}
                   </div>
                 </div>
               `).join('')}
@@ -1665,29 +1665,29 @@
         if (urgentInsights.length > 0 || planning.optimization_potential > 0) {
           recommendationsHtml += `
             <div class="intelligence-section">
-              <h3 style="margin: 24px 0 16px; display: flex; align-items: center; gap: 8px;">
+              <h3 style="margin: var(--space-6) 0 var(--space-4); display: flex; align-items: center; gap: var(--space-2);">
                 <span style="font-size: 1.5em;">{{ icon('sparkles') }}</span> Tax Planning Insights
               </h3>
               ${planning.optimization_potential > 0 ? `
-                <div class="card" style="background: linear-gradient(135deg, #eff6ff 0%, #eef3f9 100%); border-left: 4px solid #5387c1; padding: 16px; margin-bottom: 16px;">
+                <div class="card" style="background: linear-gradient(135deg, var(--color-info-50) 0%, var(--color-primary-50) 100%); border-left: 4px solid var(--color-primary-400); padding: var(--space-4); margin-bottom: var(--space-4);">
                   <p style="margin: 0;">
                     <strong>Optimization Potential:</strong> You could save up to
-                    <span style="font-size: 1.25em; font-weight: 700; color: #1e3a5f;">$${planning.optimization_potential?.toLocaleString() || '0'}</span>
+                    <span style="font-size: 1.25em; font-weight: var(--font-bold); color: var(--color-primary-500);">$${planning.optimization_potential?.toLocaleString() || '0'}</span>
                     with the right strategies.
                   </p>
                 </div>
               ` : ''}
 
               ${urgentInsights.length > 0 ? `
-                <h4 style="margin: 16px 0 12px;">Action Items</h4>
-                <div style="display: grid; gap: 12px;">
+                <h4 style="margin: var(--space-4) 0 var(--space-3);">Action Items</h4>
+                <div style="display: grid; gap: var(--space-3);">
                   ${urgentInsights.map(insight => `
                     <div class="alert ${insight.urgency === 'immediate' ? 'alert-error' : 'alert-warning'}">
                       <span class="alert-icon">${insight.urgency === 'immediate' ? '🚨' : '{{ icon('clock') }}'}</span>
                       <div>
                         <strong>${escapeHtml(insight.title)}</strong>
-                        <p style="margin: 4px 0 0;">${escapeHtml(insight.description)}</p>
-                        ${insight.estimated_savings ? `<p style="font-weight: 600; margin-top: 8px;">Est. savings: $${insight.estimated_savings.toLocaleString()}</p>` : ''}
+                        <p style="margin: var(--space-1) 0 0;">${escapeHtml(insight.description)}</p>
+                        ${insight.estimated_savings ? `<p style="font-weight: var(--font-semibold); margin-top: var(--space-2);">Est. savings: $${insight.estimated_savings.toLocaleString()}</p>` : ''}
                       </div>
                     </div>
                   `).join('')}
@@ -1701,7 +1701,7 @@
       // AI Summary
       if (intel?.summary) {
         recommendationsHtml += `
-          <div class="card" style="background: var(--gray-50); margin-top: 24px; padding: 16px;">
+          <div class="card" style="background: var(--gray-50); margin-top: var(--space-6); padding: var(--space-4);">
             <p style="margin: 0; font-style: italic; color: var(--gray-600);">
               <strong>AI Summary:</strong> ${escapeHtml(intel.summary)}
             </p>
@@ -1714,7 +1714,7 @@
         const opportunities = estimate.quick_opportunities || [];
         if (opportunities.length > 0) {
           recommendationsHtml = `
-            <h3 style="margin: 24px 0 16px;">Tax-Saving Opportunities</h3>
+            <h3 style="margin: var(--space-6) 0 var(--space-4);">Tax-Saving Opportunities</h3>
             ${opportunities.map(opp => `
               <div class="alert alert-info">
                 <span class="alert-icon">{{ icon('light-bulb') }}</span>
@@ -1754,17 +1754,17 @@
         // Year-end checklist
         if (planning.year_end_checklist?.length > 0) {
           planningHtml += `
-            <div class="card" style="margin-top: 24px;">
-              <h3 style="margin: 0 0 16px; display: flex; align-items: center; gap: 8px;">
+            <div class="card" style="margin-top: var(--space-6);">
+              <h3 style="margin: 0 0 var(--space-4); display: flex; align-items: center; gap: var(--space-2);">
                 <span style="font-size: 1.25em;">{{ icon('check-circle') }}</span> Year-End Tax Checklist
               </h3>
-              <div style="display: grid; gap: 12px;">
+              <div style="display: grid; gap: var(--space-3);">
                 ${planning.year_end_checklist.slice(0, 5).map((item, i) => `
-                  <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
-                    <input type="checkbox" id="checklist-${i}" style="margin-top: 4px; width: 18px; height: 18px; accent-color: var(--primary);">
+                  <label style="display: flex; align-items: flex-start; gap: var(--space-3); cursor: pointer;">
+                    <input type="checkbox" id="checklist-${i}" style="margin-top: var(--space-1); width: 18px; height: 18px; accent-color: var(--primary);">
                     <div>
                       <strong>${escapeHtml(item.item)}</strong>
-                      <p style="margin: 4px 0 0; color: var(--gray-500); font-size: 0.9em;">${escapeHtml(item.description)}</p>
+                      <p style="margin: var(--space-1) 0 0; color: var(--gray-500); font-size: 0.9em;">${escapeHtml(item.description)}</p>
                     </div>
                   </label>
                 `).join('')}
@@ -1780,20 +1780,20 @@
 
           if (relevantEstimates.length > 0) {
             planningHtml += `
-              <div class="card" style="margin-top: 24px;">
-                <h3 style="margin: 0 0 16px; display: flex; align-items: center; gap: 8px;">
+              <div class="card" style="margin-top: var(--space-6);">
+                <h3 style="margin: 0 0 var(--space-4); display: flex; align-items: center; gap: var(--space-2);">
                   <span style="font-size: 1.25em;">{{ icon('calendar') }}</span> Estimated Tax Payments
                 </h3>
-                <div style="display: grid; gap: 12px;">
+                <div style="display: grid; gap: var(--space-3);">
                   ${relevantEstimates.map(q => `
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--gray-50); border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3); background: var(--gray-50); border-radius: var(--radius-lg);">
                       <div>
                         <strong>Q${q.quarter} ${new Date().getFullYear()}</strong>
-                        <p style="margin: 4px 0 0; color: var(--gray-500); font-size: 0.9em;">Due: ${new Date(q.due_date).toLocaleDateString()}</p>
+                        <p style="margin: var(--space-1) 0 0; color: var(--gray-500); font-size: 0.9em;">Due: ${new Date(q.due_date).toLocaleDateString()}</p>
                       </div>
                       <div style="text-align: right;">
-                        <span style="font-size: 1.25em; font-weight: 600;">$${q.recommended_payment?.toLocaleString() || '0'}</span>
-                        ${q.penalty_risk !== 'none' ? `<p style="color: #dc2626; font-size: 0.85em;">{{ icon('exclamation-triangle') }} ${escapeHtml(q.penalty_risk)} penalty risk</p>` : ''}
+                        <span style="font-size: 1.25em; font-weight: var(--font-semibold);">$${q.recommended_payment?.toLocaleString() || '0'}</span>
+                        ${q.penalty_risk !== 'none' ? `<p style="color: var(--color-error-600); font-size: 0.85em;">{{ icon('exclamation-triangle') }} ${escapeHtml(q.penalty_risk)} penalty risk</p>` : ''}
                       </div>
                     </div>
                   `).join('')}
@@ -1807,11 +1807,11 @@
         const allInsights = planning.insights || [];
         if (allInsights.length > 0) {
           planningHtml += `
-            <div class="card" style="margin-top: 24px;">
-              <h3 style="margin: 0 0 16px; display: flex; align-items: center; gap: 8px;">
+            <div class="card" style="margin-top: var(--space-6);">
+              <h3 style="margin: 0 0 var(--space-4); display: flex; align-items: center; gap: var(--space-2);">
                 <span style="font-size: 1.25em;">{{ icon('light-bulb') }}</span> All Tax Planning Recommendations
               </h3>
-              <div style="display: grid; gap: 12px;">
+              <div style="display: grid; gap: var(--space-3);">
                 ${allInsights.map(insight => {
                   const urgencyColors = {
                     immediate: { bg: '#fef2f2', border: '#dc2626', icon: '🚨' },
@@ -1822,13 +1822,13 @@
                   };
                   const style = urgencyColors[insight.urgency] || urgencyColors.future;
                   return `
-                    <div style="padding: 12px; background: ${style.bg}; border-left: 3px solid ${style.border}; border-radius: 4px;">
-                      <div style="display: flex; gap: 8px; align-items: flex-start;">
+                    <div style="padding: var(--space-3); background: ${style.bg}; border-left: 3px solid ${style.border}; border-radius: 4px;">
+                      <div style="display: flex; gap: var(--space-2); align-items: flex-start;">
                         <span>${style.icon}</span>
                         <div style="flex: 1;">
                           <strong>${escapeHtml(insight.title)}</strong>
-                          <p style="margin: 4px 0 0; color: var(--gray-600); font-size: 0.9em;">${escapeHtml(insight.description)}</p>
-                          ${insight.estimated_savings ? `<p style="margin: 8px 0 0; font-weight: 600; color: ${style.border};">Potential savings: $${insight.estimated_savings.toLocaleString()}</p>` : ''}
+                          <p style="margin: var(--space-1) 0 0; color: var(--gray-600); font-size: 0.9em;">${escapeHtml(insight.description)}</p>
+                          ${insight.estimated_savings ? `<p style="margin: var(--space-2) 0 0; font-weight: var(--font-semibold); color: ${style.border};">Potential savings: $${insight.estimated_savings.toLocaleString()}</p>` : ''}
                         </div>
                       </div>
                     </div>

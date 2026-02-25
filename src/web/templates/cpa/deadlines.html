@@ -6,328 +6,411 @@
 
 {% block extra_styles %}
 <style>
-    .deadlines-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-    }
+    .deadline-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--white); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); }
+    .stat-value { font-size: 2rem; font-weight: 700; }
+    .stat-value.urgent { color: var(--color-error-600); }
+    .stat-value.warning { color: #d97706; }
+    .stat-value.success { color: var(--color-success-600); }
+    .stat-label { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
 
-    .deadline-filters {
-        display: flex;
-        gap: 12px;
-    }
+    .progress-section { background: var(--white); border-radius: 12px; border: 1px solid var(--border-color); padding: 20px; margin-bottom: 24px; }
+    .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .progress-title { font-weight: 600; font-size: 0.95rem; }
+    .progress-pct { font-weight: 700; color: var(--primary-color); }
+    .progress-track { width: 100%; height: 10px; background: var(--bg-light); border-radius: 5px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary-color), var(--success-color, #059669)); border-radius: 5px; transition: width 0.4s ease; }
 
-    .filter-btn {
-        padding: 8px 16px;
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        background: white;
-        cursor: pointer;
-        font-size: 0.9rem;
-        transition: all 0.2s;
-    }
+    .tax-deadlines { background: var(--white); border-radius: 12px; border: 1px solid var(--border-color); padding: 20px; margin-bottom: 24px; }
+    .tax-deadlines-title { font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .tax-deadline-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .tax-deadline-card { padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-light); }
+    .tax-deadline-date { font-weight: 600; color: var(--primary-color); font-size: 0.95rem; }
+    .tax-deadline-name { font-size: 0.85rem; margin-top: 4px; color: var(--text-muted); }
 
-    .filter-btn:hover,
-    .filter-btn.active {
-        background: var(--primary-color);
-        color: white;
-        border-color: var(--primary-color);
-    }
+    .deadlines-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .deadline-filters { display: flex; gap: 8px; flex-wrap: wrap; }
+    .filter-btn { padding: 8px 16px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--white); cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
+    .filter-btn:hover, .filter-btn.active { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+    .add-deadline-btn { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+    .add-deadline-btn:hover { background: var(--primary-hover); }
 
-    .deadline-stats {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 16px;
-        margin-bottom: 24px;
-    }
+    .deadline-section { background: var(--white); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; }
+    .section-header { padding: 16px 20px; background: var(--bg-light); border-bottom: 1px solid var(--border-color); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+    .section-count { background: var(--primary-color); color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.85rem; }
 
-    .stat-card {
-        background: white;
-        border-radius: 8px;
-        padding: 20px;
-        border: 1px solid var(--border-color);
-    }
+    .deadline-item { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-color); gap: 16px; transition: background 0.15s; }
+    .deadline-item:last-child { border-bottom: none; }
+    .deadline-item:hover { background: var(--bg-light); }
+    .deadline-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .dot-overdue { background: var(--color-error-600); }
+    .dot-thisweek { background: #d97706; }
+    .dot-upcoming { background: var(--color-success-500); }
+    .dot-completed { background: var(--color-gray-400); }
+    .deadline-content { flex: 1; min-width: 0; }
+    .deadline-title { font-weight: 500; margin-bottom: 2px; }
+    .deadline-client { font-size: 0.85rem; color: var(--text-muted); }
+    .deadline-meta { text-align: right; flex-shrink: 0; }
+    .deadline-date-value { font-weight: 600; font-size: 0.9rem; }
+    .deadline-date-value.overdue { color: var(--color-error-600); }
+    .deadline-days { font-size: 0.8rem; color: var(--text-muted); }
+    .deadline-days.overdue { color: var(--color-error-600); font-weight: 500; }
 
-    .stat-value {
-        font-size: 2rem;
-        font-weight: 700;
-    }
+    .status-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+    .badge-pending { background: var(--color-warning-100); color: var(--color-warning-800); }
+    .badge-in-progress { background: var(--color-info-100); color: var(--color-info-800); }
+    .badge-filed { background: var(--color-success-100); color: var(--color-success-800); }
+    .badge-extended { background: #ede9fe; color: #5b21b6; }
 
-    .stat-value.urgent {
-        color: #dc2626;
-    }
+    .deadline-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .action-btn { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--white); cursor: pointer; font-size: 0.78rem; transition: all 0.15s; white-space: nowrap; }
+    .action-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+    .action-btn.complete:hover { border-color: var(--color-success-600); color: var(--color-success-600); }
 
-    .stat-value.warning {
-        color: #d97706;
-    }
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
 
-    .stat-value.success {
-        color: #059669;
-    }
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal-content { background: var(--white); border-radius: 12px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h3 { font-weight: 600; font-size: 1.1rem; margin: 0; }
+    .modal-close { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); padding: 4px; }
+    .modal-body { padding: 24px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 6px; color: var(--text-dark); }
+    .form-control { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; }
+    .form-control:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.1); }
+    textarea.form-control { resize: vertical; min-height: 70px; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; }
+    .btn-cancel { padding: 10px 20px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--white); cursor: pointer; font-size: 0.9rem; }
+    .btn-save { padding: 10px 20px; border: none; border-radius: 8px; background: var(--primary-color); color: white; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
+    .btn-save:hover { background: var(--primary-hover); }
 
-    .stat-label {
-        font-size: 0.85rem;
-        color: var(--text-muted);
-        margin-top: 4px;
-    }
+    /* Toast */
+    .toast-container { position: fixed; top: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+    .toast { padding: 12px 20px; border-radius: 8px; color: white; font-size: 0.9rem; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateX(120%); transition: transform 0.3s ease; }
+    .toast.show { transform: translateX(0); }
+    .toast-success { background: var(--color-success-600); }
+    .toast-info { background: var(--primary-color); }
+    .toast-warning { background: #d97706; }
 
-    .deadlines-grid {
-        display: grid;
-        gap: 16px;
-    }
-
-    .deadline-section {
-        background: white;
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-        overflow: hidden;
-    }
-
-    .section-header {
-        padding: 16px 20px;
-        background: var(--bg-light);
-        border-bottom: 1px solid var(--border-color);
-        font-weight: 600;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .section-count {
-        background: var(--primary-color);
-        color: white;
-        padding: 2px 10px;
-        border-radius: 12px;
-        font-size: 0.85rem;
-    }
-
-    .deadline-list {
-        padding: 0;
-        margin: 0;
-        list-style: none;
-    }
-
-    .deadline-item {
-        display: flex;
-        align-items: center;
-        padding: 16px 20px;
-        border-bottom: 1px solid var(--border-color);
-        gap: 16px;
-    }
-
-    .deadline-item:last-child {
-        border-bottom: none;
-    }
-
-    .deadline-item:hover {
-        background: var(--bg-light);
-    }
-
-    .deadline-status {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-    }
-
-    .status-overdue {
-        background: #dc2626;
-    }
-
-    .status-urgent {
-        background: #f59e0b;
-    }
-
-    .status-upcoming {
-        background: #10b981;
-    }
-
-    .deadline-content {
-        flex: 1;
-    }
-
-    .deadline-title {
-        font-weight: 500;
-        margin-bottom: 4px;
-    }
-
-    .deadline-client {
-        font-size: 0.85rem;
-        color: var(--text-muted);
-    }
-
-    .deadline-date {
-        text-align: right;
-    }
-
-    .deadline-date-value {
-        font-weight: 600;
-    }
-
-    .deadline-date-value.overdue {
-        color: #dc2626;
-    }
-
-    .deadline-days {
-        font-size: 0.85rem;
-        color: var(--text-muted);
-    }
-
-    .deadline-days.overdue {
-        color: #dc2626;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 40px 20px;
-        color: var(--text-muted);
-    }
-
-    .add-deadline-btn {
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .add-deadline-btn:hover {
-        background: var(--primary-hover);
-    }
-
-    .tax-deadlines {
-        background: white;
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-        padding: 20px;
-        margin-bottom: 24px;
-    }
-
-    .tax-deadlines-title {
-        font-weight: 600;
-        margin-bottom: 16px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .tax-deadline-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 12px;
-    }
-
-    .tax-deadline-card {
-        padding: 12px;
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        background: var(--bg-light);
-    }
-
-    .tax-deadline-date {
-        font-weight: 600;
-        color: var(--primary-color);
-    }
-
-    .tax-deadline-name {
-        font-size: 0.9rem;
-        margin-top: 4px;
+    @media (max-width: 768px) {
+        .deadline-stats { grid-template-columns: repeat(2, 1fr); }
+        .deadline-item { flex-wrap: wrap; }
+        .deadline-actions { width: 100%; justify-content: flex-end; }
+        .deadlines-header { flex-direction: column; align-items: stretch; }
     }
 </style>
 {% endblock %}
 
+{% block breadcrumbs %}
+<div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-6); font-size: 0.9rem;">
+    <a href="/cpa/dashboard" style="color: var(--text-muted, #6b7280); text-decoration: none;">Dashboard</a>
+    <span style="color: var(--text-light, #9ca3af);">&rsaquo;</span>
+    <span style="color: var(--text-dark, #1f2937); font-weight: var(--font-medium);">Deadlines</span>
+</div>
+{% endblock %}
+
 {% block content %}
-<div class="deadlines-header">
-    <div class="deadline-filters">
-        <button class="filter-btn active">All Deadlines</button>
-        <button class="filter-btn">Overdue</button>
-        <button class="filter-btn">This Week</button>
-        <button class="filter-btn">This Month</button>
+<div x-data="deadlineManager()" x-cloak>
+    <!-- Toast notifications -->
+    <div class="toast-container">
+        <template x-for="t in toasts" :key="t.id">
+            <div class="toast" :class="'toast-' + t.type + (t.visible ? ' show' : '')" x-text="t.msg"></div>
+        </template>
     </div>
-    <button class="add-deadline-btn">
-        {{ icon('plus') }}
-        Add Deadline
-    </button>
-</div>
 
-<div class="tax-deadlines">
-    <div class="tax-deadlines-title">
-        {{ icon('calendar') }}
-        Important Tax Deadlines (2026)
-    </div>
-    <div class="tax-deadline-grid">
-        <div class="tax-deadline-card">
-            <div class="tax-deadline-date">January 15</div>
-            <div class="tax-deadline-name">Q4 Estimated Tax Payment</div>
+    <!-- Stats -->
+    <div class="deadline-stats">
+        <div class="stat-card">
+            <div class="stat-value urgent" x-text="overdueCount"></div>
+            <div class="stat-label">Overdue</div>
         </div>
-        <div class="tax-deadline-card">
-            <div class="tax-deadline-date">January 31</div>
-            <div class="tax-deadline-name">W-2 / 1099 Filing Deadline</div>
+        <div class="stat-card">
+            <div class="stat-value warning" x-text="thisWeekCount"></div>
+            <div class="stat-label">Due This Week</div>
         </div>
-        <div class="tax-deadline-card">
-            <div class="tax-deadline-date">March 15</div>
-            <div class="tax-deadline-name">S-Corp / Partnership Returns</div>
+        <div class="stat-card">
+            <div class="stat-value" x-text="thisMonthCount"></div>
+            <div class="stat-label">Due This Month</div>
         </div>
-        <div class="tax-deadline-card">
-            <div class="tax-deadline-date">April 15</div>
-            <div class="tax-deadline-name">Individual Tax Returns</div>
+        <div class="stat-card">
+            <div class="stat-value success" x-text="completedCount"></div>
+            <div class="stat-label">Completed</div>
         </div>
     </div>
-</div>
 
-<div class="deadline-stats">
-    <div class="stat-card">
-        <div class="stat-value urgent">0</div>
-        <div class="stat-label">Overdue</div>
+    <!-- Progress bar -->
+    <div class="progress-section">
+        <div class="progress-header">
+            <span class="progress-title">Monthly Completion Progress</span>
+            <span class="progress-pct" x-text="completionPct + '%'"></span>
+        </div>
+        <div class="progress-track">
+            <div class="progress-fill" :style="'width:' + completionPct + '%'"></div>
+        </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-value warning">0</div>
-        <div class="stat-label">Due This Week</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-value">0</div>
-        <div class="stat-label">Due This Month</div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-value success">0</div>
-        <div class="stat-label">Completed</div>
-    </div>
-</div>
 
-<div class="deadlines-grid">
+    <!-- Tax reference calendar -->
+    <div class="tax-deadlines">
+        <div class="tax-deadlines-title">
+            {{ icon('calendar') }} Important Tax Deadlines (2026)
+        </div>
+        <div class="tax-deadline-grid">
+            <div class="tax-deadline-card"><div class="tax-deadline-date">Jan 15</div><div class="tax-deadline-name">Q4 2025 Estimated Tax</div></div>
+            <div class="tax-deadline-card"><div class="tax-deadline-date">Jan 31</div><div class="tax-deadline-name">W-2 / 1099 Filing</div></div>
+            <div class="tax-deadline-card"><div class="tax-deadline-date">Mar 15</div><div class="tax-deadline-name">S-Corp / Partnership (1065, 1120-S)</div></div>
+            <div class="tax-deadline-card"><div class="tax-deadline-date">Apr 15</div><div class="tax-deadline-name">Individual Returns (1040) / Q1 Est.</div></div>
+            <div class="tax-deadline-card"><div class="tax-deadline-date">Jun 15</div><div class="tax-deadline-name">Q2 Estimated Tax</div></div>
+            <div class="tax-deadline-card"><div class="tax-deadline-date">Sep 15</div><div class="tax-deadline-name">Extended S-Corp/Partnership / Q3 Est.</div></div>
+            <div class="tax-deadline-card"><div class="tax-deadline-date">Oct 15</div><div class="tax-deadline-name">Extended Individual Returns</div></div>
+        </div>
+    </div>
+
+    <!-- Filters + Add -->
+    <div class="deadlines-header">
+        <div class="deadline-filters">
+            <template x-for="f in filters" :key="f.key">
+                <button class="filter-btn" :class="{ active: activeFilter === f.key }" @click="activeFilter = f.key" x-text="f.label"></button>
+            </template>
+        </div>
+        <button class="add-deadline-btn" @click="openModal()">
+            {{ icon('plus') }} Add Deadline
+        </button>
+    </div>
+
+    <!-- Client Deadlines list -->
     <div class="deadline-section">
         <div class="section-header">
             <span>Client Deadlines</span>
-            <span class="section-count">0</span>
+            <span class="section-count" x-text="filteredDeadlines.length"></span>
         </div>
-        <div class="empty-state">
-            <p>No client deadlines tracked yet.</p>
-            <p>Add deadlines to stay on top of client tax filings.</p>
-        </div>
+        <template x-if="filteredDeadlines.length === 0">
+            <div class="empty-state">
+                <p>No deadlines match the current filter.</p>
+            </div>
+        </template>
+        <template x-for="d in filteredDeadlines" :key="d.id">
+            <div class="deadline-item">
+                <div class="deadline-dot" :class="dotClass(d)"></div>
+                <div class="deadline-content">
+                    <div class="deadline-title" x-text="d.title"></div>
+                    <div class="deadline-client" x-text="d.client"></div>
+                </div>
+                <div style="flex-shrink:0;">
+                    <span class="status-badge" :class="badgeClass(d.status)" x-text="statusLabel(d.status)"></span>
+                </div>
+                <div class="deadline-meta">
+                    <div class="deadline-date-value" :class="{ overdue: daysUntil(d.due) < 0 && d.status !== 'filed' }" x-text="fmtDate(d.due)"></div>
+                    <div class="deadline-days" :class="{ overdue: daysUntil(d.due) < 0 && d.status !== 'filed' }" x-text="daysLabel(d)"></div>
+                </div>
+                <div class="deadline-actions">
+                    <button class="action-btn complete" @click="markComplete(d)" x-show="d.status !== 'filed'">Complete</button>
+                    <button class="action-btn" @click="extendDeadline(d)" x-show="d.status !== 'filed'">Extend</button>
+                    <button class="action-btn" @click="editDeadline(d)">Edit</button>
+                </div>
+            </div>
+        </template>
     </div>
+
+    <!-- Add / Edit Modal -->
+    <template x-if="showModal">
+        <div class="modal-overlay" @click.self="showModal = false" @keydown.escape.window="showModal = false">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 x-text="editingId ? 'Edit Deadline' : 'Add Deadline'"></h3>
+                    <button class="modal-close" @click="showModal = false">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Title</label>
+                        <input class="form-control" type="text" x-model="form.title" placeholder="e.g. Individual Return - Form 1040">
+                    </div>
+                    <div class="form-group">
+                        <label>Client</label>
+                        <select class="form-control" x-model="form.client">
+                            <option value="">Select client...</option>
+                            <template x-for="c in clientList" :key="c"><option :value="c" x-text="c"></option></template>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Type</label>
+                        <select class="form-control" x-model="form.type">
+                            <option value="Individual">Individual</option>
+                            <option value="Corporate">Corporate</option>
+                            <option value="Partnership">Partnership</option>
+                            <option value="S-Corp">S-Corp</option>
+                            <option value="Trust">Trust</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Due Date</label>
+                        <input class="form-control" type="date" x-model="form.due">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select class="form-control" x-model="form.status">
+                            <option value="pending">Pending</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="filed">Filed</option>
+                            <option value="extended">Extended</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea class="form-control" x-model="form.notes" placeholder="Optional notes..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-cancel" @click="showModal = false">Cancel</button>
+                    <button class="btn-save" @click="saveDeadline()" x-text="editingId ? 'Update' : 'Add Deadline'"></button>
+                </div>
+            </div>
+        </div>
+    </template>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Filter button handling
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-        });
-    });
+document.addEventListener('alpine:init', () => {
+    Alpine.data('deadlineManager', () => ({
+        activeFilter: 'all',
+        showModal: false,
+        editingId: null,
+        toasts: [],
+        nextToastId: 1,
+        filters: [
+            { key: 'all', label: 'All Deadlines' },
+            { key: 'overdue', label: 'Overdue' },
+            { key: 'week', label: 'This Week' },
+            { key: 'month', label: 'This Month' }
+        ],
+        clientList: [
+            'Johnson Family Trust', 'Acme Corp', 'Sarah Mitchell', 'Rivera Holdings LLC',
+            'David & Karen Chen', 'Greenfield Partners', 'Thompson Estate', 'Lakewood Medical Group',
+            'Patricia Owens', 'Baxter Industries'
+        ],
+        form: { title: '', client: '', type: 'Individual', due: '', status: 'pending', notes: '' },
+        deadlines: [],
 
-    // Add deadline button
-    document.querySelector('.add-deadline-btn')?.addEventListener('click', function() {
-        alert('Deadline tracking coming soon!');
-    });
+        init() {
+            const today = new Date();
+            const d = (offset) => { const dt = new Date(today); dt.setDate(dt.getDate() + offset); return dt.toISOString().slice(0, 10); };
+            this.deadlines = [
+                { id: 1, title: 'Individual Return - Form 1040', client: 'Johnson Family Trust', type: 'Individual', due: d(-5), status: 'pending', notes: '' },
+                { id: 2, title: 'Corporate Return - Form 1120', client: 'Acme Corp', type: 'Corporate', due: d(-2), status: 'in_progress', notes: '' },
+                { id: 3, title: 'S-Corp Return - Form 1120-S', client: 'Rivera Holdings LLC', type: 'S-Corp', due: d(1), status: 'in_progress', notes: '' },
+                { id: 4, title: 'Partnership Return - Form 1065', client: 'Greenfield Partners', type: 'Partnership', due: d(3), status: 'pending', notes: '' },
+                { id: 5, title: 'Individual Return - Form 1040', client: 'Sarah Mitchell', type: 'Individual', due: d(5), status: 'pending', notes: '' },
+                { id: 6, title: 'Trust Return - Form 1041', client: 'Thompson Estate', type: 'Trust', due: d(12), status: 'pending', notes: '' },
+                { id: 7, title: 'Quarterly Estimated Tax - Q2', client: 'David & Karen Chen', type: 'Individual', due: d(18), status: 'pending', notes: '' },
+                { id: 8, title: 'Corporate Return - Form 1120', client: 'Lakewood Medical Group', type: 'Corporate', due: d(-10), status: 'filed', notes: 'Filed electronically' },
+                { id: 9, title: 'Individual Return - Form 1040', client: 'Patricia Owens', type: 'Individual', due: d(0), status: 'extended', notes: 'Extended to Oct 15' },
+                { id: 10, title: 'S-Corp Return - Form 1120-S', client: 'Baxter Industries', type: 'S-Corp', due: d(25), status: 'pending', notes: '' }
+            ];
+        },
+
+        /* Computed counts */
+        get overdueCount() { return this.deadlines.filter(d => this.daysUntil(d.due) < 0 && d.status !== 'filed').length; },
+        get thisWeekCount() { return this.deadlines.filter(d => { const dy = this.daysUntil(d.due); return dy >= 0 && dy <= 7 && d.status !== 'filed'; }).length; },
+        get thisMonthCount() { return this.deadlines.filter(d => { const dy = this.daysUntil(d.due); return dy >= 0 && dy <= 30 && d.status !== 'filed'; }).length; },
+        get completedCount() { return this.deadlines.filter(d => d.status === 'filed').length; },
+        get completionPct() {
+            const total = this.deadlines.length;
+            if (!total) return 0;
+            return Math.round((this.completedCount / total) * 100);
+        },
+
+        /* Filtering */
+        get filteredDeadlines() {
+            let list = [...this.deadlines];
+            if (this.activeFilter === 'overdue') list = list.filter(d => this.daysUntil(d.due) < 0 && d.status !== 'filed');
+            else if (this.activeFilter === 'week') list = list.filter(d => { const dy = this.daysUntil(d.due); return dy >= 0 && dy <= 7 && d.status !== 'filed'; });
+            else if (this.activeFilter === 'month') list = list.filter(d => { const dy = this.daysUntil(d.due); return dy >= 0 && dy <= 30 && d.status !== 'filed'; });
+            return list.sort((a, b) => new Date(a.due) - new Date(b.due));
+        },
+
+        /* Helpers */
+        daysUntil(dateStr) {
+            const due = new Date(dateStr + 'T00:00:00');
+            const now = new Date(); now.setHours(0, 0, 0, 0);
+            return Math.ceil((due - now) / 86400000);
+        },
+        fmtDate(dateStr) {
+            const dt = new Date(dateStr + 'T00:00:00');
+            return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        },
+        daysLabel(d) {
+            if (d.status === 'filed') return 'Filed';
+            const days = this.daysUntil(d.due);
+            if (days < 0) return Math.abs(days) + ' day' + (Math.abs(days) !== 1 ? 's' : '') + ' overdue';
+            if (days === 0) return 'Due today';
+            return days + ' day' + (days !== 1 ? 's' : '') + ' remaining';
+        },
+        dotClass(d) {
+            if (d.status === 'filed') return 'dot-completed';
+            const days = this.daysUntil(d.due);
+            if (days < 0) return 'dot-overdue';
+            if (days <= 7) return 'dot-thisweek';
+            return 'dot-upcoming';
+        },
+        badgeClass(status) {
+            return { pending: 'badge-pending', in_progress: 'badge-in-progress', filed: 'badge-filed', extended: 'badge-extended' }[status] || 'badge-pending';
+        },
+        statusLabel(status) {
+            return { pending: 'Pending', in_progress: 'In Progress', filed: 'Filed', extended: 'Extended' }[status] || status;
+        },
+
+        /* Actions */
+        markComplete(d) {
+            d.status = 'filed';
+            this.toast('Deadline marked as filed: ' + d.client, 'success');
+        },
+        extendDeadline(d) {
+            const dt = new Date(d.due + 'T00:00:00');
+            dt.setMonth(dt.getMonth() + 6);
+            d.due = dt.toISOString().slice(0, 10);
+            d.status = 'extended';
+            this.toast('Deadline extended for ' + d.client, 'info');
+        },
+        editDeadline(d) {
+            this.editingId = d.id;
+            this.form = { title: d.title, client: d.client, type: d.type, due: d.due, status: d.status, notes: d.notes };
+            this.showModal = true;
+        },
+        openModal() {
+            this.editingId = null;
+            this.form = { title: '', client: '', type: 'Individual', due: '', status: 'pending', notes: '' };
+            this.showModal = true;
+        },
+        saveDeadline() {
+            if (!this.form.title || !this.form.client || !this.form.due) {
+                this.toast('Please fill in title, client, and due date.', 'warning');
+                return;
+            }
+            if (this.editingId) {
+                const idx = this.deadlines.findIndex(d => d.id === this.editingId);
+                if (idx !== -1) Object.assign(this.deadlines[idx], { ...this.form });
+                this.toast('Deadline updated successfully.', 'success');
+            } else {
+                this.deadlines.push({ id: Date.now(), ...this.form });
+                this.toast('Deadline added successfully.', 'success');
+            }
+            this.showModal = false;
+        },
+
+        /* Toast */
+        toast(msg, type = 'info') {
+            const id = this.nextToastId++;
+            const t = { id, msg, type, visible: false };
+            this.toasts.push(t);
+            requestAnimationFrame(() => { t.visible = true; });
+            setTimeout(() => { t.visible = false; setTimeout(() => { this.toasts = this.toasts.filter(x => x.id !== id); }, 350); }, 3000);
+        }
+    }));
 });
 </script>
 {% endblock %}

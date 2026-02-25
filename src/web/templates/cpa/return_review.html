@@ -3,6 +3,16 @@
 
 {% block title %}Review Return - {{ client_name }}{% endblock %}
 
+{% block breadcrumbs %}
+<div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-6); font-size: 0.9rem;">
+    <a href="/cpa/dashboard" style="color: var(--text-muted, #6b7280); text-decoration: none;">Dashboard</a>
+    <span style="color: var(--text-light, #9ca3af);">›</span>
+    <a href="/cpa/returns/queue" style="color: var(--text-muted, #6b7280); text-decoration: none;">Return Queue</a>
+    <span style="color: var(--text-light, #9ca3af);">›</span>
+    <span style="color: var(--text-dark, #1f2937); font-weight: var(--font-medium);">{{ client_name }} Review</span>
+</div>
+{% endblock %}
+
 {% block content %}
 <div class="review-container">
     <!-- Header -->
@@ -254,6 +264,25 @@
                         <a href="/api/export/json?session_id={{ session_id }}" class="btn btn-outline btn-full" download>
                             {{ icon('file-text') }}
                             Export Data
+                        </a>
+                    </div>
+
+                    <hr class="divider">
+
+                    <!-- Cross-flow: Related tools for deeper review -->
+                    <div class="action-section">
+                        <h3>Review Tools</h3>
+                        <a href="/computation-worksheet" class="btn btn-outline btn-full">
+                            {{ icon('calculator') }}
+                            Computation Worksheet
+                        </a>
+                        <a href="/draft-forms" class="btn btn-outline btn-full">
+                            {{ icon('document-text') }}
+                            Draft Forms
+                        </a>
+                        <a href="/filing-package" class="btn btn-outline btn-full">
+                            {{ icon('folder') }}
+                            Filing Package
                         </a>
                     </div>
                 </div>

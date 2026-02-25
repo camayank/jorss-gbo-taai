@@ -49,11 +49,11 @@
         {% if item.id %}id="tab-{{ item.id }}"{% endif %}
       >
         {% if item.icon %}
-          <span style="margin-right: 8px;">{{ item.icon | safe }}</span>
+          <span style="margin-right: var(--space-2);">{{ item.icon | safe }}</span>
         {% endif %}
         {{ item.label }}
         {% if item.badge %}
-          <span style="margin-left: 8px; background: var(--color-gray-200); padding: 2px 8px; border-radius: 9999px; font-size: 12px;">
+          <span style="margin-left: var(--space-2); background: var(--color-gray-200); padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-full); font-size: var(--text-xs);">
             {{ item.badge }}
           </span>
         {% endif %}
@@ -115,21 +115,21 @@
   actions=none,
   class_name=''
 ) %}
-  <div class="page-header {{ class_name }}" style="margin-bottom: 24px;">
+  <div class="page-header {{ class_name }}" style="margin-bottom: var(--space-6);">
     {% if breadcrumb_items %}
-      <div style="margin-bottom: 12px;">
+      <div style="margin-bottom: var(--space-3);">
         {{ breadcrumbs(breadcrumb_items) }}
       </div>
     {% endif %}
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-4); flex-wrap: wrap;">
       <div>
-        <h1 style="font-size: 24px; font-weight: 600; color: var(--color-gray-900); margin: 0;">{{ title }}</h1>
+        <h1 style="font-size: var(--text-2xl); font-weight: var(--font-semibold); color: var(--color-gray-900); margin: 0;">{{ title }}</h1>
         {% if subtitle %}
-          <p style="font-size: 14px; color: var(--color-gray-500); margin: 4px 0 0;">{{ subtitle }}</p>
+          <p style="font-size: var(--text-sm); color: var(--color-gray-500); margin: var(--space-1) 0 0;">{{ subtitle }}</p>
         {% endif %}
       </div>
       {% if actions %}
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
           {{ actions | safe }}
         </div>
       {% endif %}

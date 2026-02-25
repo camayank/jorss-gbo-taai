@@ -44,7 +44,7 @@
 
         .card {
             background: white;
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             padding: 30px;
             margin-bottom: 30px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -79,7 +79,7 @@
             width: 100%;
             padding: 10px 12px;
             border: 1px solid #cbd5e0;
-            border-radius: 6px;
+            border-radius: var(--radius-md);
             font-size: 0.875rem;
         }
 
@@ -111,7 +111,7 @@
             width: 60px;
             height: 40px;
             border: none;
-            border-radius: 6px;
+            border-radius: var(--radius-md);
             cursor: pointer;
         }
 
@@ -121,7 +121,7 @@
 
         .file-upload {
             border: 2px dashed #cbd5e0;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             padding: 30px;
             text-align: center;
             cursor: pointer;
@@ -144,7 +144,7 @@
 
         .preview-image {
             max-width: 200px;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             margin-top: 15px;
         }
 
@@ -190,14 +190,14 @@
             background: {{ branding.primary_color }};
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: var(--radius-md);
             cursor: pointer;
             font-weight: 600;
         }
 
         .btn {
             padding: 12px 24px;
-            border-radius: 6px;
+            border-radius: var(--radius-md);
             border: none;
             font-weight: 600;
             cursor: pointer;
@@ -215,7 +215,7 @@
         }
 
         .btn-secondary {
-            background: #e2e8f0;
+            background: var(--color-slate-200);
             color: #4a5568;
         }
 
@@ -227,7 +227,7 @@
             background: linear-gradient(135deg, {{ branding.primary_color }} 0%, {{ branding.secondary_color }} 100%);
             color: white;
             padding: 30px;
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             margin-top: 20px;
         }
 
@@ -260,13 +260,13 @@
 
         .alert {
             padding: 15px;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             margin-bottom: 20px;
         }
 
         .alert-info {
             background: #bee3f8;
-            color: #5387c1;
+            color: var(--color-primary-300);
             border-left: 4px solid #3182ce;
         }
 
@@ -369,7 +369,7 @@
                         <option value="Audit Representation">Audit Representation</option>
                         <option value="International Tax">International Tax</option>
                     </select>
-                    <div class="credentials-list" id="specializationsList" style="margin-top: 10px;">
+                    <div class="credentials-list" id="specializationsList" style="margin-top: var(--space-2-5);">
                         <!-- Populated dynamically -->
                     </div>
                 </div>
@@ -444,7 +444,7 @@
         </div>
 
         <!-- Actions -->
-        <div style="display: flex; gap: 15px; margin-bottom: 40px;">
+        <div style="display: flex; gap: 15px; margin-bottom: var(--space-10);">
             <button class="btn btn-primary" onclick="saveBranding()">💾 Save Changes</button>
             <button class="btn btn-secondary" onclick="resetBranding()">{{ icon('arrow-path') }} Reset to Defaults</button>
         </div>

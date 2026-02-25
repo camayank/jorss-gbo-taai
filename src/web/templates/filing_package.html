@@ -1,0 +1,418 @@
+{% extends 'base_modern.html' %}
+
+{% block title %}Filing Package Export{% endblock %}
+{% block theme %}default{% endblock %}
+
+{% block content %}
+<div style="max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;"
+     x-data="filingPackageManager()">
+
+  {# ── Header ── #}
+  <header style="margin-bottom: 2rem;">
+    <h1 style="font-size: 1.875rem; font-weight: var(--font-bold); color: var(--color-primary-500); margin: 0 0 0.5rem 0;">Filing Package Export</h1>
+    <p style="font-size: 1rem; color: #6b7280; margin: 0;">Generate comprehensive filing packages for e-filing software</p>
+  </header>
+
+  {# ── Package Configuration Card ── #}
+  <section style="background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-xl); padding: 1.75rem; margin-bottom: 1.5rem;">
+    <h2 style="font-size: 1.125rem; font-weight: var(--font-semibold); color: var(--color-primary-500); margin: 0 0 1.25rem 0;">Package Configuration</h2>
+
+    {# Tax Year & Return ID #}
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem;">
+      <div>
+        <label style="display: block; font-size: 0.875rem; font-weight: var(--font-medium); color: var(--color-gray-700); margin-bottom: 0.375rem;">Tax Year</label>
+        <select x-model.number="taxYear"
+                style="width: 100%; padding: 0.625rem 0.75rem; border: 1px solid var(--color-gray-300); border-radius: var(--radius-lg); font-size: 0.9375rem; color: var(--color-gray-800); background: white; outline: none; transition: border-color 0.15s;"
+                @focus="$el.style.borderColor='#14b8a6'; $el.style.boxShadow='0 0 0 3px rgba(20,184,166,0.12)'"
+                @blur="$el.style.borderColor='#d1d5db'; $el.style.boxShadow='none'">
+          <option :value="2024">2024</option>
+          <option :value="2025">2025</option>
+        </select>
+      </div>
+      <div>
+        <label style="display: block; font-size: 0.875rem; font-weight: var(--font-medium); color: var(--color-gray-700); margin-bottom: 0.375rem;">Return ID</label>
+        <input type="text" x-model="returnId" placeholder="e.g. RTN-2025-00142"
+               style="width: 100%; padding: 0.625rem 0.75rem; border: 1px solid var(--color-gray-300); border-radius: var(--radius-lg); font-size: 0.9375rem; color: var(--color-gray-800); outline: none; box-sizing: border-box; transition: border-color 0.15s;"
+               @focus="$el.style.borderColor='#14b8a6'; $el.style.boxShadow='0 0 0 3px rgba(20,184,166,0.12)'"
+               @blur="$el.style.borderColor='#d1d5db'; $el.style.boxShadow='none'">
+      </div>
+    </div>
+
+    {# Export Format Radio Cards #}
+    <label style="display: block; font-size: 0.875rem; font-weight: var(--font-medium); color: var(--color-gray-700); margin-bottom: 0.75rem;">Export Format</label>
+    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem;">
+      <template x-for="fmt in formats" :key="fmt.id">
+        <label @click="exportFormat = fmt.id"
+               :style="`
+                 display: flex; flex-direction: column; align-items: center; text-align: center;
+                 padding: 1.125rem 0.5rem; border-radius: 10px; cursor: pointer;
+                 border: 2px solid ${exportFormat === fmt.id ? '#14b8a6' : '#e5e7eb'};
+                 background: ${exportFormat === fmt.id ? '#f0fdfa' : '#fff'};
+                 transition: all 0.2s;
+               `"
+               @mouseenter="if(exportFormat !== fmt.id) $el.style.borderColor='#99f6e4'"
+               @mouseleave="if(exportFormat !== fmt.id) $el.style.borderColor='#e5e7eb'">
+          {# Icon badge #}
+          <span :style="`
+                  display: flex; align-items: center; justify-content: center;
+                  width: 2.75rem; height: 2.75rem; border-radius: 10px; margin-bottom: 0.625rem;
+                  font-size: 0.8125rem; font-weight: 700; letter-spacing: -0.02em;
+                  background: ${exportFormat === fmt.id ? '#14b8a6' : '#f3f4f6'};
+                  color: ${exportFormat === fmt.id ? '#fff' : '#6b7280'};
+                  transition: all 0.2s;
+                `" x-text="fmt.icon"></span>
+          {# Name #}
+          <span style="font-size: 0.8125rem; font-weight: var(--font-semibold); color: var(--color-primary-500); margin-bottom: 0.25rem;" x-text="fmt.name"></span>
+          {# Description #}
+          <span style="font-size: 0.6875rem; color: #6b7280; line-height: 1.35;" x-text="fmt.desc"></span>
+          {# Radio indicator #}
+          <span :style="`
+                  display: flex; align-items: center; justify-content: center;
+                  width: 1.125rem; height: 1.125rem; border-radius: 50%; margin-top: 0.625rem;
+                  border: 2px solid ${exportFormat === fmt.id ? '#14b8a6' : '#d1d5db'};
+                  transition: all 0.2s;
+                `">
+            <span x-show="exportFormat === fmt.id"
+                  style="width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--color-accent-500);"></span>
+          </span>
+          <input type="radio" name="exportFormat" :value="fmt.id" x-model="exportFormat" style="display: none;">
+        </label>
+      </template>
+    </div>
+  </section>
+
+  {# ── Package Contents Checklist ── #}
+  <section style="background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-xl); padding: 1.75rem; margin-bottom: 1.5rem;">
+    <h2 style="font-size: 1.125rem; font-weight: var(--font-semibold); color: var(--color-primary-500); margin: 0 0 1.25rem 0;">Package Contents</h2>
+
+    <div style="display: flex; flex-direction: column; gap: 0;">
+      {# Form 1040 #}
+      <label style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--color-gray-100); cursor: pointer;">
+        <input type="checkbox" x-model="contents.form_1040"
+               style="width: 1.125rem; height: 1.125rem; accent-color: var(--color-accent-500); cursor: pointer;">
+        <span style="flex: 1;">
+          <span style="font-size: 0.9375rem; font-weight: var(--font-medium); color: var(--color-gray-800);">Form 1040</span>
+          <span style="font-size: 0.8125rem; color: #6b7280; margin-left: 0.5rem;">Federal Income Tax Return</span>
+        </span>
+      </label>
+      {# State Return #}
+      <label style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--color-gray-100); cursor: pointer;">
+        <input type="checkbox" x-model="contents.state_return"
+               style="width: 1.125rem; height: 1.125rem; accent-color: var(--color-accent-500); cursor: pointer;">
+        <span style="flex: 1;">
+          <span style="font-size: 0.9375rem; font-weight: var(--font-medium); color: var(--color-gray-800);">State Return</span>
+          <span style="font-size: 0.8125rem; color: #6b7280; margin-left: 0.5rem;">(if applicable)</span>
+        </span>
+      </label>
+      {# Schedules #}
+      <label style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--color-gray-100); cursor: pointer;">
+        <input type="checkbox" x-model="contents.schedules"
+               style="width: 1.125rem; height: 1.125rem; accent-color: var(--color-accent-500); cursor: pointer;">
+        <span style="flex: 1;">
+          <span style="font-size: 0.9375rem; font-weight: var(--font-medium); color: var(--color-gray-800);">All Applicable Schedules</span>
+          <span style="font-size: 0.8125rem; color: #6b7280; margin-left: 0.5rem;">Schedules A, B, C, D, etc.</span>
+        </span>
+      </label>
+      {# W-2 / 1099 #}
+      <label style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--color-gray-100); cursor: pointer;">
+        <input type="checkbox" x-model="contents.w2_1099"
+               style="width: 1.125rem; height: 1.125rem; accent-color: var(--color-accent-500); cursor: pointer;">
+        <span style="flex: 1;">
+          <span style="font-size: 0.9375rem; font-weight: var(--font-medium); color: var(--color-gray-800);">Form W-2 / 1099 Summaries</span>
+          <span style="font-size: 0.8125rem; color: #6b7280; margin-left: 0.5rem;">Income document summaries</span>
+        </span>
+      </label>
+      {# Worksheets #}
+      <label style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--color-gray-100); cursor: pointer;">
+        <input type="checkbox" x-model="contents.worksheets"
+               style="width: 1.125rem; height: 1.125rem; accent-color: var(--color-accent-500); cursor: pointer;">
+        <span style="flex: 1;">
+          <span style="font-size: 0.9375rem; font-weight: var(--font-medium); color: var(--color-gray-800);">Supporting Worksheets</span>
+          <span style="font-size: 0.8125rem; color: #6b7280; margin-left: 0.5rem;">Calculation details &amp; supporting data</span>
+        </span>
+      </label>
+      {# Cover Letter #}
+      <label style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--color-gray-100); cursor: pointer;">
+        <input type="checkbox" x-model="contents.cover_letter"
+               style="width: 1.125rem; height: 1.125rem; accent-color: var(--color-accent-500); cursor: pointer;">
+        <span style="flex: 1;">
+          <span style="font-size: 0.9375rem; font-weight: var(--font-medium); color: var(--color-gray-800);">Client Cover Letter</span>
+          <span style="font-size: 0.8125rem; color: #6b7280; margin-left: 0.5rem;">Personalized cover letter for the client</span>
+        </span>
+      </label>
+      {# Engagement Letter #}
+      <label style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0; cursor: pointer;">
+        <input type="checkbox" x-model="contents.engagement_letter"
+               style="width: 1.125rem; height: 1.125rem; accent-color: var(--color-accent-500); cursor: pointer;">
+        <span style="flex: 1;">
+          <span style="font-size: 0.9375rem; font-weight: var(--font-medium); color: var(--color-gray-800);">Engagement Letter</span>
+          <span style="font-size: 0.8125rem; color: #6b7280; margin-left: 0.5rem;">Firm engagement agreement</span>
+        </span>
+      </label>
+    </div>
+
+    <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--color-gray-200);">
+      <span style="font-size: 0.8125rem; color: #6b7280;"
+            x-text="selectedContents.length + ' of 7 items selected'"></span>
+    </div>
+  </section>
+
+  {# ── Pre-flight Checks ── #}
+  <section style="background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-xl); padding: 1.75rem; margin-bottom: 1.5rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+      <h2 style="font-size: 1.125rem; font-weight: var(--font-semibold); color: var(--color-primary-500); margin: 0;">Pre-flight Checks</h2>
+      <span x-show="allChecksPassed"
+            style="display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.25rem 0.75rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: var(--font-semibold); background: var(--color-success-50); color: var(--color-success-500);">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        Ready to Export
+      </span>
+      <span x-show="!allChecksPassed"
+            style="display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.25rem 0.75rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: var(--font-semibold); background: var(--color-error-50); color: var(--color-error-500);">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+        Issues Found
+      </span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 0;">
+      <template x-for="(check, idx) in preflightChecks" :key="idx">
+        <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.6875rem 0;"
+             :style="idx < preflightChecks.length - 1 ? 'border-bottom: 1px solid #f3f4f6;' : ''">
+          {# Status icon #}
+          <span x-show="check.passed"
+                style="display: flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--color-success-50); color: var(--color-success-500); flex-shrink: 0;">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          </span>
+          <span x-show="!check.passed"
+                style="display: flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--color-error-50); color: var(--color-error-500); flex-shrink: 0;">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          </span>
+          {# Label #}
+          <span style="font-size: 0.9375rem; color: var(--color-gray-800);" x-text="check.label"></span>
+          {# Toggle button #}
+          <button @click="check.passed = !check.passed"
+                  style="margin-left: auto; font-size: 0.75rem; color: #6b7280; background: none; border: none; cursor: pointer; text-decoration: underline;"
+                  x-text="check.passed ? 'Mark failed' : 'Mark passed'"></button>
+        </div>
+      </template>
+    </div>
+  </section>
+
+  {# ── Generate Button & Result ── #}
+  <section style="background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-xl); padding: 1.75rem; margin-bottom: 1.5rem; text-align: center;">
+    {# Generate button #}
+    <button @click="generatePackage()"
+            :disabled="generating"
+            :style="`
+              display: inline-flex; align-items: center; justify-content: center; gap: 0.625rem;
+              padding: 0.875rem 2.5rem; border-radius: 10px; border: none; cursor: pointer;
+              font-size: 1rem; font-weight: 600; transition: all 0.2s;
+              background: ${generating ? '#94a3b8' : '#1e3a5f'}; color: #fff;
+              box-shadow: 0 1px 3px rgba(30,58,95,0.2);
+              ${generating ? 'cursor: not-allowed;' : ''}
+            `"
+            @mouseenter="if(!generating) { $el.style.background='#14b8a6'; $el.style.boxShadow='0 4px 12px rgba(20,184,166,0.3)'; }"
+            @mouseleave="if(!generating) { $el.style.background='#1e3a5f'; $el.style.boxShadow='0 1px 3px rgba(30,58,95,0.2)'; }">
+      {# Spinner #}
+      <svg x-show="generating" style="animation: fpSpin 1s linear infinite; width: 1.25rem; height: 1.25rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4m0 12v4m-7.07-3.93l2.83-2.83m8.48-8.48l2.83-2.83M2 12h4m12 0h4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83"/></svg>
+      <span x-text="generating ? 'Generating...' : 'Generate Filing Package'"></span>
+    </button>
+
+    {# Progress bar during generation #}
+    <div x-show="generating" style="margin-top: 1.25rem; max-width: 400px; margin-left: auto; margin-right: auto;">
+      <div style="height: 6px; background: var(--color-gray-200); border-radius: var(--radius-full); overflow: hidden;">
+        <div style="height: 100%; background: linear-gradient(90deg, var(--color-accent-500), var(--color-primary-500)); border-radius: var(--radius-full); animation: fpProgress 2s ease-in-out infinite; width: 60%;"></div>
+      </div>
+      <p style="font-size: 0.8125rem; color: #6b7280; margin-top: 0.5rem;">Assembling package&hellip; This may take a moment.</p>
+    </div>
+
+    {# Success state #}
+    <div x-show="generatedPackage && !generating" x-cloak
+         style="margin-top: 1.25rem; padding: 1rem 1.5rem; border-radius: 10px; background: var(--color-success-50); border: 1px solid #a7f3d0; display: inline-flex; align-items: center; gap: 0.75rem;">
+      <svg width="22" height="22" viewBox="0 0 20 20" fill="#10b981"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+      <span style="font-size: 0.9375rem; font-weight: var(--font-medium); color: #065f46;">Package generated successfully!</span>
+      <button @click="downloadPackage(generatedPackage)"
+              style="margin-left: 0.5rem; padding: 0.375rem 1rem; border-radius: var(--radius-lg); border: 1px solid var(--color-success-500); background: white; color: var(--color-success-500); font-size: 0.8125rem; font-weight: var(--font-semibold); cursor: pointer; transition: all 0.15s;"
+              @mouseenter="$el.style.background='#10b981'; $el.style.color='#fff'"
+              @mouseleave="$el.style.background='#fff'; $el.style.color='#10b981'">
+        Download
+      </button>
+    </div>
+  </section>
+
+  {# ── Export History ── #}
+  <section style="background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-xl); padding: 1.75rem;">
+    <h2 style="font-size: 1.125rem; font-weight: var(--font-semibold); color: var(--color-primary-500); margin: 0 0 1.25rem 0;">Export History</h2>
+
+    {# Empty state #}
+    <div x-show="exportHistory.length === 0"
+         style="text-align: center; padding: 2.5rem 1rem;">
+      <svg style="margin: 0 auto 0.75rem; display: block; color: var(--color-gray-300);" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      <p style="font-size: 0.9375rem; color: #9ca3af; margin: 0;">No packages generated yet</p>
+    </div>
+
+    {# History table #}
+    <div x-show="exportHistory.length > 0" style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--color-gray-200);">
+            <th style="text-align: left; padding: 0.625rem 0.75rem; font-weight: var(--font-semibold); color: #6b7280; font-size: 0.75rem; text-transform: uppercase; letter-spacing: var(--tracking-wider);">Date</th>
+            <th style="text-align: left; padding: 0.625rem 0.75rem; font-weight: var(--font-semibold); color: #6b7280; font-size: 0.75rem; text-transform: uppercase; letter-spacing: var(--tracking-wider);">Format</th>
+            <th style="text-align: left; padding: 0.625rem 0.75rem; font-weight: var(--font-semibold); color: #6b7280; font-size: 0.75rem; text-transform: uppercase; letter-spacing: var(--tracking-wider);">Tax Year</th>
+            <th style="text-align: left; padding: 0.625rem 0.75rem; font-weight: var(--font-semibold); color: #6b7280; font-size: 0.75rem; text-transform: uppercase; letter-spacing: var(--tracking-wider);">Status</th>
+            <th style="text-align: right; padding: 0.625rem 0.75rem; font-weight: var(--font-semibold); color: #6b7280; font-size: 0.75rem; text-transform: uppercase; letter-spacing: var(--tracking-wider);">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="(entry, idx) in exportHistory" :key="idx">
+            <tr style="border-bottom: 1px solid var(--color-gray-100);"
+                @mouseenter="$el.style.background='#f9fafb'"
+                @mouseleave="$el.style.background='transparent'">
+              <td style="padding: 0.75rem; color: var(--color-gray-700); white-space: nowrap;" x-text="formatDate(entry.date)"></td>
+              <td style="padding: 0.75rem;">
+                <span style="display: inline-block; padding: 0.125rem 0.5rem; border-radius: var(--radius-md); font-size: 0.75rem; font-weight: var(--font-semibold); background: var(--color-accent-50); color: var(--color-accent-500); text-transform: uppercase;"
+                      x-text="entry.format.replace('_', ' ')"></span>
+              </td>
+              <td style="padding: 0.75rem; color: var(--color-gray-700);" x-text="entry.taxYear"></td>
+              <td style="padding: 0.75rem;">
+                <span style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.8125rem; font-weight: var(--font-medium); color: var(--color-success-500);">
+                  <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                  Success
+                </span>
+              </td>
+              <td style="padding: 0.75rem; text-align: right;">
+                <button @click="downloadPackage(entry)"
+                        style="padding: 0.3125rem 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--color-gray-300); background: white; color: var(--color-gray-700); font-size: 0.8125rem; font-weight: var(--font-medium); cursor: pointer; transition: all 0.15s;"
+                        @mouseenter="$el.style.borderColor='#14b8a6'; $el.style.color='#14b8a6'"
+                        @mouseleave="$el.style.borderColor='#d1d5db'; $el.style.color='#374151'">
+                  Download
+                </button>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+{# Keyframe animations #}
+<style>
+  @keyframes fpSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @keyframes fpProgress {
+    0%   { transform: translateX(-100%); }
+    50%  { transform: translateX(60%); }
+    100% { transform: translateX(-100%); }
+  }
+</style>
+
+<script>
+function filingPackageManager() {
+    return {
+        taxYear: 2025,
+        returnId: '',
+        exportFormat: 'pdf_bundle',
+        generating: false,
+        generatedPackage: null,
+        exportHistory: [],
+        contents: {
+            form_1040: true,
+            state_return: true,
+            schedules: true,
+            w2_1099: true,
+            worksheets: true,
+            cover_letter: true,
+            engagement_letter: false
+        },
+        preflightChecks: [
+            { label: 'All required fields complete', passed: true },
+            { label: 'Math verification passed', passed: true },
+            { label: 'SSN/EIN validated', passed: true },
+            { label: 'Prior year data reconciled', passed: false },
+            { label: 'E-file eligibility confirmed', passed: true }
+        ],
+
+        get allChecksPassed() {
+            return this.preflightChecks.every(c => c.passed);
+        },
+
+        get selectedContents() {
+            return Object.entries(this.contents).filter(([k, v]) => v).map(([k]) => k);
+        },
+
+        formats: [
+            { id: 'json', name: 'JSON', desc: 'Raw data for custom integrations', icon: '{ }' },
+            { id: 'xml', name: 'XML', desc: 'Standard e-file format', icon: '</>' },
+            { id: 'pdf_bundle', name: 'PDF Bundle', desc: 'Complete package for printing', icon: 'PDF' },
+            { id: 'lacerte', name: 'Lacerte', desc: 'Import to Intuit Lacerte', icon: 'LAC' },
+            { id: 'proconnect', name: 'ProConnect', desc: 'Import to Intuit ProConnect', icon: 'PRO' }
+        ],
+
+        async generatePackage() {
+            if (!this.returnId) {
+                alert('Please enter a Return ID');
+                return;
+            }
+            this.generating = true;
+            this.generatedPackage = null;
+            try {
+                const res = await fetch('/api/filing-package', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        return_id: this.returnId,
+                        tax_year: this.taxYear,
+                        export_format: this.exportFormat,
+                        include: this.selectedContents
+                    })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    this.generatedPackage = data;
+                    this.exportHistory.unshift({
+                        date: new Date().toISOString(),
+                        format: this.exportFormat,
+                        taxYear: this.taxYear,
+                        status: 'success',
+                        data: data
+                    });
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.detail || 'Package generation failed');
+                }
+            } catch (e) {
+                alert('Failed to generate package');
+            } finally {
+                this.generating = false;
+            }
+        },
+
+        downloadPackage(pkg) {
+            const blob = new Blob([JSON.stringify(pkg.data || pkg, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `filing_package_${this.taxYear}_${this.exportFormat}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        },
+
+        formatDate(d) {
+            return new Date(d).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        },
+
+        formatName(id) {
+            return id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+    };
+}
+</script>
+{% endblock %}

@@ -121,8 +121,8 @@
     }
 
     .status-indicator.active {
-        background: #d1fae5;
-        color: #065f46;
+        background: var(--color-success-100);
+        color: var(--color-success-800);
     }
 
     .empty-state {
@@ -222,7 +222,7 @@
         <div class="empty-state-icon">{{ icon('users') }}</div>
         <h3>No clients yet</h3>
         <p>Clients appear here when leads convert through your pipeline.</p>
-        <a href="/cpa/leads" class="btn btn-primary" style="margin-top: 16px;">View Lead Pipeline</a>
+        <a href="/cpa/leads" class="btn btn-primary" style="margin-top: var(--space-4);">View Lead Pipeline</a>
     </div>
 </div>
 {% endif %}

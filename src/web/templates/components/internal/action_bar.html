@@ -63,7 +63,7 @@
             type="search"
             class="form-input form-input-sm"
             placeholder="{{ search_placeholder }}"
-            style="padding-left: 32px; width: 200px;"
+            style="padding-left: var(--space-8); width: 200px;"
           >
         </div>
       {% endif %}
@@ -120,7 +120,7 @@
           {% if action.href %}onclick="location.href='{{ action.href }}'"{% endif %}
         >
           {% if action.icon %}
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: var(--space-1-5);">
               {% if action.icon == 'download' %}
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
               {% elif action.icon == 'plus' %}
