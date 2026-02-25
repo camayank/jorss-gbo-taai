@@ -142,6 +142,8 @@ from security.auth_decorators import (
     Role,
     get_user_from_request,
 )
+from rbac.dependencies import require_permission
+from rbac.permissions import Permission
 
 # =============================================================================
 # AUDIT TRAIL IMPORTS - CPA COMPLIANCE REQUIREMENT
@@ -3124,6 +3126,7 @@ async def apply_document(document_id: str, request: Request):
 
 @app.delete("/api/documents/{document_id}")
 @require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
+@require_permission(Permission.DOCUMENT_DELETE)
 async def delete_document(document_id: str, request: Request):
     """Delete an uploaded document."""
     session_id = request.cookies.get("tax_session_id") or ""
@@ -5025,6 +5028,7 @@ async def list_saved_returns(
 
 @app.delete("/api/returns/{return_id}")
 @require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.ADMIN])
+@require_permission(Permission.RETURN_EDIT)
 async def delete_saved_return(return_id: str, request: Request):
     """
     Delete a saved tax return.
@@ -5169,6 +5173,7 @@ async def get_return_workflow_status(session_id: str, request: Request):
 
 @app.post("/api/returns/{session_id}/submit-for-review")
 @require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER, Role.ADMIN])
+@require_permission(Permission.RETURN_SUBMIT)
 @require_session_owner(session_param="session_id")
 async def submit_return_for_review(session_id: str, request: Request):
     """
@@ -5231,6 +5236,7 @@ async def submit_return_for_review(session_id: str, request: Request):
 
 @app.post("/api/returns/{session_id}/approve", operation_id="approve_return_cpa_signoff")
 @require_auth(roles=[Role.CPA])
+@require_permission(Permission.RETURN_APPROVE)
 @require_session_owner(session_param="session_id")
 async def approve_return_cpa_signoff(session_id: str, request: Request):
     """
@@ -5578,6 +5584,7 @@ async def calculate_delta(session_id: str, request: Request):
 
 @app.post("/api/returns/{session_id}/notes")
 @require_auth(roles=[Role.CPA, Role.PREPARER, Role.ADMIN])
+@require_permission(Permission.RETURN_REVIEW)
 @require_session_owner(session_param="session_id")
 async def add_cpa_note(session_id: str, request: Request):
     """
