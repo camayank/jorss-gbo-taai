@@ -1107,3 +1107,47 @@ def get_pii_access_report(
         "violations_detail": violations,
         "generated_at": datetime.now().isoformat(),
     }
+
+
+# =============================================================================
+# AI Response Audit Trail
+# =============================================================================
+
+import hashlib
+from typing import List as TypeList
+
+# In-memory storage for AI response events (production would use database)
+_ai_response_events: TypeList = []
+
+
+def get_prompt_hash(prompt: str = "default_system_prompt") -> str:
+    """Generate hash of system prompt for reproducibility."""
+    return hashlib.sha256(prompt.encode()).hexdigest()[:16]
+
+
+def log_ai_response(event) -> None:
+    """
+    Log an AI response audit event.
+
+    Args:
+        event: AIResponseAuditEvent instance from audit_models
+    """
+    _ai_response_events.append(event)
+
+
+def get_ai_response_audit_trail(session_id: str) -> TypeList:
+    """
+    Get all AI response audit events for a session.
+
+    Args:
+        session_id: The session ID to filter by
+
+    Returns:
+        List of AIResponseAuditEvent instances
+    """
+    return [e for e in _ai_response_events if e.session_id == session_id]
+
+
+def get_all_ai_response_events() -> TypeList:
+    """Get all AI response audit events."""
+    return _ai_response_events.copy()

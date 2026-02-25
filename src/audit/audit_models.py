@@ -169,3 +169,55 @@ class AuditEntry:
         source_info = f" (via {self.source.value.replace('_', ' ')})"
 
         return f"{action_verb} {self.entity_type}{field_info}{value_info}{source_info}"
+
+
+@dataclass
+class AIResponseAuditEvent:
+    """
+    Audit event for AI advisory responses.
+
+    Captures comprehensive information about AI-generated advice
+    for compliance and debugging purposes.
+    """
+    # Core identification
+    session_id: str
+    timestamp: datetime = field(default_factory=datetime.utcnow)
+    user_id: Optional[str] = None
+
+    # AI tracking
+    model_version: str = ""
+    prompt_hash: str = ""
+    response_type: str = ""  # greeting, question, calculation, strategy
+
+    # Confidence tracking
+    profile_completeness: float = 0.0
+    response_confidence: str = "high"  # high, medium, low
+    confidence_reason: Optional[str] = None
+
+    # Input/output tracking
+    user_message: str = ""
+    extracted_fields: dict = field(default_factory=dict)
+    calculation_inputs: Optional[dict] = None
+    response_summary: str = ""
+    citations_included: list = field(default_factory=list)
+    warnings_triggered: list = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        """Convert audit event to dictionary for storage/serialization."""
+        return {
+            "session_id": self.session_id,
+            "timestamp": self.timestamp.isoformat(),
+            "user_id": self.user_id,
+            "model_version": self.model_version,
+            "prompt_hash": self.prompt_hash,
+            "response_type": self.response_type,
+            "profile_completeness": self.profile_completeness,
+            "response_confidence": self.response_confidence,
+            "confidence_reason": self.confidence_reason,
+            "user_message": self.user_message,
+            "extracted_fields": self.extracted_fields,
+            "calculation_inputs": self.calculation_inputs,
+            "response_summary": self.response_summary,
+            "citations_included": self.citations_included,
+            "warnings_triggered": self.warnings_triggered
+        }
