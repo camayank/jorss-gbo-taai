@@ -1620,6 +1620,9 @@ async def app_settings(request: Request):
     """
     User settings page accessible from any role.
     """
+    denied = _require_any_auth(request)
+    if denied:
+        return denied
     user = _ui_user_context(request, default_role="user")
     # Route to appropriate settings based on role
     role_bucket = _resolve_request_role_bucket(request)
