@@ -46,6 +46,36 @@ class TestChatResponseDisclaimerFields:
         assert "CPA or EA" in STANDARD_DISCLAIMER
 
 
+class TestStrategyResponseDisclaimer:
+    """Tests for strategy response disclaimers."""
+
+    def test_strategy_response_includes_disclaimer(self):
+        """Strategy responses should include standard disclaimer."""
+        from src.web.intelligent_advisor_api import STANDARD_DISCLAIMER
+
+        response = ChatResponse(
+            session_id="test-123",
+            response="Based on your situation, you could save $5,000...",
+            response_type="strategy",
+            disclaimer=STANDARD_DISCLAIMER,
+            total_potential_savings=5000.0
+        )
+        assert response.disclaimer is not None
+        assert "not professional tax advice" in response.disclaimer
+
+    def test_calculation_response_includes_disclaimer(self):
+        """Calculation responses should include standard disclaimer."""
+        from src.web.intelligent_advisor_api import STANDARD_DISCLAIMER
+
+        response = ChatResponse(
+            session_id="test-123",
+            response="Your estimated tax is $15,000...",
+            response_type="calculation",
+            disclaimer=STANDARD_DISCLAIMER
+        )
+        assert response.disclaimer is not None
+
+
 class TestAPIGreetingDisclaimer:
     """Tests for API greeting disclaimer."""
 

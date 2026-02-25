@@ -4851,6 +4851,7 @@ To get started, what's your filing status?"""
             session_id=request.session_id,
             response=response_text,
             response_type=response_type,
+            disclaimer=STANDARD_DISCLAIMER,
             tax_calculation=tax_calculation,
             strategies=[StrategyRecommendation(**s.dict()) for s in strategies[:5]] if strategies else [],
             next_questions=next_questions,
