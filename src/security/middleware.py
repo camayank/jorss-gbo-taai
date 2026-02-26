@@ -489,7 +489,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if direct_ip in TRUSTED_PROXIES:
             forwarded = request.headers.get("X-Forwarded-For")
             if forwarded:
-                return forwarded.split(",")[0].strip()
+                # Use rightmost non-trusted IP (secure against spoofed headers)
+                ips = [ip.strip() for ip in forwarded.split(",")]
+                for ip in reversed(ips):
+                    if ip not in TRUSTED_PROXIES:
+                        return ip
+                return ips[0]  # Fallback to leftmost if all trusted
             real_ip = request.headers.get("X-Real-IP")
             if real_ip:
                 return real_ip
@@ -799,12 +804,16 @@ class IPWhitelistMiddleware(BaseHTTPMiddleware):
             return None
 
     def _get_client_ip(self, request: Request) -> str:
-        """Extract client IP, handling proxies."""
-        # Check X-Forwarded-For first (for proxied requests)
-        forwarded_for = request.headers.get("x-forwarded-for")
-        if forwarded_for:
-            # Take the first IP in the chain (original client)
-            return forwarded_for.split(",")[0].strip()
+        """Extract client IP, handling proxies (rightmost non-trusted from XFF)."""
+        direct_ip = request.client.host if request.client else "unknown"
+        if direct_ip in TRUSTED_PROXIES:
+            forwarded_for = request.headers.get("x-forwarded-for")
+            if forwarded_for:
+                ips = [ip.strip() for ip in forwarded_for.split(",")]
+                for ip in reversed(ips):
+                    if ip not in TRUSTED_PROXIES:
+                        return ip
+                return ips[0]
 
         # Check X-Real-IP
         real_ip = request.headers.get("x-real-ip")
@@ -1038,16 +1047,22 @@ class EndpointRateLimiter:
             self._backend = InMemoryRateLimitBackend()
 
     def _default_key_func(self, request: Request) -> str:
-        """Default key function: use client IP."""
-        forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
+        """Default key function: use client IP (rightmost non-trusted from XFF)."""
+        direct_ip = request.client.host if request.client else "unknown"
 
-        real_ip = request.headers.get("X-Real-IP")
-        if real_ip:
-            return real_ip
+        if direct_ip in TRUSTED_PROXIES:
+            forwarded = request.headers.get("X-Forwarded-For")
+            if forwarded:
+                ips = [ip.strip() for ip in forwarded.split(",")]
+                for ip in reversed(ips):
+                    if ip not in TRUSTED_PROXIES:
+                        return ip
+                return ips[0]
+            real_ip = request.headers.get("X-Real-IP")
+            if real_ip:
+                return real_ip
 
-        return request.client.host if request.client else "unknown"
+        return direct_ip
 
     async def check(self, request: Request) -> None:
         """
