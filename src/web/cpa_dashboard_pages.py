@@ -188,14 +188,23 @@ async def get_cpa_profile_from_context(request: Request) -> dict:
     """
     Get CPA profile from authentication context.
 
-    In production, this would use the auth context to get the logged-in CPA's profile.
-    For now, returns default profile or demo data.
+    Resolves profile from: auth JWT → cpa_id cookie → demo query param → defaults.
     """
-    # TODO: Integrate with actual auth when available
-    # auth_context = request.state.auth if hasattr(request.state, 'auth') else None
+    cpa_id = None
 
-    # Check for demo mode or test user
-    cpa_id = request.cookies.get("cpa_id") or request.query_params.get("demo")
+    # 1. Try to get CPA ID from auth context (JWT-authenticated user)
+    auth_context = getattr(request.state, "auth", None) if hasattr(request.state, "auth") else None
+    if auth_context:
+        cpa_id = (
+            getattr(auth_context, "cpa_id", None)
+            or getattr(auth_context, "user_id", None)
+            or (auth_context.get("cpa_id") if isinstance(auth_context, dict) else None)
+            or (auth_context.get("sub") if isinstance(auth_context, dict) else None)
+        )
+
+    # 2. Fallback: cookie or demo query param
+    if not cpa_id:
+        cpa_id = request.cookies.get("cpa_id") or request.query_params.get("demo")
 
     if cpa_id:
         try:
@@ -205,7 +214,7 @@ async def get_cpa_profile_from_context(request: Request) -> dict:
             if profile:
                 return profile
         except Exception as e:
-            logger.warning(f"Failed to load CPA profile: {e}")
+            logger.warning(f"Failed to load CPA profile for {cpa_id}: {e}")
 
     return get_default_cpa_profile()
 
@@ -343,12 +352,26 @@ async def get_priority_leads(cpa_id: str, limit: int = 5) -> List[dict]:
 
 
 async def get_recent_activity(cpa_id: str, limit: int = 5) -> List[dict]:
-    """
-    Get recent activity feed for dashboard.
-    """
-    # TODO: Implement activity tracking
-    # For now, return empty list
-    return []
+    """Get recent activity feed for dashboard from the activity service."""
+    try:
+        from cpa_panel.services.activity_service import get_activity_service
+        service = get_activity_service()
+        activities = service.get_recent_activities(cpa_id=cpa_id, limit=limit)
+
+        # Format for dashboard display
+        result = []
+        for act in activities:
+            result.append({
+                "type": act.get("type", "activity"),
+                "description": act.get("description", ""),
+                "lead_name": act.get("lead_name") or act.get("lead_email", "Unknown"),
+                "actor": act.get("actor_name", "System"),
+                "time": _format_age(act.get("created_at")),
+            })
+        return result
+    except Exception as e:
+        logger.warning(f"Failed to get recent activity: {e}")
+        return []
 
 
 def _format_age(timestamp) -> str:
