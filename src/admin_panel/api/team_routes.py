@@ -36,6 +36,13 @@ from database.async_engine import get_async_session
 router = APIRouter(prefix="/team", tags=["Team Management"])
 logger = logging.getLogger(__name__)
 
+# Column whitelist for UPDATE queries — prevents SQL injection in dynamic SET clauses
+_USER_UPDATABLE_COLUMNS = frozenset({
+    "name", "email", "role", "is_active", "phone",
+    "first_name", "last_name", "job_title", "credentials",
+    "license_state", "license_number", "updated_at",
+})
+
 
 # =============================================================================
 # REQUEST/RESPONSE MODELS
@@ -453,6 +460,11 @@ async def update_team_member(
 
     if updates:
         updates.append("updated_at = NOW()")
+        # Validate all column names against whitelist before building query
+        for clause in updates:
+            col = clause.split("=")[0].strip()
+            if col not in _USER_UPDATABLE_COLUMNS:
+                raise HTTPException(status_code=400, detail=f"Invalid field: {col}")
         update_query = text(f"UPDATE users SET {', '.join(updates)} WHERE user_id = :user_id")
         await session.execute(update_query, params)
         await session.commit()

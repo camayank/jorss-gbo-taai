@@ -35,6 +35,12 @@ from database.async_engine import get_async_session
 router = APIRouter(tags=["Workflow Management"])
 logger = logging.getLogger(__name__)
 
+# Column whitelist for UPDATE queries — prevents SQL injection in dynamic SET clauses
+_TASK_UPDATABLE_COLUMNS = frozenset({
+    "status", "assigned_to", "priority", "due_date", "notes",
+    "completed_at", "updated_at",
+})
+
 
 # =============================================================================
 # ENUMS AND MODELS
@@ -821,6 +827,11 @@ async def update_task(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
 
     updates.append("updated_at = :updated_at")
+    # Validate all column names against whitelist before building query
+    for clause in updates:
+        col = clause.split("=")[0].strip()
+        if col not in _TASK_UPDATABLE_COLUMNS:
+            raise HTTPException(status_code=400, detail=f"Invalid field: {col}")
     update_clause = ", ".join(updates)
 
     query = text(f"UPDATE tasks SET {update_clause} WHERE task_id = :task_id")

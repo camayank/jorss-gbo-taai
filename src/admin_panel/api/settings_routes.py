@@ -41,6 +41,14 @@ from database.async_engine import get_async_session
 router = APIRouter(prefix="/settings", tags=["Settings"])
 logger = logging.getLogger(__name__)
 
+# Column whitelist for UPDATE queries — prevents SQL injection in dynamic SET clauses
+_FIRM_UPDATABLE_COLUMNS = frozenset({
+    "firm_name", "phone", "address", "city", "state", "zip_code",
+    "website", "logo_url", "timezone", "billing_email",
+    "name", "legal_name", "ein", "email", "address_line1",
+    "address_line2", "updated_at",
+})
+
 
 def _parse_json_field(raw_value, default):
     """Parse JSON/JSONB fields safely across DB adapters."""
@@ -396,6 +404,11 @@ async def update_firm_profile(
 
     if updates:
         updates.append("updated_at = :updated_at")
+        # Validate all column names against whitelist before building query
+        for clause in updates:
+            col = clause.split("=")[0].strip()
+            if col not in _FIRM_UPDATABLE_COLUMNS:
+                raise HTTPException(status_code=400, detail=f"Invalid field: {col}")
         update_clause = ", ".join(updates)
         query = text(f"UPDATE firms SET {update_clause} WHERE firm_id = :firm_id")
         await session.execute(query, params)

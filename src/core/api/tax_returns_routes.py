@@ -28,6 +28,14 @@ from database.async_engine import get_async_session
 
 logger = logging.getLogger(__name__)
 
+# Column whitelist for UPDATE queries — prevents SQL injection in dynamic SET clauses
+_RETURN_UPDATABLE_COLUMNS = frozenset({
+    "gross_income", "adjusted_gross_income", "taxable_income",
+    "total_tax", "filing_status", "status", "notes",
+    "refund_amount", "amount_due", "completion_percentage",
+    "workflow_stage", "completed_at", "updated_at",
+})
+
 router = APIRouter(prefix="/tax-returns", tags=["Core Tax Returns"])
 
 
@@ -563,6 +571,11 @@ async def update_tax_return(
 
     if updates:
         updates.append("updated_at = :updated_at")
+        # Validate all column names against whitelist before building query
+        for clause in updates:
+            col = clause.split("=")[0].strip()
+            if col not in _RETURN_UPDATABLE_COLUMNS:
+                raise HTTPException(status_code=400, detail=f"Invalid field: {col}")
         update_query = text(f"UPDATE returns SET {', '.join(updates)} WHERE return_id = :return_id")
         await session.execute(update_query, params)
         await session.commit()
