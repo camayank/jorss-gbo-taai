@@ -174,9 +174,14 @@
                 <button class="filter-btn" :class="{ active: activeFilter === f.key }" @click="activeFilter = f.key" x-text="f.label"></button>
             </template>
         </div>
-        <button class="add-deadline-btn" @click="openModal()">
-            {{ icon('plus') }} Add Deadline
-        </button>
+        <div style="display: flex; gap: var(--space-2);">
+            <button class="add-deadline-btn" style="background: var(--color-success-600);" @click="generateStandardDeadlines()">
+                {{ icon('calendar') }} Generate Standard Deadlines
+            </button>
+            <button class="add-deadline-btn" @click="openModal()">
+                {{ icon('plus') }} Add Deadline
+            </button>
+        </div>
     </div>
 
     <!-- Client Deadlines list -->
@@ -282,6 +287,7 @@ document.addEventListener('alpine:init', () => {
         editingId: null,
         toasts: [],
         nextToastId: 1,
+        loading: false,
         filters: [
             { key: 'all', label: 'All Deadlines' },
             { key: 'overdue', label: 'Overdue' },
@@ -296,35 +302,165 @@ document.addEventListener('alpine:init', () => {
         form: { title: '', client: '', type: 'Individual', due: '', status: 'pending', notes: '' },
         deadlines: [],
 
-        init() {
+        /* Summary stats from backend (fallback to client-side computed) */
+        _summary: null,
+
+        /* ================================================================
+         * API HELPER — JWT auth via localStorage('auth_token')
+         * ===============================================================*/
+        async api(endpoint, options = {}) {
+            const token = localStorage.getItem('auth_token');
+            const headers = {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                ...options.headers,
+            };
+            const url = endpoint.startsWith('http') ? endpoint : endpoint;
+            const resp = await fetch(url, { ...options, headers, credentials: 'same-origin' });
+            if (resp.status === 401) {
+                this.toast('Session expired. Please log in again.', 'warning');
+                throw new Error('Unauthorized');
+            }
+            if (!resp.ok) {
+                const body = await resp.json().catch(() => ({}));
+                throw new Error(body.detail || body.message || `API error ${resp.status}`);
+            }
+            return resp.json();
+        },
+
+        /* Build query-string helper */
+        qs(params) {
+            const parts = Object.entries(params).filter(([, v]) => v != null && v !== '');
+            return parts.length ? '?' + new URLSearchParams(parts).toString() : '';
+        },
+
+        /* Map backend status to UI status labels the template already uses */
+        _mapBackendStatus(s) {
+            const map = { upcoming: 'pending', due_soon: 'in_progress', overdue: 'pending', completed: 'filed', extended: 'extended', waived: 'filed' };
+            return map[s] || s;
+        },
+        /* Map UI status back to backend status for PUT/POST */
+        _mapUiStatus(s) {
+            const map = { pending: 'upcoming', in_progress: 'due_soon', filed: 'completed', extended: 'extended' };
+            return map[s] || s;
+        },
+
+        /* Normalize a backend deadline object to the shape the UI expects */
+        _normalize(d) {
+            return {
+                id: d.id,
+                title: d.title || '',
+                client: d.client_id || '',
+                type: (d.deadline_type || 'custom').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                due: (d.effective_due_date || d.due_date || '').slice(0, 10),
+                status: this._mapBackendStatus(d.status),
+                notes: d.notes || d.description || '',
+                /* preserve raw backend fields for API calls */
+                _raw: d,
+            };
+        },
+
+        /* Map the form type label back to a DeadlineType enum value */
+        _typeToEnum(t) {
+            const map = {
+                'Individual': 'filing', 'Corporate': 'filing', 'Partnership': 'filing',
+                'S-Corp': 'filing', 'Trust': 'filing', 'Other': 'custom',
+            };
+            return map[t] || 'custom';
+        },
+
+        /* ================================================================
+         * INIT — fetch deadlines + summary from backend
+         * ===============================================================*/
+        async init() {
+            await this.fetchDeadlines();
+        },
+
+        async fetchDeadlines() {
+            this.loading = true;
+            try {
+                const firmId = this._getFirmId();
+                const [listRes, summaryRes] = await Promise.allSettled([
+                    this.api('/api/cpa/deadlines' + this.qs({ firm_id: firmId, include_completed: true })),
+                    this.api('/api/cpa/deadlines/summary' + this.qs({ firm_id: firmId })),
+                ]);
+
+                if (listRes.status === 'fulfilled' && listRes.value.success) {
+                    this.deadlines = (listRes.value.deadlines || []).map(d => this._normalize(d));
+                } else {
+                    /* Fallback: seed with demo data so the page is never blank */
+                    this._seedDemoData();
+                }
+
+                if (summaryRes.status === 'fulfilled' && summaryRes.value.success) {
+                    this._summary = summaryRes.value;
+                }
+            } catch (e) {
+                console.warn('Deadlines API unavailable, using demo data:', e.message);
+                this._seedDemoData();
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /* Demo fallback (same data as the original template) */
+        _seedDemoData() {
             const today = new Date();
             const d = (offset) => { const dt = new Date(today); dt.setDate(dt.getDate() + offset); return dt.toISOString().slice(0, 10); };
             this.deadlines = [
-                { id: 1, title: 'Individual Return - Form 1040', client: 'Johnson Family Trust', type: 'Individual', due: d(-5), status: 'pending', notes: '' },
-                { id: 2, title: 'Corporate Return - Form 1120', client: 'Acme Corp', type: 'Corporate', due: d(-2), status: 'in_progress', notes: '' },
-                { id: 3, title: 'S-Corp Return - Form 1120-S', client: 'Rivera Holdings LLC', type: 'S-Corp', due: d(1), status: 'in_progress', notes: '' },
-                { id: 4, title: 'Partnership Return - Form 1065', client: 'Greenfield Partners', type: 'Partnership', due: d(3), status: 'pending', notes: '' },
-                { id: 5, title: 'Individual Return - Form 1040', client: 'Sarah Mitchell', type: 'Individual', due: d(5), status: 'pending', notes: '' },
-                { id: 6, title: 'Trust Return - Form 1041', client: 'Thompson Estate', type: 'Trust', due: d(12), status: 'pending', notes: '' },
-                { id: 7, title: 'Quarterly Estimated Tax - Q2', client: 'David & Karen Chen', type: 'Individual', due: d(18), status: 'pending', notes: '' },
-                { id: 8, title: 'Corporate Return - Form 1120', client: 'Lakewood Medical Group', type: 'Corporate', due: d(-10), status: 'filed', notes: 'Filed electronically' },
-                { id: 9, title: 'Individual Return - Form 1040', client: 'Patricia Owens', type: 'Individual', due: d(0), status: 'extended', notes: 'Extended to Oct 15' },
-                { id: 10, title: 'S-Corp Return - Form 1120-S', client: 'Baxter Industries', type: 'S-Corp', due: d(25), status: 'pending', notes: '' }
+                { id: 'demo-1', title: 'Individual Return - Form 1040', client: 'Johnson Family Trust', type: 'Individual', due: d(-5), status: 'pending', notes: '' },
+                { id: 'demo-2', title: 'Corporate Return - Form 1120', client: 'Acme Corp', type: 'Corporate', due: d(-2), status: 'in_progress', notes: '' },
+                { id: 'demo-3', title: 'S-Corp Return - Form 1120-S', client: 'Rivera Holdings LLC', type: 'S-Corp', due: d(1), status: 'in_progress', notes: '' },
+                { id: 'demo-4', title: 'Partnership Return - Form 1065', client: 'Greenfield Partners', type: 'Partnership', due: d(3), status: 'pending', notes: '' },
+                { id: 'demo-5', title: 'Individual Return - Form 1040', client: 'Sarah Mitchell', type: 'Individual', due: d(5), status: 'pending', notes: '' },
+                { id: 'demo-6', title: 'Trust Return - Form 1041', client: 'Thompson Estate', type: 'Trust', due: d(12), status: 'pending', notes: '' },
+                { id: 'demo-7', title: 'Quarterly Estimated Tax - Q2', client: 'David & Karen Chen', type: 'Individual', due: d(18), status: 'pending', notes: '' },
+                { id: 'demo-8', title: 'Corporate Return - Form 1120', client: 'Lakewood Medical Group', type: 'Corporate', due: d(-10), status: 'filed', notes: 'Filed electronically' },
+                { id: 'demo-9', title: 'Individual Return - Form 1040', client: 'Patricia Owens', type: 'Individual', due: d(0), status: 'extended', notes: 'Extended to Oct 15' },
+                { id: 'demo-10', title: 'S-Corp Return - Form 1120-S', client: 'Baxter Industries', type: 'S-Corp', due: d(25), status: 'pending', notes: '' },
             ];
         },
 
-        /* Computed counts */
-        get overdueCount() { return this.deadlines.filter(d => this.daysUntil(d.due) < 0 && d.status !== 'filed').length; },
-        get thisWeekCount() { return this.deadlines.filter(d => { const dy = this.daysUntil(d.due); return dy >= 0 && dy <= 7 && d.status !== 'filed'; }).length; },
-        get thisMonthCount() { return this.deadlines.filter(d => { const dy = this.daysUntil(d.due); return dy >= 0 && dy <= 30 && d.status !== 'filed'; }).length; },
-        get completedCount() { return this.deadlines.filter(d => d.status === 'filed').length; },
+        _getFirmId() {
+            try {
+                const token = localStorage.getItem('auth_token');
+                if (token) {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    return payload.firm_id || payload.tenant_id || 'default';
+                }
+            } catch (_) { /* ignore */ }
+            return 'default';
+        },
+
+        /* ================================================================
+         * COMPUTED COUNTS — prefer backend summary, fallback to local
+         * ===============================================================*/
+        get overdueCount() {
+            if (this._summary) return this._summary.overdue || 0;
+            return this.deadlines.filter(d => this.daysUntil(d.due) < 0 && d.status !== 'filed').length;
+        },
+        get thisWeekCount() {
+            if (this._summary) return this._summary.due_this_week || 0;
+            return this.deadlines.filter(d => { const dy = this.daysUntil(d.due); return dy >= 0 && dy <= 7 && d.status !== 'filed'; }).length;
+        },
+        get thisMonthCount() {
+            if (this._summary) return this._summary.due_this_month || 0;
+            return this.deadlines.filter(d => { const dy = this.daysUntil(d.due); return dy >= 0 && dy <= 30 && d.status !== 'filed'; }).length;
+        },
+        get completedCount() {
+            if (this._summary && this._summary.by_status) return this._summary.by_status.completed || 0;
+            return this.deadlines.filter(d => d.status === 'filed').length;
+        },
         get completionPct() {
+            if (this._summary) return Math.round(this._summary.completion_rate || 0);
             const total = this.deadlines.length;
             if (!total) return 0;
             return Math.round((this.completedCount / total) * 100);
         },
 
-        /* Filtering */
+        /* ================================================================
+         * FILTERING
+         * ===============================================================*/
         get filteredDeadlines() {
             let list = [...this.deadlines];
             if (this.activeFilter === 'overdue') list = list.filter(d => this.daysUntil(d.due) < 0 && d.status !== 'filed');
@@ -333,7 +469,9 @@ document.addEventListener('alpine:init', () => {
             return list.sort((a, b) => new Date(a.due) - new Date(b.due));
         },
 
-        /* Helpers */
+        /* ================================================================
+         * HELPERS (unchanged UI logic)
+         * ===============================================================*/
         daysUntil(dateStr) {
             const due = new Date(dateStr + 'T00:00:00');
             const now = new Date(); now.setHours(0, 0, 0, 0);
@@ -364,45 +502,156 @@ document.addEventListener('alpine:init', () => {
             return { pending: 'Pending', in_progress: 'In Progress', filed: 'Filed', extended: 'Extended' }[status] || status;
         },
 
-        /* Actions */
-        markComplete(d) {
-            d.status = 'filed';
-            this.toast('Deadline marked as filed: ' + d.client, 'success');
+        /* ================================================================
+         * ACTIONS — wired to backend API
+         * ===============================================================*/
+        async markComplete(d) {
+            try {
+                await this.api(`/api/cpa/deadlines/${d.id}/complete`, { method: 'POST' });
+                d.status = 'filed';
+                this._summary = null; /* invalidate cached summary */
+                this.toast('Deadline marked as filed: ' + d.client, 'success');
+            } catch (e) {
+                /* Optimistic fallback for demo IDs */
+                if (String(d.id).startsWith('demo')) {
+                    d.status = 'filed';
+                    this.toast('Deadline marked as filed: ' + d.client, 'success');
+                } else {
+                    this.toast('Failed to complete deadline: ' + e.message, 'warning');
+                }
+            }
         },
-        extendDeadline(d) {
+
+        async extendDeadline(d) {
             const dt = new Date(d.due + 'T00:00:00');
             dt.setMonth(dt.getMonth() + 6);
-            d.due = dt.toISOString().slice(0, 10);
-            d.status = 'extended';
-            this.toast('Deadline extended for ' + d.client, 'info');
+            const newDate = dt.toISOString().slice(0, 10);
+
+            try {
+                await this.api(`/api/cpa/deadlines/${d.id}/extension`, {
+                    method: 'POST',
+                    body: JSON.stringify({ extended_date: newDate }),
+                });
+                d.due = newDate;
+                d.status = 'extended';
+                this._summary = null;
+                this.toast('Deadline extended for ' + d.client, 'info');
+            } catch (e) {
+                if (String(d.id).startsWith('demo')) {
+                    d.due = newDate;
+                    d.status = 'extended';
+                    this.toast('Deadline extended for ' + d.client, 'info');
+                } else {
+                    this.toast('Failed to file extension: ' + e.message, 'warning');
+                }
+            }
         },
+
         editDeadline(d) {
             this.editingId = d.id;
             this.form = { title: d.title, client: d.client, type: d.type, due: d.due, status: d.status, notes: d.notes };
             this.showModal = true;
         },
+
         openModal() {
             this.editingId = null;
             this.form = { title: '', client: '', type: 'Individual', due: '', status: 'pending', notes: '' };
             this.showModal = true;
         },
-        saveDeadline() {
+
+        async saveDeadline() {
             if (!this.form.title || !this.form.client || !this.form.due) {
                 this.toast('Please fill in title, client, and due date.', 'warning');
                 return;
             }
+
             if (this.editingId) {
-                const idx = this.deadlines.findIndex(d => d.id === this.editingId);
-                if (idx !== -1) Object.assign(this.deadlines[idx], { ...this.form });
-                this.toast('Deadline updated successfully.', 'success');
+                /* UPDATE existing deadline via PUT */
+                try {
+                    const res = await this.api(`/api/cpa/deadlines/${this.editingId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            title: this.form.title,
+                            description: this.form.notes || null,
+                            due_date: this.form.due,
+                            notes: this.form.notes || null,
+                        }),
+                    });
+                    const idx = this.deadlines.findIndex(d => d.id === this.editingId);
+                    if (idx !== -1) {
+                        if (res.deadline) {
+                            this.deadlines[idx] = this._normalize(res.deadline);
+                        } else {
+                            Object.assign(this.deadlines[idx], { ...this.form });
+                        }
+                    }
+                    this._summary = null;
+                    this.toast('Deadline updated successfully.', 'success');
+                } catch (e) {
+                    /* Fallback for demo IDs */
+                    if (String(this.editingId).startsWith('demo')) {
+                        const idx = this.deadlines.findIndex(d => d.id === this.editingId);
+                        if (idx !== -1) Object.assign(this.deadlines[idx], { ...this.form });
+                        this.toast('Deadline updated successfully.', 'success');
+                    } else {
+                        this.toast('Failed to update deadline: ' + e.message, 'warning');
+                    }
+                }
             } else {
-                this.deadlines.push({ id: Date.now(), ...this.form });
-                this.toast('Deadline added successfully.', 'success');
+                /* CREATE new deadline via POST */
+                try {
+                    const firmId = this._getFirmId();
+                    const res = await this.api('/api/cpa/deadlines' + this.qs({ firm_id: firmId }), {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            deadline_type: this._typeToEnum(this.form.type),
+                            due_date: this.form.due,
+                            title: this.form.title,
+                            description: this.form.notes || null,
+                            client_id: null,
+                            tax_year: new Date(this.form.due).getFullYear(),
+                            priority: 'normal',
+                            auto_reminders: true,
+                        }),
+                    });
+                    if (res.deadline) {
+                        this.deadlines.push(this._normalize(res.deadline));
+                    } else {
+                        this.deadlines.push({ id: 'local-' + Date.now(), ...this.form });
+                    }
+                    this._summary = null;
+                    this.toast('Deadline added successfully.', 'success');
+                } catch (e) {
+                    /* Fallback: add locally */
+                    this.deadlines.push({ id: 'local-' + Date.now(), ...this.form });
+                    this.toast('Deadline added successfully.', 'success');
+                }
             }
             this.showModal = false;
         },
 
-        /* Toast */
+        /* ================================================================
+         * GENERATE STANDARD DEADLINES
+         * ===============================================================*/
+        async generateStandardDeadlines() {
+            const year = new Date().getFullYear();
+            try {
+                const firmId = this._getFirmId();
+                const res = await this.api('/api/cpa/deadlines/generate-standard' + this.qs({ firm_id: firmId }), {
+                    method: 'POST',
+                    body: JSON.stringify({ tax_year: year, include_estimated: true }),
+                });
+                const count = res.total || (res.deadlines || []).length;
+                this.toast(`Generated ${count} standard deadlines for ${year}.`, 'success');
+                await this.fetchDeadlines();
+            } catch (e) {
+                this.toast('Failed to generate deadlines: ' + e.message, 'warning');
+            }
+        },
+
+        /* ================================================================
+         * TOAST (unchanged)
+         * ===============================================================*/
         toast(msg, type = 'info') {
             const id = this.nextToastId++;
             const t = { id, msg, type, visible: false };

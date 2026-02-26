@@ -411,17 +411,101 @@
 
 {% block extra_scripts %}
 <script>
+/**
+ * Serialize the authenticated user context into a global so Alpine can read it.
+ * The Jinja template context passes `current_user` (a dict from require_cpa_auth)
+ * and `cpa` (profile dict with cpa_id, firm_name, etc.).
+ */
+window.__CPA_CTX = {
+    userId:   '{{ current_user.id | default("") }}',
+    userName: '{{ current_user.name | default(current_user.email | default("")) }}',
+    firmId:   '{{ current_user.tenant_id | default(cpa.cpa_id | default("default")) }}',
+    cpaId:    '{{ cpa.cpa_id | default("default") }}'
+};
+
 function taskManager() {
     const today = new Date(); today.setHours(0,0,0,0);
     const fmt = (d) => d.toISOString().split('T')[0];
     const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
 
+    /* ------------------------------------------------------------------ */
+    /*  API helper - handles JWT/session auth, CSRF, JSON parsing         */
+    /* ------------------------------------------------------------------ */
+    async function api(path, opts = {}) {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        const headers = Object.assign({
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken
+        }, opts.headers || {});
+
+        // If a JWT token is available in sessionStorage or cookie, attach it
+        const token = sessionStorage.getItem('access_token')
+            || document.cookie.split('; ').find(c => c.startsWith('access_token='))?.split('=')[1];
+        if (token) {
+            headers['Authorization'] = 'Bearer ' + decodeURIComponent(token);
+        }
+
+        const res = await fetch(path, {
+            method: opts.method || 'GET',
+            headers,
+            body: opts.body ? JSON.stringify(opts.body) : undefined,
+            credentials: 'same-origin'
+        });
+
+        if (!res.ok) {
+            const errBody = await res.json().catch(() => ({}));
+            throw new Error(errBody.detail || errBody.message || `API error ${res.status}`);
+        }
+
+        // DELETE may return 204 with no body
+        if (res.status === 204) return {};
+        return res.json();
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  Map API task object -> flat UI task object                         */
+    /* ------------------------------------------------------------------ */
+    function mapTask(t) {
+        return {
+            id:          t.id,
+            title:       t.title || '',
+            description: t.description || '',
+            priority:    mapPriorityFromApi(t.priority),
+            dueDate:     t.due_date || '',
+            assignedTo:  t.assigned_to_name || 'Unassigned',
+            client:      t.category ? t.category.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '',
+            completed:   t.status === 'completed',
+            status:      t.status,
+            _raw:        t   // keep raw API object for ids/metadata
+        };
+    }
+
+    /** API uses low/normal/high/urgent; UI uses low/medium/high */
+    function mapPriorityFromApi(p) {
+        if (p === 'normal') return 'medium';
+        if (p === 'urgent') return 'high';
+        return p || 'medium';
+    }
+    function mapPriorityToApi(p) {
+        if (p === 'medium') return 'normal';
+        return p || 'normal';
+    }
+
+    /** Map a UI client/category label back to the API enum value */
+    function mapCategoryToApi(label) {
+        if (!label) return 'custom';
+        return label.toLowerCase().replace(/\s+/g, '_');
+    }
+
+    const ctx = window.__CPA_CTX || {};
+
     return {
         activeFilter: 'all',
         showModal: false,
         editingId: null,
+        loading: false,
         toast: { show: false, message: '' },
-        currentUser: '',
+        currentUser: ctx.userName || '',
         filters: [
             { key: 'all', label: 'All Tasks' },
             { key: 'mine', label: 'My Tasks' },
@@ -433,10 +517,57 @@ function taskManager() {
         form: { title: '', description: '', priority: 'medium', dueDate: '', assignedTo: '', client: '' },
         tasks: [],
 
+        /* ============================================================== */
+        /*  init() - fetch tasks + categories from backend                */
+        /* ============================================================== */
+        async init() {
+            this.loading = true;
+            try {
+                const firmId = ctx.firmId || 'default';
+
+                // Fetch tasks and categories in parallel
+                const [tasksRes, catsRes] = await Promise.all([
+                    api('/api/cpa/tasks?firm_id=' + encodeURIComponent(firmId) + '&include_completed=true'),
+                    api('/api/cpa/tasks/categories')
+                ]);
+
+                // Populate tasks
+                this.tasks = (tasksRes.tasks || []).map(mapTask);
+
+                // Populate clientList from categories (label values)
+                this.clientList = (catsRes.categories || []).map(c => c.label);
+
+                // Build teamMembers from unique assignees already in tasks
+                const names = new Set();
+                if (this.currentUser) names.add(this.currentUser);
+                this.tasks.forEach(t => { if (t.assignedTo && t.assignedTo !== 'Unassigned') names.add(t.assignedTo); });
+                this.teamMembers = Array.from(names).sort();
+
+                // Try to augment teamMembers from workload endpoint (best-effort)
+                try {
+                    const wl = await api('/api/cpa/tasks/workload?firm_id=' + encodeURIComponent(firmId));
+                    if (wl.workload && Array.isArray(wl.workload)) {
+                        wl.workload.forEach(w => { if (w.name) names.add(w.name); });
+                        this.teamMembers = Array.from(names).sort();
+                    }
+                } catch (_) { /* workload is optional */ }
+
+            } catch (err) {
+                console.error('[TaskManager] init failed:', err);
+                this.showToast('Failed to load tasks');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /* ============================================================== */
+        /*  Helpers (unchanged UI logic)                                   */
+        /* ============================================================== */
         isDueToday(task) {
             return task.dueDate === fmt(today);
         },
         isOverdue(task) {
+            if (!task.dueDate) return false;
             return new Date(task.dueDate + 'T00:00:00') < today;
         },
         filteredTasks() {
@@ -451,6 +582,7 @@ function taskManager() {
             });
         },
         formatDue(dateStr) {
+            if (!dateStr) return '--';
             const d = new Date(dateStr + 'T00:00:00');
             const diff = Math.round((d - today) / 86400000);
             const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -459,16 +591,42 @@ function taskManager() {
             if (diff === 1) return 'Tomorrow';
             return label;
         },
-        toggleComplete(id) {
+
+        /* ============================================================== */
+        /*  toggleComplete - POST /start or /complete                     */
+        /* ============================================================== */
+        async toggleComplete(id) {
             const task = this.tasks.find(t => t.id === id);
-            if (task) {
-                task.completed = !task.completed;
+            if (!task) return;
+
+            const endpoint = task.completed
+                ? `/api/cpa/tasks/${id}/start`
+                : `/api/cpa/tasks/${id}/complete`;
+
+            try {
+                const params = ctx.userId ? '?user_id=' + encodeURIComponent(ctx.userId) : '';
+                const data = await api(endpoint + params, { method: 'POST' });
+                // Update local state from API response
+                if (data.task) {
+                    Object.assign(task, mapTask(data.task));
+                } else {
+                    // Fallback: toggle locally
+                    task.completed = !task.completed;
+                    task.status = task.completed ? 'completed' : 'in_progress';
+                }
                 this.showToast(task.completed ? 'Task marked complete' : 'Task reopened');
+            } catch (err) {
+                console.error('[TaskManager] toggleComplete failed:', err);
+                this.showToast('Failed to update task');
             }
         },
+
+        /* ============================================================== */
+        /*  Modal openers (unchanged UI)                                   */
+        /* ============================================================== */
         openAdd() {
             this.editingId = null;
-            this.form = { title: '', description: '', priority: 'medium', dueDate: fmt(addDays(today, 7)), assignedTo: this.currentUser, client: this.clientList[0] };
+            this.form = { title: '', description: '', priority: 'medium', dueDate: fmt(addDays(today, 7)), assignedTo: this.currentUser, client: this.clientList[0] || '' };
             this.showModal = true;
         },
         openEdit(task) {
@@ -476,22 +634,77 @@ function taskManager() {
             this.form = { title: task.title, description: task.description, priority: task.priority, dueDate: task.dueDate, assignedTo: task.assignedTo, client: task.client };
             this.showModal = true;
         },
-        saveTask() {
+
+        /* ============================================================== */
+        /*  saveTask - POST (create) or PUT (update) to API               */
+        /* ============================================================== */
+        async saveTask() {
             if (!this.form.title.trim()) return;
-            if (this.editingId) {
-                const task = this.tasks.find(t => t.id === this.editingId);
-                if (task) Object.assign(task, { ...this.form });
-                this.showToast('Task updated');
-            } else {
-                this.tasks.push({ id: Date.now(), ...this.form, completed: false });
-                this.showToast('Task created');
+
+            const firmId = ctx.firmId || 'default';
+            const payload = {
+                title:       this.form.title,
+                description: this.form.description || null,
+                priority:    mapPriorityToApi(this.form.priority),
+                due_date:    this.form.dueDate || null,
+                category:    mapCategoryToApi(this.form.client),
+                assigned_to_name: this.form.assignedTo || null
+            };
+
+            try {
+                if (this.editingId) {
+                    /* ---------- UPDATE ---------- */
+                    const data = await api(`/api/cpa/tasks/${this.editingId}`, {
+                        method: 'PUT',
+                        body: payload
+                    });
+                    const idx = this.tasks.findIndex(t => t.id === this.editingId);
+                    if (idx !== -1 && data.task) {
+                        this.tasks[idx] = mapTask(data.task);
+                    }
+                    this.showToast('Task updated');
+                } else {
+                    /* ---------- CREATE ---------- */
+                    const qs = new URLSearchParams({ firm_id: firmId });
+                    if (ctx.userId)   qs.set('user_id', ctx.userId);
+                    if (ctx.userName) qs.set('user_name', ctx.userName);
+
+                    const data = await api('/api/cpa/tasks?' + qs.toString(), {
+                        method: 'POST',
+                        body: payload
+                    });
+                    if (data.task) {
+                        this.tasks.push(mapTask(data.task));
+                    }
+                    // Ensure the new assignee appears in the team dropdown
+                    if (this.form.assignedTo && !this.teamMembers.includes(this.form.assignedTo)) {
+                        this.teamMembers.push(this.form.assignedTo);
+                        this.teamMembers.sort();
+                    }
+                    this.showToast('Task created');
+                }
+                this.showModal = false;
+            } catch (err) {
+                console.error('[TaskManager] saveTask failed:', err);
+                this.showToast('Failed to save task: ' + err.message);
             }
-            this.showModal = false;
         },
-        deleteTask(id) {
-            this.tasks = this.tasks.filter(t => t.id !== id);
-            this.showToast('Task deleted');
+
+        /* ============================================================== */
+        /*  deleteTask - DELETE /api/cpa/tasks/{id}                       */
+        /* ============================================================== */
+        async deleteTask(id) {
+            if (!confirm('Delete this task?')) return;
+            try {
+                await api(`/api/cpa/tasks/${id}`, { method: 'DELETE' });
+                this.tasks = this.tasks.filter(t => t.id !== id);
+                this.showToast('Task deleted');
+            } catch (err) {
+                console.error('[TaskManager] deleteTask failed:', err);
+                this.showToast('Failed to delete task');
+            }
         },
+
         showToast(msg) {
             this.toast.message = msg;
             this.toast.show = true;

@@ -266,11 +266,92 @@ function appointmentManager() {
     const pad = (n) => String(n).padStart(2, '0');
     const ds = (yr, mo, dy) => `${yr}-${pad(mo + 1)}-${pad(dy)}`;
     const todayStr = ds(y, m, today.getDate());
+
+    /* ------------------------------------------------------------------ */
+    /*  API helper – attaches JWT Bearer token + CSRF for every request   */
+    /* ------------------------------------------------------------------ */
+    function getAuthHeaders(includeJson = true) {
+        const headers = {};
+        if (includeJson) {
+            headers['Content-Type'] = 'application/json';
+            headers['Accept'] = 'application/json';
+        }
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+            headers['Authorization'] = 'Bearer ' + token;
+        }
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (csrfMeta && csrfMeta.content) {
+            headers['X-CSRF-Token'] = csrfMeta.content;
+        }
+        return headers;
+    }
+
+    async function apiFetch(url, options = {}) {
+        const defaults = {
+            headers: getAuthHeaders(),
+            credentials: 'same-origin'
+        };
+        const merged = { ...defaults, ...options, headers: { ...defaults.headers, ...(options.headers || {}) } };
+        const response = await fetch(url, merged);
+        if (response.status === 401) {
+            window.location.href = '/auth/login';
+            throw new Error('Unauthorized – redirecting to login');
+        }
+        if (!response.ok) {
+            const body = await response.json().catch(() => ({}));
+            throw new Error(body.detail || body.message || 'API request failed (' + response.status + ')');
+        }
+        if (response.status === 204) return null;
+        return response.json();
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  Map API response item to the shape the template already expects   */
+    /* ------------------------------------------------------------------ */
+    function normalizeAppointment(raw) {
+        return {
+            id:       raw.id,
+            client:   raw.client_name || raw.client || '',
+            type:     raw.appointment_type || raw.type || '',
+            date:     (raw.date || '').slice(0, 10),
+            time:     raw.time || '',
+            duration: raw.duration || 60,
+            notes:    raw.notes || '',
+            status:   raw.status || 'upcoming'
+        };
+    }
+
     return {
         viewYear: y, viewMonth: m, currentView: 'Month', selectedDate: todayStr,
-        appointments: [], showModal: false, toasts: [], nextId: 100,
+        appointments: [], showModal: false, toasts: [], loading: false, saving: false,
         form: { client: '', type: '', date: todayStr, time: '09:00', duration: '60', notes: '' },
 
+        /* ---- Lifecycle ---- */
+        async init() {
+            await this.fetchAppointments();
+        },
+
+        /* ---- Data fetching ---- */
+        async fetchAppointments() {
+            this.loading = true;
+            try {
+                const startDate = ds(this.viewYear, this.viewMonth, 1);
+                const lastDay = new Date(this.viewYear, this.viewMonth + 1, 0).getDate();
+                const endDate = ds(this.viewYear, this.viewMonth, lastDay);
+                const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
+                const data = await apiFetch('/api/cpa/appointments?' + params.toString());
+                const items = Array.isArray(data) ? data : (data.appointments || data.items || data.results || []);
+                this.appointments = items.map(normalizeAppointment);
+            } catch (err) {
+                console.error('Failed to load appointments:', err);
+                this.addToast('Failed to load appointments: ' + err.message, 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /* ---- Calendar computations (unchanged) ---- */
         get monthYearLabel() {
             return new Date(this.viewYear, this.viewMonth, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
         },
@@ -311,10 +392,10 @@ function appointmentManager() {
             return this.appointments.filter(a => { const d = new Date(a.date + 'T00:00:00'); return d >= sow && d < eow; }).length;
         },
         get statsThisMonth() {
-            const prefix = `${y}-${pad(m + 1)}`;
+            const prefix = `${this.viewYear}-${pad(this.viewMonth + 1)}`;
             return this.appointments.filter(a => a.date.startsWith(prefix)).length;
         },
-        get statsUpcoming() { return this.appointments.filter(a => a.status === 'upcoming').length; },
+        get statsUpcoming() { return this.appointments.filter(a => a.status === 'upcoming' || a.status === 'scheduled').length; },
         get statsCompleted() { return this.appointments.filter(a => a.status === 'completed').length; },
 
         typeClass(type) {
@@ -325,35 +406,76 @@ function appointmentManager() {
             return this.appointments.filter(a => a.date === dateStr).map(a => ({ ...a, typeClass: this.typeClass(a.type) }));
         },
         selectDate(dateStr) { this.selectedDate = dateStr; },
-        prevMonth() {
+
+        /* ---- Month navigation – re-fetches from API ---- */
+        async prevMonth() {
             if (this.viewMonth === 0) { this.viewMonth = 11; this.viewYear--; } else { this.viewMonth--; }
+            await this.fetchAppointments();
         },
-        nextMonth() {
+        async nextMonth() {
             if (this.viewMonth === 11) { this.viewMonth = 0; this.viewYear++; } else { this.viewMonth++; }
+            await this.fetchAppointments();
         },
-        goToday() { this.viewYear = y; this.viewMonth = m; this.selectedDate = todayStr; },
+        async goToday() {
+            this.viewYear = y; this.viewMonth = m; this.selectedDate = todayStr;
+            await this.fetchAppointments();
+        },
+
+        /* ---- Modal ---- */
         openModal(prefillDate) {
             this.form = { client: '', type: '', date: prefillDate || this.selectedDate || todayStr, time: '09:00', duration: '60', notes: '' };
             this.showModal = true;
         },
-        saveAppointment() {
+
+        /* ---- Book appointment via API ---- */
+        async saveAppointment() {
             if (!this.form.client || !this.form.type || !this.form.date || !this.form.time) return;
-            const isUpcoming = new Date(this.form.date + 'T00:00:00') >= new Date(todayStr + 'T00:00:00');
-            this.appointments.push({
-                id: this.nextId++, client: this.form.client, type: this.form.type,
-                date: this.form.date, time: this.form.time, duration: parseInt(this.form.duration),
-                notes: this.form.notes, status: isUpcoming ? 'upcoming' : 'completed'
-            });
-            this.selectedDate = this.form.date;
-            this.showModal = false;
-            this.addToast('Appointment scheduled for ' + this.form.client, 'success');
+            this.saving = true;
+            try {
+                const payload = {
+                    client_name:      this.form.client,
+                    appointment_type: this.form.type,
+                    date:             this.form.date,
+                    time:             this.form.time,
+                    duration:         parseInt(this.form.duration),
+                    notes:            this.form.notes || ''
+                };
+                const created = await apiFetch('/api/cpa/appointments', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                /* Insert the new record into the local array so the UI updates instantly */
+                if (created) {
+                    this.appointments.push(normalizeAppointment(created));
+                } else {
+                    /* If the API returns 204 / no body, re-fetch to stay in sync */
+                    await this.fetchAppointments();
+                }
+                this.selectedDate = this.form.date;
+                this.showModal = false;
+                this.addToast('Appointment scheduled for ' + this.form.client, 'success');
+            } catch (err) {
+                console.error('Failed to book appointment:', err);
+                this.addToast('Failed to schedule: ' + err.message, 'error');
+            } finally {
+                this.saving = false;
+            }
         },
-        cancelAppointment(id) {
+
+        /* ---- Cancel appointment via API ---- */
+        async cancelAppointment(id) {
             const appt = this.appointments.find(a => a.id === id);
             if (!appt) return;
-            this.appointments = this.appointments.filter(a => a.id !== id);
-            this.addToast('Appointment with ' + appt.client + ' cancelled', 'info');
+            try {
+                await apiFetch('/api/cpa/appointments/' + id + '/cancel', { method: 'POST' });
+                this.appointments = this.appointments.filter(a => a.id !== id);
+                this.addToast('Appointment with ' + appt.client + ' cancelled', 'info');
+            } catch (err) {
+                console.error('Failed to cancel appointment:', err);
+                this.addToast('Failed to cancel: ' + err.message, 'error');
+            }
         },
+
         addToast(message, type) { this.toasts.push({ message, type }); }
     };
 }
