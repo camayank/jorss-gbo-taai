@@ -104,20 +104,35 @@ class ImpersonationSession:
         }
 
 
-# Thread-safe in-memory storage
+# TODO: Migrate _sessions to Redis for distributed deployments.
+# In-memory storage is acceptable for single-instance, but will not
+# survive restarts or work across multiple workers/pods.
 _sessions: dict[str, ImpersonationSession] = {}
 
-# Mock user lookup (replace with actual database query)
-_mock_users = {
-    "user-001": {"email": "john@example.com", "role": "firm_client"},
-    "user-002": {"email": "jane@taxfirm.com", "role": "staff"},
-    "user-003": {"email": "admin@ca4cpa.com", "role": "super_admin"},
-}
 
+async def _get_user_info(user_id: str) -> Optional[dict]:
+    """Look up user from database."""
+    try:
+        from database.async_engine import get_async_session
+        from sqlalchemy import text
 
-def _get_user_info(user_id: str) -> Optional[dict]:
-    """Mock user lookup - replace with actual DB query."""
-    return _mock_users.get(user_id)
+        async for session in get_async_session():
+            result = await session.execute(
+                text("SELECT user_id, email, role, firm_id FROM users WHERE user_id = :uid"),
+                {"uid": user_id},
+            )
+            row = result.fetchone()
+            if not row:
+                return None
+            return {
+                "user_id": str(row[0]),
+                "email": str(row[1]),
+                "role": str(row[2]),
+                "firm_id": str(row[3]) if row[3] else None,
+            }
+    except Exception as e:
+        logger.error(f"Failed to lookup user {user_id}: {e}")
+        return None
 
 
 # =============================================================================
@@ -148,7 +163,7 @@ async def start_impersonation(
         )
 
     # Look up target user
-    target_user = _get_user_info(data.user_id)
+    target_user = await _get_user_info(data.user_id)
     if not target_user:
         raise HTTPException(
             status_code=404,
