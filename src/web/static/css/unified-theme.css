@@ -18,7 +18,7 @@
 }
 
 .sidebar .sidebar-header {
-  border-bottom-color: rgba(255, 255, 255, 0.1);
+  border-bottom-color: var(--white-alpha-10);
 }
 
 .sidebar .sidebar-brand,
@@ -27,33 +27,33 @@
 }
 
 .sidebar .sidebar-subtitle {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--white-alpha-60);
 }
 
 .sidebar .nav-section-title {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--white-alpha-50);
 }
 
 .sidebar .nav-item {
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--white-alpha-75);
 }
 
 .sidebar .nav-item:hover {
   background: var(--sidebar-hover) !important;
-  color: #ffffff;
+  color: var(--white);
 }
 
 .sidebar .nav-item.active {
   background: var(--sidebar-active) !important;
-  color: #ffffff;
+  color: var(--white);
 }
 
 .sidebar .sidebar-footer {
-  border-top-color: rgba(255, 255, 255, 0.1);
+  border-top-color: var(--white-alpha-10);
 }
 
 .sidebar .cpa-profile {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--white-alpha-10);
 }
 
 .sidebar .cpa-profile-name {
@@ -61,7 +61,7 @@
 }
 
 .sidebar .cpa-profile-role {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--white-alpha-60);
 }
 
 .sidebar .cpa-avatar-placeholder {
@@ -73,12 +73,12 @@
 }
 
 .sidebar .nav-badge {
-  background: rgba(255, 255, 255, 0.25);
-  color: #ffffff;
+  background: var(--white-alpha-25);
+  color: var(--white);
 }
 
 .sidebar .nav-item.active .nav-badge {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--white-alpha-30);
 }
 
 /* =========================
@@ -88,7 +88,7 @@
 
 .btn-primary {
   background: var(--color-primary-500);
-  color: #ffffff;
+  color: var(--white);
   border-color: transparent;
 }
 
@@ -105,14 +105,14 @@
 .btn-accent,
 .btn-cta {
   background: var(--color-accent-500);
-  color: #ffffff;
+  color: var(--white);
   border-color: transparent;
 }
 
 .btn-accent:hover:not(:disabled),
 .btn-cta:hover:not(:disabled) {
   background: var(--color-accent-600);
-  box-shadow: 0 4px 14px 0 rgb(20 184 166 / 0.39);
+  box-shadow: var(--shadow-accent);
 }
 
 /* =========================
@@ -149,7 +149,7 @@ input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--color-accent-500);
-  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+  box-shadow: var(--focus-ring-accent);
   outline: none;
 }
 

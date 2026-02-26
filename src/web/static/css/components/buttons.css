@@ -45,7 +45,7 @@
 /* Primary */
 .btn-primary {
   background-color: var(--color-primary-500);
-  color: #ffffff;
+  color: var(--white);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -106,7 +106,7 @@
 /* Success */
 .btn-success {
   background-color: var(--color-success-600);
-  color: #ffffff;
+  color: var(--white);
 }
 
 .btn-success:hover:not(:disabled) {
@@ -117,7 +117,7 @@
 /* Danger */
 .btn-danger {
   background-color: var(--color-error-600);
-  color: #ffffff;
+  color: var(--white);
 }
 
 .btn-danger:hover:not(:disabled) {
