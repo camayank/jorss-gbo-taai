@@ -163,6 +163,7 @@
     let taxCalculations = null;
     let leadQualified = false;
     let retryCount = 0; // Track consecutive retry attempts to prevent infinite loops
+    let questionNumber = 0; // Question counter for QW-2
 
     // =========================================================================
     // ROBUSTNESS LAYER - Error Handling, Validation, Recovery, Rate Limiting
@@ -1867,6 +1868,10 @@
         return;
       }
 
+      // Reset question counter
+      questionNumber = 0;
+      updateQuestionCounter();
+
       // Clear session storage
       sessionStorage.removeItem('tax_session_id');
       sessionStorage.removeItem('tax_data_consent');
@@ -2006,6 +2011,23 @@
       </div>`;
     }
 
+    // Question counter helpers
+    function getEstimatedTotal() {
+      var label = document.getElementById('currentPhaseLabel');
+      var phase = label ? label.textContent.trim().toLowerCase() : '';
+      if (phase.indexOf('income') !== -1) return 8;
+      if (phase.indexOf('analysis') !== -1 || phase.indexOf('deduction') !== -1) return 12;
+      if (phase.indexOf('report') !== -1) return 15;
+      return 5; // default for profile / getting started
+    }
+
+    function updateQuestionCounter() {
+      var el = document.getElementById('questionCounterText');
+      if (!el) return;
+      if (questionNumber < 1) { el.textContent = ''; return; }
+      el.textContent = 'Question ' + questionNumber + ' of ~' + getEstimatedTotal();
+    }
+
     function addMessage(type, text, quickActions = [], options = {}) {
       DevLogger.log('====== addMessage CALLED ======');
       DevLogger.log('Type:', type);
@@ -2015,6 +2037,12 @@
       // Mark session as having unsaved changes when user sends a message
       if (type === 'user' && typeof markUnsaved === 'function') {
         markUnsaved();
+      }
+
+      // Increment question counter when AI asks a question
+      if (type === 'ai') {
+        questionNumber++;
+        updateQuestionCounter();
       }
 
       const messages = document.getElementById('messages');
@@ -11211,5 +11239,71 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       PhotoCapture.open = PhotoCaptureEnhanced.open.bind(PhotoCaptureEnhanced);
     }
 
+
+    // ============ CPA MODAL (QW-3) ============
+    function openCpaModal() {
+      var backdrop = document.getElementById('cpaModalBackdrop');
+      if (backdrop) backdrop.style.display = 'flex';
+    }
+
+    function closeCpaModal() {
+      var backdrop = document.getElementById('cpaModalBackdrop');
+      if (backdrop) backdrop.style.display = 'none';
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeCpaModal();
+      }
+    });
+
+    window.openCpaModal = openCpaModal;
+    window.closeCpaModal = closeCpaModal;
+
+    // ============ DARK MODE (QW-10) ============
+    function applyDarkMode(isDark) {
+      if (isDark) {
+        document.documentElement.setAttribute('data-theme', 'advisor-dark');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+      }
+      // Swap icon in toggle button
+      var btn = document.getElementById('themeToggle');
+      if (btn) {
+        btn.innerHTML = isDark ? getIcon('sun', 'sm') : getIcon('moon', 'sm');
+      }
+    }
+
+    function initTheme() {
+      var saved = localStorage.getItem('advisor-theme');
+      if (saved === 'dark') {
+        applyDarkMode(true);
+      } else if (saved === 'light') {
+        applyDarkMode(false);
+      } else {
+        // No explicit preference — respect system setting
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        applyDarkMode(prefersDark);
+      }
+    }
+
+    function toggleDarkMode() {
+      var isDark = document.documentElement.getAttribute('data-theme') === 'advisor-dark';
+      var newState = !isDark;
+      applyDarkMode(newState);
+      localStorage.setItem('advisor-theme', newState ? 'dark' : 'light');
+    }
+
+    // Listen for system preference changes (only if no explicit user preference)
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+      if (!localStorage.getItem('advisor-theme')) {
+        applyDarkMode(e.matches);
+      }
+    });
+
+    // Initialize theme on load
+    initTheme();
+
+    window.toggleDarkMode = toggleDarkMode;
 
     // Professional Standards Acknowledgment is now handled by the unified advisor consent modal (see top of file)

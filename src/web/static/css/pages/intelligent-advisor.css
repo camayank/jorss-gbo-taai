@@ -30,6 +30,161 @@
       --shadow-glow: 0 0 40px rgba(26, 54, 93, 0.1);
     }
 
+    /* ============================================
+       DARK THEME (QW-10)
+       ============================================ */
+    [data-theme="advisor-dark"] {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-light: #334155;
+      --surface-elevated: #475569;
+      --text: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border: #334155;
+      --border-light: #475569;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+      --shadow-glow: 0 0 40px rgba(0, 0, 0, 0.3);
+      --gradient: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+      --gradient-premium: linear-gradient(135deg, #2c5282 0%, #1e3a5f 100%);
+    }
+
+    [data-theme="advisor-dark"] .header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      border-bottom-color: #334155;
+    }
+
+    [data-theme="advisor-dark"] .chat-panel {
+      background: #0f172a;
+    }
+
+    [data-theme="advisor-dark"] .message.ai .bubble {
+      background: #1e293b;
+      color: #f1f5f9;
+      border-color: #334155;
+    }
+
+    [data-theme="advisor-dark"] .quick-action {
+      background: #1e293b;
+      border-color: #475569;
+      color: #e2e8f0;
+    }
+
+    [data-theme="advisor-dark"] .quick-action:hover {
+      background: #334155;
+    }
+
+    [data-theme="advisor-dark"] .panel-card {
+      background: #1e293b;
+      border-color: #334155;
+    }
+
+    [data-theme="advisor-dark"] .journey-stepper {
+      background: #1e293b;
+      border-color: #334155;
+    }
+
+    [data-theme="advisor-dark"] .phase-indicator {
+      background: linear-gradient(135deg, rgba(30, 58, 95, 0.3) 0%, rgba(44, 82, 130, 0.3) 100%);
+      border-color: #334155;
+    }
+
+    [data-theme="advisor-dark"] .upload-zone {
+      background: #1e293b;
+      border-color: #475569;
+    }
+
+    [data-theme="advisor-dark"] .input-box {
+      background: #1e293b;
+      border-color: #475569;
+      color: #f1f5f9;
+    }
+
+    [data-theme="advisor-dark"] #userInput {
+      color: #f1f5f9;
+    }
+
+    [data-theme="advisor-dark"] .advisor-notice-banner {
+      background: rgba(30, 58, 95, 0.4);
+      border-color: #334155;
+      color: #94a3b8;
+    }
+
+    [data-theme="advisor-dark"] .progress-bar {
+      background: #334155;
+    }
+
+    [data-theme="advisor-dark"] .skeleton {
+      background: linear-gradient(90deg, #334155 25%, #475569 50%, #334155 75%);
+      background-size: 200% 100%;
+    }
+
+    [data-theme="advisor-dark"] .question-counter {
+      border-color: #334155;
+    }
+
+    [data-theme="advisor-dark"] #questionCounterText {
+      background: #334155;
+      color: #94a3b8;
+    }
+
+    [data-theme="advisor-dark"] .cpa-modal {
+      background: #1e293b;
+    }
+
+    [data-theme="advisor-dark"] .cpa-modal-header {
+      border-color: #334155;
+    }
+
+    [data-theme="advisor-dark"] .cpa-modal-header h3 {
+      color: #f1f5f9;
+    }
+
+    [data-theme="advisor-dark"] .cpa-contact-option:hover {
+      background: #334155;
+    }
+
+    [data-theme="advisor-dark"] .insight-card {
+      background: #1e293b;
+      border-color: #334155;
+    }
+
+    [data-theme="advisor-dark"] .send-btn {
+      background: var(--gradient);
+    }
+
+    [data-theme="advisor-dark"] .advisor-consent-content {
+      background: #1e293b;
+      color: #f1f5f9;
+    }
+
+    [data-theme="advisor-dark"] .consent-point {
+      background: #0f172a;
+      border-color: #334155;
+    }
+
+    /* Theme Toggle Button */
+    .theme-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: var(--radius-lg);
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .theme-toggle-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: rotate(15deg);
+    }
+
     body {
       font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--bg);
@@ -1714,6 +1869,27 @@
       color: var(--color-success-800);
     }
 
+    /* Question Counter */
+    .question-counter {
+      text-align: center;
+      padding: var(--space-2) var(--space-6);
+      border-bottom: 1px solid var(--border);
+    }
+
+    #questionCounterText {
+      display: inline-block;
+      font-size: var(--text-xs-plus);
+      font-weight: var(--font-medium);
+      color: var(--text-secondary);
+      padding: var(--space-1) var(--space-3);
+      background: var(--surface-light);
+      border-radius: var(--radius-2xl-plus);
+    }
+
+    #questionCounterText:empty {
+      display: none;
+    }
+
     /* Resume Banner */
     .resume-banner {
       background: linear-gradient(135deg, rgba(26, 54, 93, 0.95) 0%, rgba(44, 82, 130, 0.95) 100%);
@@ -1973,6 +2149,16 @@
     .skeleton-card {
       height: 100px;
       margin: var(--space-3) 0;
+    }
+
+    /* Skeleton placeholders for side panel initial state */
+    .stat-item.skeleton-placeholder {
+      border: none;
+      background: none;
+    }
+
+    .skeleton-placeholder {
+      transition: opacity 0.3s ease;
     }
 
     /* ============================================
@@ -2358,6 +2544,119 @@
       color: var(--text);
     }
 
+    /* CPA Button */
+    .cpa-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1-5);
+      padding: var(--space-2) var(--space-4);
+      background: var(--color-success-500);
+      border: 1px solid var(--color-success-500);
+      border-radius: var(--radius-lg);
+      color: white;
+      font-size: var(--text-xs-plus);
+      font-weight: var(--font-semibold);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .cpa-btn:hover {
+      background: var(--color-success-800);
+      border-color: var(--color-success-800);
+    }
+
+    /* CPA Modal */
+    .cpa-modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cpa-modal {
+      background: var(--surface);
+      border-radius: var(--radius-2xl-plus);
+      box-shadow: var(--shadow-lg);
+      max-width: 420px;
+      width: 90%;
+      overflow: hidden;
+    }
+
+    .cpa-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-5) var(--space-6);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .cpa-modal-header h3 {
+      font-size: var(--text-lg);
+      font-weight: var(--font-bold);
+      color: var(--text);
+      margin: 0;
+    }
+
+    .cpa-modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: var(--space-1);
+      line-height: 1;
+    }
+
+    .cpa-modal-close:hover {
+      color: var(--text);
+    }
+
+    .cpa-modal-body {
+      padding: var(--space-5) var(--space-6);
+    }
+
+    .cpa-contact-option {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-4);
+      border-radius: var(--radius-xl);
+      transition: background 0.2s;
+    }
+
+    .cpa-contact-option:hover {
+      background: var(--surface-light);
+    }
+
+    .cpa-contact-option .icon {
+      color: var(--color-primary-500);
+      flex-shrink: 0;
+    }
+
+    .cpa-contact-label {
+      font-size: var(--text-xs-plus);
+      color: var(--text-secondary);
+      margin-bottom: 2px;
+    }
+
+    .cpa-contact-value {
+      font-size: var(--text-base);
+      font-weight: var(--font-semibold);
+      color: var(--color-primary-500);
+      text-decoration: none;
+    }
+
+    .cpa-contact-value:hover {
+      text-decoration: underline;
+    }
+
     /* Connection Status */
     .connection-status {
       display: flex;
@@ -2697,6 +2996,14 @@
       .connection-status {
         padding: var(--space-1-5) var(--space-2-5);
         font-size: var(--text-2xs);
+      }
+
+      .cpa-btn {
+        padding: var(--space-2);
+      }
+
+      .cpa-btn-text {
+        display: none;
       }
 
       .input-area {

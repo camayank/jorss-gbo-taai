@@ -89,6 +89,12 @@
       <button class="clear-chat-btn" onclick="clearConversation()" title="Start new conversation" aria-label="Start new conversation">
         {{ icon('arrow-path', 'sm') }} New Chat
       </button>
+      <button class="cpa-btn" onclick="openCpaModal()" aria-label="Talk to a CPA">
+        {{ icon('phone', 'sm') }} <span class="cpa-btn-text">Talk to a CPA</span>
+      </button>
+      <button class="theme-toggle-btn" id="themeToggle" onclick="toggleDarkMode()" aria-label="Toggle dark mode">
+        {{ icon('moon', 'sm') }}
+      </button>
       <div class="connection-status" id="connectionStatus" role="status" aria-live="polite">
         <span class="status-dot" id="connectionDot"></span>
         <span id="connectionText">Connected</span>
@@ -149,6 +155,10 @@
         <span class="phase-label" id="currentPhaseLabel">Getting Started</span>
       </div>
 
+      <!-- Question Counter -->
+      <div class="question-counter" id="questionCounter" role="status" aria-live="polite">
+        <span id="questionCounterText"></span>
+      </div>
 
       <div class="messages" id="messages" role="log" aria-live="polite" aria-label="Conversation with AI tax advisor">
         <!-- Premium initial message -->
@@ -216,14 +226,21 @@
           <span id="progressText">Not started</span>
         </div>
         <div class="stats-grid" id="statsGrid">
-          <!-- Stats will be populated dynamically -->
+          <div class="stat-item skeleton-placeholder"><div class="skeleton skeleton-text" style="width: 60%"></div><div class="skeleton skeleton-text" style="width: 40%"></div></div>
+          <div class="stat-item skeleton-placeholder"><div class="skeleton skeleton-text" style="width: 50%"></div><div class="skeleton skeleton-text" style="width: 45%"></div></div>
+          <div class="stat-item skeleton-placeholder"><div class="skeleton skeleton-text" style="width: 70%"></div><div class="skeleton skeleton-text" style="width: 35%"></div></div>
         </div>
       </div>
 
       <div class="panel-card">
         <div class="panel-header">{{ icon('light-bulb', 'sm') }} Strategic Recommendations</div>
         <div id="insights" style="font-size: var(--text-sm); color: var(--text-secondary);">
-          I'll share personalized recommendations as we review your financial situation...
+          <div class="skeleton-placeholder">
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton skeleton-text" style="width: 95%"></div>
+            <div class="skeleton skeleton-text" style="width: 80%"></div>
+            <div class="skeleton skeleton-text" style="width: 88%"></div>
+          </div>
         </div>
       </div>
 
@@ -242,6 +259,39 @@
 
   <!-- Workflow Selector Component -->
   {% include 'components/workflow_selector.html' %}
+
+  <!-- CPA Contact Modal -->
+  <div class="cpa-modal-backdrop" id="cpaModalBackdrop" onclick="closeCpaModal()" role="dialog" aria-modal="true" aria-label="Contact a CPA" style="display:none;">
+    <div class="cpa-modal" onclick="event.stopPropagation()">
+      <div class="cpa-modal-header">
+        <h3>Connect with a Licensed CPA</h3>
+        <button class="cpa-modal-close" onclick="closeCpaModal()" aria-label="Close">&times;</button>
+      </div>
+      <div class="cpa-modal-body">
+        <div class="cpa-contact-option">
+          {{ icon('phone', 'md') }}
+          <div>
+            <div class="cpa-contact-label">Call Us</div>
+            <a href="tel:+18005551234" class="cpa-contact-value">(800) 555-1234</a>
+          </div>
+        </div>
+        <div class="cpa-contact-option">
+          {{ icon('envelope', 'md') }}
+          <div>
+            <div class="cpa-contact-label">Email</div>
+            <a href="mailto:cpa@jorss-gbo.com" class="cpa-contact-value">cpa@jorss-gbo.com</a>
+          </div>
+        </div>
+        <div class="cpa-contact-option">
+          {{ icon('calendar', 'md') }}
+          <div>
+            <div class="cpa-contact-label">Schedule a Consultation</div>
+            <a href="/contact" class="cpa-contact-value">Book Online</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   </div><!-- /.main-content -->
 
