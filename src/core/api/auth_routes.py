@@ -419,38 +419,69 @@ import os
 from datetime import datetime, timedelta
 
 # SECURITY: Token storage backend selection
-# In production, use Redis for persistence across workers and restarts
-_use_redis_tokens = os.environ.get("USE_REDIS_AUTH", "").lower() in ("true", "1", "yes")
-_reset_tokens: dict = {}  # Fallback in-memory storage
+# In production, Redis is REQUIRED for persistence across workers and restarts.
+# In development, falls back to in-memory storage when Redis is unavailable.
+_ENVIRONMENT = os.environ.get("APP_ENVIRONMENT", "development")
+_IS_PRODUCTION = _ENVIRONMENT in ("production", "prod", "staging")
+
+_reset_tokens: dict = {}  # Development-only in-memory fallback
+_reset_token_redis = None  # Lazy-initialized Redis client
+
 
 def _get_reset_token_backend():
-    """Get the password reset token storage backend."""
-    if _use_redis_tokens:
-        try:
-            import redis
-            redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
-            return redis.from_url(redis_url, decode_responses=True)
-        except (ImportError, Exception) as e:
-            logger.warning(f"Redis unavailable for reset tokens, using in-memory: {e}")
-    return None
+    """
+    Get the password reset token Redis backend.
+
+    In production, raises RuntimeError if Redis is unavailable.
+    In development, returns None to fall back to in-memory storage.
+    """
+    global _reset_token_redis
+    if _reset_token_redis is not None:
+        return _reset_token_redis
+
+    try:
+        import redis as _sync_redis
+        redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+        client = _sync_redis.from_url(redis_url, decode_responses=True)
+        client.ping()
+        _reset_token_redis = client
+        return _reset_token_redis
+    except ImportError:
+        if _IS_PRODUCTION:
+            raise RuntimeError(
+                "CRITICAL: redis package is required in production for reset token storage. "
+                "Install with: pip install redis[hiredis]"
+            )
+        logger.warning("redis package not installed — using in-memory reset token storage (dev only)")
+        return None
+    except Exception as e:
+        if _IS_PRODUCTION:
+            raise RuntimeError(
+                f"Redis is required in production for reset token storage but unavailable: {e}"
+            )
+        logger.warning(f"Redis unavailable for reset tokens, using in-memory (dev only): {e}")
+        return None
+
 
 def _store_reset_token(token: str, data: dict, ttl_seconds: int = 900):
     """Store a password reset token with expiration."""
+    import json as _json
     redis_client = _get_reset_token_backend()
     if redis_client:
-        import json
-        redis_client.setex(f"reset_token:{token}", ttl_seconds, json.dumps(data, default=str))
+        redis_client.setex(f"reset_token:{token}", ttl_seconds, _json.dumps(data, default=str))
     else:
         _reset_tokens[token] = data
 
+
 def _get_reset_token(token: str) -> dict:
     """Retrieve a password reset token."""
+    import json as _json
     redis_client = _get_reset_token_backend()
     if redis_client:
-        import json
         data = redis_client.get(f"reset_token:{token}")
-        return json.loads(data) if data else None
+        return _json.loads(data) if data else None
     return _reset_tokens.get(token)
+
 
 def _delete_reset_token(token: str):
     """Delete a password reset token after use."""
