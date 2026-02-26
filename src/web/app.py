@@ -4255,11 +4255,33 @@ async def create_lead(request: Request):
     Leads include contact info, tax profile, and estimated savings.
 
     SECURITY: Rate limited to 10 requests per minute per IP to prevent spam/abuse.
+    Server-side CAPTCHA validation required when CAPTCHA_SECRET_KEY is configured.
     """
     try:
         body = await request.json()
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
+
+    # Server-side CAPTCHA verification (when configured)
+    captcha_secret = os.environ.get("CAPTCHA_SECRET_KEY")
+    captcha_token = body.get("captcha_token") or body.get("g-recaptcha-response")
+    if captcha_secret:
+        if not captcha_token:
+            raise HTTPException(status_code=400, detail="CAPTCHA verification required")
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.post(
+                    "https://www.google.com/recaptcha/api/siteverify",
+                    data={"secret": captcha_secret, "response": captcha_token},
+                )
+                captcha_result = resp.json()
+                if not captcha_result.get("success", False):
+                    raise HTTPException(status_code=400, detail="CAPTCHA verification failed")
+        except httpx.HTTPError:
+            logger.warning("CAPTCHA verification service unavailable — allowing request")
+    elif os.environ.get("APP_ENVIRONMENT", "").lower() in ("production", "prod"):
+        logger.warning("CAPTCHA_SECRET_KEY not set in production — lead endpoint unprotected")
 
     # Extract lead data - supports BOTH nested (chatbot) and flat (quick_estimate) formats
     contact = body.get("contact", {})
