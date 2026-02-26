@@ -414,8 +414,20 @@
   --white-alpha-75: rgba(255, 255, 255, 0.75);
   --white-alpha-80: rgba(255, 255, 255, 0.8);
 
+  /* Accent glow backgrounds (for selected/active states) */
+  --accent-glow: rgba(20, 184, 166, 0.15);
+  --accent-glow-strong: rgba(20, 184, 166, 0.25);
+  --primary-glow: rgba(30, 58, 95, 0.10);
+
+  /* Gradient CTAs */
+  --gradient-accent: linear-gradient(135deg, var(--color-accent-500), var(--color-accent-600));
+  --gradient-accent-hover: linear-gradient(135deg, var(--color-accent-400), var(--color-accent-500));
+  --gradient-primary: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700));
+  --gradient-primary-hover: linear-gradient(135deg, var(--color-primary-400), var(--color-primary-600));
+
   /* Colored shadows for specific contexts */
   --shadow-accent: 0 4px 14px 0 rgb(20 184 166 / 0.39);
+  --shadow-accent-hover: 0 6px 20px 0 rgb(20 184 166 / 0.45);
   --shadow-success-glow: 0 4px 12px rgba(16, 185, 129, 0.3);
   --shadow-success-glow-hover: 0 6px 16px rgba(16, 185, 129, 0.4);
   --shadow-primary-glow: 0 0 20px rgba(30, 58, 95, 0.3);

@@ -104,15 +104,16 @@
 /* Accent/teal CTA buttons */
 .btn-accent,
 .btn-cta {
-  background: var(--color-accent-500);
+  background: var(--gradient-accent);
   color: var(--white);
   border-color: transparent;
+  box-shadow: var(--shadow-accent);
 }
 
 .btn-accent:hover:not(:disabled),
 .btn-cta:hover:not(:disabled) {
-  background: var(--color-accent-600);
-  box-shadow: var(--shadow-accent);
+  background: var(--gradient-accent-hover);
+  box-shadow: var(--shadow-accent-hover);
 }
 
 /* =========================

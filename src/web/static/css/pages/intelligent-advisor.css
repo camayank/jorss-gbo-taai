@@ -22,7 +22,7 @@
       --border: var(--color-slate-200);            /* Light borders */
       --border-light: var(--color-slate-300);      /* Slightly darker borders */
       --gradient: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-400) 100%);
-      --gradient-accent: linear-gradient(135deg, var(--color-accent-500) 0%, var(--color-accent-600) 100%);
+      /* --gradient-accent now in core/variables.css */
       --gradient-premium: linear-gradient(135deg, var(--color-primary-400) 0%, var(--color-primary-500) 100%);
       --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
       --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -665,14 +665,15 @@
     }
 
     .quick-action.primary {
-      background: var(--color-primary-500);
+      background: var(--gradient-accent);
       border: none;
       color: white;
+      box-shadow: var(--shadow-accent);
     }
 
     .quick-action.primary:hover {
-      background: var(--color-primary-400);
-      box-shadow: var(--shadow-md);
+      background: var(--gradient-accent-hover);
+      box-shadow: var(--shadow-accent-hover);
     }
 
     /* Multi-Select Checkboxes */
@@ -1502,11 +1503,12 @@
     }
 
     .send-btn {
-      background: var(--color-primary-500);
+      background: var(--gradient-accent);
       color: white;
       border: none;
       padding: var(--space-4) var(--space-8);
       border-radius: var(--radius-lg-plus);
+      box-shadow: var(--shadow-accent);
       font-size: 15px;
       font-weight: var(--font-bold);
       cursor: pointer;
@@ -1516,9 +1518,9 @@
     }
 
     .send-btn:hover {
-      background: var(--color-primary-400);
+      background: var(--gradient-accent-hover);
       transform: translateY(-1px);
-      box-shadow: var(--shadow-lg);
+      box-shadow: var(--shadow-accent-hover);
     }
 
     .send-btn:active {
@@ -2500,7 +2502,7 @@
 
     .consent-continue-btn {
       padding: var(--space-3-5) var(--space-8);
-      background: var(--color-primary-500);
+      background: var(--gradient-accent);
       color: white;
       border: none;
       border-radius: var(--radius-lg);
@@ -2508,6 +2510,7 @@
       font-weight: var(--font-semibold);
       cursor: pointer;
       transition: all 0.2s;
+      box-shadow: var(--shadow-accent);
     }
 
     .consent-continue-btn:disabled {
@@ -2515,16 +2518,18 @@
       color: var(--color-gray-500);
       cursor: not-allowed;
       opacity: 0.7;
+      box-shadow: none;
     }
 
     .consent-continue-btn:not(:disabled) {
-      background: var(--color-primary-500);
+      background: var(--gradient-accent);
       cursor: pointer;
     }
 
     .consent-continue-btn:not(:disabled):hover {
-      background: var(--color-primary-400);
+      background: var(--gradient-accent-hover);
       transform: translateY(-1px);
+      box-shadow: var(--shadow-accent-hover);
     }
 
     /* Message Timestamp */
