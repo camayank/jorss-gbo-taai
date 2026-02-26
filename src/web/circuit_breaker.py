@@ -1,5 +1,10 @@
 """
-Circuit Breaker Pattern
+Circuit Breaker Pattern (LEGACY — prefer src/resilience/circuit_breaker.py)
+
+NOTE: This module is a duplicate of src/resilience/circuit_breaker.py.
+It is kept because src/web/admin_endpoints.py imports from it.
+TODO: Migrate admin_endpoints.py to use src/resilience/circuit_breaker.py
+and then delete this file.
 
 Prevents cascading failures by failing fast when external services are down.
 
