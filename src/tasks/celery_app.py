@@ -69,6 +69,7 @@ def create_celery_app(
         backend=result_backend,
         include=[
             "tasks.ocr_tasks",
+            "tasks.data_retention",
         ],
     )
 
@@ -111,6 +112,18 @@ def create_celery_app(
             "cleanup-dead-letters": {
                 "task": "tasks.dead_letter.cleanup_old_dead_letters",
                 "schedule": 3600.0,  # Every hour
+            },
+            "purge-expired-sessions": {
+                "task": "tasks.data_retention.purge_expired_sessions",
+                "schedule": 3600.0,  # Every hour
+            },
+            "cleanup-orphaned-uploads": {
+                "task": "tasks.data_retention.cleanup_orphaned_uploads",
+                "schedule": 86400.0,  # Every 24 hours
+            },
+            "trim-audit-logs": {
+                "task": "tasks.data_retention.trim_audit_logs",
+                "schedule": 604800.0,  # Every 7 days
             },
         },
     )

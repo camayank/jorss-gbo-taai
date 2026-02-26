@@ -26,6 +26,9 @@ import os
 
 from src.security.session_token import verify_session_token, generate_session_token, SESSION_TOKEN_KEY
 
+# Models are now also available from web.advisor_models for external consumers.
+# The inline definitions below are kept for backward compatibility within this module.
+
 # Liability disclaimer constant
 STANDARD_DISCLAIMER = (
     "This is AI-generated information for educational purposes only, "

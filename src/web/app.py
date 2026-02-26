@@ -613,6 +613,7 @@ _ROUTER_REGISTRY = [
     ("web.routers.admin_api_keys_api", "router", None, "Admin API Keys API"),
     ("web.routers.admin_refunds_api", "router", None, "Admin Refunds API"),
     ("web.routers.admin_compliance_api", "router", None, "Admin Compliance API"),
+    ("web.routers.gdpr_api", "router", None, "GDPR Data Erasure API"),
     # Feature pages (wires orphaned templates to routes)
     ("web.routers.feature_pages", "router", None, "Feature Pages"),
 ]
