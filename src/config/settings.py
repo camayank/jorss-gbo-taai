@@ -377,10 +377,10 @@ class Settings(BaseSettings):
         elif len(ssn_hash_secret) < 32:
             errors.append("SSN_HASH_SECRET: Must be at least 32 characters")
 
-        # Check HTTPS enforcement
+        # Check HTTPS enforcement — hard requirement for production
         if not self.enforce_https:
             errors.append(
-                "APP_ENFORCE_HTTPS: Should be True in production for security"
+                "APP_ENFORCE_HTTPS: MUST be True in production — cannot serve over plain HTTP"
             )
 
         # Check email configuration (warning only, not blocking)
