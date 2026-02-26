@@ -722,7 +722,7 @@
                     </div>
                     <h3 class="insight-title">Maximize 401(k) Contributions</h3>
                     <p class="insight-description">
-                        Based on your income, you can contribute up to $22,500 to your 401(k) in 2024.
+                        Based on your income, you can contribute up to $23,500 to your 401(k) in {{ current_year or 'the current tax year' }}.
                         This reduces your taxable income dollar-for-dollar.
                     </p>
                     <div class="insight-details">
@@ -732,7 +732,7 @@
                         </div>
                         <div class="detail-item">
                             <span class="detail-label">Deadline:</span>
-                            <span class="detail-value">December 31, 2024</span>
+                            <span class="detail-value">December 31, {{ current_year or 'current year' }}</span>
                         </div>
                     </div>
                 </div>
@@ -821,7 +821,7 @@
                                     <circle cx="12" cy="12" r="10"/>
                                     <polyline points="12 6 12 12 16 14"/>
                                 </svg>
-                                Before Dec 31, 2024
+                                Before Dec 31, {{ current_year if current_year else 'the end of the year' }}
                             </div>
                         </div>
                     </div>
@@ -1036,7 +1036,7 @@
         </p>
         <p>Report ID: {{ session_id }} | Generated: {{ now().strftime('%B %d, %Y at %I:%M %p') if now else 'Today' }}</p>
         <p style="margin-top: var(--space-3); color: #9ca3af;">
-            &copy; {{ now().year if now else '2024' }} {{ cpa.firm_name or cpa.display_name }}. All rights reserved.
+            &copy; {{ current_year or 'current year' }} {{ cpa.firm_name or cpa.display_name }}. All rights reserved.
         </p>
     </footer>
 

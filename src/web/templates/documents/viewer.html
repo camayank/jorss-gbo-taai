@@ -980,7 +980,7 @@
                         </div>
                         <div class="info-item">
                             <span class="info-label">Uploaded By</span>
-                            <span class="info-value">John Doe</span>
+                            <span class="info-value" id="doc-uploaded-by">{{ document.uploaded_by if document and document.uploaded_by else 'Unknown' }}</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Upload Date</span>
@@ -1013,7 +1013,7 @@
                         <div class="activity-item">
                             <div class="activity-dot"></div>
                             <div class="activity-content">
-                                <div class="activity-text">Document uploaded by John Doe</div>
+                                <div class="activity-text">Document uploaded by {{ document.uploaded_by if document and document.uploaded_by else 'user' }}</div>
                                 <div class="activity-time">Jan 15, 2025 at 2:34 PM</div>
                             </div>
                         </div>

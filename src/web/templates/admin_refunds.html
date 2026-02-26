@@ -426,19 +426,22 @@ function refundManager() {
       return this.createForm.firm_id && this.createForm.subscription_id && this.createForm.amount > 0 && this.createForm.reason;
     },
 
-    init() { this.loadMockData(); this.computeStats(); this.applyFilters(); },
+    init() { this.loadRefunds(); this.computeStats(); this.applyFilters(); },
 
-    loadMockData() {
-      this.refunds = [
-        { id: 'ref_001', firm_id: 'firm_101', firm_name: 'Anderson & Partners CPA', subscription_id: 'sub_a1b2c3', amount: 299.00, reason: 'Duplicate charge on annual plan renewal', status: 'pending', created_at: '2025-06-10T14:30:00Z', decided_at: null, notes: '' },
-        { id: 'ref_002', firm_id: 'firm_102', firm_name: 'Baker Tax Associates', subscription_id: 'sub_d4e5f6', amount: 149.50, reason: 'Service downtime exceeding SLA - May 2025', status: 'approved', created_at: '2025-06-08T09:15:00Z', decided_at: '2025-06-09T11:00:00Z', notes: 'SLA breach confirmed by ops' },
-        { id: 'ref_003', firm_id: 'firm_103', firm_name: 'Chen Financial Group', subscription_id: 'sub_g7h8i9', amount: 599.00, reason: 'Client onboarding failure - features not delivered', status: 'rejected', created_at: '2025-06-05T16:45:00Z', decided_at: '2025-06-07T10:20:00Z', notes: 'Features delivered; training offered' },
-        { id: 'ref_004', firm_id: 'firm_104', firm_name: 'Davis & Morgan LLC', subscription_id: 'sub_j0k1l2', amount: 75.00, reason: 'Prorated refund for mid-cycle downgrade', status: 'processed', created_at: '2025-05-28T08:00:00Z', decided_at: '2025-05-29T14:00:00Z', notes: 'Standard proration' },
-        { id: 'ref_005', firm_id: 'firm_105', firm_name: 'Ellis Wright CPAs', subscription_id: 'sub_m3n4o5', amount: 450.00, reason: 'Billing error - charged for inactive users', status: 'pending', created_at: '2025-06-12T11:20:00Z', decided_at: null, notes: '' },
-        { id: 'ref_006', firm_id: 'firm_101', firm_name: 'Anderson & Partners CPA', subscription_id: 'sub_p6q7r8', amount: 199.00, reason: 'Cancellation within 30-day trial period', status: 'processed', created_at: '2025-05-20T13:10:00Z', decided_at: '2025-05-21T09:00:00Z', notes: 'Within trial window' },
-        { id: 'ref_007', firm_id: 'firm_106', firm_name: 'Franklin Patel Tax Services', subscription_id: 'sub_s9t0u1', amount: 350.00, reason: 'Integration issues with existing accounting software', status: 'pending', created_at: '2025-06-14T15:50:00Z', decided_at: null, notes: '' },
-        { id: 'ref_008', firm_id: 'firm_107', firm_name: 'Greenfield Advisors', subscription_id: 'sub_v2w3x4', amount: 89.99, reason: 'Accidental double subscription purchase', status: 'approved', created_at: '2025-06-11T10:05:00Z', decided_at: '2025-06-12T08:30:00Z', notes: 'Verified duplicate in billing' },
-      ];
+    async loadRefunds() {
+      try {
+        const response = await fetch('/api/admin/refunds');
+        if (response.ok) {
+          this.refunds = await response.json();
+        } else {
+          this.refunds = [];
+        }
+      } catch (e) {
+        console.warn('Could not load refunds:', e);
+        this.refunds = [];
+      }
+      this.computeStats();
+      this.applyFilters();
     },
 
     computeStats() {

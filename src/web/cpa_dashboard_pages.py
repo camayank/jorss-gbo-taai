@@ -1027,49 +1027,27 @@ async def cpa_return_queue_page(
     }
 
     try:
-        # Import session persistence to get returns
-        from database.session_persistence import SessionPersistence
-        persistence = SessionPersistence()
-
-        # Get all returns for this CPA (mock implementation - adjust based on actual data model)
-        # In production, this would query by CPA ID and filter by status
-        all_sessions = []
-
-        # For demo purposes, create mock returns if none exist
-        if not all_sessions:
-            returns = [
-                {
-                    "session_id": "demo-session-1",
-                    "client_name": "John Smith",
-                    "client_email": "john.smith@email.com",
-                    "tax_year": 2025,
-                    "filing_status": "Single",
-                    "refund_or_owed": 2450.00,
-                    "submitted_at": "2026-02-05",
-                    "status": status
-                },
-                {
-                    "session_id": "demo-session-2",
-                    "client_name": "Sarah Johnson",
-                    "client_email": "sarah.j@email.com",
-                    "tax_year": 2025,
-                    "filing_status": "Married Filing Jointly",
-                    "refund_or_owed": -1200.00,
-                    "submitted_at": "2026-02-04",
-                    "status": status
-                }
-            ]
-            counts = {
-                "pending_review": 3,
-                "in_review": 1,
-                "ready_for_approval": 2,
-                "approved": 5,
-                "total": 11
-            }
-
+        from database.session_persistence import get_session_persistence
+        persistence = get_session_persistence()
+        # Query real returns from the database
+        all_sessions = persistence.list_sessions("default")
+        for s in all_sessions:
+            if s.session_type == "intelligent_advisor" and s.data:
+                data = s.data
+                profile = data.get("profile", {})
+                if profile.get("filing_status"):
+                    returns.append({
+                        "session_id": s.session_id,
+                        "client_name": profile.get("name", "Anonymous Client"),
+                        "client_email": profile.get("email", ""),
+                        "tax_year": data.get("tax_year", 2025),
+                        "filing_status": profile.get("filing_status", "Unknown"),
+                        "refund_or_owed": 0,
+                        "submitted_at": s.last_activity or s.created_at,
+                        "status": status
+                    })
     except Exception as e:
-        logger.error(f"Error loading return queue: {e}")
-        returns = []
+        logger.warning(f"Could not load returns from database: {e}")
 
     return templates.TemplateResponse(
         "cpa/return_queue.html",

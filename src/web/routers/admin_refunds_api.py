@@ -76,21 +76,15 @@ class Refund:
 # Thread-safe in-memory storage
 _refunds: dict[str, Refund] = {}
 
-# Mock subscription data (replace with actual billing lookup)
-_mock_subscriptions = {
-    "sub-001": {"firm_id": "firm-001", "firm_name": "ABC Tax Services", "amount": 99.00},
-    "sub-002": {"firm_id": "firm-002", "firm_name": "XYZ Accounting", "amount": 199.00},
-}
-
-
 # =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
 
 
 def _get_subscription_info(subscription_id: str) -> Optional[dict]:
-    """Mock subscription lookup - replace with billing system query."""
-    return _mock_subscriptions.get(subscription_id)
+    """Look up subscription info. In production, query Stripe or billing DB."""
+    # TODO: Replace with Stripe SDK lookup: stripe.Subscription.retrieve(subscription_id)
+    return None
 
 
 # =============================================================================

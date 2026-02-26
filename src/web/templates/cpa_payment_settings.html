@@ -135,7 +135,10 @@
     <script>
         // Get CPA ID from URL or session
         const urlParams = new URLSearchParams(window.location.search);
-        const cpaId = urlParams.get('cpa') || 'demo-cpa-001';
+        const cpaId = urlParams.get('cpa') || (typeof currentCpaId !== 'undefined' ? currentCpaId : null);
+        if (!cpaId) {
+            document.querySelector('main').innerHTML = '<div style="text-align:center;padding:3rem;color:var(--gray-500);">No CPA ID provided. Please log in as a CPA to access payment settings.</div>';
+        }
 
         // Load payment settings
         async function loadPaymentSettings() {

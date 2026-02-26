@@ -572,6 +572,7 @@ async def tier_two_analysis(
         apply_variant_cookie(response, variant_id)
         return response
 
+    from datetime import datetime
     response = templates.TemplateResponse(
         "lead_magnet/tier2_analysis.html",
         {
@@ -582,6 +583,7 @@ async def tier_two_analysis(
             "report": report_data,
             "deadline_context": get_deadline_context(),
             "variant_id": variant_id,
+            "current_year": datetime.now().year,
         }
     )
     apply_variant_cookie(response, variant_id)

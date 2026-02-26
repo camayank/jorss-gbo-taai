@@ -421,24 +421,17 @@ function taskManager() {
         showModal: false,
         editingId: null,
         toast: { show: false, message: '' },
-        currentUser: 'Sarah Mitchell',
+        currentUser: '',
         filters: [
             { key: 'all', label: 'All Tasks' },
             { key: 'mine', label: 'My Tasks' },
             { key: 'today', label: 'Due Today' },
             { key: 'overdue', label: 'Overdue' }
         ],
-        teamMembers: ['Sarah Mitchell', 'James Parker', 'Maria Gonzalez', 'David Kim'],
-        clientList: ['Apex Industries LLC', 'Greenfield Holdings', 'Thompson Family Trust', 'NovaTech Solutions', 'Birch & Associates'],
-        form: { title: '', description: '', priority: 'medium', dueDate: '', assignedTo: 'Sarah Mitchell', client: 'Apex Industries LLC' },
-        tasks: [
-            { id: 1, title: 'Prepare Q4 estimated tax payments', description: 'Calculate and file Q4 federal and state estimated payments for corporate clients', priority: 'high', dueDate: fmt(addDays(today, -2)), assignedTo: 'Sarah Mitchell', client: 'Apex Industries LLC', completed: false },
-            { id: 2, title: 'Review 1099 filings for accuracy', description: 'Cross-check all 1099-NEC and 1099-MISC forms against vendor records', priority: 'high', dueDate: fmt(today), assignedTo: 'James Parker', client: 'Greenfield Holdings', completed: false },
-            { id: 3, title: 'Trust tax return - Form 1041', description: 'Complete annual fiduciary income tax return and K-1 distribution schedules', priority: 'medium', dueDate: fmt(addDays(today, 3)), assignedTo: 'Sarah Mitchell', client: 'Thompson Family Trust', completed: false },
-            { id: 4, title: 'R&D tax credit analysis', description: 'Compile qualifying research expenditures and compute Section 41 credit', priority: 'medium', dueDate: fmt(addDays(today, 7)), assignedTo: 'Maria Gonzalez', client: 'NovaTech Solutions', completed: false },
-            { id: 5, title: 'Year-end payroll reconciliation', description: 'Reconcile W-2 totals against quarterly 941 filings and resolve discrepancies', priority: 'low', dueDate: fmt(addDays(today, 0)), assignedTo: 'David Kim', client: 'Birch & Associates', completed: false },
-            { id: 6, title: 'Send engagement letter for new client', description: 'Draft and send engagement letter outlining scope, fees, and timeline', priority: 'low', dueDate: fmt(addDays(today, -5)), assignedTo: 'Sarah Mitchell', client: 'Greenfield Holdings', completed: true }
-        ],
+        teamMembers: [],
+        clientList: [],
+        form: { title: '', description: '', priority: 'medium', dueDate: '', assignedTo: '', client: '' },
+        tasks: [],
 
         isDueToday(task) {
             return task.dueDate === fmt(today);

@@ -650,7 +650,7 @@
             </div>
             <div class="active-details">
                 <span class="active-label">Currently impersonating</span>
-                <span class="active-firm">Johnson & Associates CPA</span>
+                <span class="active-firm" id="activeFirmName"></span>
                 <span class="active-meta">Started 15 minutes ago</span>
             </div>
         </div>
@@ -681,203 +681,63 @@
         </select>
     </div>
 
-    <!-- Firms Grid -->
-    <div class="firms-grid">
-        <div class="firm-card">
-            <div class="firm-header">
-                <div class="firm-info">
-                    <div class="firm-logo">JA</div>
-                    <div class="firm-details">
-                        <div class="firm-name">Johnson & Associates CPA</div>
-                        <div class="firm-id">Firm ID: FRM-2024-0142</div>
-                    </div>
-                </div>
-                <span class="firm-status active">Active</span>
-            </div>
-            <div class="firm-stats">
-                <div class="stat-item">
-                    <div class="stat-value">156</div>
-                    <div class="stat-label">Clients</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">12</div>
-                    <div class="stat-label">Staff</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">89</div>
-                    <div class="stat-label">Returns</div>
-                </div>
-            </div>
-            <div class="firm-meta">
-                <span>Last login: 2 hours ago</span>
-                <div class="firm-plan">
-                    <span class="plan-badge enterprise">Enterprise</span>
-                </div>
-            </div>
-            <div class="firm-actions">
-                <button class="btn btn-secondary" onclick="viewFirmDetails('FRM-2024-0142')">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                        <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                    View Details
-                </button>
-                <button class="btn btn-primary" onclick="openImpersonateModal('Johnson & Associates CPA', 'JA')">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-                        <circle cx="12" cy="7" r="4"/>
-                    </svg>
-                    Impersonate
-                </button>
-            </div>
+    <!-- Firms Grid — populated dynamically from /api/admin/tenants -->
+    <div class="firms-grid" id="firms-grid">
+        <div class="firm-card" style="text-align: center; padding: 2rem; color: var(--gray-500);">
+            Loading firms...
         </div>
-
-        <div class="firm-card">
-            <div class="firm-header">
-                <div class="firm-info">
-                    <div class="firm-logo">SW</div>
-                    <div class="firm-details">
-                        <div class="firm-name">Smith & Williams Tax</div>
-                        <div class="firm-id">Firm ID: FRM-2024-0089</div>
+    </div>
+    <script>
+    (async function loadFirms() {
+        const grid = document.getElementById('firms-grid');
+        try {
+            const resp = await fetch('/api/admin/tenants');
+            if (!resp.ok) throw new Error('Failed to load tenants');
+            const firms = await resp.json();
+            if (!firms.length) {
+                grid.innerHTML = '<div class="firm-card" style="text-align:center;padding:2rem;color:var(--gray-500);">No firms registered yet.</div>';
+                return;
+            }
+            grid.innerHTML = firms.map(f => {
+                const initials = (f.name || 'NA').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+                return `<div class="firm-card">
+                    <div class="firm-header">
+                        <div class="firm-info">
+                            <div class="firm-logo">${initials}</div>
+                            <div class="firm-details">
+                                <div class="firm-name">${f.name || 'Unknown Firm'}</div>
+                                <div class="firm-id">Firm ID: ${f.id || 'N/A'}</div>
+                            </div>
+                        </div>
+                        <span class="firm-status ${f.status || 'active'}">${f.status || 'Active'}</span>
                     </div>
-                </div>
-                <span class="firm-status active">Active</span>
-            </div>
-            <div class="firm-stats">
-                <div class="stat-item">
-                    <div class="stat-value">243</div>
-                    <div class="stat-label">Clients</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">18</div>
-                    <div class="stat-label">Staff</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">178</div>
-                    <div class="stat-label">Returns</div>
-                </div>
-            </div>
-            <div class="firm-meta">
-                <span>Last login: 5 hours ago</span>
-                <div class="firm-plan">
-                    <span class="plan-badge enterprise">Enterprise</span>
-                </div>
-            </div>
-            <div class="firm-actions">
-                <button class="btn btn-secondary" onclick="viewFirmDetails('FRM-2024-0089')">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                        <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                    View Details
-                </button>
-                <button class="btn btn-primary" onclick="openImpersonateModal('Smith & Williams Tax', 'SW')">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-                        <circle cx="12" cy="7" r="4"/>
-                    </svg>
-                    Impersonate
-                </button>
-            </div>
-        </div>
-
-        <div class="firm-card">
-            <div class="firm-header">
-                <div class="firm-info">
-                    <div class="firm-logo">MT</div>
-                    <div class="firm-details">
-                        <div class="firm-name">Martinez Tax Services</div>
-                        <div class="firm-id">Firm ID: FRM-2024-0156</div>
+                    <div class="firm-stats">
+                        <div class="stat-item"><div class="stat-value">${f.client_count || 0}</div><div class="stat-label">Clients</div></div>
+                        <div class="stat-item"><div class="stat-value">${f.staff_count || 0}</div><div class="stat-label">Staff</div></div>
+                        <div class="stat-item"><div class="stat-value">${f.return_count || 0}</div><div class="stat-label">Returns</div></div>
                     </div>
-                </div>
-                <span class="firm-status active">Active</span>
-            </div>
-            <div class="firm-stats">
-                <div class="stat-item">
-                    <div class="stat-value">78</div>
-                    <div class="stat-label">Clients</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">5</div>
-                    <div class="stat-label">Staff</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">45</div>
-                    <div class="stat-label">Returns</div>
-                </div>
-            </div>
-            <div class="firm-meta">
-                <span>Last login: 1 day ago</span>
-                <div class="firm-plan">
-                    <span class="plan-badge professional">Professional</span>
-                </div>
-            </div>
-            <div class="firm-actions">
-                <button class="btn btn-secondary" onclick="viewFirmDetails('FRM-2024-0156')">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                        <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                    View Details
-                </button>
-                <button class="btn btn-primary" onclick="openImpersonateModal('Martinez Tax Services', 'MT')">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-                        <circle cx="12" cy="7" r="4"/>
-                    </svg>
-                    Impersonate
-                </button>
-            </div>
-        </div>
-
-        <div class="firm-card">
-            <div class="firm-header">
-                <div class="firm-info">
-                    <div class="firm-logo">CP</div>
-                    <div class="firm-details">
-                        <div class="firm-name">Chen & Partners</div>
-                        <div class="firm-id">Firm ID: FRM-2024-0203</div>
+                    <div class="firm-meta">
+                        <span>Last login: ${f.last_login || 'N/A'}</span>
+                        <div class="firm-plan"><span class="plan-badge ${(f.plan || 'basic').toLowerCase()}">${f.plan || 'Basic'}</span></div>
                     </div>
-                </div>
-                <span class="firm-status suspended">Suspended</span>
-            </div>
-            <div class="firm-stats">
-                <div class="stat-item">
-                    <div class="stat-value">34</div>
-                    <div class="stat-label">Clients</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">3</div>
-                    <div class="stat-label">Staff</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">12</div>
-                    <div class="stat-label">Returns</div>
-                </div>
-            </div>
-            <div class="firm-meta">
-                <span>Last login: 15 days ago</span>
-                <div class="firm-plan">
-                    <span class="plan-badge basic">Basic</span>
-                </div>
-            </div>
-            <div class="firm-actions">
-                <button class="btn btn-secondary" onclick="viewFirmDetails('FRM-2024-0203')">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                        <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                    View Details
-                </button>
-                <button class="btn btn-primary" onclick="openImpersonateModal('Chen & Partners', 'CP')">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-                        <circle cx="12" cy="7" r="4"/>
-                    </svg>
-                    Impersonate
-                </button>
-            </div>
-        </div>
+                    <div class="firm-actions">
+                        <button class="btn btn-secondary" onclick="viewFirmDetails('${f.id}')">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            View Details
+                        </button>
+                        <button class="btn btn-primary" onclick="openImpersonateModal('${f.name}', '${initials}')">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            Impersonate
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch (e) {
+            grid.innerHTML = '<div class="firm-card" style="text-align:center;padding:2rem;color:var(--gray-500);">Could not load firms. Check API connectivity.</div>';
+            console.warn('Failed to load firms:', e);
+        }
+    })();
+    </script>
     </div>
 
     <!-- Recent Impersonation Sessions -->
@@ -897,57 +757,11 @@
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="recent-sessions-body">
                     <tr>
-                        <td>
-                            <span class="admin-badge">
-                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                                    <path d="M2 17l10 5 10-5"/>
-                                    <path d="M2 12l10 5 10-5"/>
-                                </svg>
-                                Sarah Admin
-                            </span>
+                        <td colspan="6" style="text-align: center; color: var(--gray-500); padding: 2rem;">
+                            No impersonation sessions recorded yet.
                         </td>
-                        <td>Johnson & Associates CPA</td>
-                        <td>Support ticket #TKT-2024-0145</td>
-                        <td>Jan 28, 2026 09:15 AM</td>
-                        <td>23 min</td>
-                        <td><a href="#" style="color: var(--color-primary-600); text-decoration: none;">View Log</a></td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <span class="admin-badge">
-                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                                    <path d="M2 17l10 5 10-5"/>
-                                    <path d="M2 12l10 5 10-5"/>
-                                </svg>
-                                Mike Support
-                            </span>
-                        </td>
-                        <td>Smith & Williams Tax</td>
-                        <td>Billing investigation</td>
-                        <td>Jan 27, 2026 02:30 PM</td>
-                        <td>45 min</td>
-                        <td><a href="#" style="color: var(--color-primary-600); text-decoration: none;">View Log</a></td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <span class="admin-badge">
-                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                                    <path d="M2 17l10 5 10-5"/>
-                                    <path d="M2 12l10 5 10-5"/>
-                                </svg>
-                                Sarah Admin
-                            </span>
-                        </td>
-                        <td>Martinez Tax Services</td>
-                        <td>Feature demonstration</td>
-                        <td>Jan 26, 2026 11:00 AM</td>
-                        <td>1 hr 12 min</td>
-                        <td><a href="#" style="color: var(--color-primary-600); text-decoration: none;">View Log</a></td>
                     </tr>
                 </tbody>
             </table>
@@ -976,8 +790,8 @@
             <div class="confirm-title">Start Impersonation Session?</div>
             <div class="confirm-text">You are about to access this firm's account. All actions will be logged and attributed to your admin account.</div>
             <div class="confirm-firm">
-                <div class="confirm-firm-logo" id="modalFirmLogo">JA</div>
-                <div class="confirm-firm-name" id="modalFirmName">Johnson & Associates CPA</div>
+                <div class="confirm-firm-logo" id="modalFirmLogo"></div>
+                <div class="confirm-firm-name" id="modalFirmName"></div>
             </div>
             <label class="reason-label">
                 Reason for impersonation <span style="color: var(--color-error-500);">*</span>

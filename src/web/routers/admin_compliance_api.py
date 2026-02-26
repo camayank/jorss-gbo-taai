@@ -335,26 +335,22 @@ async def get_audit_logs(
 
     Returns a chronological list of auditable events.
     """
-    # In production, this would query the audit database
-    # For demo, return mock data
-    mock_logs = [
-        {
-            "log_id": str(uuid4()),
-            "timestamp": (datetime.utcnow() - timedelta(hours=i)).isoformat(),
-            "action": ["login", "data_access", "config_change", "export"][i % 4],
-            "user_id": f"user-{i % 10:03d}",
-            "user_email": f"user{i}@example.com",
-            "firm_id": f"firm-{i % 3:03d}",
-            "resource": f"/api/clients/{i}",
-            "ip_address": f"192.168.1.{i}",
-            "success": True,
-        }
-        for i in range(min(limit, 20))
-    ]
+    logs = []
+    try:
+        from audit.audit_logger import get_audit_logger
+        audit_logger = get_audit_logger()
+        start_date = datetime.utcnow() - timedelta(days=days)
+        logs = audit_logger.query(
+            user_id=user_id,
+            start_date=start_date,
+            limit=limit,
+        )
+    except Exception as e:
+        logger.warning(f"Could not query audit logs: {e}")
 
     return {
-        "logs": mock_logs,
-        "total": len(mock_logs),
+        "logs": logs,
+        "total": len(logs),
         "date_range": {
             "from": (datetime.utcnow() - timedelta(days=days)).isoformat(),
             "to": datetime.utcnow().isoformat(),

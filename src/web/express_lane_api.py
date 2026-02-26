@@ -372,9 +372,18 @@ async def check_prior_year():
     This endpoint now fails silently to never block the user flow.
     """
     try:
-        # TODO: Query database
-        # Mock data
-        available_years = [2024, 2023]
+        available_years = []
+        try:
+            from database.session_persistence import get_session_persistence
+            persistence = get_session_persistence()
+            sessions = persistence.list_sessions("default")
+            years = set()
+            for s in sessions:
+                if s.data and s.data.get("tax_year"):
+                    years.add(s.data["tax_year"])
+            available_years = sorted(years, reverse=True)
+        except Exception as e:
+            logger.warning(f"Could not query prior year returns: {e}")
 
         return {
             "has_prior_year": len(available_years) > 0,

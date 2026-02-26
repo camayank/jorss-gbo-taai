@@ -266,19 +266,9 @@ function appointmentManager() {
     const pad = (n) => String(n).padStart(2, '0');
     const ds = (yr, mo, dy) => `${yr}-${pad(mo + 1)}-${pad(dy)}`;
     const todayStr = ds(y, m, today.getDate());
-    const mockData = [
-        { id: 1, client: 'Sarah Thompson', type: 'Tax Review', date: ds(y, m, 3), time: '09:00', duration: 60, notes: 'Annual tax return review', status: 'completed' },
-        { id: 2, client: 'Michael Chen', type: 'Initial Consult', date: ds(y, m, 7), time: '10:30', duration: 30, notes: 'New client intake for small business', status: 'completed' },
-        { id: 3, client: 'Rachel Green', type: 'Follow-up', date: ds(y, m, 12), time: '14:00', duration: 30, notes: 'Discuss amended return status', status: 'completed' },
-        { id: 4, client: 'James Wilson', type: 'Tax Review', date: ds(y, m, Math.min(today.getDate() + 1, 28)), time: '11:00', duration: 90, notes: 'Complex multi-state filing review', status: 'upcoming' },
-        { id: 5, client: 'Maria Lopez', type: 'Initial Consult', date: ds(y, m, Math.min(today.getDate() + 3, 28)), time: '09:30', duration: 60, notes: '', status: 'upcoming' },
-        { id: 6, client: 'David Park', type: 'Follow-up', date: ds(y, m, Math.min(today.getDate() + 3, 28)), time: '15:00', duration: 30, notes: 'Review estimated quarterly payments', status: 'upcoming' },
-        { id: 7, client: 'Emily Foster', type: 'Other', date: ds(y, m, Math.min(today.getDate() + 7, 28)), time: '13:00', duration: 60, notes: 'Estate planning consultation', status: 'upcoming' },
-        { id: 8, client: 'Robert Kim', type: 'Tax Review', date: ds(y, m, Math.min(today.getDate() + 10, 28)), time: '10:00', duration: 60, notes: 'Partnership K-1 review', status: 'upcoming' }
-    ];
     return {
         viewYear: y, viewMonth: m, currentView: 'Month', selectedDate: todayStr,
-        appointments: mockData, showModal: false, toasts: [], nextId: 100,
+        appointments: [], showModal: false, toasts: [], nextId: 100,
         form: { client: '', type: '', date: todayStr, time: '09:00', duration: '60', notes: '' },
 
         get monthYearLabel() {
