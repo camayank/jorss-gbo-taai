@@ -15,7 +15,7 @@ tax advisory chatbot experience:
 NO ONE IN USA HAS DONE THIS.
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Depends
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
@@ -23,6 +23,8 @@ from datetime import datetime
 from enum import Enum
 import logging
 import os
+
+from src.security.session_token import verify_session_token, generate_session_token, SESSION_TOKEN_KEY
 
 # Liability disclaimer constant
 STANDARD_DISCLAIMER = (
@@ -954,6 +956,7 @@ class IntelligentChatEngine:
                 "calculations": None,
                 "strategies": [],
                 "lead_score": 0,
+                SESSION_TOKEN_KEY: generate_session_token(),
                 # Enhanced checkpoint system for multi-turn undo
                 # Each checkpoint stores FULL state at that point
                 "checkpoints": [],  # List of full checkpoint objects (see below)
@@ -4103,7 +4106,7 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None) -> tu
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def intelligent_chat(request: ChatRequest):
+async def intelligent_chat(request: ChatRequest, _session: str = Depends(verify_session_token)):
     """
     Main intelligent chat endpoint with dynamic flow handling.
 
@@ -5035,7 +5038,7 @@ class AcknowledgmentRequest(BaseModel):
 
 
 @router.post("/acknowledge-standards")
-async def acknowledge_standards(request: AcknowledgmentRequest):
+async def acknowledge_standards(request: AcknowledgmentRequest, _session: str = Depends(verify_session_token)):
     """
     Record user acknowledgment of professional standards limitations.
     Required for Circular 230 compliance.
@@ -5053,7 +5056,7 @@ async def acknowledge_standards(request: AcknowledgmentRequest):
 
 
 @router.post("/analyze", response_model=FullAnalysisResponse)
-async def full_analysis(request: FullAnalysisRequest):
+async def full_analysis(request: FullAnalysisRequest, _session: str = Depends(verify_session_token)):
     """
     Comprehensive tax analysis with all strategies and insights.
 
@@ -5165,7 +5168,7 @@ async def full_analysis(request: FullAnalysisRequest):
 
 
 @router.post("/strategies")
-async def get_strategies(request: FullAnalysisRequest):
+async def get_strategies(request: FullAnalysisRequest, _session: str = Depends(verify_session_token)):
     """Get personalized tax strategies."""
     try:
         profile = request.profile.dict(exclude_none=True)
@@ -5186,7 +5189,7 @@ async def get_strategies(request: FullAnalysisRequest):
 
 
 @router.post("/calculate")
-async def calculate_taxes(request: FullAnalysisRequest):
+async def calculate_taxes(request: FullAnalysisRequest, _session: str = Depends(verify_session_token)):
     """Quick tax calculation endpoint."""
     try:
         profile = request.profile.dict(exclude_none=True)
@@ -5204,7 +5207,8 @@ async def calculate_taxes(request: FullAnalysisRequest):
 async def upload_document(
     file: UploadFile = File(...),
     session_id: str = Form(...),
-    document_type: str = Form(None)
+    document_type: str = Form(None),
+    _session: str = Depends(verify_session_token),
 ):
     """
     Upload and process a tax document with OCR.
@@ -5260,7 +5264,7 @@ class SessionReportRequest(BaseModel):
 
 
 @router.post("/report")
-async def get_session_report(request: SessionReportRequest):
+async def get_session_report(request: SessionReportRequest, _session: str = Depends(verify_session_token)):
     """Get report data for a session (used by report preview page).
 
     Now with database persistence! Will load session from database
@@ -5312,7 +5316,7 @@ async def get_session_report(request: SessionReportRequest):
 
 
 @router.post("/generate-report")
-async def generate_report(request: FullAnalysisRequest):
+async def generate_report(request: FullAnalysisRequest, _session: str = Depends(verify_session_token)):
     """Generate a professional advisory report."""
     try:
         profile = request.profile.dict(exclude_none=True)
@@ -5371,6 +5375,7 @@ async def get_session_pdf(
     contact_phone: Optional[str] = None,
     primary_color: Optional[str] = None,
     watermark: Optional[str] = None,
+    _session: str = Depends(verify_session_token),
 ):
     """
     Generate and download PDF report for a session.
@@ -5511,7 +5516,7 @@ async def get_session_pdf(
 
 
 @router.post("/report/{session_id}/generate-pdf")
-async def generate_session_pdf(session_id: str):
+async def generate_session_pdf(session_id: str, _session: str = Depends(verify_session_token)):
     """
     Generate PDF via the advisory reports API.
 
@@ -5596,7 +5601,7 @@ class UniversalReportRequest(BaseModel):
 
 
 @router.post("/universal-report")
-async def generate_universal_report(request: UniversalReportRequest):
+async def generate_universal_report(request: UniversalReportRequest, _session: str = Depends(verify_session_token)):
     """
     Generate a universal report with dynamic visualizations.
 
@@ -5686,7 +5691,8 @@ async def generate_universal_report(request: UniversalReportRequest):
 async def get_universal_report_html(
     session_id: str,
     cpa: Optional[str] = None,
-    tier: int = 2
+    tier: int = 2,
+    _session: str = Depends(verify_session_token),
 ):
     """
     Get HTML universal report for a session.
@@ -5753,7 +5759,8 @@ async def get_universal_report_html(
 async def get_universal_report_pdf(
     session_id: str,
     cpa: Optional[str] = None,
-    tier: int = 2
+    tier: int = 2,
+    _session: str = Depends(verify_session_token),
 ):
     """
     Get PDF universal report for a session.
@@ -5835,6 +5842,7 @@ async def get_universal_report_pdf(
 async def upload_logo(
     cpa_id: str = Form(...),
     file: UploadFile = File(...),
+    _session: str = Depends(verify_session_token),
 ):
     """
     Upload a logo for CPA branding.
@@ -5930,7 +5938,7 @@ async def get_logo(cpa_id: str):
 
 
 @router.delete("/branding/logo/{cpa_id}")
-async def delete_logo(cpa_id: str):
+async def delete_logo(cpa_id: str, _session: str = Depends(verify_session_token)):
     """
     Delete the logo for a CPA.
     """
@@ -5955,7 +5963,7 @@ async def delete_logo(cpa_id: str):
 
 
 @router.get("/rate-limit/status")
-async def get_rate_limit_status(session_id: str):
+async def get_rate_limit_status(session_id: str, _session: str = Depends(verify_session_token)):
     """
     Get rate limit status for a session.
 

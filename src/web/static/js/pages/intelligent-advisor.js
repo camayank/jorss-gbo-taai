@@ -260,6 +260,12 @@
         }
       }
 
+      // Add session token for advisor API requests
+      const sessionToken = sessionStorage.getItem('advisor_session_token');
+      if (sessionToken && url.includes('/api/advisor/')) {
+          options.headers = { ...options.headers, 'X-Session-Token': sessionToken };
+      }
+
       // Ensure credentials are included for cookie-based auth
       options.credentials = options.credentials || 'same-origin';
 
@@ -573,6 +579,12 @@
             if (csrfToken) {
               headers['X-CSRF-Token'] = csrfToken;
             }
+          }
+
+          // Add session token for advisor API requests
+          const sessionToken = sessionStorage.getItem('advisor_session_token');
+          if (sessionToken && url.includes('/api/advisor/')) {
+              headers['X-Session-Token'] = sessionToken;
           }
 
           const response = await fetch(url, {
@@ -1901,6 +1913,10 @@
         const data = await response.json();
         sessionId = data.session_id;
         sessionStorage.setItem('tax_session_id', sessionId);
+        // Store session ownership token for API authentication
+        if (data.session_token) {
+            sessionStorage.setItem('advisor_session_token', data.session_token);
+        }
         DevLogger.log('Session initialized:', sessionId);
       } catch (error) {
         DevLogger.error('Session initialization error:', error);
@@ -7790,9 +7806,17 @@
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
+          // Add session token for advisor API requests
+          const sessionToken = sessionStorage.getItem('advisor_session_token');
+          const mergedHeaders = { ...options.headers };
+          if (sessionToken && url.includes('/api/advisor/')) {
+              mergedHeaders['X-Session-Token'] = sessionToken;
+          }
+
           const response = await fetch(url, {
             ...options,
-            signal: controller.signal
+            signal: controller.signal,
+            headers: mergedHeaders
           });
 
           clearTimeout(timeoutId);
@@ -7857,7 +7881,7 @@
           if (!sessionResponse.ok) {
             // If session creation fails, generate a temporary client-side ID
             // DON'T store temp IDs in sessionStorage - they shouldn't persist
-            sessionId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            sessionId = 'temp-' + crypto.randomUUID();
             DevLogger.warn('Using temporary session ID (will retry on next message):', sessionId);
           } else {
             const sessionData = await sessionResponse.json();
@@ -7865,6 +7889,10 @@
             sessionId = sessionData.session_id;
             // Only store real session IDs
             sessionStorage.setItem('tax_session_id', sessionId);
+            // Store session ownership token for API authentication
+            if (sessionData.session_token) {
+                sessionStorage.setItem('advisor_session_token', sessionData.session_token);
+            }
             if (oldSessionId && oldSessionId.startsWith('temp-')) {
               DevLogger.log('Upgraded from temporary session to real session:', sessionId);
             }
@@ -7873,7 +7901,7 @@
           DevLogger.error('Failed to create session:', error);
           // Generate temporary client-side session ID as fallback
           // DON'T persist temp sessions - they will be retried on next message
-          sessionId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+          sessionId = 'temp-' + crypto.randomUUID();
           DevLogger.warn('Using temporary session ID (will retry on next message):', sessionId);
         }
       }
@@ -9136,7 +9164,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
       // Ensure we have a session ID
       if (!sessionId) {
-        sessionId = 'advisor-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        sessionId = 'advisor-' + crypto.randomUUID();
         sessionStorage.setItem('tax_session_id', sessionId);
         DevLogger.log('Created new session ID:', sessionId);
       }
@@ -10735,6 +10763,10 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         };
 
         xhr.open('POST', '/api/ai-chat/analyze-document');
+        const sessionToken = sessionStorage.getItem('advisor_session_token');
+        if (sessionToken) {
+            xhr.setRequestHeader('X-Session-Token', sessionToken);
+        }
         xhr.send(formData);
       });
     }

@@ -306,7 +306,7 @@ try:
 
         # ===== Bearer Auth Protected (Alternative Security) =====
         "/api/chat",                    # Bearer auth required + origin validation
-        "/api/advisor/",                # Bearer auth required + origin validation
+        "/api/advisor/",                # Session token auth (X-Session-Token header)
         "/api/ai-chat/chat",            # Bearer auth required + origin validation
         "/api/ai-chat/upload",          # Bearer auth required + origin validation
         "/api/ai-chat/analyze-document",# Bearer auth required + origin validation

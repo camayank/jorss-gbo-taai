@@ -19,6 +19,7 @@ import logging
 
 from src.database.unified_session import FilingState, WorkflowType
 from src.database.session_persistence import get_session_persistence
+from src.security.session_token import generate_session_token, SESSION_TOKEN_KEY
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/sessions", tags=["session-management"])
@@ -633,6 +634,9 @@ async def create_filing_session(request: CreateSessionRequest = CreateSessionReq
         # Generate session ID
         session_id = str(uuid.uuid4())
 
+        # Generate session ownership token
+        session_token = generate_session_token()
+
         # Create session data
         session_data = {
             "session_id": session_id,
@@ -645,7 +649,8 @@ async def create_filing_session(request: CreateSessionRequest = CreateSessionReq
             "confidence_score": 0.0,
             "user_id": None,  # Anonymous for now
             "is_anonymous": True,
-            "data": {}  # Empty data dict for now
+            "data": {},  # Empty data dict for now
+            SESSION_TOKEN_KEY: session_token,
         }
 
         # Save session with correct parameters
@@ -665,6 +670,7 @@ async def create_filing_session(request: CreateSessionRequest = CreateSessionReq
         return {
             "success": True,
             "session_id": session_id,
+            "session_token": session_token,
             "workflow_type": session_data["workflow_type"],
             "tax_year": session_data["tax_year"],
             "message": "Session created successfully"
