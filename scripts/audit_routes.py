@@ -90,6 +90,7 @@ REDIRECT_ROUTES = {
 AUTH_PATTERNS = [
     r"_require_any_auth\(",
     r"_require_admin_page_access\(",
+    r"_require_cpa_or_admin_access\(",
     r"_require_page_auth",
     r"_require_admin_page\b",
     r"Depends\(_require_page_auth\)",
