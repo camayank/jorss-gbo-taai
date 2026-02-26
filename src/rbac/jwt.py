@@ -5,7 +5,7 @@ Simple JWT encoding/decoding for authentication.
 """
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 from uuid import UUID, uuid4
 import jwt
@@ -104,8 +104,8 @@ def create_access_token(
     if expires_delta is None:
         expires_delta = timedelta(hours=JWT_ACCESS_TOKEN_EXPIRE_HOURS)
 
-    expire = datetime.utcnow() + expires_delta
-    issued_at = datetime.utcnow()
+    expire = datetime.now(timezone.utc) + expires_delta
+    issued_at = datetime.now(timezone.utc)
 
     payload = {
         "sub": str(user_id),
@@ -140,7 +140,7 @@ def create_refresh_token(
     if expires_delta is None:
         expires_delta = timedelta(days=JWT_REFRESH_TOKEN_EXPIRE_DAYS)
 
-    expire = datetime.utcnow() + expires_delta
+    expire = datetime.now(timezone.utc) + expires_delta
 
     payload = {
         "sub": str(user_id),
@@ -230,4 +230,4 @@ def is_token_expired(token: str) -> bool:
     expiry = get_token_expiry(token)
     if expiry is None:
         return True
-    return expiry < datetime.utcnow()
+    return expiry < datetime.now(timezone.utc)
