@@ -1170,8 +1170,7 @@
         }
 
         function downloadDocument() {
-            // API call to download
-            window.location.href = '/api/v1/documents/1/download';
+            window.location.href = '/api/documents/{{ document.id if document else "" }}/download';
         }
 
         // Initialize

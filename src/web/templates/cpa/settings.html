@@ -367,11 +367,30 @@ document.addEventListener('alpine:init', () => {
             this._toastTimer = setTimeout(() => { this.toast.show = false; }, 3000);
         },
 
-        saveNotifications() {
-            this.showToast('Notification preferences saved successfully');
+        _getAuthHeaders() {
+            const headers = { 'Content-Type': 'application/json' };
+            const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+            const csrf = document.querySelector('meta[name="csrf-token"]');
+            if (csrf) headers['X-CSRFToken'] = csrf.content;
+            return headers;
         },
 
-        changePassword() {
+        async saveNotifications() {
+            try {
+                const res = await fetch('/api/cpa/notifications/preferences', {
+                    method: 'PUT',
+                    headers: this._getAuthHeaders(),
+                    body: JSON.stringify(this.settings.notifications)
+                });
+                if (res.status === 401) { window.location.href = '/cpa/login'; return; }
+                this.showToast(res.ok ? 'Notification preferences saved successfully' : 'Failed to save preferences', res.ok ? 'success' : 'error');
+            } catch(e) {
+                this.showToast('Error saving preferences: ' + e.message, 'error');
+            }
+        },
+
+        async changePassword() {
             this.passwordErrors = { current: '', newPass: '', confirm: '' };
             let valid = true;
             if (!this.passwordForm.current) { this.passwordErrors.current = 'Current password is required'; valid = false; }
@@ -380,9 +399,24 @@ document.addEventListener('alpine:init', () => {
             if (!this.passwordForm.confirm) { this.passwordErrors.confirm = 'Please confirm your new password'; valid = false; }
             else if (this.passwordForm.newPass !== this.passwordForm.confirm) { this.passwordErrors.confirm = 'Passwords do not match'; valid = false; }
             if (valid) {
-                this.passwordForm = { current: '', newPass: '', confirm: '' };
-                this.showPasswordForm = false;
-                this.showToast('Password updated successfully');
+                try {
+                    const res = await fetch('/api/auth/change-password', {
+                        method: 'POST',
+                        headers: this._getAuthHeaders(),
+                        body: JSON.stringify({ current_password: this.passwordForm.current, new_password: this.passwordForm.newPass })
+                    });
+                    if (res.status === 401) { window.location.href = '/cpa/login'; return; }
+                    if (res.ok) {
+                        this.passwordForm = { current: '', newPass: '', confirm: '' };
+                        this.showPasswordForm = false;
+                        this.showToast('Password updated successfully');
+                    } else {
+                        const data = await res.json().catch(() => ({}));
+                        this.showToast(data.detail || 'Failed to update password', 'error');
+                    }
+                } catch(e) {
+                    this.showToast('Error updating password: ' + e.message, 'error');
+                }
             }
         },
 
@@ -398,20 +432,30 @@ document.addEventListener('alpine:init', () => {
             if (integration.connected) {
                 if (confirm('Disconnect ' + integration.name + '?')) {
                     integration.connected = false;
-                    this.showToast(integration.name + ' disconnected');
+                    this.showToast(integration.name + ' disconnected — integration management coming soon');
                 }
             } else {
-                integration.connected = true;
-                this.showToast(integration.name + ' connected successfully');
+                this.showToast(integration.name + ' integration coming soon', 'success');
             }
         },
 
         exportData(type, format) {
             const labels = { clients: 'Client', leads: 'Lead', activity: 'Activity Log' };
-            this.showToast(labels[type] + ' export (' + format.toUpperCase() + ') started');
+            this.showToast(labels[type] + ' export (' + format.toUpperCase() + ') — export feature coming soon');
         },
 
-        saveRetention() { this.showToast('Data retention settings saved'); },
+        async saveRetention() {
+            try {
+                const res = await fetch('/api/cpa/notifications/preferences', {
+                    method: 'PUT',
+                    headers: this._getAuthHeaders(),
+                    body: JSON.stringify({ retention_period: this.settings.retentionPeriod, auto_archive: this.settings.autoArchive })
+                });
+                this.showToast(res.ok ? 'Data retention settings saved' : 'Failed to save retention settings', res.ok ? 'success' : 'error');
+            } catch(e) {
+                this.showToast('Error saving retention settings: ' + e.message, 'error');
+            }
+        },
 
         init() {
             const sections = ['notifications', 'security', 'integrations', 'data-export'];

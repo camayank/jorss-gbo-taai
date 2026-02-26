@@ -837,10 +837,8 @@ async def cpa_team_page(
     cpa_profile = await get_cpa_profile_from_context(request)
     stats = await get_dashboard_stats(get_cpa_id_from_user(current_user))
 
-    # Mock team members for now
-    team_members = [
-        {"id": "1", "name": "Demo User", "email": "demo@example.com", "role": "Admin", "status": "active"},
-    ]
+    # Team members loaded from auth context — empty until team management is configured
+    team_members = []
 
     return templates.TemplateResponse(
         "cpa/team.html",
@@ -905,11 +903,11 @@ async def cpa_billing_page(
     cpa_profile = await get_cpa_profile_from_context(request)
     stats = await get_dashboard_stats(get_cpa_id_from_user(current_user))
 
-    # Mock billing data
+    # Plan info — billing handled through Mercury wallet
     billing = {
         "plan": "Professional",
         "status": "active",
-        "next_billing": "February 1, 2026",
+        "next_billing": "Contact support",
         "amount": 99.00,
         "leads_this_month": stats.get("total_leads", 0),
         "leads_limit": 100,
@@ -922,6 +920,7 @@ async def cpa_billing_page(
             "cpa": cpa_profile,
             "stats": stats,
             "billing": billing,
+            "invoices": [],
             "current_user": current_user,
             "active_page": "billing",
         }

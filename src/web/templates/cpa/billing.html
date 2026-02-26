@@ -335,14 +335,13 @@
 <div class="billing-section">
     <div class="billing-section-header">
         <h3 class="billing-section-title">Payment Method</h3>
-        <button class="btn btn-secondary btn-sm">Update</button>
     </div>
     <div class="billing-section-body">
         <div class="payment-method">
-            <div class="card-icon">VISA</div>
+            <div class="card-icon" style="background: linear-gradient(135deg, #5469d4, #7c3aed);">M</div>
             <div class="card-details">
-                <div class="card-number">•••• •••• •••• 4242</div>
-                <div class="card-expiry">Expires 12/27</div>
+                <div class="card-number" style="font-weight: var(--font-medium);">Payments via Mercury</div>
+                <div class="card-expiry">Billing is managed through your Mercury wallet. Contact support for payment questions.</div>
             </div>
         </div>
     </div>
@@ -351,9 +350,9 @@
 <div class="billing-section">
     <div class="billing-section-header">
         <h3 class="billing-section-title">Billing History</h3>
-        <button class="btn btn-secondary btn-sm">Download All</button>
     </div>
-    <div class="billing-section-body" style="padding: 0 var(--space-6) var(--space-6);">
+    <div class="billing-section-body">
+        {% if invoices and invoices|length > 0 %}
         <table class="invoice-table">
             <thead>
                 <tr>
@@ -361,33 +360,24 @@
                     <th>Description</th>
                     <th>Amount</th>
                     <th>Status</th>
-                    <th></th>
                 </tr>
             </thead>
             <tbody>
+                {% for inv in invoices %}
                 <tr>
-                    <td>Jan 1, 2026</td>
-                    <td>Professional Plan - January</td>
-                    <td>${{ billing.amount }}</td>
-                    <td><span class="invoice-status paid">{{ icon('check') }} Paid</span></td>
-                    <td><a href="#" style="color: var(--primary-color);">Download</a></td>
+                    <td>{{ inv.date }}</td>
+                    <td>{{ inv.description }}</td>
+                    <td>${{ inv.amount }}</td>
+                    <td><span class="invoice-status {{ inv.status }}">{{ icon('check') if inv.status == 'paid' else icon('clock') }} {{ inv.status|capitalize }}</span></td>
                 </tr>
-                <tr>
-                    <td>Dec 1, 2025</td>
-                    <td>Professional Plan - December</td>
-                    <td>${{ billing.amount }}</td>
-                    <td><span class="invoice-status paid">{{ icon('check') }} Paid</span></td>
-                    <td><a href="#" style="color: var(--primary-color);">Download</a></td>
-                </tr>
-                <tr>
-                    <td>Nov 1, 2025</td>
-                    <td>Professional Plan - November</td>
-                    <td>${{ billing.amount }}</td>
-                    <td><span class="invoice-status paid">{{ icon('check') }} Paid</span></td>
-                    <td><a href="#" style="color: var(--primary-color);">Download</a></td>
-                </tr>
+                {% endfor %}
             </tbody>
         </table>
+        {% else %}
+        <div style="text-align: center; padding: var(--space-8); color: var(--text-muted);">
+            <p>No billing history yet. Invoices will appear here as payments are processed.</p>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
