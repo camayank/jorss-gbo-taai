@@ -12,6 +12,7 @@ This service is the single source of truth for authentication
 across Consumer Portal, CPA Panel, and Admin Panel.
 """
 
+import json
 import os
 import secrets
 import hashlib
@@ -29,6 +30,21 @@ from ..models.user import UnifiedUser, UserType, UserContext, CPARole
 from admin_panel.auth.password import hash_password as bcrypt_hash, verify_password as bcrypt_verify
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Redis availability check (used for refresh-token and magic-link storage)
+# ---------------------------------------------------------------------------
+try:
+    import redis.asyncio as _aioredis
+    _REDIS_LIB_AVAILABLE = True
+except ImportError:
+    _aioredis = None  # type: ignore[assignment]
+    _REDIS_LIB_AVAILABLE = False
+
+
+def _get_redis_url() -> str:
+    """Return the configured Redis URL."""
+    return os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 
 
 # =============================================================================
@@ -207,13 +223,23 @@ class CoreAuthService:
         self.config = config or AuthConfig()
         self._use_database = use_database if use_database is not None else USE_DATABASE
 
-        # In-memory storage (always available for magic links, refresh tokens)
+        # In-memory storage (development fallback for magic links, refresh tokens)
         self._users_db: Dict[str, UnifiedUser] = {}  # Mock DB - used when not using database
         self._magic_links: Dict[str, Dict] = {}  # token -> {user_id, expires_at}
         self._refresh_tokens: Dict[str, Dict] = {}  # token -> {user_id, expires_at}
 
+        # Redis client for token storage (lazy-initialized)
+        self._redis = None
+
         # Database repository (lazy-initialized)
         self._user_repo = None
+
+        # In production, Redis is REQUIRED for token storage
+        if _IS_PRODUCTION and not _REDIS_LIB_AVAILABLE:
+            raise RuntimeError(
+                "CRITICAL: redis package is required in production for token storage. "
+                "Install with: pip install redis[hiredis]"
+            )
 
         # Initialize with mock users for development (when not using database)
         if not self._use_database:
@@ -313,6 +339,118 @@ class CoreAuthService:
         self._users_db[platform_admin.email] = platform_admin
 
     # =========================================================================
+    # REDIS TOKEN STORAGE HELPERS
+    # =========================================================================
+
+    async def _get_redis(self):
+        """
+        Get or create the async Redis connection for token storage.
+
+        In production, raises RuntimeError if Redis is unreachable.
+        In development, returns None (caller falls back to in-memory).
+        """
+        if self._redis is not None:
+            return self._redis
+
+        if not _REDIS_LIB_AVAILABLE:
+            if _IS_PRODUCTION:
+                raise RuntimeError(
+                    "Redis library is required in production for token storage."
+                )
+            return None
+
+        try:
+            client = _aioredis.from_url(
+                _get_redis_url(),
+                decode_responses=True,
+                socket_connect_timeout=5,
+            )
+            await client.ping()
+            self._redis = client
+            logger.info("Redis connected for auth token storage")
+            return self._redis
+        except Exception as exc:
+            if _IS_PRODUCTION:
+                raise RuntimeError(
+                    f"Redis is required in production but unavailable: {exc}"
+                ) from exc
+            logger.warning(
+                "Redis unavailable — using in-memory token storage (dev only): %s", exc
+            )
+            return None
+
+    # -- Refresh tokens -------------------------------------------------------
+
+    async def _store_refresh_token_redis(
+        self, token: str, data: Dict[str, Any], ttl: int
+    ) -> None:
+        """Store a refresh token in Redis with TTL."""
+        r = await self._get_redis()
+        if r is not None:
+            await r.setex(
+                f"refresh_token:{token}",
+                ttl,
+                json.dumps(data, default=str),
+            )
+        else:
+            # Development fallback
+            self._refresh_tokens[token] = data
+
+    async def _get_refresh_token_redis(self, token: str) -> Optional[Dict]:
+        """Retrieve a refresh token from Redis (or in-memory fallback)."""
+        r = await self._get_redis()
+        if r is not None:
+            raw = await r.get(f"refresh_token:{token}")
+            if raw is None:
+                return None
+            return json.loads(raw)
+        else:
+            return self._refresh_tokens.get(token)
+
+    async def _delete_refresh_token_redis(self, token: str) -> None:
+        """Delete a refresh token from Redis (or in-memory fallback)."""
+        r = await self._get_redis()
+        if r is not None:
+            await r.delete(f"refresh_token:{token}")
+        else:
+            self._refresh_tokens.pop(token, None)
+
+    # -- Magic link tokens ----------------------------------------------------
+
+    async def _store_magic_link_redis(
+        self, token: str, data: Dict[str, Any], ttl: int
+    ) -> None:
+        """Store a magic link token in Redis with TTL."""
+        r = await self._get_redis()
+        if r is not None:
+            await r.setex(
+                f"magic_link:{token}",
+                ttl,
+                json.dumps(data, default=str),
+            )
+        else:
+            self._magic_links[token] = data
+
+    async def _get_magic_link_redis(self, token: str) -> Optional[Dict]:
+        """Retrieve a magic link token from Redis (or in-memory fallback)."""
+        r = await self._get_redis()
+        if r is not None:
+            raw = await r.get(f"magic_link:{token}")
+            if raw is None:
+                return None
+            return json.loads(raw)
+        else:
+            return self._magic_links.get(token)
+
+    async def _delete_magic_link_redis(self, token: str) -> None:
+        """Delete a magic link token from Redis (or in-memory fallback)."""
+        r = await self._get_redis()
+        if r is not None:
+            await r.delete(f"magic_link:{token}")
+        else:
+            self._magic_links.pop(token, None)
+
+    # =========================================================================
     # PASSWORD MANAGEMENT
     # =========================================================================
 
@@ -372,28 +510,35 @@ class CoreAuthService:
 
         return pyjwt.encode(payload, AuthConfig.get_jwt_secret(), algorithm="HS256")
 
-    def _generate_refresh_token(self, user: UnifiedUser) -> str:
-        """Generate refresh token."""
+    async def _generate_refresh_token(self, user: UnifiedUser) -> str:
+        """Generate refresh token and store in Redis (or in-memory fallback)."""
         token = f"refresh_{secrets.token_urlsafe(32)}"
+        ttl_seconds = self.config.REFRESH_TOKEN_EXPIRE_DAYS * 86400
         expires_at = datetime.utcnow() + timedelta(days=self.config.REFRESH_TOKEN_EXPIRE_DAYS)
 
-        self._refresh_tokens[token] = {
-            "user_id": user.id,
-            "expires_at": expires_at
-        }
+        await self._store_refresh_token_redis(
+            token,
+            {"user_id": user.id, "expires_at": expires_at.isoformat()},
+            ttl=ttl_seconds,
+        )
 
         return token
 
-    def _generate_magic_link_token(self, user: UnifiedUser) -> str:
-        """Generate magic link token for passwordless login."""
+    async def _generate_magic_link_token(self, user: UnifiedUser) -> str:
+        """Generate magic link token and store in Redis (or in-memory fallback)."""
         token = f"magic_{secrets.token_urlsafe(32)}"
+        ttl_seconds = self.config.MAGIC_LINK_EXPIRE_MINUTES * 60
         expires_at = datetime.utcnow() + timedelta(minutes=self.config.MAGIC_LINK_EXPIRE_MINUTES)
 
-        self._magic_links[token] = {
-            "user_id": user.id,
-            "email": user.email,
-            "expires_at": expires_at
-        }
+        await self._store_magic_link_redis(
+            token,
+            {
+                "user_id": user.id,
+                "email": user.email,
+                "expires_at": expires_at.isoformat(),
+            },
+            ttl=ttl_seconds,
+        )
 
         return token
 
@@ -467,7 +612,7 @@ class CoreAuthService:
 
         # Generate tokens
         access_token = self._generate_access_token(user)
-        refresh_token = self._generate_refresh_token(user) if request.remember_me else None
+        refresh_token = (await self._generate_refresh_token(user)) if request.remember_me else None
 
         # Update last login
         user.last_login_at = datetime.utcnow()
@@ -506,7 +651,7 @@ class CoreAuthService:
             )
 
         # Generate magic link token
-        token = self._generate_magic_link_token(user)
+        token = await self._generate_magic_link_token(user)
 
         # In production: send email with link
         magic_link = f"/auth/magic-link?token={token}"
@@ -521,7 +666,7 @@ class CoreAuthService:
 
     async def verify_magic_link(self, token: str) -> AuthResponse:
         """Verify magic link and authenticate user."""
-        link_data = self._magic_links.get(token)
+        link_data = await self._get_magic_link_redis(token)
 
         if not link_data:
             return AuthResponse(
@@ -529,9 +674,12 @@ class CoreAuthService:
                 message="Invalid or expired link"
             )
 
-        # Check expiration
-        if datetime.utcnow() > link_data["expires_at"]:
-            del self._magic_links[token]
+        # Check expiration (handle both datetime and ISO string formats)
+        expires_at = link_data["expires_at"]
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at)
+        if datetime.utcnow() > expires_at:
+            await self._delete_magic_link_redis(token)
             return AuthResponse(
                 success=False,
                 message="Link has expired"
@@ -547,10 +695,10 @@ class CoreAuthService:
 
         # Generate access token
         access_token = self._generate_access_token(user)
-        refresh_token = self._generate_refresh_token(user)
+        refresh_token = await self._generate_refresh_token(user)
 
         # Clean up used magic link
-        del self._magic_links[token]
+        await self._delete_magic_link_redis(token)
 
         # Update last login
         user.last_login_at = datetime.utcnow()
@@ -571,7 +719,7 @@ class CoreAuthService:
 
     async def refresh_access_token(self, refresh_token: str) -> AuthResponse:
         """Refresh access token using refresh token."""
-        token_data = self._refresh_tokens.get(refresh_token)
+        token_data = await self._get_refresh_token_redis(refresh_token)
 
         if not token_data:
             return AuthResponse(
@@ -579,9 +727,12 @@ class CoreAuthService:
                 message="Invalid refresh token"
             )
 
-        # Check expiration
-        if datetime.utcnow() > token_data["expires_at"]:
-            del self._refresh_tokens[refresh_token]
+        # Check expiration (handle both datetime and ISO string formats)
+        expires_at = token_data["expires_at"]
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at)
+        if datetime.utcnow() > expires_at:
+            await self._delete_refresh_token_redis(refresh_token)
             return AuthResponse(
                 success=False,
                 message="Refresh token has expired"
@@ -680,8 +831,8 @@ class CoreAuthService:
 
     async def logout(self, refresh_token: Optional[str] = None) -> AuthResponse:
         """Logout user and invalidate refresh token."""
-        if refresh_token and refresh_token in self._refresh_tokens:
-            del self._refresh_tokens[refresh_token]
+        if refresh_token:
+            await self._delete_refresh_token_redis(refresh_token)
 
         return AuthResponse(
             success=True,
