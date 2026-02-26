@@ -46,6 +46,13 @@ def _determine_enforcement(enforce: Optional[bool], context: str = "auth") -> bo
     # Explicit override takes precedence
     if enforce is not None:
         if not enforce:
+            env = os.environ.get("APP_ENVIRONMENT", "").lower()
+            if env in ("production", "prod", "staging"):
+                _logger = logging.getLogger(__name__)
+                _logger.warning(
+                    f"SECURITY: enforce=False used in {context} — "
+                    "this disables auth in production!"
+                )
             logger.warning(
                 f"[SECURITY] {context} enforcement explicitly DISABLED by decorator parameter"
             )
@@ -75,6 +82,21 @@ class Role(str, Enum):
     ADMIN = "admin"
     PREPARER = "preparer"
     GUEST = "guest"
+
+
+# Bridge legacy Role enum to RBAC roles (src/rbac/roles.py)
+_LEGACY_TO_RBAC_ROLE = {
+    Role.ADMIN: "super_admin",
+    Role.CPA: "partner",
+    Role.PREPARER: "staff",
+    Role.TAXPAYER: "firm_client",
+    Role.GUEST: None,
+}
+
+
+def legacy_role_to_rbac(legacy_role: "Role") -> str | None:
+    """Map legacy auth_decorators Role to rbac.roles Role value."""
+    return _LEGACY_TO_RBAC_ROLE.get(legacy_role)
 
 
 def _preserve_wrapped_signature(wrapper: Callable, func: Callable) -> None:
@@ -703,6 +725,8 @@ __all__ = [
     'rate_limit',
     # Role enum
     'Role',
+    # Legacy-to-RBAC bridge
+    'legacy_role_to_rbac',
     # IDOR protection helpers
     'check_session_ownership',
     'check_tenant_access',

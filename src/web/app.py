@@ -135,6 +135,8 @@ from security.middleware import (
     CSRFMiddleware,
 )
 from security.tenant_isolation_middleware import TenantIsolationMiddleware
+# NOTE: Uses legacy Role enum from auth_decorators (TAXPAYER, CPA, PREPARER, ADMIN, GUEST).
+# These map to RBAC roles via legacy_role_to_rbac() — see auth_decorators.py
 from security.auth_decorators import (
     require_auth,
     require_session_owner,

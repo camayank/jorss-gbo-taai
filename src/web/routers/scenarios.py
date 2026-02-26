@@ -20,6 +20,8 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+# NOTE: Uses legacy Role enum from auth_decorators (TAXPAYER, CPA, PREPARER, etc.)
+# These map to RBAC roles via legacy_role_to_rbac() — see auth_decorators.py
 from security.auth_decorators import require_auth, Role
 
 logger = logging.getLogger(__name__)
