@@ -18,7 +18,8 @@ from fastapi import APIRouter, HTTPException, Depends, Query, status
 from typing import Optional, List
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel
+from decimal import Decimal
+from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -73,13 +74,13 @@ class TaxReturn(BaseModel):
     return_type: TaxReturnType
     status: TaxReturnStatus
 
-    # Financial data
-    gross_income: float = 0.0
-    adjusted_gross_income: float = 0.0
-    taxable_income: float = 0.0
-    total_tax: float = 0.0
-    refund_amount: float = 0.0
-    amount_due: float = 0.0
+    # Financial data — use Decimal with range validation to prevent NaN/Infinity
+    gross_income: Decimal = Field(default=Decimal("0.00"), ge=0, le=Decimal("999999999.99"))
+    adjusted_gross_income: Decimal = Field(default=Decimal("0.00"), ge=0, le=Decimal("999999999.99"))
+    taxable_income: Decimal = Field(default=Decimal("0.00"), ge=0, le=Decimal("999999999.99"))
+    total_tax: Decimal = Field(default=Decimal("0.00"), ge=0, le=Decimal("999999999.99"))
+    refund_amount: Decimal = Field(default=Decimal("0.00"), ge=0, le=Decimal("999999999.99"))
+    amount_due: Decimal = Field(default=Decimal("0.00"), ge=0, le=Decimal("999999999.99"))
 
     # Metadata
     created_at: datetime
