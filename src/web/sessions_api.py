@@ -23,17 +23,9 @@ from src.database.session_persistence import get_session_persistence
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/sessions", tags=["session-management"])
 
-# Import auth dependency (adjust path as needed)
-try:
-    from src.auth.auth_context import AuthContext, require_auth
-except ImportError:
-    # Fallback for testing
-    class AuthContext:
-        user_id: str
-        role: Any
-
-    def require_auth():
-        pass
+# Auth dependencies
+from src.rbac.dependencies import require_auth, optional_auth, require_platform_admin
+from src.rbac.context import AuthContext
 
 
 # =============================================================================
@@ -114,22 +106,22 @@ async def list_my_sessions(
 
 @router.get("/check-active", response_model=CheckActiveResponse)
 async def check_active_session(
-    user_id: Optional[str] = None,
-    session_id: Optional[str] = None
+    session_id: Optional[str] = None,
+    ctx: AuthContext = Depends(require_auth),
 ):
     """
     Check if user has an active session.
 
     Used for the "resume banner" on landing page.
+    Requires authentication — user_id is always taken from the auth context.
 
     Query Parameters:
-        - user_id: Check for authenticated user (optional)
-        - session_id: Check specific session (for anonymous users)
+        - session_id: Check specific session (optional)
     """
     try:
         persistence = get_session_persistence()
         result = persistence.check_active_session(
-            user_id=user_id,
+            user_id=str(ctx.user_id),
             session_id=session_id
         )
 
@@ -175,8 +167,15 @@ async def resume_session(
                 detail={"error": "SessionNotFound", "message": f"Session {session_id} not found"}
             )
 
-        # Verify ownership
-        if session.user_id != str(ctx.user_id):
+        # Verify ownership or bind anonymous session to authenticated user
+        if session.user_id is None:
+            # Anonymous session — bind to the authenticated user on first resume
+            persistence.transfer_session_to_user(
+                session_id=session_id,
+                user_id=str(ctx.user_id),
+            )
+            logger.info(f"Bound anonymous session {session_id} to user {ctx.user_id}")
+        elif session.user_id != str(ctx.user_id):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail={"error": "AccessDenied", "message": "You don't own this session"}
@@ -325,14 +324,14 @@ async def delete_session(
 # =============================================================================
 
 @router.post("/cleanup-expired")
-async def cleanup_expired_sessions(ctx: AuthContext = Depends(require_auth)):
+async def cleanup_expired_sessions(ctx: AuthContext = Depends(require_platform_admin)):
     """
     Cleanup expired sessions.
 
     This endpoint should be called by a background job periodically
     (e.g., cron job every hour).
 
-    Requires authentication to prevent abuse.
+    Requires platform admin access to prevent abuse.
     """
     try:
         persistence = get_session_persistence()
@@ -448,19 +447,29 @@ class RestoreSessionResponse(BaseModel):
 @router.post("/{session_id}/save")
 async def save_session_progress(
     session_id: str,
-    request: SaveSessionRequest
+    request: SaveSessionRequest,
+    ctx: Optional[AuthContext] = Depends(optional_auth),
 ):
     """
     Save session progress (extracted data, conversation history).
 
     Called by frontend to persist user progress during tax advisory flow.
-    No auth required - uses session_id for identification (anonymous allowed).
+    Supports both anonymous and authenticated access.
+    Authenticated users can only save to sessions they own.
     """
     try:
         persistence = get_session_persistence()
 
         # Load existing session or create new
         session = persistence.load_unified_session(session_id)
+
+        if session:
+            # Verify ownership: if session has a user_id, it must match the caller
+            if session.user_id and ctx and str(ctx.user_id) != session.user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail={"error": "AccessDenied", "message": "You don't own this session"}
+                )
 
         if session:
             # Update existing session
@@ -505,6 +514,8 @@ async def save_session_progress(
             "message": "Progress saved successfully"
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to save session {session_id}: {e}")
         raise HTTPException(
@@ -514,12 +525,16 @@ async def save_session_progress(
 
 
 @router.get("/{session_id}/restore", response_model=RestoreSessionResponse)
-async def restore_session(session_id: str):
+async def restore_session(
+    session_id: str,
+    ctx: Optional[AuthContext] = Depends(optional_auth),
+):
     """
     Restore full session data for resumption.
 
     Returns extracted_data, conversation_history, and progress.
-    No auth required - uses session_id (anonymous allowed).
+    Supports both anonymous and authenticated access.
+    Authenticated users can only restore sessions they own.
     """
     try:
         persistence = get_session_persistence()
@@ -547,6 +562,13 @@ async def restore_session(session_id: str):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail={"error": "SessionNotFound", "message": f"Session {session_id} not found"}
+            )
+
+        # Verify ownership: if session has a user_id, it must match the caller
+        if session.user_id and ctx and str(ctx.user_id) != session.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={"error": "AccessDenied", "message": "You don't own this session"}
             )
 
         # Extract data from unified session
