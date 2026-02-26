@@ -394,6 +394,15 @@
 </style>
 
 <script>
+    function getAuthHeaders() {
+        const headers = { 'Content-Type': 'application/json' };
+        const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const csrf = document.querySelector('meta[name="csrf-token"]');
+        if (csrf) headers['X-CSRFToken'] = csrf.content;
+        return headers;
+    }
+
     function filterByStatus(status) {
         window.location.href = '/cpa/returns/queue?status=' + status;
     }
@@ -402,6 +411,7 @@
         const input = document.getElementById('searchInput');
         const filter = input.value.toLowerCase();
         const table = document.getElementById('returnsTable');
+        if (!table) return;
         const rows = table.getElementsByTagName('tr');
 
         for (let i = 1; i < rows.length; i++) {
@@ -419,13 +429,13 @@
         }
 
         try {
-            const response = await fetch(`/api/returns/${sessionId}/approve`, {
+            const response = await fetch(`/api/cpa/returns/${sessionId}/approve`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({
-                    cpa_signature: 'Electronic Signature'
+                    cpa_reviewer_id: '{{ current_user.id | default("") }}',
+                    cpa_reviewer_name: '{{ current_user.name | default(cpa.full_name | default("CPA Reviewer")) }}',
+                    review_notes: 'Approved from queue'
                 })
             });
 
@@ -433,6 +443,7 @@
                 showToast('Return approved successfully!', 'success');
                 window.location.reload();
             } else {
+                if (response.status === 401) { window.location.href = '/cpa/login'; return; }
                 const data = await response.json();
                 showToast('Failed to approve: ' + (data.detail || 'Unknown error'), 'error');
             }

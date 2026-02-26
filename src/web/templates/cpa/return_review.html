@@ -583,6 +583,22 @@
 
 <script>
     const sessionId = '{{ session_id }}';
+    const cpaReviewerId = '{{ current_user.id | default("") }}';
+    const cpaReviewerName = '{{ current_user.name | default(cpa.full_name | default("CPA Reviewer")) }}';
+
+    function getAuthHeaders() {
+        const headers = { 'Content-Type': 'application/json' };
+        const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const csrf = document.querySelector('meta[name="csrf-token"]');
+        if (csrf) headers['X-CSRFToken'] = csrf.content;
+        return headers;
+    }
+
+    function handleAuthError(response) {
+        if (response.status === 401) { window.location.href = '/cpa/login'; return true; }
+        return false;
+    }
 
     function toggleAddNote() {
         const form = document.getElementById('addNoteForm');
@@ -597,17 +613,20 @@
         }
 
         try {
-            const response = await fetch(`/api/returns/${sessionId}/notes`, {
+            const response = await fetch(`/api/cpa/returns/${sessionId}/notes`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ content })
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    text: content,
+                    cpa_id: cpaReviewerId,
+                    cpa_name: cpaReviewerName
+                })
             });
 
             if (response.ok) {
                 window.location.reload();
             } else {
+                if (handleAuthError(response)) return;
                 const data = await response.json();
                 showToast('Failed to save note: ' + (data.detail || 'Unknown error'), 'error');
             }
@@ -628,13 +647,13 @@
         }
 
         try {
-            const response = await fetch(`/api/returns/${sessionId}/approve`, {
+            const response = await fetch(`/api/cpa/returns/${sessionId}/approve`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({
-                    cpa_signature: signature
+                    cpa_reviewer_id: cpaReviewerId,
+                    cpa_reviewer_name: signature,
+                    review_notes: 'Approved via return review page'
                 })
             });
 
@@ -642,6 +661,7 @@
                 showToast('Return approved successfully!', 'success');
                 window.location.reload();
             } else {
+                if (handleAuthError(response)) return;
                 const data = await response.json();
                 showToast('Failed to approve: ' + (data.detail || 'Unknown error'), 'error');
             }
@@ -658,12 +678,11 @@
         }
 
         try {
-            const response = await fetch(`/api/returns/${sessionId}/revert-to-draft`, {
+            const response = await fetch(`/api/cpa/returns/${sessionId}/revert`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({
+                    cpa_reviewer_id: cpaReviewerId,
                     reason: reason
                 })
             });
@@ -672,6 +691,7 @@
                 showToast('Return sent back to client for changes.', 'success');
                 window.location.href = '/cpa/returns/queue';
             } else {
+                if (handleAuthError(response)) return;
                 const data = await response.json();
                 showToast('Failed to request changes: ' + (data.detail || 'Unknown error'), 'error');
             }
