@@ -217,6 +217,12 @@ class CoreAuthService:
 
         # Initialize with mock users for development (when not using database)
         if not self._use_database:
+            env = os.environ.get("APP_ENVIRONMENT", "").lower()
+            if env in ("production", "prod", "staging"):
+                raise RuntimeError(
+                    "FATAL: AUTH_USE_DATABASE must be 'true' in production. "
+                    "Cannot use mock authentication users."
+                )
             self._init_mock_users()
             logger.info("Auth service initialized in MOCK mode (in-memory users)")
         else:
