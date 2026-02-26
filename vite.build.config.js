@@ -59,9 +59,6 @@ export default defineConfig({
         validation: path.resolve(__dirname, 'src/web/static/js/core/validation.js'),
         // Feature modules
         chatbot: path.resolve(__dirname, 'src/web/static/js/chatbot-ux-enhancements.js'),
-        // Page modules
-        'cpa-dashboard': path.resolve(__dirname, 'src/web/static/js/pages/cpa-dashboard.js'),
-        'tax-form': path.resolve(__dirname, 'src/web/static/js/pages/tax-form.js'),
       },
 
       output: {
