@@ -1,3 +1,4 @@
+{% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,37 +10,62 @@
   <link rel="stylesheet" href="/static/css/core/typography.css">
   <link rel="stylesheet" href="/static/css/unified-theme.css">
   <link rel="stylesheet" href="/static/css/pages/intelligent-advisor.css">
+  <link rel="stylesheet" href="/static/css/components/navigation.css">
   <!-- Loading States Manager for accessible loading indicators -->
   <script src="/static/js/loading-states.js" defer></script>
+  <script src="/static/js/core/icons.js" defer></script>
   <script src="/static/js/pages/intelligent-advisor.js" defer></script>
 </head>
-<body>
-  <!-- Liability Disclaimer Banner -->
-  <div id="disclaimer-banner" class="disclaimer-banner" style="display: block;">
-    <div class="disclaimer-content">
-      <div class="disclaimer-icon">⚠️</div>
-      <div class="disclaimer-text">
-        <h3>IMPORTANT: AI Tax Information Disclaimer</h3>
-        <p>This AI assistant provides general tax information only.</p>
-        <ul>
-          <li>I am NOT a licensed CPA, EA, or tax professional</li>
-          <li>This is NOT professional tax advice</li>
-          <li>Consult a licensed professional for your specific situation</li>
-        </ul>
+<body class="has-sidebar has-mobile-header">
+  {% include 'partials/sidebar.html' %}
+
+  <!-- Unified Advisor Consent Modal -->
+  <div id="advisorConsentModal" class="advisor-consent-modal" role="dialog" aria-modal="true" aria-labelledby="advisorConsentTitle">
+    <div class="advisor-consent-content">
+      <div class="consent-header">
+        {{ icon('shield-check', 'xl') }}
+        <h2 id="advisorConsentTitle">Before You Begin</h2>
       </div>
-      <button id="disclaimer-accept-btn" class="disclaimer-accept-btn" onclick="acceptDisclaimer()">
-        I Understand
-      </button>
+      <div class="consent-points">
+        <div class="consent-point">
+          {{ icon('shield-check', 'md') }}
+          <span><strong>Not Professional Advice</strong> &mdash; This AI provides estimates and general guidance only, not licensed CPA/EA advice.</span>
+        </div>
+        <div class="consent-point">
+          {{ icon('lock-closed', 'md') }}
+          <span><strong>Your Data Is Encrypted</strong> &mdash; AES-256 encryption in transit and at rest. We never sell your information.</span>
+        </div>
+        <div class="consent-point">
+          {{ icon('clock', 'md') }}
+          <span><strong>Auto-Deleted After 30 Days</strong> &mdash; Session data is automatically purged after inactivity.</span>
+        </div>
+        <div class="consent-point">
+          {{ icon('exclamation-triangle', 'md') }}
+          <span><strong>IRS Circular 230 Notice</strong> &mdash; Always consult a qualified tax professional before filing.</span>
+        </div>
+      </div>
+      <label class="consent-check-label">
+        <input type="checkbox" id="advisorConsentCheck">
+        <span>I understand these terms and consent to data collection</span>
+      </label>
+      <div class="consent-footer">
+        <div class="consent-links">
+          <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>
+          <a href="/terms" target="_blank" rel="noopener">Terms of Service</a>
+        </div>
+        <button class="consent-continue-btn" id="advisorConsentBtn" disabled>Continue</button>
+      </div>
     </div>
   </div>
 
 
+  <div class="main-content">
   <!-- Skip link for keyboard navigation -->
   <a href="#main-content" class="skip-link">Skip to main content</a>
 
   <!-- Offline Detection Banner -->
   <div class="offline-banner" id="offlineBanner" role="alert" aria-live="assertive">
-    ⚠️ You're offline. Your messages will be sent when connection is restored.
+    {{ icon('signal', 'sm') }} You're offline. Your messages will be sent when connection is restored.
   </div>
 
   <!-- Loading Overlay for Heavy Operations -->
@@ -58,10 +84,10 @@
     </div>
     <div class="header-right">
       <button class="workflow-mode-btn" onclick="openWorkflowSelector()" title="Choose filing workflow" aria-label="Choose filing workflow" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; padding: var(--space-2) var(--space-4); border-radius: var(--radius-lg); cursor: pointer; font-size: var(--text-xs-plus); font-weight: var(--font-semibold); margin-right: var(--space-3); transition: all 0.2s;">
-        ⚡ Choose Workflow
+        {{ icon('bolt', 'sm') }} Choose Workflow
       </button>
       <button class="clear-chat-btn" onclick="clearConversation()" title="Start new conversation" aria-label="Start new conversation">
-        🔄 New Chat
+        {{ icon('arrow-path', 'sm') }} New Chat
       </button>
       <div class="connection-status" id="connectionStatus" role="status" aria-live="polite">
         <span class="status-dot" id="connectionDot"></span>
@@ -70,48 +96,6 @@
     </div>
   </header>
 
-  <!-- Data Collection Consent Modal -->
-  <div class="consent-modal" id="consentModal" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
-    <div class="consent-content">
-      <h2 id="consentTitle">📋 Before We Begin</h2>
-      <div class="consent-body">
-        <p><strong>This AI assistant will collect personal tax information to provide guidance.</strong></p>
-
-        <div class="consent-item">
-          <span class="consent-icon">🔒</span>
-          <span><strong>Data Security:</strong> All information is encrypted (AES-256) in transit and at rest.</span>
-        </div>
-
-        <div class="consent-item">
-          <span class="consent-icon">⏰</span>
-          <span><strong>Data Retention:</strong> Your session data is automatically deleted after 30 days of inactivity.</span>
-        </div>
-
-        <div class="consent-item">
-          <span class="consent-icon">🚫</span>
-          <span><strong>No Selling:</strong> We never sell or share your personal information with third parties.</span>
-        </div>
-
-        <div class="consent-item warning">
-          <span class="consent-icon">⚠️</span>
-          <span><strong>IRS Circular 230 Notice:</strong> This AI provides general guidance only, NOT professional tax advice. It cannot represent you before the IRS. For complex tax situations, always consult a licensed CPA, EA, or tax attorney.</span>
-        </div>
-
-        <label class="consent-checkbox" onclick="document.getElementById('acceptConsentBtn').disabled = !document.getElementById('dataConsent').checked;">
-          <input type="checkbox" id="dataConsent" required onchange="document.getElementById('acceptConsentBtn').disabled = !this.checked;">
-          <span>I understand and consent to the collection of my tax information for advisory purposes. I acknowledge this is NOT professional tax advice.</span>
-        </label>
-      </div>
-
-      <div class="consent-actions">
-        <a href="/privacy" target="_blank" class="consent-link">Privacy Policy</a>
-        <a href="/terms" target="_blank" class="consent-link">Terms of Service</a>
-        <button class="consent-btn" id="acceptConsentBtn" disabled onclick="acceptConsent();">
-          ✓ Accept & Continue
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- Photo Document Capture Modal -->
   <div class="photo-capture-modal" id="photoCaptureModal" role="dialog" aria-modal="true" aria-label="Capture document photo">
@@ -120,7 +104,7 @@
       <video id="cameraVideo" autoplay playsinline></video>
       <div class="document-guide">
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
-          📄 Position document inside frame
+          {{ icon('document-arrow-up', 'lg') }} Position document inside frame
         </div>
       </div>
     </div>
@@ -134,34 +118,29 @@
 
   <main class="main" id="main-content" role="main">
     <div class="chat-panel">
-      <!-- Privacy & AI Disclaimer Notice -->
-      <div class="ai-disclaimer-banner" role="alert" aria-label="Important notices about AI assistance and privacy">
-        <div class="disclaimer-item">
-          <span class="disclaimer-icon">🤖</span>
-          <span><strong>AI Assistant:</strong> I provide estimates and general guidance, not professional tax advice. Always verify with a licensed CPA or tax professional.</span>
-        </div>
-        <div class="disclaimer-item">
-          <span class="disclaimer-icon">🔒</span>
-          <span><strong>Privacy:</strong> Your data is encrypted and never sold. <a href="/privacy" style="color: var(--primary);">Privacy Policy</a></span>
-        </div>
+      <!-- Persistent Notice Banner -->
+      <div class="advisor-notice-banner" id="advisorNoticeBanner" role="status">
+        {{ icon('shield-check', 'sm') }}
+        <span>Estimates only &mdash; not professional tax advice. Your data is encrypted. <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a></span>
+        <button class="notice-dismiss-btn" id="dismissNoticeBtn" aria-label="Dismiss notice">&times;</button>
       </div>
 
       <!-- Journey Progress Stepper -->
       <div class="journey-stepper" id="journeyStepper" role="navigation" aria-label="Tax advisory progress">
         <div class="journey-step active" data-step="1" id="step-1">
-          <div class="step-icon">📋</div>
+          <div class="step-icon">{{ icon('clipboard-document-list', 'md') }}</div>
           <div class="step-label">Profile</div>
         </div>
         <div class="journey-step" data-step="2" id="step-2">
-          <div class="step-icon">💰</div>
+          <div class="step-icon">{{ icon('currency-dollar', 'md') }}</div>
           <div class="step-label">Income</div>
         </div>
         <div class="journey-step" data-step="3" id="step-3">
-          <div class="step-icon">🎯</div>
+          <div class="step-icon">{{ icon('sparkles', 'md') }}</div>
           <div class="step-label">Analysis</div>
         </div>
         <div class="journey-step" data-step="4" id="step-4">
-          <div class="step-icon">📊</div>
+          <div class="step-icon">{{ icon('chart-bar', 'md') }}</div>
           <div class="step-label">Report</div>
         </div>
       </div>
@@ -170,16 +149,11 @@
         <span class="phase-label" id="currentPhaseLabel">Getting Started</span>
       </div>
 
-      <!-- Scope Limitation Banner - Circular 230 Compliance -->
-      <div class="scope-banner" id="scopeBanner" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-lg); padding: var(--space-2-5) var(--space-4); margin-bottom: var(--space-4); font-size: var(--text-xs); color: var(--accent-gold); display: flex; align-items: center; gap: var(--space-2);">
-        <span style="font-size: var(--text-base);">⚠️</span>
-        <span><strong>Estimation Tool Only:</strong> This provides tax estimates and educational information. Always consult a qualified tax professional before filing.</span>
-      </div>
 
       <div class="messages" id="messages" role="log" aria-live="polite" aria-label="Conversation with AI tax advisor">
         <!-- Premium initial message -->
         <div class="message ai" role="article" aria-label="AI assistant message">
-          <div class="avatar" aria-hidden="true">💼</div>
+          <div class="avatar" aria-hidden="true">{{ icon('briefcase', 'md') }}</div>
           <div class="bubble">
             <div style="margin-bottom: var(--space-4);">
               <span style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--accent-light);">Welcome to Your Tax Advisory Session</span>
@@ -187,7 +161,7 @@
             I'm your AI-powered tax strategist, trained on thousands of tax scenarios to help you <strong>maximize savings</strong> and <strong>minimize liability</strong>.<br><br>
             <div class="insight-card" style="margin: var(--space-4) 0;">
               <div class="insight-header">
-                <span>📊</span>
+                {{ icon('chart-bar', 'md') }}
                 <span>Average Client Savings</span>
               </div>
               <div class="savings-amount">$4,200 - $12,500</div>
@@ -218,10 +192,10 @@
             <span id="inputHint" class="sr-only">Press Enter to send, Shift+Enter for new line</span>
             <div class="action-btns">
               <button class="icon-btn" onclick="uploadDocument()" title="Upload Document" aria-label="Upload a tax document">
-                <span aria-hidden="true">📎</span>
+                <span aria-hidden="true">{{ icon('paper-clip', 'sm') }}</span>
               </button>
               <button class="icon-btn" onclick="addVoiceInput()" title="Voice Input" aria-label="Use voice input">
-                <span aria-hidden="true">🎤</span>
+                <span aria-hidden="true">{{ icon('microphone', 'sm') }}</span>
               </button>
             </div>
           </div>
@@ -234,7 +208,7 @@
 
     <div class="side-panel">
       <div class="panel-card">
-        <div class="panel-header">📊 Advisory Progress</div>
+        <div class="panel-header">{{ icon('chart-bar', 'sm') }} Advisory Progress</div>
         <div class="progress-bar">
           <div class="progress-fill" id="progressFill" style="width: 0%"></div>
         </div>
@@ -247,16 +221,16 @@
       </div>
 
       <div class="panel-card">
-        <div class="panel-header">💡 Strategic Recommendations</div>
+        <div class="panel-header">{{ icon('light-bulb', 'sm') }} Strategic Recommendations</div>
         <div id="insights" style="font-size: var(--text-sm); color: var(--text-secondary);">
           I'll share personalized recommendations as we review your financial situation...
         </div>
       </div>
 
       <div class="panel-card" id="uploadPanel">
-        <div class="panel-header">📁 Quick Upload</div>
+        <div class="panel-header">{{ icon('folder', 'sm') }} Quick Upload</div>
         <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
-          <div style="font-size: 32px; margin-bottom: var(--space-2);">📄</div>
+          <div style="margin-bottom: var(--space-2);">{{ icon('document-arrow-up', 'xl') }}</div>
           <div style="font-size: var(--text-sm); margin-bottom: var(--space-1);">Drop documents here</div>
           <div style="font-size: var(--text-xs); color: var(--text-secondary);">or click to browse</div>
         </div>
@@ -269,38 +243,16 @@
   <!-- Workflow Selector Component -->
   {% include 'components/workflow_selector.html' %}
 
-  <!-- Professional Standards Acknowledgment Modal - Circular 230 Compliance -->
-  <div id="acknowledgment-modal" class="acknowledgment-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 10000;">
-    <div style="background: var(--bg-elevated); border-radius: var(--radius-2xl); padding: var(--space-8); max-width: 560px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
-      <h2 style="color: var(--primary); margin: 0 0 var(--space-5) 0; font-size: var(--text-2xl);">⚠️ Professional Standards Notice</h2>
-      <div style="font-size: var(--text-sm); line-height: 1.7; color: var(--text-secondary);">
-        <p style="margin-bottom: var(--space-4);">This tax advisory tool provides <strong style="color: var(--text-primary);">estimates and educational information only</strong>.</p>
-        <p style="margin-bottom: var(--space-4);">By using this tool, you acknowledge and agree that:</p>
-        <ol style="margin: 0 0 var(--space-5) 0; padding-left: var(--space-6);">
-          <li style="margin: var(--space-2) 0;">This is <strong>NOT</strong> professional tax advice</li>
-          <li style="margin: var(--space-2) 0;">This tool is <strong>NOT</strong> a licensed CPA, EA, or tax attorney</li>
-          <li style="margin: var(--space-2) 0;">Calculations are estimates that may not reflect your actual tax liability</li>
-          <li style="margin: var(--space-2) 0;">You should consult a qualified tax professional before filing</li>
-          <li style="margin: var(--space-2) 0;">You are responsible for the accuracy of information you provide</li>
-          <li style="margin: var(--space-2) 0;">Tax laws change frequently; this tool may not reflect recent changes</li>
-        </ol>
-        <div style="margin: var(--space-6) 0; padding: var(--space-4); background: rgba(99, 102, 241, 0.1); border-radius: var(--radius-lg);">
-          <label style="display: flex; align-items: flex-start; gap: var(--space-3); cursor: pointer; margin-bottom: var(--space-4);">
-            <input type="checkbox" id="ack-limitations" style="margin-top: var(--space-1); width: 18px; height: 18px; accent-color: var(--primary);">
-            <span>I have read and understand these limitations</span>
-          </label>
-          <label style="display: flex; align-items: flex-start; gap: var(--space-3); cursor: pointer;">
-            <input type="checkbox" id="ack-consult" style="margin-top: var(--space-1); width: 18px; height: 18px; accent-color: var(--primary);">
-            <span>I agree to consult a tax professional for my specific situation</span>
-          </label>
-        </div>
-        <button id="ack-continue-btn" disabled style="width: 100%; padding: var(--space-4); font-size: var(--text-base); font-weight: var(--font-semibold); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; opacity: 0.5; transition: opacity 0.2s;">
-          I Acknowledge and Continue
-        </button>
-      </div>
-    </div>
-  </div>
+  </div><!-- /.main-content -->
 
-
+  <!-- Alpine.js sidebar store + Alpine CDN -->
+  <script type="module">
+    import { registerSidebarStore } from '/static/js/alpine/stores/sidebar.js';
+    document.addEventListener('alpine:init', () => {
+      registerSidebarStore(Alpine);
+    });
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
 </body>
 </html>

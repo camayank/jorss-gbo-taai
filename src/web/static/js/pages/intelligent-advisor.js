@@ -1,21 +1,6 @@
 /* ==========================================
-   Disclaimer Management
+   Unified Consent Management
    ========================================== */
-
-  function acceptDisclaimer() {
-    sessionStorage.setItem('disclaimerAccepted', 'true');
-    document.getElementById('disclaimer-banner').style.display = 'none';
-    enableChat();
-  }
-
-  function checkDisclaimerAccepted() {
-    if (sessionStorage.getItem('disclaimerAccepted') === 'true') {
-      document.getElementById('disclaimer-banner').style.display = 'none';
-      enableChat();
-    } else {
-      disableChat();
-    }
-  }
 
   function disableChat() {
     const chatInput = document.getElementById('userInput');
@@ -43,8 +28,75 @@
     }
   }
 
+  /** Returns true if user already consented this session */
+  function checkAdvisorConsent() {
+    if (sessionStorage.getItem('advisor_consent') === 'true') {
+      var modal = document.getElementById('advisorConsentModal');
+      if (modal) modal.classList.add('hidden');
+      enableChat();
+      return true;
+    }
+    // Show consent modal, disable chat
+    var modal = document.getElementById('advisorConsentModal');
+    if (modal) modal.classList.remove('hidden');
+    disableChat();
+    return false;
+  }
+
+  /** Wire up consent modal checkbox + button */
+  function setupAdvisorConsent() {
+    var checkbox = document.getElementById('advisorConsentCheck');
+    var btn = document.getElementById('advisorConsentBtn');
+    if (!checkbox || !btn) return;
+
+    checkbox.addEventListener('change', function () {
+      btn.disabled = !this.checked;
+    });
+
+    btn.addEventListener('click', async function () {
+      sessionStorage.setItem('advisor_consent', 'true');
+      sessionStorage.setItem('advisor_consent_at', new Date().toISOString());
+      var modal = document.getElementById('advisorConsentModal');
+      if (modal) modal.classList.add('hidden');
+      enableChat();
+
+      // Log acknowledgment to server
+      try {
+        await fetch('/api/intelligent-advisor/acknowledge-standards', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: typeof sessionId !== 'undefined' ? sessionId : 'unknown',
+            acknowledged_at: new Date().toISOString()
+          })
+        });
+      } catch (e) {
+        console.warn('Could not log acknowledgment:', e);
+      }
+
+      // Initialize session after consent
+      initializeSession();
+      showToast('Welcome! Your data will be handled securely.', 'success');
+    });
+  }
+
+  /** Wire up the dismissible notice banner */
+  function setupNoticeBanner() {
+    var dismissBtn = document.getElementById('dismissNoticeBtn');
+    var banner = document.getElementById('advisorNoticeBanner');
+    if (dismissBtn && banner) {
+      dismissBtn.addEventListener('click', function () {
+        banner.style.display = 'none';
+      });
+    }
+  }
+
   // Check on page load
-  document.addEventListener('DOMContentLoaded', checkDisclaimerAccepted);
+  document.addEventListener('DOMContentLoaded', function () {
+    setupAdvisorConsent();
+    setupNoticeBanner();
+    checkAdvisorConsent();
+  });
 
 
 /* ==========================================
@@ -1624,50 +1676,7 @@
       }, 4000);
     }
 
-    // ============ CONSENT MODAL ============
-    function checkConsent() {
-      const hasConsent = sessionStorage.getItem('tax_data_consent');
-      const consentModal = document.getElementById('consentModal');
-
-      if (hasConsent === 'true') {
-        consentModal.classList.add('hidden');
-        return true;
-      }
-
-      // Show consent modal
-      consentModal.classList.remove('hidden');
-      document.getElementById('dataConsent').focus();
-      return false;
-    }
-
-    function acceptConsent() {
-      const checkbox = document.getElementById('dataConsent');
-      if (!checkbox.checked) {
-        showToast('Please check the consent box to continue', 'warning');
-        return;
-      }
-
-      sessionStorage.setItem('tax_data_consent', 'true');
-      sessionStorage.setItem('tax_consent_timestamp', new Date().toISOString());
-      document.getElementById('consentModal').classList.add('hidden');
-
-      // Initialize session after consent
-      initializeSession();
-      showToast('Welcome! Your data will be handled securely.', 'success');
-    }
-
-    function setupConsentHandlers() {
-      const checkbox = document.getElementById('dataConsent');
-      const acceptBtn = document.getElementById('acceptConsentBtn');
-
-      if (checkbox && acceptBtn) {
-        checkbox.addEventListener('change', function() {
-          acceptBtn.disabled = !this.checked;
-        });
-
-        acceptBtn.addEventListener('click', acceptConsent);
-      }
-    }
+    // Consent is now handled by the unified advisor consent modal (see top of file)
 
     // ============ CONNECTION STATUS ============
     function updateConnectionStatus(online) {
@@ -1726,10 +1735,10 @@
     // ============ JOURNEY STEPPER MANAGEMENT ============
     let currentJourneyStep = 1;
     const journeySteps = {
-      1: { name: 'Profile', icon: '📋' },
-      2: { name: 'Income', icon: '💰' },
-      3: { name: 'Analysis', icon: '🎯' },
-      4: { name: 'Report', icon: '📊' }
+      1: { name: 'Profile', icon: 'clipboard-document-list' },
+      2: { name: 'Income', icon: 'currency-dollar' },
+      3: { name: 'Analysis', icon: 'sparkles' },
+      4: { name: 'Report', icon: 'chart-bar' }
     };
 
     function updateJourneyStep(stepNumber) {
@@ -1748,14 +1757,14 @@
         if (i < stepNumber) {
           // Completed steps show checkmark
           stepEl.classList.add('completed');
-          stepIconEl.textContent = '✓';
+          stepIconEl.innerHTML = getIcon('check', 'md');
         } else if (i === stepNumber) {
           // Active step
           stepEl.classList.add('active');
-          stepIconEl.textContent = journeySteps[i].icon;
+          stepIconEl.innerHTML = getIcon(journeySteps[i].icon, 'md');
         } else {
           // Future steps show original icon
-          stepIconEl.textContent = journeySteps[i].icon;
+          stepIconEl.innerHTML = getIcon(journeySteps[i].icon, 'md');
         }
       }
     }
@@ -1904,21 +1913,21 @@
       I'm your AI-powered tax strategist ready to help you <strong>maximize your savings</strong>.<br><br>
       <div style="display: grid; gap: var(--space-3); margin: var(--space-4) 0;">
         <div style="display: flex; align-items: center; gap: var(--space-2-5); padding: var(--space-3); background: rgba(26, 54, 93, 0.05); border-radius: var(--radius-lg);">
-          <span style="font-size: var(--text-lg);">📄</span>
+          ${getIcon('document-text', 'md')}
           <div>
             <strong>Upload Documents</strong> - I'll extract data from your W-2s, 1099s automatically
           </div>
         </div>
         <div style="display: flex; align-items: center; gap: var(--space-2-5); padding: var(--space-3); background: rgba(26, 54, 93, 0.05); border-radius: var(--radius-lg);">
-          <span style="font-size: var(--text-lg);">💬</span>
+          ${getIcon('chat-bubble-left-right', 'md')}
           <div>
             <strong>Answer Questions</strong> - Smart guided conversation with AI assistance
           </div>
         </div>
       </div>
       <strong>How would you like to start?</strong>`, [
-        { label: "📄 Upload My Documents", value: 'yes_upload', primary: true },
-        { label: "💬 Answer Questions", value: 'no_manual' }
+        { label: getIcon('document-text', 'sm') + ' Upload My Documents', value: 'yes_upload', primary: true },
+        { label: getIcon('chat-bubble-left-right', 'sm') + ' Answer Questions', value: 'no_manual' }
       ]);
       DevLogger.log('Initial greeting added');
     }
@@ -1950,24 +1959,24 @@
 
       if (confidence.level === 'high') {
         disclaimer = `<div class="confidence-indicator confidence-high">
-          <span>✅ ${confidence.label} (${confidence.percentage}% data)</span>
+          <span>${getIcon('check-circle', 'sm')} ${confidence.label} (${confidence.percentage}% data)</span>
           <span style="margin-left: auto; font-size: var(--text-2xs);">Verify with a tax professional before filing</span>
         </div>`;
       } else if (confidence.level === 'medium') {
         disclaimer = `<div class="confidence-indicator confidence-medium">
-          <span>⚠️ ${confidence.label} (${confidence.percentage}% data)</span>
+          <span>${getIcon('exclamation-triangle', 'sm')} ${confidence.label} (${confidence.percentage}% data)</span>
           <span style="margin-left: auto; font-size: var(--text-2xs);">Provide more details for better accuracy</span>
         </div>`;
       } else {
         disclaimer = `<div class="confidence-indicator confidence-low">
-          <span>ℹ️ ${confidence.label} (${confidence.percentage}% data)</span>
+          <span>${getIcon('information-circle', 'sm')} ${confidence.label} (${confidence.percentage}% data)</span>
           <span style="margin-left: auto; font-size: var(--text-2xs);">General guidance only - more info needed</span>
         </div>`;
       }
 
       if (includeIRS) {
         disclaimer += `<div style="font-size: var(--text-2xs); color: var(--text-secondary); margin-top: var(--space-2);">
-          📋 Based on 2025 IRS guidelines. See <a href="https://www.irs.gov/forms-instructions" target="_blank" rel="noopener" style="color: var(--primary);">IRS.gov</a> for official forms.
+          ${getIcon('clipboard-document-list', 'sm')} Based on 2025 IRS guidelines. See <a href="https://www.irs.gov/forms-instructions" target="_blank" rel="noopener" style="color: var(--primary);">IRS.gov</a> for official forms.
         </div>`;
       }
 
@@ -1982,9 +1991,9 @@
       }
 
       const badges = {
-        high: { icon: '🟢', label: 'High Confidence', className: 'high' },
-        medium: { icon: '🟡', label: 'Moderate Confidence', className: 'medium' },
-        low: { icon: '🔴', label: 'Limited Data', className: 'low' }
+        high: { label: 'High Confidence', className: 'high' },
+        medium: { label: 'Moderate Confidence', className: 'medium' },
+        low: { label: 'Limited Data', className: 'low' }
       };
 
       const badge = badges[confidence] || badges.medium;
@@ -2025,7 +2034,7 @@
       const avatar = document.createElement('div');
       avatar.className = 'avatar';
       avatar.setAttribute('aria-hidden', 'true');
-      avatar.textContent = type === 'ai' ? '💼' : '👤';
+      avatar.innerHTML = type === 'ai' ? getIcon('briefcase', 'md') : getIcon('user', 'md');
 
       const bubble = document.createElement('div');
       bubble.className = 'bubble';
@@ -2055,14 +2064,14 @@
       if (type === 'ai') {
         const copyBtn = document.createElement('button');
         copyBtn.className = 'copy-btn';
-        copyBtn.textContent = '📋 Copy';
+        copyBtn.innerHTML = getIcon('clipboard-document-list', 'sm') + ' Copy';
         copyBtn.setAttribute('aria-label', 'Copy this message');
         copyBtn.onclick = (e) => {
           e.stopPropagation();
-          const textContent = bubble.innerText.replace('📋 Copy', '').trim();
+          const textContent = bubble.innerText.replace(/\s*Copy$/, '').trim();
           navigator.clipboard.writeText(textContent).then(() => {
-            copyBtn.textContent = '✓ Copied';
-            setTimeout(() => copyBtn.textContent = '📋 Copy', 2000);
+            copyBtn.innerHTML = getIcon('check', 'sm') + ' Copied';
+            setTimeout(() => copyBtn.innerHTML = getIcon('clipboard-document-list', 'sm') + ' Copy', 2000);
           });
         };
         bubble.appendChild(copyBtn);
@@ -2779,9 +2788,9 @@
             <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 1 of 5</span>
           </div>
           <strong>What best describes your situation?</strong>`, [
-            { label: "💼 W-2 Employee", value: 'guided_type_w2', primary: true },
-            { label: "🏢 Self-Employed / 1099", value: 'guided_type_self' },
-            { label: "📊 Both W-2 + Self-Employed", value: 'guided_type_both' },
+            { label: getIcon('briefcase', 'sm') + ' W-2 Employee', value: 'guided_type_w2', primary: true },
+            { label: getIcon('building-office', 'sm') + ' Self-Employed / 1099', value: 'guided_type_self' },
+            { label: getIcon('chart-bar', 'sm') + ' Both W-2 + Self-Employed', value: 'guided_type_both' },
             { label: "🏖️ Retired / Other Income", value: 'guided_type_retired' }
           ]);
         }, 600);
@@ -2879,15 +2888,15 @@
           // Show relevant deductions based on income source
           const isSelfEmployed = extractedData.tax_profile.is_self_employed;
           const deductionOptions = [
-            { label: "🏠 Mortgage Interest", value: 'guided_ded_mortgage' },
-            { label: "💰 401k/IRA", value: 'guided_ded_retirement' },
-            { label: "🎁 Charitable Donations", value: 'guided_ded_charity' }
+            { label: getIcon('home', 'sm') + ' Mortgage Interest', value: 'guided_ded_mortgage' },
+            { label: getIcon('currency-dollar', 'sm') + ' 401k/IRA', value: 'guided_ded_retirement' },
+            { label: getIcon('gift', 'sm') + ' Charitable Donations', value: 'guided_ded_charity' }
           ];
           if (isSelfEmployed) {
-            deductionOptions.push({ label: "🚗 Business Expenses", value: 'guided_ded_business' });
-            deductionOptions.push({ label: "🏠 Home Office", value: 'guided_ded_homeoffice' });
+            deductionOptions.push({ label: getIcon('truck', 'sm') + ' Business Expenses', value: 'guided_ded_business' });
+            deductionOptions.push({ label: getIcon('home', 'sm') + ' Home Office', value: 'guided_ded_homeoffice' });
           }
-          deductionOptions.push({ label: "➡️ None - Get My Results", value: 'guided_ded_none' });
+          deductionOptions.push({ label: getIcon('arrow-right', 'sm') + ' None - Get My Results', value: 'guided_ded_none' });
 
           addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
             <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 5 of 5</span>
@@ -3031,11 +3040,11 @@
             <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 5 of 5</span>
           </div>
           <strong>Any of these deductions?</strong> <span style="color: var(--text-secondary);">(Select all that apply)</span>`, [
-            { label: "🏠 Mortgage interest", value: 'express_ded_mortgage' },
-            { label: "💰 401k/IRA contributions", value: 'express_ded_retirement' },
-            { label: "🎁 Charitable donations", value: 'express_ded_charity' },
-            { label: "📚 Student loans", value: 'express_ded_student' },
-            { label: "➡️ None / Skip to Report", value: 'express_ded_none' }
+            { label: getIcon('home', 'sm') + ' Mortgage interest', value: 'express_ded_mortgage' },
+            { label: getIcon('currency-dollar', 'sm') + ' 401k/IRA contributions', value: 'express_ded_retirement' },
+            { label: getIcon('gift', 'sm') + ' Charitable donations', value: 'express_ded_charity' },
+            { label: getIcon('academic-cap', 'sm') + ' Student loans', value: 'express_ded_student' },
+            { label: getIcon('arrow-right', 'sm') + ' None / Skip to Report', value: 'express_ded_none' }
           ]);
         }, 600);
         return;
@@ -3295,11 +3304,11 @@
             <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 4 of 7</span>
           </div>
           <strong>Common business expenses?</strong> <span style="color: var(--text-secondary);">(Select all)</span>`, [
-            { label: "🏠 Home office", value: 'express_se_exp_home' },
-            { label: "🚗 Vehicle/mileage", value: 'express_se_exp_vehicle' },
-            { label: "💻 Equipment/software", value: 'express_se_exp_equip' },
+            { label: getIcon('home', 'sm') + ' Home office', value: 'express_se_exp_home' },
+            { label: getIcon('truck', 'sm') + ' Vehicle/mileage', value: 'express_se_exp_vehicle' },
+            { label: getIcon('cpu-chip', 'sm') + ' Equipment/software', value: 'express_se_exp_equip' },
             { label: "📱 Phone/internet", value: 'express_se_exp_phone' },
-            { label: "➡️ Continue", value: 'express_se_exp_done' }
+            { label: getIcon('arrow-right', 'sm') + ' Continue', value: 'express_se_exp_done' }
           ]);
         }, 600);
         return;
@@ -3637,7 +3646,7 @@
             </button>
           </div>
           <div style="font-size: var(--text-xs); color: var(--text-secondary); text-align: center;">Or drag & drop files anywhere on this page</div>`, [
-            { label: '💬 Skip upload, answer questions', value: 'no_manual' }
+            { label: getIcon('chat-bubble-left-right', 'sm') + ' Skip upload, answer questions', value: 'no_manual' }
           ]);
         }, 800);
 
@@ -3661,8 +3670,8 @@
         setTimeout(() => {
           hideTyping();
           addMessage('ai', `Great question! Here's what I typically review for a comprehensive tax advisory:<br><br><strong>📊 Income Documents:</strong><br>• W-2 forms (from employers)<br>• 1099 forms (interest, dividends, freelance income)<br>• Business income records<br>• Rental property income<br><br><strong>💰 Deduction & Credit Records:</strong><br>• Mortgage interest statements (1098)<br>• Property tax records<br>• Charitable contribution receipts<br>• Education expenses (1098-T)<br>• Medical expense receipts<br>• Retirement contributions<br><br><strong>📈 Investment Records:</strong><br>• Brokerage statements<br>• Cryptocurrency transactions<br>• Capital gains/losses<br><br>Don't worry if you don't have everything right now. <strong>What would you like to do next?</strong>`, [
-            { label: '📄 I have some documents ready', value: 'yes_upload' },
-            { label: '💬 Let\'s discuss my situation', value: 'no_manual' }
+            { label: getIcon('document-text', 'sm') + ' I have some documents ready', value: 'yes_upload' },
+            { label: getIcon('chat-bubble-left-right', 'sm') + ' Let\'s discuss my situation', value: 'no_manual' }
           ]);
         }, 2000);
 
@@ -3703,7 +3712,7 @@
               <div style="font-size: 32px; margin-bottom: var(--space-3);">✅</div>
               <div style="font-size: var(--text-lg); font-weight: var(--font-semibold);">Ready to Generate Report!</div>
             </div>`, [
-              { label: '📊 Generate My Tax Report', value: 'generate_report', primary: true }
+              { label: getIcon('chart-bar', 'sm') + ' Generate My Tax Report', value: 'generate_report', primary: true }
             ]);
           }
         }, 500);
@@ -3746,7 +3755,7 @@
               <div style="font-size: 32px; margin-bottom: var(--space-3);">✅</div>
               <div style="font-size: var(--text-lg); font-weight: var(--font-semibold);">Ready to Generate Report!</div>
             </div>`, [
-              { label: '📊 Generate My Tax Report', value: 'generate_report', primary: true }
+              { label: getIcon('chart-bar', 'sm') + ' Generate My Tax Report', value: 'generate_report', primary: true }
             ]);
           }
         }, 500);
@@ -4758,7 +4767,7 @@
           showTyping();
           setTimeout(() => {
             hideTyping();
-            addMessage('ai', `⚠️ <strong>Important:</strong> IRS requires S-Corp owner-employees to receive reasonable compensation. Taking only distributions may trigger reclassification and payroll tax penalties.<br><br><strong>What's your approximate annual distributions/draws?</strong>`, [
+            addMessage('ai', `${getIcon('exclamation-triangle', 'sm')} <strong>Important:</strong> IRS requires S-Corp owner-employees to receive reasonable compensation. Taking only distributions may trigger reclassification and payroll tax penalties.<br><br><strong>What's your approximate annual distributions/draws?</strong>`, [
               { label: 'Under $50,000', value: 'scorp_dist_under50k' },
               { label: '$50,000 - $100,000', value: 'scorp_dist_50_100k' },
               { label: '$100,000 - $200,000', value: 'scorp_dist_100_200k' },
@@ -5919,7 +5928,7 @@
           showTyping();
           setTimeout(() => {
             hideTyping();
-            addMessage('ai', `⚠️ <strong>High AMT Risk Alert:</strong> With a $${spread.toLocaleString()} spread, you may owe significant AMT (potentially $${potentialAMT.toLocaleString()}).<br><br><strong>Did you already make estimated tax payments for AMT?</strong>`, [
+            addMessage('ai', `${getIcon('exclamation-triangle', 'sm')} <strong>High AMT Risk Alert:</strong> With a $${spread.toLocaleString()} spread, you may owe significant AMT (potentially $${potentialAMT.toLocaleString()}).<br><br><strong>Did you already make estimated tax payments for AMT?</strong>`, [
               { label: 'Yes, made AMT estimated payments', value: 'amt_estimated_yes' },
               { label: 'No, need to plan for this', value: 'amt_estimated_no' },
               { label: 'My CPA is handling this', value: 'amt_estimated_cpa' }
@@ -6054,7 +6063,7 @@
           showTyping();
           setTimeout(() => {
             hideTyping();
-            addMessage('ai', `<strong>QBI Deduction Explained:</strong><br><br>The Qualified Business Income (QBI) deduction lets you deduct up to <strong>20% of your net business income</strong> from your taxes.<br><br>✅ <strong>You may qualify if:</strong><br>• You're self-employed or own a pass-through business<br>• Your income is below $${extractedData.tax_profile.filing_status === 'Married Filing Jointly' ? '364,200' : '182,100'} (full deduction)<br>• Higher incomes may still qualify for partial deduction<br><br>This is one of the biggest tax savings opportunities for business owners!`, [
+            addMessage('ai', `<strong>QBI Deduction Explained:</strong><br><br>The Qualified Business Income (QBI) deduction lets you deduct up to <strong>20% of your net business income</strong> from your taxes.<br><br>${getIcon('check-circle', 'sm')} <strong>You may qualify if:</strong><br>• You're self-employed or own a pass-through business<br>• Your income is below $${extractedData.tax_profile.filing_status === 'Married Filing Jointly' ? '364,200' : '182,100'} (full deduction)<br>• Higher incomes may still qualify for partial deduction<br><br>This is one of the biggest tax savings opportunities for business owners!`, [
               { label: 'I\'ll look into this', value: 'qbi_noted' },
               { label: 'My CPA can help', value: 'qbi_cpa_help' }
             ]);
@@ -7138,9 +7147,9 @@
           hideTyping();
           addMessage('ai', `Perfect! Now let's explore tax credits you might qualify for. Credits directly reduce your tax bill dollar-for-dollar.<br><br><strong>Do any of these situations apply to you?</strong>`, [
             { label: '👶 Child Tax Credit', value: 'credit_child' },
-            { label: '📚 Education Credits (AOTC/LLC)', value: 'credit_education' },
-            { label: '⚡ Energy Efficiency Credits', value: 'credit_energy' },
-            { label: '💼 Earned Income Credit', value: 'credit_eitc' },
+            { label: getIcon('academic-cap', 'sm') + ' Education Credits (AOTC/LLC)', value: 'credit_education' },
+            { label: getIcon('bolt', 'sm') + ' Energy Efficiency Credits', value: 'credit_energy' },
+            { label: getIcon('briefcase', 'sm') + ' Earned Income Credit', value: 'credit_eitc' },
             { label: 'Not sure / Continue', value: 'credit_skip' }
           ]);
         }, 1500);
@@ -7163,9 +7172,9 @@
           // Generate summary
           const summary = generateSummary();
           addMessage('ai', `<strong>Excellent! I now have a comprehensive understanding of your tax situation.</strong><br><br>Here's what we've covered:<br><br>${summary}<br><br>Based on this information, I can provide you with a detailed strategic tax advisory report including:<br><br>✓ <strong>Personalized tax optimization strategies</strong><br>✓ <strong>Estimated tax savings opportunities</strong><br>✓ <strong>Action items for the current tax year</strong><br>✓ <strong>Long-term planning recommendations</strong><br>✓ <strong>Compliance checklist</strong><br><br><strong>Would you like me to generate your comprehensive tax advisory report now?</strong>`, [
-            { label: '📊 Yes, generate my report', value: 'generate_report' },
-            { label: '💬 I have more questions first', value: 'more_questions' },
-            { label: '📄 Let me add documents', value: 'add_documents' }
+            { label: getIcon('chart-bar', 'sm') + ' Yes, generate my report', value: 'generate_report' },
+            { label: getIcon('chat-bubble-left-right', 'sm') + ' I have more questions first', value: 'more_questions' },
+            { label: getIcon('document-text', 'sm') + ' Let me add documents', value: 'add_documents' }
           ]);
         }, 2000);
 
@@ -7193,24 +7202,24 @@
             const reportData = await reportResponse.json();
             updateProgress(100);
             addMessage('ai', `<div class="insight-card"><div class="insight-header" style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3);"><span style="font-size: 32px;">🎉</span><strong style="font-size: var(--text-xl);">Your Tax Advisory Report is Ready!</strong></div><div style="color: var(--text-secondary); line-height: 1.6;">I've completed a comprehensive analysis of your tax situation. Your personalized report includes strategic recommendations that could save you thousands of dollars.</div></div><br><strong>What would you like to do next?</strong>`, [
-              { label: '📥 Download Full Report (PDF)', value: 'download_report' },
-              { label: '👀 View Report Online', value: 'view_report' },
-              { label: '📧 Email Report to Me', value: 'email_report' },
-              { label: '📞 Schedule CPA Consultation', value: 'schedule_consult' }
+              { label: getIcon('arrow-down-tray', 'sm') + ' Download Full Report (PDF)', value: 'download_report' },
+              { label: getIcon('eye', 'sm') + ' View Report Online', value: 'view_report' },
+              { label: getIcon('envelope', 'sm') + ' Email Report to Me', value: 'email_report' },
+              { label: getIcon('phone', 'sm') + ' Schedule CPA Consultation', value: 'schedule_consult' }
             ]);
           } else {
             updateProgress(90);
             addMessage('ai', `<strong>Report generation encountered an issue.</strong><br><br>Don't worry — your data is saved. Please try again or download a quick summary.`, [
-              { label: '🔄 Try Again', value: 'generate_report' },
-              { label: '📄 Quick Summary', value: 'show_strategies' }
+              { label: getIcon('arrow-path', 'sm') + ' Try Again', value: 'generate_report' },
+              { label: getIcon('document-text', 'sm') + ' Quick Summary', value: 'show_strategies' }
             ]);
           }
         } catch (error) {
           hideTyping();
           console.error('Report generation failed:', error);
           addMessage('ai', `<strong>Connection issue while generating report.</strong><br><br>Your data is saved. Please check your connection and try again.`, [
-            { label: '🔄 Retry', value: 'generate_report' },
-            { label: '📄 View Strategies', value: 'show_strategies' }
+            { label: getIcon('arrow-path', 'sm') + ' Retry', value: 'generate_report' },
+            { label: getIcon('document-text', 'sm') + ' View Strategies', value: 'show_strategies' }
           ]);
         }
 
@@ -7253,9 +7262,9 @@
         setTimeout(() => {
           hideTyping();
           addMessage('ai', `<strong>Excellent decision! A personalized consultation can help you maximize your tax savings.</strong><br><br>Our CPA team specializes in individual tax advisory and can provide:<br>• One-on-one strategic planning<br>• Custom optimization strategies<br>• Ongoing tax advisory support<br>• Filing assistance when needed<br><br><strong>What works best for you?</strong>`, [
-            { label: '📞 Schedule a call', value: 'consult_call' },
-            { label: '💬 Chat with a CPA now', value: 'consult_chat' },
-            { label: '📧 Email consultation', value: 'consult_email' }
+            { label: getIcon('phone', 'sm') + ' Schedule a call', value: 'consult_call' },
+            { label: getIcon('chat-bubble-left-right', 'sm') + ' Chat with a CPA now', value: 'consult_chat' },
+            { label: getIcon('envelope', 'sm') + ' Email consultation', value: 'consult_email' }
           ]);
         }, 1500);
 
@@ -7274,9 +7283,9 @@
         setTimeout(() => {
           hideTyping();
           addMessage('ai', `I understand you'd like to speak with someone directly. Here are your options:<br><br>• <strong>Email:</strong> support@taxadvisor.com<br>• <strong>Phone:</strong> 1-800-TAX-HELP (available 9am-6pm ET)<br>• <strong>Live Chat:</strong> Click the chat icon in the corner<br><br>Our team typically responds within 24 hours during business days.`, [
-            { label: '📧 Send email', value: 'consult_email' },
-            { label: '💬 Continue with AI', value: 'no_manual' },
-            { label: '🔄 Start fresh', value: 'reset_conversation' }
+            { label: getIcon('envelope', 'sm') + ' Send email', value: 'consult_email' },
+            { label: getIcon('chat-bubble-left-right', 'sm') + ' Continue with AI', value: 'no_manual' },
+            { label: getIcon('arrow-path', 'sm') + ' Start fresh', value: 'reset_conversation' }
           ]);
           retryCount = 0; // Reset retry counter
         }, 1000);
@@ -7307,8 +7316,8 @@
           hideTyping();
           addMessage('ai', `<strong>Perfect! I'm connecting you with our CPA team.</strong><br><br>Your comprehensive tax profile and advisory report will be shared with them so they can provide immediate, informed guidance.<br><br>A member of our team will reach out within 24 hours to schedule your personalized consultation.<br><br><strong>Is there anything else I can help you with today?</strong>`, [
             { label: '✅ No, I\'m all set', value: 'finish_satisfied' },
-            { label: '📥 Download my report first', value: 'download_report' },
-            { label: '💬 Ask another question', value: 'more_questions' }
+            { label: getIcon('arrow-down-tray', 'sm') + ' Download my report first', value: 'download_report' },
+            { label: getIcon('chat-bubble-left-right', 'sm') + ' Ask another question', value: 'more_questions' }
           ]);
         }, 1500);
 
@@ -7348,16 +7357,16 @@
             ]);
           } else if (!extractedData.focus_area) {
             addMessage('ai', `Excellent! <strong>What areas are you most interested in optimizing?</strong>`, [
-              { label: '🏠 Homeownership & Real Estate', value: 'focus_real_estate' },
-              { label: '📚 Education & Student Loans', value: 'focus_education' },
-              { label: '💼 Business & Self-Employment', value: 'focus_business' },
+              { label: getIcon('home', 'sm') + ' Homeownership & Real Estate', value: 'focus_real_estate' },
+              { label: getIcon('academic-cap', 'sm') + ' Education & Student Loans', value: 'focus_education' },
+              { label: getIcon('briefcase', 'sm') + ' Business & Self-Employment', value: 'focus_business' },
               { label: '🏥 Healthcare & Medical', value: 'focus_healthcare' },
-              { label: '📈 Investments & Retirement', value: 'focus_investments' }
+              { label: getIcon('arrow-trending-up', 'sm') + ' Investments & Retirement', value: 'focus_investments' }
             ]);
           } else {
             addMessage('ai', `We've covered the basics! <strong>Ready to generate your comprehensive advisory report?</strong>`, [
-              { label: '📊 Yes, generate report', value: 'generate_report' },
-              { label: '💬 I have questions first', value: 'more_questions' }
+              { label: getIcon('chart-bar', 'sm') + ' Yes, generate report', value: 'generate_report' },
+              { label: getIcon('chat-bubble-left-right', 'sm') + ' I have questions first', value: 'more_questions' }
             ]);
           }
         }, 1000);
@@ -7395,9 +7404,9 @@
 
           addMessage('ai', summary, [
             { label: '✅ Continue with questions', value: 'continue_questioning' },
-            { label: '✏️ Make corrections', value: 'make_corrections' },
-            { label: '📄 Upload more documents', value: 'yes_upload' },
-            { label: '📊 Generate report', value: 'generate_report' }
+            { label: getIcon('pencil', 'sm') + ' Make corrections', value: 'make_corrections' },
+            { label: getIcon('document-text', 'sm') + ' Upload more documents', value: 'yes_upload' },
+            { label: getIcon('chart-bar', 'sm') + ' Generate report', value: 'generate_report' }
           ]);
         }, 800);
 
@@ -7407,11 +7416,11 @@
         setTimeout(() => {
           hideTyping();
           addMessage('ai', `No problem! What would you like to correct?`, [
-            { label: '📋 Filing status', value: 'change_filing_status' },
-            { label: '💰 Income amount', value: 'change_income' },
-            { label: '🏠 State', value: 'change_state' },
+            { label: getIcon('clipboard-document-list', 'sm') + ' Filing status', value: 'change_filing_status' },
+            { label: getIcon('currency-dollar', 'sm') + ' Income amount', value: 'change_income' },
+            { label: getIcon('home', 'sm') + ' State', value: 'change_state' },
             { label: '👨‍👩‍👧 Dependents', value: 'change_dependents' },
-            { label: '💬 Something else', value: 'describe_change' }
+            { label: getIcon('chat-bubble-left-right', 'sm') + ' Something else', value: 'describe_change' }
           ]);
         }, 500);
 
@@ -7481,8 +7490,8 @@
           hideTyping();
           const summary = generateSummary();
           addMessage('ai', `<strong>Perfect! Here's what we've covered:</strong><br><br>${summary}<br><br>I can now prepare your comprehensive tax advisory report with personalized recommendations. <strong>Shall we proceed?</strong>`, [
-            { label: '📊 Generate my report', value: 'generate_report' },
-            { label: '✏️ Make changes first', value: 'review_summary' }
+            { label: getIcon('chart-bar', 'sm') + ' Generate my report', value: 'generate_report' },
+            { label: getIcon('pencil', 'sm') + ' Make changes first', value: 'review_summary' }
           ]);
         }, 1000);
 
@@ -7493,8 +7502,8 @@
           hideTyping();
           const summary = generateSummary();
           addMessage('ai', `<strong>Here's a complete summary of your tax profile:</strong><br><br>${summary}<br><br>Would you like to update any of this information or continue to generate your report?`, [
-            { label: '✏️ Update filing status', value: 'no_manual' },
-            { label: '✏️ Update income/focus', value: 'continue_assessment' },
+            { label: getIcon('pencil', 'sm') + ' Update filing status', value: 'no_manual' },
+            { label: getIcon('pencil', 'sm') + ' Update income/focus', value: 'continue_assessment' },
             { label: '✅ Looks good, continue', value: 'generate_report' }
           ]);
         }, 1000);
@@ -7509,7 +7518,7 @@
             hideTyping();
             addMessage('ai', `<strong>Great question! Here's how our premium tax advisory works:</strong><br><br><strong>1. Understanding Your Situation (5 minutes)</strong><br>I ask targeted questions to understand your financial picture, or you can upload documents for instant analysis.<br><br><strong>2. Comprehensive Analysis</strong><br>I analyze your situation using 2025 IRS rules, identifying every deduction, credit, and strategy available to you.<br><br><strong>3. Personalized Report</strong><br>You receive a detailed advisory report with:<br>• Current tax liability estimate<br>• Potential savings opportunities<br>• Specific action items<br>• Long-term planning strategies<br><br><strong>4. Ongoing Support</strong><br>Access to CPA consultations, filing assistance (if needed), and year-round advisory support.<br><br><strong>Ready to get started with your assessment?</strong>`, [
               { label: '✅ Yes, let\'s begin', value: 'continue_assessment' },
-              { label: '📄 I want to upload docs', value: 'yes_upload' },
+              { label: getIcon('document-text', 'sm') + ' I want to upload docs', value: 'yes_upload' },
               { label: '❓ I have another question', value: 'more_questions' }
             ]);
           }, 1500);
@@ -7561,8 +7570,8 @@
         setTimeout(() => {
           hideTyping();
           addMessage('ai', `No problem! Let's start fresh. I'm your AI-powered tax advisor, ready to help you discover strategic opportunities to optimize your tax situation.<br><br><strong>Would you like to upload tax documents for me to analyze, or shall we talk through your situation?</strong>`, [
-            { label: '📄 Upload documents', value: 'yes_upload' },
-            { label: '💬 Let\'s discuss my situation', value: 'no_manual' },
+            { label: getIcon('document-text', 'sm') + ' Upload documents', value: 'yes_upload' },
+            { label: getIcon('chat-bubble-left-right', 'sm') + ' Let\'s discuss my situation', value: 'no_manual' },
             { label: '❓ How does this work?', value: 'how_it_works' }
           ]);
         }, 1000);
@@ -7579,9 +7588,9 @@
           setTimeout(() => {
             hideTyping();
             addMessage('ai', `I'm sorry for the trouble! It seems we're having persistent issues. Let's try a fresh start to get things working properly again.`, [
-              { label: '🔄 Start fresh', value: 'reset_conversation' },
-              { label: '💬 Type a new message', value: 'focus_input' },
-              { label: '📞 Get human help', value: 'contact_support' }
+              { label: getIcon('arrow-path', 'sm') + ' Start fresh', value: 'reset_conversation' },
+              { label: getIcon('chat-bubble-left-right', 'sm') + ' Type a new message', value: 'focus_input' },
+              { label: getIcon('phone', 'sm') + ' Get human help', value: 'contact_support' }
             ]);
             retryCount = 0; // Reset counter after offering escape
           }, 500);
@@ -7616,11 +7625,11 @@
       setTimeout(() => {
         hideTyping();
         addMessage('ai', `I've gathered some valuable information about your situation. Now let's explore any additional deductions you might have.<br><br><strong>Do you have any of these common deductions?</strong>`, [
-          { label: '🏠 Mortgage Interest', value: 'deduct_mortgage' },
-          { label: '💰 Charitable Donations', value: 'deduct_charity' },
+          { label: getIcon('home', 'sm') + ' Mortgage Interest', value: 'deduct_mortgage' },
+          { label: getIcon('currency-dollar', 'sm') + ' Charitable Donations', value: 'deduct_charity' },
           { label: '🏥 Medical Expenses', value: 'deduct_medical' },
-          { label: '💼 Business Expenses', value: 'deduct_business' },
-          { label: '➡️ Continue to Credits', value: 'deduct_skip' }
+          { label: getIcon('briefcase', 'sm') + ' Business Expenses', value: 'deduct_business' },
+          { label: getIcon('arrow-right', 'sm') + ' Continue to Credits', value: 'deduct_skip' }
         ]);
       }, 1200);
     }
@@ -7682,7 +7691,7 @@
               pdfReady = true;
               // Download the PDF
               window.open(`/api/v1/advisory-reports/${data.report_id}/pdf`, '_blank');
-              addMessage('ai', `✅ <strong>Your report is ready!</strong><br><br>The PDF download should begin automatically. If not, <a href="/api/v1/advisory-reports/${data.report_id}/pdf" target="_blank" style="color: var(--primary);">click here to download</a>.`);
+              addMessage('ai', `${getIcon('check-circle', 'sm')} <strong>Your report is ready!</strong><br><br>The PDF download should begin automatically. If not, <a href="/api/v1/advisory-reports/${data.report_id}/pdf" target="_blank" style="color: var(--primary);">click here to download</a>.`);
             }
             attempts++;
           }
@@ -7723,23 +7732,23 @@
 
         if (response.ok) {
           addMessage('ai', `<strong>Report sent!</strong><br><br>Your tax advisory report has been emailed to <strong>${email}</strong>. Please check your inbox (and spam folder).<br><br><strong>What would you like to do next?</strong>`, [
-            { label: '📥 Also download PDF', value: 'download_report' },
-            { label: '📞 Schedule consultation', value: 'schedule_consult' },
+            { label: getIcon('arrow-down-tray', 'sm') + ' Also download PDF', value: 'download_report' },
+            { label: getIcon('phone', 'sm') + ' Schedule consultation', value: 'schedule_consult' },
             { label: '✅ I\'m all set', value: 'finish_satisfied' }
           ]);
         } else {
           // Email service not available — offer PDF download instead
           addMessage('ai', `<strong>Email delivery is not available at this time.</strong><br><br>You can download your report as a PDF instead — it contains all the same information.<br><br><strong>What would you like to do?</strong>`, [
-            { label: '📥 Download PDF Report', value: 'download_report' },
-            { label: '📞 Schedule consultation', value: 'schedule_consult' }
+            { label: getIcon('arrow-down-tray', 'sm') + ' Download PDF Report', value: 'download_report' },
+            { label: getIcon('phone', 'sm') + ' Schedule consultation', value: 'schedule_consult' }
           ]);
         }
       } catch (error) {
         hideTyping();
         console.error('Email send failed:', error);
         addMessage('ai', `<strong>Unable to send email right now.</strong><br><br>Please download the PDF report instead. You can then email it manually or share it with your CPA.`, [
-          { label: '📥 Download PDF Report', value: 'download_report' },
-          { label: '🔄 Try Again', value: 'email_report' }
+          { label: getIcon('arrow-down-tray', 'sm') + ' Download PDF Report', value: 'download_report' },
+          { label: getIcon('arrow-path', 'sm') + ' Try Again', value: 'email_report' }
         ]);
       }
     }
@@ -7988,8 +7997,8 @@
           // Note: We preserve extractedData since that's the user's actual tax data
           errorMessage = "Your session expired. I've preserved your tax data, but let's start our conversation fresh. How can I help you?";
           quickActions = [
-            { label: '💬 Continue with my data', value: 'no_manual' },
-            { label: '🔄 Start completely fresh', value: 'reset_conversation' }
+            { label: getIcon('chat-bubble-left-right', 'sm') + ' Continue with my data', value: 'no_manual' },
+            { label: getIcon('arrow-path', 'sm') + ' Start completely fresh', value: 'reset_conversation' }
           ];
         } else if (error.message && error.message.includes('504') || error.message && error.message.includes('timeout')) {
           // Timeout - suggest rephrasing
@@ -8081,27 +8090,27 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
       if (progress < 20) {
         return [
-          { label: '💬 Tell you my situation', value: 'no_manual' },
-          { label: '📄 Upload documents', value: 'yes_upload' },
+          { label: getIcon('chat-bubble-left-right', 'sm') + ' Tell you my situation', value: 'no_manual' },
+          { label: getIcon('document-text', 'sm') + ' Upload documents', value: 'yes_upload' },
           { label: '❓ How does this work?', value: 'how_it_works' }
         ];
       } else if (progress < 50) {
         return [
-          { label: '📊 Continue the assessment', value: 'continue_assessment' },
+          { label: getIcon('chart-bar', 'sm') + ' Continue the assessment', value: 'continue_assessment' },
           { label: '❓ I have a question', value: 'ask_question' },
-          { label: '📄 Add documents', value: 'add_documents' }
+          { label: getIcon('document-text', 'sm') + ' Add documents', value: 'add_documents' }
         ];
       } else if (progress < 90) {
         return [
           { label: '✅ Continue to report', value: 'continue_to_report' },
-          { label: '💬 Ask something else', value: 'ask_question' },
-          { label: '📋 Review what we covered', value: 'review_summary' }
+          { label: getIcon('chat-bubble-left-right', 'sm') + ' Ask something else', value: 'ask_question' },
+          { label: getIcon('clipboard-document-list', 'sm') + ' Review what we covered', value: 'review_summary' }
         ];
       } else {
         return [
-          { label: '📊 Generate my report', value: 'generate_report' },
-          { label: '📞 Schedule consultation', value: 'schedule_consult' },
-          { label: '💬 I have questions', value: 'more_questions' }
+          { label: getIcon('chart-bar', 'sm') + ' Generate my report', value: 'generate_report' },
+          { label: getIcon('phone', 'sm') + ' Schedule consultation', value: 'schedule_consult' },
+          { label: getIcon('chat-bubble-left-right', 'sm') + ' I have questions', value: 'more_questions' }
         ];
       }
     }
@@ -8656,9 +8665,9 @@ If they're ready to move forward, suggest generating their comprehensive advisor
                 ${incomeDisplay}
                 <div style="color: var(--text-secondary);">I have everything needed for your analysis.</div>
               </div>`, [
-                { label: '📊 Generate My Tax Report', value: 'generate_report', primary: true },
-                { label: '📄 Upload more documents', value: 'yes_upload' },
-                { label: '📋 Review extracted data', value: 'review_data' }
+                { label: getIcon('chart-bar', 'sm') + ' Generate My Tax Report', value: 'generate_report', primary: true },
+                { label: getIcon('document-text', 'sm') + ' Upload more documents', value: 'yes_upload' },
+                { label: getIcon('clipboard-document-list', 'sm') + ' Review extracted data', value: 'review_data' }
               ]);
             }
           }, 500);
@@ -8668,8 +8677,8 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         hideTyping();
         DevLogger.error('Document upload error:', error);
         addMessage('ai', `I had trouble reading that document. Would you like to try again or enter the information manually?`, [
-          { label: '🔄 Try again', value: 'yes_upload' },
-          { label: '💬 Enter manually', value: 'no_manual' },
+          { label: getIcon('arrow-path', 'sm') + ' Try again', value: 'yes_upload' },
+          { label: getIcon('chat-bubble-left-right', 'sm') + ' Enter manually', value: 'no_manual' },
           { label: '❓ What documents work best?', value: 'what_docs' }
         ]);
       }
@@ -8792,7 +8801,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       setTimeout(() => {
         hideTyping();
         addMessage('ai', `Thank you, ${name}! It's a pleasure to work with you.<br><br>Now, to provide you with the most accurate tax analysis and connect you with the right CPA specialist, <strong>may I have your email address?</strong> (We'll send your comprehensive report here)`, [
-          { label: '📧 Enter email', value: 'enter_email' },
+          { label: getIcon('envelope', 'sm') + ' Enter email', value: 'enter_email' },
           { label: '⏭️ Skip for now', value: 'skip_email' }
         ]);
       }, 1000);
@@ -8823,9 +8832,9 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         hideTyping();
         const firstName = extractedData.contact.name ? extractedData.contact.name.split(' ')[0] : 'there';
         addMessage('ai', `Perfect, ${firstName}! I've saved your email.<br><br>🎉 <strong>You're now qualified for our premium tax advisory service!</strong><br><br>Let's analyze your tax situation and calculate your actual potential savings. This will take about 3-5 minutes.<br><br><strong>How would you like to provide your tax information?</strong>`, [
-          { label: '📄 Upload tax documents (fastest)', value: 'upload_docs_qualified' },
-          { label: '💬 Answer questions conversationally', value: 'conversational_qualified' },
-          { label: '🎯 Hybrid: docs + questions', value: 'hybrid_qualified' }
+          { label: getIcon('document-text', 'sm') + ' Upload tax documents (fastest)', value: 'upload_docs_qualified' },
+          { label: getIcon('chat-bubble-left-right', 'sm') + ' Answer questions conversationally', value: 'conversational_qualified' },
+          { label: getIcon('sparkles', 'sm') + ' Hybrid: docs + questions', value: 'hybrid_qualified' }
         ]);
       }, 1500);
     }
@@ -8835,8 +8844,8 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       setTimeout(() => {
         hideTyping();
         addMessage('ai', `No problem! Let's gather your tax information.<br><br><strong>How would you like to share your information with me?</strong>`, [
-          { label: '📄 Upload tax documents', value: 'upload_docs_qualified' },
-          { label: '💬 Answer questions', value: 'conversational_qualified' }
+          { label: getIcon('document-text', 'sm') + ' Upload tax documents', value: 'upload_docs_qualified' },
+          { label: getIcon('chat-bubble-left-right', 'sm') + ' Answer questions', value: 'conversational_qualified' }
         ]);
       }, 1000);
     }
@@ -9489,12 +9498,12 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         if ((isSelfEmployed || isBusinessOwner) && profile.business_revenue && !profile.business_expenses_explored && !wasQuestionAsked('business_expenses')) {
           markQuestionAsked('business_expenses');
           addMessage('ai', `What are your major business expense categories? (Select all that apply)`, [
-            { label: '🏠 Home Office', value: 'bizexp_home_office' },
-            { label: '🚗 Vehicle / Mileage', value: 'bizexp_vehicle' },
-            { label: '💻 Equipment & Software', value: 'bizexp_equipment' },
+            { label: getIcon('home', 'sm') + ' Home Office', value: 'bizexp_home_office' },
+            { label: getIcon('truck', 'sm') + ' Vehicle / Mileage', value: 'bizexp_vehicle' },
+            { label: getIcon('cpu-chip', 'sm') + ' Equipment & Software', value: 'bizexp_equipment' },
             { label: '📢 Marketing & Advertising', value: 'bizexp_marketing' },
-            { label: '📦 Supplies & Materials', value: 'bizexp_supplies' },
-            { label: '🎓 Training & Education', value: 'bizexp_training' }
+            { label: getIcon('cube', 'sm') + ' Supplies & Materials', value: 'bizexp_supplies' },
+            { label: getIcon('academic-cap', 'sm') + ' Training & Education', value: 'bizexp_training' }
           ], { multiSelect: true });
           return;
         }
@@ -9548,10 +9557,10 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         if ((isInvestor || isVeryHighEarner) && !profile.investment_explored && !wasQuestionAsked('investment_type')) {
           markQuestionAsked('investment_type');
           addMessage('ai', `${isVeryHighEarner ? 'At your income level, investment strategy is crucial. ' : ''}What types of investment income do you have? (Select all that apply)`, [
-            { label: '📈 Stock dividends & capital gains', value: 'invest_stocks' },
-            { label: '🏠 Rental property income', value: 'invest_rental' },
+            { label: getIcon('arrow-trending-up', 'sm') + ' Stock dividends & capital gains', value: 'invest_stocks' },
+            { label: getIcon('home', 'sm') + ' Rental property income', value: 'invest_rental' },
             { label: '💵 Interest income (bonds, savings)', value: 'invest_interest' },
-            { label: '📋 Partnership/K-1 income', value: 'invest_k1' },
+            { label: getIcon('clipboard-document-list', 'sm') + ' Partnership/K-1 income', value: 'invest_k1' },
             { label: '🪙 Cryptocurrency', value: 'invest_crypto' }
           ], { multiSelect: true });
           return;
@@ -9745,8 +9754,8 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           markQuestionAsked('energy_credits');
           addMessage('ai', `Have you made any energy-efficient improvements or purchases this year?`, [
             { label: '☀️ Solar panels installed', value: 'energy_solar' },
-            { label: '🚗 Electric vehicle purchased', value: 'energy_ev' },
-            { label: '🏠 Heat pump / HVAC upgrade', value: 'energy_hvac' },
+            { label: getIcon('truck', 'sm') + ' Electric vehicle purchased', value: 'energy_ev' },
+            { label: getIcon('home', 'sm') + ' Heat pump / HVAC upgrade', value: 'energy_hvac' },
             { label: '🪟 Windows / insulation / doors', value: 'energy_home_improve' },
             { label: 'None of these', value: 'energy_none' }
           ]);
@@ -10437,11 +10446,8 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         }
       });
 
-      // Setup consent modal handlers
-      setupConsentHandlers();
-
-      // Check consent before initializing session
-      if (checkConsent()) {
+      // Check unified consent before initializing session
+      if (checkAdvisorConsent()) {
         // Check for existing session first
         checkForExistingSession().then(sessionData => {
           if (sessionData) {
@@ -11206,61 +11212,4 @@ If they're ready to move forward, suggest generating their comprehensive advisor
     }
 
 
-/* ==========================================
-   Professional Standards Acknowledgment
-   ========================================== */
-
-    // Professional Standards Acknowledgment
-    (function() {
-      const modal = document.getElementById('acknowledgment-modal');
-      const ackLimitations = document.getElementById('ack-limitations');
-      const ackConsult = document.getElementById('ack-consult');
-      const ackBtn = document.getElementById('ack-continue-btn');
-
-      function checkAcknowledgmentRequired() {
-        const acknowledged = sessionStorage.getItem('professional_acknowledged');
-        if (!acknowledged && modal) {
-          modal.style.display = 'flex';
-        }
-      }
-
-      function updateAckButton() {
-        if (ackBtn && ackLimitations && ackConsult) {
-          const canContinue = ackLimitations.checked && ackConsult.checked;
-          ackBtn.disabled = !canContinue;
-          ackBtn.style.opacity = canContinue ? '1' : '0.5';
-        }
-      }
-
-      if (ackLimitations) ackLimitations.addEventListener('change', updateAckButton);
-      if (ackConsult) ackConsult.addEventListener('change', updateAckButton);
-
-      if (ackBtn) {
-        ackBtn.addEventListener('click', async () => {
-          sessionStorage.setItem('professional_acknowledged', 'true');
-          sessionStorage.setItem('professional_acknowledged_at', new Date().toISOString());
-          if (modal) modal.style.display = 'none';
-
-          // Log to server
-          try {
-            await fetch('/api/intelligent-advisor/acknowledge-standards', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                session_id: typeof sessionId !== 'undefined' ? sessionId : 'unknown',
-                acknowledged_at: new Date().toISOString()
-              })
-            });
-          } catch (e) {
-            console.warn('Could not log acknowledgment:', e);
-          }
-        });
-      }
-
-      // Check on page load
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', checkAcknowledgmentRequired);
-      } else {
-        checkAcknowledgmentRequired();
-      }
-    })();
+    // Professional Standards Acknowledgment is now handled by the unified advisor consent modal (see top of file)

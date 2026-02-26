@@ -1331,7 +1331,13 @@ def intelligent_tax_advisor(request: Request):
     """
     from config.branding import get_branding_config
     branding = get_branding_config()
-    return templates.TemplateResponse("intelligent_advisor.html", {"request": request, "branding": branding})
+    return templates.TemplateResponse("intelligent_advisor.html", {
+        "request": request,
+        "branding": branding,
+        "user": {"role": "client", "name": "Guest"},
+        "current_path": str(request.url.path),
+        "brand_name": branding.get("platform_name", "Tax Advisory"),
+    })
 
 
 @app.get("/landing", response_class=HTMLResponse)
@@ -7312,6 +7318,9 @@ def ai_tax_advisor(request: Request):
     return templates.TemplateResponse("intelligent_advisor.html", {
         "request": request,
         "branding": branding,
+        "user": {"role": "client", "name": "Guest"},
+        "current_path": str(request.url.path),
+        "brand_name": branding.get("platform_name", "Tax Advisory"),
     })
 
 
