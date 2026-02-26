@@ -4,6 +4,7 @@ Core RBAC middleware (lightweight, compatibility-focused).
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field
 from typing import Optional, Set
@@ -17,6 +18,8 @@ from rbac.jwt import decode_token_safe
 from rbac.roles import ROLES, Role
 
 from .dependencies import RBACContext
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -109,9 +112,10 @@ class RBACMiddleware(BaseHTTPMiddleware):
             result = await r.sismember("revoked_jtis", jti)
             await r.aclose()
             return bool(result)
-        except Exception:
-            # Graceful fallback: if Redis unavailable, skip revocation check
-            return False
+        except Exception as e:
+            # SECURITY: fail closed — deny access if we can't verify revocation status
+            logger.error(f"Redis revocation check failed: {e} - DENYING access (fail-closed)")
+            return True
 
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
