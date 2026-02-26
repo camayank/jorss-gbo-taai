@@ -2091,14 +2091,16 @@
 
       // Sanitize HTML to prevent XSS from API responses
       if (type === 'ai') {
-        const sanitized = text
-          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-          .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
-          .replace(/javascript\s*:/gi, '')
-          .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-          .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
-          .replace(/<embed\b[^>]*>/gi, '')
-          .replace(/<form\b[^<]*(?:(?!<\/form>)<[^<]*)*<\/form>/gi, '');
+        const sanitized = typeof DOMPurify !== 'undefined'
+          ? DOMPurify.sanitize(text, {
+              ALLOWED_TAGS: ['b','i','strong','em','br','div','span','ul','ol','li','a','p',
+                'h3','h4','h5','table','thead','tbody','tr','th','td','svg','path','code','pre'],
+              ALLOWED_ATTR: ['href','target','rel','class','style','viewBox','d','fill',
+                'stroke','stroke-width','width','height','aria-hidden']
+            })
+          : text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+               .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+               .replace(/javascript\s*:/gi, '');
         bubble.innerHTML = sanitized;
       } else {
         bubble.textContent = text;

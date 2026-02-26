@@ -47,7 +47,7 @@
         return null;
       }
 
-      const operationId = 'loading-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      const operationId = 'loading-' + crypto.randomUUID();
       const {
         message = 'Loading...',
         showSpinner = true,

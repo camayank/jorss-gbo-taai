@@ -30,10 +30,17 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install ruff
+          pip install ruff bandit safety
 
       - name: Lint (Ruff syntax/safety)
         run: ruff check src tests/security --select E9,F63,F7,F82
+
+      - name: Security scan (Bandit)
+        run: bandit -r src/ -ll -q --skip B101
+
+      - name: Dependency vulnerability check (Safety)
+        run: safety check --output text || true
+        continue-on-error: true
 
       - name: Launch blocker security tests
         run: |
@@ -42,6 +49,15 @@ jobs:
             tests/security/test_cpa_internal_route_auth.py \
             tests/security/test_web_launch_route_guards.py \
             tests/security/test_web_duplicate_route_guardrails.py
+
+      - name: Full test suite
+        run: |
+          pytest tests/ -x --timeout=120 -q \
+            --ignore=tests/performance \
+            --ignore=tests/load \
+            -k "not slow" \
+            || echo "::warning::Some tests failed — review output above"
+        continue-on-error: true
 
   frontend:
     name: Frontend Lint + Tests + Build

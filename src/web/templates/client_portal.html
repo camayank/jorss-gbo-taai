@@ -3739,7 +3739,7 @@
         }
 
         const doc = {
-          id: 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+          id: 'doc_' + crypto.randomUUID(),
           name: file.name,
           size: file.size,
           type: file.type,
@@ -4093,7 +4093,7 @@
       } catch (e) {
         console.error('Could not create session via API:', e);
         // Generate a temporary session ID for offline use
-        state.sessionId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        state.sessionId = 'temp_' + crypto.randomUUID();
         showToast('Working in offline mode - data will sync when connection restores', 'info');
       }
 

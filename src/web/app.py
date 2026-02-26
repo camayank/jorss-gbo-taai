@@ -1203,8 +1203,8 @@ def _get_engine_version_hash() -> Dict[str, str]:
             if os.path.exists(full_path):
                 with open(full_path, "rb") as f:
                     hasher.update(f.read())
-        except Exception:
-            pass  # Skip if file not readable
+        except Exception as e:
+            logger.debug(f"Could not read file for hash: {e}")
 
     # Include version in hash
     hasher.update(version.encode())
@@ -2187,8 +2187,8 @@ def guided_filing_page(request: Request, session_id: str = None):
     try:
         from config.branding import get_branding_config
         context["branding"] = get_branding_config()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"Branding config not available: {e}")
 
     # Add tenant features if available
     try:
@@ -2199,8 +2199,8 @@ def guided_filing_page(request: Request, session_id: str = None):
             tenant = persistence.get_tenant(tenant_id)
             if tenant:
                 context["tenant_features"] = tenant.features.to_dict() if hasattr(tenant.features, 'to_dict') else {}
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"Tenant features not available: {e}")
 
     template_name = get_template_path(request, "guided_filing.html")
     response = templates.TemplateResponse(template_name, context)
@@ -3298,8 +3298,8 @@ async def cache_status():
             try:
                 cache = await get_calculation_cache()
                 cache_stats = await cache.get_cache_stats()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Cache stats unavailable: {e}")
 
         return JSONResponse({
             "status": health.get("status", "unknown"),
@@ -4844,8 +4844,8 @@ async def save_tax_return(request: Request):
             import json as json_module
             body_data = json_module.loads(body)
             return_id = body_data.get("return_id")
-    except Exception:
-        pass  # No body or invalid JSON, use default
+    except Exception as e:
+        logger.debug(f"No body or invalid JSON for return_id: {e}")
 
     # Save to database
     saved_id = db_save(session_id, return_data, return_id)
@@ -7108,8 +7108,8 @@ async def get_smart_insights(request: Request):
             if return_data and isinstance(return_data, dict):
                 try:
                     tax_return = TaxReturn(**return_data)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Failed to deserialize tax return for insights: {e}")
 
         # If no valid tax return, return empty insights
         if not tax_return:

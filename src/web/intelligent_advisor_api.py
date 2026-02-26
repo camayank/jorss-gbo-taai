@@ -138,7 +138,7 @@ def get_acknowledgment(session_id: str):
 
 import uuid
 import json
-import threading
+import asyncio
 from decimal import Decimal, ROUND_HALF_UP
 from calculator.decimal_math import money, to_decimal
 
@@ -788,8 +788,8 @@ class IntelligentChatEngine:
         self.sessions: Dict[str, Dict[str, Any]] = {}
         # Track last access time for memory eviction
         self._session_access_times: Dict[str, datetime] = {}
-        # Lock for thread-safe operations
-        self._lock = threading.Lock()
+        # Lock for async-safe operations
+        self._lock = asyncio.Lock()
         # Database persistence layer
         self._persistence: Optional[SessionPersistence] = None
         if SESSION_PERSISTENCE_AVAILABLE:
@@ -914,7 +914,7 @@ class IntelligentChatEngine:
 
         return None
 
-    def get_or_create_session(self, session_id: str) -> Dict[str, Any]:
+    async def get_or_create_session(self, session_id: str) -> Dict[str, Any]:
         """
         Get existing session or create new one.
 
@@ -923,7 +923,7 @@ class IntelligentChatEngine:
         3. Create new session if not found anywhere
         4. Save new sessions to database
         """
-        with self._lock:
+        async with self._lock:
             # Periodically clean up stale in-memory sessions
             self._cleanup_stale_sessions()
 
@@ -981,7 +981,7 @@ class IntelligentChatEngine:
 
             return new_session
 
-    def update_session(self, session_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
+    async def update_session(self, session_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
         """
         Update session with new data and persist to database.
 
@@ -995,9 +995,9 @@ class IntelligentChatEngine:
         Returns:
             Updated session
         """
-        session = self.get_or_create_session(session_id)
+        session = await self.get_or_create_session(session_id)
 
-        with self._lock:
+        async with self._lock:
             # Apply updates
             for key, value in updates.items():
                 if key == "profile" and isinstance(value, dict):
@@ -1045,7 +1045,7 @@ class IntelligentChatEngine:
         except Exception as e:
             logger.warning(f"Failed to save tax return data for {session_id}: {e}")
 
-    def delete_session(self, session_id: str) -> bool:
+    async def delete_session(self, session_id: str) -> bool:
         """
         Delete a session from both memory and database.
 
@@ -1055,7 +1055,7 @@ class IntelligentChatEngine:
         Returns:
             True if session was deleted
         """
-        with self._lock:
+        async with self._lock:
             # Remove from memory
             removed = self.sessions.pop(session_id, None) is not None
 
@@ -1178,7 +1178,7 @@ class IntelligentChatEngine:
     # MULTI-TURN UNDO SYSTEM - Dynamic Checkpoint Management
     # =========================================================================
 
-    def create_checkpoint(self, session_id: str, user_message: str, extracted_fields: List[str]) -> Dict[str, Any]:
+    async def create_checkpoint(self, session_id: str, user_message: str, extracted_fields: List[str]) -> Dict[str, Any]:
         """
         Create a full checkpoint capturing the COMPLETE state at this turn.
 
@@ -1193,7 +1193,7 @@ class IntelligentChatEngine:
         Returns:
             The created checkpoint object
         """
-        session = self.get_or_create_session(session_id)
+        session = await self.get_or_create_session(session_id)
         profile = session.get("profile", {})
 
         # Create human-readable summary
@@ -1257,7 +1257,7 @@ class IntelligentChatEngine:
 
         return ", ".join(parts) if parts else "Empty"
 
-    def get_undo_options(self, session_id: str) -> List[Dict[str, Any]]:
+    async def get_undo_options(self, session_id: str) -> List[Dict[str, Any]]:
         """
         Get list of checkpoints the user can undo to.
 
@@ -1267,7 +1267,7 @@ class IntelligentChatEngine:
         Returns:
             List of undo options with turn number, message, and changes
         """
-        session = self.get_or_create_session(session_id)
+        session = await self.get_or_create_session(session_id)
         checkpoints = session.get("checkpoints", [])
 
         if not checkpoints:
@@ -1286,7 +1286,7 @@ class IntelligentChatEngine:
 
         return options
 
-    def undo_to_turn(self, session_id: str, target_turn: int) -> Dict[str, Any]:
+    async def undo_to_turn(self, session_id: str, target_turn: int) -> Dict[str, Any]:
         """
         Undo to a specific turn, restoring the profile state from BEFORE that turn.
 
@@ -1304,7 +1304,7 @@ class IntelligentChatEngine:
                 - removed_turns: How many turns were undone
                 - message: Human-readable result
         """
-        session = self.get_or_create_session(session_id)
+        session = await self.get_or_create_session(session_id)
         checkpoints = session.get("checkpoints", [])
 
         if not checkpoints:
@@ -1372,9 +1372,9 @@ class IntelligentChatEngine:
             "message": f"Rolled back {removed_turns} turn(s). Profile restored to: {target_checkpoint.get('summary', 'Empty')}"
         }
 
-    def undo_last_turn(self, session_id: str) -> Dict[str, Any]:
+    async def undo_last_turn(self, session_id: str) -> Dict[str, Any]:
         """Convenience method to undo just the last turn."""
-        session = self.get_or_create_session(session_id)
+        session = await self.get_or_create_session(session_id)
         current_turn = session.get("current_turn", 0)
 
         if current_turn <= 0:
@@ -1385,15 +1385,15 @@ class IntelligentChatEngine:
                 "removed_turns": 0
             }
 
-        return self.undo_to_turn(session_id, current_turn)
+        return await self.undo_to_turn(session_id, current_turn)
 
-    def get_conversation_history_for_undo(self, session_id: str) -> str:
+    async def get_conversation_history_for_undo(self, session_id: str) -> str:
         """
         Generate a formatted view of conversation history with turn numbers.
 
         This helps users identify which turn they want to undo to.
         """
-        session = self.get_or_create_session(session_id)
+        session = await self.get_or_create_session(session_id)
         checkpoints = session.get("checkpoints", [])
 
         if not checkpoints:
@@ -4125,7 +4125,7 @@ async def intelligent_chat(request: ChatRequest, _session: str = Depends(verify_
 
     try:
         # Get or create session
-        session = chat_engine.get_or_create_session(session_id)
+        session = await chat_engine.get_or_create_session(session_id)
         profile = session["profile"]
     except Exception as e:
         logger.error(f"Session initialization error: {e}")
@@ -4312,7 +4312,7 @@ To get started, what's your filing status?"""
 
     # Handle "show history" - Display conversation history for user to pick undo point
     if show_history:
-        history_text = chat_engine.get_conversation_history_for_undo(request.session_id)
+        history_text = await chat_engine.get_conversation_history_for_undo(request.session_id)
         return ChatResponse(
             session_id=request.session_id,
             response=history_text,
@@ -4356,7 +4356,7 @@ To get started, what's your filing status?"""
     # Handle "undo to turn X" - Multi-turn undo to specific point
     if undo_to_turn_match:
         target_turn = int(undo_to_turn_match.group(1))
-        result = chat_engine.undo_to_turn(request.session_id, target_turn)
+        result = await chat_engine.undo_to_turn(request.session_id, target_turn)
 
         if result["success"]:
             profile = result["restored_profile"]
@@ -4389,7 +4389,7 @@ To get started, what's your filing status?"""
 
     # Handle simple "undo" - Undo last turn
     if user_intent == "undo":
-        result = chat_engine.undo_last_turn(request.session_id)
+        result = await chat_engine.undo_last_turn(request.session_id)
 
         if result["success"]:
             profile = result["restored_profile"]
@@ -4402,7 +4402,7 @@ To get started, what's your filing status?"""
                 response_text += "What would you like to change?"
 
             # Show undo options for further undo
-            undo_options = chat_engine.get_undo_options(request.session_id)
+            undo_options = await chat_engine.get_undo_options(request.session_id)
             if len(undo_options) > 1:
                 response_text += f"\n\n*You can also say \"undo to turn X\" to go back further ({len(undo_options)} checkpoints available).*"
 
@@ -4431,7 +4431,7 @@ To get started, what's your filing status?"""
     # Update profile with any new data from request
     if request.profile:
         profile_dict = request.profile.dict(exclude_none=True)
-        session = chat_engine.update_session(request.session_id, {"profile": profile_dict})
+        session = await chat_engine.update_session(request.session_id, {"profile": profile_dict})
         profile = session["profile"]
 
     # =========================================================================
@@ -4519,13 +4519,13 @@ To get started, what's your filing status?"""
     if msg_lower in _quick_action_map:
         updates = _quick_action_map[msg_lower]
         profile.update(updates)
-        session = chat_engine.update_session(request.session_id, {"profile": profile})
+        session = await chat_engine.update_session(request.session_id, {"profile": profile})
         _quick_action_handled = True
 
         # Create checkpoint for undo
         real_fields = [k for k in updates.keys() if not k.startswith("_")]
         if real_fields:
-            chat_engine.create_checkpoint(request.session_id, msg_original, real_fields)
+            await chat_engine.create_checkpoint(request.session_id, msg_original, real_fields)
 
         # Acknowledge and move to next question
         next_q, next_actions = _get_dynamic_next_question(profile)
@@ -4623,7 +4623,7 @@ To get started, what's your filing status?"""
 
             # CREATE CHECKPOINT BEFORE applying changes (for undo capability)
             if extracted_fields:
-                chat_engine.create_checkpoint(
+                await chat_engine.create_checkpoint(
                     request.session_id,
                     request.message,
                     extracted_fields
@@ -4631,7 +4631,7 @@ To get started, what's your filing status?"""
 
             # Now update the profile with extracted data
             profile.update(extracted)
-            session = chat_engine.update_session(request.session_id, {"profile": profile})
+            session = await chat_engine.update_session(request.session_id, {"profile": profile})
 
             # Log with confidence scores
             confidence_info = parse_result.get("confidence", {})
@@ -4657,7 +4657,7 @@ To get started, what's your filing status?"""
                     flag = topic_flag_map.get(topic)
                     if flag and not profile.get(flag):
                         profile[flag] = True
-                        session = chat_engine.update_session(
+                        session = await chat_engine.update_session(
                             request.session_id, {"profile": profile}
                         )
 
@@ -4825,7 +4825,7 @@ To get started, what's your filing status?"""
         strategies = await chat_engine.get_tax_strategies(profile, tax_calculation)
 
         # Update session with calculations and strategies, and persist to database
-        chat_engine.update_session(request.session_id, {
+        await chat_engine.update_session(request.session_id, {
             "calculations": tax_calculation,
             "strategies": strategies,
             "lead_score": chat_engine.calculate_lead_score(profile)
@@ -5272,7 +5272,7 @@ async def get_session_report(request: SessionReportRequest, _session: str = Depe
     """
     try:
         # Use get_or_create_session which checks memory, then database
-        session = chat_engine.get_or_create_session(request.session_id)
+        session = await chat_engine.get_or_create_session(request.session_id)
 
         # Check if session has meaningful data (not just newly created)
         if not session.get("profile"):
@@ -5288,7 +5288,7 @@ async def get_session_report(request: SessionReportRequest, _session: str = Depe
             strategies = await chat_engine.get_tax_strategies(profile, calculation)
 
             # Persist the generated calculation to database
-            chat_engine.update_session(request.session_id, {
+            await chat_engine.update_session(request.session_id, {
                 "calculations": calculation,
                 "strategies": strategies
             })
@@ -5419,7 +5419,7 @@ async def get_session_pdf(
 
     if not session:
         # Try loading from database
-        session = chat_engine.get_or_create_session(session_id)
+        session = await chat_engine.get_or_create_session(session_id)
         if not session.get("profile"):
             raise HTTPException(status_code=404, detail="Session not found or has no data")
 
@@ -5524,7 +5524,7 @@ async def generate_session_pdf(session_id: str, _session: str = Depends(verify_s
     which provides more features like background generation and storage.
     """
     # Get session and ensure it has data
-    session = chat_engine.get_or_create_session(session_id)
+    session = await chat_engine.get_or_create_session(session_id)
     profile = session.get("profile", {})
 
     if not profile.get("filing_status") or not profile.get("total_income"):
@@ -5615,7 +5615,7 @@ async def generate_universal_report(request: UniversalReportRequest, _session: s
         from universal_report import UniversalReportEngine
 
         # Get session data
-        session = chat_engine.get_or_create_session(request.session_id)
+        session = await chat_engine.get_or_create_session(request.session_id)
         profile = session.get("profile", {})
 
         if not profile.get("filing_status"):
@@ -5631,7 +5631,7 @@ async def generate_universal_report(request: UniversalReportRequest, _session: s
         if not calculation and profile.get("total_income"):
             calculation = await chat_engine.get_tax_calculation(profile)
             strategies = await chat_engine.get_tax_strategies(profile, calculation)
-            chat_engine.update_session(request.session_id, {
+            await chat_engine.update_session(request.session_id, {
                 "calculations": calculation,
                 "strategies": strategies
             })
@@ -5705,7 +5705,7 @@ async def get_universal_report_html(
         from universal_report import UniversalReportEngine
 
         # Get session
-        session = chat_engine.get_or_create_session(session_id)
+        session = await chat_engine.get_or_create_session(session_id)
         profile = session.get("profile", {})
 
         if not profile.get("filing_status"):
@@ -5776,7 +5776,7 @@ async def get_universal_report_pdf(
         from universal_report import UniversalReportEngine
 
         # Get session
-        session = chat_engine.get_or_create_session(session_id)
+        session = await chat_engine.get_or_create_session(session_id)
         profile = session.get("profile", {})
 
         if not profile.get("filing_status"):
