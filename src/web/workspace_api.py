@@ -29,6 +29,9 @@ from pydantic import BaseModel, Field, EmailStr
 
 import logging
 
+from rbac.dependencies import require_permission
+from rbac.permissions import Permission
+
 logger = logging.getLogger(__name__)
 
 # Create API router
@@ -255,6 +258,7 @@ async def update_preparer_branding(request: Request, request_data: PreparerBrand
 # =============================================================================
 
 @router.post("/clients")
+@require_permission(Permission.CLIENT_CREATE)
 async def create_client(request: Request, request_data: ClientCreateRequest):
     """
     Add a new client to the preparer's workspace.
@@ -387,6 +391,7 @@ async def get_client(request: Request, client_id: str):
 
 
 @router.put("/clients/{client_id}")
+@require_permission(Permission.CLIENT_EDIT)
 async def update_client(request: Request, client_id: str, request_data: ClientUpdateRequest):
     """
     Update client information.
@@ -425,6 +430,7 @@ async def update_client(request: Request, client_id: str, request_data: ClientUp
 
 
 @router.delete("/clients/{client_id}")
+@require_permission(Permission.CLIENT_ARCHIVE)
 async def archive_client(request: Request, client_id: str):
     """
     Archive (soft delete) a client.

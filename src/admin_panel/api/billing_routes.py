@@ -344,6 +344,7 @@ class BillingPortalRequest(BaseModel):
 # =============================================================================
 
 @router.get("/subscription", response_model=CurrentSubscription)
+@require_permission(UserPermission.VIEW_BILLING)
 async def get_current_subscription(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
@@ -431,6 +432,7 @@ async def get_current_subscription(
 
 
 @router.get("/usage", response_model=UsageMetrics)
+@require_permission(UserPermission.VIEW_BILLING)
 async def get_usage_metrics(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),

@@ -142,6 +142,7 @@ class TeamPerformance(BaseModel):
 # =============================================================================
 
 @router.get("", response_model=TeamListResponse)
+@require_permission(UserPermission.VIEW_TEAM_PERFORMANCE)
 async def list_team_members(
     user: TenantContext = Depends(get_current_user),
     firm_id: str = Depends(get_current_firm),
