@@ -11,6 +11,7 @@ Usage:
     python scripts/audit_routes.py
 """
 
+import glob
 import os
 import re
 import sys
@@ -425,6 +426,53 @@ def run_audit() -> AuditResult:
 
 
 # =============================================================================
+# SECURITY SCANNERS
+# =============================================================================
+
+def check_sql_injection_patterns():
+    """Scan for f-string SQL patterns without column whitelists."""
+    issues = []
+    for py_file in glob.glob("src/**/*.py", recursive=True):
+        with open(py_file) as f:
+            content = f.read()
+        if re.search(r'text\(f["\'].*(?:UPDATE|INSERT|DELETE).*\{', content):
+            if '_UPDATABLE_COLUMNS' not in content and '_ALLOWED_COLUMNS' not in content:
+                issues.append(f"CRITICAL: {py_file} has dynamic SQL without column whitelist")
+    return issues
+
+
+def check_in_memory_stores():
+    """Find global dicts/lists used as data stores (excluding test files)."""
+    issues = []
+    patterns = [
+        (re.compile(r'^\s*_\w+:\s*(?:Dict|dict)\s*=\s*\{\}', re.MULTILINE), "global dict store"),
+        (re.compile(r'^\s*_\w+:\s*(?:List|list)\s*=\s*\[\]', re.MULTILINE), "global list store"),
+    ]
+    for py_file in glob.glob("src/**/*.py", recursive=True):
+        if '/tests/' in py_file or 'test_' in py_file:
+            continue
+        with open(py_file) as f:
+            content = f.read()
+        for pattern, desc in patterns:
+            matches = pattern.findall(content)
+            for match in matches:
+                issues.append(f"INFO: {py_file} — {desc}: {match.strip()}")
+    return issues
+
+
+def check_secret_fallbacks():
+    """Ensure no dev secret fallbacks exist without production guards."""
+    issues = []
+    for py_file in glob.glob("src/**/*.py", recursive=True):
+        with open(py_file) as f:
+            content = f.read()
+        if 'DEV-ONLY' in content or 'DEV-SALT' in content or 'DEV-AUTH' in content:
+            if '_IS_PRODUCTION' not in content and '_is_production' not in content:
+                issues.append(f"WARN: {py_file} has dev secret fallback without production guard")
+    return issues
+
+
+# =============================================================================
 # REPORTING
 # =============================================================================
 
@@ -501,6 +549,46 @@ def print_report(result: AuditResult):
 
 
 if __name__ == "__main__":
+    # Change to project root so glob patterns work correctly
+    os.chdir(PROJECT_ROOT)
+
     result = run_audit()
     exit_code = print_report(result)
+
+    # --- Additional security scanners ---
+    print()
+    print("-" * 70)
+    print("SQL INJECTION PATTERN SCAN")
+    print("-" * 70)
+    sql_issues = check_sql_injection_patterns()
+    if sql_issues:
+        for issue in sql_issues:
+            print(f"  {issue}")
+        exit_code = 1
+    else:
+        print("  PASS  No dynamic SQL without column whitelists")
+
+    print()
+    print("-" * 70)
+    print("IN-MEMORY STORE SCAN")
+    print("-" * 70)
+    mem_issues = check_in_memory_stores()
+    if mem_issues:
+        for issue in mem_issues:
+            print(f"  {issue}")
+    else:
+        print("  PASS  No global in-memory data stores found")
+
+    print()
+    print("-" * 70)
+    print("SECRET FALLBACK SCAN")
+    print("-" * 70)
+    secret_issues = check_secret_fallbacks()
+    if secret_issues:
+        for issue in secret_issues:
+            print(f"  {issue}")
+    else:
+        print("  PASS  No dev secret fallbacks without production guards")
+
+    print()
     sys.exit(exit_code)
