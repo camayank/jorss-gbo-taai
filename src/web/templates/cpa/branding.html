@@ -473,24 +473,32 @@
         updateColorPreview('accent', '#10b981');
     }
 
+    function getAuthHeaders(json = true) {
+        const headers = {};
+        const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const csrf = document.querySelector('meta[name="csrf-token"]');
+        if (csrf) headers['X-CSRFToken'] = csrf.content;
+        if (json) headers['Content-Type'] = 'application/json';
+        return headers;
+    }
+
     async function saveColors() {
         const colors = {
-            primary: document.getElementById('primaryColor').value,
-            secondary: document.getElementById('secondaryColor').value,
-            accent: document.getElementById('accentColor').value
+            primary_color: document.getElementById('primaryColor').value,
+            secondary_color: document.getElementById('secondaryColor').value,
+            accent_color: document.getElementById('accentColor').value
         };
 
         try {
-            const response = await fetch('/api/cpa/branding/colors', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
-                },
+            const response = await fetch('/api/cpa/branding/my-branding', {
+                method: 'PATCH',
+                headers: getAuthHeaders(),
                 body: JSON.stringify(colors),
                 credentials: 'same-origin'
             });
 
+            if (response.status === 401) { window.location.href = '/cpa/login'; return; }
             if (!response.ok) throw new Error('Failed to save colors');
 
             showNotification('Colors saved successfully!', 'success');
@@ -502,19 +510,20 @@
     }
 
     async function saveBranding() {
-        const form = document.getElementById('brandingForm');
-        const formData = new FormData(form);
+        const data = {};
+        document.querySelectorAll('.form-card input[name], .form-card textarea[name]').forEach(el => {
+            if (el.name && el.value) data[el.name] = el.value;
+        });
 
         try {
-            const response = await fetch('/api/cpa/branding', {
-                method: 'PUT',
-                headers: {
-                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
-                },
-                body: formData,
+            const response = await fetch('/api/cpa/branding/my-branding', {
+                method: 'PATCH',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(data),
                 credentials: 'same-origin'
             });
 
+            if (response.status === 401) { window.location.href = '/cpa/login'; return; }
             if (!response.ok) throw new Error('Failed to save branding');
 
             showNotification('Branding settings saved!', 'success');
@@ -557,11 +566,9 @@
         try {
             showNotification('Uploading logo...', 'info');
 
-            const response = await fetch('/api/cpa/branding/logo', {
+            const response = await fetch('/api/cpa/branding/my-branding/firm-logo', {
                 method: 'POST',
-                headers: {
-                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
-                },
+                headers: getAuthHeaders(false),
                 body: formData,
                 credentials: 'same-origin'
             });
@@ -592,11 +599,9 @@
         if (!confirm('Remove your logo? This action cannot be undone.')) return;
 
         try {
-            const response = await fetch('/api/cpa/branding/logo', {
+            const response = await fetch('/api/cpa/branding/my-branding/firm-logo', {
                 method: 'DELETE',
-                headers: {
-                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
-                },
+                headers: getAuthHeaders(),
                 credentials: 'same-origin'
             });
 

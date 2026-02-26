@@ -597,6 +597,16 @@
 
 {% block extra_scripts %}
 <script>
+    function getAuthHeaders(json = true) {
+        const headers = {};
+        const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const csrf = document.querySelector('meta[name="csrf-token"]');
+        if (csrf) headers['X-CSRFToken'] = csrf.content;
+        if (json) headers['Content-Type'] = 'application/json';
+        return headers;
+    }
+
     // Filter handling
     function applyFilters() {
         const state = document.getElementById('filterState').value;
@@ -634,12 +644,9 @@
         if (!confirmed) return;
 
         try {
-            const response = await fetch('/api/cpa/leads/' + leadId + '/engage', {
+            const response = await fetch('/api/cpa/lead-magnet/leads/' + leadId + '/engage', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
-                },
+                headers: getAuthHeaders(),
                 credentials: 'same-origin'
             });
 
@@ -704,17 +711,18 @@
     }
 
     async function archiveLead(leadId) {
-        if (!confirm('Archive this lead? It will be hidden from the main list.')) return;
+        if (!confirm('Archive this lead? It will be marked as converted/closed.')) return;
 
         try {
-            const response = await fetch('/api/cpa/leads/' + leadId + '/archive', {
+            // Use lead signal to transition lead state (no dedicated archive endpoint)
+            const response = await fetch('/api/cpa/leads/' + leadId + '/signals', {
                 method: 'POST',
-                headers: {
-                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
-                },
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ signal: 'cpa_archived', metadata: { reason: 'archived_from_list' } }),
                 credentials: 'same-origin'
             });
             if (!response.ok) throw new Error('Failed to archive lead');
+            showToast('Lead archived.', 'success');
             window.location.reload();
         } catch (error) {
             showToast('Error: ' + error.message, 'error');
@@ -722,21 +730,7 @@
     }
 
     async function deleteLead(leadId) {
-        if (!confirm('Delete this lead permanently? This cannot be undone.')) return;
-
-        try {
-            const response = await fetch('/api/cpa/leads/' + leadId, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
-                },
-                credentials: 'same-origin'
-            });
-            if (!response.ok) throw new Error('Failed to delete lead');
-            window.location.reload();
-        } catch (error) {
-            showToast('Error: ' + error.message, 'error');
-        }
+        showToast('Lead deletion is handled through GDPR erasure requests for compliance. Use the archive option instead.', 'warning');
     }
 
     // Pagination
@@ -811,30 +805,45 @@
             if (!confirm(`${label.charAt(0).toUpperCase() + label.slice(1)} ${leadIds.length} selected lead(s)?`)) return;
         }
 
-        // Handle export separately
+        // Handle export — generate CSV client-side from visible table data
         if (action === 'export') {
-            window.location.href = '/api/cpa/leads/export?ids=' + leadIds.join(',');
+            const rows = [['Name', 'Email', 'State', 'Temperature', 'Savings', 'Complexity']];
+            leadIds.forEach(id => {
+                const tr = document.querySelector(`tr[data-lead-id="${id}"]`);
+                if (tr) {
+                    const cells = tr.querySelectorAll('td');
+                    rows.push([
+                        tr.querySelector('.lead-name')?.textContent?.trim() || '',
+                        tr.querySelector('.lead-email')?.textContent?.trim() || '',
+                        cells[2]?.textContent?.trim() || '',
+                        cells[3]?.textContent?.trim() || '',
+                        cells[4]?.textContent?.trim() || '',
+                        cells[5]?.textContent?.trim() || ''
+                    ]);
+                }
+            });
+            const csv = rows.map(r => r.map(c => '"' + c.replace(/"/g, '""') + '"').join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'leads-export.csv';
+            a.click();
+            showToast(`Exported ${leadIds.length} lead(s)`, 'success');
             return;
         }
 
+        // Engage selected leads one by one via the lead magnet engage endpoint
         try {
-            const response = await fetch('/api/cpa/leads/bulk', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
-                },
-                body: JSON.stringify({ action: action, lead_ids: leadIds }),
-                credentials: 'same-origin'
-            });
-
-            if (!response.ok) {
-                const error = await response.json().catch(() => ({}));
-                throw new Error(error.message || 'Bulk action failed');
+            let successCount = 0;
+            for (const id of leadIds) {
+                const response = await fetch('/api/cpa/lead-magnet/leads/' + id + '/engage', {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    credentials: 'same-origin'
+                });
+                if (response.ok) successCount++;
             }
-
-            const result = await response.json();
-            showToast(`Successfully ${label}d ${result.count || leadIds.length} lead(s)`, 'success');
+            showToast(`Successfully ${label}d ${successCount} lead(s)`, 'success');
             window.location.reload();
         } catch (error) {
             console.error('Bulk action error:', error);

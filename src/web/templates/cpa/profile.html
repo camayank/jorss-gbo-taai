@@ -374,8 +374,16 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="/static/js/core/api.js"></script>
 <script>
+    function getAuthHeaders() {
+        const headers = { 'Content-Type': 'application/json' };
+        const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const csrf = document.querySelector('meta[name="csrf-token"]');
+        if (csrf) headers['X-CSRFToken'] = csrf.content;
+        return headers;
+    }
+
     // Profile form submission handler with loading states
     document.querySelectorAll('form').forEach(form => {
         form.addEventListener('submit', async function(e) {
@@ -395,23 +403,18 @@
                 const formData = new FormData(form);
                 const data = Object.fromEntries(formData.entries());
 
-                // Determine endpoint based on form
-                const formId = form.id || form.dataset.section;
-                const endpoint = formId === 'personal-info' ? '/api/cpa/profile/personal'
-                               : formId === 'business-info' ? '/api/cpa/profile/business'
-                               : formId === 'credentials' ? '/api/cpa/profile/credentials'
-                               : '/api/cpa/profile';
+                // All profile sections save to the branding/my-branding endpoint
+                const endpoint = '/api/cpa/branding/my-branding';
 
                 // Make API call
                 const response = await fetch(endpoint, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
-                    },
+                    method: 'PATCH',
+                    headers: getAuthHeaders(),
                     body: JSON.stringify(data),
                     credentials: 'same-origin'
                 });
+
+                if (response.status === 401) { window.location.href = '/cpa/login'; return; }
 
                 if (!response.ok) {
                     const error = await response.json().catch(() => ({}));
