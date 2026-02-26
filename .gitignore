@@ -65,3 +65,9 @@ data/
 .venv/
 node_modules/
 .worktrees/
+
+# Deprecated file staging
+_deprecated/
+
+# Temp audit artifacts
+tmp_route_audit*
