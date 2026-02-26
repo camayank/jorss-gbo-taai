@@ -498,7 +498,7 @@
                     window.location.href = `/lead-magnet/analysis?session=${sessionId}`;
                 } else {
                     // CPA hasn't engaged yet, show waiting message
-                    alert('Thank you for acknowledging the engagement letter. Your full analysis will be available once the CPA reviews your case.');
+                    showToast('Thank you for acknowledging the engagement letter. Your full analysis will be available once the CPA reviews your case.', 'success');
                     window.location.href = `/lead-magnet/report?session=${sessionId}`;
                 }
 
@@ -506,7 +506,7 @@
                 console.error('Error:', error);
                 document.getElementById('loadingOverlay').classList.remove('show');
                 acknowledgeBtn.disabled = false;
-                alert('Something went wrong. Please try again.');
+                showToast('Something went wrong. Please try again.', 'error');
             }
         });
     </script>

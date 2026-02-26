@@ -390,10 +390,10 @@ function draftFormsManager() {
                         url: url
                     });
                 } else {
-                    alert('Failed to generate form. Please check required data.');
+                    showToast('Failed to generate form. Please check required data.', 'error');
                 }
             } catch (e) {
-                alert('Form generation failed');
+                showToast('Form generation failed', 'error');
             } finally {
                 this.generating = false;
                 this.generatingForm = '';

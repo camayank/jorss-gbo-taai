@@ -649,11 +649,11 @@
             }
 
             const result = await response.json();
-            alert('Engagement started! ' + (result.message || ''));
+            showToast('Engagement started! ' + (result.message || ''), 'success');
             window.location.reload();
         } catch (error) {
             console.error('Engage lead error:', error);
-            alert('Error: ' + error.message);
+            showToast('Error: ' + error.message, 'error');
         }
     }
 
@@ -717,7 +717,7 @@
             if (!response.ok) throw new Error('Failed to archive lead');
             window.location.reload();
         } catch (error) {
-            alert('Error: ' + error.message);
+            showToast('Error: ' + error.message, 'error');
         }
     }
 
@@ -735,7 +735,7 @@
             if (!response.ok) throw new Error('Failed to delete lead');
             window.location.reload();
         } catch (error) {
-            alert('Error: ' + error.message);
+            showToast('Error: ' + error.message, 'error');
         }
     }
 
@@ -834,11 +834,11 @@
             }
 
             const result = await response.json();
-            alert(`Successfully ${label}d ${result.count || leadIds.length} lead(s)`);
+            showToast(`Successfully ${label}d ${result.count || leadIds.length} lead(s)`, 'success');
             window.location.reload();
         } catch (error) {
             console.error('Bulk action error:', error);
-            alert('Error: ' + error.message);
+            showToast('Error: ' + error.message, 'error');
         }
     }
 </script>

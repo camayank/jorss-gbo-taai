@@ -238,11 +238,11 @@
                 if (data.connect_url) {
                     window.location.href = data.connect_url;
                 } else {
-                    alert('Error generating Stripe connect URL. Please try again.');
+                    showToast('Error generating Stripe connect URL. Please try again.', 'error');
                 }
             } catch (error) {
                 console.error('Error connecting to Stripe:', error);
-                alert('Error connecting to Stripe. Please try again.');
+                showToast('Error connecting to Stripe. Please try again.', 'error');
             }
         }
 
@@ -259,11 +259,11 @@
                 if (response.ok) {
                     location.reload();
                 } else {
-                    alert('Error disconnecting Stripe. Please try again.');
+                    showToast('Error disconnecting Stripe. Please try again.', 'error');
                 }
             } catch (error) {
                 console.error('Error disconnecting Stripe:', error);
-                alert('Error disconnecting Stripe. Please try again.');
+                showToast('Error disconnecting Stripe. Please try again.', 'error');
             }
         }
 
@@ -287,23 +287,23 @@
                 });
 
                 if (response.ok) {
-                    alert('Preferences saved successfully!');
+                    showToast('Preferences saved successfully!', 'success');
                 } else {
-                    alert('Error saving preferences. Please try again.');
+                    showToast('Error saving preferences. Please try again.', 'error');
                 }
             } catch (error) {
                 console.error('Error saving preferences:', error);
-                alert('Error saving preferences. Please try again.');
+                showToast('Error saving preferences. Please try again.', 'error');
             }
         });
 
         // Check for success/error messages from Stripe callback
         if (urlParams.get('success') === 'connected') {
-            alert('Stripe account connected successfully!');
+            showToast('Stripe account connected successfully!', 'success');
             // Clean URL
             window.history.replaceState({}, '', window.location.pathname + '?cpa=' + cpaId);
         } else if (urlParams.get('error')) {
-            alert('Error connecting Stripe: ' + (urlParams.get('message') || urlParams.get('error')));
+            showToast('Error connecting Stripe: ' + (urlParams.get('message') || urlParams.get('error')), 'error');
             window.history.replaceState({}, '', window.location.pathname + '?cpa=' + cpaId);
         }
 

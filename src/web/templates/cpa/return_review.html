@@ -592,7 +592,7 @@
     async function saveNote() {
         const content = document.getElementById('noteContent').value.trim();
         if (!content) {
-            alert('Please enter a note.');
+            showToast('Please enter a note.', 'warning');
             return;
         }
 
@@ -609,17 +609,17 @@
                 window.location.reload();
             } else {
                 const data = await response.json();
-                alert('Failed to save note: ' + (data.detail || 'Unknown error'));
+                showToast('Failed to save note: ' + (data.detail || 'Unknown error'), 'error');
             }
         } catch (error) {
-            alert('Error saving note: ' + error.message);
+            showToast('Error saving note: ' + error.message, 'error');
         }
     }
 
     async function approveReturn() {
         const signature = document.getElementById('cpaSignature').value.trim();
         if (!signature) {
-            alert('Please enter your electronic signature.');
+            showToast('Please enter your electronic signature.', 'warning');
             return;
         }
 
@@ -639,21 +639,21 @@
             });
 
             if (response.ok) {
-                alert('Return approved successfully!');
+                showToast('Return approved successfully!', 'success');
                 window.location.reload();
             } else {
                 const data = await response.json();
-                alert('Failed to approve: ' + (data.detail || 'Unknown error'));
+                showToast('Failed to approve: ' + (data.detail || 'Unknown error'), 'error');
             }
         } catch (error) {
-            alert('Error approving return: ' + error.message);
+            showToast('Error approving return: ' + error.message, 'error');
         }
     }
 
     async function requestChanges() {
         const reason = document.getElementById('changeRequest').value.trim();
         if (!reason) {
-            alert('Please describe the changes needed.');
+            showToast('Please describe the changes needed.', 'warning');
             return;
         }
 
@@ -669,14 +669,14 @@
             });
 
             if (response.ok) {
-                alert('Return sent back to client for changes.');
+                showToast('Return sent back to client for changes.', 'success');
                 window.location.href = '/cpa/returns/queue';
             } else {
                 const data = await response.json();
-                alert('Failed to request changes: ' + (data.detail || 'Unknown error'));
+                showToast('Failed to request changes: ' + (data.detail || 'Unknown error'), 'error');
             }
         } catch (error) {
-            alert('Error requesting changes: ' + error.message);
+            showToast('Error requesting changes: ' + error.message, 'error');
         }
     }
 </script>

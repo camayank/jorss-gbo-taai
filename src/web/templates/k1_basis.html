@@ -1324,11 +1324,11 @@ function k1BasisManager() {
                     await this.loadRecords();
                 } else {
                     const err = await res.json().catch(() => null);
-                    alert(err?.detail || 'Failed to add entity. Please check the form and try again.');
+                    showToast(err?.detail || 'Failed to add entity. Please check the form and try again.', 'error');
                 }
             } catch (e) {
                 console.error('Add entity error:', e);
-                alert('Failed to add entity. Please check your connection and try again.');
+                showToast('Failed to add entity. Please check your connection and try again.', 'error');
             }
         },
 
@@ -1345,7 +1345,7 @@ function k1BasisManager() {
                 await this.loadRecords();
             } catch (e) {
                 console.error('Delete entity error:', e);
-                alert('Failed to delete entity.');
+                showToast('Failed to delete entity.', 'error');
             }
         },
 
@@ -1362,11 +1362,11 @@ function k1BasisManager() {
                         if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     });
                 } else {
-                    alert('Failed to load worksheet. The server returned an error.');
+                    showToast('Failed to load worksheet. The server returned an error.', 'error');
                 }
             } catch (e) {
                 console.error('View worksheet error:', e);
-                alert('Failed to load worksheet. Please check your connection.');
+                showToast('Failed to load worksheet. Please check your connection.', 'error');
             }
         },
 
@@ -1398,11 +1398,11 @@ function k1BasisManager() {
                     await this.viewWorksheet(this.selectedEntity.entity_id);
                 } else {
                     const err = await res.json().catch(() => null);
-                    alert(err?.detail || 'Failed to add adjustment.');
+                    showToast(err?.detail || 'Failed to add adjustment.', 'error');
                 }
             } catch (e) {
                 console.error('Add adjustment error:', e);
-                alert('Failed to add adjustment. Please check your connection.');
+                showToast('Failed to add adjustment. Please check your connection.', 'error');
             }
         },
 

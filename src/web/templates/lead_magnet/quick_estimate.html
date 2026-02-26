@@ -1070,7 +1070,7 @@
                 console.error('Submission error:', error);
                 clearProcessingTimers();
                 loading.classList.remove('show');
-                alert('Something went wrong. Please try again.');
+                showToast('Something went wrong. Please try again.', 'error');
             }
         }
 

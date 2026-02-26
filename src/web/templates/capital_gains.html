@@ -920,11 +920,11 @@ function capitalGainsManager() {
                     await this.loadSummary();
                 } else {
                     const err = await res.json().catch(() => ({}));
-                    alert(err.detail || 'Failed to add transaction');
+                    showToast(err.detail || 'Failed to add transaction', 'error');
                 }
             } catch(e) {
                 console.error('Failed to add transaction:', e);
-                alert('Failed to add transaction. Please try again.');
+                showToast('Failed to add transaction. Please try again.', 'error');
             }
         },
 
@@ -938,7 +938,7 @@ function capitalGainsManager() {
                 await this.loadSummary();
             } catch(e) {
                 console.error('Failed to delete transaction:', e);
-                alert('Failed to delete transaction.');
+                showToast('Failed to delete transaction.', 'error');
             }
         },
 
@@ -997,11 +997,11 @@ function capitalGainsManager() {
                     const data = await res.json();
                     this.washSales = data.wash_sales || [];
                 } else {
-                    alert('Wash sale detection failed. Please try again.');
+                    showToast('Wash sale detection failed. Please try again.', 'error');
                 }
             } catch(e) {
                 console.error('Wash sale detection failed:', e);
-                alert('Wash sale detection failed. Please check your connection.');
+                showToast('Wash sale detection failed. Please check your connection.', 'error');
             } finally {
                 this.loading = false;
             }

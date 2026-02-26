@@ -11643,7 +11643,7 @@
     async function sendReportEmail() {
       const email = document.getElementById('emailInput').value;
       if (!email || !email.includes('@')) {
-        alert('Please enter a valid email address');
+        showToast('Please enter a valid email address', 'warning');
         return;
       }
 

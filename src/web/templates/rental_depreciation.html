@@ -1278,11 +1278,11 @@ function rentalDepreciationManager() {
                     await this.loadTotalDepreciation();
                 } else {
                     const err = await res.json().catch(() => ({}));
-                    alert(err.detail || 'Failed to add property. Please check your inputs.');
+                    showToast(err.detail || 'Failed to add property. Please check your inputs.', 'error');
                 }
             } catch (e) {
                 console.error('Failed to add property:', e);
-                alert('Failed to add property. Please try again.');
+                showToast('Failed to add property. Please try again.', 'error');
             }
         },
 
@@ -1296,7 +1296,7 @@ function rentalDepreciationManager() {
                 }
 
                 if (!this.selectedProperty) {
-                    alert('Property not found.');
+                    showToast('Property not found.', 'error');
                     return;
                 }
 
@@ -1326,7 +1326,7 @@ function rentalDepreciationManager() {
                 });
             } catch (e) {
                 console.error('Failed to load schedule:', e);
-                alert('Failed to load depreciation schedule.');
+                showToast('Failed to load depreciation schedule.', 'error');
             }
         },
 
@@ -1349,11 +1349,11 @@ function rentalDepreciationManager() {
                     await this.viewSchedule(this.selectedProperty.property_id);
                 } else {
                     const err = await res.json().catch(() => ({}));
-                    alert(err.detail || 'Failed to add improvement.');
+                    showToast(err.detail || 'Failed to add improvement.', 'error');
                 }
             } catch (e) {
                 console.error('Failed to add improvement:', e);
-                alert('Failed to add improvement. Please try again.');
+                showToast('Failed to add improvement. Please try again.', 'error');
             }
         },
 
@@ -1371,7 +1371,7 @@ function rentalDepreciationManager() {
                 await this.loadTotalDepreciation();
             } catch (e) {
                 console.error('Failed to delete property:', e);
-                alert('Failed to delete property.');
+                showToast('Failed to delete property.', 'error');
             }
         },
 

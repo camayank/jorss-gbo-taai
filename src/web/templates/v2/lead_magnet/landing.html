@@ -602,7 +602,7 @@
 
     } catch (error) {
       console.error('Failed to start assessment:', error);
-      alert('Unable to start assessment. Please try again.');
+      showToast('Unable to start assessment. Please try again.', 'error');
 
       // Re-enable button
       button.disabled = false;

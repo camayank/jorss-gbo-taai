@@ -751,17 +751,17 @@
 
     function copyKey(key) {
       navigator.clipboard.writeText(key);
-      alert('Key copied to clipboard');
+      showToast('Key copied to clipboard', 'success');
     }
 
     function copyNewKey() {
       navigator.clipboard.writeText('pk_live_abc123def456ghi789jkl012mno345pqr678');
-      alert('Key copied to clipboard');
+      showToast('Key copied to clipboard', 'success');
     }
 
     function revokeKey(key) {
       if (confirm('Are you sure you want to revoke this API key? This action cannot be undone.')) {
-        alert('Key revoked');
+        showToast('Key revoked', 'success');
       }
     }
 

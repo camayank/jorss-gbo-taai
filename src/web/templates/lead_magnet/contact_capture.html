@@ -862,7 +862,7 @@
             } catch (error) {
                 console.error('Submission error:', error);
                 setLoadingState(false);
-                alert('Something went wrong. Please try again.');
+                showToast('Something went wrong. Please try again.', 'error');
             }
         });
 

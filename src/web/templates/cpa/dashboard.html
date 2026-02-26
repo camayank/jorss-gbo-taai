@@ -605,7 +605,7 @@
     function copyLeadMagnetLink() {
         const link = '{{ request.url.scheme }}://{{ request.url.netloc }}/lead-magnet?cpa={{ cpa.cpa_slug or "default" }}';
         navigator.clipboard.writeText(link).then(function() {
-            alert('Lead magnet link copied to clipboard!');
+            showToast('Lead magnet link copied to clipboard!', 'success');
         });
     }
 </script>

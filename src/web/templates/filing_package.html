@@ -352,7 +352,7 @@ function filingPackageManager() {
 
         async generatePackage() {
             if (!this.returnId) {
-                alert('Please enter a Return ID');
+                showToast('Please enter a Return ID', 'warning');
                 return;
             }
             this.generating = true;
@@ -380,10 +380,10 @@ function filingPackageManager() {
                     });
                 } else {
                     const err = await res.json().catch(() => ({}));
-                    alert(err.detail || 'Package generation failed');
+                    showToast(err.detail || 'Package generation failed', 'error');
                 }
             } catch (e) {
-                alert('Failed to generate package');
+                showToast('Failed to generate package', 'error');
             } finally {
                 this.generating = false;
             }

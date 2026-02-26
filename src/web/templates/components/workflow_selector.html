@@ -411,11 +411,11 @@ async function selectWorkflow(workflowType) {
             }
         } else {
             console.error('Failed to create session');
-            alert('Failed to start filing session. Please try again.');
+            showToast('Failed to start filing session. Please try again.', 'error');
         }
     } catch (error) {
         console.error('Error creating session:', error);
-        alert('An error occurred. Please try again.');
+        showToast('An error occurred. Please try again.', 'error');
     }
 }
 

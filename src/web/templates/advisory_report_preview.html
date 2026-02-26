@@ -1484,7 +1484,7 @@
                 const response = await fetch(`${API_BASE}/${reportId}/data`);
                 data = await response.json();
             }
-            alert('JSON data logged to console');
+            showToast('JSON data logged to console', 'info');
             console.log('Report Data:', data);
         });
 

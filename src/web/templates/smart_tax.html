@@ -1995,9 +1995,9 @@
 
     function proceedWithOption() {
       if (state.selectedOption === 'self-file') {
-        alert('Self-file flow would start here. In production, this would begin the e-file process.');
+        showToast('Self-file flow would start here. In production, this would begin the e-file process.', 'info');
       } else {
-        alert('CPA review flow would start here. In production, this would connect you with a tax professional.');
+        showToast('CPA review flow would start here. In production, this would connect you with a tax professional.', 'info');
       }
     }
 

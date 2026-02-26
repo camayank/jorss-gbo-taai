@@ -596,11 +596,11 @@
 
         function nextStep() {
             if (currentStep === 1 && !selectedType) {
-                alert('Please select an appointment type');
+                showToast('Please select an appointment type', 'warning');
                 return;
             }
             if (currentStep === 2 && (!selectedDate || !selectedTime)) {
-                alert('Please select a date and time');
+                showToast('Please select a date and time', 'warning');
                 return;
             }
             if (currentStep === 3) {
@@ -634,7 +634,7 @@
         }
 
         function submitBooking() {
-            alert('Appointment booked successfully!');
+            showToast('Appointment booked successfully!', 'success');
             window.location.href = '/appointments/calendar';
         }
 

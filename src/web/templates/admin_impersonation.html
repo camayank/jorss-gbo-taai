@@ -1013,11 +1013,11 @@
     function startImpersonation() {
         const reason = document.querySelector('.reason-input').value;
         if (!reason.trim()) {
-            alert('Please provide a reason for the impersonation session.');
+            showToast('Please provide a reason for the impersonation session.', 'warning');
             return;
         }
         // In production, this would make an API call to start the session
-        alert('Impersonation session started. You will be redirected to the firm dashboard.');
+        showToast('Impersonation session started. You will be redirected to the firm dashboard.', 'info');
         closeModal();
     }
 

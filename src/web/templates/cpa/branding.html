@@ -449,7 +449,7 @@
     function copyLink() {
         const linkInput = document.getElementById('leadMagnetLink');
         navigator.clipboard.writeText(linkInput.value).then(function() {
-            alert('Link copied to clipboard!');
+            showToast('Link copied to clipboard!', 'success');
         });
     }
 

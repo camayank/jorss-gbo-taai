@@ -120,7 +120,7 @@
             <h3 style="color: #991b1b; font-size: 0.95rem; font-weight: var(--font-semibold); margin-bottom: var(--space-2);">Danger Zone</h3>
             <p style="color: #7f1d1d; font-size: 0.85rem; margin-bottom: var(--space-4);">Once you delete your account, there is no going back.</p>
             <button style="padding: var(--space-2) var(--space-4); background: white; color: #c53030; border: 1px solid var(--color-error-200); border-radius: var(--radius-lg); font-size: 0.85rem; cursor: pointer; font-weight: var(--font-medium);"
-                    onclick="if(confirm('Are you sure you want to delete your account? This cannot be undone.')) { alert('Account deletion not yet implemented. Contact support.'); }">
+                    onclick="if(confirm('Are you sure you want to delete your account? This cannot be undone.')) { showToast('Account deletion not yet implemented. Contact support.', 'info'); }">
                 Delete Account
             </button>
         </div>
@@ -181,12 +181,12 @@ function profileManager() {
                 const res = await fetch('/api/mfa/disable', { method: 'POST' });
                 if (res.ok) {
                     this.mfaEnabled = false;
-                    alert('Two-factor authentication has been disabled.');
+                    showToast('Two-factor authentication has been disabled.', 'success');
                 } else {
-                    alert('Failed to disable 2FA. Please try again.');
+                    showToast('Failed to disable 2FA. Please try again.', 'error');
                 }
             } catch (e) {
-                alert('An error occurred. Please try again.');
+                showToast('An error occurred. Please try again.', 'error');
             }
         }
     };

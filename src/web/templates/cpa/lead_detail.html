@@ -864,11 +864,11 @@
             }
 
             const result = await response.json();
-            alert('Lead marked as engaged! ' + result.message);
+            showToast('Lead marked as engaged! ' + result.message, 'success');
             location.reload();
         } catch (error) {
             console.error('Error:', error);
-            alert('Failed to engage lead: ' + error.message);
+            showToast('Failed to engage lead: ' + error.message, 'error');
         }
     }
 
@@ -889,11 +889,11 @@
             }
 
             const result = await response.json();
-            alert('Lead successfully converted to client!');
+            showToast('Lead successfully converted to client!', 'success');
             location.reload();
         } catch (error) {
             console.error('Error:', error);
-            alert('Failed to convert lead: ' + error.message);
+            showToast('Failed to convert lead: ' + error.message, 'error');
         }
     }
 
@@ -914,7 +914,7 @@
         if (sessionId) {
             window.open('/lead-magnet/report?session=' + sessionId, '_blank');
         } else {
-            alert('No report available for this lead.');
+            showToast('No report available for this lead.', 'warning');
         }
     }
 
