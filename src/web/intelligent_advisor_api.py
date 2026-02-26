@@ -178,6 +178,14 @@ except ImportError:
     SESSION_PERSISTENCE_AVAILABLE = False
     logger.warning("Session persistence not available - using in-memory only")
 
+# Import Redis session persistence for shared cross-worker sessions
+try:
+    from database.redis_session_persistence import get_redis_session_persistence
+    REDIS_PERSISTENCE_IMPORTABLE = True
+except ImportError:
+    REDIS_PERSISTENCE_IMPORTABLE = False
+    logger.debug("Redis session persistence module not available")
+
 # Import for PDF generation
 try:
     from fastapi.responses import FileResponse
@@ -768,10 +776,10 @@ class IntelligentChatEngine:
     """
     The brain of the chatbot - orchestrates all backend services.
 
-    Now with database-backed persistence! Sessions are:
-    1. Cached in memory for fast access
-    2. Persisted to SQLite database for durability
-    3. Automatically loaded from database if not in memory
+    Session storage uses a two-tier architecture:
+    L1: In-memory dict (per-process hot cache, ~0ms reads)
+    L2: Redis (shared across workers, ~1ms) with SQLite fallback
+    Sessions are automatically loaded from L2 if not in L1.
     """
 
     # Maximum in-memory sessions before cleanup triggers
@@ -784,22 +792,40 @@ class IntelligentChatEngine:
     MAX_TOKEN_ESTIMATE = 100000  # ~100K tokens max (approx 4 chars/token)
 
     def __init__(self):
-        # In-memory cache for fast access
+        # In-memory cache for fast access (L1 — per-process hot cache)
         self.sessions: Dict[str, Dict[str, Any]] = {}
         # Track last access time for memory eviction
         self._session_access_times: Dict[str, datetime] = {}
         # Lock for async-safe operations
         self._lock = asyncio.Lock()
-        # Database persistence layer
-        self._persistence: Optional[SessionPersistence] = None
+        # L2 persistence layers
+        self._redis_persistence = None  # Async Redis (preferred, shared across workers)
+        self._sqlite_persistence: Optional[SessionPersistence] = None  # Sync SQLite (fallback)
+        self._redis_init_attempted = False
         if SESSION_PERSISTENCE_AVAILABLE:
             try:
-                self._persistence = get_session_persistence()
-                logger.info("Intelligent Advisor: Database persistence enabled")
+                self._sqlite_persistence = get_session_persistence()
+                logger.info("Intelligent Advisor: SQLite persistence enabled (fallback)")
             except Exception as e:
-                logger.warning(f"Could not initialize persistence: {e}")
+                logger.warning(f"Could not initialize SQLite persistence: {e}")
 
-    def _cleanup_stale_sessions(self) -> None:
+    async def _ensure_redis(self):
+        """Lazily initialize Redis persistence on first async call."""
+        if self._redis_persistence is not None or self._redis_init_attempted:
+            return
+        self._redis_init_attempted = True
+        if not REDIS_PERSISTENCE_IMPORTABLE:
+            return
+        try:
+            self._redis_persistence = await get_redis_session_persistence()
+            if self._redis_persistence:
+                logger.info("Intelligent Advisor: Redis persistence enabled (primary)")
+            else:
+                logger.info("Intelligent Advisor: Redis not available, using SQLite fallback")
+        except Exception as e:
+            logger.warning(f"Could not initialize Redis persistence: {e}")
+
+    async def _cleanup_stale_sessions(self) -> None:
         """Evict idle sessions from memory (they remain in database)."""
         if len(self.sessions) < self.MAX_IN_MEMORY_SESSIONS:
             return
@@ -813,7 +839,7 @@ class IntelligentChatEngine:
 
         for sid in to_evict:
             if sid in self.sessions:
-                self._save_session_to_db(sid, self.sessions[sid])
+                await self._save_session_to_db(sid, self.sessions[sid])
                 del self.sessions[sid]
             self._session_access_times.pop(sid, None)
 
@@ -876,41 +902,75 @@ class IntelligentChatEngine:
                 session["created_at"] = datetime.now()
         return session
 
-    def _save_session_to_db(self, session_id: str, session: Dict[str, Any]) -> None:
-        """Save session to database asynchronously."""
-        if not self._persistence:
-            return
+    async def _save_session_to_db(self, session_id: str, session: Dict[str, Any]) -> None:
+        """Save session to Redis (primary) or SQLite (fallback)."""
+        await self._ensure_redis()
+        serialized = self._serialize_session_for_db(session)
+        metadata = {
+            "lead_score": session.get("lead_score", 0),
+            "state": session.get("state", "greeting"),
+            "has_calculation": session.get("calculations") is not None
+        }
 
-        try:
-            serialized = self._serialize_session_for_db(session)
-            self._persistence.save_session(
-                session_id=session_id,
-                tenant_id="default",
-                session_type="intelligent_advisor",
-                data=serialized,
-                metadata={
-                    "lead_score": session.get("lead_score", 0),
-                    "state": session.get("state", "greeting"),
-                    "has_calculation": session.get("calculations") is not None
-                }
-            )
-            logger.debug(f"Session {session_id} saved to database")
-        except Exception as e:
-            logger.warning(f"Failed to save session {session_id} to database: {e}")
+        # Try Redis first (shared across workers)
+        if self._redis_persistence:
+            try:
+                await self._redis_persistence.save_session(
+                    session_id=session_id,
+                    tenant_id="default",
+                    session_type="intelligent_advisor",
+                    data=serialized,
+                    metadata=metadata,
+                )
+                logger.debug(f"Session {session_id} saved to Redis")
+                return
+            except Exception as e:
+                logger.warning(f"Redis save failed for {session_id}, falling back to SQLite: {e}")
 
-    def _load_session_from_db(self, session_id: str) -> Optional[Dict[str, Any]]:
-        """Load session from database."""
-        if not self._persistence:
-            return None
+        # Fallback to SQLite
+        if self._sqlite_persistence:
+            try:
+                self._sqlite_persistence.save_session(
+                    session_id=session_id,
+                    tenant_id="default",
+                    session_type="intelligent_advisor",
+                    data=serialized,
+                    metadata=metadata,
+                )
+                logger.debug(f"Session {session_id} saved to SQLite")
+            except Exception as e:
+                logger.warning(f"Failed to save session {session_id} to SQLite: {e}")
 
-        try:
-            record = self._persistence.load_session(session_id)
-            if record and record.data:
-                session = self._deserialize_session_from_db(record.data)
-                logger.info(f"Session {session_id} loaded from database")
-                return session
-        except Exception as e:
-            logger.warning(f"Failed to load session {session_id} from database: {e}")
+    async def _load_session_from_db(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Load session from Redis (primary) or SQLite (fallback)."""
+        await self._ensure_redis()
+
+        # Try Redis first
+        if self._redis_persistence:
+            try:
+                data = await self._redis_persistence.load_session(
+                    session_id=session_id,
+                    tenant_id="default",
+                )
+                if data:
+                    # Redis returns dict directly (may have wrapper fields)
+                    session_data = data.get("data", data) if isinstance(data, dict) and "data" in data else data
+                    session = self._deserialize_session_from_db(session_data)
+                    logger.info(f"Session {session_id} loaded from Redis")
+                    return session
+            except Exception as e:
+                logger.warning(f"Redis load failed for {session_id}, trying SQLite: {e}")
+
+        # Fallback to SQLite
+        if self._sqlite_persistence:
+            try:
+                record = self._sqlite_persistence.load_session(session_id)
+                if record and record.data:
+                    session = self._deserialize_session_from_db(record.data)
+                    logger.info(f"Session {session_id} loaded from SQLite")
+                    return session
+            except Exception as e:
+                logger.warning(f"Failed to load session {session_id} from SQLite: {e}")
 
         return None
 
@@ -925,21 +985,15 @@ class IntelligentChatEngine:
         """
         async with self._lock:
             # Periodically clean up stale in-memory sessions
-            self._cleanup_stale_sessions()
+            await self._cleanup_stale_sessions()
 
             # Fast path: check in-memory cache
             if session_id in self.sessions:
                 self._session_access_times[session_id] = datetime.now()
-                # Touch the session in DB to extend expiry
-                if self._persistence:
-                    try:
-                        self._persistence.touch_session(session_id)
-                    except Exception:
-                        pass
                 return self.sessions[session_id]
 
-            # Try loading from database
-            loaded_session = self._load_session_from_db(session_id)
+            # Try loading from database (Redis first, then SQLite)
+            loaded_session = await self._load_session_from_db(session_id)
             if loaded_session:
                 self.sessions[session_id] = loaded_session
                 self._session_access_times[session_id] = datetime.now()
@@ -976,8 +1030,8 @@ class IntelligentChatEngine:
             self.sessions[session_id] = new_session
             self._session_access_times[session_id] = datetime.now()
 
-            # Save to database
-            self._save_session_to_db(session_id, new_session)
+            # Save to database (Redis or SQLite)
+            await self._save_session_to_db(session_id, new_session)
 
             return new_session
 
@@ -1006,8 +1060,8 @@ class IntelligentChatEngine:
                 else:
                     session[key] = value
 
-            # Save to database
-            self._save_session_to_db(session_id, session)
+            # Save to database (Redis or SQLite)
+            await self._save_session_to_db(session_id, session)
 
             # Also save tax return data for PDF generation compatibility
             profile = session.get("profile", {})
@@ -1026,15 +1080,15 @@ class IntelligentChatEngine:
             session_id: Session identifier
             profile: Chatbot profile data
         """
-        if not self._persistence:
+        if not self._sqlite_persistence:
             return
 
         try:
             # Convert profile to tax return format
             return_data = convert_profile_to_tax_return(profile, session_id)
 
-            # Save to session_tax_returns table
-            self._persistence.save_session_tax_return(
+            # Save to session_tax_returns table (SQLite — used by PDF generator)
+            self._sqlite_persistence.save_session_tax_return(
                 session_id=session_id,
                 tenant_id="default",
                 tax_year=2025,
@@ -1059,12 +1113,19 @@ class IntelligentChatEngine:
             # Remove from memory
             removed = self.sessions.pop(session_id, None) is not None
 
-            # Remove from database
-            if self._persistence:
+            # Remove from Redis
+            if self._redis_persistence:
                 try:
-                    self._persistence.delete_session(session_id)
+                    await self._redis_persistence.delete_session(session_id, tenant_id="default")
                 except Exception as e:
-                    logger.warning(f"Failed to delete session {session_id} from database: {e}")
+                    logger.warning(f"Failed to delete session {session_id} from Redis: {e}")
+
+            # Remove from SQLite
+            if self._sqlite_persistence:
+                try:
+                    self._sqlite_persistence.delete_session(session_id)
+                except Exception as e:
+                    logger.warning(f"Failed to delete session {session_id} from SQLite: {e}")
 
             return removed
 
@@ -1073,17 +1134,18 @@ class IntelligentChatEngine:
         memory_count = len(self.sessions)
         db_count = 0
 
-        if self._persistence:
+        if self._sqlite_persistence:
             try:
                 # Count sessions by listing them
-                sessions = self._persistence.list_sessions("default")
+                sessions = self._sqlite_persistence.list_sessions("default")
                 db_count = len([s for s in sessions if s.session_type == "intelligent_advisor"])
             except Exception:
                 pass
 
         return {
             "in_memory": memory_count,
-            "in_database": db_count
+            "in_database": db_count,
+            "redis_enabled": self._redis_persistence is not None,
         }
 
     def calculate_profile_completeness(self, profile: Dict[str, Any]) -> float:

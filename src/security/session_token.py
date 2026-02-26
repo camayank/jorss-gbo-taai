@@ -85,8 +85,8 @@ async def verify_session_token(
     session = chat_engine.sessions.get(session_id)
 
     if not session:
-        # Try loading from database
-        session = chat_engine._load_session_from_db(session_id)
+        # Try loading from database (Redis or SQLite)
+        session = await chat_engine._load_session_from_db(session_id)
         if session:
             chat_engine.sessions[session_id] = session
 

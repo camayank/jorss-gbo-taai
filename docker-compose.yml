@@ -38,6 +38,12 @@ services:
       - JWT_SECRET=${JWT_SECRET:-development-jwt-secret-change-me-32chars}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-development-encryption-key-32chars}
       - SENTRY_DSN=${SENTRY_DSN:-}
+      # Redis-backed sessions (shared across workers)
+      - REDIS_URL=redis://redis:6379/0
+      - SESSION_STORAGE_TYPE=redis
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
       interval: 30s
@@ -49,7 +55,7 @@ services:
       - jorss-network
 
   # ---------------------------------------------------------------------------
-  # Redis (Optional - for production caching/sessions)
+  # Redis (shared session store + caching)
   # ---------------------------------------------------------------------------
   redis:
     image: redis:7-alpine
@@ -67,8 +73,6 @@ services:
     restart: unless-stopped
     networks:
       - jorss-network
-    profiles:
-      - with-redis
 
   # ---------------------------------------------------------------------------
   # Nginx (Optional - for production reverse proxy)
