@@ -21,21 +21,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 logger = logging.getLogger(__name__)
 
-# Import auth utilities
-try:
-    from security.auth_decorators import get_user_from_request, Role
-    AUTH_AVAILABLE = True
-except ImportError:
-    AUTH_AVAILABLE = False
-    logger.warning("Auth decorators not available - CPA dashboard running without auth")
-
-    class Role:
-        CPA = "cpa"
-        ADMIN = "admin"
-        PREPARER = "preparer"
-
-    def get_user_from_request(request):
-        return None
+# Auth utilities — mandatory import; CPA dashboard must never run without auth
+from security.auth_decorators import get_user_from_request, Role
 
 # Create router
 cpa_dashboard_router = APIRouter(
@@ -94,7 +81,7 @@ async def require_cpa_auth(request: Request) -> dict:
         Raises HTTPException or redirects if not authenticated
     """
     # Get user from request
-    user = get_user_from_request(request) if AUTH_AVAILABLE else None
+    user = get_user_from_request(request)
 
     # Check for demo mode - ONLY if explicitly enabled AND in dev environment
     demo_requested = request.query_params.get("demo") == "true"
