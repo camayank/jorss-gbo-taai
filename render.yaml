@@ -70,6 +70,10 @@ services:
       - key: PASSWORD_SALT
         generateValue: true
 
+      # Error monitoring (set in dashboard)
+      - key: SENTRY_DSN
+        sync: false
+
       # OpenAI (set in dashboard)
       - key: OPENAI_API_KEY
         sync: false

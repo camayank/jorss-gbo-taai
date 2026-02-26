@@ -37,6 +37,7 @@ services:
       - APP_SECRET_KEY=${APP_SECRET_KEY:-development-secret-key-change-me-32chars}
       - JWT_SECRET=${JWT_SECRET:-development-jwt-secret-change-me-32chars}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-development-encryption-key-32chars}
+      - SENTRY_DSN=${SENTRY_DSN:-}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
       interval: 30s

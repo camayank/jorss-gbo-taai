@@ -113,6 +113,20 @@ def _configure_logging():
 _configure_logging()
 
 # =============================================================================
+# SENTRY ERROR MONITORING
+# =============================================================================
+import sentry_sdk
+
+_sentry_dsn = os.environ.get("SENTRY_DSN")
+if _sentry_dsn:
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        environment=_log_env,
+        traces_sample_rate=0.1 if _log_env in ("production", "prod") else 0.5,
+        send_default_pii=False,
+    )
+
+# =============================================================================
 # SECURITY IMPORTS - CRITICAL FOR PRODUCTION
 # =============================================================================
 from security.secure_serializer import (
@@ -859,8 +873,8 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
                 {"request": request},
                 status_code=exc.status_code,
             )
-        except Exception:
-            pass  # Fall back to inline HTML
+        except Exception as template_err:
+            logger.debug("Error template not found for %s, using inline fallback", exc.status_code)
 
     # Fallback: inline HTML error pages
     messages = {
@@ -898,8 +912,8 @@ async def general_exception_handler(request: Request, exc: Exception):
             {"request": request},
             status_code=500,
         )
-    except Exception:
-        pass  # Fall back to inline HTML
+    except Exception as template_err:
+        logger.debug("500 error template not found, using inline fallback")
 
     html = _create_html_error_page(
         500,
