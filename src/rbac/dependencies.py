@@ -200,8 +200,8 @@ def _role_to_value(role_like: Union[Role, str, Any]) -> str:
     return raw
 
 
-def _coerce_permission(permission_like: Union[Permission, str, Any]) -> Union[Permission, str]:
-    """Normalize permission-like values to Permission enum when possible."""
+def _coerce_permission(permission_like: Union[Permission, str, Any]) -> Permission:
+    """Normalize permission-like values to Permission enum. Raises ValueError if invalid."""
     if isinstance(permission_like, Permission):
         return permission_like
 
@@ -209,7 +209,8 @@ def _coerce_permission(permission_like: Union[Permission, str, Any]) -> Union[Pe
     try:
         return Permission(raw)
     except (TypeError, ValueError):
-        return raw
+        logger.error(f"Invalid permission value: {raw!r} — not in Permission enum")
+        raise ValueError(f"Invalid permission: {raw!r}")
 
 
 def _permission_to_value(permission_like: Union[Permission, str]) -> str:
