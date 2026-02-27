@@ -117,7 +117,7 @@ async def login(
     user = await _find_user_by_email(session, email_lower)
 
     if not user:
-        logger.warning(f"Login failed: user not found - {email_lower}")
+        logger.warning("Login failed: user not found")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
@@ -129,7 +129,7 @@ async def login(
         if isinstance(lock_time, str):
             lock_time = datetime.fromisoformat(lock_time)
         if datetime.utcnow() < lock_time:
-            logger.warning(f"Login failed: account locked - {email_lower}")
+            logger.warning(f"Login failed: account locked - user_id={user['id']}")
             raise HTTPException(
                 status_code=status.HTTP_423_LOCKED,
                 detail="Account is temporarily locked due to too many failed attempts",
@@ -137,7 +137,7 @@ async def login(
 
     # Check if account is active
     if not user.get("is_active", True):
-        logger.warning(f"Login failed: account inactive - {email_lower}")
+        logger.warning(f"Login failed: account inactive - user_id={user['id']}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Account is disabled",
@@ -145,7 +145,7 @@ async def login(
 
     # Verify password
     if not user.get("password_hash"):
-        logger.warning(f"Login failed: no password set - {email_lower}")
+        logger.warning(f"Login failed: no password set - user_id={user['id']}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
@@ -154,7 +154,7 @@ async def login(
     if not verify_password(credentials.password, user["password_hash"]):
         # Increment failed login attempts
         await _increment_failed_login(session, user)
-        logger.warning(f"Login failed: invalid password - {email_lower}")
+        logger.warning(f"Login failed: invalid password - user_id={user['id']}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
@@ -179,7 +179,7 @@ async def login(
         expires_delta=refresh_expires,
     )
 
-    logger.info(f"Login successful: {email_lower}")
+    logger.info(f"Login successful: user_id={user['id']}")
 
     return LoginResponse(
         access_token=access_token,
@@ -347,7 +347,7 @@ async def logout(
     except Exception as e:
         logger.warning(f"Failed to log logout event: {e}")
 
-    logger.info(f"User logged out: {user.email}")
+    logger.info(f"User logged out: user_id={user.user_id}")
     return {"status": "success", "message": "Logged out successfully"}
 
 
@@ -445,7 +445,7 @@ async def change_password(
     })
     await session.commit()
 
-    logger.info(f"Password changed for user: {user.email}")
+    logger.info(f"Password changed for user_id={user.user_id}")
 
     return {
         "status": "success",
@@ -491,15 +491,15 @@ async def request_password_reset(
             from services.email_service import send_password_reset_email
             await send_password_reset_email(user["email"], reset_link)
             email_sent = True
-            logger.info(f"Password reset email sent to {email_lower}")
+            logger.info("Password reset email sent successfully")
         except ImportError:
             logger.warning(
-                f"[AUTH] Email service not configured — password reset link for "
-                f"{email_lower} logged but NOT emailed. Configure email service for production."
+                "[AUTH] Email service not configured — password reset link generated "
+                "but NOT emailed. Configure email service for production."
             )
-            logger.info(f"Password reset link (NOT emailed): {reset_link}")
+            logger.info(f"Password reset link generated but NOT emailed (configure email service for production)")
         except Exception as e:
-            logger.error(f"Failed to send password reset email to {email_lower}: {e}")
+            logger.error(f"Failed to send password reset email: {type(e).__name__}")
 
     # Always return success (security best practice - don't reveal if user exists)
     return {
@@ -573,7 +573,7 @@ async def confirm_password_reset(
     # Invalidate reset token
     del _reset_tokens[reset_confirm.token]
 
-    logger.info(f"Password reset completed for user: {token_data['email']}")
+    logger.info(f"Password reset completed for user_id={token_data.get('user_id', 'unknown')}")
 
     return {
         "status": "success",
@@ -617,13 +617,13 @@ async def verify_mfa(
     totp = pyotp.TOTP(mfa_secret)
     # valid_window=1 allows for 30 seconds of clock drift
     if not totp.verify(mfa_request.code, valid_window=1):
-        logger.warning(f"MFA verification failed for user: {user.email}")
+        logger.warning(f"MFA verification failed for user_id={user.user_id}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid MFA code. Please try again.",
         )
 
-    logger.info(f"MFA verified successfully for user: {user.email}")
+    logger.info(f"MFA verified successfully for user_id={user.user_id}")
 
     return {"status": "success", "message": "MFA verified"}
 
@@ -706,7 +706,7 @@ async def confirm_mfa_setup(
 
     totp = pyotp.TOTP(setup_data["secret"])
     if not totp.verify(mfa_request.code, valid_window=1):
-        logger.warning(f"MFA setup verification failed for user: {user.email}")
+        logger.warning(f"MFA setup verification failed for user_id={user.user_id}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid MFA code. Please check your authenticator app and try again.",
@@ -738,7 +738,7 @@ async def confirm_mfa_setup(
     # Clean up setup data
     del _reset_tokens[setup_key]
 
-    logger.info(f"MFA enabled for user: {user.email}")
+    logger.info(f"MFA enabled for user_id={user.user_id}")
 
     return {
         "status": "success",
@@ -797,7 +797,7 @@ async def disable_mfa(
     await session.execute(query, {"user_id": user_data["id"]})
     await session.commit()
 
-    logger.info(f"MFA disabled for user: {user.email}")
+    logger.info(f"MFA disabled for user_id={user.user_id}")
 
     return {"status": "success", "message": "MFA has been disabled"}
 

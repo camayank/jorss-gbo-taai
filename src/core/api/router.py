@@ -111,10 +111,10 @@ async def init_test_data():
         Initialization results for each data type.
     """
     try:
-        from core.services.test_data_init import init_all_test_data, TEST_PASSWORD
+        from core.services.test_data_init import init_all_test_data
         results = init_all_test_data()
-        results["test_password"] = TEST_PASSWORD
         results["message"] = "Test data initialized successfully"
+        results["note"] = "Test password is set via TEST_USER_PASSWORD env var"
         return results
     except Exception as e:
         logger.exception("Failed to initialize test data")

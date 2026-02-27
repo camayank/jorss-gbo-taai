@@ -655,13 +655,16 @@ class CoreAuthService:
 
         # In production: send email with link
         magic_link = f"/auth/magic-link?token={token}"
-        logger.info(f"Magic link generated for {request.email}: {magic_link}")
+        logger.info(f"Magic link generated (token_prefix={token[:8]}...)")
+
+        # In dev, include token for testing; in production, token is only sent via email
+        _env = os.environ.get("APP_ENVIRONMENT", "development").lower()
+        _is_dev = _env in ("development", "dev", "local", "test", "testing")
 
         return AuthResponse(
             success=True,
             message="If an account exists, a login link has been sent",
-            # In dev, return token directly for testing
-            access_token=token  # Remove in production
+            access_token=token if _is_dev else None,
         )
 
     async def verify_magic_link(self, token: str) -> AuthResponse:

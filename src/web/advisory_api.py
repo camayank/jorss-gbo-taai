@@ -640,7 +640,7 @@ async def delete_report(report_id: str):
 
 
 # ============================================================================
-# TESTING ENDPOINT (Remove in production)
+# TESTING ENDPOINT (blocked in production)
 # ============================================================================
 
 @router.post("/test/generate-sample")
@@ -649,20 +649,25 @@ async def generate_sample_report(background_tasks: BackgroundTasks):
     Generate a sample advisory report for testing.
 
     This endpoint creates a sample TaxReturn and generates a report.
-    Remove in production - for testing only.
+    SECURITY: Blocked in production environments.
     """
+    import os
+    _env = os.environ.get("APP_ENVIRONMENT", "development").lower()
+    if _env in ("production", "prod", "staging"):
+        raise HTTPException(status_code=403, detail="Test endpoints are disabled in production")
+
     from models.taxpayer import TaxpayerInfo, FilingStatus
     from models.income import Income
     from models.deductions import Deductions
     from models.credits import TaxCredits
 
-    # Create sample tax return
+    # Create sample tax return (SSN uses IRS-designated test range 900-xx)
     tax_return = TaxReturn(
         tax_year=2025,
         taxpayer=TaxpayerInfo(
             first_name="Sample",
             last_name="Client",
-            ssn="456-78-9012",
+            ssn="900-00-0001",
             filing_status=FilingStatus.SINGLE,
         ),
         income=Income(

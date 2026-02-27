@@ -328,10 +328,10 @@ async def add_team_member(
 
         # FREEZE & FINISH: Email service deferred to Phase 2
         # Invitation link is returned in response for manual sharing
-        logger.info(f"Invitation created for {email_lower}: /invite?token={inv_token}")
+        logger.info(f"Invitation created for user (token_prefix={inv_token[:8]}...)")
 
     await session.commit()
-    logger.info(f"Team member created: {email_lower} by {user.email}")
+    logger.info(f"Team member created: user_id={new_user_id} by user_id={user.user_id}")
 
     return TeamMemberResponse(
         user_id=new_user_id,
