@@ -606,9 +606,10 @@ def require_auth(
                 return await func(request, *args, **kwargs)
 
             except AuthenticationError as e:
+                logger.warning(f"Authentication failed: {e}")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail=str(e),
+                    detail="Invalid or expired authentication credentials",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
 

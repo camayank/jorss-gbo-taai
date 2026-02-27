@@ -312,7 +312,7 @@ async def get_change_history():
         logger.error(f"Error getting change history: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error getting change history: {str(e)}"
+            detail="An internal error occurred"
         )
 
 
@@ -386,7 +386,7 @@ async def list_rules(
         logger.error(f"Error listing rules: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error listing rules: {str(e)}"
+            detail="An internal error occurred"
         )
 
 
@@ -413,7 +413,7 @@ async def list_rule_categories():
         logger.error(f"Error listing categories: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error listing categories: {str(e)}"
+            detail="An internal error occurred"
         )
 
 
@@ -462,7 +462,7 @@ async def get_rule(rule_id: str, year: int = Query(default=2025)):
         logger.error(f"Error getting rule {rule_id}: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error getting rule: {str(e)}"
+            detail="An internal error occurred"
         )
 
 
@@ -529,5 +529,5 @@ async def evaluate_rules(request: RuleEvaluationRequest):
         logger.error(f"Error evaluating rules: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error evaluating rules: {str(e)}"
+            detail="An internal error occurred"
         )

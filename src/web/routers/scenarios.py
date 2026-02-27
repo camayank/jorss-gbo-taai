@@ -348,7 +348,7 @@ async def compare_scenarios(request: Request, request_body: CompareScenarioReque
 
     except ValueError as e:
         logger.warning(f"Scenario comparison validation error: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Invalid scenario parameters")
     except Exception as e:
         logger.exception(f"Error comparing scenarios: {e}")
         raise HTTPException(status_code=500, detail="Failed to compare scenarios. Please try again.")

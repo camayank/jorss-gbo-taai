@@ -176,7 +176,7 @@ async def calculate_complete(request: Request):
         logger.exception(f"Complete calculation error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -240,7 +240,7 @@ async def calculate_tax_quick(request: Request):
         logger.exception(f"Quick calculation error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -296,7 +296,7 @@ async def estimate_tax(request: Request):
         logger.exception(f"Estimate error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -324,7 +324,7 @@ async def optimize_general(request: Request):
         logger.exception(f"Optimize error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -391,7 +391,7 @@ async def optimize_filing_status(request: Request):
         logger.exception(f"Filing status optimization error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -461,7 +461,7 @@ async def optimize_credits(request: Request):
         logger.exception(f"Credits optimization error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -530,7 +530,7 @@ async def optimize_deductions(request: Request):
         logger.exception(f"Deductions optimization error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -573,5 +573,5 @@ async def get_recommendations_route(request: Request):
         logger.exception(f"Get recommendations error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )

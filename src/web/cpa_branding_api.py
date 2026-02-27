@@ -27,6 +27,18 @@ except ImportError:
     TENANT_ISOLATION_AVAILABLE = False
 
 
+_ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
+
+
+def _safe_extension(filename: str, default: str = "png") -> str:
+    """Extract and validate file extension against whitelist."""
+    if filename and "." in filename:
+        ext = filename.rsplit(".", 1)[-1].lower()
+        if ext in _ALLOWED_IMAGE_EXTENSIONS:
+            return ext
+    return default
+
+
 router = APIRouter(prefix="/api/cpa/branding", tags=["cpa-branding"])
 
 
@@ -278,7 +290,7 @@ async def upload_profile_photo(
     upload_dir = Path("./uploads/profile_photos")
     upload_dir.mkdir(parents=True, exist_ok=True)
 
-    filename = f"{ctx.user_id}_{uuid4().hex[:8]}.{file.filename.split('.')[-1]}"
+    filename = f"{ctx.user_id}_{uuid4().hex[:8]}.{_safe_extension(file.filename)}"
     file_path = upload_dir / filename
 
     with open(file_path, "wb") as f:
@@ -331,7 +343,7 @@ async def upload_signature(
     upload_dir = Path("./uploads/signatures")
     upload_dir.mkdir(parents=True, exist_ok=True)
 
-    filename = f"{ctx.user_id}_{uuid4().hex[:8]}.{file.filename.split('.')[-1]}"
+    filename = f"{ctx.user_id}_{uuid4().hex[:8]}.{_safe_extension(file.filename)}"
     file_path = upload_dir / filename
 
     with open(file_path, "wb") as f:
@@ -388,8 +400,7 @@ async def upload_firm_logo(
     upload_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate safe filename
-    ext = file.filename.split('.')[-1] if '.' in file.filename else 'png'
-    filename = f"{ctx.user_id}_{uuid4().hex[:8]}.{ext}"
+    filename = f"{ctx.user_id}_{uuid4().hex[:8]}.{_safe_extension(file.filename)}"
     file_path = upload_dir / filename
 
     with open(file_path, "wb") as f:

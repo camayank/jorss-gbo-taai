@@ -105,18 +105,18 @@ def check_database() -> DependencyStatus:
         )
 
     except sqlite3.Error as e:
-        logger.error(f"Database health check failed: {str(e)}")
+        logger.error(f"Database health check failed: {e}")
         return DependencyStatus(
             name="database",
             status="down",
-            message=f"SQLite error: {str(e)}"
+            message="Database connection failed"
         )
     except Exception as e:
-        logger.error(f"Database health check failed: {str(e)}")
+        logger.error(f"Database health check failed: {e}")
         return DependencyStatus(
             name="database",
             status="down",
-            message=str(e)
+            message="Database check failed"
         )
 
 
@@ -150,11 +150,11 @@ def check_ocr_service() -> DependencyStatus:
         )
 
     except Exception as e:
-        logger.error(f"OCR health check failed: {str(e)}")
+        logger.error(f"OCR health check failed: {e}")
         return DependencyStatus(
             name="ocr_service",
             status="down",
-            message=str(e)
+            message="OCR service check failed"
         )
 
 
@@ -173,11 +173,11 @@ def check_tax_calculator() -> DependencyStatus:
         )
 
     except Exception as e:
-        logger.error(f"Tax calculator health check failed: {str(e)}")
+        logger.error(f"Tax calculator health check failed: {e}")
         return DependencyStatus(
             name="tax_calculator",
             status="down",
-            message=str(e)
+            message="Tax calculator check failed"
         )
 
 

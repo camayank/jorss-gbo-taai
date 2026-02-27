@@ -112,7 +112,7 @@ async def save_return(request: Request):
         logger.exception(f"Save return error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -137,7 +137,7 @@ async def get_return(return_id: str, request: Request):
         logger.exception(f"Get return error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -172,7 +172,7 @@ async def list_returns(
         logger.exception(f"List returns error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -202,7 +202,7 @@ async def delete_return(return_id: str, request: Request):
         logger.exception(f"Delete return error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -240,7 +240,7 @@ async def get_return_status(session_id: str, request: Request):
         logger.exception(f"Get status error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -278,7 +278,7 @@ async def submit_for_review(session_id: str, request: Request):
         logger.exception(f"Submit for review error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -332,7 +332,7 @@ async def approve_return(session_id: str, request: Request):
         logger.exception(f"Approve return error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -364,7 +364,7 @@ async def revert_to_draft(session_id: str, request: Request):
         logger.exception(f"Revert to draft error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -405,7 +405,7 @@ async def get_returns_by_status(
         logger.exception(f"Get queue error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -468,7 +468,7 @@ async def add_return_note(session_id: str, request: Request):
         logger.exception(f"Add note error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -498,5 +498,5 @@ async def get_return_notes(session_id: str, request: Request):
         logger.exception(f"Get notes error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
