@@ -258,7 +258,7 @@ async def get_domain_status(
         raise
     except Exception as e:
         logger.error(f"[CustomDomain] Failed to get status: {e}")
-        raise HTTPException(500, f"Failed to get domain status: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
 
 
 @router.post("/setup")
@@ -389,7 +389,7 @@ async def setup_custom_domain(
         raise
     except Exception as e:
         logger.error(f"[CustomDomain] Setup failed: {e}")
-        raise HTTPException(500, f"Failed to setup custom domain: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
 
 
 @router.post("/verify")
@@ -485,7 +485,7 @@ async def verify_custom_domain(
         raise
     except Exception as e:
         logger.error(f"[CustomDomain] Verification failed: {e}")
-        raise HTTPException(500, f"Failed to verify domain: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
 
 
 @router.delete("/remove")
@@ -529,7 +529,7 @@ async def remove_custom_domain(
         raise
     except Exception as e:
         logger.error(f"[CustomDomain] Remove failed: {e}")
-        raise HTTPException(500, f"Failed to remove domain: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
 
 
 @router.get("/check-availability")
@@ -582,4 +582,4 @@ async def check_domain_availability(
 
     except Exception as e:
         logger.error(f"[CustomDomain] Availability check failed: {e}")
-        raise HTTPException(500, f"Failed to check domain availability: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")

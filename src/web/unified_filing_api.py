@@ -328,7 +328,7 @@ async def upload_document(
         )
 
     except Exception as e:
-        raise HTTPException(500, f"Document processing failed: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
 
 
 # =============================================================================
@@ -422,7 +422,7 @@ async def calculate_taxes(
         )
 
     except Exception as e:
-        raise HTTPException(500, f"Tax calculation failed: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
 
 
 # =============================================================================
@@ -524,7 +524,7 @@ async def submit_return(
         )
 
     except Exception as e:
-        raise HTTPException(500, f"Return submission failed: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
 
 
 # =============================================================================

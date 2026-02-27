@@ -12,10 +12,15 @@ Flow:
 6. Backend redirects to frontend with session token
 """
 
+import os
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse, JSONResponse
 import logging
 from typing import Optional
+
+_is_production = os.environ.get("APP_ENVIRONMENT", "production").lower() not in (
+    "development", "dev", "local", "test", "testing"
+)
 
 from ..services.oauth_service import (
     get_oauth_service,
@@ -108,9 +113,8 @@ async def google_oauth_callback(
     # Handle OAuth errors
     if error:
         logger.warning(f"Google OAuth error: {error} - {error_description}")
-        # Redirect to login page with error
         return RedirectResponse(
-            url=f"/login?error=oauth_failed&provider=google&message={error_description or error}",
+            url="/login?error=oauth_failed&provider=google",
             status_code=status.HTTP_302_FOUND
         )
 
@@ -123,25 +127,29 @@ async def google_oauth_callback(
         # Create or link user account
         result = await oauth_service.create_or_link_user(user_info)
 
-        # Redirect to frontend with token
-        # In production, use secure cookie or fragment identifier
-        redirect_url = f"/login?oauth_success=true&token={result['access_token']}&is_new={result['is_new_user']}"
-
-        return RedirectResponse(
-            url=redirect_url,
-            status_code=status.HTTP_302_FOUND
+        # Set token in HttpOnly cookie (not URL) to prevent leakage
+        redirect_url = f"/login?oauth_success=true&is_new={result['is_new_user']}"
+        response = RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
+        response.set_cookie(
+            key="access_token",
+            value=result["access_token"],
+            httponly=True,
+            secure=_is_production,
+            samesite="lax",
+            max_age=3600,
         )
+        return response
 
     except ValueError as e:
         logger.error(f"Google OAuth callback failed: {e}")
         return RedirectResponse(
-            url=f"/login?error=oauth_failed&provider=google&message={str(e)}",
+            url="/login?error=oauth_failed&provider=google",
             status_code=status.HTTP_302_FOUND
         )
     except Exception as e:
-        logger.exception(f"Google OAuth callback error: {e}")
+        logger.exception("Google OAuth callback error")
         return RedirectResponse(
-            url="/login?error=oauth_failed&provider=google&message=Authentication%20failed",
+            url="/login?error=oauth_failed&provider=google",
             status_code=status.HTTP_302_FOUND
         )
 
@@ -235,7 +243,7 @@ async def microsoft_oauth_callback(
     if error:
         logger.warning(f"Microsoft OAuth error: {error} - {error_description}")
         return RedirectResponse(
-            url=f"/login?error=oauth_failed&provider=microsoft&message={error_description or error}",
+            url="/login?error=oauth_failed&provider=microsoft",
             status_code=status.HTTP_302_FOUND
         )
 
@@ -248,24 +256,29 @@ async def microsoft_oauth_callback(
         # Create or link user account
         result = await oauth_service.create_or_link_user(user_info)
 
-        # Redirect to frontend with token
-        redirect_url = f"/login?oauth_success=true&token={result['access_token']}&is_new={result['is_new_user']}"
-
-        return RedirectResponse(
-            url=redirect_url,
-            status_code=status.HTTP_302_FOUND
+        # Set token in HttpOnly cookie (not URL) to prevent leakage
+        redirect_url = f"/login?oauth_success=true&is_new={result['is_new_user']}"
+        response = RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
+        response.set_cookie(
+            key="access_token",
+            value=result["access_token"],
+            httponly=True,
+            secure=_is_production,
+            samesite="lax",
+            max_age=3600,
         )
+        return response
 
     except ValueError as e:
         logger.error(f"Microsoft OAuth callback failed: {e}")
         return RedirectResponse(
-            url=f"/login?error=oauth_failed&provider=microsoft&message={str(e)}",
+            url="/login?error=oauth_failed&provider=microsoft",
             status_code=status.HTTP_302_FOUND
         )
     except Exception as e:
-        logger.exception(f"Microsoft OAuth callback error: {e}")
+        logger.exception("Microsoft OAuth callback error")
         return RedirectResponse(
-            url="/login?error=oauth_failed&provider=microsoft&message=Authentication%20failed",
+            url="/login?error=oauth_failed&provider=microsoft",
             status_code=status.HTTP_302_FOUND
         )
 
@@ -301,7 +314,8 @@ async def microsoft_oauth_token(
         )
 
     except ValueError as e:
+        logger.warning(f"Microsoft OAuth token error: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail="OAuth authentication failed. Please try again."
         )

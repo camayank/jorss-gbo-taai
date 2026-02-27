@@ -236,7 +236,7 @@ async def start_guided_filing(
 
     except Exception as e:
         logger.error(f"[GUIDED] Failed to start session: {e}")
-        raise HTTPException(500, f"Failed to start guided filing: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
 
 
 @router.get("/{session_id}/progress")
@@ -276,7 +276,7 @@ async def get_progress(
         raise
     except Exception as e:
         logger.error(f"[GUIDED] Failed to get progress for {session_id}: {e}")
-        raise HTTPException(500, f"Failed to get progress: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
 
 
 @router.post("/{session_id}/progress")
@@ -339,7 +339,7 @@ async def save_progress(
         raise
     except Exception as e:
         logger.error(f"[GUIDED] Failed to save progress for {session_id}: {e}")
-        raise HTTPException(500, f"Failed to save progress: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
 
 
 @router.post("/{session_id}/submit")
@@ -403,7 +403,7 @@ async def submit_guided_return(
         raise
     except Exception as e:
         logger.error(f"[GUIDED] Failed to submit return for {session_id}: {e}")
-        raise HTTPException(500, f"Failed to submit return: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
 
 
 @router.get("/{session_id}/summary")
@@ -499,7 +499,7 @@ async def get_summary(
         raise
     except Exception as e:
         logger.error(f"[GUIDED] Failed to get summary for {session_id}: {e}")
-        raise HTTPException(500, f"Failed to get summary: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
 
 
 @router.get("/{session_id}/validate")
@@ -565,4 +565,4 @@ async def validate_step(
         raise
     except Exception as e:
         logger.error(f"[GUIDED] Failed to validate step for {session_id}: {e}")
-        raise HTTPException(500, f"Failed to validate: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")

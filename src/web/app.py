@@ -2569,7 +2569,7 @@ async def upload_document_async(
     try:
         content = await file.read()
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to read file: {str(e)}")
+        raise HTTPException(status_code=400, detail="Failed to read uploaded file")
 
     # Generate document ID
     document_id = str(uuid.uuid4())
@@ -3328,10 +3328,11 @@ async def cache_status():
             "message": "Cache module not available",
         })
     except Exception as e:
+        logger.error(f"Cache status check failed: {e}")
         return JSONResponse({
             "status": "error",
             "connected": False,
-            "error": str(e),
+            "error": "An internal error occurred",
         })
 
 
@@ -3364,7 +3365,7 @@ async def flush_cache(request: Request):
     except Exception as e:
         return JSONResponse({
             "status": "error",
-            "message": f"Cache flush failed: {str(e)}",
+            "message": "Cache flush failed",
         }, status_code=500)
 
 
@@ -3394,9 +3395,10 @@ async def database_status():
             "message": "Database module not available",
         })
     except Exception as e:
+        logger.error(f"Database status check failed: {e}")
         return JSONResponse({
             "status": "error",
-            "error": str(e),
+            "error": "An internal error occurred",
         })
 
 
@@ -3618,9 +3620,10 @@ async def migration_status():
             "message": "Migration module not available",
         })
     except Exception as e:
+        logger.error(f"Migration status check failed: {e}")
         return JSONResponse({
             "status": "error",
-            "error": str(e),
+            "error": "An internal error occurred",
         })
 
 
@@ -3870,7 +3873,7 @@ async def calculate_complete_return(request: Request):
         logger.error(f"Validation error in calculation: {e}")
         return create_error_response(
             code=ErrorCode.VALIDATION_ERROR,
-            message=str(e),
+            message="Validation error",
             status_code=400,
             user_message="Some of your tax information appears to be invalid. Please review your entries."
         )
@@ -3878,7 +3881,7 @@ async def calculate_complete_return(request: Request):
         logger.error(f"Calculation error: {e}\n{traceback.format_exc()}")
         return create_error_response(
             code=ErrorCode.CALCULATION_ERROR,
-            message=str(e),
+            message="Calculation error",
             status_code=500,
             user_message="We encountered an error while calculating your taxes. Please try again."
         )
@@ -4077,7 +4080,7 @@ async def get_tax_recommendations(request: Request):
         logger.error(f"Error generating recommendations: {e}")
         return create_error_response(
             code=ErrorCode.INTERNAL_ERROR,
-            message=str(e),
+            message="Recommendation error",
             status_code=500,
             user_message="Unable to generate recommendations at this time. Please try again."
         )
@@ -4096,7 +4099,7 @@ async def get_real_time_estimate(request: Request):
     try:
         body = await request.json()
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
+        raise HTTPException(status_code=400, detail="Invalid request body")
 
     # Extract basic info with safe conversion
     wages = safe_float(body.get("wages"))
@@ -4159,7 +4162,7 @@ async def calculate_tax_advisory(request: Request):
     try:
         body = await request.json()
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
+        raise HTTPException(status_code=400, detail="Invalid request body")
 
     # Extract tax information from request
     filing_status_input = body.get("filing_status", "Single")
@@ -4295,7 +4298,7 @@ async def create_lead(request: Request):
     try:
         body = await request.json()
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
+        raise HTTPException(status_code=400, detail="Invalid request body")
 
     # Server-side CAPTCHA verification (when configured)
     captcha_secret = os.environ.get("CAPTCHA_SECRET_KEY")
@@ -6534,7 +6537,7 @@ async def get_tax_suggestions(request: Request):
             'tips': [],
             'potential_savings': 0,
             'did_you_know': [],
-            'error': str(e)
+            'error': 'An internal error occurred'
         })
 
 

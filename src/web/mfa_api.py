@@ -596,7 +596,7 @@ async def get_mfa_status(
         raise
     except Exception as e:
         logger.error(f"[MFA] Failed to get status: {e}")
-        raise HTTPException(500, f"Failed to get MFA status: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
 
 
 @router.post("/setup")
@@ -667,7 +667,7 @@ async def setup_mfa(
         raise
     except Exception as e:
         logger.error(f"[MFA] Setup failed: {e}")
-        raise HTTPException(500, f"Failed to setup MFA: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
 
 
 @router.post("/verify-setup")
@@ -724,7 +724,7 @@ async def verify_mfa_setup(
         raise
     except Exception as e:
         logger.error(f"[MFA] Verify setup failed: {e}")
-        raise HTTPException(500, f"Failed to verify MFA setup: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
 
 
 @router.post("/validate")
@@ -780,7 +780,7 @@ async def validate_mfa_code(
         raise
     except Exception as e:
         logger.error(f"[MFA] Validation failed: {e}")
-        raise HTTPException(500, f"Failed to validate MFA: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
 
 
 @router.post("/disable")
@@ -831,7 +831,7 @@ async def disable_mfa(
         raise
     except Exception as e:
         logger.error(f"[MFA] Disable failed: {e}")
-        raise HTTPException(500, f"Failed to disable MFA: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
 
 
 @router.post("/regenerate-backup-codes")
@@ -881,7 +881,7 @@ async def regenerate_backup_codes(
         raise
     except Exception as e:
         logger.error(f"[MFA] Regenerate backup codes failed: {e}")
-        raise HTTPException(500, f"Failed to regenerate backup codes: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
 
 
 @router.get("/backup-codes-count")
@@ -906,4 +906,4 @@ async def get_backup_codes_count(
 
     except Exception as e:
         logger.error(f"[MFA] Get backup codes count failed: {e}")
-        raise HTTPException(500, f"Failed to get backup codes count: {str(e)}")
+        raise HTTPException(500, "An internal error occurred")
