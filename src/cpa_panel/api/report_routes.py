@@ -76,7 +76,7 @@ async def generate_report(session_id: str, request: Request):
         raise
     except Exception as e:
         logger.error(f"Generate report error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @report_router.get("/session/{session_id}/report/download")
@@ -135,7 +135,7 @@ async def download_report(session_id: str, request: Request, format: str = "json
         raise
     except Exception as e:
         logger.error(f"Download report error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @report_router.get("/session/{session_id}/report/sections")
@@ -158,7 +158,7 @@ async def get_report_sections(session_id: str, request: Request):
 
     except Exception as e:
         logger.error(f"Get report sections error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 def _report_to_markdown(report: dict) -> str:

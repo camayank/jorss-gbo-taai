@@ -58,7 +58,7 @@ async def analyze_credits(session_id: str, request: Request):
 
     except Exception as e:
         logger.error(f"Credit analysis error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -96,7 +96,7 @@ async def analyze_deductions(session_id: str, request: Request):
 
     except Exception as e:
         logger.error(f"Deduction analysis error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -133,7 +133,7 @@ async def compare_filing_status(session_id: str, request: Request):
 
     except Exception as e:
         logger.error(f"Filing status comparison error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -191,7 +191,7 @@ async def compare_entity_structures(session_id: str, request: Request):
 
     except Exception as e:
         logger.error(f"Entity comparison error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -229,7 +229,7 @@ async def analyze_full_strategy(session_id: str, request: Request):
 
     except Exception as e:
         logger.error(f"Strategy analysis error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -310,4 +310,4 @@ async def get_optimization_summary(session_id: str, request: Request):
         raise
     except Exception as e:
         logger.error(f"Optimization summary error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")

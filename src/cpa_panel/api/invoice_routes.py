@@ -294,7 +294,7 @@ async def update_invoice(
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail="Invalid request data"
         )
 
 
@@ -430,7 +430,7 @@ async def void_invoice(
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail="Invalid request data"
         )
 
 
@@ -601,7 +601,7 @@ async def process_link_payment(link_code: str, request: ProcessLinkPaymentReques
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail="Invalid request data"
         )
 
 
@@ -726,5 +726,5 @@ async def refund_payment(
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail="Invalid request data"
         )

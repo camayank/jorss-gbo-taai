@@ -163,7 +163,7 @@ async def upload_document(
         logger.exception(f"Document upload error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -249,7 +249,7 @@ async def upload_document_async(
         logger.exception(f"Async upload error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -301,7 +301,7 @@ async def get_upload_status(task_id: str, request: Request):
         logger.exception(f"Status check error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -330,7 +330,7 @@ async def cancel_upload_task(task_id: str, request: Request):
         logger.exception(f"Cancel error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -376,7 +376,7 @@ async def list_documents(
         logger.exception(f"List documents error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -410,7 +410,7 @@ async def get_document(document_id: str, request: Request):
         logger.exception(f"Get document error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -439,7 +439,7 @@ async def get_document_status(document_id: str, request: Request):
         logger.exception(f"Get status error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -503,7 +503,7 @@ async def apply_document(document_id: str, request: Request):
         logger.exception(f"Apply document error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 
@@ -535,7 +535,7 @@ async def delete_document(document_id: str, request: Request):
         logger.exception(f"Delete document error: {e}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "error": str(e)}
+            content={"status": "error", "error": "An internal error occurred"}
         )
 
 

@@ -182,7 +182,7 @@ async def get_aggregated_insights(
 
     except Exception as e:
         logger.error(f"Error getting aggregated insights: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @router.get("/categories", dependencies=[Depends(require_internal_cpa_auth)])
@@ -271,7 +271,7 @@ async def get_insights_by_category(
 
     except Exception as e:
         logger.error(f"Error getting insights by category: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @router.get("/client/{session_id}", dependencies=[Depends(require_internal_cpa_auth)])
@@ -365,7 +365,7 @@ async def get_client_insights(
         raise
     except Exception as e:
         logger.error(f"Error getting client insights: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @router.get("/summary", dependencies=[Depends(require_internal_cpa_auth)])
@@ -464,7 +464,7 @@ async def get_insights_summary(
 
     except Exception as e:
         logger.error(f"Error getting insights summary: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 def _extract_client_name(tax_return) -> str:

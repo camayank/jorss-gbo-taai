@@ -69,7 +69,7 @@ async def calculate_delta(session_id: str, request: Request):
         })
     except Exception as e:
         logger.error(f"Error calculating delta: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @analysis_router.get("/returns/{session_id}/tax-drivers")
@@ -97,7 +97,7 @@ async def get_tax_drivers(session_id: str, request: Request):
         })
     except Exception as e:
         logger.error(f"Error analyzing tax drivers: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @analysis_router.post("/returns/{session_id}/compare-scenarios")
@@ -138,7 +138,7 @@ async def compare_scenarios(session_id: str, request: Request):
         })
     except Exception as e:
         logger.error(f"Error comparing scenarios: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @analysis_router.get("/returns/{session_id}/suggested-scenarios")
@@ -164,4 +164,4 @@ async def get_suggested_scenarios(session_id: str, request: Request):
         })
     except Exception as e:
         logger.error(f"Error getting scenarios: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")

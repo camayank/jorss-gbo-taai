@@ -17,7 +17,6 @@ import sqlite3
 import json
 import re
 import uuid
-import pickle
 import base64
 from datetime import datetime, timedelta
 from pathlib import Path

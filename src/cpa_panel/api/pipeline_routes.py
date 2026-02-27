@@ -48,7 +48,7 @@ async def get_pipeline(request: Request):
 
     except Exception as e:
         logger.error(f"Get pipeline error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @pipeline_router.get("/leads/pipeline/metrics")
@@ -78,7 +78,7 @@ async def get_pipeline_metrics(request: Request):
 
     except Exception as e:
         logger.error(f"Get pipeline metrics error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @pipeline_router.get("/leads/pipeline/conversion")
@@ -102,7 +102,7 @@ async def get_conversion_metrics(request: Request):
 
     except Exception as e:
         logger.error(f"Get conversion metrics error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @pipeline_router.get("/leads/pipeline/velocity")
@@ -127,7 +127,7 @@ async def get_velocity_metrics(request: Request):
 
     except Exception as e:
         logger.error(f"Get velocity metrics error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -160,7 +160,7 @@ async def get_priority_queue(request: Request, limit: int = 20):
 
     except Exception as e:
         logger.error(f"Get priority queue error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -203,4 +203,4 @@ async def advance_lead(lead_id: str, request: Request):
         raise
     except Exception as e:
         logger.error(f"Advance lead error for {lead_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")

@@ -149,7 +149,7 @@ async def start_onboarding(request: StartOnboardingRequest):
         )
     except Exception as e:
         logger.error(f"Failed to start onboarding: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @smart_onboarding_router.post(
@@ -223,7 +223,7 @@ async def upload_document(
         raise
     except Exception as e:
         logger.error(f"Document upload failed for session {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @smart_onboarding_router.get(
@@ -319,10 +319,10 @@ async def submit_answers(session_id: str, request: SubmitAnswersRequest):
         )
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Invalid request")
     except Exception as e:
         logger.error(f"Answer submission failed for session {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @smart_onboarding_router.post(
@@ -365,10 +365,10 @@ async def create_client(
         }
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Invalid request")
     except Exception as e:
         logger.error(f"Client creation failed for session {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @smart_onboarding_router.get(
@@ -491,7 +491,7 @@ async def quick_add_client(
 
     except Exception as e:
         logger.error(f"Quick add failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================

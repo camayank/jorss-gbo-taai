@@ -69,7 +69,7 @@ async def compare_scenarios(session_id: str, request: Request):
         raise
     except Exception as e:
         logger.error(f"Scenario comparison error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @scenario_router.post("/session/{session_id}/scenarios/compare-templates")
@@ -117,7 +117,7 @@ async def compare_from_templates(session_id: str, request: Request):
         raise
     except Exception as e:
         logger.error(f"Template comparison error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -155,7 +155,7 @@ async def get_scenario_templates(session_id: str, request: Request, category: Op
 
     except Exception as e:
         logger.error(f"Get templates error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @scenario_router.get("/scenarios/categories")
@@ -179,7 +179,7 @@ async def get_template_categories(request: Request):
 
     except Exception as e:
         logger.error(f"Get categories error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -232,7 +232,7 @@ async def quick_compare(session_id: str, request: Request):
         raise
     except Exception as e:
         logger.error(f"Quick compare error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -267,4 +267,4 @@ async def get_suggested_scenarios(session_id: str, request: Request):
         raise
     except Exception as e:
         logger.error(f"Get suggested scenarios error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")

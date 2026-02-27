@@ -13,6 +13,7 @@ Handles the OAuth flow:
 5. Create or link user account
 """
 
+import asyncio
 import os
 import secrets
 import logging
@@ -117,12 +118,13 @@ class OAuthService:
         self.config = config or OAuthConfig()
         # Store OAuth state tokens (in production, use Redis)
         self._state_tokens: Dict[str, Dict] = {}
+        self._state_lock = asyncio.Lock()
 
     # =========================================================================
     # AUTHORIZATION URL GENERATION
     # =========================================================================
 
-    def start_oauth(self, provider: str, redirect_uri: str = None) -> OAuthStartResponse:
+    async def start_oauth(self, provider: str, redirect_uri: str = None) -> OAuthStartResponse:
         """
         Generate authorization URL for OAuth provider.
 
@@ -136,12 +138,13 @@ class OAuthService:
         # Generate state token for CSRF protection
         state = secrets.token_urlsafe(32)
 
-        # Store state with expiration
-        self._state_tokens[state] = {
-            "provider": provider,
-            "created_at": datetime.utcnow(),
-            "redirect_uri": redirect_uri
-        }
+        # Protect shared state dict from concurrent access
+        async with self._state_lock:
+            self._state_tokens[state] = {
+                "provider": provider,
+                "created_at": datetime.utcnow(),
+                "redirect_uri": redirect_uri
+            }
 
         if provider == "google":
             return self._start_google_oauth(state, redirect_uri)
@@ -222,8 +225,9 @@ class OAuthService:
         Returns:
             OAuthUserInfo with normalized user data
         """
-        # Validate state token
-        state_data = self._state_tokens.pop(state, None)
+        # Validate state token (lock protects concurrent access)
+        async with self._state_lock:
+            state_data = self._state_tokens.pop(state, None)
         if not state_data:
             raise ValueError("Invalid or expired state token")
 

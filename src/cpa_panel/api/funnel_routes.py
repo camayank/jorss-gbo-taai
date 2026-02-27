@@ -155,7 +155,7 @@ async def process_qualified_lead(
 
     except Exception as e:
         logger.exception(f"Funnel processing failed for lead {request.lead_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @funnel_router.post(
@@ -191,7 +191,7 @@ async def generate_and_deliver_report(request: GenerateReportRequest):
 
     except Exception as e:
         logger.exception(f"Report generation failed for lead {request.lead_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @funnel_router.post(
@@ -231,7 +231,7 @@ async def calculate_platform_fee(request: PlatformFeeRequest):
 
     except Exception as e:
         logger.exception(f"Fee calculation failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @funnel_router.post(
@@ -273,7 +273,7 @@ async def register_cpa_for_assignment(request: RegisterCPARequest):
 
     except Exception as e:
         logger.exception(f"CPA registration failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @funnel_router.get(
@@ -323,7 +323,7 @@ async def get_assignment_stats():
 
     except Exception as e:
         logger.exception(f"Failed to get assignment stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @funnel_router.post(
@@ -377,7 +377,7 @@ async def assign_lead_to_cpa(
 
     except Exception as e:
         logger.exception(f"Lead assignment failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @funnel_router.get(
@@ -407,4 +407,4 @@ async def get_funnel_config():
 
     except Exception as e:
         logger.exception(f"Failed to get config: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")

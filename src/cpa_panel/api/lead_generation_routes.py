@@ -165,7 +165,7 @@ async def get_quick_estimate(request: QuickEstimateRequest):
 
     except Exception as e:
         logger.error(f"Quick estimate failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @lead_generation_router.post(
@@ -219,7 +219,7 @@ async def upload_for_estimate(
         raise
     except Exception as e:
         logger.error(f"Document upload for estimate failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @lead_generation_router.post(
@@ -264,10 +264,10 @@ async def capture_contact(lead_id: str, request: CaptureContactRequest):
         )
 
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="Resource not found")
     except Exception as e:
         logger.error(f"Contact capture failed for lead {lead_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -505,7 +505,7 @@ async def assign_lead(lead_id: str, request: AssignLeadRequest):
         }
 
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="Resource not found")
 
 
 @lead_generation_router.post(
@@ -537,7 +537,7 @@ async def update_status(lead_id: str, request: UpdateStatusRequest):
         }
 
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="Resource not found")
 
 
 @lead_generation_router.post(
@@ -571,7 +571,7 @@ async def convert_lead(lead_id: str, cpa_id: str = Query(..., description="CPA I
         }
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Invalid request")
 
 
 # =============================================================================

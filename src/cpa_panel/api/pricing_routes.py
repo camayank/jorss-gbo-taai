@@ -69,7 +69,7 @@ async def calculate_pricing(session_id: str, request: Request):
 
     except Exception as e:
         logger.error(f"Pricing calculation error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @pricing_router.get("/pricing/tiers")
@@ -98,7 +98,7 @@ async def get_pricing_tiers(request: Request):
 
     except Exception as e:
         logger.error(f"Get pricing tiers error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @pricing_router.post("/session/{session_id}/pricing/quote")
@@ -192,7 +192,7 @@ async def generate_quote(session_id: str, request: Request):
 
     except Exception as e:
         logger.error(f"Generate quote error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 def _extract_pricing_data(tax_return) -> dict:

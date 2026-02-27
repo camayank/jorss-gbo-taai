@@ -142,7 +142,7 @@ async def get_prospect_discovery(session_id: str, request: Request):
         raise
     except Exception as e:
         logger.error(f"Error getting prospect discovery: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -177,7 +177,7 @@ async def get_prospect_outcome(session_id: str, request: Request):
         })
     except Exception as e:
         logger.error(f"Error getting prospect outcome: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @exposure_router.get("/prospect/{session_id}/complexity")
@@ -215,7 +215,7 @@ async def get_prospect_complexity(session_id: str, request: Request):
         })
     except Exception as e:
         logger.error(f"Error getting prospect complexity: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @exposure_router.get("/prospect/{session_id}/drivers")
@@ -266,7 +266,7 @@ async def get_prospect_drivers(session_id: str, request: Request):
         })
     except Exception as e:
         logger.error(f"Error getting prospect drivers: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -373,4 +373,4 @@ async def get_exposure_contracts(request: Request):
         })
     except Exception as e:
         logger.error(f"Error getting exposure contracts: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")

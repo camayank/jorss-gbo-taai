@@ -377,7 +377,7 @@ async def start_assessment(request: StartAssessmentRequest, http_request: Reques
 
     except Exception as e:
         logger.error(f"Failed to start assessment: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @lead_magnet_router.post(
@@ -442,10 +442,10 @@ async def submit_tax_profile(session_id: str, request: TaxProfileRequest):
         )
 
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="Resource not found")
     except Exception as e:
         logger.error(f"Failed to submit profile for session {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @lead_magnet_router.post(
@@ -483,10 +483,10 @@ async def track_funnel_event(session_id: str, request: TrackFunnelEventRequest):
         )
         return {"status": "ok", "tracked": tracked}
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="Resource not found")
     except Exception as e:
         logger.error(f"Failed to track event for session {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @lead_magnet_router.post(
@@ -598,10 +598,10 @@ async def capture_contact(session_id: str, request: CaptureContactRequest, http_
         )
 
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="Resource not found")
     except Exception as e:
         logger.error(f"Failed to capture contact for session {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @lead_magnet_router.get(
@@ -673,10 +673,10 @@ async def get_tier_one_report(
         return report
 
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="Resource not found")
     except Exception as e:
         logger.error(f"Failed to get report for session {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @lead_magnet_router.get(
@@ -738,10 +738,10 @@ async def get_tier_two_report(
     except HTTPException:
         raise
     except ValueError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        raise HTTPException(status_code=403, detail="Access denied")
     except Exception as e:
         logger.error(f"Failed to get full report for session {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -795,7 +795,7 @@ async def get_lead_magnet_leads(
 
     except Exception as e:
         logger.error(f"Failed to get leads: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @lead_magnet_router.get(
@@ -833,7 +833,7 @@ async def get_hot_leads(
 
     except Exception as e:
         logger.error(f"Failed to get hot leads: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @lead_magnet_router.get(
@@ -865,7 +865,7 @@ async def get_lead_stats(
 
     except Exception as e:
         logger.error(f"Failed to get lead stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @lead_magnet_router.get(
@@ -894,7 +894,7 @@ async def get_lead_details(lead_id: str):
         raise
     except Exception as e:
         logger.error(f"Failed to get lead {lead_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @lead_magnet_router.post(
@@ -977,10 +977,10 @@ async def engage_lead(
     except HTTPException:
         raise
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="Resource not found")
     except Exception as e:
         logger.error(f"Failed to engage lead {lead_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @lead_magnet_router.post(
@@ -1035,7 +1035,7 @@ async def acknowledge_engagement_letter(lead_id: str, request: AcknowledgeEngage
         raise
     except Exception as e:
         logger.error(f"Failed to acknowledge engagement letter for lead {lead_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @lead_magnet_router.post(
@@ -1083,10 +1083,10 @@ async def convert_lead(lead_id: str):
         }
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Invalid request")
     except Exception as e:
         logger.error(f"Failed to convert lead {lead_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -1132,10 +1132,10 @@ async def create_cpa_profile(request: CPAProfileRequest):
         }
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Invalid request")
     except Exception as e:
         logger.error(f"Failed to create CPA profile: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @lead_magnet_router.get(
@@ -1163,7 +1163,7 @@ async def get_cpa_profile(cpa_slug: str):
         raise
     except Exception as e:
         logger.error(f"Failed to get CPA profile {cpa_slug}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @lead_magnet_router.put(
@@ -1202,10 +1202,10 @@ async def update_cpa_profile(cpa_id: str, request: CPAProfileRequest):
         }
 
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="Resource not found")
     except Exception as e:
         logger.error(f"Failed to update CPA profile {cpa_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================

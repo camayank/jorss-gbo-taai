@@ -61,7 +61,7 @@ async def get_cpa_insights(session_id: str, request: Request):
         })
     except Exception as e:
         logger.error(f"Error getting insights: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @insights_router.get("/returns/{session_id}/review-checklist")
@@ -88,7 +88,7 @@ async def get_review_checklist(session_id: str, request: Request):
         })
     except Exception as e:
         logger.error(f"Error getting checklist: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -125,7 +125,7 @@ async def get_ai_enhanced_insights(session_id: str, request: Request):
         raise
     except Exception as e:
         logger.error(f"AI insights error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @insights_router.post("/session/{session_id}/insights/explain/{recommendation_id}")
@@ -169,7 +169,7 @@ async def explain_recommendation(
         raise
     except Exception as e:
         logger.error(f"Explain recommendation error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @insights_router.get("/session/{session_id}/insights/client-summary")
@@ -202,4 +202,4 @@ async def get_client_summary(session_id: str, request: Request):
         raise
     except Exception as e:
         logger.error(f"Client summary error for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")

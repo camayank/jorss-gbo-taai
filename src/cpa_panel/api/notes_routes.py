@@ -70,7 +70,7 @@ async def add_note(session_id: str, request: Request):
         })
     except Exception as e:
         logger.error(f"Error adding note: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @notes_router.get("/returns/{session_id}/notes")
@@ -104,7 +104,7 @@ async def get_notes(session_id: str, request: Request, include_internal: bool = 
         })
     except Exception as e:
         logger.error(f"Error getting notes: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @notes_router.delete("/returns/{session_id}/notes/{note_id}")
@@ -127,4 +127,4 @@ async def delete_note(session_id: str, note_id: str, request: Request):
         raise
     except Exception as e:
         logger.error(f"Error deleting note: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")

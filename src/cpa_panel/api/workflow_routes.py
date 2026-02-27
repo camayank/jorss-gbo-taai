@@ -43,7 +43,7 @@ async def get_return_status(session_id: str, request: Request):
         })
     except Exception as e:
         logger.error(f"Error getting status for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @workflow_router.post("/returns/{session_id}/submit-for-review")
@@ -63,10 +63,10 @@ async def submit_for_review(session_id: str, request: Request):
         })
     except WorkflowTransitionError as e:
         logger.warning(f"Invalid transition for {session_id}: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Invalid request")
     except Exception as e:
         logger.error(f"Error submitting for review: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -116,7 +116,7 @@ async def approve_return(session_id: str, request: Request):
         })
     except Exception as e:
         logger.error(f"Error approving return: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @workflow_router.post("/returns/{session_id}/revert")
@@ -157,10 +157,10 @@ async def revert_to_draft(session_id: str, request: Request):
             "message": f"Return reverted to DRAFT: {reason}",
         })
     except WorkflowTransitionError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Invalid request")
     except Exception as e:
         logger.error(f"Error reverting return: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @workflow_router.get("/returns/{session_id}/approval-certificate")
@@ -207,7 +207,7 @@ async def get_approval_certificate(session_id: str, request: Request):
         raise
     except Exception as e:
         logger.error(f"Error generating certificate: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -241,7 +241,7 @@ async def get_queue_counts(request: Request):
         })
     except Exception as e:
         logger.error(f"Error getting queue counts: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @workflow_router.get("/queue/{status}")
@@ -278,7 +278,7 @@ async def get_review_queue(status: str, request: Request, limit: int = 100, offs
         })
     except Exception as e:
         logger.error(f"Error getting queue: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -312,4 +312,4 @@ async def get_return_summary(session_id: str, request: Request):
         })
     except Exception as e:
         logger.error(f"Error getting summary: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")

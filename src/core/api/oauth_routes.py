@@ -82,7 +82,7 @@ async def start_google_oauth(
             if origin:
                 redirect_uri = f"{origin}/api/core/auth/oauth/google/callback"
 
-        result = oauth_service.start_oauth("google", redirect_uri)
+        result = await oauth_service.start_oauth("google", redirect_uri)
         return result
     except ValueError as e:
         logger.warning(f"Google OAuth start error: {e}")
@@ -208,7 +208,7 @@ async def start_microsoft_oauth(
             if origin:
                 redirect_uri = f"{origin}/api/core/auth/oauth/microsoft/callback"
 
-        result = oauth_service.start_oauth("microsoft", redirect_uri)
+        result = await oauth_service.start_oauth("microsoft", redirect_uri)
         return result
     except ValueError as e:
         logger.warning(f"Microsoft OAuth start error: {e}")

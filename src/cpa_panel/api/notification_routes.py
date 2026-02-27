@@ -153,7 +153,7 @@ async def list_notifications(
         raise
     except Exception as e:
         logger.error(f"Failed to list notifications: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @notification_router.post("/notifications/mark-read")
@@ -193,7 +193,7 @@ async def mark_notifications_read(request: Request, data: MarkReadRequest):
         raise
     except Exception as e:
         logger.error(f"Failed to mark notifications as read: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @notification_router.post("/notifications/mark-all-read")
@@ -227,7 +227,7 @@ async def mark_all_notifications_read(request: Request):
         raise
     except Exception as e:
         logger.error(f"Failed to mark all notifications as read: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -374,7 +374,7 @@ async def get_follow_up_reminders(
         raise
     except Exception as e:
         logger.error(f"Failed to get reminders: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @notification_router.post("/reminders/{reminder_id}/complete")
@@ -411,7 +411,7 @@ async def complete_reminder(request: Request, reminder_id: str):
         raise
     except Exception as e:
         logger.error(f"Failed to complete reminder: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @notification_router.post("/reminders/{reminder_id}/snooze")
@@ -456,7 +456,7 @@ async def snooze_reminder(
         raise
     except Exception as e:
         logger.error(f"Failed to snooze reminder: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================
@@ -504,4 +504,4 @@ async def get_notification_stats(request: Request):
         raise
     except Exception as e:
         logger.error(f"Failed to get notification stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="An internal error occurred")
