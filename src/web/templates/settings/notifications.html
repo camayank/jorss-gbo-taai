@@ -800,5 +800,96 @@
             this.classList.add('selected');
         });
     });
+
+    function getAuthHeaders() {
+        const headers = { 'Content-Type': 'application/json' };
+        const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const csrf = document.querySelector('meta[name="csrf-token"]');
+        if (csrf) headers['X-CSRFToken'] = csrf.content;
+        return headers;
+    }
+
+    // Collect all notification preferences from the form
+    function collectPreferences() {
+        const prefs = { notifications: {}, digest_frequency: 'daily', quiet_hours: { enabled: false, from: '22:00', to: '07:00' } };
+
+        // Collect per-item channel states
+        document.querySelectorAll('.notification-item').forEach(item => {
+            const name = item.querySelector('.notification-name');
+            if (!name) return;
+            const key = name.textContent.trim().toLowerCase().replace(/\s+/g, '_');
+            const channels = {};
+            item.querySelectorAll('.channel-option').forEach(ch => {
+                const label = ch.querySelector('.channel-label').textContent.trim().toLowerCase();
+                const checked = ch.querySelector('.checkbox').classList.contains('checked');
+                channels[label] = checked;
+            });
+            prefs.notifications[key] = channels;
+        });
+
+        // Master toggle
+        const masterToggle = document.querySelector('.master-toggle input[type="checkbox"]');
+        if (masterToggle) prefs.email_enabled = masterToggle.checked;
+
+        // Digest frequency
+        const selectedDigest = document.querySelector('input[name="digest"]:checked');
+        if (selectedDigest) prefs.digest_frequency = selectedDigest.value;
+
+        // Quiet hours
+        const quietToggle = document.querySelector('.quiet-hours-header input[type="checkbox"]');
+        if (quietToggle) prefs.quiet_hours.enabled = quietToggle.checked;
+        const fromInput = document.querySelector('.quiet-hours-content .time-input');
+        const toInput = document.querySelectorAll('.quiet-hours-content .time-input')[1];
+        if (fromInput) prefs.quiet_hours.from = fromInput.value;
+        if (toInput) prefs.quiet_hours.to = toInput.value;
+
+        return prefs;
+    }
+
+    // Save preferences
+    document.querySelector('form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = this.querySelector('button[type="submit"]');
+        const origText = btn.innerHTML;
+        btn.innerHTML = 'Saving...';
+        btn.disabled = true;
+
+        try {
+            const resp = await fetch('/api/cpa/notifications/preferences', {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(collectPreferences())
+            });
+            if (resp.status === 401) {
+                window.location.href = '/cpa/login';
+                return;
+            }
+            if (!resp.ok) throw new Error('Failed to save');
+            btn.innerHTML = 'Saved!';
+            setTimeout(() => { btn.innerHTML = origText; }, 2000);
+        } catch (err) {
+            alert('Failed to save preferences. Please try again.');
+            btn.innerHTML = origText;
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    // Reset to defaults
+    document.querySelector('.btn-secondary').addEventListener('click', function() {
+        // Check all checkboxes
+        document.querySelectorAll('.checkbox').forEach(cb => cb.classList.add('checked'));
+        // Set digest to daily
+        document.querySelector('input[name="digest"][value="daily"]').checked = true;
+        document.querySelectorAll('.frequency-option').forEach(o => o.classList.remove('selected'));
+        document.querySelector('input[name="digest"][value="daily"]').closest('.frequency-option').classList.add('selected');
+        // Enable quiet hours with defaults
+        document.querySelector('.quiet-hours-header input[type="checkbox"]').checked = true;
+        document.querySelectorAll('.quiet-hours-content .time-input')[0].value = '22:00';
+        document.querySelectorAll('.quiet-hours-content .time-input')[1].value = '07:00';
+        // Enable master toggle
+        document.querySelector('.master-toggle input[type="checkbox"]').checked = true;
+    });
 </script>
 {% endblock %}

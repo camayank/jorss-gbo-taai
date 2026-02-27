@@ -730,8 +730,26 @@ async def cpa_converted(
 
     stats = await get_dashboard_stats(cpa_id)
 
-    # Get converted leads
-    leads = []  # TODO: Filter by converted status
+    # Get converted leads from lead magnet service
+    leads = []
+    total_count = 0
+    try:
+        from cpa_panel.services.lead_magnet_service import get_lead_magnet_service
+        service = get_lead_magnet_service()
+        leads_result = service.list_leads(cpa_id=cpa_id, state="converted", limit=50)
+        for lead in leads_result.get("leads", []):
+            leads.append({
+                "id": lead.get("lead_id"),
+                "name": f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() or "Lead",
+                "email": lead.get("email", ""),
+                "phone": lead.get("phone"),
+                "score": lead.get("score", 0),
+                "state": "converted",
+                "created_at": lead.get("created_at"),
+            })
+        total_count = leads_result.get("total", len(leads))
+    except Exception as e:
+        logger.warning(f"Failed to load converted leads: {e}")
 
     return templates.TemplateResponse(
         "cpa/leads_list.html",
@@ -740,9 +758,9 @@ async def cpa_converted(
             "cpa": cpa_profile,
             "stats": stats,
             "leads": leads,
-            "total_count": 0,
+            "total_count": total_count,
             "page": 1,
-            "total_pages": 1,
+            "total_pages": max(1, (total_count + 49) // 50),
             "filter_state": "converted",
             "active_page": "converted",
         }

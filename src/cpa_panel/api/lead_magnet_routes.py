@@ -871,9 +871,12 @@ async def get_lead_details(lead_id: str):
     "/leads/{lead_id}/engage",
     summary="Mark lead as engaged",
     description="Mark a lead as engaged (step 1 of Tier 2 unlock)",
-    dependencies=[Depends(require_internal_cpa_auth)],
 )
-async def engage_lead(lead_id: str, request: Optional[EngageLeadRequest] = None):
+async def engage_lead(
+    lead_id: str,
+    request: Optional[EngageLeadRequest] = None,
+    current_user: Any = Depends(require_internal_cpa_auth),
+):
     """
     Mark a lead as engaged.
 
@@ -895,22 +898,32 @@ async def engage_lead(lead_id: str, request: Optional[EngageLeadRequest] = None)
         if not result:
             raise HTTPException(status_code=404, detail="Lead not found")
 
+        # Extract CPA info from auth context
+        cpa_id = "cpa-default"
+        cpa_name = "CPA"
+        if current_user:
+            if isinstance(current_user, dict):
+                cpa_id = current_user.get("cpa_id") or current_user.get("id") or cpa_id
+                cpa_name = current_user.get("name") or current_user.get("display_name") or cpa_name
+            else:
+                cpa_id = getattr(current_user, "cpa_id", None) or getattr(current_user, "id", None) or cpa_id
+                cpa_name = getattr(current_user, "name", None) or getattr(current_user, "display_name", None) or cpa_name
+
         # Log activity: CPA engaged lead
         try:
             activity_service = get_activity_service()
-            # TODO: Get actual CPA info from auth context
             activity_service.log_engagement(
                 lead_id=lead_id,
-                cpa_id="cpa-default",
-                cpa_name="CPA",
+                cpa_id=cpa_id,
+                cpa_name=cpa_name,
             )
 
             # If notes were added, log that too
             if request and request.notes:
                 activity_service.log_cpa_note(
                     lead_id=lead_id,
-                    cpa_id="cpa-default",
-                    cpa_name="CPA",
+                    cpa_id=cpa_id,
+                    cpa_name=cpa_name,
                     note_content=request.notes,
                 )
         except Exception as activity_error:

@@ -220,8 +220,8 @@
             <div class="metric-icon">{{ icon('users') }}</div>
         </div>
         <div class="metric-value">{{ stats.total_leads or 0 }}</div>
-        <div class="metric-change up">
-            ↑ 12% from last month
+        <div class="metric-change" style="color: var(--text-muted); font-size: 0.85rem;">
+            All time
         </div>
     </div>
 
@@ -231,8 +231,8 @@
             <div class="metric-icon">{{ icon('arrow-trending-up') }}</div>
         </div>
         <div class="metric-value">{{ stats.conversion_rate or 0 }}%</div>
-        <div class="metric-change up">
-            ↑ 3.2% from last month
+        <div class="metric-change" style="color: var(--text-muted); font-size: 0.85rem;">
+            Leads → Clients
         </div>
     </div>
 
@@ -242,8 +242,8 @@
             <div class="metric-icon">{{ icon('star') }}</div>
         </div>
         <div class="metric-value">{% if conversion_metrics and conversion_metrics.metrics and conversion_metrics.metrics.average_score %}{{ conversion_metrics.metrics.average_score|round|int }}{% else %}0{% endif %}</div>
-        <div class="metric-change up">
-            ↑ 5 points from last month
+        <div class="metric-change" style="color: var(--text-muted); font-size: 0.85rem;">
+            Across pipeline
         </div>
     </div>
 
@@ -253,8 +253,8 @@
             <div class="metric-icon">{{ icon('banknotes') }}</div>
         </div>
         <div class="metric-value">${{ '{:,.0f}'.format(stats.total_revenue or 0) }}</div>
-        <div class="metric-change up">
-            ↑ 18% from last month
+        <div class="metric-change" style="color: var(--text-muted); font-size: 0.85rem;">
+            Estimated total
         </div>
     </div>
 </div>
@@ -267,28 +267,29 @@
             <h3 class="chart-title">Lead Pipeline Funnel</h3>
         </div>
         <div class="chart-body">
+            {% set funnel_max = [stats.new_leads or 0, stats.evaluating or 0, stats.advisory_ready or 0, stats.high_leverage or 0]|max or 1 %}
             <div class="funnel-container">
                 <div class="funnel-stage">
                     <div class="funnel-bar-container">
-                        <div class="funnel-bar browsing" style="width: 100%;">Browsing</div>
+                        <div class="funnel-bar browsing" style="width: {{ ((stats.new_leads or 0) / funnel_max * 100)|int }}%;">Browsing</div>
                     </div>
                     <span class="funnel-count">{{ stats.new_leads or 0 }}</span>
                 </div>
                 <div class="funnel-stage">
                     <div class="funnel-bar-container">
-                        <div class="funnel-bar evaluating" style="width: 75%;">Evaluating</div>
+                        <div class="funnel-bar evaluating" style="width: {{ ((stats.evaluating or 0) / funnel_max * 100)|int }}%;">Evaluating</div>
                     </div>
                     <span class="funnel-count">{{ stats.evaluating or 0 }}</span>
                 </div>
                 <div class="funnel-stage">
                     <div class="funnel-bar-container">
-                        <div class="funnel-bar advisory_ready" style="width: 50%;">Advisory Ready</div>
+                        <div class="funnel-bar advisory_ready" style="width: {{ ((stats.advisory_ready or 0) / funnel_max * 100)|int }}%;">Advisory Ready</div>
                     </div>
                     <span class="funnel-count">{{ stats.advisory_ready or 0 }}</span>
                 </div>
                 <div class="funnel-stage">
                     <div class="funnel-bar-container">
-                        <div class="funnel-bar high_leverage" style="width: 30%;">High Leverage</div>
+                        <div class="funnel-bar high_leverage" style="width: {{ ((stats.high_leverage or 0) / funnel_max * 100)|int }}%;">High Leverage</div>
                     </div>
                     <span class="funnel-count">{{ stats.high_leverage or 0 }}</span>
                 </div>
@@ -324,20 +325,16 @@
     </div>
 </div>
 
-<!-- Lead Trends Chart (Placeholder) -->
+<!-- Lead Trends Chart -->
 <div class="chart-card">
     <div class="chart-header">
-        <h3 class="chart-title">Lead Trends (Last 30 Days)</h3>
-        <select style="padding: var(--space-1-5) var(--space-3); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
-            <option>Last 30 days</option>
-            <option>Last 90 days</option>
-            <option>This year</option>
-        </select>
+        <h3 class="chart-title">Lead Trends</h3>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Coming soon</span>
     </div>
     <div class="chart-body">
         <div class="chart-placeholder">
             <div class="chart-placeholder-icon">{{ icon('chart-bar') }}</div>
-            <p>Charts will be populated with real data<br>as leads flow through your pipeline.</p>
+            <p>Time-series trend charts are on the roadmap.<br>Use the metrics above for current pipeline health.</p>
         </div>
     </div>
 </div>

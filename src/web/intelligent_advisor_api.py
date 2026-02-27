@@ -5779,8 +5779,14 @@ async def get_universal_report_html(
         # Get CPA profile if specified
         cpa_profile = None
         if cpa:
-            # TODO: Load CPA profile from database
-            cpa_profile = {"firm_name": cpa, "preset": "professional"}
+            try:
+                from cpa_panel.services.lead_magnet_service import get_lead_magnet_service
+                service = get_lead_magnet_service()
+                cpa_profile = service.get_cpa_profile_by_slug(cpa)
+            except Exception:
+                pass
+            if not cpa_profile:
+                cpa_profile = {"firm_name": cpa, "preset": "professional"}
 
         # Ensure calculations
         calculation = session.get("calculations")
@@ -5850,7 +5856,14 @@ async def get_universal_report_pdf(
         # Get CPA profile if specified
         cpa_profile = None
         if cpa:
-            cpa_profile = {"firm_name": cpa, "preset": "professional"}
+            try:
+                from cpa_panel.services.lead_magnet_service import get_lead_magnet_service
+                service = get_lead_magnet_service()
+                cpa_profile = service.get_cpa_profile_by_slug(cpa)
+            except Exception:
+                pass
+            if not cpa_profile:
+                cpa_profile = {"firm_name": cpa, "preset": "professional"}
 
         # Ensure calculations
         calculation = session.get("calculations")
