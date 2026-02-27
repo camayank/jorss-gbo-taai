@@ -189,7 +189,7 @@ async def _check_database() -> Dict[str, Any]:
         logger.error(f"Database health check failed: {e}")
         return {
             "status": "unhealthy",
-            "error": str(e),
+            "error": "Database check failed",
         }
 
 
@@ -276,7 +276,7 @@ def _check_disk_space() -> Dict[str, Any]:
         return {"status": "healthy", "db_size_mb": 0}
 
     except Exception as e:
-        return {"status": "warning", "error": str(e)}
+        return {"status": "warning", "error": "Storage check failed"}
 
 
 @router.get("/health")

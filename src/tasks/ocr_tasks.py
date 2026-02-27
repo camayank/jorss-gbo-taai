@@ -430,6 +430,44 @@ def process_document_bytes_task(
         raise
 
 
+def _validate_callback_url(url: str) -> bool:
+    """Validate callback URL to prevent SSRF attacks on internal networks."""
+    from urllib.parse import urlparse
+    import ipaddress
+    import socket
+
+    try:
+        parsed = urlparse(url)
+
+        # Must be HTTPS or HTTP
+        if parsed.scheme not in ("https", "http"):
+            return False
+
+        # Must have a hostname
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+
+        # Block localhost and common internal hostnames
+        blocked_hosts = {"localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"}
+        if hostname.lower() in blocked_hosts:
+            return False
+
+        # Resolve hostname and check for private/reserved IPs
+        try:
+            addr_info = socket.getaddrinfo(hostname, parsed.port or 443, proto=socket.IPPROTO_TCP)
+            for _, _, _, _, sockaddr in addr_info:
+                ip = ipaddress.ip_address(sockaddr[0])
+                if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                    return False
+        except (socket.gaierror, ValueError):
+            return False
+
+        return True
+    except Exception:
+        return False
+
+
 def _send_callback(
     url: str,
     result: Dict[str, Any],
@@ -440,6 +478,7 @@ def _send_callback(
     Send callback notification when processing completes.
 
     SECURITY FIX: Added retry logic with exponential backoff for transient failures.
+    SECURITY FIX: Added SSRF protection — blocks requests to internal/private IPs.
 
     Args:
         url: Callback URL to send result to
@@ -452,6 +491,11 @@ def _send_callback(
     """
     import requests
     import time
+
+    # SSRF protection: validate callback URL before sending
+    if not _validate_callback_url(url):
+        logger.warning(f"Callback URL blocked by SSRF protection: {url}")
+        return False
 
     last_error = None
 

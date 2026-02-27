@@ -190,13 +190,16 @@ def check_imports():
         ("Tax Calculator", "src.calculation.tax_calculator", "TaxCalculator"),
     ]
 
+    import importlib
+
     all_imported = True
     for name, module, obj in import_tests:
         try:
-            exec(f"from {module} import {obj}")
+            mod = importlib.import_module(module)
+            getattr(mod, obj)
             print(f"  ✅ OK: {name}")
-        except ImportError as e:
-            print(f"  ⚠️  WARN: {name} - {str(e)}")
+        except (ImportError, AttributeError) as e:
+            print(f"  ⚠️  WARN: {name} - {e}")
             # Don't fail on warnings for optional dependencies
 
     return all_imported

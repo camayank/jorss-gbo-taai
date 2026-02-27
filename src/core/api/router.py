@@ -118,7 +118,7 @@ async def init_test_data():
         return results
     except Exception as e:
         logger.exception("Failed to initialize test data")
-        return {"error": str(e), "message": "Failed to initialize test data"}
+        return {"error": "Initialization failed", "message": "Failed to initialize test data"}
 
 
 @core_router.get("/test-data/users", dependencies=[Depends(_require_test_mode)])

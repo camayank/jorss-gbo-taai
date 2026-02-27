@@ -311,7 +311,7 @@ async def list_tax_returns(
         }
     except Exception as e:
         logger.error(f"Error listing tax returns: {e}")
-        return {"success": False, "error": str(e), "tax_returns": []}
+        return {"success": False, "error": "An internal error occurred", "tax_returns": []}
 
 
 @router.get("/data/tax-returns/{session_id}")
@@ -339,7 +339,7 @@ async def get_tax_return(request: Request, session_id: str) -> Dict[str, Any]:
         raise
     except Exception as e:
         logger.error(f"Error getting tax return {session_id}: {e}")
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": "An internal error occurred"}
 
 
 # =============================================================================
@@ -411,7 +411,7 @@ async def list_recommendations(
         }
     except Exception as e:
         logger.error(f"Error listing recommendations: {e}")
-        return {"success": False, "error": str(e), "recommendations": []}
+        return {"success": False, "error": "An internal error occurred", "recommendations": []}
 
 
 # =============================================================================
@@ -478,7 +478,7 @@ async def list_engagements(
         }
     except Exception as e:
         logger.error(f"Error listing engagements: {e}")
-        return {"success": False, "error": str(e), "engagements": []}
+        return {"success": False, "error": "An internal error occurred", "engagements": []}
 
 
 # =============================================================================
@@ -613,7 +613,7 @@ async def get_dashboard_summary(request: Request) -> Dict[str, Any]:
         return {"success": True, "summary": summary}
     except Exception as e:
         logger.error(f"Error getting dashboard summary: {e}")
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": "An internal error occurred"}
 
 
 @router.get("/data/clients-for-select")

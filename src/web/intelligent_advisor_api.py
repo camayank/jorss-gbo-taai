@@ -5318,7 +5318,7 @@ async def upload_document(
         logger.error(f"Document processing error: {e}")
         return {
             "success": False,
-            "error": str(e),
+            "error": "Document processing failed",
             "message": "Unable to process document. Please try again or enter the information manually."
         }
 

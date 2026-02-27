@@ -6,6 +6,7 @@ Provides secure logo upload, validation, and storage for CPA branding.
 
 import os
 import io
+import re
 import uuid
 import hashlib
 import logging
@@ -15,6 +16,16 @@ from dataclasses import dataclass
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+# Pattern for safe CPA identifiers (alphanumeric, hyphens, underscores)
+_SAFE_CPA_ID_RE = re.compile(r'^[a-zA-Z0-9_\-]+$')
+
+
+def _validate_cpa_id(cpa_id: str) -> str:
+    """Validate cpa_id to prevent path traversal attacks."""
+    if not cpa_id or not _SAFE_CPA_ID_RE.match(cpa_id):
+        raise ValueError(f"Invalid CPA identifier")
+    return cpa_id
 
 # Supported image formats
 ALLOWED_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'}
@@ -261,7 +272,8 @@ class LogoHandler:
             # Calculate checksum
             checksum = hashlib.md5(file_content).hexdigest()
 
-            # Create CPA directory
+            # Create CPA directory (validate to prevent path traversal)
+            _validate_cpa_id(cpa_id)
             cpa_dir = self.storage_path / cpa_id
             cpa_dir.mkdir(parents=True, exist_ok=True)
 
@@ -306,7 +318,8 @@ class LogoHandler:
             if path.exists():
                 return str(path)
 
-        # Search in storage
+        # Search in storage (validate to prevent path traversal)
+        _validate_cpa_id(cpa_id)
         cpa_dir = self.storage_path / cpa_id
         if cpa_dir.exists():
             for ext in ALLOWED_EXTENSIONS:
