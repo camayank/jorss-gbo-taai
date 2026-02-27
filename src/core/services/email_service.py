@@ -167,8 +167,11 @@ class SMTPEmailBackend(EmailBackend):
             if message.reply_to:
                 msg["Reply-To"] = message.reply_to
 
-            # Add custom headers
+            # Add custom headers (sanitize against CRLF injection)
             for key, value in message.headers.items():
+                if any(c in str(key) + str(value) for c in ('\r', '\n')):
+                    logger.warning(f"Rejected email header with CRLF: {key!r}")
+                    continue
                 msg[key] = value
 
             # Add body parts

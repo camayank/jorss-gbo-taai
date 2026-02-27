@@ -242,6 +242,15 @@ logger.info(f"CORS middleware enabled for {len(cors_origins)} origin(s) [env={_e
 # Environment detection already defined above (CORS section)
 _is_production = not _is_dev
 
+# 0. HTTPS Redirect (production/staging only)
+if _is_production:
+    try:
+        from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
+        app.add_middleware(HTTPSRedirectMiddleware)
+        logger.info("HTTPS redirect middleware enabled (production)")
+    except Exception as e:
+        logger.error(f"Failed to add HTTPS redirect middleware: {e}")
+
 # 1. Security Headers (HSTS, CSP, X-Frame-Options, etc.)
 try:
     app.add_middleware(SecurityHeadersMiddleware)

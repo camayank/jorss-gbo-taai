@@ -59,7 +59,11 @@ def record_request(endpoint: str, latency_ms: float = 0.0):
         endpoint: The endpoint path (e.g., "/api/calculate")
         latency_ms: Request latency in milliseconds
     """
+    _MAX_TRACKED_ENDPOINTS = 500
     with _metrics_lock:
+        # Prevent unbounded growth from unique path params (e.g., /documents/{id})
+        if endpoint not in _request_counts and len(_request_counts) >= _MAX_TRACKED_ENDPOINTS:
+            return
         _request_counts[endpoint] += 1
         if latency_ms > 0:
             # Keep only last 100 latencies per endpoint

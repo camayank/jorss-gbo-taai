@@ -153,9 +153,12 @@ class SendGridProvider(EmailProvider):
                 from sendgrid.helpers.mail import ReplyTo
                 mail.reply_to = ReplyTo(message.reply_to)
 
-            # Add custom headers
+            # Add custom headers (sanitize against CRLF injection)
             if message.headers:
                 for key, value in message.headers.items():
+                    if any(c in str(key) + str(value) for c in ('\r', '\n')):
+                        logger.warning(f"Rejected email header with CRLF: {key!r}")
+                        continue
                     from sendgrid.helpers.mail import Header
                     mail.add_header(Header(key, value))
 

@@ -101,6 +101,10 @@ class AlertService:
         if firm_id not in self._alerts_cache:
             self._alerts_cache[firm_id] = []
         self._alerts_cache[firm_id].append(alert)
+        # Evict oldest alerts if cache exceeds per-firm limit
+        _MAX_ALERTS_PER_FIRM = 1000
+        if len(self._alerts_cache[firm_id]) > _MAX_ALERTS_PER_FIRM:
+            self._alerts_cache[firm_id] = self._alerts_cache[firm_id][-_MAX_ALERTS_PER_FIRM:]
 
         logger.info(f"Created alert {alert_id}: {title}")
 
