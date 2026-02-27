@@ -21,10 +21,18 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
+import asyncio
 import logging
 import os
 
 from src.security.session_token import verify_session_token, generate_session_token, SESSION_TOKEN_KEY
+
+# ---------------------------------------------------------------------------
+# AI Feature Flags — each integration is independently toggleable
+# ---------------------------------------------------------------------------
+AI_CHAT_ENABLED = os.environ.get("AI_CHAT_ENABLED", "true").lower() == "true"
+AI_REPORT_NARRATIVES_ENABLED = os.environ.get("AI_REPORT_NARRATIVES_ENABLED", "true").lower() == "true"
+AI_SAFETY_CHECKS_ENABLED = os.environ.get("AI_SAFETY_CHECKS_ENABLED", "true").lower() == "true"
 
 # Models are now also available from web.advisor_models for external consumers.
 # The inline definitions below are kept for backward compatibility within this module.
@@ -2540,11 +2548,51 @@ Estimated tax savings: **${savings:,.0f}**""",
 
         return strategies
 
-    def generate_executive_summary(self, profile: Dict, calculation: TaxCalculationResult, strategies: List[StrategyRecommendation]) -> str:
-        """Generate an executive summary of the tax analysis."""
+    async def generate_executive_summary(self, profile: Dict, calculation: TaxCalculationResult, strategies: List[StrategyRecommendation]) -> str:
+        """Generate an executive summary of the tax analysis (AI-powered with template fallback)."""
         total_savings = sum(s.estimated_savings for s in strategies)
-        top_strategies = strategies[:3]
 
+        # --- AI narrative path ---
+        if AI_REPORT_NARRATIVES_ENABLED:
+            try:
+                from advisory.ai_narrative_generator import (
+                    get_narrative_generator, ClientProfile,
+                    CommunicationStyle, TaxSophistication,
+                )
+                generator = get_narrative_generator()
+                client_profile = ClientProfile(
+                    name=profile.get("name", "Valued Client"),
+                    communication_style=CommunicationStyle.CONVERSATIONAL,
+                    tax_sophistication=TaxSophistication.INTERMEDIATE,
+                    primary_concern="tax optimization",
+                )
+                analysis_data = {
+                    "tax_year": 2025,
+                    "filing_status": profile.get("filing_status", "single"),
+                    "metrics": {
+                        "current_tax_liability": calculation.total_tax,
+                        "potential_savings": total_savings,
+                        "effective_rate": calculation.effective_rate,
+                        "federal_tax": calculation.federal_tax,
+                        "state_tax": calculation.state_tax,
+                    },
+                    "recommendations": {
+                        "total_count": len(strategies),
+                        "immediate_actions": [
+                            {"title": s.title, "savings": s.estimated_savings}
+                            for s in strategies[:3]
+                        ],
+                    },
+                }
+                narrative = await generator.generate_executive_summary(
+                    analysis=analysis_data, client_profile=client_profile
+                )
+                return narrative.content
+            except Exception as e:
+                logger.warning(f"AI narrative failed, using template: {e}")
+
+        # --- Fallback: template summary ---
+        top_strategies = strategies[:3]
         income = profile.get("total_income", 0) or 0
         filing_status = profile.get("filing_status", "single").replace("_", " ").title()
 
@@ -2587,13 +2635,32 @@ chat_engine = IntelligentChatEngine()
 
 @router.get("/health")
 async def health_check():
-    """Health check endpoint with session persistence status."""
+    """Health check endpoint with session persistence and AI provider status."""
     session_counts = chat_engine.get_session_count()
+
+    # AI provider availability
+    ai_status: Dict[str, Any] = {"available": False}
+    try:
+        from config.ai_providers import get_available_providers
+        providers = get_available_providers()
+        ai_status = {
+            "available": len(providers) > 0,
+            "providers": [p.value for p in providers],
+        }
+    except Exception:
+        pass
+
     return {
         "status": "healthy",
         "service": "intelligent-advisor",
         "persistence_enabled": chat_engine._persistence is not None,
-        "sessions": session_counts
+        "sessions": session_counts,
+        "ai": ai_status,
+        "feature_flags": {
+            "ai_chat": AI_CHAT_ENABLED,
+            "ai_report_narratives": AI_REPORT_NARRATIVES_ENABLED,
+            "ai_safety_checks": AI_SAFETY_CHECKS_ENABLED,
+        },
     }
 
 
@@ -3892,6 +3959,120 @@ def _summarize_profile(profile: dict) -> str:
     return ", ".join(parts) if parts else "No information yet"
 
 
+def _profile_to_return_data(profile: Dict, session_id: str = "") -> Dict[str, Any]:
+    """Convert chatbot profile to the tax_return dict format expected by fraud/compliance/anomaly services."""
+    income = profile.get("total_income", 0) or 0
+    w2 = profile.get("w2_income", 0) or 0
+    biz = profile.get("business_income", 0) or 0
+    inv = profile.get("investment_income", 0) or 0
+    rental = profile.get("rental_income", 0) or 0
+    return {
+        "return_id": session_id,
+        "tax_year": 2025,
+        "filing_status": (profile.get("filing_status") or "single").upper(),
+        "taxpayer": {
+            "name": profile.get("name", "Taxpayer"),
+            "age": profile.get("age", 40),
+            "state": profile.get("state", ""),
+        },
+        "income": {
+            "total": income,
+            "wages": w2 if w2 else max(0, income - biz - inv - rental),
+            "business": biz,
+            "investment": inv,
+            "rental": rental,
+            "capital_gains": profile.get("capital_gains", 0) or 0,
+        },
+        "deductions": {
+            "mortgage_interest": profile.get("mortgage_interest", 0) or 0,
+            "charitable": profile.get("charitable_donations", 0) or 0,
+            "medical": profile.get("medical_expenses", 0) or 0,
+            "state_local_taxes": profile.get("salt_deduction", 0) or 0,
+        },
+        "credits": {
+            "child_tax_credit": profile.get("child_tax_credit", 0) or 0,
+            "earned_income_credit": profile.get("eitc", 0) or 0,
+        },
+        "dependents": profile.get("dependents", 0) or 0,
+        "retirement": {
+            "contributions_401k": profile.get("retirement_401k", 0) or 0,
+            "contributions_ira": profile.get("retirement_ira", 0) or 0,
+            "hsa": profile.get("hsa_contributions", 0) or 0,
+        },
+        "withholding": {
+            "federal": profile.get("federal_withholding", 0) or 0,
+            "estimated_payments": profile.get("estimated_payments", 0) or 0,
+        },
+    }
+
+
+async def _run_safety_checks_background(session_id: str, profile: Dict, calculation) -> None:
+    """Run fraud, compliance, and anomaly checks in the background (non-blocking)."""
+    if not AI_SAFETY_CHECKS_ENABLED:
+        return
+
+    return_data = _profile_to_return_data(profile, session_id)
+    results: Dict[str, Any] = {}
+
+    # 1. Fraud detection (sync service → run in thread)
+    try:
+        from security.fraud_detector import get_fraud_detector
+        fraud = await asyncio.to_thread(get_fraud_detector().detect_fraud, return_data)
+        results["fraud"] = {
+            "risk_level": fraud.overall_risk_level.value,
+            "risk_score": fraud.risk_score,
+            "indicators": len(fraud.indicators),
+            "irs_referral": fraud.irs_referral_recommended,
+        }
+    except Exception as e:
+        logger.warning(f"Fraud check failed (non-blocking): {e}")
+
+    # 2. Compliance review (sync service → run in thread)
+    try:
+        from security.ai_compliance_reviewer import get_compliance_reviewer as get_compliance
+        compliance = await asyncio.to_thread(get_compliance().review_compliance, return_data)
+        results["compliance"] = {
+            "risk_level": compliance.overall_risk_level.value,
+            "issues": len(compliance.issues),
+            "circular_230": compliance.circular_230_compliant,
+        }
+    except Exception as e:
+        logger.warning(f"Compliance check failed (non-blocking): {e}")
+
+    # 3. Anomaly detection (async service)
+    try:
+        from services.ai.anomaly_detector import get_anomaly_detector
+        anomaly = await get_anomaly_detector().analyze_return(return_data)
+        results["anomaly"] = {
+            "risk_score": anomaly.overall_risk_score,
+            "audit_risk": anomaly.audit_risk_level,
+            "anomalies": anomaly.total_anomalies,
+        }
+    except Exception as e:
+        logger.warning(f"Anomaly check failed (non-blocking): {e}")
+
+    # Persist results into the session
+    try:
+        session = await chat_engine.get_or_create_session(session_id)
+        session["safety_checks"] = results
+        await chat_engine.update_session(session_id, {"safety_checks": results})
+        logger.info(f"Safety checks complete for {session_id}: {list(results.keys())}")
+    except Exception:
+        pass
+
+    # Emit real-time event for CPA panel
+    try:
+        from realtime.event_publisher import event_publisher
+        from realtime.events import RealtimeEvent, EventType
+        await event_publisher.publish(RealtimeEvent(
+            event_type=EventType.RETURN_UPDATED,
+            session_id=session_id,
+            data={"type": "safety_checks_complete", "results": results},
+        ))
+    except Exception:
+        pass
+
+
 def _get_suggested_questions(profile: dict) -> List[str]:
     """
     Detect patterns in profile and suggest proactive questions (GAP #4).
@@ -4364,6 +4545,64 @@ To get started, what's your filing status?"""
 
     # Detect user intent
     user_intent = detect_user_intent(request.message or "", profile) if request.message else "provide_info"
+
+    # =========================================================================
+    # AI-POWERED RESPONSE for complex / research questions (cost-gated)
+    # =========================================================================
+    if AI_CHAT_ENABLED and user_intent in ("ask_question", "request_advice"):
+        try:
+            from services.ai.chat_router import QueryAnalyzer, QueryType
+            _qa = QueryAnalyzer()
+            _analysis = _qa.analyze(msg_original)
+
+            if _analysis.query_type in (QueryType.COMPLEX_REASONING, QueryType.RESEARCH, QueryType.COMPARISON):
+                context = _summarize_profile(profile) if profile else None
+
+                # Research queries → cheaper Perplexity path with caching
+                if _analysis.query_type == QueryType.RESEARCH:
+                    from services.ai.tax_research_service import get_tax_research_service
+                    research_svc = get_tax_research_service()
+                    result = await research_svc.research(msg_original, context=context)
+                    ai_text = result.summary
+                    if result.sources:
+                        ai_text += "\n\n**Sources:** " + ", ".join(result.sources[:3])
+                    ai_text += f"\n\n---\n*{STANDARD_DISCLAIMER}*"
+                    _resp_type = "ai_research"
+                else:
+                    # Complex reasoning / comparison → optimal model via ChatRouter
+                    from services.ai.chat_router import get_chat_router
+                    router_instance = get_chat_router()
+                    ai_resp = await router_instance.route_query(
+                        query=msg_original,
+                        conversation_id=request.session_id,
+                        additional_context=context,
+                    )
+                    ai_text = ai_resp.content
+                    ai_text += f"\n\n---\n*{STANDARD_DISCLAIMER}*"
+                    _resp_type = "ai_response"
+
+                # Record in conversation history
+                conversation = session.get("conversation", [])
+                conversation.append({"role": "user", "content": msg_original, "timestamp": datetime.now().isoformat()})
+                conversation.append({"role": "assistant", "content": ai_text, "timestamp": datetime.now().isoformat()})
+                session["conversation"] = chat_engine._prune_conversation(conversation)
+
+                return ChatResponse(
+                    session_id=request.session_id,
+                    response=ai_text,
+                    response_type=_resp_type,
+                    disclaimer=STANDARD_DISCLAIMER,
+                    profile_completeness=chat_engine.calculate_profile_completeness(profile),
+                    lead_score=chat_engine.calculate_lead_score(profile),
+                    complexity=chat_engine.determine_complexity(profile),
+                    quick_actions=[
+                        {"label": "Continue Profile", "value": "continue_profile"},
+                        {"label": "Generate Report", "value": "generate_report"},
+                    ],
+                    response_confidence="high",
+                )
+        except Exception as e:
+            logger.warning(f"AI routing failed, falling back to rules: {e}")
 
     # =========================================================================
     # MULTI-TURN UNDO SYSTEM - Handle various undo requests dynamically
@@ -4889,12 +5128,35 @@ To get started, what's your filing status?"""
         # Get strategies
         strategies = await chat_engine.get_tax_strategies(profile, tax_calculation)
 
+        # Enrich top strategies with AI reasoning (non-simple profiles only)
+        if AI_CHAT_ENABLED and complexity != "simple" and strategies:
+            try:
+                from services.ai.tax_reasoning_service import get_tax_reasoning_service
+                reasoning_svc = get_tax_reasoning_service()
+                for s in strategies[:2]:
+                    result = await reasoning_svc.analyze(
+                        problem=f"Why is '{s.title}' beneficial for this taxpayer?",
+                        context=_summarize_profile(profile),
+                    )
+                    if result.analysis:
+                        s.detailed_explanation = result.analysis[:500]
+                    if result.action_items:
+                        s.action_steps = result.action_items[:5]
+            except Exception:
+                pass  # Keep original strategy text
+
         # Update session with calculations and strategies, and persist to database
         await chat_engine.update_session(request.session_id, {
             "calculations": tax_calculation,
             "strategies": strategies,
             "lead_score": chat_engine.calculate_lead_score(profile)
         })
+
+        # Fire background safety checks (non-blocking)
+        if tax_calculation:
+            asyncio.create_task(
+                _run_safety_checks_background(request.session_id, profile, tax_calculation)
+            )
 
         # Bridge: Also save to session_tax_returns so advisory report API can find it
         try:
@@ -4915,6 +5177,22 @@ To get started, what's your filing status?"""
 
         total_savings = sum(s.estimated_savings for s in strategies)
         total_potential_savings = total_savings
+
+        # Emit real-time event for CPA dashboard
+        try:
+            from realtime.event_publisher import event_publisher
+            from realtime.events import RealtimeEvent, EventType
+            await event_publisher.publish(RealtimeEvent(
+                event_type=EventType.RETURN_UPDATED,
+                session_id=request.session_id,
+                data={
+                    "total_tax": tax_calculation.total_tax,
+                    "savings": total_savings,
+                    "strategies": len(strategies),
+                },
+            ))
+        except Exception:
+            pass
 
         response_type = "calculation"
 
@@ -5169,7 +5447,7 @@ async def full_analysis(request: FullAnalysisRequest, _session: str = Depends(ve
             }
 
         # Executive summary
-        summary = chat_engine.generate_executive_summary(profile, calculation, strategies)
+        summary = await chat_engine.generate_executive_summary(profile, calculation, strategies)
 
         # Deduction analysis
         deduction_rec = "standard" if calculation.deduction_type == "standard" else "itemized"
@@ -5392,7 +5670,46 @@ async def generate_report(request: FullAnalysisRequest, _session: str = Depends(
         strategies = await chat_engine.get_tax_strategies(profile, calculation)
 
         # Generate executive summary
-        summary = chat_engine.generate_executive_summary(profile, calculation, strategies)
+        summary = await chat_engine.generate_executive_summary(profile, calculation, strategies)
+
+        # Generate multi-level summaries (AI-powered, optional)
+        multi_summaries = None
+        if AI_REPORT_NARRATIVES_ENABLED:
+            try:
+                from advisory.report_summarizer import get_report_summarizer
+                summarizer = get_report_summarizer()
+                report_data = {
+                    "metrics": {
+                        "total_tax": calculation.total_tax,
+                        "federal_tax": calculation.federal_tax,
+                        "state_tax": calculation.state_tax,
+                        "effective_rate": calculation.effective_rate,
+                        "total_savings": sum(s.estimated_savings for s in strategies),
+                    },
+                    "recommendations": [
+                        {"title": s.title, "savings": s.estimated_savings, "priority": s.priority}
+                        for s in strategies[:5]
+                    ],
+                }
+                summaries = await summarizer.generate_all_summaries(
+                    report_data, profile.get("name", "Taxpayer")
+                )
+                multi_summaries = {
+                    "one_liner": summaries.one_liner.content if summaries.one_liner else None,
+                    "tweet": summaries.tweet.content if summaries.tweet else None,
+                    "executive": summaries.executive.content if summaries.executive else None,
+                    "detailed": summaries.detailed.content if summaries.detailed else None,
+                }
+            except Exception as e:
+                logger.warning(f"Multi-level summaries failed: {e}")
+
+        # Fetch safety check results if available
+        safety_checks = None
+        try:
+            sess = await chat_engine.get_or_create_session(request.session_id)
+            safety_checks = sess.get("safety_checks")
+        except Exception:
+            pass
 
         return {
             "session_id": request.session_id,
@@ -5400,6 +5717,7 @@ async def generate_report(request: FullAnalysisRequest, _session: str = Depends(
                 "title": "Tax Advisory Report - 2025",
                 "generated_at": datetime.now().isoformat(),
                 "executive_summary": summary,
+                "summaries": multi_summaries,
                 "tax_position": calculation.dict(),
                 "strategies": [s.dict() for s in strategies],
                 "total_potential_savings": sum(s.estimated_savings for s in strategies),
@@ -5411,6 +5729,7 @@ async def generate_report(request: FullAnalysisRequest, _session: str = Depends(
                     }
                     for s in strategies[:5]
                 ],
+                "safety_checks": safety_checks,
                 "disclaimer": """This report is for informational purposes only and does not constitute professional tax advice.
 Please consult with a licensed CPA or tax professional before making any tax-related decisions.
 Tax laws are subject to change, and individual circumstances may vary."""
@@ -5423,6 +5742,24 @@ Tax laws are subject to change, and individual circumstances may vary."""
             status_code=500,
             detail="Unable to generate report. Please try again."
         )
+
+
+# =============================================================================
+# SAFETY CHECK ENDPOINT
+# =============================================================================
+
+@router.get("/safety-check/{session_id}")
+async def get_safety_check(session_id: str, _session: str = Depends(verify_session_token)):
+    """Return fraud / compliance / anomaly results for a session (CPA panel polling)."""
+    try:
+        session = await chat_engine.get_or_create_session(session_id)
+        safety = session.get("safety_checks")
+        if not safety:
+            return {"session_id": session_id, "status": "pending", "safety_checks": None}
+        return {"session_id": session_id, "status": "complete", "safety_checks": safety}
+    except Exception as e:
+        logger.error(f"Safety check retrieval error: {e}")
+        raise HTTPException(status_code=500, detail="Unable to retrieve safety checks.")
 
 
 # =============================================================================

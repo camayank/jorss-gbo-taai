@@ -626,6 +626,8 @@ _ROUTER_REGISTRY = [
     ("web.routers.gdpr_api", "router", None, "GDPR Data Erasure API"),
     # Feature pages (wires orphaned templates to routes)
     ("web.routers.feature_pages", "router", None, "Feature Pages"),
+    # WebSocket real-time events
+    ("realtime.websocket_routes", "websocket_router", None, "WebSocket Real-Time"),
 ]
 
 # Special case: config_api exports two routers

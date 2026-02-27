@@ -7933,6 +7933,16 @@
           is_self_employed: (extractedData.tax_profile.business_income || 0) > 0
         };
 
+        // Show extended "Thinking..." indicator for AI responses (may take longer)
+        let thinkingTimer = setTimeout(() => {
+          const typingEl = document.querySelector('.typing-indicator .typing-text');
+          if (typingEl) typingEl.textContent = 'Thinking deeply...';
+        }, 4000);
+        let extendedTimer = setTimeout(() => {
+          const typingEl = document.querySelector('.typing-indicator .typing-text');
+          if (typingEl) typingEl.textContent = 'Taking a bit longer than usual, still working...';
+        }, 12000);
+
         const response = await fetchWithRetry('/api/advisor/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -7943,6 +7953,9 @@
             conversation_history: conversationHistory.slice(-10) // Last 10 messages for context
           })
         }, 3); // 3 retries with exponential backoff
+
+        clearTimeout(thinkingTimer);
+        clearTimeout(extendedTimer);
 
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
@@ -7997,6 +8010,27 @@
         // Add confidence badge for calculation/strategy/report responses
         if (data.response_type === 'calculation' || data.response_type === 'strategy' || data.response_type === 'report') {
           aiResponse += renderConfidenceBadge(data.response_confidence, data.confidence_reason);
+        }
+
+        // AI-powered response badge
+        if (data.response_type === 'ai_response') {
+          aiResponse = '<span class="ai-badge" style="display:inline-block;background:#e0e7ff;color:#4338ca;font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:9999px;margin-bottom:6px;">AI-Powered</span>\n' + aiResponse;
+        }
+
+        // Research response with sources section
+        if (data.response_type === 'ai_research') {
+          aiResponse = '<span class="ai-badge" style="display:inline-block;background:#ecfdf5;color:#065f46;font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:9999px;margin-bottom:6px;">Research</span>\n' + aiResponse;
+        }
+
+        // Safety badge on report responses
+        if (data.safety_checks) {
+          const sc = data.safety_checks;
+          const isClean = (!sc.fraud || sc.fraud.risk_level === 'MINIMAL' || sc.fraud.risk_level === 'LOW')
+            && (!sc.compliance || sc.compliance.risk_level === 'LOW');
+          const badgeColor = isClean ? '#065f46' : '#b91c1c';
+          const badgeBg = isClean ? '#ecfdf5' : '#fef2f2';
+          const badgeText = isClean ? 'Compliance Verified' : 'Review Recommended';
+          aiResponse += `\n<span class="safety-badge" style="display:inline-block;background:${badgeBg};color:${badgeColor};font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:9999px;margin-top:8px;">${badgeText}</span>`;
         }
 
         addMessage('ai', aiResponse, quickActions);
