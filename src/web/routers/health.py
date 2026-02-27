@@ -217,15 +217,17 @@ def _check_encryption_key() -> Dict[str, Any]:
             weak.append(name)
 
     if missing:
+        logger.error(f"Missing required encryption keys: {', '.join(missing)}")
         return {
             "status": "unhealthy",
-            "error": f"Missing required keys: {', '.join(missing)}",
+            "error": "Security configuration incomplete",
         }
 
     if weak:
+        logger.warning(f"Weak encryption keys (< 32 chars): {', '.join(weak)}")
         return {
             "status": "warning",
-            "message": f"Weak keys (< 32 chars): {', '.join(weak)}",
+            "message": "Security configuration needs strengthening",
         }
 
     return {"status": "healthy"}

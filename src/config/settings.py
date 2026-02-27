@@ -308,6 +308,12 @@ class Settings(BaseSettings):
         if not self.is_production:
             return errors
 
+        # Debug mode must be off in production
+        if self.debug:
+            errors.append(
+                "APP_DEBUG: Must be False in production — debug mode exposes stack traces and internals"
+            )
+
         # Check APP_SECRET_KEY
         if not self.secret_key:
             errors.append(

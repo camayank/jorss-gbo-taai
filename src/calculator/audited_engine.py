@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from datetime import datetime
 from decimal import Decimal
 from typing import Any, Dict, Optional
@@ -265,8 +266,7 @@ class AuditedTaxEngine:
             return secure_hash_ssn(ssn)[:16]
         except (ValueError, RuntimeError) as e:
             # Log error but don't expose SSN in case of failure
-            logger = __import__('logging').getLogger(__name__)
-            logger.warning(f"SSN hash failed: {type(e).__name__}")
+            logging.getLogger(__name__).warning(f"SSN hash failed: {type(e).__name__}")
             return None
 
     def _log_calculation(

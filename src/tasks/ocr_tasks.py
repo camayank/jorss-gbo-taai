@@ -332,6 +332,11 @@ def process_document_bytes_task(
     )
 
     try:
+        # Validate base64 payload size before decoding (20MB file * 4/3 base64 overhead ≈ 27MB)
+        max_b64_size = 27 * 1024 * 1024
+        if len(data_base64) > max_b64_size:
+            raise ValueError(f"Base64 payload too large: {len(data_base64)} bytes (max {max_b64_size})")
+
         # Decode base64 data
         data = base64.b64decode(data_base64)
 

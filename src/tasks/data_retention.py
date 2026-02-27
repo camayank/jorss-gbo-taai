@@ -83,17 +83,7 @@ def purge_expired_sessions() -> Dict[str, int]:
     # Redis sessions auto-expire via TTL, but clean up orphaned indexes
     try:
         import asyncio
-        counts["redis_purged"] = asyncio.get_event_loop().run_until_complete(
-            _purge_redis_orphans()
-        )
-    except RuntimeError:
-        # No event loop - create one
-        import asyncio
-        loop = asyncio.new_event_loop()
-        try:
-            counts["redis_purged"] = loop.run_until_complete(_purge_redis_orphans())
-        finally:
-            loop.close()
+        counts["redis_purged"] = asyncio.run(_purge_redis_orphans())
     except Exception as e:
         logger.warning(f"Could not purge Redis orphans: {e}")
 
