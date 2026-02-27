@@ -85,9 +85,10 @@ async def start_google_oauth(
         result = oauth_service.start_oauth("google", redirect_uri)
         return result
     except ValueError as e:
+        logger.warning(f"Google OAuth start error: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail="OAuth configuration error. Please contact support."
         )
 
 
@@ -176,9 +177,10 @@ async def google_oauth_token(
         )
 
     except ValueError as e:
+        logger.warning(f"Google OAuth callback error: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail="OAuth authentication failed. Please try again."
         )
 
 
@@ -209,9 +211,10 @@ async def start_microsoft_oauth(
         result = oauth_service.start_oauth("microsoft", redirect_uri)
         return result
     except ValueError as e:
+        logger.warning(f"Microsoft OAuth start error: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail="OAuth configuration error. Please contact support."
         )
 
 

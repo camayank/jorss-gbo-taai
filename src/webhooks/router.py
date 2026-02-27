@@ -202,7 +202,8 @@ async def create_webhook_endpoint(
         return WebhookEndpointCreateResponse(**result)
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning(f"[WEBHOOK API] Validation error: {e}")
+        raise HTTPException(status_code=400, detail="Invalid webhook endpoint configuration.")
     except Exception as e:
         logger.error(f"[WEBHOOK API] Create endpoint error: {e}")
         raise HTTPException(status_code=500, detail="Failed to create webhook endpoint")

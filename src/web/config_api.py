@@ -138,7 +138,7 @@ async def get_tax_year_config(year: int):
         logger.error(f"Error loading config for year {year}: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error loading configuration: {str(e)}"
+            detail="Error loading configuration. Please try again later."
         )
 
 
@@ -182,7 +182,7 @@ async def list_parameters(year: int = Query(default=2025, description="Tax year"
         logger.error(f"Error listing parameters: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error listing parameters: {str(e)}"
+            detail="Error listing parameters. Please try again later."
         )
 
 
@@ -230,7 +230,7 @@ async def get_parameter(
         logger.error(f"Error getting parameter {name}: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error getting parameter: {str(e)}"
+            detail="Error getting parameter. Please try again later."
         )
 
 
@@ -270,7 +270,7 @@ async def get_config_metadata(year: int):
         logger.error(f"Error getting metadata for year {year}: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error getting metadata: {str(e)}"
+            detail="Error getting metadata. Please try again later."
         )
 
 

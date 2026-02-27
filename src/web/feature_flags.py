@@ -110,7 +110,7 @@ def set_ux_version_cookie(response: Response, use_v2: bool) -> None:
         max_age=60 * 60 * 24 * 30,  # 30 days
         httponly=True,
         samesite="lax",
-        secure=os.environ.get("APP_ENVIRONMENT") == "production",
+        secure=os.environ.get("APP_ENVIRONMENT", "production").lower() in ("production", "prod", "staging"),
     )
 
 

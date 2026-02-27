@@ -19,6 +19,7 @@ Routes:
 - GET    /api/workspace/dashboard            : Get dashboard stats
 """
 
+import os
 from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
@@ -167,10 +168,12 @@ async def register_preparer(request_data: PreparerRegisterRequest):
         })
 
         # Set cookie for web clients
+        _secure = os.environ.get("APP_ENVIRONMENT", "production").lower() in ("production", "prod", "staging")
         response.set_cookie(
             key="preparer_id",
             value=preparer["preparer_id"],
             httponly=True,
+            secure=_secure,
             samesite="lax",
             max_age=30 * 24 * 60 * 60,  # 30 days
         )

@@ -766,7 +766,7 @@ async def generate_report(
         logger.error(f"Report generation error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Report generation failed: {str(e)}",
+            detail="Report generation failed. Please try again later.",
         )
 
 
@@ -848,7 +848,7 @@ async def download_report(
         logger.error(f"Report download error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Report download failed: {str(e)}",
+            detail="Report download failed. Please try again later.",
         )
 
 
@@ -1134,7 +1134,7 @@ async def generate_report_for_client(
         logger.error(f"CPA report generation error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Report generation failed: {str(e)}",
+            detail="Report generation failed. Please try again later.",
         )
 
 

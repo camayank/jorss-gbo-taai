@@ -107,12 +107,16 @@ def resolve_variant_id(request: Request, session_data: Optional[dict] = None) ->
     return default_variant
 
 
+_is_secure_cookie = os.environ.get("APP_ENVIRONMENT", "production").lower() in ("production", "prod", "staging")
+
+
 def apply_variant_cookie(response: HTMLResponse, variant_id: str) -> None:
     response.set_cookie(
         key=LEAD_MAGNET_VARIANT_COOKIE,
         value=variant_id,
         max_age=60 * 60 * 24 * 30,
         httponly=False,
+        secure=_is_secure_cookie,
         samesite="lax",
     )
 

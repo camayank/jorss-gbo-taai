@@ -16,6 +16,8 @@ Routes:
 - GET /api/supported-documents - List supported document types
 """
 
+import os
+
 from fastapi import APIRouter, Request, Response, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Optional, Dict, Any, List
@@ -128,10 +130,12 @@ async def upload_document(
             )
 
             # Set session cookie
+            _secure = os.environ.get("APP_ENVIRONMENT", "production").lower() in ("production", "prod", "staging")
             response.set_cookie(
                 key="tax_session_id",
                 value=session_id,
                 httponly=True,
+                secure=_secure,
                 samesite="lax",
                 max_age=86400 * 7  # 7 days
             )
@@ -219,10 +223,12 @@ async def upload_document_async(
             )
 
             # Set session cookie
+            _secure = os.environ.get("APP_ENVIRONMENT", "production").lower() in ("production", "prod", "staging")
             response.set_cookie(
                 key="tax_session_id",
                 value=session_id,
                 httponly=True,
+                secure=_secure,
                 samesite="lax",
                 max_age=86400 * 7
             )

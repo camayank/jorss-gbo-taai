@@ -227,9 +227,10 @@ app.add_middleware(
         "X-Request-ID",
         "X-Correlation-ID",
         "X-Tenant-ID",
-        "X-Impersonation-Token",
+        "X-Session-Token",
+        "X-Preparer-ID",
     ],
-    expose_headers=["X-Request-ID", "X-Correlation-ID"],
+    expose_headers=["X-Request-ID", "X-Correlation-ID", "X-RateLimit-Remaining-Minute"],
 )
 logger.info(f"CORS middleware enabled for {len(cors_origins)} origin(s) [env={_environment}]")
 
