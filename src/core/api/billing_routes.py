@@ -313,7 +313,17 @@ def _create_mock_data():
         _payment_methods_db[pm.id] = pm
 
 
-_create_mock_data()
+# Only populate mock data in development environments
+import os as _os
+_billing_env = _os.environ.get("APP_ENVIRONMENT", "").lower().strip()
+if _billing_env in {"development", "dev", "local", "test", "testing"}:
+    _create_mock_data()
+else:
+    logger.info(
+        "Billing: skipping mock data in %s environment. "
+        "Connect to billing provider for real plan/subscription data.",
+        _billing_env or "unknown"
+    )
 
 
 # =============================================================================

@@ -121,24 +121,32 @@ def check_database() -> DependencyStatus:
 
 
 def check_ocr_service() -> DependencyStatus:
-    """Check OCR service availability."""
+    """Check OCR service availability and which engine is active."""
     try:
-        # TODO: Implement actual OCR service check
-        # Example: Ping OCR service or check if import works
+        from services.ocr.ocr_engine import OCREngine, OCREngineType
 
-        from services.ocr import DocumentProcessor
-        return DependencyStatus(
-            name="ocr_service",
-            status="up",
-            message="OCR service available"
-        )
+        available = OCREngine.get_available_engines()
+        real_engines = [e for e in available if e != OCREngineType.MOCK]
+
+        if real_engines:
+            return DependencyStatus(
+                name="ocr_service",
+                status="up",
+                message=f"OCR engines available: {', '.join(e.value for e in real_engines)}"
+            )
+        else:
+            return DependencyStatus(
+                name="ocr_service",
+                status="degraded",
+                message="No real OCR engine available (Tesseract/Textract). Document text extraction disabled."
+            )
 
     except ImportError as e:
         logger.warning(f"OCR service not available: {str(e)}")
         return DependencyStatus(
             name="ocr_service",
             status="degraded",
-            message="OCR service unavailable (graceful degradation enabled)"
+            message="OCR module not installed (graceful degradation enabled)"
         )
 
     except Exception as e:

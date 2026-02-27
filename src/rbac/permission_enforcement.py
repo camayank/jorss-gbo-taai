@@ -111,8 +111,24 @@ def require_permission(*required_permissions: Permission):
 
                 # Check assignment if required
                 if perm.requires_assignment:
-                    # TODO: Implement assignment check
-                    pass
+                    assigned_cpa_id = (
+                        kwargs.get('assigned_cpa_id')
+                        or kwargs.get('cpa_id')
+                    )
+                    if assigned_cpa_id:
+                        if not check_cpa_assignment(ctx, assigned_cpa_id):
+                            raise PermissionDeniedError(
+                                perm,
+                                reason="You are not assigned to this resource"
+                            )
+                    else:
+                        # Fail-closed: if we can't verify assignment, deny
+                        # Platform admins bypass assignment checks
+                        if ctx.role.name != 'PLATFORM_ADMIN':
+                            raise PermissionDeniedError(
+                                perm,
+                                reason="Assignment verification required but no assignment context provided"
+                            )
 
             # Call original function
             if inspect.iscoroutinefunction(func):

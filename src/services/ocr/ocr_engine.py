@@ -532,19 +532,21 @@ $0.00
         return "w2"
 
     def process_image(self, image_path: str) -> OCRResult:
-        """Return mock result with sample tax form data."""
+        """Return mock result — uses preconfigured responses or empty result."""
         for pattern, result in self.mock_responses.items():
             if pattern in image_path:
                 return result
 
-        # Default to W-2 sample for demo
+        # No real OCR engine configured — return empty result
         return OCRResult(
-            raw_text=self.SAMPLE_W2_TEXT,
-            blocks=[TextBlock(self.SAMPLE_W2_TEXT, 85.0, None, "paragraph")],
-            confidence=85.0,
+            raw_text="",
+            blocks=[],
+            confidence=0.0,
             engine_used="mock",
-            page_count=1,
-            metadata={"note": "Demo mode - using sample W-2 data"}
+            page_count=0,
+            metadata={
+                "warning": "No OCR engine configured. Install Tesseract or configure AWS Textract for document text extraction.",
+            }
         )
 
     def process_pdf(self, pdf_path: str) -> OCRResult:
@@ -552,14 +554,16 @@ $0.00
         return self.process_image(pdf_path)
 
     def process_bytes(self, data: bytes, mime_type: str) -> OCRResult:
-        """Return mock result with sample data."""
+        """Return mock result — empty when no real OCR is configured."""
         return OCRResult(
-            raw_text=self.SAMPLE_W2_TEXT,
-            blocks=[TextBlock(self.SAMPLE_W2_TEXT, 85.0, None, "paragraph")],
-            confidence=85.0,
+            raw_text="",
+            blocks=[],
+            confidence=0.0,
             engine_used="mock",
-            page_count=1,
-            metadata={"note": "Demo mode - using sample W-2 data"}
+            page_count=0,
+            metadata={
+                "warning": "No OCR engine configured. Install Tesseract or configure AWS Textract for document text extraction.",
+            }
         )
 
 
