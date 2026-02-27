@@ -1152,7 +1152,10 @@ async def upload_document(
 
         try:
             # Create temp file
-            temp_fd, temp_path = tempfile.mkstemp(suffix=os.path.splitext(file.filename)[1])
+            _SAFE_DOC_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".tiff", ".tif", ".gif", ".bmp", ".webp"}
+            raw_ext = os.path.splitext(file.filename or "")[1].lower()
+            safe_suffix = raw_ext if raw_ext in _SAFE_DOC_EXTENSIONS else ".bin"
+            temp_fd, temp_path = tempfile.mkstemp(suffix=safe_suffix)
 
             try:
                 with os.fdopen(temp_fd, 'wb') as temp_file:

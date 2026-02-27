@@ -140,7 +140,7 @@ def create_template_response(
         )
     """
     # Resolve template path
-    resolved_path = get_template(self.request, template_name)
+    resolved_path = get_template(request, template_name)
 
     # Enhance context
     full_context = get_template_context(request, context)

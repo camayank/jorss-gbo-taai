@@ -5290,7 +5290,10 @@ async def upload_document(
         import tempfile
         import os
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp:
+        _SAFE_DOC_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".tiff", ".tif", ".gif", ".bmp", ".webp"}
+        raw_ext = os.path.splitext(file.filename or "")[1].lower()
+        safe_suffix = raw_ext if raw_ext in _SAFE_DOC_EXTENSIONS else ".bin"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=safe_suffix) as tmp:
             content = await file.read()
             tmp.write(content)
             tmp_path = tmp.name

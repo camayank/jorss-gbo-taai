@@ -376,7 +376,9 @@ async def full_advisory_with_documents(
                 content = await doc_file.read()
                 validate_uploaded_file(doc_file, content)
 
-                with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(doc_file.filename)[1]) as tmp:
+                raw_ext = os.path.splitext(doc_file.filename or "")[1].lower()
+                safe_suffix = raw_ext if raw_ext in _SAFE_EXTENSIONS else ".bin"
+                with tempfile.NamedTemporaryFile(delete=False, suffix=safe_suffix) as tmp:
                     tmp.write(content)
                     tmp_path = tmp.name
 
