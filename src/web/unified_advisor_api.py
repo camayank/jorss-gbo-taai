@@ -88,51 +88,56 @@ def _get_2025_standard_deductions() -> Dict[str, float]:
 class QuickAdvisoryInput(BaseModel):
     """Input for quick advisory without document upload."""
     # Filing info
-    filing_status: str = Field(default="single", description="single, married_filing_jointly, married_filing_separately, head_of_household, qualifying_widow")
-    tax_year: int = Field(default=2025)
-    state: str = Field(default="CA")
+    filing_status: str = Field(
+        default="single",
+        max_length=30,
+        pattern=r"^(single|married_filing_jointly|married_filing_separately|head_of_household|qualifying_widow)$",
+        description="single, married_filing_jointly, married_filing_separately, head_of_household, qualifying_widow",
+    )
+    tax_year: int = Field(default=2025, ge=2020, le=2026)
+    state: str = Field(default="CA", max_length=2, pattern=r"^[A-Z]{2}$")
 
-    # Income
-    wages: float = Field(default=0, ge=0)
-    interest_income: float = Field(default=0, ge=0)
-    dividend_income: float = Field(default=0, ge=0)
-    qualified_dividends: float = Field(default=0, ge=0)
-    capital_gains_short: float = Field(default=0)
-    capital_gains_long: float = Field(default=0)
-    business_income: float = Field(default=0)
-    rental_income: float = Field(default=0)
-    k1_income: float = Field(default=0)
-    social_security_benefits: float = Field(default=0, ge=0)
-    retirement_distributions: float = Field(default=0, ge=0)
-    other_income: float = Field(default=0)
+    # Income (le=1B as reasonable ceiling to prevent overflow)
+    wages: float = Field(default=0, ge=0, le=1_000_000_000)
+    interest_income: float = Field(default=0, ge=0, le=1_000_000_000)
+    dividend_income: float = Field(default=0, ge=0, le=1_000_000_000)
+    qualified_dividends: float = Field(default=0, ge=0, le=1_000_000_000)
+    capital_gains_short: float = Field(default=0, ge=-1_000_000_000, le=1_000_000_000)
+    capital_gains_long: float = Field(default=0, ge=-1_000_000_000, le=1_000_000_000)
+    business_income: float = Field(default=0, ge=-1_000_000_000, le=1_000_000_000)
+    rental_income: float = Field(default=0, ge=-1_000_000_000, le=1_000_000_000)
+    k1_income: float = Field(default=0, ge=-1_000_000_000, le=1_000_000_000)
+    social_security_benefits: float = Field(default=0, ge=0, le=1_000_000_000)
+    retirement_distributions: float = Field(default=0, ge=0, le=1_000_000_000)
+    other_income: float = Field(default=0, ge=-1_000_000_000, le=1_000_000_000)
 
     # Adjustments
-    student_loan_interest: float = Field(default=0, ge=0)
-    hsa_contributions: float = Field(default=0, ge=0)
-    traditional_ira_contributions: float = Field(default=0, ge=0)
+    student_loan_interest: float = Field(default=0, ge=0, le=100_000)
+    hsa_contributions: float = Field(default=0, ge=0, le=100_000)
+    traditional_ira_contributions: float = Field(default=0, ge=0, le=100_000)
 
     # Deductions
-    medical_expenses: float = Field(default=0, ge=0)
-    state_local_taxes_paid: float = Field(default=0, ge=0)
-    real_estate_taxes: float = Field(default=0, ge=0)
-    mortgage_interest: float = Field(default=0, ge=0)
-    charitable_cash: float = Field(default=0, ge=0)
-    charitable_noncash: float = Field(default=0, ge=0)
+    medical_expenses: float = Field(default=0, ge=0, le=1_000_000_000)
+    state_local_taxes_paid: float = Field(default=0, ge=0, le=1_000_000_000)
+    real_estate_taxes: float = Field(default=0, ge=0, le=1_000_000_000)
+    mortgage_interest: float = Field(default=0, ge=0, le=1_000_000_000)
+    charitable_cash: float = Field(default=0, ge=0, le=1_000_000_000)
+    charitable_noncash: float = Field(default=0, ge=0, le=1_000_000_000)
 
     # Credits
-    child_tax_credit_eligible: int = Field(default=0, ge=0)
-    dependent_care_expenses: float = Field(default=0, ge=0)
-    education_expenses: float = Field(default=0, ge=0)
-    residential_energy_improvements: float = Field(default=0, ge=0)
+    child_tax_credit_eligible: int = Field(default=0, ge=0, le=20)
+    dependent_care_expenses: float = Field(default=0, ge=0, le=1_000_000)
+    education_expenses: float = Field(default=0, ge=0, le=1_000_000)
+    residential_energy_improvements: float = Field(default=0, ge=0, le=1_000_000)
 
     # Payments
-    federal_withholding: float = Field(default=0, ge=0)
-    estimated_payments: float = Field(default=0, ge=0)
+    federal_withholding: float = Field(default=0, ge=0, le=1_000_000_000)
+    estimated_payments: float = Field(default=0, ge=0, le=1_000_000_000)
 
     # Self-employment
     has_self_employment: bool = Field(default=False)
-    se_gross_receipts: float = Field(default=0, ge=0)
-    se_expenses: float = Field(default=0, ge=0)
+    se_gross_receipts: float = Field(default=0, ge=0, le=1_000_000_000)
+    se_expenses: float = Field(default=0, ge=0, le=1_000_000_000)
 
 
 class InsightResponse(BaseModel):
@@ -295,8 +300,11 @@ async def upload_document(
 
         advisor = UnifiedTaxAdvisor()
 
-        # Save validated file temporarily
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp:
+        # Save validated file temporarily (sanitize extension to known safe set)
+        _SAFE_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".tiff", ".tif", ".gif", ".bmp", ".webp"}
+        raw_ext = os.path.splitext(file.filename or "")[1].lower()
+        safe_suffix = raw_ext if raw_ext in _SAFE_EXTENSIONS else ".bin"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=safe_suffix) as tmp:
             tmp.write(content)
             tmp_path = tmp.name
 

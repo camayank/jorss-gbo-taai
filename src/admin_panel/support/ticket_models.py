@@ -191,9 +191,8 @@ class Ticket:
     def _generate_ticket_number(self) -> str:
         """Generate a human-readable ticket number."""
         year = datetime.utcnow().year
-        # In production, this would query for the next sequence number
-        import random
-        seq = random.randint(1000, 9999)
+        import secrets
+        seq = secrets.randbelow(9000) + 1000  # 1000-9999, cryptographically random
         return f"TKT-{year}-{seq}"
 
     def _calculate_sla(self):

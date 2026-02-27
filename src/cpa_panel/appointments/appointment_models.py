@@ -265,10 +265,11 @@ class Appointment:
     def __post_init__(self):
         """Generate confirmation code if not provided."""
         if not self.confirmation_code:
-            import random
+            import secrets
             import string
+            alphabet = string.ascii_uppercase + string.digits
             self.confirmation_code = ''.join(
-                random.choices(string.ascii_uppercase + string.digits, k=8)
+                secrets.choice(alphabet) for _ in range(8)
             )
 
         if not self.title:
