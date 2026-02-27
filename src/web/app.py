@@ -1489,10 +1489,14 @@ def post_login_redirect(request: Request):
     }
     destination = destinations.get(bucket, "/intelligent-advisor")
 
-    # Check for explicit ?next= parameter
+    # Check for explicit ?next= parameter (with open-redirect protection)
     next_url = request.query_params.get("next")
-    if next_url and next_url.startswith("/"):
-        destination = next_url
+    if next_url and next_url.startswith("/") and not next_url.startswith("//") and not next_url.startswith("/\\"):
+        # Strip any authority component that could redirect to external domain
+        from urllib.parse import urlparse
+        parsed = urlparse(next_url)
+        if not parsed.netloc:
+            destination = parsed.path + (f"?{parsed.query}" if parsed.query else "")
 
     return RedirectResponse(url=destination, status_code=302)
 

@@ -49,7 +49,8 @@ async def generate_report(session_id: str, request: Request):
     """
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     sections = body.get("sections")

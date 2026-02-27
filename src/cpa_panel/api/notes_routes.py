@@ -31,7 +31,8 @@ async def add_note(session_id: str, request: Request):
 
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     note_text = body.get("text") or body.get("note_text", "")

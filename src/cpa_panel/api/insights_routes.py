@@ -145,7 +145,8 @@ async def explain_recommendation(
     """
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     education_level = body.get("education_level", "general")

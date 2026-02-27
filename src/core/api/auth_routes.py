@@ -361,8 +361,8 @@ async def logout(
                     await r.sadd("revoked_jtis", payload["jti"])
                     await r.expire("revoked_jtis", ttl)
                     await r.aclose()
-        except Exception:
-            pass  # Graceful fallback — don't block logout if Redis is down
+        except Exception as e:
+            logger.warning(f"[AUTH] Token revocation failed during logout (Redis may be down): {e}")
 
     return await auth_service.logout(refresh_token)
 

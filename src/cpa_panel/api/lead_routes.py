@@ -100,7 +100,8 @@ async def create_lead(request: Request):
     """
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     lead_id = body.get("lead_id")
@@ -160,7 +161,8 @@ async def process_signal(lead_id: str, request: Request):
 
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     signal_id = body.get("signal_id")
@@ -221,7 +223,8 @@ async def process_signals_batch(lead_id: str, request: Request):
     """
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     signals = body.get("signals", [])

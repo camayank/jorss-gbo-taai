@@ -159,7 +159,8 @@ async def compare_entity_structures(session_id: str, request: Request):
     """
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     gross_revenue = body.get("gross_revenue")

@@ -86,7 +86,8 @@ async def approve_return(session_id: str, request: Request):
     """
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     cpa_reviewer_id = body.get("cpa_reviewer_id")
@@ -131,7 +132,8 @@ async def revert_to_draft(session_id: str, request: Request):
 
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     cpa_reviewer_id = body.get("cpa_reviewer_id")
@@ -228,7 +230,8 @@ async def get_queue_counts(request: Request):
                 try:
                     returns = manager.list_by_status(status)
                     counts[status.value] = len(returns)
-                except Exception:
+                except Exception as e:
+                    logger.debug(f"Failed to count returns for status {status.value}: {e}")
                     counts[status.value] = 0
 
         return JSONResponse({

@@ -180,7 +180,8 @@ async def advance_lead(lead_id: str, request: Request):
     """
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     target_state = body.get("target_state")

@@ -32,7 +32,8 @@ async def calculate_delta(session_id: str, request: Request):
 
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     change_type_str = body.get("change_type", "other")
@@ -114,7 +115,8 @@ async def compare_scenarios(session_id: str, request: Request):
 
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     scenarios_data = body.get("scenarios", [])

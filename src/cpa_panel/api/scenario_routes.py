@@ -45,7 +45,8 @@ async def compare_scenarios(session_id: str, request: Request):
     """
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     scenarios = body.get("scenarios", [])
@@ -90,7 +91,8 @@ async def compare_from_templates(session_id: str, request: Request):
     """
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     template_ids = body.get("template_ids", [])
@@ -206,7 +208,8 @@ async def quick_compare(session_id: str, request: Request):
     """
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     adjustments = body.get("adjustments", [])

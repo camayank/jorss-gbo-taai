@@ -251,7 +251,8 @@ async def start_intake(request: Request):
     """
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     tenant_id = get_tenant_id(request)
@@ -327,7 +328,8 @@ async def save_client_info(session_id: str, request: Request):
     """
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     now = datetime.utcnow().isoformat()
@@ -791,7 +793,8 @@ async def submit_intake_answers(session_id: str, request: Request):
     """
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     answers = body.get("answers", {})

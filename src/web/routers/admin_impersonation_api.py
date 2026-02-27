@@ -52,7 +52,7 @@ class ImpersonationEndRequest(BaseModel):
 
 
 # =============================================================================
-# IN-MEMORY STORAGE (Replace with database in production)
+# SESSION MODEL + REDIS-BACKED STORAGE
 # =============================================================================
 
 
@@ -88,7 +88,7 @@ class ImpersonationSession:
         return datetime.utcnow() < self.expires_at
 
     def to_dict(self) -> dict:
-        """Convert to dictionary for API responses."""
+        """Convert to dictionary for API responses and Redis storage."""
         return {
             "session_id": self.session_id,
             "admin_id": self.admin_id,
@@ -101,13 +101,101 @@ class ImpersonationSession:
             "ended_at": self.ended_at.isoformat() if self.ended_at else None,
             "is_active": self.is_active,
             "actions_count": len(self.actions_performed),
+            "actions_performed": self.actions_performed,
         }
 
+    @classmethod
+    def from_dict(cls, data: dict) -> "ImpersonationSession":
+        """Reconstruct from dictionary (Redis deserialization)."""
+        session = cls.__new__(cls)
+        session.session_id = data["session_id"]
+        session.admin_id = data["admin_id"]
+        session.admin_email = data["admin_email"]
+        session.target_user_id = data["target_user_id"]
+        session.target_user_email = data["target_user_email"]
+        session.reason = data["reason"]
+        session.started_at = datetime.fromisoformat(data["started_at"])
+        session.expires_at = datetime.fromisoformat(data["expires_at"])
+        session.ended_at = datetime.fromisoformat(data["ended_at"]) if data.get("ended_at") else None
+        session.actions_performed = data.get("actions_performed", [])
+        return session
 
-# TODO: Migrate _sessions to Redis for distributed deployments.
-# In-memory storage is acceptable for single-instance, but will not
-# survive restarts or work across multiple workers/pods.
+
+# In-memory cache (populated from Redis, serves as fallback)
 _sessions: dict[str, ImpersonationSession] = {}
+
+# Redis key constants
+_IMPERSONATION_PREFIX = "impersonation:session:"
+_IMPERSONATION_INDEX = "impersonation:sessions"
+
+
+async def _get_redis():
+    """Get Redis client, returns None if unavailable."""
+    try:
+        from cache.redis_client import get_redis_client
+        client = await get_redis_client()
+        if client and await client.ping():
+            return client
+    except Exception:
+        pass
+    return None
+
+
+async def _store_session(session: ImpersonationSession) -> None:
+    """Store impersonation session in Redis with in-memory cache."""
+    _sessions[session.session_id] = session
+    redis = await _get_redis()
+    if redis:
+        try:
+            key = f"{_IMPERSONATION_PREFIX}{session.session_id}"
+            # Keep in Redis for 90 days (audit history) or until expiry + 24h buffer
+            ttl = max(
+                int((session.expires_at - datetime.utcnow()).total_seconds()) + 86400,
+                90 * 86400,
+            )
+            await redis.set(key, session.to_dict(), ttl=ttl)
+            await redis._client.sadd(_IMPERSONATION_INDEX, session.session_id)
+            await redis._client.expire(_IMPERSONATION_INDEX, 90 * 86400)
+        except Exception as e:
+            logger.warning(f"Failed to store impersonation session in Redis: {e}")
+
+
+async def _load_session(session_id: str) -> Optional[ImpersonationSession]:
+    """Load impersonation session from in-memory cache or Redis."""
+    if session_id in _sessions:
+        return _sessions[session_id]
+    redis = await _get_redis()
+    if redis:
+        try:
+            key = f"{_IMPERSONATION_PREFIX}{session_id}"
+            data = await redis.get(key)
+            if data and isinstance(data, dict):
+                session = ImpersonationSession.from_dict(data)
+                _sessions[session_id] = session
+                return session
+        except Exception as e:
+            logger.warning(f"Failed to load impersonation session from Redis: {e}")
+    return None
+
+
+async def _sync_all_sessions() -> list[ImpersonationSession]:
+    """Sync all sessions from Redis into in-memory cache and return them."""
+    redis = await _get_redis()
+    if redis:
+        try:
+            session_ids = await redis._client.smembers(_IMPERSONATION_INDEX)
+            if session_ids:
+                for sid in session_ids:
+                    if sid not in _sessions:
+                        key = f"{_IMPERSONATION_PREFIX}{sid}"
+                        data = await redis.get(key)
+                        if data and isinstance(data, dict):
+                            _sessions[sid] = ImpersonationSession.from_dict(data)
+                        else:
+                            await redis._client.srem(_IMPERSONATION_INDEX, sid)
+        except Exception as e:
+            logger.warning(f"Failed to sync impersonation sessions from Redis: {e}")
+    return list(_sessions.values())
 
 
 async def _get_user_info(user_id: str) -> Optional[dict]:
@@ -181,8 +269,9 @@ async def start_impersonation(
         )
 
     # Check for existing active session
+    all_sessions = await _sync_all_sessions()
     active_sessions = [
-        s for s in _sessions.values()
+        s for s in all_sessions
         if s.admin_id == str(ctx.user_id) and s.is_active
     ]
     if active_sessions:
@@ -201,7 +290,7 @@ async def start_impersonation(
         reason=data.reason,
         duration_minutes=data.duration_minutes,
     )
-    _sessions[session.session_id] = session
+    await _store_session(session)
 
     # Log for audit
     logger.info(
@@ -231,7 +320,7 @@ async def end_impersonation(
 
     Can only end your own sessions (unless super admin).
     """
-    session = _sessions.get(data.session_id)
+    session = await _load_session(data.session_id)
 
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -250,6 +339,7 @@ async def end_impersonation(
         }
 
     session.ended_at = datetime.utcnow()
+    await _store_session(session)
 
     # Log for audit
     logger.info(
@@ -277,18 +367,16 @@ async def list_active_sessions(
     Super admins see all sessions.
     Other admins see only their own sessions.
     """
-    now = datetime.utcnow()
+    all_sessions = await _sync_all_sessions()
 
     if ctx.role == Role.SUPER_ADMIN:
-        # Super admins see all active sessions
         active = [
-            s.to_dict() for s in _sessions.values()
+            s.to_dict() for s in all_sessions
             if s.is_active
         ]
     else:
-        # Other admins see only their sessions
         active = [
-            s.to_dict() for s in _sessions.values()
+            s.to_dict() for s in all_sessions
             if s.is_active and s.admin_id == str(ctx.user_id)
         ]
 
@@ -311,15 +399,16 @@ async def get_impersonation_history(
     Other admins see only their own history.
     """
     cutoff = datetime.utcnow() - timedelta(days=days)
+    all_sessions = await _sync_all_sessions()
 
     if ctx.role == Role.SUPER_ADMIN:
         sessions = [
-            s.to_dict() for s in _sessions.values()
+            s.to_dict() for s in all_sessions
             if s.started_at >= cutoff
         ]
     else:
         sessions = [
-            s.to_dict() for s in _sessions.values()
+            s.to_dict() for s in all_sessions
             if s.started_at >= cutoff and s.admin_id == str(ctx.user_id)
         ]
 
@@ -343,7 +432,7 @@ async def get_session_details(
 
     Includes actions performed during the session.
     """
-    session = _sessions.get(session_id)
+    session = await _load_session(session_id)
 
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -372,7 +461,7 @@ async def log_impersonation_action(
 
     Used for audit trail - records what the admin did while impersonating.
     """
-    session = _sessions.get(session_id)
+    session = await _load_session(session_id)
 
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -394,6 +483,7 @@ async def log_impersonation_action(
         "action": action,
     }
     session.actions_performed.append(action_entry)
+    await _store_session(session)
 
     logger.info(
         f"[AUDIT] Impersonation action | session={session_id} | action={action}"

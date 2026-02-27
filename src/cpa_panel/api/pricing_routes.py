@@ -117,7 +117,8 @@ async def generate_quote(session_id: str, request: Request):
     """
     try:
         body = await request.json()
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
     tax_return = get_tax_return(session_id)
