@@ -16,6 +16,7 @@ IMPACT: Major performance improvement for:
 Run with: python migrations/add_performance_indexes.py
 """
 
+import re
 import sqlite3
 import logging
 from pathlib import Path
@@ -26,8 +27,13 @@ logger = logging.getLogger(__name__)
 DB_PATH = Path(__file__).parent.parent / "data" / "tax_returns.db"
 
 
+_SAFE_SQL_IDENT = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
+
+
 def column_exists(cursor, table: str, column: str) -> bool:
     """Check if a column exists in a table."""
+    if not _SAFE_SQL_IDENT.match(table):
+        raise ValueError(f"Invalid table name: {table!r}")
     cursor.execute(f"PRAGMA table_info({table})")
     columns = [row[1] for row in cursor.fetchall()]
     return column in columns

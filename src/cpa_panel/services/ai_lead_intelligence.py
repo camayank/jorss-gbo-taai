@@ -11,11 +11,14 @@ Uses Claude (Anthropic) for intelligent lead analysis including:
 
 import os
 import json
+import logging
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime
 from decimal import Decimal
+
+logger = logging.getLogger(__name__)
 
 try:
     from anthropic import Anthropic
@@ -342,8 +345,8 @@ Respond with JSON:
                     best_contact_times=data.get("best_contact_times", [])
                 )
 
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Failed to generate AI outreach strategy: {e}")
 
         return OutreachStrategy(
             primary_channel="email",
@@ -432,8 +435,8 @@ Respond with JSON:
                     assumptions=data.get("assumptions", [])
                 )
 
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Failed to generate AI revenue projection: {e}")
 
         return RevenueProjection(
             first_year_revenue=Decimal("0"),
@@ -521,8 +524,8 @@ Respond with JSON array:
                     for opp in opportunities_data
                 ]
 
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Failed to identify AI cross-sell opportunities: {e}")
 
         return []
 

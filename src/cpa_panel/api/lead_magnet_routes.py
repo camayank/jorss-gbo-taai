@@ -734,7 +734,7 @@ async def get_tier_two_report(
     dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def get_lead_magnet_leads(
-    cpa_id: Optional[str] = Query(None, description="Filter by CPA ID"),
+    cpa_id: Optional[str] = Query(None, max_length=100, pattern=r'^[a-zA-Z0-9_-]+$', description="Filter by CPA ID"),
     temperature: Optional[str] = Query(None, description="Filter by temperature: hot, warm, cold"),
     engaged: Optional[bool] = Query(None, description="Filter by engagement status"),
     limit: int = Query(default=50, le=100, description="Max results to return"),
@@ -745,6 +745,15 @@ async def get_lead_magnet_leads(
 
     Returns leads with scoring data for CPA follow-up prioritization.
     """
+    _valid_temperatures = {"hot", "warm", "cold"}
+    if temperature and temperature.lower() not in _valid_temperatures:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid temperature '{temperature}'. Must be one of: {', '.join(sorted(_valid_temperatures))}"
+        )
+    if temperature:
+        temperature = temperature.lower()
+
     try:
         service = get_lead_magnet_service()
 
@@ -1022,7 +1031,6 @@ async def convert_lead(lead_id: str):
     client onboarding flows. Returns a client_token that
     grants access to the client dashboard.
     """
-    import secrets
     from datetime import datetime
 
     try:
@@ -1045,21 +1053,12 @@ async def convert_lead(lead_id: str):
         except Exception as activity_error:
             logger.warning(f"Failed to log conversion for lead {lead_id}: {activity_error}")
 
-        # Generate client token for dashboard access
-        # In production: use JWT with proper signing
-        client_token = f"client_{secrets.token_urlsafe(32)}"
-
-        # Store token association with client (in production: store in DB)
-        # This mock token allows dashboard access
-
         return {
             "lead_id": lead_id,
             "converted": True,
             "converted_at": result["converted_at"],
             "client_id": result.get("client_id", f"client-{lead_id}"),
-            "client_token": client_token,
-            "dashboard_url": f"/client?token={client_token}",
-            "message": "Lead successfully converted to client. Use the dashboard_url or token to access the client portal.",
+            "message": "Lead successfully converted to client.",
         }
 
     except ValueError as e:

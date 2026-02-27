@@ -253,7 +253,7 @@ def get_db_connection(timeout: int = 30, retries: int = 3):
             conn = sqlite3.connect(DB_PATH, timeout=timeout)
             conn.row_factory = sqlite3.Row
             # Enable busy timeout for concurrent access
-            conn.execute(f"PRAGMA busy_timeout = {timeout * 1000}")
+            conn.execute(f"PRAGMA busy_timeout = {int(timeout * 1000)}")
 
             yield conn
             return

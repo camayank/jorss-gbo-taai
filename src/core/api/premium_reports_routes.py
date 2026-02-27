@@ -25,6 +25,7 @@ from typing import Optional, List, Any
 from enum import Enum
 from uuid import uuid4
 from pathlib import Path
+import re
 import sqlite3
 
 from fastapi import APIRouter, HTTPException, Depends, Query, status
@@ -138,8 +139,16 @@ def get_premium_generator():
     return PremiumReportGenerator()
 
 
+def _validate_sql_identifier(name: str) -> str:
+    """Validate a SQL identifier (table/column name) to prevent injection."""
+    if not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', name):
+        raise ValueError(f"Invalid SQL identifier: {name!r}")
+    return name
+
+
 def _table_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
     """Get column names for a SQLite table."""
+    _validate_sql_identifier(table_name)
     cursor = conn.cursor()
     cursor.execute(f"PRAGMA table_info({table_name})")
     return {str(row[1]) for row in cursor.fetchall()}

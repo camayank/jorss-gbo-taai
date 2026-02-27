@@ -15,6 +15,7 @@ Prompt 7: Tenant Safety - All data is scoped by tenant_id.
 
 import sqlite3
 import json
+import re
 import uuid
 import pickle
 import base64
@@ -32,6 +33,14 @@ DEFAULT_DB_PATH = Path(__file__).parent.parent.parent / "data" / "tax_returns.db
 
 # Session expiry (24 hours by default)
 DEFAULT_SESSION_TTL_HOURS = 24
+
+_SAFE_SQL_IDENT = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
+
+def _validate_sql_identifier(name: str) -> str:
+    """Validate a SQL identifier to prevent injection."""
+    if not _SAFE_SQL_IDENT.match(name):
+        raise ValueError(f"Invalid SQL identifier: {name!r}")
+    return name
 
 
 @dataclass
@@ -105,6 +114,7 @@ class SessionPersistence:
                     ("return_id", "TEXT")
                 ]:
                     try:
+                        _validate_sql_identifier(column)
                         cursor.execute(f"ALTER TABLE session_states ADD COLUMN {column} {coldef}")
                     except sqlite3.OperationalError:
                         pass  # Column already exists
@@ -169,6 +179,7 @@ class SessionPersistence:
                 ("return_id", "TEXT")
             ]:
                 try:
+                    _validate_sql_identifier(column)
                     cursor.execute(f"ALTER TABLE session_states ADD COLUMN {column} {coldef}")
                 except sqlite3.OperationalError:
                     pass  # Column already exists

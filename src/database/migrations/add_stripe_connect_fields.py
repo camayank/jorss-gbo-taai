@@ -5,6 +5,7 @@ Migration: Add Stripe Connect fields to cpa_profiles table.
 Run with: python src/database/migrations/add_stripe_connect_fields.py
 """
 
+import re
 import sqlite3
 import sys
 import os
@@ -41,7 +42,10 @@ def run_migration():
             ("payment_settings", "TEXT"),  # JSON field
         ]
 
+        _safe_ident = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
         for column_name, column_type in columns_to_add:
+            if not _safe_ident.match(column_name):
+                raise ValueError(f"Invalid column name: {column_name!r}")
             if column_name not in existing_columns:
                 print(f"Adding column: {column_name} ({column_type})")
                 cursor.execute(f"ALTER TABLE cpa_profiles ADD COLUMN {column_name} {column_type}")

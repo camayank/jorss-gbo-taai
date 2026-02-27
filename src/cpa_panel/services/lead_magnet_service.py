@@ -15,6 +15,7 @@ from __future__ import annotations
 import uuid
 import json
 import logging
+import re
 import sqlite3
 import os
 from dataclasses import dataclass, field
@@ -632,6 +633,13 @@ class LeadMagnetService:
         except Exception as exc:
             logger.warning("Failed to ensure lead_magnet_events table: %s", exc)
 
+    @staticmethod
+    def _validate_sql_identifier(name: str) -> str:
+        """Validate a SQL identifier (table/column name) to prevent injection."""
+        if not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', name):
+            raise ValueError(f"Invalid SQL identifier: {name!r}")
+        return name
+
     def _ensure_column(
         self,
         cursor: sqlite3.Cursor,
@@ -641,6 +649,8 @@ class LeadMagnetService:
     ) -> None:
         """Idempotently add a column to a SQLite table if missing."""
         try:
+            self._validate_sql_identifier(table_name)
+            self._validate_sql_identifier(column_name)
             cursor.execute(f"PRAGMA table_info({table_name})")
             columns = {row[1] for row in cursor.fetchall()}
             if column_name not in columns:
@@ -2775,7 +2785,8 @@ class LeadMagnetService:
                 params.append(1 if engaged else 0)
 
             query += " ORDER BY lead_score DESC, created_at DESC"
-            query += f" LIMIT {limit} OFFSET {offset}"
+            query += " LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
 
             cursor.execute(query, params)
             rows = cursor.fetchall()
