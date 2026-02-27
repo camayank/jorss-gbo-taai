@@ -37,6 +37,11 @@ lead_magnet_router = APIRouter(
 
 MIN_CONTACT_FORM_DWELL_MS = 1200
 
+# Rate limiters for public-facing lead endpoints (per IP)
+from utils.rate_limiter import RateLimiter, RateLimitConfig
+_lead_start_limiter = RateLimiter(RateLimitConfig(max_requests=10, window_seconds=3600, per_session=True))
+_lead_contact_limiter = RateLimiter(RateLimitConfig(max_requests=5, window_seconds=3600, per_session=True))
+
 
 # =============================================================================
 # REQUEST/RESPONSE MODELS
@@ -327,7 +332,7 @@ class CPAProfileRequest(BaseModel):
     summary="Start lead magnet assessment session",
     description="Initialize a new assessment session with optional CPA branding"
 )
-async def start_assessment(request: StartAssessmentRequest):
+async def start_assessment(request: StartAssessmentRequest, http_request: Request = None):
     """
     Start a new lead magnet assessment session.
 
@@ -336,6 +341,13 @@ async def start_assessment(request: StartAssessmentRequest):
     2. Loads CPA branding if cpa_slug provided
     3. Returns session ID and flow configuration
     """
+    client_ip = http_request.client.host if http_request and http_request.client else "unknown"
+    if not _lead_start_limiter.is_allowed(client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many assessment sessions created. Please try again later."
+        )
+    _lead_start_limiter.record_request(client_ip)
     try:
         service = get_lead_magnet_service()
 
@@ -495,17 +507,26 @@ async def capture_contact(session_id: str, request: CaptureContactRequest, http_
     5. Activity is logged for audit trail
     6. Lead is enrolled in nurture sequence
     """
+    client_ip = http_request.client.host if http_request.client else "unknown"
+    if not _lead_contact_limiter.is_allowed(client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many contact submissions. Please try again later."
+        )
+
     honeypot_value = (request.website or "").strip()
     if honeypot_value:
         logger.warning(
             "Blocked lead-magnet bot submission (honeypot triggered) session=%s ip=%s",
             session_id,
-            http_request.client.host if http_request.client else "unknown",
+            client_ip,
         )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid submission payload.",
         )
+
+    _lead_contact_limiter.record_request(client_ip)
 
     if request.form_started_at_ms is not None:
         now_ms = int(datetime.utcnow().timestamp() * 1000)

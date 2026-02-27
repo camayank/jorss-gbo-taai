@@ -1081,11 +1081,10 @@ def init_all_test_data() -> Dict[str, Any]:
 
 
 def get_test_user_credentials() -> List[Dict[str, str]]:
-    """Get list of test user credentials for testing."""
+    """Get list of test user info for testing (passwords excluded)."""
     return [
         {
             "email": user["email"],
-            "password": TEST_PASSWORD,
             "user_type": user["user_type"],
             "scenario": user.get("scenario", ""),
         }
@@ -1094,11 +1093,16 @@ def get_test_user_credentials() -> List[Dict[str, str]]:
 
 
 def print_test_users_summary():
-    """Print summary of all test users."""
+    """Print summary of all test users (dev environments only)."""
+    _env = os.environ.get("APP_ENVIRONMENT", "").lower().strip()
+    if _env not in {"development", "dev", "local", "test", "testing", ""}:
+        print("Test user summary is only available in development environments.")
+        return
+
     print("\n" + "="*80)
     print("TEST USERS SUMMARY")
     print("="*80)
-    print(f"\nPassword for ALL test users: {TEST_PASSWORD}\n")
+    print(f"\nPassword for ALL test users: (set via TEST_USER_PASSWORD env var)\n")
 
     by_type = {}
     for user in TEST_USERS:

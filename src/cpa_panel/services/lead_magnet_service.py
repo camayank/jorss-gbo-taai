@@ -301,7 +301,7 @@ class TaxProfile:
             try:
                 income_sources.append(IncomeSource(s) if isinstance(s, str) else s)
             except ValueError:
-                pass  # Skip invalid income sources
+                logger.debug(f"Skipping invalid income source: {s!r}")
 
         # Handle life_events - may be strings or LifeEvent enums
         life_events = []
@@ -309,7 +309,7 @@ class TaxProfile:
             try:
                 life_events.append(LifeEvent(e) if isinstance(e, str) else e)
             except ValueError:
-                pass  # Skip invalid life events
+                logger.debug(f"Skipping invalid life event: {e!r}")
 
         return cls(
             filing_status=FilingStatus(data.get("filing_status", "single")),
@@ -796,6 +796,11 @@ class LeadMagnetService:
             conn.close()
         except Exception as e:
             logger.error(f"Failed to create CPA profile: {e}")
+            try:
+                conn.rollback()
+                conn.close()
+            except Exception:
+                pass
 
         self._cpa_profiles[final_slug] = profile
         return profile.to_dict()
@@ -912,6 +917,11 @@ class LeadMagnetService:
             conn.close()
         except Exception as e:
             logger.error(f"Failed to persist session: {e}")
+            try:
+                conn.rollback()
+                conn.close()
+            except Exception:
+                pass
 
         self._sessions[session_id] = session
         logger.info(f"Started lead magnet session {session_id} for CPA {cpa_profile.cpa_slug}")
@@ -983,6 +993,11 @@ class LeadMagnetService:
             conn.close()
         except Exception as e:
             logger.error(f"Failed to update session screen: {e}")
+            try:
+                conn.rollback()
+                conn.close()
+            except Exception:
+                pass
 
         return session
 
@@ -1854,6 +1869,11 @@ class LeadMagnetService:
             conn.close()
         except Exception as e:
             logger.error(f"Failed to persist lead: {e}")
+            try:
+                conn.rollback()
+                conn.close()
+            except Exception:
+                pass
 
         session.contact_captured = True
         self._leads[lead_id] = lead
@@ -2261,6 +2281,11 @@ class LeadMagnetService:
             conn.close()
         except Exception as e:
             logger.error(f"Failed to update lead engagement: {e}")
+            try:
+                conn.rollback()
+                conn.close()
+            except Exception:
+                pass
 
         return lead
 
@@ -2297,6 +2322,11 @@ class LeadMagnetService:
             conn.close()
         except Exception as e:
             logger.error(f"Failed to update engagement letter acknowledgment: {e}")
+            try:
+                conn.rollback()
+                conn.close()
+            except Exception:
+                pass
 
         return lead
 

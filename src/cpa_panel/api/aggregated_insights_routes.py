@@ -9,12 +9,13 @@ Key difference from /api/smart-insights:
 - /api/cpa/insights/aggregate: All clients for a preparer/tenant
 """
 
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 import logging
 
+from .auth_dependencies import require_internal_cpa_auth
 from .common import format_success_response, format_error_response, get_tenant_id
 from decimal import Decimal, ROUND_HALF_UP
 from calculator.decimal_math import money, to_decimal
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/insights", tags=["aggregated-insights"])
 
 
-@router.get("/aggregate")
+@router.get("/aggregate", dependencies=[Depends(require_internal_cpa_auth)])
 async def get_aggregated_insights(
     request: Request,
     limit: int = 50,
@@ -184,7 +185,7 @@ async def get_aggregated_insights(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/categories")
+@router.get("/categories", dependencies=[Depends(require_internal_cpa_auth)])
 async def get_insights_by_category(
     request: Request,
 ) -> Dict[str, Any]:
@@ -273,7 +274,7 @@ async def get_insights_by_category(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/client/{session_id}")
+@router.get("/client/{session_id}", dependencies=[Depends(require_internal_cpa_auth)])
 async def get_client_insights(
     request: Request,
     session_id: str,
@@ -367,7 +368,7 @@ async def get_client_insights(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/summary")
+@router.get("/summary", dependencies=[Depends(require_internal_cpa_auth)])
 async def get_insights_summary(
     request: Request,
 ) -> Dict[str, Any]:
