@@ -466,16 +466,21 @@ class AlertService:
             "requires_action": len(critical) > 0 or len(high) > 0,
         }
 
+    # In-memory preference storage keyed by "firm_id:user_id"
+    _notification_prefs: Dict[str, Dict[str, Any]] = {}
+
+    def _prefs_key(self, firm_id: str, user_id: str) -> str:
+        return f"{firm_id or 'none'}:{user_id or 'none'}"
+
     async def get_notification_preferences(
         self,
         firm_id: str,
         user_id: str,
     ) -> Dict[str, Any]:
         """Get notification preferences for a user."""
-        # Default preferences (would be stored in DB)
-        return {
+        defaults = {
             "email_enabled": True,
-            "email_digest": "daily",  # daily, weekly, realtime
+            "email_digest": "daily",
             "push_enabled": True,
             "sms_enabled": False,
             "quiet_hours": {
@@ -490,3 +495,22 @@ class AlertService:
                 AlertType.LOW.value: {"email": False, "push": False, "sms": False},
             },
         }
+
+        # Merge stored overrides
+        key = self._prefs_key(firm_id, user_id)
+        stored = AlertService._notification_prefs.get(key, {})
+        defaults.update(stored)
+        return defaults
+
+    async def update_notification_preferences(
+        self,
+        firm_id: str,
+        user_id: str,
+        preferences: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Update notification preferences for a user."""
+        key = self._prefs_key(firm_id, user_id)
+        if key not in AlertService._notification_prefs:
+            AlertService._notification_prefs[key] = {}
+        AlertService._notification_prefs[key].update(preferences)
+        return AlertService._notification_prefs[key]

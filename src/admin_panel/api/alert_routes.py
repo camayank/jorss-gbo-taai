@@ -11,7 +11,7 @@ Provides:
 from typing import Optional, List
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 
 from ..auth.rbac import (
@@ -450,6 +450,7 @@ async def get_notification_preferences(
 
 @router.put("/notifications/preferences")
 async def update_notification_preferences(
+    request: Request,
     user: TenantContext = Depends(get_current_user),
     email_enabled: Optional[bool] = Query(None),
     email_digest: Optional[str] = Query(None, description="daily, weekly, realtime"),
@@ -457,15 +458,40 @@ async def update_notification_preferences(
     sms_enabled: Optional[bool] = Query(None),
 ):
     """Update notification preferences for current user."""
-    # TODO: Implement actual preferences storage
+    alert_service = AlertService(None)
+
+    # Build update dict from query params and/or JSON body
+    updates = {}
+    if email_enabled is not None:
+        updates["email_enabled"] = email_enabled
+    if email_digest is not None:
+        updates["email_digest"] = email_digest
+    if push_enabled is not None:
+        updates["push_enabled"] = push_enabled
+    if sms_enabled is not None:
+        updates["sms_enabled"] = sms_enabled
+
+    # Also accept JSON body (from CPA settings page)
+    try:
+        body = await request.json()
+        if isinstance(body, dict):
+            for key in ("email_enabled", "email_digest", "push_enabled", "sms_enabled",
+                        "digest_frequency", "quiet_hours", "notifications"):
+                if key in body:
+                    updates[key] = body[key]
+    except Exception:
+        pass
+
+    # Store preferences
+    await alert_service.update_notification_preferences(
+        firm_id=user.firm_id,
+        user_id=user.user_id,
+        preferences=updates,
+    )
+
     return {
         "status": "success",
-        "updated_preferences": {
-            "email_enabled": email_enabled,
-            "email_digest": email_digest,
-            "push_enabled": push_enabled,
-            "sms_enabled": sms_enabled,
-        },
+        "updated_preferences": updates,
     }
 
 

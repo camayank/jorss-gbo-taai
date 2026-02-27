@@ -216,12 +216,20 @@ async def create_api_key(
     """
     firm_id = str(ctx.firm_id) if ctx.firm_id else str(ctx.user_id)
 
-    # Validate scopes
+    # Validate scopes — reject invalid ones upfront
     valid_scopes = _validate_scopes(data.scopes)
     invalid_scopes = set(data.scopes) - set(valid_scopes)
 
     if invalid_scopes:
-        logger.warning(f"Invalid scopes requested: {invalid_scopes}")
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "Invalid scopes",
+                "invalid_scopes": sorted(invalid_scopes),
+                "valid_scopes": sorted(valid_scopes),
+                "message": f"Unknown scopes: {', '.join(sorted(invalid_scopes))}. Use GET /scopes to see available scopes.",
+            }
+        )
 
     # Generate key
     raw_key, key_hash, prefix = _generate_api_key()
@@ -256,7 +264,6 @@ async def create_api_key(
         "api_key": api_key.to_dict(),
         "secret": raw_key,
         "warning": "Store this key securely. It will NOT be shown again.",
-        "invalid_scopes": list(invalid_scopes) if invalid_scopes else None,
     }
 
 

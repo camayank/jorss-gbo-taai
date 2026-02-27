@@ -128,15 +128,18 @@ class ComplianceAlert:
 _reports: dict[str, ComplianceReport] = {}
 _alerts: dict[str, ComplianceAlert] = {}
 
-# Seed some demo alerts
-_alerts["alert-001"] = ComplianceAlert(
-    alert_id="alert-001",
-    alert_type="data_access",
-    severity="medium",
-    title="Unusual data access pattern",
-    description="User accessed 50+ client records in 5 minutes",
-    firm_id="firm-001",
-)
+# Demo alerts only in development
+import os as _os
+_compliance_env = _os.environ.get("APP_ENVIRONMENT", "").lower().strip()
+if _compliance_env in {"development", "dev", "local", "test", "testing"}:
+    _alerts["alert-001"] = ComplianceAlert(
+        alert_id="alert-001",
+        alert_type="data_access",
+        severity="medium",
+        title="Unusual data access pattern",
+        description="User accessed 50+ client records in 5 minutes",
+        firm_id="firm-001",
+    )
 
 
 # =============================================================================
@@ -209,20 +212,11 @@ async def create_compliance_report(
         f"triggered_by={ctx.user_id}"
     )
 
-    # In production, this would trigger async processing
-    # For demo, immediately complete with mock findings
-    report.status = "completed"
-    report.completed_at = datetime.utcnow()
-    report.findings_count = 3
-    report.findings = [
-        {"type": "info", "message": "All access logs properly recorded"},
-        {"type": "warning", "message": "2 users have not enabled MFA"},
-        {"type": "info", "message": "Data retention policies are compliant"},
-    ]
-
+    # Report stays in pending status until async processing is implemented.
+    # Real compliance audits require scanning audit logs, access patterns, etc.
     return {
         "report": report.to_dict(),
-        "message": "Compliance report completed",
+        "message": "Compliance report queued. Check back for results via GET /reports/{report_id}.",
     }
 
 
@@ -375,31 +369,43 @@ async def get_data_access_report(
 
     Shows who accessed what data and when.
     """
-    # Mock data access report
-    return {
-        "summary": {
-            "total_accesses": 1234,
-            "unique_users": 45,
-            "unique_resources": 890,
-        },
-        "by_resource_type": {
-            "clients": 456,
-            "returns": 321,
-            "documents": 234,
-            "reports": 123,
-            "other": 100,
-        },
-        "top_accessors": [
-            {"user_id": "user-001", "email": "john@example.com", "access_count": 89},
-            {"user_id": "user-002", "email": "jane@example.com", "access_count": 76},
-            {"user_id": "user-003", "email": "bob@example.com", "access_count": 54},
-        ],
-        "unusual_patterns": [],
-        "date_range": {
-            "from": (datetime.utcnow() - timedelta(days=days)).isoformat(),
-            "to": datetime.utcnow().isoformat(),
-        },
+    # Query audit logs for real data access patterns
+    access_data = {"summary": {"total_accesses": 0, "unique_users": 0, "unique_resources": 0}, "by_resource_type": {}, "top_accessors": [], "unusual_patterns": []}
+    try:
+        from audit.audit_logger import get_audit_logger
+        audit_logger = get_audit_logger()
+        start_date = datetime.utcnow() - timedelta(days=days)
+        logs = audit_logger.query(start_date=start_date, limit=5000)
+
+        users = set()
+        resources = set()
+        resource_types: dict = {}
+        user_counts: dict = {}
+
+        for log in logs:
+            uid = log.get("user_id", "unknown")
+            rid = log.get("resource_id", "unknown")
+            rtype = log.get("resource_type", "other")
+            users.add(uid)
+            resources.add(rid)
+            resource_types[rtype] = resource_types.get(rtype, 0) + 1
+            user_counts[uid] = user_counts.get(uid, 0) + 1
+
+        top_accessors = sorted(user_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+        access_data = {
+            "summary": {"total_accesses": len(logs), "unique_users": len(users), "unique_resources": len(resources)},
+            "by_resource_type": resource_types,
+            "top_accessors": [{"user_id": uid, "access_count": cnt} for uid, cnt in top_accessors],
+            "unusual_patterns": [],
+        }
+    except Exception as e:
+        logger.warning(f"Could not query data access patterns: {e}")
+
+    access_data["date_range"] = {
+        "from": (datetime.utcnow() - timedelta(days=days)).isoformat(),
+        "to": datetime.utcnow().isoformat(),
     }
+    return access_data
 
 
 # =============================================================================

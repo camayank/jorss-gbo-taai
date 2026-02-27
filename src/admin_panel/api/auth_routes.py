@@ -482,12 +482,24 @@ async def request_password_reset(
             "expires_at": expires_at,
         }
 
-        # In production: Send email with reset link
+        # Generate reset link
         reset_link = f"/auth/reset-password?token={token}"
-        logger.info(f"Password reset requested for {email_lower}. Link: {reset_link}")
 
-        # TODO: Integrate with email service
-        # await send_password_reset_email(user["email"], reset_link)
+        # Attempt to send email via configured email service
+        email_sent = False
+        try:
+            from services.email_service import send_password_reset_email
+            await send_password_reset_email(user["email"], reset_link)
+            email_sent = True
+            logger.info(f"Password reset email sent to {email_lower}")
+        except ImportError:
+            logger.warning(
+                f"[AUTH] Email service not configured — password reset link for "
+                f"{email_lower} logged but NOT emailed. Configure email service for production."
+            )
+            logger.info(f"Password reset link (NOT emailed): {reset_link}")
+        except Exception as e:
+            logger.error(f"Failed to send password reset email to {email_lower}: {e}")
 
     # Always return success (security best practice - don't reveal if user exists)
     return {

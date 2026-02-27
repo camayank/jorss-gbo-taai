@@ -270,11 +270,12 @@ async def readiness_check():
     """
 
     try:
-        # Check all dependencies
+        # Check all dependencies (built-in + custom)
         dependencies = [
             check_database(),
             check_ocr_service(),
-            check_tax_calculator()
+            check_tax_calculator(),
+            *get_custom_health_checks(),
         ]
 
         # Get system metrics
@@ -344,7 +345,8 @@ async def dependency_status():
     return [
         check_database(),
         check_ocr_service(),
-        check_tax_calculator()
+        check_tax_calculator(),
+        *get_custom_health_checks(),
     ]
 
 
@@ -352,13 +354,31 @@ async def dependency_status():
 # Custom Health Checks
 # =============================================================================
 
+_custom_health_checks: dict = {}
+
+
 def register_custom_health_check(name: str, check_function):
     """
     Register a custom health check.
 
     Args:
         name: Name of the health check
-        check_function: Function that returns DependencyStatus
+        check_function: Callable that returns DependencyStatus
     """
-    # TODO: Implement custom health check registry
-    pass
+    _custom_health_checks[name] = check_function
+    logger.info(f"Registered custom health check: {name}")
+
+
+def get_custom_health_checks() -> list:
+    """Run all registered custom health checks and return results."""
+    results = []
+    for name, check_fn in _custom_health_checks.items():
+        try:
+            results.append(check_fn())
+        except Exception as e:
+            results.append(DependencyStatus(
+                name=name,
+                status="down",
+                message=f"Health check failed: {e}"
+            ))
+    return results

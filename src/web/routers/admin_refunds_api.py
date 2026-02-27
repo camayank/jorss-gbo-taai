@@ -82,8 +82,28 @@ _refunds: dict[str, Refund] = {}
 
 
 def _get_subscription_info(subscription_id: str) -> Optional[dict]:
-    """Look up subscription info. In production, query Stripe or billing DB."""
-    # TODO: Replace with Stripe SDK lookup: stripe.Subscription.retrieve(subscription_id)
+    """
+    Look up subscription info from billing provider.
+
+    Payments are collected via Mercury wallet. To enable programmatic refunds,
+    integrate with Mercury API or Stripe Connect.
+    """
+    # Check in-memory billing DB first (populated in dev environments)
+    try:
+        from core.api.billing_routes import _subscriptions_db
+        for sub in _subscriptions_db.values():
+            if sub.id == subscription_id:
+                return {
+                    "subscription_id": sub.id,
+                    "firm_id": getattr(sub, "firm_id", None) or sub.user_id,
+                    "firm_name": getattr(sub, "firm_name", "Unknown"),
+                    "amount": getattr(sub, "price", 0) or (sub.plan_tier.value if hasattr(sub, "plan_tier") else 0),
+                    "plan": sub.plan_name,
+                    "status": sub.status.value if hasattr(sub.status, "value") else sub.status,
+                }
+    except Exception:
+        pass
+
     return None
 
 
@@ -145,7 +165,7 @@ async def create_refund(
     if not subscription:
         raise HTTPException(
             status_code=404,
-            detail="Subscription not found"
+            detail="Subscription not found. Payments are managed via Mercury wallet — contact support for refund processing."
         )
 
     # Determine firm context
