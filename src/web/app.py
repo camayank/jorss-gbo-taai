@@ -2009,6 +2009,14 @@ def _require_admin_page_access(request: Request) -> Optional[RedirectResponse]:
     return RedirectResponse(url="/login?next=/admin", status_code=302)
 
 
+def _safe_next_path(path: str) -> str:
+    """Sanitize a redirect path for the ?next= parameter to prevent open redirects."""
+    if not path or not path.startswith("/") or path.startswith("//") or ":" in path.split("?")[0]:
+        return "/"
+    # Strip any query/fragment to avoid injection into the login URL
+    return path.split("?")[0].split("#")[0]
+
+
 def _require_cpa_or_admin_access(request: Request) -> Optional[RedirectResponse]:
     """Restrict page to CPA or admin roles."""
     role_bucket = _resolve_request_role_bucket(request)
@@ -2016,7 +2024,7 @@ def _require_cpa_or_admin_access(request: Request) -> Optional[RedirectResponse]
         return None
     if role_bucket == "client":
         return RedirectResponse(url="/app/portal", status_code=302)
-    return RedirectResponse(url=f"/login?next={request.url.path}", status_code=302)
+    return RedirectResponse(url=f"/login?next={_safe_next_path(request.url.path)}", status_code=302)
 
 
 def _require_any_auth(request: Request) -> Optional[RedirectResponse]:
@@ -2027,7 +2035,7 @@ def _require_any_auth(request: Request) -> Optional[RedirectResponse]:
     role_bucket = _resolve_request_role_bucket(request)
     if role_bucket != "anonymous":
         return None  # Any authenticated role is allowed
-    return RedirectResponse(url=f"/login?next={request.url.path}", status_code=302)
+    return RedirectResponse(url=f"/login?next={_safe_next_path(request.url.path)}", status_code=302)
 
 
 @app.get("/admin/api-keys", response_class=HTMLResponse)

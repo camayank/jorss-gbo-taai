@@ -13,6 +13,7 @@ Flow:
 """
 
 import os
+from urllib.parse import urlparse
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse, JSONResponse
 import logging
@@ -31,6 +32,44 @@ from ..services.oauth_service import (
 from ..services.auth_service import AuthResponse
 
 logger = logging.getLogger(__name__)
+
+# Allowed callback path suffixes for redirect_uri validation
+_OAUTH_CALLBACK_PATHS = {
+    "/api/core/auth/oauth/google/callback",
+    "/api/core/auth/oauth/microsoft/callback",
+}
+
+
+def _validate_redirect_uri(redirect_uri: str) -> str:
+    """
+    Validate that redirect_uri points to a known callback path on an allowed origin.
+
+    Prevents authorization-code theft by rejecting URIs that redirect to
+    attacker-controlled domains.
+    """
+    parsed = urlparse(redirect_uri)
+
+    # Must be http(s)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError("redirect_uri must use http or https")
+
+    # Path must be one of our known callback paths
+    if parsed.path not in _OAUTH_CALLBACK_PATHS:
+        raise ValueError("redirect_uri path is not a recognised OAuth callback")
+
+    # In production, require https
+    if _is_production and parsed.scheme != "https":
+        raise ValueError("redirect_uri must use https in production")
+
+    # Validate against configured CALLBACK_BASE_URL if set
+    configured_base = os.environ.get("OAUTH_CALLBACK_URL", "")
+    if configured_base:
+        allowed_host = urlparse(configured_base).hostname
+        if allowed_host and parsed.hostname != allowed_host:
+            raise ValueError("redirect_uri hostname does not match configured callback URL")
+
+    return redirect_uri
+
 
 router = APIRouter(prefix="/oauth", tags=["OAuth Authentication"])
 
@@ -86,6 +125,10 @@ async def start_google_oauth(
             origin = request.headers.get("origin", "")
             if origin:
                 redirect_uri = f"{origin}/api/core/auth/oauth/google/callback"
+
+        # Validate redirect_uri against allowlist
+        if redirect_uri:
+            redirect_uri = _validate_redirect_uri(redirect_uri)
 
         result = await oauth_service.start_oauth("google", redirect_uri)
         return result
@@ -215,6 +258,10 @@ async def start_microsoft_oauth(
             origin = request.headers.get("origin", "")
             if origin:
                 redirect_uri = f"{origin}/api/core/auth/oauth/microsoft/callback"
+
+        # Validate redirect_uri against allowlist
+        if redirect_uri:
+            redirect_uri = _validate_redirect_uri(redirect_uri)
 
         result = await oauth_service.start_oauth("microsoft", redirect_uri)
         return result

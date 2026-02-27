@@ -472,7 +472,7 @@ class CoreAuthService:
         # Fallback: try legacy SHA-256 for migration
         salt = AuthConfig.get_password_salt()
         legacy_hash = hashlib.sha256(f"{password}{salt}".encode()).hexdigest()
-        if legacy_hash == password_hash:
+        if hmac.compare_digest(legacy_hash, password_hash):
             logger.info("Legacy SHA-256 password matched - should be rehashed to bcrypt")
             return True
 

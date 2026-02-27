@@ -8,9 +8,17 @@ import logging
 import os
 from typing import Optional
 from uuid import UUID
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPException, status
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPException, Depends, status
 from fastapi.responses import JSONResponse
 import json
+
+# Auth dependency for admin-only HTTP endpoints
+try:
+    from rbac.dependencies import require_platform_admin
+    _admin_deps = [Depends(require_platform_admin)]
+except ImportError:
+    _admin_deps = []
+    logger = logging.getLogger(__name__)  # will be overwritten below, that's fine
 
 from .connection_manager import connection_manager
 from .events import (
@@ -133,7 +141,7 @@ async def websocket_endpoint(
 # HTTP ENDPOINTS FOR SENDING EVENTS
 # =============================================================================
 
-@websocket_router.post("/broadcast")
+@websocket_router.post("/broadcast", dependencies=_admin_deps)
 async def broadcast_event(
     event_type: str = Query(..., description="Event type"),
     title: str = Query(..., description="Event title"),
@@ -176,7 +184,7 @@ async def broadcast_event(
     }
 
 
-@websocket_router.post("/notify/{user_id}")
+@websocket_router.post("/notify/{user_id}", dependencies=_admin_deps)
 async def send_notification(
     user_id: str,
     title: str = Query(..., description="Notification title"),
@@ -207,7 +215,7 @@ async def send_notification(
     }
 
 
-@websocket_router.post("/announce")
+@websocket_router.post("/announce", dependencies=_admin_deps)
 async def system_announcement(
     title: str = Query(..., description="Announcement title"),
     message: str = Query(..., description="Announcement message"),
@@ -236,7 +244,7 @@ async def system_announcement(
     }
 
 
-@websocket_router.get("/connections")
+@websocket_router.get("/connections", dependencies=_admin_deps)
 async def get_connections():
     """Get current WebSocket connection statistics."""
     stats = connection_manager.get_stats()
@@ -246,7 +254,7 @@ async def get_connections():
     }
 
 
-@websocket_router.get("/connections/{firm_id}")
+@websocket_router.get("/connections/{firm_id}", dependencies=_admin_deps)
 async def get_firm_connections(firm_id: str):
     """Get connections for a specific firm."""
     connections = connection_manager.get_firm_connections(UUID(firm_id))
@@ -258,7 +266,7 @@ async def get_firm_connections(firm_id: str):
     }
 
 
-@websocket_router.post("/cleanup")
+@websocket_router.post("/cleanup", dependencies=_admin_deps)
 async def cleanup_stale_connections(
     max_idle_seconds: int = Query(300, description="Max idle time in seconds"),
 ):

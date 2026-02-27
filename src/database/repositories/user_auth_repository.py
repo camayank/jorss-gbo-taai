@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import logging
 import hashlib
+import hmac
 from datetime import datetime
 from typing import Optional, Dict, Any
 from uuid import UUID, uuid4
@@ -115,7 +116,7 @@ class UserAuthRepository:
         """
         user = await self.get_user_by_id(user_id)
         if user and user.get("password_hash"):
-            return user["password_hash"] == password_hash
+            return hmac.compare_digest(user["password_hash"], password_hash)
         return False
 
     async def update_last_login(self, user_id: str, ip_address: Optional[str] = None) -> bool:
