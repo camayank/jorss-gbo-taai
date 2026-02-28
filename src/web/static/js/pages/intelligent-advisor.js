@@ -221,6 +221,19 @@
     };
 
     // =========================================================================
+    // SECURITY: HTML Escaping Utility
+    // =========================================================================
+
+    /**
+     * Escape HTML special characters to prevent XSS when interpolating API data.
+     */
+    function escapeHtml(str) {
+      if (typeof str !== 'string') return '';
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // =========================================================================
     // SECURITY: CSRF Protection
     // =========================================================================
 
@@ -2097,9 +2110,11 @@
         const sanitized = typeof DOMPurify !== 'undefined'
           ? DOMPurify.sanitize(text, {
               ALLOWED_TAGS: ['b','i','strong','em','br','div','span','ul','ol','li','a','p',
-                'h3','h4','h5','table','thead','tbody','tr','th','td','svg','path','code','pre'],
+                'h3','h4','h5','table','thead','tbody','tr','th','td','svg','path','code','pre',
+                'button','input'],
               ALLOWED_ATTR: ['href','target','rel','class','style','viewBox','d','fill',
-                'stroke','stroke-width','width','height','aria-hidden']
+                'stroke','stroke-width','width','height','aria-hidden',
+                'onclick','id','type','placeholder','value']
             })
           : text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
                .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
@@ -7700,9 +7715,9 @@
             const d = await resp.json();
             let msg = `<div style="background:var(--bg-secondary, #f8fafc);border:1px solid var(--border-color, #e2e8f0);border-radius:8px;padding:12px;">`;
             msg += `<div style="font-weight:600;margin-bottom:8px;color:var(--primary, #4338ca);">Roth Conversion Analysis</div>`;
-            msg += `<div style="font-size:0.85rem;margin-bottom:8px;">${d.analysis || ''}</div>`;
-            if (d.recommendation) msg += `<div style="font-weight:600;font-size:0.85rem;">Recommendation: ${d.recommendation}</div>`;
-            if (d.action_items) { msg += `<ul style="font-size:0.8rem;padding-left:18px;margin:6px 0;">`; d.action_items.forEach(i => msg += `<li>${i}</li>`); msg += `</ul>`; }
+            msg += `<div style="font-size:0.85rem;margin-bottom:8px;">${escapeHtml(d.analysis || '')}</div>`;
+            if (d.recommendation) msg += `<div style="font-weight:600;font-size:0.85rem;">Recommendation: ${escapeHtml(d.recommendation)}</div>`;
+            if (d.action_items) { msg += `<ul style="font-size:0.8rem;padding-left:18px;margin:6px 0;">`; d.action_items.forEach(i => msg += `<li>${escapeHtml(i)}</li>`); msg += `</ul>`; }
             if (d.confidence) msg += `<span style="display:inline-block;background:#e0e7ff;color:#4338ca;font-size:0.65rem;font-weight:600;padding:1px 6px;border-radius:9999px;">Confidence: ${Math.round(d.confidence * 100)}%</span>`;
             msg += `</div>`;
             addMessage('ai', msg, [{ label: 'Back to Strategies', value: 'show_strategies' }]);
@@ -7723,9 +7738,9 @@
             const d = await resp.json();
             let msg = `<div style="background:var(--bg-secondary, #f8fafc);border:1px solid var(--border-color, #e2e8f0);border-radius:8px;padding:12px;">`;
             msg += `<div style="font-weight:600;margin-bottom:8px;color:var(--primary, #4338ca);">Business Entity Analysis</div>`;
-            msg += `<div style="font-size:0.85rem;margin-bottom:8px;">${d.analysis || ''}</div>`;
-            if (d.recommendation) msg += `<div style="font-weight:600;font-size:0.85rem;">Recommendation: ${d.recommendation}</div>`;
-            if (d.action_items) { msg += `<ul style="font-size:0.8rem;padding-left:18px;margin:6px 0;">`; d.action_items.forEach(i => msg += `<li>${i}</li>`); msg += `</ul>`; }
+            msg += `<div style="font-size:0.85rem;margin-bottom:8px;">${escapeHtml(d.analysis || '')}</div>`;
+            if (d.recommendation) msg += `<div style="font-weight:600;font-size:0.85rem;">Recommendation: ${escapeHtml(d.recommendation)}</div>`;
+            if (d.action_items) { msg += `<ul style="font-size:0.8rem;padding-left:18px;margin:6px 0;">`; d.action_items.forEach(i => msg += `<li>${escapeHtml(i)}</li>`); msg += `</ul>`; }
             if (d.confidence) msg += `<span style="display:inline-block;background:#e0e7ff;color:#4338ca;font-size:0.65rem;font-weight:600;padding:1px 6px;border-radius:9999px;">Confidence: ${Math.round(d.confidence * 100)}%</span>`;
             msg += `</div>`;
             addMessage('ai', msg, [{ label: 'Back to Strategies', value: 'show_strategies' }]);
@@ -7746,9 +7761,9 @@
             const d = await resp.json();
             let msg = `<div style="background:var(--bg-secondary, #f8fafc);border:1px solid var(--border-color, #e2e8f0);border-radius:8px;padding:12px;">`;
             msg += `<div style="font-weight:600;margin-bottom:8px;color:var(--primary, #4338ca);">Deduction Optimization</div>`;
-            msg += `<div style="font-size:0.85rem;margin-bottom:8px;">${d.analysis || ''}</div>`;
-            if (d.recommendation) msg += `<div style="font-weight:600;font-size:0.85rem;">Recommendation: ${d.recommendation}</div>`;
-            if (d.action_items) { msg += `<ul style="font-size:0.8rem;padding-left:18px;margin:6px 0;">`; d.action_items.forEach(i => msg += `<li>${i}</li>`); msg += `</ul>`; }
+            msg += `<div style="font-size:0.85rem;margin-bottom:8px;">${escapeHtml(d.analysis || '')}</div>`;
+            if (d.recommendation) msg += `<div style="font-weight:600;font-size:0.85rem;">Recommendation: ${escapeHtml(d.recommendation)}</div>`;
+            if (d.action_items) { msg += `<ul style="font-size:0.8rem;padding-left:18px;margin:6px 0;">`; d.action_items.forEach(i => msg += `<li>${escapeHtml(i)}</li>`); msg += `</ul>`; }
             if (d.confidence) msg += `<span style="display:inline-block;background:#e0e7ff;color:#4338ca;font-size:0.65rem;font-weight:600;padding:1px 6px;border-radius:9999px;">Confidence: ${Math.round(d.confidence * 100)}%</span>`;
             msg += `</div>`;
             addMessage('ai', msg, [{ label: 'Back to Strategies', value: 'show_strategies' }]);
@@ -7977,8 +7992,8 @@
       let html = '<div class="strategy-card ' + cardClass + '" data-strategy-id="' + (strategy.id || index) + '" data-tier="' + tier + '">';
 
       // Header: title + badges (always visible)
-      html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">';
-      html += '<div class="strategy-title" style="font-weight:600;font-size:0.95rem;">' + (index + 1) + '. ' + (strategy.title || 'Strategy') + '</div>';
+      html += '<div class="strategy-card__header">';
+      html += '<div class="strategy-card__title">' + (index + 1) + '. ' + escapeHtml(strategy.title || 'Strategy') + '</div>';
       html += '<span class="strategy-badge">' + badgeLabel + '</span>';
       html += '</div>';
 
@@ -7991,16 +8006,16 @@
 
       // Content section (blurred on locked cards via CSS)
       html += '<div class="strategy-content">';
-      html += '<div style="font-size:0.85rem;color:var(--color-gray-600);margin:8px 0;">' + (strategy.summary || '') + '</div>';
+      html += '<div class="strategy-card__summary">' + escapeHtml(strategy.summary || '') + '</div>';
 
       if (strategy.detailed_explanation) {
-        const truncated = strategy.detailed_explanation.substring(0, 200) + (strategy.detailed_explanation.length > 200 ? '...' : '');
-        html += '<div style="font-size:0.8rem;color:var(--color-gray-500);margin-bottom:8px;">' + truncated + '</div>';
+        const truncated = escapeHtml(strategy.detailed_explanation.substring(0, 200)) + (strategy.detailed_explanation.length > 200 ? '...' : '');
+        html += '<div class="strategy-card__explanation">' + truncated + '</div>';
       }
 
       if (strategy.action_steps && strategy.action_steps.length > 0) {
-        html += '<div style="font-size:0.8rem;"><strong>Next steps:</strong><ul style="margin:4px 0;padding-left:18px;">';
-        strategy.action_steps.slice(0, 3).forEach(function(step) { html += '<li>' + step + '</li>'; });
+        html += '<div class="strategy-card__steps"><strong>Next steps:</strong><ul>';
+        strategy.action_steps.slice(0, 3).forEach(function(step) { html += '<li>' + escapeHtml(step) + '</li>'; });
         html += '</ul></div>';
       }
       html += '</div>'; // end strategy-content
@@ -8031,8 +8046,8 @@
         var icon = check.status === 'pass' ? '&#10003;' : '&#9888;';
         html += '<div class="safety-check-item">';
         html += '<span class="safety-check-item__icon">' + icon + '</span>';
-        html += '<span class="safety-check-item__name">' + check.name + '</span>';
-        html += '<span class="safety-check-item__detail">' + check.detail + '</span>';
+        html += '<span class="safety-check-item__name">' + escapeHtml(check.name) + '</span>';
+        html += '<span class="safety-check-item__detail">' + escapeHtml(check.detail) + '</span>';
         html += '</div>';
       });
 
@@ -8225,13 +8240,13 @@
           const ec = data.entity_comparison;
           aiResponse += `\n\n<div class="ai-entity-card" style="background:var(--bg-secondary, #f8fafc);border:1px solid var(--border-color, #e2e8f0);border-radius:8px;padding:12px;margin-top:12px;">`;
           aiResponse += `<div style="font-weight:600;margin-bottom:8px;color:var(--primary, #4338ca);">Business Entity Analysis</div>`;
-          aiResponse += `<div style="font-size:0.85rem;margin-bottom:8px;">${ec.ai_analysis}</div>`;
+          aiResponse += `<div style="font-size:0.85rem;margin-bottom:8px;">${escapeHtml(ec.ai_analysis)}</div>`;
           if (ec.recommendation) {
-            aiResponse += `<div style="font-weight:600;font-size:0.85rem;margin-bottom:4px;">Recommendation: ${ec.recommendation}</div>`;
+            aiResponse += `<div style="font-weight:600;font-size:0.85rem;margin-bottom:4px;">Recommendation: ${escapeHtml(ec.recommendation)}</div>`;
           }
           if (ec.action_items && ec.action_items.length > 0) {
             aiResponse += `<div style="font-size:0.8rem;margin-top:6px;"><strong>Action Items:</strong><ul style="margin:4px 0;padding-left:18px;">`;
-            ec.action_items.forEach(item => { aiResponse += `<li>${item}</li>`; });
+            ec.action_items.forEach(item => { aiResponse += `<li>${escapeHtml(item)}</li>`; });
             aiResponse += `</ul></div>`;
           }
           if (ec.confidence) {
@@ -10722,6 +10737,20 @@ If they're ready to move forward, suggest generating their comprehensive advisor
     }
 
     /**
+     * Update all locked strategy cards in the DOM to unlocked state.
+     */
+    function unlockAllCards() {
+      document.querySelectorAll('.strategy-card--locked').forEach(function(card) {
+        card.classList.remove('strategy-card--locked');
+        card.classList.add('strategy-card--unlocked');
+        var badge = card.querySelector('.strategy-badge');
+        if (badge) badge.textContent = 'Unlocked';
+        var overlay = card.querySelector('.lock-overlay');
+        if (overlay) overlay.remove();
+      });
+    }
+
+    /**
      * Unlock premium strategies: instant reveal + soft lead capture.
      */
     window.unlockPremiumStrategies = async function() {
@@ -10738,14 +10767,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           premiumUnlocked = true;
 
           // Update all locked cards to unlocked
-          document.querySelectorAll('.strategy-card--locked').forEach(function(card) {
-            card.classList.remove('strategy-card--locked');
-            card.classList.add('strategy-card--unlocked');
-            var badge = card.querySelector('.strategy-badge');
-            if (badge) badge.textContent = 'Unlocked';
-            var overlay = card.querySelector('.lock-overlay');
-            if (overlay) overlay.remove();
-          });
+          unlockAllCards();
 
           // Update strategies data
           if (unlockData.strategies) {
@@ -10757,14 +10779,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       } catch (error) {
         // Unlock locally even if backend fails
         premiumUnlocked = true;
-        document.querySelectorAll('.strategy-card--locked').forEach(function(card) {
-          card.classList.remove('strategy-card--locked');
-          card.classList.add('strategy-card--unlocked');
-          var badge = card.querySelector('.strategy-badge');
-          if (badge) badge.textContent = 'Unlocked';
-          var overlay = card.querySelector('.lock-overlay');
-          if (overlay) overlay.remove();
-        });
+        unlockAllCards();
       }
 
       // Step 2: Show soft lead capture message in chat
@@ -10787,7 +10802,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       var name = document.getElementById('leadNameInput') ? document.getElementById('leadNameInput').value : '';
       var email = document.getElementById('leadEmailInput') ? document.getElementById('leadEmailInput').value : '';
 
-      if (!email || email.indexOf('@') === -1) {
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         showToast('Please enter a valid email address', 'warning');
         return;
       }

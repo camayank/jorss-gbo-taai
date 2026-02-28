@@ -527,6 +527,42 @@
 }
 
 /* =========================
+   STRATEGY CARD INNER LAYOUT
+   ========================= */
+.strategy-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.strategy-card__title {
+  font-weight: var(--font-semibold, 600);
+  font-size: 0.95rem;
+}
+
+.strategy-card__summary {
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-gray-600);
+  margin: 8px 0;
+}
+
+.strategy-card__explanation {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-gray-500);
+  margin-bottom: 8px;
+}
+
+.strategy-card__steps {
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.strategy-card__steps ul {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+/* =========================
    RESPONSIVE
    ========================= */
 @media (max-width: 640px) {

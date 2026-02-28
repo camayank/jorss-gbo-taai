@@ -4057,8 +4057,8 @@ async def _classify_strategy_tier(
     elif category not in SIMPLE_CATEGORIES:
         complexity = "moderate"
 
-    # Rule 2: AI reasoning flag
-    if AI_CHAT_ENABLED:
+    # Rule 2: AI reasoning flag (only if not already premium from category)
+    if AI_CHAT_ENABLED and tier != "premium":
         try:
             from services.ai.tax_reasoning_service import get_tax_reasoning_service
             reasoning = get_tax_reasoning_service()
@@ -5255,6 +5255,8 @@ To get started, what's your filing status?"""
     key_insights = []
     warnings = []
     total_potential_savings = 0.0
+    premium_unlocked = False
+    safety_data = None
 
     # Build correction acknowledgment prefix if needed
     correction_prefix = ""
@@ -5366,6 +5368,13 @@ To get started, what's your filing status?"""
         except Exception:
             pass  # Non-blocking
 
+    # Include comparison in response if available
+    if comparison_result and isinstance(comparison_result, dict) and comparison_result.get("analysis"):
+        comp_text = comparison_result.get("analysis", "")
+        if comp_text and len(comp_text) > 10:
+            response_text = comp_text[:1500]
+            response_type = "ai_response"
+
     # Check if there are still deep-dive questions to ask before calculating
     has_basics = profile.get("total_income") and profile.get("filing_status") and profile.get("state")
     next_deep_q, next_deep_actions = _get_dynamic_next_question(profile)
@@ -5403,11 +5412,11 @@ To get started, what's your filing status?"""
 
         # Enrich top strategies with AI reasoning (non-simple profiles only)
         if AI_CHAT_ENABLED and complexity != "simple" and strategies:
+            import time as _time
+            _ai_start = _time.monotonic()
             try:
                 from services.ai.tax_reasoning_service import get_tax_reasoning_service
                 reasoning_svc = get_tax_reasoning_service()
-                import time as _time
-                _ai_start = _time.monotonic()
                 for s in strategies[:2]:
                     result = await reasoning_svc.analyze(
                         problem=f"Why is '{s.title}' beneficial for this taxpayer?",
@@ -5417,10 +5426,11 @@ To get started, what's your filing status?"""
                         s.detailed_explanation = result.analysis[:500]
                     if result.action_items:
                         s.action_steps = result.action_items[:5]
+                _ai_elapsed = (_time.monotonic() - _ai_start) * 1000
+                asyncio.create_task(_record_ai_usage("TaxReasoningService", "analyze", _ai_elapsed))
             except Exception:
-                pass  # Keep original strategy text
-            _ai_elapsed = (_time.monotonic() - _ai_start) * 1000
-            asyncio.create_task(_record_ai_usage("TaxReasoningService", "analyze", _ai_elapsed))
+                _ai_elapsed = (_time.monotonic() - _ai_start) * 1000
+                asyncio.create_task(_record_ai_usage("TaxReasoningService", "analyze", _ai_elapsed, success=False))
 
             # Generate personalized narrative explanations for top strategies
             try:
@@ -5442,17 +5452,22 @@ To get started, what's your filing status?"""
                     narrative = await narrator.generate_recommendation_explanation(rec_data, client_profile)
                     if narrative and narrative.content:
                         s.detailed_explanation = narrative.content[:800]
+                asyncio.create_task(_record_ai_usage("AINarrativeGenerator", "generate_recommendation_explanation"))
             except Exception as e:
                 logger.warning(f"Narrative enrichment failed (non-blocking): {e}")
-            asyncio.create_task(_record_ai_usage("AINarrativeGenerator", "generate_recommendation_explanation"))
+                asyncio.create_task(_record_ai_usage("AINarrativeGenerator", "generate_recommendation_explanation", success=False))
 
         # Classify strategy tiers
         tier_session = await chat_engine.get_or_create_session(request.session_id)
         safety_data = tier_session.get("safety_checks")
         premium_unlocked = tier_session.get("premium_unlocked", False)
 
-        for s in strategies:
-            tier_info = await _classify_strategy_tier(s, profile, safety_data)
+        # Classify tiers — deterministic rules first, AI only for ambiguous cases
+        tier_tasks = [_classify_strategy_tier(s, profile, safety_data) for s in strategies]
+        tier_results = await asyncio.gather(*tier_tasks, return_exceptions=True)
+        for s, tier_info in zip(strategies, tier_results):
+            if isinstance(tier_info, Exception):
+                tier_info = {"tier": "free", "risk_level": "low", "implementation_complexity": "simple"}
             s.tier = tier_info["tier"]
             s.risk_level = tier_info["risk_level"]
             s.implementation_complexity = tier_info["implementation_complexity"]
@@ -5664,7 +5679,7 @@ To get started, what's your filing status?"""
             response_confidence=response_confidence,
             confidence_reason=confidence_reason,
             premium_unlocked=premium_unlocked,
-            safety_summary=_build_safety_summary(safety_data) if 'safety_data' in dir() else None,
+            safety_summary=_build_safety_summary(safety_data),
         )
 
         # Log AI response for audit trail
@@ -7194,8 +7209,8 @@ async def unlock_strategies(request: UnlockRequest, _session: str = Depends(veri
 class EmailReportRequest(BaseModel):
     """Request to email the tax advisory report."""
     session_id: str
-    email: str
-    name: Optional[str] = None
+    email: str = Field(..., pattern=r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+    name: Optional[str] = Field(None, max_length=200)
 
 
 @router.post("/report/email")
@@ -7205,11 +7220,6 @@ async def email_report(request: EmailReportRequest, _session: str = Depends(veri
     This is the key conversion endpoint: captures lead data and
     triggers CPA notification.
     """
-    import re
-    # Basic email validation
-    if not request.email or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", request.email):
-        raise HTTPException(status_code=400, detail="Valid email address required.")
-
     try:
         session = await chat_engine.get_or_create_session(request.session_id)
         profile = session.get("profile", {})
@@ -7287,8 +7297,9 @@ async def email_report(request: EmailReportRequest, _session: str = Depends(veri
         return {
             "success": True,
             "session_id": request.session_id,
-            "email_sent": True,
-            "message": "Your report has been sent. A CPA will reach out within 24 hours.",
+            "lead_captured": True,
+            "email_queued": False,
+            "message": "Your information has been received. A CPA will reach out within 24 hours.",
             "email_body_client": email_body_client,
             "email_body_internal": email_body_internal,
         }
