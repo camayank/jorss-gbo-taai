@@ -42,6 +42,15 @@ jobs:
         run: safety check --output text || true
         continue-on-error: true
 
+      - name: Migration graph integrity
+        run: |
+          python -c "
+          from scripts.preflight_launch import check_migration_graph
+          result = check_migration_graph()
+          print(f'{result.level}: {result.message}')
+          assert result.level == 'PASS', f'Migration graph check failed: {result.message}'
+          "
+
       - name: Launch blocker security tests
         run: |
           pytest -q \
