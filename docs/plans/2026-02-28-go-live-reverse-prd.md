@@ -181,23 +181,18 @@ python3 scripts/generate_secrets.py --verify --env-file .env.production
 **Priority:** P0
 **Estimated effort:** 3-4 days
 
-### WS2.1 — Dependency Lock File
+### WS2.1 — Dependency Lock File ✅ DONE (2026-02-28)
 
 **Problem:** No `requirements.lock` or `poetry.lock`. Production installs may get different package versions than development, causing unpredictable behavior.
 
-**Current state:**
-- `requirements.txt` uses range pinning: `langchain>=0.3.0,<0.4.0`, `fastapi>=0.115.0`
-- `pyproject.toml` has older versions (project started on 3.10)
-- No `package-lock.json` for npm
-
-**Actions:**
-1. Generate `requirements.lock`: `pip freeze > requirements.lock`
-2. Update `scripts/build.sh` to install from lock file in production
-3. Generate `package-lock.json`: `npm install --package-lock-only`
-4. Add lock files to git
+**Resolution:**
+1. Synced venv to `requirements.txt` — installed 6 missing production deps (redis, asyncpg, gunicorn, sentry-sdk, itsdangerous, aiofiles) and upgraded langchain-community 0.0.20→0.3.31 to fix dependency conflicts. `pip check` passes clean.
+2. Generated `requirements.lock` — 107 exact-pinned production packages (pytest excluded). Header documents regeneration procedure.
+3. Updated `Dockerfile` — builder stage now installs from `requirements.lock` instead of `requirements.txt`.
+4. Generated root `package-lock.json` — locks Storybook/stylelint devtools.
 
 **Dependencies:** None
-**Verification:** `pip install -r requirements.lock` installs exact same versions as dev
+**Verification:** `pip install -r requirements.lock` resolves all 107 packages; `pip check` reports no broken requirements
 
 ---
 
@@ -813,7 +808,7 @@ Run through every item before going live:
 Week 1 (Parallel):
 ├── WS1.1  Rotate secrets                    [Security Lead]  ✅ DONE
 ├── WS1.5  CSRF alignment                    [Backend]        ✅ DONE
-├── WS2.1  Lock file                         [Backend]
+├── WS2.1  Lock file                         [Backend]        ✅ DONE
 ├── WS3.3  .dockerignore                     [DevOps]         ✅ DONE
 ├── WS4.1  Fix test collection               [QA]
 ├── WS6.3  Fix duplicate JS function         [Frontend]
