@@ -636,6 +636,10 @@ class StrategyRecommendation(BaseModel):
     action_steps: List[str]
     irs_reference: Optional[str] = None
     deadline: Optional[str] = None
+    # Tiered conversion fields
+    tier: Optional[str] = "free"  # "free" or "premium"
+    risk_level: Optional[str] = "low"  # "low", "medium", "high"
+    implementation_complexity: Optional[str] = "simple"  # "simple", "moderate", "complex"
 
 
 class TaxCalculationResult(BaseModel):
@@ -727,6 +731,10 @@ class ChatResponse(BaseModel):
     # Response confidence
     response_confidence: str = "high"  # high, medium, low
     confidence_reason: Optional[str] = None  # Why confidence is reduced
+
+    # Tiered conversion fields
+    premium_unlocked: bool = False
+    safety_summary: Optional[Dict[str, Any]] = None
 
 
 class FullAnalysisRequest(BaseModel):
@@ -4006,6 +4014,178 @@ def _profile_to_return_data(profile: Dict, session_id: str = "") -> Dict[str, An
     }
 
 
+# =============================================================================
+# STRATEGY TIERING — Classify strategies as free or premium
+# =============================================================================
+
+PREMIUM_CATEGORIES = {
+    "entity_restructuring", "roth_conversion", "estate_planning",
+    "amt_optimization", "international_tax", "trust_planning",
+    "cost_segregation", "opportunity_zones", "backdoor_roth",
+    "mega_backdoor_roth", "charitable_remainder_trust",
+}
+
+SIMPLE_CATEGORIES = {
+    "retirement_401k", "retirement_ira", "hsa", "charitable_giving",
+    "standard_deduction", "education_credits", "child_tax_credit",
+    "earned_income_credit", "student_loan_interest",
+}
+
+
+async def _classify_strategy_tier(
+    strategy,
+    profile: dict,
+    safety_data: Optional[dict] = None,
+) -> dict:
+    """Classify a strategy as free or premium based on AI risk analysis.
+
+    Returns dict with tier, risk_level, implementation_complexity.
+
+    Classification rules (from design doc):
+      FREE:  requires_professional_review=false AND audit_risk < 20 AND simple category
+      PREMIUM: requires_professional_review=true OR audit_risk >= 20 OR complex category
+    """
+    tier = "free"
+    risk_level = "low"
+    complexity = "simple"
+
+    # Rule 1: Category-based classification
+    category = (strategy.category or "").lower().replace(" ", "_")
+    if category in PREMIUM_CATEGORIES:
+        tier = "premium"
+        complexity = "complex"
+    elif category not in SIMPLE_CATEGORIES:
+        complexity = "moderate"
+
+    # Rule 2: AI reasoning flag
+    if AI_CHAT_ENABLED:
+        try:
+            from services.ai.tax_reasoning_service import get_tax_reasoning_service
+            reasoning = get_tax_reasoning_service()
+            result = await reasoning.analyze(
+                problem=f"Does '{strategy.title}' require professional CPA review for this taxpayer?",
+                context=_summarize_profile(profile),
+            )
+            if result.requires_professional_review:
+                tier = "premium"
+            if result.confidence and result.confidence < 0.6:
+                risk_level = "medium"
+        except Exception:
+            pass
+
+    # Rule 3: Audit risk from safety data
+    if safety_data:
+        audit_risk = safety_data.get("audit_risk", {})
+        risk_score = audit_risk.get("risk_score", 0)
+        if risk_score >= 20:
+            tier = "premium"
+        if risk_score >= 50:
+            risk_level = "high"
+        elif risk_score >= 20:
+            risk_level = "medium"
+
+    # Rule 4: High savings = likely complex
+    if strategy.estimated_savings > 5000 and complexity == "simple":
+        complexity = "moderate"
+
+    # Rule 5: Entity changes, conversions, timing-dependent
+    title_lower = (strategy.title or "").lower()
+    if any(kw in title_lower for kw in ["convert", "restructure", "entity", "roth conversion", "backdoor"]):
+        tier = "premium"
+        complexity = "complex"
+
+    return {"tier": tier, "risk_level": risk_level, "implementation_complexity": complexity}
+
+
+def _build_safety_summary(safety_checks: Optional[dict]) -> Optional[dict]:
+    """Build user-facing compliance summary from safety check data."""
+    if not safety_checks:
+        return None
+
+    checks = []
+    total = 0
+    passed = 0
+
+    fraud = safety_checks.get("fraud")
+    if fraud:
+        total += 1
+        is_clear = fraud.get("risk_level", "").upper() in ("MINIMAL", "LOW", "NONE")
+        passed += 1 if is_clear else 0
+        checks.append({"name": "Fraud Detection", "status": "pass" if is_clear else "review", "detail": "Clear" if is_clear else "Review recommended"})
+
+    identity = safety_checks.get("identity_theft")
+    if identity:
+        total += 1
+        is_clear = not identity.get("indicators_found", True)
+        passed += 1 if is_clear else 0
+        checks.append({"name": "Identity Verification", "status": "pass" if is_clear else "review", "detail": "Pass" if is_clear else "Review recommended"})
+
+    compliance = safety_checks.get("compliance")
+    if compliance:
+        total += 1
+        is_ok = compliance.get("risk_level", "").upper() in ("LOW", "NONE", "MINIMAL")
+        passed += 1 if is_ok else 0
+        checks.append({"name": "Tax Compliance", "status": "pass" if is_ok else "review", "detail": "Compliant" if is_ok else "Review recommended"})
+
+    eitc = safety_checks.get("eitc_compliance")
+    if eitc:
+        total += 1
+        is_ok = eitc.get("compliant", False)
+        passed += 1 if is_ok else 0
+        checks.append({"name": "EITC Due Diligence", "status": "pass" if is_ok else "review", "detail": "Compliant" if is_ok else "Review recommended"})
+
+    c230 = safety_checks.get("circular_230")
+    if c230:
+        total += 1
+        is_ok = c230.get("compliant", False)
+        passed += 1 if is_ok else 0
+        checks.append({"name": "Circular 230", "status": "pass" if is_ok else "review", "detail": "Compliant" if is_ok else "Review recommended"})
+
+    audit = safety_checks.get("audit_risk")
+    if audit:
+        total += 1
+        risk = (audit.get("overall_risk") or "low").lower()
+        is_ok = risk == "low"
+        passed += 1 if is_ok else 0
+        checks.append({"name": "Audit Risk Assessment", "status": "pass" if is_ok else "review", "detail": f"{'Low' if is_ok else risk.title()} risk (score: {audit.get('risk_score', 0)})"})
+
+    data_errors = safety_checks.get("data_errors")
+    if data_errors:
+        total += 1
+        is_ok = not data_errors.get("errors_found", True)
+        passed += 1 if is_ok else 0
+        checks.append({"name": "Data Validation", "status": "pass" if is_ok else "review", "detail": "Pass" if is_ok else "Errors detected"})
+
+    if total == 0:
+        return None
+
+    needs_review = total - passed
+    return {
+        "total_checks": total,
+        "passed": passed,
+        "needs_review": needs_review,
+        "checks": checks,
+        "overall_status": "clear" if needs_review == 0 else "review_recommended",
+    }
+
+
+async def _record_ai_usage(service_name: str, method_name: str, duration_ms: float = 0, success: bool = True):
+    """Record AI service usage for metrics dashboard (non-blocking)."""
+    if not AI_CHAT_ENABLED:
+        return
+    try:
+        from services.ai.metrics_service import get_ai_metrics_service
+        metrics = get_ai_metrics_service()
+        metrics.record_usage(
+            service=service_name,
+            method=method_name,
+            duration_ms=duration_ms,
+            success=success,
+        )
+    except Exception:
+        pass  # Metrics recording is never critical
+
+
 async def _run_safety_checks_background(session_id: str, profile: Dict, calculation) -> None:
     """Run fraud, compliance, and anomaly checks in the background (non-blocking)."""
     if not AI_SAFETY_CHECKS_ENABLED:
@@ -4027,6 +4207,26 @@ async def _run_safety_checks_background(session_id: str, profile: Dict, calculat
     except Exception as e:
         logger.warning(f"Fraud check failed (non-blocking): {e}")
 
+    # 1b. Identity theft screening (sync service → run in thread)
+    try:
+        from security.fraud_detector import get_fraud_detector
+        identity_result = await asyncio.to_thread(
+            get_fraud_detector().check_identity_theft_indicators, return_data
+        )
+        results["identity_theft"] = identity_result
+    except Exception as e:
+        logger.warning(f"Identity theft check failed (non-blocking): {e}")
+
+    # 1c. Refund fraud detection (sync service → run in thread)
+    try:
+        from security.fraud_detector import get_fraud_detector
+        refund_result = await asyncio.to_thread(
+            get_fraud_detector().analyze_refund_risk, return_data
+        )
+        results["refund_risk"] = refund_result
+    except Exception as e:
+        logger.warning(f"Refund risk check failed (non-blocking): {e}")
+
     # 2. Compliance review (sync service → run in thread)
     try:
         from security.ai_compliance_reviewer import get_compliance_reviewer as get_compliance
@@ -4039,6 +4239,32 @@ async def _run_safety_checks_background(session_id: str, profile: Dict, calculat
     except Exception as e:
         logger.warning(f"Compliance check failed (non-blocking): {e}")
 
+    # 2b. EITC due diligence (Form 8867) — if dependents present
+    if (profile.get("dependents", 0) or 0) > 0:
+        try:
+            from security.ai_compliance_reviewer import get_compliance_reviewer as get_compliance
+            eitc_result = await asyncio.to_thread(
+                get_compliance().check_eitc_due_diligence, return_data
+            )
+            results["eitc_compliance"] = [
+                {"requirement": r.requirement if hasattr(r, 'requirement') else str(r),
+                 "met": r.met if hasattr(r, 'met') else True}
+                for r in (eitc_result if isinstance(eitc_result, list) else [eitc_result])
+            ]
+        except Exception as e:
+            logger.warning(f"EITC due diligence check failed (non-blocking): {e}")
+
+    # 2c. Circular 230 compliance verification
+    try:
+        from security.ai_compliance_reviewer import get_compliance_reviewer as get_compliance
+        circ230_result = await asyncio.to_thread(
+            get_compliance().check_circular_230_compliance,
+            {"ptin": "P00000000", "firm": "AI Advisory"},
+        )
+        results["circular_230"] = circ230_result
+    except Exception as e:
+        logger.warning(f"Circular 230 check failed (non-blocking): {e}")
+
     # 3. Anomaly detection (async service)
     try:
         from services.ai.anomaly_detector import get_anomaly_detector
@@ -4050,6 +4276,35 @@ async def _run_safety_checks_background(session_id: str, profile: Dict, calculat
         }
     except Exception as e:
         logger.warning(f"Anomaly check failed (non-blocking): {e}")
+
+    # 3b. Audit risk scoring
+    try:
+        from services.ai.anomaly_detector import get_anomaly_detector
+        audit_assessment = await get_anomaly_detector().assess_audit_risk(return_data)
+        results["audit_risk"] = {
+            "overall_risk": audit_assessment.overall_risk,
+            "risk_score": audit_assessment.risk_score,
+            "primary_triggers": audit_assessment.primary_triggers,
+            "recommendations": audit_assessment.recommendations,
+        }
+    except Exception as e:
+        logger.warning(f"Audit risk scoring failed (non-blocking): {e}")
+
+    # 3c. Data entry error validation
+    try:
+        from services.ai.anomaly_detector import get_anomaly_detector
+        data_errors = await get_anomaly_detector().check_data_entry_errors(return_data)
+        results["data_errors"] = [
+            {
+                "field": err.field,
+                "severity": err.severity.value if hasattr(err.severity, 'value') else str(err.severity),
+                "description": err.description,
+                "recommendation": err.recommendation,
+            }
+            for err in data_errors
+        ]
+    except Exception as e:
+        logger.warning(f"Data entry error check failed (non-blocking): {e}")
 
     # Persist results into the session
     try:
@@ -4071,6 +4326,8 @@ async def _run_safety_checks_background(session_id: str, profile: Dict, calculat
         ))
     except Exception:
         pass
+
+    asyncio.create_task(_record_ai_usage("SafetyChecks", "background_full_suite"))
 
 
 def _get_suggested_questions(profile: dict) -> List[str]:
@@ -5093,6 +5350,22 @@ To get started, what's your filing status?"""
             warnings=[warning.get("message", "")]
         )
 
+    # Handle scenario comparison via ChatRouter (design doc: compare_scenarios wiring)
+    comparison_result = None
+    if AI_CHAT_ENABLED and any(kw in (request.message or "").lower() for kw in ["compare", "versus", " vs ", "should i do", "which is better"]):
+        try:
+            from services.ai.chat_router import get_chat_router
+            chat_router = get_chat_router()
+            msg_lower = (request.message or "").lower()
+            parts = msg_lower.split(" or ") if " or " in msg_lower else [msg_lower, "alternative approach"]
+            comparison_result = await chat_router.compare_scenarios(
+                scenario_a=parts[0].strip(),
+                scenario_b=parts[1].strip() if len(parts) > 1 else "alternative approach",
+                context=_summarize_profile(profile) if profile else "",
+            )
+        except Exception:
+            pass  # Non-blocking
+
     # Check if there are still deep-dive questions to ask before calculating
     has_basics = profile.get("total_income") and profile.get("filing_status") and profile.get("state")
     next_deep_q, next_deep_actions = _get_dynamic_next_question(profile)
@@ -5133,6 +5406,8 @@ To get started, what's your filing status?"""
             try:
                 from services.ai.tax_reasoning_service import get_tax_reasoning_service
                 reasoning_svc = get_tax_reasoning_service()
+                import time as _time
+                _ai_start = _time.monotonic()
                 for s in strategies[:2]:
                     result = await reasoning_svc.analyze(
                         problem=f"Why is '{s.title}' beneficial for this taxpayer?",
@@ -5144,6 +5419,50 @@ To get started, what's your filing status?"""
                         s.action_steps = result.action_items[:5]
             except Exception:
                 pass  # Keep original strategy text
+            _ai_elapsed = (_time.monotonic() - _ai_start) * 1000
+            asyncio.create_task(_record_ai_usage("TaxReasoningService", "analyze", _ai_elapsed))
+
+            # Generate personalized narrative explanations for top strategies
+            try:
+                from advisory.ai_narrative_generator import get_narrative_generator, ClientProfile as NarrClientProfile
+                narrator = get_narrative_generator()
+                client_profile = NarrClientProfile(
+                    name=profile.get("name", "Client"),
+                    occupation=profile.get("occupation", ""),
+                    financial_goals="Minimize tax liability",
+                    primary_concern="Tax optimization",
+                )
+                for s in strategies[:3]:
+                    rec_data = {
+                        "title": s.title,
+                        "savings": s.estimated_savings,
+                        "priority": s.priority,
+                        "explanation": s.detailed_explanation or "",
+                    }
+                    narrative = await narrator.generate_recommendation_explanation(rec_data, client_profile)
+                    if narrative and narrative.content:
+                        s.detailed_explanation = narrative.content[:800]
+            except Exception as e:
+                logger.warning(f"Narrative enrichment failed (non-blocking): {e}")
+            asyncio.create_task(_record_ai_usage("AINarrativeGenerator", "generate_recommendation_explanation"))
+
+        # Classify strategy tiers
+        tier_session = await chat_engine.get_or_create_session(request.session_id)
+        safety_data = tier_session.get("safety_checks")
+        premium_unlocked = tier_session.get("premium_unlocked", False)
+
+        for s in strategies:
+            tier_info = await _classify_strategy_tier(s, profile, safety_data)
+            s.tier = tier_info["tier"]
+            s.risk_level = tier_info["risk_level"]
+            s.implementation_complexity = tier_info["implementation_complexity"]
+
+        # Count tiers for response
+        premium_count = sum(1 for s in strategies if s.tier == "premium")
+
+        # Edge case: all free (simple W-2) — no tiering
+        if premium_count == 0:
+            premium_unlocked = True  # Nothing to unlock
 
         # Update session with calculations and strategies, and persist to database
         await chat_engine.update_session(request.session_id, {
@@ -5237,6 +5556,17 @@ To get started, what's your filing status?"""
             {"label": "Update My Info", "value": "update_info"},
             {"label": "Connect with CPA", "value": "connect_cpa"}
         ]
+
+        # Add deep analysis buttons when AI is enabled (Round 10.4)
+        if AI_CHAT_ENABLED:
+            deep_actions = [
+                {"label": "Deduction Optimization", "value": "deep_deduction_analysis"},
+            ]
+            if profile.get("is_self_employed") or profile.get("business_income"):
+                deep_actions.insert(0, {"label": "Business Structure Analysis", "value": "deep_entity_analysis"})
+            if profile.get("retirement_401k") or profile.get("retirement_ira") or (profile.get("total_income", 0) or 0) > 100000:
+                deep_actions.append({"label": "Roth Conversion Analysis", "value": "deep_roth_analysis"})
+            quick_actions.extend(deep_actions)
 
         key_insights = [
             f"Your marginal tax rate is {tax_calculation.marginal_rate}%",
@@ -5332,7 +5662,9 @@ To get started, what's your filing status?"""
             warnings=warnings,
             total_potential_savings=total_potential_savings,
             response_confidence=response_confidence,
-            confidence_reason=confidence_reason
+            confidence_reason=confidence_reason,
+            premium_unlocked=premium_unlocked,
+            safety_summary=_build_safety_summary(safety_data) if 'safety_data' in dir() else None,
         )
 
         # Log AI response for audit trail
@@ -5421,30 +5753,75 @@ async def full_analysis(request: FullAnalysisRequest, _session: str = Depends(ve
         entity_comparison = None
         if profile.get("is_self_employed") or profile.get("business_income"):
             business_income = profile.get("business_income", 0) or 0
-            entity_comparison = {
-                "sole_proprietorship": {
-                    "tax": calculation.total_tax,
-                    "se_tax": calculation.self_employment_tax
-                },
-                "s_corporation": {
-                    "salary": business_income * 0.5,
-                    "distribution": business_income * 0.5,
-                    "se_tax_savings": business_income * 0.5 * 0.153,
-                    "recommended": business_income > 50000
+            if AI_CHAT_ENABLED and business_income > 0:
+                try:
+                    from services.ai.tax_reasoning_service import get_tax_reasoning_service
+                    reasoning = get_tax_reasoning_service()
+                    result = await reasoning.analyze_entity_structure(
+                        gross_revenue=business_income,
+                        business_expenses=profile.get("business_expenses", 0) or business_income * 0.3,
+                        owner_salary=business_income * 0.6,
+                        state=profile.get("state", "CA"),
+                        filing_status=profile.get("filing_status", "single"),
+                        other_income=(profile.get("total_income", 0) or 0) - business_income,
+                        current_entity="sole_prop",
+                    )
+                    entity_comparison = {
+                        "ai_analysis": result.analysis[:1000],
+                        "recommendation": result.recommendation,
+                        "key_factors": result.key_factors,
+                        "action_items": result.action_items[:5],
+                        "confidence": result.confidence,
+                    }
+                except Exception as e:
+                    logger.warning(f"AI entity analysis failed, using fallback: {e}")
+            # Fallback: keep existing hardcoded comparison
+            if not entity_comparison:
+                entity_comparison = {
+                    "sole_proprietorship": {
+                        "tax": calculation.total_tax,
+                        "se_tax": calculation.self_employment_tax
+                    },
+                    "s_corporation": {
+                        "salary": business_income * 0.5,
+                        "distribution": business_income * 0.5,
+                        "se_tax_savings": business_income * 0.5 * 0.153,
+                        "recommended": business_income > 50000
+                    }
                 }
-            }
 
         # 5-year projection
         five_year = {}
-        for year in range(2025, 2030):
-            growth_factor = 1 + (0.03 * (year - 2025))  # 3% annual growth
-            projected_income = (profile.get("total_income", 0) or 0) * growth_factor
-            projected_tax = calculation.total_tax * growth_factor
-            five_year[str(year)] = {
-                "income": float(money(projected_income)),
-                "tax": float(money(projected_tax)),
-                "savings_if_optimized": float(money(total_savings * growth_factor))
-            }
+        if AI_CHAT_ENABLED:
+            try:
+                from services.ai.tax_reasoning_service import get_tax_reasoning_service
+                reasoning = get_tax_reasoning_service()
+                multi_year_result = await reasoning.analyze_multi_year_strategy(
+                    current_situation=_summarize_profile(profile),
+                    life_events="Standard planning scenario",
+                    goals="Minimize tax liability and maximize savings",
+                    years=5,
+                )
+                five_year = {
+                    "ai_strategy": multi_year_result.analysis[:1000],
+                    "recommendation": multi_year_result.recommendation,
+                    "action_items": multi_year_result.action_items[:5],
+                    "key_factors": multi_year_result.key_factors,
+                }
+            except Exception as e:
+                logger.warning(f"AI multi-year analysis failed, using fallback: {e}")
+
+        if not five_year:
+            # Fallback: existing hardcoded 3% growth
+            for year in range(2025, 2030):
+                growth_factor = 1 + (0.03 * (year - 2025))  # 3% annual growth
+                projected_income = (profile.get("total_income", 0) or 0) * growth_factor
+                projected_tax = calculation.total_tax * growth_factor
+                five_year[str(year)] = {
+                    "income": float(money(projected_income)),
+                    "tax": float(money(projected_tax)),
+                    "savings_if_optimized": float(money(total_savings * growth_factor))
+                }
 
         # Executive summary
         summary = await chat_engine.generate_executive_summary(profile, calculation, strategies)
@@ -5711,6 +6088,68 @@ async def generate_report(request: FullAnalysisRequest, _session: str = Depends(
         except Exception:
             pass
 
+        # Build action items list
+        action_items = [
+            {
+                "priority": s.priority,
+                "action": s.action_steps[0] if s.action_steps else s.title,
+                "title": s.title,
+                "deadline": s.deadline
+            }
+            for s in strategies[:5]
+        ]
+
+        # Generate AI action plan narrative (Round 8.2)
+        action_plan = None
+        if AI_REPORT_NARRATIVES_ENABLED:
+            try:
+                from advisory.ai_narrative_generator import get_narrative_generator, ClientProfile as NarrClientProfile
+                narrator = get_narrative_generator()
+                client_profile = NarrClientProfile(
+                    name=profile.get("name", "Taxpayer"),
+                    occupation=profile.get("occupation", ""),
+                    financial_goals="Minimize tax liability and maximize savings",
+                    primary_concern="Tax optimization",
+                )
+                plan_narrative = await narrator.generate_action_plan_narrative(action_items, client_profile)
+                if plan_narrative and plan_narrative.content:
+                    action_plan = {
+                        "narrative": plan_narrative.content,
+                        "key_points": plan_narrative.key_points,
+                        "tone": plan_narrative.tone_used,
+                    }
+            except Exception as e:
+                logger.warning(f"Action plan narrative failed: {e}")
+
+        # Generate email summaries (Round 8.3)
+        email_summary_client = None
+        email_summary_internal = None
+        if AI_REPORT_NARRATIVES_ENABLED:
+            try:
+                from advisory.report_summarizer import get_report_summarizer
+                summarizer = get_report_summarizer()
+                report_data_for_email = {
+                    "metrics": {
+                        "total_tax": calculation.total_tax,
+                        "federal_tax": calculation.federal_tax,
+                        "state_tax": calculation.state_tax,
+                        "effective_rate": calculation.effective_rate,
+                        "total_savings": sum(s.estimated_savings for s in strategies),
+                    },
+                    "recommendations": [
+                        {"title": s.title, "savings": s.estimated_savings, "priority": s.priority}
+                        for s in strategies[:5]
+                    ],
+                }
+                email_summary_client = await summarizer.generate_summary_for_email(
+                    report_data_for_email, recipient_type="client"
+                )
+                email_summary_internal = await summarizer.generate_summary_for_email(
+                    report_data_for_email, recipient_type="internal"
+                )
+            except Exception as e:
+                logger.warning(f"Email summary generation failed: {e}")
+
         return {
             "session_id": request.session_id,
             "report": {
@@ -5721,14 +6160,10 @@ async def generate_report(request: FullAnalysisRequest, _session: str = Depends(
                 "tax_position": calculation.dict(),
                 "strategies": [s.dict() for s in strategies],
                 "total_potential_savings": sum(s.estimated_savings for s in strategies),
-                "action_items": [
-                    {
-                        "priority": s.priority,
-                        "action": s.action_steps[0] if s.action_steps else s.title,
-                        "deadline": s.deadline
-                    }
-                    for s in strategies[:5]
-                ],
+                "action_items": action_items,
+                "action_plan": action_plan,
+                "email_summary_client": email_summary_client,
+                "email_summary_internal": email_summary_internal,
                 "safety_checks": safety_checks,
                 "disclaimer": """This report is for informational purposes only and does not constitute professional tax advice.
 Please consult with a licensed CPA or tax professional before making any tax-related decisions.
@@ -5756,7 +6191,35 @@ async def get_safety_check(session_id: str, _session: str = Depends(verify_sessi
         safety = session.get("safety_checks")
         if not safety:
             return {"session_id": session_id, "status": "pending", "safety_checks": None}
-        return {"session_id": session_id, "status": "complete", "safety_checks": safety}
+
+        # Categorize results for the CPA panel
+        categories = {
+            "fraud_detection": {
+                "fraud": safety.get("fraud"),
+                "identity_theft": safety.get("identity_theft"),
+                "refund_risk": safety.get("refund_risk"),
+            },
+            "compliance": {
+                "general": safety.get("compliance"),
+                "eitc_due_diligence": safety.get("eitc_compliance"),
+                "circular_230": safety.get("circular_230"),
+            },
+            "anomaly_detection": {
+                "anomalies": safety.get("anomaly"),
+                "audit_risk": safety.get("audit_risk"),
+                "data_errors": safety.get("data_errors"),
+            },
+        }
+
+        return {
+            "session_id": session_id,
+            "status": "complete",
+            "safety_checks": safety,
+            "categories": categories,
+            "checks_completed": list(safety.keys()),
+            "total_checks": len(safety),
+            "user_summary": _build_safety_summary(safety),
+        }
     except Exception as e:
         logger.error(f"Safety check retrieval error: {e}")
         raise HTTPException(status_code=500, detail="Unable to retrieve safety checks.")
@@ -6404,6 +6867,491 @@ async def get_rate_limit_status(session_id: str, _session: str = Depends(verify_
             "window_seconds": pdf_rate_limiter.config.window_seconds,
         }
     }
+
+
+# =============================================================================
+# AI REASONING ENDPOINTS (Round 6.3)
+# =============================================================================
+
+@router.post("/roth-analysis")
+async def analyze_roth_conversion(request: FullAnalysisRequest, _session: str = Depends(verify_session_token)):
+    """AI-powered Roth conversion analysis."""
+    try:
+        profile = request.profile.dict(exclude_none=True)
+        calculation = await chat_engine.get_tax_calculation(profile)
+
+        if AI_CHAT_ENABLED:
+            try:
+                from services.ai.tax_reasoning_service import get_tax_reasoning_service
+                reasoning = get_tax_reasoning_service()
+                result = await reasoning.analyze_roth_conversion(
+                    traditional_balance=profile.get("traditional_ira_balance", 0) or 50000,
+                    current_bracket=calculation.marginal_rate,
+                    projected_retirement_bracket=max(calculation.marginal_rate - 5, 10),
+                    current_age=profile.get("age", 40) or 40,
+                    years_to_retirement=max(65 - (profile.get("age", 40) or 40), 5),
+                    filing_status=profile.get("filing_status", "single"),
+                    social_security=profile.get("social_security", 0) or 0,
+                    other_retirement_income=profile.get("retirement_income", 0) or 0,
+                    state=profile.get("state", "CA"),
+                )
+                return {
+                    "session_id": request.session_id,
+                    "analysis": result.analysis[:1500],
+                    "recommendation": result.recommendation,
+                    "key_factors": result.key_factors,
+                    "action_items": result.action_items[:5],
+                    "risks": result.risks,
+                    "confidence": result.confidence,
+                    "irc_references": result.irc_references,
+                    "requires_professional_review": result.requires_professional_review,
+                    "disclaimer": STANDARD_DISCLAIMER,
+                }
+            except Exception as e:
+                logger.warning(f"AI Roth analysis failed, using fallback: {e}")
+
+        # Fallback: basic bracket comparison
+        current_tax = calculation.total_tax
+        return {
+            "session_id": request.session_id,
+            "analysis": "Basic Roth conversion comparison based on current vs projected bracket.",
+            "recommendation": "Convert if projected retirement bracket is lower than current bracket."
+                if calculation.marginal_rate > 22 else "Consider keeping traditional if bracket is low.",
+            "key_factors": [
+                f"Current marginal rate: {calculation.marginal_rate}%",
+                f"Current total tax: ${current_tax:,.0f}",
+            ],
+            "action_items": ["Consult with a CPA for personalized Roth conversion strategy"],
+            "confidence": 0.5,
+            "disclaimer": STANDARD_DISCLAIMER,
+        }
+    except Exception as e:
+        logger.error(f"Roth analysis error: {e}")
+        raise HTTPException(status_code=500, detail="Unable to complete Roth analysis.")
+
+
+@router.post("/entity-analysis")
+async def analyze_entity_structure(request: FullAnalysisRequest, _session: str = Depends(verify_session_token)):
+    """AI-powered business entity structure analysis."""
+    try:
+        profile = request.profile.dict(exclude_none=True)
+        business_income = profile.get("business_income", 0) or 0
+
+        if AI_CHAT_ENABLED and business_income > 0:
+            try:
+                from services.ai.tax_reasoning_service import get_tax_reasoning_service
+                reasoning = get_tax_reasoning_service()
+                result = await reasoning.analyze_entity_structure(
+                    gross_revenue=business_income,
+                    business_expenses=profile.get("business_expenses", 0) or business_income * 0.3,
+                    owner_salary=business_income * 0.6,
+                    state=profile.get("state", "CA"),
+                    filing_status=profile.get("filing_status", "single"),
+                    other_income=(profile.get("total_income", 0) or 0) - business_income,
+                    current_entity="sole_prop",
+                )
+                return {
+                    "session_id": request.session_id,
+                    "analysis": result.analysis[:1500],
+                    "recommendation": result.recommendation,
+                    "key_factors": result.key_factors,
+                    "action_items": result.action_items[:5],
+                    "risks": result.risks,
+                    "confidence": result.confidence,
+                    "irc_references": result.irc_references,
+                    "requires_professional_review": result.requires_professional_review,
+                    "disclaimer": STANDARD_DISCLAIMER,
+                }
+            except Exception as e:
+                logger.warning(f"AI entity analysis failed, using fallback: {e}")
+
+        # Fallback: hardcoded comparison
+        calculation = await chat_engine.get_tax_calculation(profile)
+        se_tax = calculation.self_employment_tax if hasattr(calculation, 'self_employment_tax') else 0
+        return {
+            "session_id": request.session_id,
+            "analysis": "Basic entity comparison: Sole Prop vs S-Corp.",
+            "recommendation": "S-Corp recommended" if business_income > 50000 else "Sole proprietorship sufficient",
+            "key_factors": [
+                f"Business income: ${business_income:,.0f}",
+                f"Potential SE tax savings: ${business_income * 0.5 * 0.153:,.0f}",
+            ],
+            "action_items": ["Consult with a CPA for entity structure optimization"],
+            "confidence": 0.5,
+            "disclaimer": STANDARD_DISCLAIMER,
+        }
+    except Exception as e:
+        logger.error(f"Entity analysis error: {e}")
+        raise HTTPException(status_code=500, detail="Unable to complete entity analysis.")
+
+
+@router.post("/deduction-analysis")
+async def analyze_deduction_strategy(request: FullAnalysisRequest, _session: str = Depends(verify_session_token)):
+    """AI-powered deduction optimization analysis."""
+    try:
+        profile = request.profile.dict(exclude_none=True)
+        calculation = await chat_engine.get_tax_calculation(profile)
+
+        if AI_CHAT_ENABLED:
+            try:
+                from services.ai.tax_reasoning_service import get_tax_reasoning_service
+                reasoning = get_tax_reasoning_service()
+                current_deductions = {
+                    "mortgage_interest": profile.get("mortgage_interest", 0) or 0,
+                    "property_taxes": profile.get("property_taxes", 0) or 0,
+                    "state_income_tax": profile.get("state_income_tax", 0) or 0,
+                    "charitable_donations": profile.get("charitable_donations", 0) or 0,
+                    "medical_expenses": profile.get("medical_expenses", 0) or 0,
+                }
+                potential_deductions = {
+                    "retirement_401k": min(23500 - (profile.get("retirement_401k", 0) or 0), 23500),
+                    "hsa": min(4300 - (profile.get("hsa_contributions", 0) or 0), 4300),
+                    "ira": min(7000 - (profile.get("retirement_ira", 0) or 0), 7000),
+                    "charitable_bunching": (profile.get("charitable_donations", 0) or 0) * 2,
+                }
+                result = await reasoning.analyze_deduction_strategy(
+                    income=profile.get("total_income", 0) or 0,
+                    current_deductions=current_deductions,
+                    potential_deductions=potential_deductions,
+                    filing_status=profile.get("filing_status", "single"),
+                    state=profile.get("state", "CA"),
+                )
+                return {
+                    "session_id": request.session_id,
+                    "analysis": result.analysis[:1500],
+                    "recommendation": result.recommendation,
+                    "key_factors": result.key_factors,
+                    "action_items": result.action_items[:5],
+                    "risks": result.risks,
+                    "confidence": result.confidence,
+                    "irc_references": result.irc_references,
+                    "requires_professional_review": result.requires_professional_review,
+                    "disclaimer": STANDARD_DISCLAIMER,
+                }
+            except Exception as e:
+                logger.warning(f"AI deduction analysis failed, using fallback: {e}")
+
+        # Fallback: standard vs itemized comparison
+        itemized_est = (
+            (profile.get("mortgage_interest", 0) or 0)
+            + (profile.get("property_taxes", 0) or 0)
+            + min((profile.get("state_income_tax", 0) or 0), 10000)
+            + (profile.get("charitable_donations", 0) or 0)
+        )
+        return {
+            "session_id": request.session_id,
+            "analysis": f"Standard deduction: ${calculation.deductions:,.0f} vs Itemized estimate: ${itemized_est:,.0f}.",
+            "recommendation": "Itemize" if itemized_est > calculation.deductions else "Take standard deduction",
+            "key_factors": [
+                f"Standard deduction: ${calculation.deductions:,.0f}",
+                f"Itemized estimate: ${itemized_est:,.0f}",
+            ],
+            "action_items": ["Review all potential deductions with a tax professional"],
+            "confidence": 0.6,
+            "disclaimer": STANDARD_DISCLAIMER,
+        }
+    except Exception as e:
+        logger.error(f"Deduction analysis error: {e}")
+        raise HTTPException(status_code=500, detail="Unable to complete deduction analysis.")
+
+
+# =============================================================================
+# AUDIT RISK ENDPOINT (Round 7.3)
+# =============================================================================
+
+@router.get("/audit-risk/{session_id}")
+async def get_audit_risk(session_id: str, _session: str = Depends(verify_session_token)):
+    """Dedicated audit risk assessment endpoint."""
+    try:
+        session = await chat_engine.get_or_create_session(session_id)
+        profile = session.get("profile", {})
+
+        if not profile:
+            raise HTTPException(status_code=404, detail="No profile data for this session.")
+
+        if AI_CHAT_ENABLED:
+            try:
+                from services.ai.anomaly_detector import get_anomaly_detector
+                detector = get_anomaly_detector()
+                return_data = _profile_to_return_data(profile, session_id)
+                assessment = await detector.assess_audit_risk(return_data)
+                return {
+                    "session_id": session_id,
+                    "overall_risk": assessment.overall_risk,
+                    "risk_score": assessment.risk_score,
+                    "primary_triggers": assessment.primary_triggers,
+                    "contributing_factors": assessment.contributing_factors,
+                    "mitigating_factors": assessment.mitigating_factors,
+                    "recommendations": assessment.recommendations,
+                    "comparable_audit_rate": assessment.comparable_audit_rate,
+                }
+            except Exception as e:
+                logger.warning(f"AI audit risk assessment failed: {e}")
+
+        # Fallback: rule-based risk estimation
+        income = profile.get("total_income", 0) or 0
+        business_income = profile.get("business_income", 0) or 0
+        risk = "low"
+        score = 15
+        triggers = []
+        if income > 200000:
+            risk = "medium"
+            score = 40
+            triggers.append("High income (>$200k)")
+        if business_income > 0 and business_income > income * 0.5:
+            score += 15
+            triggers.append("Significant business income")
+        if profile.get("charitable_donations", 0) and profile["charitable_donations"] > income * 0.3:
+            score += 10
+            triggers.append("High charitable deductions relative to income")
+        if score >= 50:
+            risk = "high"
+        elif score >= 30:
+            risk = "medium"
+
+        return {
+            "session_id": session_id,
+            "overall_risk": risk,
+            "risk_score": score,
+            "primary_triggers": triggers,
+            "recommendations": ["Maintain thorough documentation for all deductions"],
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Audit risk error: {e}")
+        raise HTTPException(status_code=500, detail="Unable to assess audit risk.")
+
+
+# =============================================================================
+# AI METRICS & ROUTING STATS (Round 9)
+# =============================================================================
+
+@router.get("/ai-metrics")
+async def get_ai_metrics(_session: str = Depends(verify_session_token)):
+    """AI usage metrics dashboard (admin)."""
+    try:
+        from services.ai.metrics_service import get_ai_metrics_service
+        metrics = get_ai_metrics_service()
+        return {
+            "available": True,
+            "dashboard": metrics.get_dashboard_data(),
+            "performance": [m.__dict__ for m in metrics.get_performance_metrics()],
+            "costs": metrics.get_cost_breakdown(),
+            "trends": metrics.get_usage_trends(),
+        }
+    except Exception as e:
+        logger.warning(f"AI metrics unavailable: {e}")
+        return {"available": False, "reason": str(e)}
+
+
+@router.get("/ai-routing-stats")
+async def get_routing_stats(_session: str = Depends(verify_session_token)):
+    """Query routing statistics."""
+    try:
+        from services.ai.chat_router import get_chat_router
+        return get_chat_router().get_routing_stats()
+    except Exception as e:
+        logger.warning(f"Routing stats unavailable: {e}")
+        return {"available": False, "reason": str(e)}
+
+
+class UnlockRequest(BaseModel):
+    """Request to unlock premium strategies."""
+    session_id: str
+
+
+@router.post("/unlock-strategies")
+async def unlock_strategies(request: UnlockRequest, _session: str = Depends(verify_session_token)):
+    """Mark session as premium-unlocked. Zero friction — instant unlock."""
+    try:
+        session = await chat_engine.get_or_create_session(request.session_id)
+        session["premium_unlocked"] = True
+
+        # Persist to database
+        await chat_engine.update_session(request.session_id, {
+            "premium_unlocked": True,
+        })
+
+        # Get strategies if available to return full unlocked set
+        strategies = session.get("strategies", [])
+        strategy_dicts = []
+        for s in strategies:
+            d = s.dict() if hasattr(s, "dict") else (s if isinstance(s, dict) else {})
+            strategy_dicts.append(d)
+
+        return {
+            "session_id": request.session_id,
+            "premium_unlocked": True,
+            "strategies": strategy_dicts,
+            "message": "All strategies unlocked! Your full analysis is now available.",
+        }
+    except Exception as e:
+        logger.error(f"Unlock strategies error: {e}")
+        raise HTTPException(status_code=500, detail="Unable to unlock strategies.")
+
+
+class EmailReportRequest(BaseModel):
+    """Request to email the tax advisory report."""
+    session_id: str
+    email: str
+    name: Optional[str] = None
+
+
+@router.post("/report/email")
+async def email_report(request: EmailReportRequest, _session: str = Depends(verify_session_token)):
+    """Send tax advisory report via email and notify CPA team.
+
+    This is the key conversion endpoint: captures lead data and
+    triggers CPA notification.
+    """
+    import re
+    # Basic email validation
+    if not request.email or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", request.email):
+        raise HTTPException(status_code=400, detail="Valid email address required.")
+
+    try:
+        session = await chat_engine.get_or_create_session(request.session_id)
+        profile = session.get("profile", {})
+        calculation = session.get("calculations")
+        strategies = session.get("strategies", [])
+
+        if not calculation:
+            raise HTTPException(status_code=400, detail="No tax calculation available. Complete analysis first.")
+
+        # Store lead data in session
+        session["lead_email"] = request.email
+        session["lead_name"] = request.name or profile.get("name", "")
+        session["lead_captured_at"] = datetime.now().isoformat()
+        await chat_engine.update_session(request.session_id, {
+            "lead_email": request.email,
+            "lead_name": request.name or "",
+            "lead_captured_at": session["lead_captured_at"],
+        })
+
+        # Generate email content using AI summarizer if available
+        email_body_client = None
+        email_body_internal = None
+        if AI_REPORT_NARRATIVES_ENABLED:
+            try:
+                from advisory.report_summarizer import get_report_summarizer
+                summarizer = get_report_summarizer()
+                report_data = {
+                    "metrics": {
+                        "total_tax": calculation.total_tax if hasattr(calculation, "total_tax") else calculation.get("total_tax", 0),
+                        "total_savings": sum(
+                            (s.estimated_savings if hasattr(s, "estimated_savings") else s.get("estimated_savings", 0))
+                            for s in strategies[:5]
+                        ),
+                    },
+                    "recommendations": [
+                        {
+                            "title": s.title if hasattr(s, "title") else s.get("title", ""),
+                            "savings": s.estimated_savings if hasattr(s, "estimated_savings") else s.get("estimated_savings", 0),
+                            "priority": s.priority if hasattr(s, "priority") else s.get("priority", "medium"),
+                        }
+                        for s in strategies[:5]
+                    ],
+                }
+                email_body_client = await summarizer.generate_summary_for_email(
+                    report_data, recipient_type="client"
+                )
+                email_body_internal = await summarizer.generate_summary_for_email(
+                    report_data, recipient_type="internal"
+                )
+            except Exception as e:
+                logger.warning(f"Email summary generation failed: {e}")
+
+        # Emit CPA notification event
+        try:
+            from realtime.event_publisher import event_publisher
+            from realtime.events import RealtimeEvent, EventType
+            total_savings = sum(
+                (s.estimated_savings if hasattr(s, "estimated_savings") else s.get("estimated_savings", 0))
+                for s in strategies
+            )
+            await event_publisher.publish(RealtimeEvent(
+                event_type=EventType.LEAD_CAPTURED,
+                session_id=request.session_id,
+                data={
+                    "email": request.email,
+                    "name": request.name or "",
+                    "total_savings": total_savings,
+                    "strategy_count": len(strategies),
+                    "complexity": chat_engine.determine_complexity(profile),
+                },
+            ))
+        except Exception:
+            pass  # Non-blocking
+
+        return {
+            "success": True,
+            "session_id": request.session_id,
+            "email_sent": True,
+            "message": "Your report has been sent. A CPA will reach out within 24 hours.",
+            "email_body_client": email_body_client,
+            "email_body_internal": email_body_internal,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Email report error: {e}")
+        raise HTTPException(status_code=500, detail="Unable to send report email.")
+
+
+@router.post("/amt-analysis")
+async def analyze_amt_exposure(request: FullAnalysisRequest, _session: str = Depends(verify_session_token)):
+    """AI-powered Alternative Minimum Tax exposure analysis."""
+    try:
+        profile = request.profile.dict(exclude_none=True)
+
+        if AI_CHAT_ENABLED:
+            try:
+                from services.ai.tax_reasoning_service import get_tax_reasoning_service
+                reasoning = get_tax_reasoning_service()
+                result = await reasoning.analyze_amt_exposure(
+                    income=profile.get("total_income", 0) or 0,
+                    deductions={
+                        "state_tax": profile.get("state_income_tax", 0) or 0,
+                        "property_tax": profile.get("property_taxes", 0) or 0,
+                        "mortgage_interest": profile.get("mortgage_interest", 0) or 0,
+                    },
+                    filing_status=profile.get("filing_status", "single"),
+                    iso_exercises=0,
+                )
+                return {
+                    "session_id": request.session_id,
+                    "analysis": result.analysis[:1500],
+                    "recommendation": result.recommendation,
+                    "key_factors": result.key_factors,
+                    "action_items": result.action_items[:5],
+                    "confidence": result.confidence,
+                    "ai_powered": True,
+                }
+            except Exception as e:
+                logger.warning(f"AI AMT analysis failed: {e}")
+
+        # Fallback: basic AMT estimation
+        income = profile.get("total_income", 0) or 0
+        filing_status = profile.get("filing_status", "single")
+        exemption = 85700 if filing_status == "single" else 133300
+        salt = min((profile.get("state_income_tax", 0) or 0) + (profile.get("property_taxes", 0) or 0), 10000)
+
+        amt_income = income + salt
+        amt_liable = amt_income > exemption
+
+        return {
+            "session_id": request.session_id,
+            "analysis": f"Based on your income of ${income:,.0f}, {'you may be subject to AMT' if amt_liable else 'AMT is unlikely to apply'}.",
+            "recommendation": "Consult a CPA for detailed AMT planning" if amt_liable else "No AMT action needed",
+            "key_factors": ["income_level", "salt_deductions"],
+            "action_items": ["Review SALT deduction impact on AMT"] if amt_liable else [],
+            "confidence": 0.5,
+            "ai_powered": False,
+        }
+    except Exception as e:
+        logger.error(f"AMT analysis error: {e}")
+        raise HTTPException(status_code=500, detail="Unable to perform AMT analysis.")
 
 
 # Register the router

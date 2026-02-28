@@ -118,6 +118,10 @@ class StrategyRecommendation(BaseModel):
     action_steps: List[str]
     irs_reference: Optional[str] = None
     deadline: Optional[str] = None
+    # Tiered conversion fields
+    tier: Optional[str] = "free"  # "free" or "premium"
+    risk_level: Optional[str] = "low"  # "low", "medium", "high"
+    implementation_complexity: Optional[str] = "simple"  # "simple", "moderate", "complex"
 
 
 class TaxCalculationResult(BaseModel):
@@ -194,6 +198,10 @@ class ChatResponse(BaseModel):
 
     response_confidence: str = "high"
     confidence_reason: Optional[str] = None
+
+    # Tiered conversion fields
+    premium_unlocked: bool = False
+    safety_summary: Optional[Dict[str, Any]] = None
 
 
 class FullAnalysisRequest(BaseModel):

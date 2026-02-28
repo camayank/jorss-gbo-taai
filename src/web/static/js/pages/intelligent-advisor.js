@@ -165,6 +165,9 @@
     let retryCount = 0; // Track consecutive retry attempts to prevent infinite loops
     let questionNumber = 0; // Question counter for QW-2
 
+    // Premium tiering state
+    let premiumUnlocked = false;
+
     // =========================================================================
     // ROBUSTNESS LAYER - Error Handling, Validation, Recovery, Rate Limiting
     // =========================================================================
@@ -2805,6 +2808,12 @@
       DevLogger.log('Display label:', displayLabel);
       DevLogger.log('Current extracted data:', extractedData);
       DevLogger.log('Messages container exists:', !!document.getElementById('messages'));
+
+      // Handle unlock strategies action
+      if (value === 'unlock_strategies') {
+        window.unlockPremiumStrategies();
+        return;
+      }
 
       // Handle multi-select skip
       if (value === 'skip_multi_select') {
@@ -7247,7 +7256,27 @@
           if (reportResponse.ok) {
             const reportData = await reportResponse.json();
             updateProgress(100);
-            addMessage('ai', `<div class="insight-card"><div class="insight-header" style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3);"><span style="font-size: 32px;">🎉</span><strong style="font-size: var(--text-xl);">Your Tax Advisory Report is Ready!</strong></div><div style="color: var(--text-secondary); line-height: 1.6;">I've completed a comprehensive analysis of your tax situation. Your personalized report includes strategic recommendations that could save you thousands of dollars.</div></div><br><strong>What would you like to do next?</strong>`, [
+
+            // Build report ready message with optional action plan (Round 10.3)
+            let reportMsg = `<div class="insight-card"><div class="insight-header" style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3);"><span style="font-size: 32px;">🎉</span><strong style="font-size: var(--text-xl);">Your Tax Advisory Report is Ready!</strong></div><div style="color: var(--text-secondary); line-height: 1.6;">I've completed a comprehensive analysis of your tax situation. Your personalized report includes strategic recommendations that could save you thousands of dollars.</div></div>`;
+
+            // Display AI action plan if available
+            if (reportData.report && reportData.report.action_plan && reportData.report.action_plan.narrative) {
+              const ap = reportData.report.action_plan;
+              reportMsg += `<div class="action-plan-card" style="background:var(--bg-secondary, #f0fdf4);border:1px solid #bbf7d0;border-radius:8px;padding:12px;margin-top:12px;">`;
+              reportMsg += `<div style="font-weight:600;margin-bottom:8px;color:#166534;">Your Action Plan</div>`;
+              reportMsg += `<div style="font-size:0.85rem;line-height:1.5;">${ap.narrative}</div>`;
+              if (ap.key_points && ap.key_points.length > 0) {
+                reportMsg += `<div style="margin-top:8px;"><strong style="font-size:0.8rem;">Key Steps:</strong><ul style="margin:4px 0;padding-left:18px;font-size:0.8rem;">`;
+                ap.key_points.forEach(pt => { reportMsg += `<li>${pt}</li>`; });
+                reportMsg += `</ul></div>`;
+              }
+              reportMsg += `</div>`;
+            }
+
+            reportMsg += `<br><strong>What would you like to do next?</strong>`;
+
+            addMessage('ai', reportMsg, [
               { label: getIcon('arrow-down-tray', 'sm') + ' Download Full Report (PDF)', value: 'download_report' },
               { label: getIcon('eye', 'sm') + ' View Report Online', value: 'view_report' },
               { label: getIcon('envelope', 'sm') + ' Email Report to Me', value: 'email_report' },
@@ -7656,6 +7685,76 @@
           }, 500);
         }
 
+      // Deep Analysis buttons (Round 10.4)
+      } else if (value === 'deep_roth_analysis') {
+        addMessage('user', 'Analyze Roth conversion options');
+        showTyping();
+        try {
+          const resp = await fetchWithRetry('/api/advisor/roth-analysis', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: sessionId, profile: extractedData.tax_profile })
+          });
+          hideTyping();
+          if (resp.ok) {
+            const d = await resp.json();
+            let msg = `<div style="background:var(--bg-secondary, #f8fafc);border:1px solid var(--border-color, #e2e8f0);border-radius:8px;padding:12px;">`;
+            msg += `<div style="font-weight:600;margin-bottom:8px;color:var(--primary, #4338ca);">Roth Conversion Analysis</div>`;
+            msg += `<div style="font-size:0.85rem;margin-bottom:8px;">${d.analysis || ''}</div>`;
+            if (d.recommendation) msg += `<div style="font-weight:600;font-size:0.85rem;">Recommendation: ${d.recommendation}</div>`;
+            if (d.action_items) { msg += `<ul style="font-size:0.8rem;padding-left:18px;margin:6px 0;">`; d.action_items.forEach(i => msg += `<li>${i}</li>`); msg += `</ul>`; }
+            if (d.confidence) msg += `<span style="display:inline-block;background:#e0e7ff;color:#4338ca;font-size:0.65rem;font-weight:600;padding:1px 6px;border-radius:9999px;">Confidence: ${Math.round(d.confidence * 100)}%</span>`;
+            msg += `</div>`;
+            addMessage('ai', msg, [{ label: 'Back to Strategies', value: 'show_strategies' }]);
+          } else { addMessage('ai', 'Unable to complete Roth analysis right now. Please try again later.'); }
+        } catch (e) { hideTyping(); addMessage('ai', 'Connection issue. Please try again.'); }
+
+      } else if (value === 'deep_entity_analysis') {
+        addMessage('user', 'Analyze business entity structure');
+        showTyping();
+        try {
+          const resp = await fetchWithRetry('/api/advisor/entity-analysis', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: sessionId, profile: extractedData.tax_profile })
+          });
+          hideTyping();
+          if (resp.ok) {
+            const d = await resp.json();
+            let msg = `<div style="background:var(--bg-secondary, #f8fafc);border:1px solid var(--border-color, #e2e8f0);border-radius:8px;padding:12px;">`;
+            msg += `<div style="font-weight:600;margin-bottom:8px;color:var(--primary, #4338ca);">Business Entity Analysis</div>`;
+            msg += `<div style="font-size:0.85rem;margin-bottom:8px;">${d.analysis || ''}</div>`;
+            if (d.recommendation) msg += `<div style="font-weight:600;font-size:0.85rem;">Recommendation: ${d.recommendation}</div>`;
+            if (d.action_items) { msg += `<ul style="font-size:0.8rem;padding-left:18px;margin:6px 0;">`; d.action_items.forEach(i => msg += `<li>${i}</li>`); msg += `</ul>`; }
+            if (d.confidence) msg += `<span style="display:inline-block;background:#e0e7ff;color:#4338ca;font-size:0.65rem;font-weight:600;padding:1px 6px;border-radius:9999px;">Confidence: ${Math.round(d.confidence * 100)}%</span>`;
+            msg += `</div>`;
+            addMessage('ai', msg, [{ label: 'Back to Strategies', value: 'show_strategies' }]);
+          } else { addMessage('ai', 'Unable to complete entity analysis right now. Please try again later.'); }
+        } catch (e) { hideTyping(); addMessage('ai', 'Connection issue. Please try again.'); }
+
+      } else if (value === 'deep_deduction_analysis') {
+        addMessage('user', 'Optimize my deductions');
+        showTyping();
+        try {
+          const resp = await fetchWithRetry('/api/advisor/deduction-analysis', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: sessionId, profile: extractedData.tax_profile })
+          });
+          hideTyping();
+          if (resp.ok) {
+            const d = await resp.json();
+            let msg = `<div style="background:var(--bg-secondary, #f8fafc);border:1px solid var(--border-color, #e2e8f0);border-radius:8px;padding:12px;">`;
+            msg += `<div style="font-weight:600;margin-bottom:8px;color:var(--primary, #4338ca);">Deduction Optimization</div>`;
+            msg += `<div style="font-size:0.85rem;margin-bottom:8px;">${d.analysis || ''}</div>`;
+            if (d.recommendation) msg += `<div style="font-weight:600;font-size:0.85rem;">Recommendation: ${d.recommendation}</div>`;
+            if (d.action_items) { msg += `<ul style="font-size:0.8rem;padding-left:18px;margin:6px 0;">`; d.action_items.forEach(i => msg += `<li>${i}</li>`); msg += `</ul>`; }
+            if (d.confidence) msg += `<span style="display:inline-block;background:#e0e7ff;color:#4338ca;font-size:0.65rem;font-weight:600;padding:1px 6px;border-radius:9999px;">Confidence: ${Math.round(d.confidence * 100)}%</span>`;
+            msg += `</div>`;
+            addMessage('ai', msg, [{ label: 'Back to Strategies', value: 'show_strategies' }]);
+          } else { addMessage('ai', 'Unable to complete deduction analysis right now. Please try again later.'); }
+        } catch (e) { hideTyping(); addMessage('ai', 'Connection issue. Please try again.'); }
+
       } else {
         // For any other actions not handled, use AI processing
         const displayText = value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -7862,6 +7961,85 @@
     // Store last message for retry
     let lastUserMessage = null;
 
+    /**
+     * Render a single strategy card with tier-aware styling.
+     * Free cards show full content. Locked cards blur content but show savings.
+     * Unlocked cards show everything with "Unlocked" badge.
+     */
+    function renderStrategyCard(strategy, index) {
+      const tier = strategy.tier || 'free';
+      const isLocked = tier === 'premium' && !premiumUnlocked;
+      const isUnlocked = tier === 'premium' && premiumUnlocked;
+      const cardClass = isLocked ? 'strategy-card--locked' : (isUnlocked ? 'strategy-card--unlocked' : 'strategy-card--free');
+      const badgeLabel = isLocked ? 'CPA-Recommended' : (isUnlocked ? 'Unlocked' : 'DIY');
+      const riskLevel = strategy.risk_level || 'low';
+
+      let html = '<div class="strategy-card ' + cardClass + '" data-strategy-id="' + (strategy.id || index) + '" data-tier="' + tier + '">';
+
+      // Header: title + badges (always visible)
+      html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">';
+      html += '<div class="strategy-title" style="font-weight:600;font-size:0.95rem;">' + (index + 1) + '. ' + (strategy.title || 'Strategy') + '</div>';
+      html += '<span class="strategy-badge">' + badgeLabel + '</span>';
+      html += '</div>';
+
+      // Savings badge (always visible, even on locked cards)
+      if (strategy.estimated_savings) {
+        html += '<div class="strategy-savings"><span class="strategy-savings-badge">Save $' + Number(strategy.estimated_savings).toLocaleString() + '</span>';
+        html += ' <span class="risk-indicator risk-indicator--' + riskLevel + '">' + riskLevel.charAt(0).toUpperCase() + riskLevel.slice(1) + ' risk</span>';
+        html += '</div>';
+      }
+
+      // Content section (blurred on locked cards via CSS)
+      html += '<div class="strategy-content">';
+      html += '<div style="font-size:0.85rem;color:var(--color-gray-600);margin:8px 0;">' + (strategy.summary || '') + '</div>';
+
+      if (strategy.detailed_explanation) {
+        const truncated = strategy.detailed_explanation.substring(0, 200) + (strategy.detailed_explanation.length > 200 ? '...' : '');
+        html += '<div style="font-size:0.8rem;color:var(--color-gray-500);margin-bottom:8px;">' + truncated + '</div>';
+      }
+
+      if (strategy.action_steps && strategy.action_steps.length > 0) {
+        html += '<div style="font-size:0.8rem;"><strong>Next steps:</strong><ul style="margin:4px 0;padding-left:18px;">';
+        strategy.action_steps.slice(0, 3).forEach(function(step) { html += '<li>' + step + '</li>'; });
+        html += '</ul></div>';
+      }
+      html += '</div>'; // end strategy-content
+
+      // Lock overlay (only on locked cards)
+      if (isLocked) {
+        html += '<div class="lock-overlay"><button class="lock-overlay__btn" onclick="window.unlockPremiumStrategies()">Unlock Full Analysis</button></div>';
+      }
+
+      html += '</div>'; // end strategy-card
+      return html;
+    }
+
+    /**
+     * Render user-facing compliance summary from safety check data.
+     */
+    function renderSafetySummary(summary) {
+      if (!summary || !summary.checks || summary.checks.length === 0) return '';
+
+      var html = '<div class="safety-summary">';
+      html += '<div class="safety-summary__header">';
+      html += '<div class="safety-summary__title">Compliance Summary</div>';
+      var scoreClass = summary.overall_status === 'clear' ? 'safety-summary__score--clear' : 'safety-summary__score--review';
+      html += '<span class="safety-summary__score ' + scoreClass + '">' + summary.passed + '/' + summary.total_checks + ' checks passed</span>';
+      html += '</div>';
+
+      summary.checks.forEach(function(check) {
+        var icon = check.status === 'pass' ? '&#10003;' : '&#9888;';
+        html += '<div class="safety-check-item">';
+        html += '<span class="safety-check-item__icon">' + icon + '</span>';
+        html += '<span class="safety-check-item__name">' + check.name + '</span>';
+        html += '<span class="safety-check-item__detail">' + check.detail + '</span>';
+        html += '</div>';
+      });
+
+      html += '</div>';
+      return html;
+    }
+
     async function processAIResponse(userMessage) {
       isProcessing = true;
       lastUserMessage = userMessage; // Store for retry
@@ -8031,6 +8209,67 @@
           const badgeBg = isClean ? '#ecfdf5' : '#fef2f2';
           const badgeText = isClean ? 'Compliance Verified' : 'Review Recommended';
           aiResponse += `\n<span class="safety-badge" style="display:inline-block;background:${badgeBg};color:${badgeColor};font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:9999px;margin-top:8px;">${badgeText}</span>`;
+
+          // Audit risk badge (Round 10.2)
+          if (sc.audit_risk) {
+            const ar = sc.audit_risk;
+            const riskColors = { low: '#065f46', medium: '#92400e', high: '#b91c1c' };
+            const riskBgs = { low: '#ecfdf5', medium: '#fffbeb', high: '#fef2f2' };
+            const riskLevel = (ar.overall_risk || 'low').toLowerCase();
+            aiResponse += `\n<span class="audit-risk-badge" style="display:inline-block;background:${riskBgs[riskLevel] || riskBgs.low};color:${riskColors[riskLevel] || riskColors.low};font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:9999px;margin-top:4px;margin-left:4px;">Audit Risk: ${riskLevel.charAt(0).toUpperCase() + riskLevel.slice(1)} (${ar.risk_score || 0}/100)</span>`;
+          }
+        }
+
+        // Entity comparison with AI analysis (Round 10.1)
+        if (data.entity_comparison && data.entity_comparison.ai_analysis) {
+          const ec = data.entity_comparison;
+          aiResponse += `\n\n<div class="ai-entity-card" style="background:var(--bg-secondary, #f8fafc);border:1px solid var(--border-color, #e2e8f0);border-radius:8px;padding:12px;margin-top:12px;">`;
+          aiResponse += `<div style="font-weight:600;margin-bottom:8px;color:var(--primary, #4338ca);">Business Entity Analysis</div>`;
+          aiResponse += `<div style="font-size:0.85rem;margin-bottom:8px;">${ec.ai_analysis}</div>`;
+          if (ec.recommendation) {
+            aiResponse += `<div style="font-weight:600;font-size:0.85rem;margin-bottom:4px;">Recommendation: ${ec.recommendation}</div>`;
+          }
+          if (ec.action_items && ec.action_items.length > 0) {
+            aiResponse += `<div style="font-size:0.8rem;margin-top:6px;"><strong>Action Items:</strong><ul style="margin:4px 0;padding-left:18px;">`;
+            ec.action_items.forEach(item => { aiResponse += `<li>${item}</li>`; });
+            aiResponse += `</ul></div>`;
+          }
+          if (ec.confidence) {
+            aiResponse += `<span style="display:inline-block;background:#e0e7ff;color:#4338ca;font-size:0.65rem;font-weight:600;padding:1px 6px;border-radius:9999px;margin-top:4px;">Confidence: ${Math.round(ec.confidence * 100)}%</span>`;
+          }
+          aiResponse += `</div>`;
+        }
+
+        // Render tiered strategy cards if strategies present
+        if (data.strategies && data.strategies.length > 0 && data.response_type === 'calculation') {
+          const premiumCount = data.strategies.filter(function(s) { return (s.tier || 'free') === 'premium'; }).length;
+          const freeCount = data.strategies.length - premiumCount;
+
+          if (premiumCount > 0 && !premiumUnlocked) {
+            aiResponse += '\n\n<div style="font-size:0.85rem;color:var(--color-gray-600);margin-bottom:8px;">' + freeCount + ' strategies you can implement yourself + ' + premiumCount + ' CPA-recommended strategies</div>';
+          }
+
+          // Render each strategy with tier-aware card
+          data.strategies.slice(0, 5).forEach(function(strategy, i) {
+            aiResponse += renderStrategyCard(strategy, i);
+          });
+
+          // Add unlock CTA if there are locked strategies
+          if (premiumCount > 0 && !premiumUnlocked) {
+            aiResponse += '<div class="cpa-soft-prompt"><div class="cpa-soft-prompt__text">Unlock ' + premiumCount + ' CPA-recommended strategies to see your full savings potential</div>';
+            aiResponse += '<div class="cpa-soft-prompt__actions"><button class="cpa-soft-prompt__btn-primary" onclick="window.unlockPremiumStrategies()">Unlock All Strategies</button>';
+            aiResponse += '<button class="cpa-soft-prompt__btn-secondary" onclick="window.handleQuickAction(\'generate_report\')">Generate Report First</button></div></div>';
+          }
+        }
+
+        // Track premium unlock state from response
+        if (data.premium_unlocked !== undefined) {
+          premiumUnlocked = data.premium_unlocked;
+        }
+
+        // Show safety summary if available
+        if (data.safety_summary && data.response_type === 'calculation') {
+          aiResponse += renderSafetySummary(data.safety_summary);
         }
 
         addMessage('ai', aiResponse, quickActions);
@@ -10481,6 +10720,123 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         ]);
       }, 1500);
     }
+
+    /**
+     * Unlock premium strategies: instant reveal + soft lead capture.
+     */
+    window.unlockPremiumStrategies = async function() {
+      // Step 1: Instantly unlock all strategies (zero friction)
+      try {
+        const response = await fetchWithRetry('/api/advisor/unlock-strategies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId })
+        });
+
+        if (response.ok) {
+          const unlockData = await response.json();
+          premiumUnlocked = true;
+
+          // Update all locked cards to unlocked
+          document.querySelectorAll('.strategy-card--locked').forEach(function(card) {
+            card.classList.remove('strategy-card--locked');
+            card.classList.add('strategy-card--unlocked');
+            var badge = card.querySelector('.strategy-badge');
+            if (badge) badge.textContent = 'Unlocked';
+            var overlay = card.querySelector('.lock-overlay');
+            if (overlay) overlay.remove();
+          });
+
+          // Update strategies data
+          if (unlockData.strategies) {
+            taxStrategies = unlockData.strategies;
+          }
+
+          showToast('All strategies unlocked!', 'success');
+        }
+      } catch (error) {
+        // Unlock locally even if backend fails
+        premiumUnlocked = true;
+        document.querySelectorAll('.strategy-card--locked').forEach(function(card) {
+          card.classList.remove('strategy-card--locked');
+          card.classList.add('strategy-card--unlocked');
+          var badge = card.querySelector('.strategy-badge');
+          if (badge) badge.textContent = 'Unlocked';
+          var overlay = card.querySelector('.lock-overlay');
+          if (overlay) overlay.remove();
+        });
+      }
+
+      // Step 2: Show soft lead capture message in chat
+      var softPromptHtml = '<strong>Your full analysis is unlocked!</strong>\n\n' +
+        'Want me to email you a copy and connect you with a CPA who can help implement these strategies?\n\n' +
+        '<div class="unlock-modal__form" id="leadCaptureForm" style="margin-top:12px;">' +
+        '<input type="text" class="unlock-modal__input" id="leadNameInput" placeholder="Your name" />' +
+        '<input type="email" class="unlock-modal__input" id="leadEmailInput" placeholder="Your email" />' +
+        '<button class="unlock-modal__submit" onclick="window.submitLeadCapture()">Send &amp; Connect</button>' +
+        '<button class="unlock-modal__skip" onclick="window.dismissLeadCapture()">No thanks</button>' +
+        '</div>';
+
+      addMessage('ai', softPromptHtml, []);
+    };
+
+    /**
+     * Submit lead capture form (email + name).
+     */
+    window.submitLeadCapture = async function() {
+      var name = document.getElementById('leadNameInput') ? document.getElementById('leadNameInput').value : '';
+      var email = document.getElementById('leadEmailInput') ? document.getElementById('leadEmailInput').value : '';
+
+      if (!email || email.indexOf('@') === -1) {
+        showToast('Please enter a valid email address', 'warning');
+        return;
+      }
+
+      showTyping();
+      try {
+        var response = await fetchWithRetry('/api/advisor/report/email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: sessionId,
+            email: email,
+            name: name,
+          })
+        });
+
+        hideTyping();
+
+        if (response.ok) {
+          addMessage('ai', '<strong>Your report has been sent to ' + email + '!</strong>\n\n' +
+            'A CPA will reach out within 24 hours to help you implement these strategies.\n\n' +
+            '<strong>What would you like to do next?</strong>', [
+            { label: 'Download PDF Report', value: 'download_report' },
+            { label: 'Upload Documents for CPA', value: 'upload_docs' },
+            { label: 'Ask more questions', value: 'ask_question' },
+          ]);
+        } else {
+          addMessage('ai', 'Email delivery is not available right now. You can download your report as a PDF instead.', [
+            { label: 'Download PDF Report', value: 'download_report' },
+          ]);
+        }
+      } catch (error) {
+        hideTyping();
+        addMessage('ai', 'Unable to send email right now. Please try downloading the PDF instead.', [
+          { label: 'Download PDF Report', value: 'download_report' },
+          { label: 'Try Again', value: 'email_report' },
+        ]);
+      }
+    };
+
+    /**
+     * Dismiss lead capture without submitting.
+     */
+    window.dismissLeadCapture = function() {
+      var form = document.getElementById('leadCaptureForm');
+      if (form) {
+        form.innerHTML = '<div style="font-size:0.85rem;color:var(--color-gray-500);padding:8px;">No problem! Your strategies are unlocked. You can always email the report later.</div>';
+      }
+    };
 
     // Make functions globally accessible
     window.handleQuickAction = handleQuickAction;
