@@ -175,7 +175,7 @@ class CSRFCookieMiddleware(BaseHTTPMiddleware):
     - httponly=False (must be readable by JavaScript for AJAX)
     - secure=True in production (HTTPS only)
     - samesite="lax" (prevents cross-site request attacks)
-    - max_age=86400 (24 hours - matches typical session duration)
+    - max_age=604800 (7 days - aligned with refresh token and CSRFMiddleware rotation)
     """
 
     def __init__(
@@ -183,7 +183,7 @@ class CSRFCookieMiddleware(BaseHTTPMiddleware):
         app,
         secret_key: bytes,
         cookie_name: str = "csrf_token",
-        cookie_max_age: int = 86400,  # 24 hours
+        cookie_max_age: int = 604800,  # 7 days — aligned with CSRFMiddleware rotation
         secure: bool = True,
     ):
         super().__init__(app)

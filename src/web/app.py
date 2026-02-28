@@ -355,6 +355,8 @@ try:
     # properly set in cookies before, causing validation failures
     # SECURITY FIX: Align CSRF cookie expiration with refresh token (7 days)
     # to prevent validation failures when users have valid refresh tokens
+    # NOTE: This value must match CSRF_COOKIE_MAX_AGE used in set_csrf_cookie()
+    # and CSRFMiddleware token rotation to prevent expiry mismatches
     csrf_cookie_max_age = 7 * 24 * 60 * 60  # 7 days = 604800 seconds
     app.add_middleware(
         CSRFCookieMiddleware,
@@ -412,13 +414,15 @@ def set_csrf_cookie(response: Response, token: Optional[str] = None) -> str:
     csrf_token = token or generate_csrf_token()
 
     # Set secure cookie attributes
+    # SECURITY: max_age aligned with CSRFCookieMiddleware and CSRFMiddleware
+    # rotation (all 7 days) to prevent token expiry mismatches
     response.set_cookie(
         key="csrf_token",
         value=csrf_token,
         httponly=False,  # Must be readable by JavaScript
         secure=_is_production,  # HTTPS only in production
         samesite="lax",  # Prevent cross-site request attacks
-        max_age=3600,  # 1 hour expiry
+        max_age=604800,  # 7 days — aligned with CSRFCookieMiddleware
     )
 
     return csrf_token
