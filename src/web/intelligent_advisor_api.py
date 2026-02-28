@@ -1302,7 +1302,7 @@ class IntelligentChatEngine:
         session["current_turn"] = session.get("current_turn", 0) + 1
 
         # Persist
-        self._save_session_to_db(session_id, session)
+        await self._save_session_to_db(session_id, session)
 
         return checkpoint
 
@@ -1441,7 +1441,7 @@ class IntelligentChatEngine:
             session["conversation"] = session["conversation"][:conv_length]
 
         # Persist
-        self._save_session_to_db(session_id, session)
+        await self._save_session_to_db(session_id, session)
 
         return {
             "success": True,
@@ -4030,6 +4030,8 @@ SIMPLE_CATEGORIES = {
     "earned_income_credit", "student_loan_interest",
 }
 
+_tier_classification_semaphore = asyncio.Semaphore(3)
+
 
 async def _classify_strategy_tier(
     strategy,
@@ -4061,10 +4063,11 @@ async def _classify_strategy_tier(
         try:
             from services.ai.tax_reasoning_service import get_tax_reasoning_service
             reasoning = get_tax_reasoning_service()
-            result = await reasoning.analyze(
-                problem=f"Does '{strategy.title}' require professional CPA review for this taxpayer?",
-                context=_summarize_profile(profile),
-            )
+            async with _tier_classification_semaphore:
+                result = await reasoning.analyze(
+                    problem=f"Does '{strategy.title}' require professional CPA review for this taxpayer?",
+                    context=_summarize_profile(profile),
+                )
             if result.requires_professional_review:
                 tier = "premium"
             if result.confidence and result.confidence < 0.6:
@@ -4910,7 +4913,7 @@ To get started, what's your filing status?"""
         session["calculations"] = None
         session["strategies"] = []
         session["conversation"] = []
-        chat_engine._save_session_to_db(request.session_id, session)
+        await chat_engine._save_session_to_db(request.session_id, session)
         profile = {}
 
         return ChatResponse(
@@ -5767,7 +5770,7 @@ async def acknowledge_standards(request: AcknowledgmentRequest, _session: str = 
         return {"status": "acknowledged", "session_id": request.session_id}
     except Exception as e:
         logger.error(f"Acknowledgment error: {e}")
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "message": "Unable to record acknowledgment."}
 
 
 @router.post("/analyze", response_model=FullAnalysisResponse)
@@ -6926,8 +6929,8 @@ async def analyze_roth_conversion(request: FullAnalysisRequest, _session: str = 
                 reasoning = get_tax_reasoning_service()
                 result = await reasoning.analyze_roth_conversion(
                     traditional_balance=profile.get("traditional_ira_balance", 0) or 50000,
-                    current_bracket=calculation.marginal_rate,
-                    projected_retirement_bracket=max(calculation.marginal_rate - 5, 10),
+                    current_bracket=calculation.marginal_rate / 100,
+                    projected_retirement_bracket=max(calculation.marginal_rate - 5, 10) / 100,
                     current_age=profile.get("age", 40) or 40,
                     years_to_retirement=max(65 - (profile.get("age", 40) or 40), 5),
                     filing_status=profile.get("filing_status", "single"),
@@ -7170,13 +7173,23 @@ async def get_audit_risk(session_id: str, _session: str = Depends(verify_session
 @router.get("/ai-metrics")
 async def get_ai_metrics(_session: str = Depends(verify_session_token)):
     """AI usage metrics dashboard (admin)."""
+    # Basic admin check - only allow admin sessions
+    session = await chat_engine.get_or_create_session(_session)
+    if not session.get("is_admin", False):
+        raise HTTPException(status_code=403, detail="Admin access required.")
     try:
         from services.ai.metrics_service import get_ai_metrics_service
         metrics = get_ai_metrics_service()
         return {
             "available": True,
             "dashboard": metrics.get_dashboard_data(),
-            "performance": [m.__dict__ for m in metrics.get_performance_metrics()],
+            "performance": [
+                {
+                    **{k: (v.value if hasattr(v, 'value') else v) for k, v in m.__dict__.items()},
+                    "common_errors": [[e, c] for e, c in m.common_errors] if hasattr(m, 'common_errors') else [],
+                }
+                for m in metrics.get_performance_metrics()
+            ],
             "costs": metrics.get_cost_breakdown(),
             "trends": metrics.get_usage_trends(),
         }
@@ -7188,6 +7201,10 @@ async def get_ai_metrics(_session: str = Depends(verify_session_token)):
 @router.get("/ai-routing-stats")
 async def get_routing_stats(_session: str = Depends(verify_session_token)):
     """Query routing statistics."""
+    # Basic admin check - only allow admin sessions
+    session = await chat_engine.get_or_create_session(_session)
+    if not session.get("is_admin", False):
+        raise HTTPException(status_code=403, detail="Admin access required.")
     try:
         from services.ai.chat_router import get_chat_router
         return get_chat_router().get_routing_stats()

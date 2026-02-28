@@ -610,7 +610,6 @@
   background: rgba(0, 0, 0, 0.5);
 }
 
-[data-theme="advisor-dark"] .lock-overlay__title,
 [data-theme="advisor-dark"] .lock-overlay__btn {
   color: #fff;
 }
@@ -639,15 +638,15 @@
   color: var(--color-gray-100, #f1f5f9);
 }
 
-[data-theme="advisor-dark"] .safety-check-item__label {
+[data-theme="advisor-dark"] .safety-check-item__name {
   color: var(--color-gray-300, #cbd5e1);
 }
 
-[data-theme="advisor-dark"] .audit-risk-badge {
+[data-theme="advisor-dark"] .audit-risk-badge-card {
   border-color: var(--color-gray-600, #475569);
 }
 
-[data-theme="advisor-dark"] .unlock-modal__content {
+[data-theme="advisor-dark"] .unlock-modal__form {
   background: var(--card-bg, #1e293b);
   color: var(--color-gray-100, #f1f5f9);
 }

@@ -2034,12 +2034,12 @@
       };
 
       const badge = badges[confidence] || badges.medium;
-      const tooltipAttr = reason ? ` title="${reason}"` : '';
+      const tooltipAttr = reason ? ` title="${escapeHtml(reason)}"` : '';
 
       return `<div class="confidence-badge ${badge.className}"${tooltipAttr} style="margin-top: var(--space-3);">
         <span class="confidence-dot"></span>
         <span>${badge.label}</span>
-        ${reason ? `<span style="font-size: 10px; opacity: 0.8; margin-left: var(--space-1);">${reason}</span>` : ''}
+        ${reason ? `<span style="font-size: 10px; opacity: 0.8; margin-left: var(--space-1);">${escapeHtml(reason)}</span>` : ''}
       </div>`;
     }
 
@@ -7988,19 +7988,20 @@
       const cardClass = isLocked ? 'strategy-card--locked' : (isUnlocked ? 'strategy-card--unlocked' : 'strategy-card--free');
       const badgeLabel = isLocked ? 'CPA-Recommended' : (isUnlocked ? 'Unlocked' : 'DIY');
       const riskLevel = strategy.risk_level || 'low';
+      const safeRiskLevel = ['low', 'medium', 'high'].includes(riskLevel) ? riskLevel : 'low';
 
-      let html = '<div class="strategy-card ' + cardClass + '" data-strategy-id="' + (strategy.id || index) + '" data-tier="' + tier + '">';
+      let html = '<div class="strategy-card ' + cardClass + '" data-strategy-id="' + escapeHtml(String(strategy.id || index)) + '" data-tier="' + escapeHtml(tier) + '">';
 
       // Header: title + badges (always visible)
       html += '<div class="strategy-card__header">';
       html += '<div class="strategy-card__title">' + (index + 1) + '. ' + escapeHtml(strategy.title || 'Strategy') + '</div>';
-      html += '<span class="strategy-badge">' + badgeLabel + '</span>';
+      html += '<span class="strategy-badge strategy-badge--' + escapeHtml(tier) + '">' + badgeLabel + '</span>';
       html += '</div>';
 
       // Savings badge (always visible, even on locked cards)
       if (strategy.estimated_savings) {
         html += '<div class="strategy-savings"><span class="strategy-savings-badge">Save $' + Number(strategy.estimated_savings).toLocaleString() + '</span>';
-        html += ' <span class="risk-indicator risk-indicator--' + riskLevel + '">' + riskLevel.charAt(0).toUpperCase() + riskLevel.slice(1) + ' risk</span>';
+        html += ' <span class="risk-indicator risk-indicator--' + safeRiskLevel + '">' + safeRiskLevel.charAt(0).toUpperCase() + safeRiskLevel.slice(1) + ' risk</span>';
         html += '</div>';
       }
 
@@ -8039,7 +8040,7 @@
       html += '<div class="safety-summary__header">';
       html += '<div class="safety-summary__title">Compliance Summary</div>';
       var scoreClass = summary.overall_status === 'clear' ? 'safety-summary__score--clear' : 'safety-summary__score--review';
-      html += '<span class="safety-summary__score ' + scoreClass + '">' + summary.passed + '/' + summary.total_checks + ' checks passed</span>';
+      html += '<span class="safety-summary__score ' + scoreClass + '">' + Number(summary.passed) + '/' + Number(summary.total_checks) + ' checks passed</span>';
       html += '</div>';
 
       summary.checks.forEach(function(check) {
@@ -8228,10 +8229,10 @@
           // Audit risk badge (Round 10.2)
           if (sc.audit_risk) {
             const ar = sc.audit_risk;
-            const riskColors = { low: '#065f46', medium: '#92400e', high: '#b91c1c' };
-            const riskBgs = { low: '#ecfdf5', medium: '#fffbeb', high: '#fef2f2' };
             const riskLevel = (ar.overall_risk || 'low').toLowerCase();
-            aiResponse += `\n<span class="audit-risk-badge" style="display:inline-block;background:${riskBgs[riskLevel] || riskBgs.low};color:${riskColors[riskLevel] || riskColors.low};font-size:0.7rem;font-weight:600;padding:2px 8px;border-radius:9999px;margin-top:4px;margin-left:4px;">Audit Risk: ${riskLevel.charAt(0).toUpperCase() + riskLevel.slice(1)} (${ar.risk_score || 0}/100)</span>`;
+            const safeRiskLevel = ['low', 'medium', 'high'].includes(riskLevel) ? riskLevel : 'low';
+            const safeScore = Number(ar.risk_score) || 0;
+            aiResponse += `\n<span class="audit-risk-badge-card audit-risk-badge-card--${safeRiskLevel}">Audit Risk: ${escapeHtml(safeRiskLevel.charAt(0).toUpperCase() + safeRiskLevel.slice(1))} (${safeScore}/100)</span>`;
           }
         }
 
@@ -10916,8 +10917,9 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       // Delegated event listener for DOMPurify-safe action buttons
       document.getElementById('messages').addEventListener('click', function(e) {
         const btn = e.target.closest('[data-action]');
-        if (!btn) return;
+        if (!btn || !this.contains(btn)) return;
         const action = btn.dataset.action;
+        e.stopPropagation();
         if (action === 'unlock-premium') window.unlockPremiumStrategies();
         else if (action === 'submit-lead') window.submitLeadCapture();
         else if (action === 'dismiss-lead') window.dismissLeadCapture();
