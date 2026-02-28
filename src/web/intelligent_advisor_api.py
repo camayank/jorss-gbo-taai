@@ -149,7 +149,6 @@ def get_acknowledgment(session_id: str):
 
 import uuid
 import json
-import asyncio
 from decimal import Decimal, ROUND_HALF_UP
 from calculator.decimal_math import money, to_decimal
 
@@ -4128,9 +4127,15 @@ def _build_safety_summary(safety_checks: Optional[dict]) -> Optional[dict]:
         checks.append({"name": "Tax Compliance", "status": "pass" if is_ok else "review", "detail": "Compliant" if is_ok else "Review recommended"})
 
     eitc = safety_checks.get("eitc_compliance")
-    if eitc:
+    if eitc is not None:
         total += 1
-        is_ok = eitc.get("compliant", False)
+        if isinstance(eitc, list):
+            all_met = all(item.get("met", True) for item in eitc) if eitc else True
+            is_ok = all_met
+        elif isinstance(eitc, dict):
+            is_ok = eitc.get("compliant", False)
+        else:
+            is_ok = False
         passed += 1 if is_ok else 0
         checks.append({"name": "EITC Due Diligence", "status": "pass" if is_ok else "review", "detail": "Compliant" if is_ok else "Review recommended"})
 
@@ -4150,9 +4155,14 @@ def _build_safety_summary(safety_checks: Optional[dict]) -> Optional[dict]:
         checks.append({"name": "Audit Risk Assessment", "status": "pass" if is_ok else "review", "detail": f"{'Low' if is_ok else risk.title()} risk (score: {audit.get('risk_score', 0)})"})
 
     data_errors = safety_checks.get("data_errors")
-    if data_errors:
+    if data_errors is not None:
         total += 1
-        is_ok = not data_errors.get("errors_found", True)
+        if isinstance(data_errors, list):
+            is_ok = len(data_errors) == 0
+        elif isinstance(data_errors, dict):
+            is_ok = not data_errors.get("errors_found", True)
+        else:
+            is_ok = False
         passed += 1 if is_ok else 0
         checks.append({"name": "Data Validation", "status": "pass" if is_ok else "review", "detail": "Pass" if is_ok else "Errors detected"})
 
@@ -4175,11 +4185,15 @@ async def _record_ai_usage(service_name: str, method_name: str, duration_ms: flo
         return
     try:
         from services.ai.metrics_service import get_ai_metrics_service
+        from config.ai_providers import AIProvider
         metrics = get_ai_metrics_service()
         metrics.record_usage(
-            service=service_name,
-            method=method_name,
-            duration_ms=duration_ms,
+            provider=AIProvider.ANTHROPIC,
+            model=f"{service_name}.{method_name}",
+            input_tokens=0,
+            output_tokens=0,
+            latency_ms=int(duration_ms),
+            cost=0.0,
             success=success,
         )
     except Exception:
@@ -5361,16 +5375,18 @@ To get started, what's your filing status?"""
             msg_lower = (request.message or "").lower()
             parts = msg_lower.split(" or ") if " or " in msg_lower else [msg_lower, "alternative approach"]
             comparison_result = await chat_router.compare_scenarios(
-                scenario_a=parts[0].strip(),
-                scenario_b=parts[1].strip() if len(parts) > 1 else "alternative approach",
-                context=_summarize_profile(profile) if profile else "",
+                question=message,
+                scenarios=[
+                    {"name": "Option A", "description": parts[0].strip()},
+                    {"name": "Option B", "description": parts[1].strip() if len(parts) > 1 else "alternative approach"},
+                ],
             )
         except Exception:
             pass  # Non-blocking
 
     # Include comparison in response if available
-    if comparison_result and isinstance(comparison_result, dict) and comparison_result.get("analysis"):
-        comp_text = comparison_result.get("analysis", "")
+    if comparison_result and hasattr(comparison_result, "content") and comparison_result.content:
+        comp_text = comparison_result.content
         if comp_text and len(comp_text) > 10:
             response_text = comp_text[:1500]
             response_type = "ai_response"
@@ -5414,34 +5430,39 @@ To get started, what's your filing status?"""
         if AI_CHAT_ENABLED and complexity != "simple" and strategies:
             import time as _time
             _ai_start = _time.monotonic()
+            # Parallel reasoning enrichment
             try:
                 from services.ai.tax_reasoning_service import get_tax_reasoning_service
                 reasoning_svc = get_tax_reasoning_service()
+                reasoning_tasks = []
                 for s in strategies[:2]:
-                    result = await reasoning_svc.analyze(
-                        problem=f"Why is '{s.title}' beneficial for this taxpayer?",
+                    reasoning_tasks.append(reasoning_svc.analyze(
+                        problem=f"Evaluate strategy: {s.title} with savings of ${s.estimated_savings:,.0f}",
                         context=_summarize_profile(profile),
-                    )
-                    if result.analysis:
-                        s.detailed_explanation = result.analysis[:500]
-                    if result.action_items:
-                        s.action_steps = result.action_items[:5]
+                    ))
+                reasoning_results = await asyncio.gather(*reasoning_tasks, return_exceptions=True)
+                for s, result in zip(strategies[:2], reasoning_results):
+                    if isinstance(result, Exception):
+                        continue
+                    if result and result.confidence:
+                        s.confidence = "high" if result.confidence > 0.8 else "medium" if result.confidence > 0.5 else "low"
                 _ai_elapsed = (_time.monotonic() - _ai_start) * 1000
                 asyncio.create_task(_record_ai_usage("TaxReasoningService", "analyze", _ai_elapsed))
             except Exception:
                 _ai_elapsed = (_time.monotonic() - _ai_start) * 1000
                 asyncio.create_task(_record_ai_usage("TaxReasoningService", "analyze", _ai_elapsed, success=False))
 
-            # Generate personalized narrative explanations for top strategies
+            # Parallel narrative enrichment
             try:
                 from advisory.ai_narrative_generator import get_narrative_generator, ClientProfile as NarrClientProfile
                 narrator = get_narrative_generator()
                 client_profile = NarrClientProfile(
                     name=profile.get("name", "Client"),
                     occupation=profile.get("occupation", ""),
-                    financial_goals="Minimize tax liability",
+                    financial_goals=["Minimize tax liability"],
                     primary_concern="Tax optimization",
                 )
+                narr_tasks = []
                 for s in strategies[:3]:
                     rec_data = {
                         "title": s.title,
@@ -5449,7 +5470,11 @@ To get started, what's your filing status?"""
                         "priority": s.priority,
                         "explanation": s.detailed_explanation or "",
                     }
-                    narrative = await narrator.generate_recommendation_explanation(rec_data, client_profile)
+                    narr_tasks.append(narrator.generate_recommendation_explanation(rec_data, client_profile))
+                narr_results = await asyncio.gather(*narr_tasks, return_exceptions=True)
+                for s, narrative in zip(strategies[:3], narr_results):
+                    if isinstance(narrative, Exception):
+                        continue
                     if narrative and narrative.content:
                         s.detailed_explanation = narrative.content[:800]
                 asyncio.create_task(_record_ai_usage("AINarrativeGenerator", "generate_recommendation_explanation"))
@@ -6087,10 +6112,10 @@ async def generate_report(request: FullAnalysisRequest, _session: str = Depends(
                     report_data, profile.get("name", "Taxpayer")
                 )
                 multi_summaries = {
-                    "one_liner": summaries.one_liner.content if summaries.one_liner else None,
-                    "tweet": summaries.tweet.content if summaries.tweet else None,
-                    "executive": summaries.executive.content if summaries.executive else None,
-                    "detailed": summaries.detailed.content if summaries.detailed else None,
+                    "one_liner": summaries.one_liner if summaries.one_liner else None,
+                    "tweet": summaries.tweet if summaries.tweet else None,
+                    "executive": summaries.executive if summaries.executive else None,
+                    "detailed": summaries.detailed if summaries.detailed else None,
                 }
             except Exception as e:
                 logger.warning(f"Multi-level summaries failed: {e}")
@@ -6123,7 +6148,7 @@ async def generate_report(request: FullAnalysisRequest, _session: str = Depends(
                 client_profile = NarrClientProfile(
                     name=profile.get("name", "Taxpayer"),
                     occupation=profile.get("occupation", ""),
-                    financial_goals="Minimize tax liability and maximize savings",
+                    financial_goals=["Minimize tax liability and maximize savings"],
                     primary_concern="Tax optimization",
                 )
                 plan_narrative = await narrator.generate_action_plan_narrative(action_items, client_profile)
@@ -7157,7 +7182,7 @@ async def get_ai_metrics(_session: str = Depends(verify_session_token)):
         }
     except Exception as e:
         logger.warning(f"AI metrics unavailable: {e}")
-        return {"available": False, "reason": str(e)}
+        return {"available": False, "reason": "Service not configured"}
 
 
 @router.get("/ai-routing-stats")
@@ -7168,7 +7193,7 @@ async def get_routing_stats(_session: str = Depends(verify_session_token)):
         return get_chat_router().get_routing_stats()
     except Exception as e:
         logger.warning(f"Routing stats unavailable: {e}")
-        return {"available": False, "reason": str(e)}
+        return {"available": False, "reason": "Service not configured"}
 
 
 class UnlockRequest(BaseModel):
@@ -7321,14 +7346,17 @@ async def analyze_amt_exposure(request: FullAnalysisRequest, _session: str = Dep
                 from services.ai.tax_reasoning_service import get_tax_reasoning_service
                 reasoning = get_tax_reasoning_service()
                 result = await reasoning.analyze_amt_exposure(
-                    income=profile.get("total_income", 0) or 0,
-                    deductions={
-                        "state_tax": profile.get("state_income_tax", 0) or 0,
-                        "property_tax": profile.get("property_taxes", 0) or 0,
-                        "mortgage_interest": profile.get("mortgage_interest", 0) or 0,
-                    },
+                    regular_income=profile.get("total_income", 0) or 0,
+                    salt_deduction=min(
+                        (profile.get("state_income_tax", 0) or 0) + (profile.get("property_taxes", 0) or 0),
+                        10000
+                    ),
+                    misc_deductions=(profile.get("medical_expenses", 0) or 0),
+                    iso_spread=0,
+                    tax_exempt_interest=0,
                     filing_status=profile.get("filing_status", "single"),
-                    iso_exercises=0,
+                    dependents=profile.get("dependents", 0) or 0,
+                    state=profile.get("state", "CA"),
                 )
                 return {
                     "session_id": request.session_id,

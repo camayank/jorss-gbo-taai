@@ -2114,7 +2114,7 @@
                 'button','input'],
               ALLOWED_ATTR: ['href','target','rel','class','style','viewBox','d','fill',
                 'stroke','stroke-width','width','height','aria-hidden',
-                'onclick','id','type','placeholder','value']
+                'data-action','id','type','placeholder','value']
             })
           : text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
                .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
@@ -7280,10 +7280,10 @@
               const ap = reportData.report.action_plan;
               reportMsg += `<div class="action-plan-card" style="background:var(--bg-secondary, #f0fdf4);border:1px solid #bbf7d0;border-radius:8px;padding:12px;margin-top:12px;">`;
               reportMsg += `<div style="font-weight:600;margin-bottom:8px;color:#166534;">Your Action Plan</div>`;
-              reportMsg += `<div style="font-size:0.85rem;line-height:1.5;">${ap.narrative}</div>`;
+              reportMsg += `<div style="font-size:0.85rem;line-height:1.5;">${escapeHtml(ap.narrative)}</div>`;
               if (ap.key_points && ap.key_points.length > 0) {
                 reportMsg += `<div style="margin-top:8px;"><strong style="font-size:0.8rem;">Key Steps:</strong><ul style="margin:4px 0;padding-left:18px;font-size:0.8rem;">`;
-                ap.key_points.forEach(pt => { reportMsg += `<li>${pt}</li>`; });
+                ap.key_points.forEach(pt => { reportMsg += `<li>${escapeHtml(pt)}</li>`; });
                 reportMsg += `</ul></div>`;
               }
               reportMsg += `</div>`;
@@ -8022,7 +8022,7 @@
 
       // Lock overlay (only on locked cards)
       if (isLocked) {
-        html += '<div class="lock-overlay"><button class="lock-overlay__btn" onclick="window.unlockPremiumStrategies()">Unlock Full Analysis</button></div>';
+        html += '<div class="lock-overlay"><button class="lock-overlay__btn" data-action="unlock-premium">Unlock Full Analysis</button></div>';
       }
 
       html += '</div>'; // end strategy-card
@@ -8272,8 +8272,8 @@
           // Add unlock CTA if there are locked strategies
           if (premiumCount > 0 && !premiumUnlocked) {
             aiResponse += '<div class="cpa-soft-prompt"><div class="cpa-soft-prompt__text">Unlock ' + premiumCount + ' CPA-recommended strategies to see your full savings potential</div>';
-            aiResponse += '<div class="cpa-soft-prompt__actions"><button class="cpa-soft-prompt__btn-primary" onclick="window.unlockPremiumStrategies()">Unlock All Strategies</button>';
-            aiResponse += '<button class="cpa-soft-prompt__btn-secondary" onclick="window.handleQuickAction(\'generate_report\')">Generate Report First</button></div></div>';
+            aiResponse += '<div class="cpa-soft-prompt__actions"><button class="cpa-soft-prompt__btn-primary" data-action="unlock-premium">Unlock All Strategies</button>';
+            aiResponse += '<button class="cpa-soft-prompt__btn-secondary" data-action="generate_report">Generate Report First</button></div></div>';
           }
         }
 
@@ -8319,6 +8319,8 @@
         checkForCelebration(data);
 
       } catch (error) {
+        clearTimeout(thinkingTimer);
+        clearTimeout(extendedTimer);
         hideTyping();
         DevLogger.error('AI response error:', error);
 
@@ -10754,6 +10756,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
      * Unlock premium strategies: instant reveal + soft lead capture.
      */
     window.unlockPremiumStrategies = async function() {
+      if (premiumUnlocked) return; // Already unlocked
       // Step 1: Instantly unlock all strategies (zero friction)
       try {
         const response = await fetchWithRetry('/api/advisor/unlock-strategies', {
@@ -10775,24 +10778,25 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           }
 
           showToast('All strategies unlocked!', 'success');
+
+          // Step 2: Show soft lead capture message in chat
+          var softPromptHtml = '<strong>Your full analysis is unlocked!</strong>\n\n' +
+            'Want me to email you a copy and connect you with a CPA who can help implement these strategies?\n\n' +
+            '<div class="unlock-modal__form" id="leadCaptureForm" style="margin-top:12px;">' +
+            '<input type="text" class="unlock-modal__input" id="leadNameInput" placeholder="Your name" />' +
+            '<input type="email" class="unlock-modal__input" id="leadEmailInput" placeholder="Your email" />' +
+            '<button class="unlock-modal__submit" data-action="submit-lead">Send &amp; Connect</button>' +
+            '<button class="unlock-modal__skip" data-action="dismiss-lead">No thanks</button>' +
+            '</div>';
+
+          addMessage('ai', softPromptHtml, []);
+        } else {
+          showToast('Unable to unlock strategies. Please try again.', 'error');
         }
       } catch (error) {
-        // Unlock locally even if backend fails
-        premiumUnlocked = true;
-        unlockAllCards();
+        console.error('Unlock error:', error);
+        showToast('Connection issue. Please try again to unlock strategies.', 'error');
       }
-
-      // Step 2: Show soft lead capture message in chat
-      var softPromptHtml = '<strong>Your full analysis is unlocked!</strong>\n\n' +
-        'Want me to email you a copy and connect you with a CPA who can help implement these strategies?\n\n' +
-        '<div class="unlock-modal__form" id="leadCaptureForm" style="margin-top:12px;">' +
-        '<input type="text" class="unlock-modal__input" id="leadNameInput" placeholder="Your name" />' +
-        '<input type="email" class="unlock-modal__input" id="leadEmailInput" placeholder="Your email" />' +
-        '<button class="unlock-modal__submit" onclick="window.submitLeadCapture()">Send &amp; Connect</button>' +
-        '<button class="unlock-modal__skip" onclick="window.dismissLeadCapture()">No thanks</button>' +
-        '</div>';
-
-      addMessage('ai', softPromptHtml, []);
     };
 
     /**
@@ -10822,7 +10826,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         hideTyping();
 
         if (response.ok) {
-          addMessage('ai', '<strong>Your report has been sent to ' + email + '!</strong>\n\n' +
+          addMessage('ai', '<strong>Your report has been sent to ' + escapeHtml(email) + '!</strong>\n\n' +
             'A CPA will reach out within 24 hours to help you implement these strategies.\n\n' +
             '<strong>What would you like to do next?</strong>', [
             { label: 'Download PDF Report', value: 'download_report' },
@@ -10907,6 +10911,17 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           DevLogger.log('Delegated button clicked:', action);
           handleQuickAction(action);
         }
+      });
+
+      // Delegated event listener for DOMPurify-safe action buttons
+      document.getElementById('messages').addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        if (action === 'unlock-premium') window.unlockPremiumStrategies();
+        else if (action === 'submit-lead') window.submitLeadCapture();
+        else if (action === 'dismiss-lead') window.dismissLeadCapture();
+        else if (action === 'generate_report') window.handleQuickAction('generate_report');
       });
 
       // Check unified consent before initializing session
