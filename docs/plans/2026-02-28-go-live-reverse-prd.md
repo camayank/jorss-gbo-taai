@@ -388,31 +388,18 @@ sentry-sdk was already in requirements.txt and now installed via WS2.1 lock file
 
 ---
 
-### WS4.2 — Test Coverage Configuration
+### WS4.2 — Test Coverage Configuration ✅ DONE
 
 **Problem:** No `.coveragerc`, no coverage metrics tracked, no coverage threshold enforced.
 
-**Actions:**
-1. Create `.coveragerc`:
-   ```ini
-   [run]
-   branch = true
-   source = src
-   omit = */tests/*, */migrations/*, */__pycache__/*
+**What was done:**
+1. Created `.coveragerc` with branch coverage, `src` source, 70% threshold (`fail_under = 70`), common exclusion patterns (pragma: no cover, `__repr__`, ImportError, etc.), omits for tests/migrations/static/templates
+2. Added `pytest-cov>=6.0.0` to `requirements.txt` and `pyproject.toml` test dependencies
+3. Updated CI to run `pytest --cov=src --cov-report=xml --cov-report=term-missing`
+4. CI uploads `coverage.xml` as artifact (14-day retention) for dashboard integration
+5. Added `htmlcov/`, `.coverage`, `.coverage.*`, `coverage.xml` to `.gitignore`
 
-   [report]
-   precision = 2
-   show_missing = true
-   fail_under = 70
-
-   [html]
-   directory = htmlcov
-   ```
-2. Add to CI: `pytest --cov=src --cov-report=xml --cov-report=html`
-3. Set initial threshold at 70% (increase to 80% over time)
-
-**Dependencies:** WS4.1
-**Verification:** CI reports coverage percentage; fails if below 70%
+**Status:** COMPLETE
 
 ---
 
@@ -811,7 +798,7 @@ Week 2 (Depends on Week 1):
 ├── WS2.2  Redis configuration               [Backend]        ✅ DONE
 ├── WS2.3  Alembic migrations                [Backend]        ✅ DONE
 ├── WS3.5  Startup validation                [DevOps]         ✅ DONE
-├── WS4.2  Coverage configuration            [QA]             ← WS4.1
+├── WS4.2  Coverage configuration            [QA]             ✅ DONE
 ├── WS4.5  Security scanning CI              [QA]
 └── WS6.1  Static file optimization          [Frontend]
 

@@ -61,3 +61,4 @@ reportlab>=4.2.0,<5.0.0
 # Testing (dev only - can be in requirements-dev.txt)
 pytest>=8.0.0
 pytest-asyncio>=0.23.0
+pytest-cov>=6.0.0

@@ -1,0 +1,26 @@
+[run]
+branch = true
+source = src
+omit =
+    */tests/*
+    */migrations/*
+    */__pycache__/*
+    */alembic/versions/*
+    */.venv/*
+    */static/*
+    */templates/*
+
+[report]
+precision = 2
+show_missing = true
+fail_under = 70
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if __name__ == .__main__
+    raise NotImplementedError
+    pass
+    except ImportError
+
+[html]
+directory = htmlcov

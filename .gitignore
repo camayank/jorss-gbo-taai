@@ -59,6 +59,10 @@ data/*.db-wal
 
 # Test output artifacts
 sample_report*.html
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
 
 # Data directory (runtime databases)
 data/

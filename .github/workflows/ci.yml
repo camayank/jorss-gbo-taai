@@ -59,14 +59,23 @@ jobs:
             tests/security/test_web_launch_route_guards.py \
             tests/security/test_web_duplicate_route_guardrails.py
 
-      - name: Full test suite
+      - name: Full test suite with coverage
         run: |
           pytest tests/ -x --timeout=120 -q \
+            --cov=src --cov-report=xml --cov-report=term-missing \
             --ignore=tests/performance \
             --ignore=tests/load \
             -k "not slow" \
             || echo "::warning::Some tests failed — review output above"
         continue-on-error: true
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 14
 
   frontend:
     name: Frontend Lint + Tests + Build
