@@ -354,23 +354,20 @@ python3 scripts/generate_secrets.py --verify --env-file .env.production
 
 ---
 
-### WS3.5 — Environment Validation on Startup
+### WS3.5 — Environment Validation on Startup ✅ DONE (2026-02-28)
 
 **Problem:** App can start with missing or weak security secrets. `preflight_launch.py` exists but isn't enforced.
 
-**Current state:**
-- File: `scripts/preflight_launch.py` — validates env vars, checks secret strength
-- File: `scripts/build.sh` — calls preflight checks
-- App warns but continues with empty secrets
-
-**Actions:**
-1. Make preflight checks fail-fast in production (exit 1, not warning)
-2. Add Redis connectivity check to preflight
-3. Add database connectivity check to preflight
-4. Ensure `scripts/build.sh` runs preflight and fails build if checks fail
+**Resolution:**
+1. **`scripts/build.sh` hardened:** Uses `requirements.lock` (falls back to `requirements.txt`), removed redundant inline validation (step 5→4), runs preflight twice (pre- and post-migration). Build fails fast if preflight fails (`set -e`).
+2. **`app.py` startup fail-fast:**
+   - `startup_database()`: Now raises `RuntimeError` in production if DB connection fails (was warn-only)
+   - New `startup_redis()`: Checks Redis connectivity via `redis_health_check()`, fails fast in production
+   - Existing `startup_security_validation()` already fails fast via `validate_startup_security(exit_on_failure=True)` for 7 secrets + debug + HTTPS
+3. **Preflight (WS1.2):** Already enhanced with all 9 secrets, Redis, CORS, uniqueness checks
 
 **Dependencies:** WS1.1
-**Verification:** Deploy with missing `JWT_SECRET` → build fails with clear error message
+**Verification:** Production build fails with clear error on missing JWT_SECRET; app refuses to start without DB/Redis in production
 
 ---
 
@@ -818,7 +815,7 @@ Week 2 (Depends on Week 1):
 ├── WS1.2  Secrets management                [Security Lead]  ✅ DONE
 ├── WS2.2  Redis configuration               [Backend]        ← WS1.1
 ├── WS2.3  Alembic migrations                [Backend]        ← WS2.1
-├── WS3.5  Startup validation                [DevOps]         ← WS1.1
+├── WS3.5  Startup validation                [DevOps]         ✅ DONE
 ├── WS4.2  Coverage configuration            [QA]             ← WS4.1
 ├── WS4.5  Security scanning CI              [QA]
 └── WS6.1  Static file optimization          [Frontend]

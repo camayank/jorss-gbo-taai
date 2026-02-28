@@ -41,24 +41,28 @@ echo "=============================================="
 echo "Jorss-GBO Tax Platform - Production Build"
 echo "=============================================="
 
-# 1. Install dependencies
+# 1. Install dependencies (from lock file for reproducible builds)
 echo ""
-echo "[1/5] Installing Python dependencies..."
+echo "[1/4] Installing Python dependencies..."
 if [ "$SKIP_DEP_INSTALL" = "1" ]; then
     echo "Skipping dependency installation (SKIP_DEP_INSTALL=1)"
+elif [ -f "requirements.lock" ]; then
+    "$PYTHON_BIN" -m pip install --upgrade pip --disable-pip-version-check
+    "$PYTHON_BIN" -m pip install -r requirements.lock --disable-pip-version-check
 else
+    echo "WARNING: requirements.lock not found, falling back to requirements.txt"
     "$PYTHON_BIN" -m pip install --upgrade pip --disable-pip-version-check
     "$PYTHON_BIN" -m pip install -r requirements.txt --disable-pip-version-check
 fi
 
-# 2. Run launch preflight checks (env + migration graph + tooling)
+# 2. Run launch preflight checks (env + secrets + migration graph)
 echo ""
-echo "[2/5] Running launch preflight (initial)..."
+echo "[2/4] Running launch preflight (pre-migration)..."
 "$PYTHON_BIN" scripts/preflight_launch.py --mode production --skip-migration-status
 
 # 3. Run database migrations (if Alembic is set up)
 echo ""
-echo "[3/5] Checking database migrations..."
+echo "[3/4] Checking database migrations..."
 if [ -f "alembic.ini" ] && [ -n "$DATABASE_URL" ]; then
     echo "Running Alembic migrations..."
     "$PYTHON_BIN" -m alembic -c alembic.ini upgrade head
@@ -66,58 +70,9 @@ else
     echo "Skipping migrations (no alembic.ini or DATABASE_URL not set)"
 fi
 
-# 4. Collect static files (if needed)
+# 4. Final preflight (full — includes migration status)
 echo ""
-echo "[4/5] Setting up static files..."
-# Static files are already in src/web/static, no collection needed
-
-# 5. Validate configuration
-echo ""
-echo "[5/5] Validating configuration..."
-"$PYTHON_BIN" -c "
-import os
-import sys
-
-# Load .env for local/CLI runs where vars are not pre-exported.
-try:
-    from dotenv import load_dotenv
-    load_dotenv('.env', override=False)
-except Exception:
-    pass
-
-# Check required environment variables
-required_vars = ['APP_SECRET_KEY', 'DATABASE_URL']
-optional_vars = ['REDIS_URL', 'OPENAI_API_KEY']
-
-print('Checking required environment variables...')
-missing = []
-for var in required_vars:
-    if os.environ.get(var):
-        print(f'  {var}: OK')
-    else:
-        print(f'  {var}: MISSING')
-        missing.append(var)
-
-print('')
-print('Checking optional environment variables...')
-for var in optional_vars:
-    if os.environ.get(var):
-        print(f'  {var}: OK')
-    else:
-        print(f'  {var}: Not set (optional)')
-
-if missing:
-    print('')
-    print(f'ERROR: Missing required variables: {missing}')
-    print('Set these in your Render dashboard under Environment.')
-    sys.exit(1)
-
-print('')
-print('Configuration validated successfully!')
-"
-
-echo ""
-echo "Running final launch preflight..."
+echo "[4/4] Running final launch preflight..."
 "$PYTHON_BIN" scripts/preflight_launch.py --mode production
 
 echo ""

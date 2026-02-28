@@ -3524,10 +3524,45 @@ async def startup_database():
                 extra={"database": settings.name if settings.is_postgres else "sqlite"}
             )
         else:
+            if _is_production:
+                raise RuntimeError("Database connection check failed — cannot start in production without database")
             logger.warning("Database connection check failed during startup")
 
+    except RuntimeError:
+        raise  # Re-raise RuntimeError to fail fast in production
     except Exception as e:
+        if _is_production:
+            raise RuntimeError(f"Database initialization failed in production: {e}")
         logger.error(f"Database initialization failed: {e}")
+
+
+@app.on_event("startup")
+async def startup_redis():
+    """Check Redis connectivity on startup."""
+    redis_url = os.environ.get("REDIS_URL", "") or os.environ.get("REDIS_HOST", "")
+    if not redis_url:
+        if _is_production:
+            logger.warning("[REDIS] No REDIS_URL or REDIS_HOST configured — using in-memory fallbacks")
+        else:
+            logger.info("[REDIS] Not configured (in-memory fallback for dev)")
+        return
+
+    try:
+        from cache import redis_health_check
+        health = await redis_health_check()
+        if health.get("status") == "healthy":
+            logger.info("[REDIS] Connection healthy")
+        else:
+            error = health.get("error", "unknown")
+            if _is_production:
+                raise RuntimeError(f"Redis connection failed in production: {error}")
+            logger.warning(f"[REDIS] Connection unhealthy: {error}")
+    except RuntimeError:
+        raise
+    except Exception as e:
+        if _is_production:
+            raise RuntimeError(f"Redis startup check failed in production: {e}")
+        logger.warning(f"[REDIS] Startup check failed: {e}")
 
 
 @app.on_event("startup")
