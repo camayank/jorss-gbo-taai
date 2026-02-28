@@ -11326,29 +11326,8 @@ If they're ready to move forward, suggest generating their comprehensive advisor
     }
 
     // Phase 3.5: Offline Detection
-    // Note: isOnline and offlineQueue already declared earlier in the file
-
-    function showOfflineBanner() {
-      if (document.getElementById('offlineBanner')) return;
-      const banner = document.createElement('div');
-      banner.id = 'offlineBanner';
-      banner.className = 'offline-banner';
-      banner.innerHTML = `
-        <span>📡 You're offline. Messages will be sent when connection is restored.</span>
-      `;
-      document.body.prepend(banner);
-    }
-
-    function hideOfflineBanner() {
-      const banner = document.getElementById('offlineBanner');
-      if (banner) {
-        banner.classList.add('fade-out');
-        setTimeout(() => banner.remove(), 300);
-      }
-    }
-
-    // Note: processOfflineQueue is defined earlier in the file (async version at ~line 4070)
-    // Do NOT redefine it here to avoid race conditions with parallel message processing
+    // Note: isOnline, offlineQueue, showOfflineBanner, hideOfflineBanner,
+    // and processOfflineQueue are all declared earlier in the file.
 
     window.addEventListener('offline', () => {
       isOnline = false;

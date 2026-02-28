@@ -577,16 +577,14 @@ sentry-sdk was already in requirements.txt and now installed via WS2.1 lock file
 
 ---
 
-### WS6.3 — Fix Pre-existing JS Error
+### WS6.3 — Fix Pre-existing JS Error ✅ DONE (2026-02-28)
 
-**Problem:** `showOfflineBanner` has a duplicate declaration at line ~11329 in `intelligent-advisor.js`. This was identified in code review as pre-existing on clean main.
+**Problem:** `showOfflineBanner` and `hideOfflineBanner` had duplicate declarations at lines ~11331/11342 in `intelligent-advisor.js`.
 
-**Actions:**
-1. Find and remove duplicate `showOfflineBanner` declaration
-2. Verify no other duplicate function declarations
+**Resolution:** Removed duplicate `showOfflineBanner` (dynamic-create version) and `hideOfflineBanner` (fade-remove version) at lines 11331-11348. Kept the original declarations at lines 1835/1842 which correctly toggle the existing HTML `#offlineBanner` element. The `window.addEventListener` event handlers (offline/online) that called these functions were preserved. Verified zero duplicate function names remain across 110+ functions in the file.
 
 **Dependencies:** None
-**Verification:** No `SyntaxError` or `ReferenceError` in browser console
+**Verification:** Single declaration per function; all 4 call sites reference the surviving definition
 
 ---
 
@@ -808,7 +806,7 @@ Week 1 (Parallel):
 ├── WS2.1  Lock file                         [Backend]        ✅ DONE
 ├── WS3.3  .dockerignore                     [DevOps]         ✅ DONE
 ├── WS4.1  Fix test collection               [QA]             ✅ DONE
-├── WS6.3  Fix duplicate JS function         [Frontend]
+├── WS6.3  Fix duplicate JS function         [Frontend]       ✅ DONE
 └── WS6.4  Self-host CDN dependencies        [Frontend]
 
 Week 2 (Depends on Week 1):
