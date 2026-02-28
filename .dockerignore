@@ -1,0 +1,118 @@
+# =============================================================================
+# Docker build context exclusions
+# =============================================================================
+# The Dockerfile only needs: requirements.txt, src/, database/
+# Everything else is excluded to shrink build context and prevent secret leaks.
+
+# --- Secrets & environment files ---
+.env
+.env.*
+!.env.production.example
+
+# --- Version control ---
+.git
+.github
+.gitignore
+
+# --- Python artifacts ---
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+.eggs/
+dist/
+build/
+sdist/
+wheels/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Tests & coverage ---
+tests/
+htmlcov/
+.coverage
+.pytest_cache/
+.ruff_cache/
+sample_report*.html
+
+# --- IDE & OS ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# --- Documentation & plans ---
+docs/
+*.md
+
+# --- Data & databases (runtime only) ---
+data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+logs/
+*.log
+
+# --- Node / frontend build ---
+node_modules/
+
+# --- Sensitive user data ---
+*.pdf
+tax_documents/
+user_data/
+uploads/
+
+# --- Docker & CI / deploy configs ---
+Dockerfile
+docker-compose*.yml
+.dockerignore
+render.yaml
+Procfile
+runtime.txt
+
+# --- Scripts (not needed at runtime) ---
+scripts/
+
+# --- Frontend tooling (assets already built into src/web/static) ---
+package.json
+postcss.config.js
+vite.build.config.js
+.stylelintrc.json
+.storybook/
+stories/
+
+# --- Alembic migrations (run separately, not baked into image) ---
+migrations/
+alembic.ini
+
+# --- Root-level runners & helpers ---
+run.py
+run_web.py
+START_HERE.sh
+start_server.sh
+conftest.py
+pytest.ini
+pyproject.toml
+
+# --- Non-source directories ---
+client_materials/
+marketing/
+nginx/
+temp_reports/
+
+# --- Deprecated & temp ---
+_deprecated/
+tmp_route_audit*
+.worktrees/
+.claude/
