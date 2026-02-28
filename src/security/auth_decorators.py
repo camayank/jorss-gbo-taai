@@ -94,7 +94,7 @@ _LEGACY_TO_RBAC_ROLE = {
 }
 
 
-def legacy_role_to_rbac(legacy_role: "Role") -> str | None:
+def legacy_role_to_rbac(legacy_role: "Role") -> Optional[str]:
     """Map legacy auth_decorators Role to rbac.roles Role value."""
     return _LEGACY_TO_RBAC_ROLE.get(legacy_role)
 

@@ -60,6 +60,12 @@ class Permission(str, Enum):
     FIRM_VIEW_BILLING = "firm_view_billing"
     FIRM_MANAGE_BILLING = "firm_manage_billing"
 
+    # Firm API Keys
+    FIRM_MANAGE_API_KEYS = "firm_manage_api_keys"
+
+    # Firm Audit
+    FIRM_VIEW_AUDIT = "firm_view_audit"
+
     # =========================================================================
     # TEAM PERMISSIONS (Within a Firm)
     # =========================================================================
