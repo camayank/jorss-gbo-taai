@@ -8040,7 +8040,7 @@
       html += '<div class="safety-summary__header">';
       html += '<div class="safety-summary__title">Compliance Summary</div>';
       var scoreClass = summary.overall_status === 'clear' ? 'safety-summary__score--clear' : 'safety-summary__score--review';
-      html += '<span class="safety-summary__score ' + scoreClass + '">' + Number(summary.passed) + '/' + Number(summary.total_checks) + ' checks passed</span>';
+      html += '<span class="safety-summary__score ' + scoreClass + '">' + (Number(summary.passed) || 0) + '/' + (Number(summary.total_checks) || 0) + ' checks passed</span>';
       html += '</div>';
 
       summary.checks.forEach(function(check) {
