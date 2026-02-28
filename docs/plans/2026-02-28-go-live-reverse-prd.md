@@ -142,22 +142,21 @@ python3 scripts/generate_secrets.py --verify --env-file .env.production
 
 ---
 
-### WS1.4 — OAuth State Token Persistence
+### WS1.4 — OAuth State Token Persistence ✅ DONE
 
-**Problem:** OAuth state tokens stored in-memory `Dict`. In distributed deployment (multiple workers/instances), state validation will fail because the token was stored in a different worker's memory.
+**Problem:** ~~OAuth state tokens stored in-memory Dict, breaks with multiple workers.~~
 
-**Current state:**
-- File: `src/core/api/oauth_routes.py`
-- Pattern: `state_tokens: Dict[str, str] = {}` (module-level dict)
-- Works with 1 worker, breaks with 2+
+**Resolution:** Moved state token storage from in-memory `Dict` to Redis with 10-minute TTL in `src/core/services/oauth_service.py`.
 
-**Actions:**
-1. Move state token storage to Redis with 10-minute TTL
-2. Use `REDIS_URL` connection (already configured)
-3. Fallback to in-memory for development (no Redis)
+**Changes made:**
+1. Added `redis.asyncio` integration with lazy-initialized connection (same pattern as auth_service)
+2. `_store_state_token()` — stores in Redis with `oauth_state:{token}` key and 600s TTL; falls back to in-memory for dev
+3. `_pop_state_token()` — atomic GET+DELETE via Redis pipeline; falls back to in-memory dict with asyncio.Lock
+4. Production requires Redis (raises RuntimeError if unavailable); dev falls back gracefully
+5. `start_oauth()` and `handle_callback()` updated to use new methods
 
-**Dependencies:** WS2.2 (Redis must be configured)
-**Verification:** OAuth login works with `--workers 4` (multiple Gunicorn workers)
+**Dependencies:** WS2.2 (Redis must be configured) ✅
+**Verification:** OAuth login works with `--workers 4` (state tokens shared via Redis)
 
 ---
 
@@ -793,7 +792,7 @@ Week 2 (Depends on Week 1):
 
 Week 3 (Depends on Week 2):
 ├── WS1.3  MFA implementation                [Security Lead]  ✅ DONE
-├── WS1.4  OAuth state to Redis              [Backend]        ← WS2.2
+├── WS1.4  OAuth state to Redis              [Backend]        ✅ DONE
 ├── WS2.4  Backup strategy                   [Backend]        ← WS2.3
 ├── WS3.1  Render deployment                 [DevOps]         ← WS1.1, WS2.1, WS2.2
 ├── WS5.1  Email provider                    [Backend]        ← WS1.1, WS3.1

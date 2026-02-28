@@ -14,6 +14,7 @@ Handles the OAuth flow:
 """
 
 import asyncio
+import json
 import os
 import secrets
 import logging
@@ -25,6 +26,22 @@ from uuid import uuid4
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Redis availability check (for OAuth state token persistence)
+# ---------------------------------------------------------------------------
+try:
+    import redis.asyncio as _aioredis
+    _REDIS_LIB_AVAILABLE = True
+except ImportError:
+    _aioredis = None  # type: ignore[assignment]
+    _REDIS_LIB_AVAILABLE = False
+
+_IS_PRODUCTION = os.environ.get("APP_ENVIRONMENT", "development").lower() in (
+    "production", "prod", "staging"
+)
+
+_OAUTH_STATE_TTL = 600  # 10 minutes — matches OAuth flow timeout
 
 
 # =============================================================================
@@ -116,9 +133,89 @@ class OAuthService:
 
     def __init__(self, config: OAuthConfig = None):
         self.config = config or OAuthConfig()
-        # Store OAuth state tokens (in production, use Redis)
+        # In-memory fallback for development (no Redis)
         self._state_tokens: Dict[str, Dict] = {}
         self._state_lock = asyncio.Lock()
+        # Redis client (lazy-initialized)
+        self._redis = None
+
+    # =========================================================================
+    # STATE TOKEN PERSISTENCE (Redis with in-memory fallback)
+    # =========================================================================
+
+    async def _get_redis(self):
+        """Get or create async Redis connection for OAuth state tokens."""
+        if self._redis is not None:
+            return self._redis
+
+        if not _REDIS_LIB_AVAILABLE:
+            if _IS_PRODUCTION:
+                raise RuntimeError(
+                    "Redis library is required in production for OAuth state token storage."
+                )
+            return None
+
+        try:
+            redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+            client = _aioredis.from_url(
+                redis_url,
+                decode_responses=True,
+                socket_connect_timeout=5,
+            )
+            await client.ping()
+            self._redis = client
+            logger.info("Redis connected for OAuth state token storage")
+            return self._redis
+        except Exception as exc:
+            if _IS_PRODUCTION:
+                raise RuntimeError(
+                    f"Redis is required in production for OAuth state tokens but unavailable: {exc}"
+                ) from exc
+            logger.warning(
+                "Redis unavailable — using in-memory OAuth state tokens (dev only): %s", exc
+            )
+            return None
+
+    async def _store_state_token(self, state: str, data: Dict[str, Any]) -> None:
+        """Store an OAuth state token in Redis (TTL 10 min) or in-memory fallback."""
+        r = await self._get_redis()
+        if r is not None:
+            # Serialize datetime for JSON storage
+            serializable = {
+                "provider": data["provider"],
+                "created_at": data["created_at"].isoformat(),
+                "redirect_uri": data.get("redirect_uri"),
+            }
+            await r.setex(
+                f"oauth_state:{state}",
+                _OAUTH_STATE_TTL,
+                json.dumps(serializable),
+            )
+        else:
+            # Development fallback — in-memory with lock
+            async with self._state_lock:
+                self._state_tokens[state] = data
+
+    async def _pop_state_token(self, state: str) -> Optional[Dict[str, Any]]:
+        """Retrieve and delete an OAuth state token (atomic pop)."""
+        r = await self._get_redis()
+        if r is not None:
+            # GET + DELETE atomically via pipeline
+            pipe = r.pipeline()
+            pipe.get(f"oauth_state:{state}")
+            pipe.delete(f"oauth_state:{state}")
+            results = await pipe.execute()
+            raw = results[0]
+            if raw is None:
+                return None
+            data = json.loads(raw)
+            # Deserialize created_at back to datetime
+            data["created_at"] = datetime.fromisoformat(data["created_at"])
+            return data
+        else:
+            # Development fallback — in-memory with lock
+            async with self._state_lock:
+                return self._state_tokens.pop(state, None)
 
     # =========================================================================
     # AUTHORIZATION URL GENERATION
@@ -138,13 +235,12 @@ class OAuthService:
         # Generate state token for CSRF protection
         state = secrets.token_urlsafe(32)
 
-        # Protect shared state dict from concurrent access
-        async with self._state_lock:
-            self._state_tokens[state] = {
-                "provider": provider,
-                "created_at": datetime.utcnow(),
-                "redirect_uri": redirect_uri
-            }
+        # Store state token in Redis (or in-memory fallback)
+        await self._store_state_token(state, {
+            "provider": provider,
+            "created_at": datetime.utcnow(),
+            "redirect_uri": redirect_uri,
+        })
 
         if provider == "google":
             return self._start_google_oauth(state, redirect_uri)
@@ -225,9 +321,8 @@ class OAuthService:
         Returns:
             OAuthUserInfo with normalized user data
         """
-        # Validate state token (lock protects concurrent access)
-        async with self._state_lock:
-            state_data = self._state_tokens.pop(state, None)
+        # Validate state token (atomic pop from Redis or in-memory)
+        state_data = await self._pop_state_token(state)
         if not state_data:
             raise ValueError("Invalid or expired state token")
 
