@@ -122,7 +122,7 @@ gh repo create jorss-gbo --public --push
 | **Branch** | `main` |
 | **Runtime** | Python |
 | **Build Command** | `chmod +x scripts/build.sh && ./scripts/build.sh` |
-| **Start Command** | `gunicorn src.web.app:app --bind 0.0.0.0:$PORT --workers 2 --worker-class uvicorn.workers.UvicornWorker --timeout 120` |
+| **Start Command** | `PYTHONPATH=src gunicorn src.web.app:app --bind 0.0.0.0:$PORT --workers 2 --worker-class uvicorn.workers.UvicornWorker --timeout 120 --keep-alive 5` |
 | **Instance Type** | Free |
 
 ### 4.3 Configure Environment Variables
@@ -134,8 +134,15 @@ Click "Environment" and add these variables:
 | Key | Value | Notes |
 |-----|-------|-------|
 | `APP_ENVIRONMENT` | `production` | |
+| `ENVIRONMENT` | `production` | Used by WebSocket routes |
+| `PYTHONPATH` | `src` | Required for internal imports |
+| `AUTH_USE_DATABASE` | `true` | App will FATAL without this in production |
+| `SESSION_STORAGE_TYPE` | `redis` | Redis-backed sessions |
+| `APP_ENFORCE_HTTPS` | `true` | HTTPS enforcement |
+| `APP_ENABLE_RATE_LIMITING` | `true` | Rate limiting |
 | `DATABASE_URL` | `postgresql://...` | From Neon Step 1.3 |
-| `REDIS_URL` | `redis://...` | From Upstash Step 2.3 |
+| `REDIS_URL` | `rediss://...` | From Upstash Step 2.3 (note: `rediss://` for TLS) |
+| `CORS_ORIGINS` | `https://yourdomain.com` | Your production domain(s), comma-separated |
 | `APP_SECRET_KEY` | (generate) | See below |
 | `JWT_SECRET` | (generate) | See below |
 | `CSRF_SECRET_KEY` | (generate) | See below |
@@ -143,6 +150,8 @@ Click "Environment" and add these variables:
 | `SSN_HASH_SECRET` | (generate) | See below |
 | `AUTH_SECRET_KEY` | (generate) | See below |
 | `PASSWORD_SALT` | (generate) | See below |
+| `SERIALIZER_SECRET_KEY` | (generate) | See below |
+| `AUDIT_HMAC_KEY` | (generate) | See below |
 
 #### Generate Secrets
 
@@ -152,7 +161,8 @@ Run this locally to generate all secrets:
 python -c "
 import secrets
 keys = ['APP_SECRET_KEY', 'JWT_SECRET', 'CSRF_SECRET_KEY',
-        'ENCRYPTION_MASTER_KEY', 'SSN_HASH_SECRET', 'AUTH_SECRET_KEY']
+        'ENCRYPTION_MASTER_KEY', 'SSN_HASH_SECRET', 'AUTH_SECRET_KEY',
+        'SERIALIZER_SECRET_KEY', 'AUDIT_HMAC_KEY']
 for key in keys:
     print(f'{key}={secrets.token_hex(32)}')
 print(f'PASSWORD_SALT={secrets.token_hex(16)}')
@@ -166,6 +176,8 @@ Copy each generated value into Render's environment variables.
 | Key | Value | Notes |
 |-----|-------|-------|
 | `OPENAI_API_KEY` | `sk-...` | For AI features |
+| `SENDGRID_API_KEY` | `SG.xxx` | For email notifications |
+| `SENTRY_DSN` | `https://...` | For error tracking |
 | `PLATFORM_NAME` | `Your Tax Platform` | Branding |
 | `COMPANY_NAME` | `Your Company Name` | Branding |
 | `SUPPORT_EMAIL` | `support@yourdomain.com` | Branding |
@@ -178,6 +190,10 @@ Copy each generated value into Render's environment variables.
 | `UNIFIED_FILING` | `true` |
 | `DB_PERSISTENCE` | `true` |
 | `NEW_LANDING` | `true` |
+| `APP_ENABLE_CACHING` | `true` |
+| `APP_ENABLE_BACKGROUND_TASKS` | `true` |
+| `AI_CHAT_ENABLED` | `true` |
+| `AI_SAFETY_CHECKS` | `true` |
 
 ### 4.4 Deploy
 

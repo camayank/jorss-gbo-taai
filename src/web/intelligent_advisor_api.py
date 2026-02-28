@@ -7328,12 +7328,54 @@ async def email_report(request: EmailReportRequest, _session: str = Depends(veri
         except Exception:
             pass  # Non-blocking
 
+        # Send emails via the notification provider
+        email_sent = False
+        try:
+            from notifications.email_provider import get_email_provider, EmailMessage
+            provider = get_email_provider()
+            provider_name = provider.provider_name
+
+            if provider_name != "null":
+                platform_name = os.environ.get("PLATFORM_NAME", "Tax Platform")
+
+                # Send report summary to prospect
+                if email_body_client:
+                    client_msg = EmailMessage(
+                        to=request.email,
+                        subject=f"Your Tax Advisory Report — {platform_name}",
+                        body_html=email_body_client,
+                        body_text=email_body_client,
+                    )
+                    provider.send(client_msg)
+
+                # Send lead notification to CPA team
+                cpa_email = os.environ.get("CPA_NOTIFICATION_EMAIL", os.environ.get("SUPPORT_EMAIL", ""))
+                if cpa_email and email_body_internal:
+                    for addr in cpa_email.split(","):
+                        addr = addr.strip()
+                        if addr:
+                            cpa_msg = EmailMessage(
+                                to=addr,
+                                subject=f"New Lead: {request.name or request.email}",
+                                body_html=email_body_internal,
+                                body_text=email_body_internal,
+                            )
+                            provider.send(cpa_msg)
+
+                email_sent = True
+                logger.info(f"Report emails sent via {provider_name} to {request.email}")
+            else:
+                logger.info("Email provider is null — emails logged but not delivered")
+        except Exception as e:
+            logger.warning(f"Email delivery failed (lead still captured): {e}")
+
         return {
             "success": True,
             "session_id": request.session_id,
             "lead_captured": True,
-            "email_queued": False,
-            "message": "Your information has been received. A CPA will reach out within 24 hours.",
+            "email_queued": email_sent,
+            "message": "Your report has been emailed. A CPA will reach out within 24 hours." if email_sent
+                else "Your information has been received. A CPA will reach out within 24 hours.",
             "email_body_client": email_body_client,
             "email_body_internal": email_body_internal,
         }

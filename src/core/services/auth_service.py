@@ -756,9 +756,19 @@ class CoreAuthService:
         # Generate magic link token
         token = await self._generate_magic_link_token(user)
 
-        # In production: send email with link
-        magic_link = f"/auth/magic-link?token={token}"
         logger.info(f"Magic link generated (token_prefix={token[:8]}...)")
+
+        # Send magic link email
+        try:
+            from core.services.email_service import get_email_service
+            email_svc = get_email_service()
+            await email_svc.send_magic_link_email(
+                to_email=user.email,
+                magic_token=token,
+                user_name=user.first_name or "",
+            )
+        except Exception as e:
+            logger.warning(f"Magic link email send failed (token still valid): {e}")
 
         # In dev, include token for testing; in production, token is only sent via email
         _env = os.environ.get("APP_ENVIRONMENT", "development").lower()
@@ -921,6 +931,17 @@ class CoreAuthService:
         access_token = self._generate_access_token(user)
 
         logger.info(f"User registered: {user.email} ({user.user_type})")
+
+        # Send welcome email (non-blocking)
+        try:
+            from core.services.email_service import get_email_service
+            email_svc = get_email_service()
+            await email_svc.send_welcome_email(
+                to_email=user.email,
+                user_name=user.first_name or "",
+            )
+        except Exception as e:
+            logger.warning(f"Welcome email send failed: {e}")
 
         return AuthResponse(
             success=True,

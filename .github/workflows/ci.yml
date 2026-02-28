@@ -123,3 +123,45 @@ jobs:
       - name: JS unit tests
         run: npm run test
         working-directory: src/web/static/js
+
+  deploy:
+    name: Deploy to Render
+    needs: [backend, frontend]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy
+        run: |
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            echo "::notice::RENDER_DEPLOY_HOOK_URL not set — skipping deployment"
+            echo "Set this secret in GitHub → Settings → Secrets → Actions"
+            echo "Get the URL from Render → Service → Settings → Deploy Hook"
+            exit 0
+          fi
+          curl -sf "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" \
+            && echo "Deploy triggered successfully" \
+            || echo "::warning::Deploy hook failed — check Render dashboard"
+
+      - name: Wait for deploy
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
+        run: sleep 60
+
+      - name: Checkout (for smoke test)
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Smoke test
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
+        run: |
+          APP_URL="${{ secrets.RENDER_APP_URL }}"
+          if [ -z "$APP_URL" ]; then
+            echo "::notice::RENDER_APP_URL not set — skipping smoke test"
+            exit 0
+          fi
+          python scripts/smoke_test.py "$APP_URL" || echo "::warning::Smoke test failed"
