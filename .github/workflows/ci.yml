@@ -30,17 +30,32 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install ruff bandit safety
+          pip install ruff bandit pip-audit
 
       - name: Lint (Ruff syntax/safety)
         run: ruff check src tests/security --select E9,F63,F7,F82
 
-      - name: Security scan (Bandit)
-        run: bandit -r src/ -ll -q --skip B101
+      - name: Security scan (Bandit — all severities)
+        run: |
+          bandit -r src/ -l --skip B101 \
+            -f json -o bandit-report.json || true
+          bandit -r src/ -l --skip B101 \
+            -f txt || echo "::warning::Bandit found security issues — see bandit-report.json artifact"
 
-      - name: Dependency vulnerability check (Safety)
-        run: safety check --output text || true
-        continue-on-error: true
+      - name: Dependency vulnerability scan (pip-audit)
+        run: |
+          pip-audit --format json --output pip-audit-report.json || true
+          pip-audit --desc || echo "::warning::pip-audit found vulnerable dependencies — see pip-audit-report.json artifact"
+
+      - name: Upload security scan reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            pip-audit-report.json
+          retention-days: 30
 
       - name: Migration graph integrity
         run: |

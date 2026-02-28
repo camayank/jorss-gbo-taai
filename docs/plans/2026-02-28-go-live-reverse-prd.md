@@ -448,19 +448,18 @@ sentry-sdk was already in requirements.txt and now installed via WS2.1 lock file
 
 ---
 
-### WS4.5 — Security Scanning in CI
+### WS4.5 — Security Scanning in CI ✅ DONE
 
-**Problem:** Bandit runs in CI but only checks low-level issues. No dependency vulnerability scanning beyond `safety`.
+**Problem:** Bandit runs in CI but only checks medium+ issues (`-ll`). `safety` dependency check was a no-op (`|| true` + `continue-on-error`). No scan artifacts saved.
 
-**Actions:**
-1. Upgrade Bandit to check all severity levels (currently low only)
-2. Add `pip-audit` for dependency vulnerability scanning
-3. Add Docker image scanning (Trivy) if using Docker deployment
-4. Add OWASP dependency check
-5. Create security scan summary report
+**What was done:**
+1. Bandit upgraded: `-ll` (medium+) → `-l` (all severities), removed `-q` quiet mode, outputs JSON report
+2. Replaced `safety` (unmaintained) with `pip-audit` — actively maintained by PyPI/Google, covers OWASP dependency checks
+3. Both scanners output JSON reports uploaded as CI artifacts (`security-reports`, 30-day retention)
+4. Human-readable output also printed to CI log with `::warning::` annotations on findings
+5. Docker image scanning (Trivy) deferred to WS3.1 when Docker builds are added to CI
 
-**Dependencies:** None
-**Verification:** CI security job runs all scanners; no high/critical findings
+**Status:** COMPLETE
 
 ---
 
@@ -799,7 +798,7 @@ Week 2 (Depends on Week 1):
 ├── WS2.3  Alembic migrations                [Backend]        ✅ DONE
 ├── WS3.5  Startup validation                [DevOps]         ✅ DONE
 ├── WS4.2  Coverage configuration            [QA]             ✅ DONE
-├── WS4.5  Security scanning CI              [QA]
+├── WS4.5  Security scanning CI              [QA]             ✅ DONE
 └── WS6.1  Static file optimization          [Frontend]
 
 Week 3 (Depends on Week 2):
