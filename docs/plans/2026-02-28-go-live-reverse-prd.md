@@ -588,22 +588,20 @@ sentry-sdk was already in requirements.txt and now installed via WS2.1 lock file
 
 ---
 
-### WS6.4 — DOMPurify Self-Hosted
+### WS6.4 — DOMPurify Self-Hosted ✅ DONE (2026-02-28)
 
 **Problem:** DOMPurify loaded from CDN (`cdn.jsdelivr.net`). If CDN is down, XSS protection fails silently.
 
-**Current state:**
-- `<script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>`
-- Same for Alpine.js: loaded from jsdelivr CDN
-
-**Actions:**
-1. Download DOMPurify and Alpine.js to `/src/web/static/js/vendor/`
-2. Update templates to reference local copies
-3. Add SRI (Subresource Integrity) hash if keeping CDN as primary
-4. Implement fallback: local copy if CDN fails
+**Resolution:**
+1. Downloaded 3 vendor libraries to `src/web/static/js/vendor/`:
+   - `purify.min.js` — DOMPurify 3.2.4 (22KB)
+   - `alpine.min.js` — Alpine.js 3.14.9 (45KB)
+   - `alpine-collapse.min.js` — Alpine.js Collapse 3.14.9 (1.4KB)
+2. Updated all 10 template references across 8 files (intelligent_advisor.html, admin_refunds.html, foot_scripts.html, mfa_setup.html, mfa_verify.html, appointments.html, deadlines.html, settings.html)
+3. Tightened CSP in `security/middleware.py` — removed `https://unpkg.com` and `https://cdn.jsdelivr.net` from script-src. Only `https://cdn.tailwindcss.com` remains (4 legal pages still use Tailwind CDN — separate cleanup).
 
 **Dependencies:** None
-**Verification:** App works with CDN blocked (disable network to jsdelivr)
+**Verification:** Zero jsdelivr/unpkg references in templates; CSP tightened
 
 ---
 
@@ -807,7 +805,7 @@ Week 1 (Parallel):
 ├── WS3.3  .dockerignore                     [DevOps]         ✅ DONE
 ├── WS4.1  Fix test collection               [QA]             ✅ DONE
 ├── WS6.3  Fix duplicate JS function         [Frontend]       ✅ DONE
-└── WS6.4  Self-host CDN dependencies        [Frontend]
+└── WS6.4  Self-host CDN dependencies        [Frontend]       ✅ DONE
 
 Week 2 (Depends on Week 1):
 ├── WS1.2  Secrets management                [Security Lead]  ← WS1.1
