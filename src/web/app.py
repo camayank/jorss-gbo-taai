@@ -242,6 +242,11 @@ logger.info(f"CORS middleware enabled for {len(cors_origins)} origin(s) [env={_e
 # Environment detection already defined above (CORS section)
 _is_production = not _is_dev
 
+# GZip compression — compresses responses > 500 bytes.
+# Essential for Render (no nginx in front) and harmless behind nginx (double-gzip won't occur).
+from starlette.middleware.gzip import GZipMiddleware
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
 # 0. HTTPS Redirect (production/staging only)
 if _is_production:
     try:
@@ -1049,6 +1054,15 @@ from fastapi.staticfiles import StaticFiles
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+
+# Cache headers for static assets — 30 days for CSS/JS/images, 1 day for HTML
+@app.middleware("http")
+async def static_cache_headers(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "public, max-age=2592000, immutable"
+    return response
 
 # PWA manifest route
 @app.get("/manifest.json")

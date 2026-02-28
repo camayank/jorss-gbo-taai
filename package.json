@@ -6,7 +6,10 @@
   "scripts": {
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build -o storybook-static",
-    "lint:css": "stylelint 'src/web/static/css/**/*.css'"
+    "lint:css": "stylelint 'src/web/static/css/**/*.css'",
+    "build": "NODE_ENV=production vite build --config vite.build.config.js",
+    "build:css": "NODE_ENV=production postcss 'src/web/static/css/**/*.css' --dir src/web/static/css --no-map --replace",
+    "minify": "npm run build:css"
   },
   "devDependencies": {
     "@storybook/addon-essentials": "^8.0.0",
@@ -16,6 +19,12 @@
     "storybook": "^8.0.0",
     "vite": "^5.0.0",
     "stylelint": "^16.0.0",
-    "stylelint-config-standard": "^36.0.0"
+    "stylelint-config-standard": "^36.0.0",
+    "postcss": "^8.4.0",
+    "postcss-cli": "^11.0.0",
+    "postcss-import": "^16.0.0",
+    "postcss-preset-env": "^10.0.0",
+    "autoprefixer": "^10.4.0",
+    "cssnano": "^7.0.0"
   }
 }

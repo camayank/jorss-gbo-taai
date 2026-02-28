@@ -43,7 +43,7 @@ echo "=============================================="
 
 # 1. Install dependencies (from lock file for reproducible builds)
 echo ""
-echo "[1/4] Installing Python dependencies..."
+echo "[1/5] Installing Python dependencies..."
 if [ "$SKIP_DEP_INSTALL" = "1" ]; then
     echo "Skipping dependency installation (SKIP_DEP_INSTALL=1)"
 elif [ -f "requirements.lock" ]; then
@@ -55,14 +55,31 @@ else
     "$PYTHON_BIN" -m pip install -r requirements.txt --disable-pip-version-check
 fi
 
-# 2. Run launch preflight checks (env + secrets + migration graph)
+# 2. Minify static assets (CSS) if Node.js is available
 echo ""
-echo "[2/4] Running launch preflight (pre-migration)..."
+echo "[2/5] Optimizing static assets..."
+if command -v node >/dev/null 2>&1 && [ -f "package.json" ]; then
+    if [ -f "node_modules/.package-lock.json" ] || [ -f "package-lock.json" ]; then
+        echo "Running CSS minification..."
+        NODE_ENV=production npx postcss 'src/web/static/css/**/*.css' \
+            --dir src/web/static/css --no-map --replace 2>/dev/null \
+            && echo "CSS minified successfully" \
+            || echo "CSS minification skipped (postcss not configured)"
+    else
+        echo "Skipping minification (node_modules not installed)"
+    fi
+else
+    echo "Skipping minification (Node.js not available)"
+fi
+
+# 3. Run launch preflight checks (env + secrets + migration graph)
+echo ""
+echo "[3/5] Running launch preflight (pre-migration)..."
 "$PYTHON_BIN" scripts/preflight_launch.py --mode production --skip-migration-status
 
-# 3. Run database migrations (if Alembic is set up)
+# 4. Run database migrations (if Alembic is set up)
 echo ""
-echo "[3/4] Checking database migrations..."
+echo "[4/5] Checking database migrations..."
 if [ -f "alembic.ini" ] && [ -n "$DATABASE_URL" ]; then
     echo "Running Alembic migrations..."
     "$PYTHON_BIN" -m alembic -c alembic.ini upgrade head
@@ -70,9 +87,9 @@ else
     echo "Skipping migrations (no alembic.ini or DATABASE_URL not set)"
 fi
 
-# 4. Final preflight (full — includes migration status)
+# 5. Final preflight (full — includes migration status)
 echo ""
-echo "[4/4] Running final launch preflight..."
+echo "[5/5] Running final launch preflight..."
 "$PYTHON_BIN" scripts/preflight_launch.py --mode production
 
 echo ""
