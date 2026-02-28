@@ -70,6 +70,10 @@ data/
 node_modules/
 .worktrees/
 
+# Database backups (may contain PII)
+backups/
+*.sql.gz
+
 # Deprecated file staging
 _deprecated/
 

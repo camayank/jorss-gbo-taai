@@ -81,6 +81,14 @@ echo "[3/5] Running launch preflight (pre-migration)..."
 echo ""
 echo "[4/5] Checking database migrations..."
 if [ -f "alembic.ini" ] && [ -n "$DATABASE_URL" ]; then
+    # Create pre-migration backup if pg_dump is available
+    if command -v pg_dump >/dev/null 2>&1 && [ "${SKIP_PRE_MIGRATION_BACKUP:-0}" != "1" ]; then
+        echo "Creating pre-migration backup..."
+        BACKUP_DIR="${BACKUP_DIR:-./backups}" \
+            ./scripts/backup_database.sh --url "$DATABASE_URL" 2>/dev/null \
+            && echo "Pre-migration backup created" \
+            || echo "WARNING: Pre-migration backup failed (continuing with migration)"
+    fi
     echo "Running Alembic migrations..."
     "$PYTHON_BIN" -m alembic -c alembic.ini upgrade head
 else

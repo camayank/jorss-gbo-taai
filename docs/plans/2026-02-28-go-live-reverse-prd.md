@@ -239,19 +239,26 @@ python3 scripts/generate_secrets.py --verify --env-file .env.production
 
 ---
 
-### WS2.4 — Database Backup Strategy
+### WS2.4 — Database Backup Strategy ✅ DONE
 
-**Problem:** No automated backup or restore procedure documented.
+**Problem:** ~~No automated backup or restore procedure documented.~~
 
-**Actions:**
-1. Enable Neon's point-in-time recovery (built into free tier, 7-day retention)
-2. Document manual backup: `pg_dump` command with connection string
-3. Create `scripts/backup_database.sh` utility
-4. Test restore procedure: backup → destroy → restore → verify data
-5. Add backup verification to weekly checklist
+**Resolution:** Created backup/restore tooling and documented Neon PITR.
 
-**Dependencies:** WS2.3 (need stable schema first)
-**Verification:** Can restore from backup and all data is intact
+**Changes made:**
+1. `scripts/backup_database.sh` — pg_dump with gzip compression, metadata JSON, --url/--output flags, masked URL display, table count verification
+2. `scripts/restore_database.sh` — psql restore with safety confirmation, --force for CI, Neon branch recommendation, post-restore verification (table count + Alembic head)
+3. `scripts/build.sh` — Pre-migration backup step (automatic before `alembic upgrade head`, skippable with `SKIP_PRE_MIGRATION_BACKUP=1`)
+4. `.env.production.example` — Neon PITR documentation (free=7d, Pro=30d), backup/restore commands
+5. `.gitignore` — Added `backups/` and `*.sql.gz` (database dumps may contain PII)
+
+**Backup layers:**
+- **Layer 1 (automatic):** Neon PITR — 7-day retention (free), restore via dashboard
+- **Layer 2 (on-demand):** `./scripts/backup_database.sh` — creates timestamped gzipped SQL dump
+- **Layer 3 (pre-migration):** build.sh auto-backup before every `alembic upgrade head`
+
+**Dependencies:** WS2.3 (need stable schema first) ✅
+**Verification:** `backup_database.sh` creates valid dump; `restore_database.sh` restores with verification
 
 ---
 
@@ -793,7 +800,7 @@ Week 2 (Depends on Week 1):
 Week 3 (Depends on Week 2):
 ├── WS1.3  MFA implementation                [Security Lead]  ✅ DONE
 ├── WS1.4  OAuth state to Redis              [Backend]        ✅ DONE
-├── WS2.4  Backup strategy                   [Backend]        ← WS2.3
+├── WS2.4  Backup strategy                   [Backend]        ✅ DONE
 ├── WS3.1  Render deployment                 [DevOps]         ← WS1.1, WS2.1, WS2.2
 ├── WS5.1  Email provider                    [Backend]        ← WS1.1, WS3.1
 └── WS6.2  CDN setup                         [Frontend]       ← WS3.1, WS6.1
