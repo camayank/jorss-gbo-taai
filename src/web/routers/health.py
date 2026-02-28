@@ -237,6 +237,24 @@ def _check_encryption_key() -> Dict[str, Any]:
     return {"status": "healthy"}
 
 
+async def _check_redis() -> Dict[str, Any]:
+    """Check Redis connectivity."""
+    try:
+        from cache import redis_health_check
+        result = await redis_health_check()
+        if result.get("status") == "healthy":
+            return {"status": "healthy", "connected": True}
+        return {
+            "status": "degraded",
+            "connected": False,
+            "message": result.get("error", "Redis unhealthy"),
+        }
+    except ImportError:
+        return {"status": "degraded", "message": "Redis client not installed"}
+    except Exception as e:
+        return {"status": "degraded", "connected": False, "message": str(e)}
+
+
 def _check_disk_space() -> Dict[str, Any]:
     """Check available disk space."""
     try:
@@ -293,6 +311,7 @@ async def health_check() -> JSONResponse:
     Returns 200 if all checks pass, 503 if any critical check fails.
     """
     db_check = await _check_database()
+    redis_check = await _check_redis()
     encryption_check = _check_encryption_key()
     disk_check = _check_disk_space()
 
@@ -302,6 +321,7 @@ async def health_check() -> JSONResponse:
 
     checks = {
         "database": db_check,
+        "redis": redis_check,
         "encryption": encryption_check,
         "disk": disk_check,
     }
@@ -351,16 +371,28 @@ async def readiness_probe() -> JSONResponse:
     Returns 200 if ready, 503 if not.
     """
     db_check = await _check_database()
+    redis_check = await _check_redis()
 
-    if db_check.get("status") == "healthy":
+    db_healthy = db_check.get("status") == "healthy"
+    redis_healthy = redis_check.get("status") == "healthy"
+
+    if db_healthy:
         return JSONResponse(
-            content={"status": "ready", "database": "connected"},
-            status_code=200
+            content={
+                "status": "ready",
+                "database": "connected",
+                "redis": "connected" if redis_healthy else "degraded (fallback active)",
+            },
+            status_code=200,
         )
     else:
         return JSONResponse(
-            content={"status": "not_ready", "reason": db_check.get("error", "Database unavailable")},
-            status_code=503
+            content={
+                "status": "not_ready",
+                "reason": db_check.get("error", "Database unavailable"),
+                "redis": "connected" if redis_healthy else "unavailable",
+            },
+            status_code=503,
         )
 
 

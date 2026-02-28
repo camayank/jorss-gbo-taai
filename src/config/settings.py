@@ -49,7 +49,15 @@ class RedisSettings(BaseSettings):
 
     @property
     def url(self) -> str:
-        """Get Redis URL."""
+        """Get Redis URL.
+
+        Prefers REDIS_URL env var (used by Upstash, Render, Heroku).
+        Falls back to constructing from individual REDIS_HOST/PORT/etc settings.
+        """
+        import os
+        env_url = os.environ.get("REDIS_URL", "").strip()
+        if env_url:
+            return env_url
         auth = f":{self.password}@" if self.password else ""
         protocol = "rediss" if self.ssl else "redis"
         return f"{protocol}://{auth}{self.host}:{self.port}/{self.db}"

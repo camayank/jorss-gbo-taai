@@ -158,6 +158,45 @@ def check_ocr_service() -> DependencyStatus:
         )
 
 
+async def check_redis_async() -> DependencyStatus:
+    """Check Redis connectivity (async)."""
+    import time
+
+    try:
+        from cache import redis_health_check
+
+        start = time.time()
+        result = await redis_health_check()
+        response_time = (time.time() - start) * 1000
+
+        if result.get("status") == "healthy":
+            return DependencyStatus(
+                name="redis",
+                status="up",
+                response_time_ms=round(response_time, 2),
+                message="Redis connected",
+            )
+        return DependencyStatus(
+            name="redis",
+            status="degraded",
+            response_time_ms=round(response_time, 2),
+            message=result.get("error", "Redis unhealthy (fallback active)"),
+        )
+
+    except ImportError:
+        return DependencyStatus(
+            name="redis",
+            status="degraded",
+            message="Redis client not installed (in-memory fallback active)",
+        )
+    except Exception as e:
+        return DependencyStatus(
+            name="redis",
+            status="degraded",
+            message=f"Redis check failed: {e} (in-memory fallback active)",
+        )
+
+
 def check_tax_calculator() -> DependencyStatus:
     """Check tax calculator service."""
     try:
@@ -271,8 +310,10 @@ async def readiness_check():
 
     try:
         # Check all dependencies (built-in + custom)
+        redis_status = await check_redis_async()
         dependencies = [
             check_database(),
+            redis_status,
             check_ocr_service(),
             check_tax_calculator(),
             *get_custom_health_checks(),
@@ -342,8 +383,10 @@ async def dependency_status():
 
     Returns detailed status of each dependency.
     """
+    redis_status = await check_redis_async()
     return [
         check_database(),
+        redis_status,
         check_ocr_service(),
         check_tax_calculator(),
         *get_custom_health_checks(),
