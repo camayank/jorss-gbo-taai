@@ -223,8 +223,8 @@ class VerifyMFARequest(BaseModel):
 
 class ValidateMFARequest(BaseModel):
     """Request to validate MFA during login"""
-    user_id: str
-    code: str = Field(..., min_length=6, max_length=6, pattern=r'^\d{6}$')
+    mfa_token: str = Field(..., description="Temporary token from login proving password was verified")
+    code: str = Field(..., min_length=4, max_length=9, description="6-digit TOTP code or XXXX-XXXX backup code")
 
 
 class DisableMFARequest(BaseModel):
@@ -735,11 +735,24 @@ async def validate_mfa_code(
     Validate MFA code during login.
 
     This endpoint is called after password verification to complete
-    two-factor authentication.
+    two-factor authentication. Accepts the mfa_token from the login
+    response and a TOTP code (or backup code). On success, returns
+    full access/refresh tokens.
     """
     try:
+        # Verify the MFA token (proves password was already verified)
+        from core.services.auth_service import get_auth_service
+        auth_service = get_auth_service()
+
+        mfa_data = auth_service.verify_mfa_token(request.mfa_token)
+        if not mfa_data:
+            raise HTTPException(401, "Invalid or expired MFA token. Please log in again.")
+
+        user_id = mfa_data["user_id"]
+
+        # Get user to verify TOTP
         repo = get_user_auth_repository()
-        user = repo.get_user_by_id(request.user_id)
+        user = repo.get_user_by_id(user_id)
 
         if not user:
             raise HTTPException(404, "User not found")
@@ -747,34 +760,53 @@ async def validate_mfa_code(
         if not user.mfa_enabled or not user.mfa_secret:
             raise HTTPException(400, "MFA is not enabled for this user")
 
-        # Try TOTP verification first
-        if TOTPGenerator.verify_totp(user.mfa_secret, request.code):
-            logger.info(f"[MFA] TOTP validated for user {request.user_id}")
-            return {
-                "valid": True,
-                "method": "totp",
-            }
+        method = None
 
-        # Try backup codes (fetched from encrypted database)
-        code_hash = hash_backup_code(request.code)
-        user_backup_codes = _mfa_persistence.get_backup_codes(request.user_id)
+        # Try TOTP verification first (6-digit code)
+        code_clean = request.code.strip().replace("-", "").replace(" ", "")
+        if len(code_clean) == 6 and code_clean.isdigit():
+            if TOTPGenerator.verify_totp(user.mfa_secret, code_clean):
+                method = "totp"
+                logger.info(f"[MFA] TOTP validated for user {user_id}")
 
-        if code_hash in user_backup_codes:
-            # Remove used backup code
-            user_backup_codes.remove(code_hash)
-            _mfa_persistence.update_backup_codes(request.user_id, user_backup_codes)
+        # Try backup codes if TOTP didn't match
+        if not method:
+            code_hash = hash_backup_code(request.code)
+            user_backup_codes = _mfa_persistence.get_backup_codes(user_id)
 
-            logger.info(f"[MFA] Backup code used for user {request.user_id}")
-            return {
-                "valid": True,
-                "method": "backup_code",
-                "remaining_backup_codes": len(user_backup_codes),
-                "warning": "Backup code used. Consider generating new backup codes." if len(user_backup_codes) < 3 else None,
-            }
+            if code_hash in user_backup_codes:
+                user_backup_codes.remove(code_hash)
+                _mfa_persistence.update_backup_codes(user_id, user_backup_codes)
+                method = "backup_code"
+                logger.info(f"[MFA] Backup code used for user {user_id} ({len(user_backup_codes)} remaining)")
 
-        # Invalid code
-        logger.warning(f"[MFA] Invalid code for user {request.user_id}")
-        raise HTTPException(401, "Invalid MFA code")
+        if not method:
+            logger.warning(f"[MFA] Invalid code for user {user_id}")
+            raise HTTPException(401, "Invalid MFA code")
+
+        # MFA verified — issue full tokens via auth service
+        auth_response = await auth_service.complete_mfa_login(request.mfa_token)
+
+        if not auth_response.success:
+            raise HTTPException(401, auth_response.message)
+
+        result = {
+            "valid": True,
+            "method": method,
+            "access_token": auth_response.access_token,
+            "refresh_token": auth_response.refresh_token,
+            "token_type": auth_response.token_type,
+            "expires_in": auth_response.expires_in,
+            "user": auth_response.user,
+        }
+
+        if method == "backup_code":
+            remaining = len(user_backup_codes)
+            result["remaining_backup_codes"] = remaining
+            if remaining < 3:
+                result["warning"] = "Backup code used. Consider generating new backup codes."
+
+        return result
 
     except HTTPException:
         raise

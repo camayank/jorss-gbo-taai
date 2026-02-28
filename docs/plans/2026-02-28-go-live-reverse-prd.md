@@ -122,26 +122,23 @@ python3 scripts/generate_secrets.py --verify --env-file .env.production
 
 ---
 
-### WS1.3 — MFA Implementation
+### WS1.3 — MFA Implementation ✅ DONE
 
-**Problem:** `mfa_enabled` and `mfa_secret` fields exist in User model and database (`MFACredential`, `MFAPendingSetup` tables), but no code implements the TOTP flow. `pyotp` is in requirements.
+**Problem:** ~~`mfa_enabled` and `mfa_secret` fields exist but no code implements the TOTP flow.~~
 
-**Current state:**
-- Files: `src/core/models/user.py` has `mfa_enabled: bool`, `mfa_secret: str`
-- Database: `MFACredential` and `MFAPendingSetup` models in `src/database/models.py`
-- Templates: `auth/mfa-setup.html` and `auth/mfa-verify.html` exist
-- Library: `pyotp==2.9.0` in requirements.txt
-- Routes: `GET /auth/mfa-setup` and `GET /auth/mfa-verify` serve templates
+**Resolution:** Deep audit revealed MFA was **90% built** — `src/web/mfa_api.py` (910 lines) had full TOTP implementation (RFC 6238, custom, no pyotp), AES-256-GCM encrypted secrets, backup codes (10 codes, XXXX-XXXX format, SHA256 hashed), 7 API endpoints, database models, and templates. The **only missing piece** was login flow integration.
 
-**Actions:**
-1. Implement TOTP setup flow: generate secret → show QR code → verify first code
-2. Implement TOTP verification on login (after password check)
-3. Add backup codes generation and storage
-4. Wire to existing templates and routes
-5. Enable for CPA roles (PARTNER, STAFF) — optional for consumers
+**Changes made:**
+1. `src/core/services/auth_service.py` — Added `mfa_required`/`mfa_token` fields to `AuthResponse`; MFA check after password verification returns short-lived JWT (5min) instead of access tokens; added `_generate_mfa_token()`, `verify_mfa_token()`, `complete_mfa_login()` methods
+2. `src/web/mfa_api.py` — Updated `ValidateMFARequest` to use `mfa_token` (not raw `user_id`); `/validate` endpoint now verifies MFA token, validates TOTP/backup code, then issues full access/refresh tokens via `complete_mfa_login()`
+3. `src/web/templates/auth/login.html` — Login form JS detects `mfa_required` response, stores `mfa_token` in sessionStorage, redirects to `/mfa-verify`
+4. `src/web/templates/auth/mfa_verify.html` — Reads `mfa_token` from sessionStorage, sends it with TOTP code, persists returned tokens on success
+5. `src/web/app.py` — Fixed `/mfa-verify` route to pass `branding` context and default to `/advisor`
+
+**Flow:** Login → password verified → if MFA enabled: return `{mfa_required: true, mfa_token: "..."}` → redirect to `/mfa-verify` → enter TOTP → POST `/api/mfa/validate` with mfa_token + code → receive access/refresh tokens → redirect to app
 
 **Dependencies:** WS1.1 (need stable auth before adding MFA layer)
-**Verification:** CPA can enable MFA, login requires 6-digit TOTP code
+**Verification:** CPA can enable MFA, login requires 6-digit TOTP code, backup codes work
 
 ---
 
@@ -795,7 +792,7 @@ Week 2 (Depends on Week 1):
 └── WS6.1  Static file optimization          [Frontend]       ✅ DONE
 
 Week 3 (Depends on Week 2):
-├── WS1.3  MFA implementation                [Security Lead]  ← WS1.1
+├── WS1.3  MFA implementation                [Security Lead]  ✅ DONE
 ├── WS1.4  OAuth state to Redis              [Backend]        ← WS2.2
 ├── WS2.4  Backup strategy                   [Backend]        ← WS2.3
 ├── WS3.1  Render deployment                 [DevOps]         ← WS1.1, WS2.1, WS2.2
@@ -898,7 +895,7 @@ GOOGLE_ANALYTICS_ID=G-...
 | Render free tier sleeps after 15 min | High (UX) | Certain | Upgrade to paid ($7/mo) or accept 5s cold start |
 | Neon free tier 0.5GB limit | Medium | Medium | Monitor usage; upgrade when approaching limit |
 | OpenAI API outage | High | Low | Anthropic/Google fallback chain already implemented |
-| No MFA → account takeover | High | Low | WS1.3 — implement before CPA onboarding |
+| ~~No MFA → account takeover~~ | ~~High~~ | ~~Low~~ | ✅ WS1.3 DONE — MFA wired into login flow |
 | No load testing → unknown capacity | Medium | High | WS4.4 — test before marketing push |
 | Email deliverability issues | Medium | Medium | WS5.1 — verify domain, test SPF/DKIM |
 | Single region (Oregon) → latency for East Coast | Low | Certain | Accept for MVP; add region later |

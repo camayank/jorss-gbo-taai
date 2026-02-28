@@ -914,6 +914,16 @@
                 const result = await response.json();
 
                 if (response.ok && result.success) {
+                    // Check if MFA is required
+                    if (result.mfa_required && result.mfa_token) {
+                        // Store MFA token for the verification step
+                        sessionStorage.setItem('mfa_token', result.mfa_token);
+                        // Redirect to MFA verification page
+                        const nextUrl = encodeURIComponent(document.getElementById('next-url').value);
+                        window.location.href = `/mfa-verify?next=${nextUrl}`;
+                        return;
+                    }
+
                     // Store tokens + role context for server-rendered routes
                     persistAuthSession(result);
                     // Redirect to next URL

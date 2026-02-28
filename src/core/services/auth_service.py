@@ -185,6 +185,8 @@ class AuthResponse(BaseModel):
     token_type: str = "Bearer"
     expires_in: int = 3600  # seconds
     user: Optional[Dict[str, Any]] = None
+    mfa_required: bool = False
+    mfa_token: Optional[str] = None
 
 
 class TokenPayload(BaseModel):
@@ -542,6 +544,90 @@ class CoreAuthService:
 
         return token
 
+    def _generate_mfa_token(self, user: UnifiedUser, remember_me: bool = False) -> str:
+        """Generate a short-lived token proving password was verified, for MFA step."""
+        now = datetime.utcnow()
+        payload = {
+            "sub": user.id,
+            "purpose": "mfa_verification",
+            "remember_me": remember_me,
+            "exp": now + timedelta(minutes=5),
+            "iat": now,
+            "jti": str(uuid4()),
+        }
+        return pyjwt.encode(payload, AuthConfig.get_jwt_secret(), algorithm="HS256")
+
+    def verify_mfa_token(self, token: str) -> Optional[Dict[str, Any]]:
+        """
+        Verify MFA token and return payload if valid.
+
+        Returns dict with 'user_id' and 'remember_me', or None if invalid.
+        """
+        try:
+            payload = pyjwt.decode(token, AuthConfig.get_jwt_secret(), algorithms=["HS256"])
+            if payload.get("purpose") != "mfa_verification":
+                return None
+            return {
+                "user_id": payload["sub"],
+                "remember_me": payload.get("remember_me", False),
+            }
+        except pyjwt.ExpiredSignatureError:
+            logger.debug("MFA token expired")
+            return None
+        except pyjwt.InvalidTokenError as e:
+            logger.warning(f"MFA token validation failed: {e}")
+            return None
+
+    async def complete_mfa_login(self, mfa_token: str) -> AuthResponse:
+        """
+        Complete login after MFA verification.
+
+        Validates the MFA token (proving password was already verified),
+        then issues full access/refresh tokens.
+        """
+        mfa_data = self.verify_mfa_token(mfa_token)
+        if not mfa_data:
+            return AuthResponse(
+                success=False,
+                message="Invalid or expired MFA token. Please log in again."
+            )
+
+        user = self._users_db.get(mfa_data["user_id"])
+        if not user:
+            return AuthResponse(
+                success=False,
+                message="User not found"
+            )
+
+        # Generate full tokens
+        access_token = self._generate_access_token(user)
+        refresh_token = (
+            (await self._generate_refresh_token(user))
+            if mfa_data.get("remember_me")
+            else None
+        )
+
+        # Update last login
+        user.last_login_at = datetime.utcnow()
+
+        logger.info(f"MFA login completed: {user.email} ({user.user_type})")
+
+        return AuthResponse(
+            success=True,
+            message="Login successful",
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=self.config.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            user={
+                "id": user.id,
+                "email": user.email,
+                "full_name": user.full_name,
+                "user_type": user.user_type.value if isinstance(user.user_type, UserType) else user.user_type,
+                "firm_id": user.firm_id,
+                "firm_name": user.firm_name
+            }
+        )
+
     def validate_access_token(self, token: str) -> Optional[UserContext]:
         """Validate a signed JWT access token and return user context."""
         if not token:
@@ -610,7 +696,24 @@ class CoreAuthService:
                 message="Account is disabled"
             )
 
-        # Generate tokens
+        # Check if MFA is enabled — require second factor before issuing tokens
+        if user.mfa_enabled and user.mfa_secret:
+            mfa_token = self._generate_mfa_token(user, remember_me=request.remember_me)
+            logger.info(f"MFA required for login: {user.email}")
+            return AuthResponse(
+                success=True,
+                message="MFA verification required",
+                mfa_required=True,
+                mfa_token=mfa_token,
+                user={
+                    "id": user.id,
+                    "email": user.email,
+                    "full_name": user.full_name,
+                    "user_type": user.user_type.value if isinstance(user.user_type, UserType) else user.user_type,
+                }
+            )
+
+        # Generate tokens (no MFA — direct login)
         access_token = self._generate_access_token(user)
         refresh_token = (await self._generate_refresh_token(user)) if request.remember_me else None
 

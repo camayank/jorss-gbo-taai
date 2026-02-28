@@ -637,6 +637,7 @@
                 submitting: false,
                 errorMessage: '',
                 hasError: false,
+                mfaToken: '',
 
                 /* ---- Computed ---- */
                 get isOtpComplete() {
@@ -649,6 +650,13 @@
 
                 /* ---- Lifecycle ---- */
                 init() {
+                    // Read MFA token from sessionStorage (set by login page)
+                    this.mfaToken = sessionStorage.getItem('mfa_token') || '';
+                    if (!this.mfaToken) {
+                        // No MFA token — redirect back to login
+                        window.location.href = '/login';
+                        return;
+                    }
                     this.$nextTick(() => {
                         const first = document.getElementById('otp-0');
                         if (first) first.focus();
@@ -814,15 +822,24 @@
                                 'Content-Type': 'application/json',
                                 ...this._csrfHeader(),
                             },
-                            body: JSON.stringify({ code }),
+                            body: JSON.stringify({
+                                mfa_token: this.mfaToken,
+                                code,
+                            }),
                         });
 
                         const result = await response.json();
 
                         if (response.ok && result.valid) {
+                            // Clean up MFA token from sessionStorage
+                            sessionStorage.removeItem('mfa_token');
+
+                            // Persist auth tokens and user context
+                            this._persistAuthSession(result);
+
                             // Determine redirect target from ?next= query param
                             const params = new URLSearchParams(window.location.search);
-                            const next = params.get('next') || '/dashboard';
+                            const next = params.get('next') || '/advisor';
                             window.location.href = next;
                         } else {
                             this.errorMessage = result.detail || result.message || 'Invalid code. Please try again.';
@@ -864,6 +881,28 @@
                         return { 'X-CSRF-Token': decodeURIComponent(match[1]) };
                     }
                     return {};
+                },
+
+                _setCookie(name, value, maxAgeSeconds = 604800) {
+                    const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
+                    document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax${secureFlag}`;
+                },
+
+                _persistAuthSession(result) {
+                    if (result.access_token) {
+                        localStorage.setItem('auth_token', result.access_token);
+                        this._setCookie('auth_token', result.access_token);
+                    }
+                    if (result.refresh_token) {
+                        localStorage.setItem('refresh_token', result.refresh_token);
+                    }
+                    const user = result.user || {};
+                    const role = user.role || user.user_type || '';
+                    const displayName = user.full_name || user.name || '';
+                    const email = user.email || '';
+                    if (role) this._setCookie('user_role', role);
+                    if (displayName) this._setCookie('user_name', displayName);
+                    if (email) this._setCookie('user_email', email);
                 },
             };
         }

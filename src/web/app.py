@@ -1491,11 +1491,13 @@ def mfa_setup_page(request: Request):
 
 @app.get("/auth/mfa-verify", response_class=HTMLResponse)
 @app.get("/mfa-verify", response_class=HTMLResponse)
-def mfa_verify_page(request: Request, next: str = "/dashboard"):
+def mfa_verify_page(request: Request, next: str = "/advisor"):
     """MFA Verification Page - Enter TOTP code during login."""
+    from config.branding import get_branding_config
+    branding = get_branding_config()
     return templates.TemplateResponse(
         "auth/mfa_verify.html",
-        {"request": request, "next_url": next}
+        {"request": request, "branding": branding, "next_url": next}
     )
 
 
