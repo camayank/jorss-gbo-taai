@@ -303,6 +303,12 @@ def main() -> int:
         "SSN_HASH_SECRET": 32,
         "PASSWORD_SALT": 16,
     }
+    optional_secrets = {
+        "SERIALIZER_SECRET_KEY": 16,
+        "AUDIT_HMAC_KEY": 16,
+    }
+
+    secret_values: Dict[str, str] = {}
 
     for name, min_len in required_secrets.items():
         err = check_required_secret(name, min_len)
@@ -311,6 +317,65 @@ def main() -> int:
             failures += 1
         else:
             checks.append(Check(name, "PASS", f"configured (len>={min_len})"))
+            secret_values[name] = get_env(name)
+
+    for name, min_len in optional_secrets.items():
+        value = get_env(name)
+        if is_placeholder(value):
+            checks.append(Check(name, "WARN", "missing (will be auto-generated)"))
+            warnings += 1
+        elif len(value) < min_len:
+            checks.append(Check(name, "WARN", f"too short ({len(value)} chars, need {min_len}+)"))
+            warnings += 1
+        else:
+            checks.append(Check(name, "PASS", f"configured (len>={min_len})"))
+            secret_values[name] = value
+
+    # Uniqueness check: no two secrets should share the same value
+    seen: Dict[str, str] = {}
+    duplicates: List[str] = []
+    for name, value in secret_values.items():
+        if value in seen:
+            duplicates.append(f"{name} == {seen[value]}")
+        else:
+            seen[value] = name
+    if duplicates:
+        checks.append(Check("Secret uniqueness", "FAIL", f"duplicates: {', '.join(duplicates)}"))
+        failures += 1
+    elif secret_values:
+        checks.append(Check("Secret uniqueness", "PASS", f"{len(secret_values)} unique secrets"))
+
+    # Redis check (required for production sessions/cache)
+    redis_url = get_env("REDIS_URL")
+    redis_host = get_env("REDIS_HOST")
+    if not is_placeholder(redis_url):
+        checks.append(Check("Redis config", "PASS", "REDIS_URL configured"))
+    elif redis_host:
+        checks.append(Check("Redis config", "PASS", "REDIS_HOST configured"))
+    elif is_production_mode:
+        checks.append(Check("Redis config", "FAIL", "REDIS_URL or REDIS_HOST not set"))
+        failures += 1
+    else:
+        checks.append(Check("Redis config", "WARN", "not configured (using in-memory fallback)"))
+        warnings += 1
+
+    # CORS origins check (must be set in production)
+    cors_origins = get_env("CORS_ORIGINS")
+    if is_production_mode:
+        if is_placeholder(cors_origins):
+            checks.append(Check("CORS_ORIGINS", "FAIL", "not set (required in production)"))
+            failures += 1
+        elif "*" in cors_origins:
+            checks.append(Check("CORS_ORIGINS", "FAIL", "wildcard '*' not allowed in production"))
+            failures += 1
+        else:
+            checks.append(Check("CORS_ORIGINS", "PASS", cors_origins))
+    else:
+        if is_placeholder(cors_origins):
+            checks.append(Check("CORS_ORIGINS", "WARN", "not set (defaults apply in dev)"))
+            warnings += 1
+        else:
+            checks.append(Check("CORS_ORIGINS", "PASS", cors_origins))
 
     database_ok, database_hint = detect_database_configured(require_postgres=is_production_mode)
     if database_ok:

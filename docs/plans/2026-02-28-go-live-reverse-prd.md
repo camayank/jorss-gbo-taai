@@ -98,20 +98,27 @@ python3 scripts/generate_secrets.py --verify --env-file .env.production
 
 ---
 
-### WS1.2 — Secrets Management
+### WS1.2 — Secrets Management ✅ DONE (2026-02-28)
 
 **Problem:** No secrets management system. Secrets are in environment variables with no rotation strategy.
 
-**Actions:**
-1. Choose secrets provider:
-   - **Render:** Use Render's built-in secret environment variables (free)
-   - **Optional upgrade:** HashiCorp Vault, AWS Secrets Manager, or Doppler
-2. Document secret rotation procedure (quarterly minimum)
-3. Add secret strength validation to `scripts/preflight_launch.py` (partially exists)
-4. Create `scripts/rotate_secrets.py` utility
+**Resolution:**
+1. **Secrets provider:** Render's built-in secret environment variables (free tier). Documented in `.env.production.example` setup instructions.
+2. **Enhanced `scripts/preflight_launch.py`:**
+   - Now checks all 9 secrets (added SERIALIZER_SECRET_KEY, AUDIT_HMAC_KEY)
+   - Secret uniqueness validation (catches copy-paste errors)
+   - Redis configuration check (required in production, warn in dev)
+   - CORS_ORIGINS check (required in production, rejects wildcard `*`)
+   - Production mode catches 3 mandatory blockers before go-live
+3. **Created `scripts/rotate_secrets.py`:**
+   - Rotates all or specific secrets: `--only JWT_SECRET APP_SECRET_KEY`
+   - `--dry-run` mode for preview without writing
+   - Safety warnings for dangerous rotations (ENCRYPTION_MASTER_KEY, PASSWORD_SALT)
+   - Updates rotation timestamp comment automatically
+4. **Rotation schedule:** Quarterly minimum, documented in script docstrings. Tools: `generate_secrets.py` (fresh), `rotate_secrets.py` (in-place), `preflight_launch.py` (verify).
 
 **Dependencies:** WS1.1
-**Verification:** `python scripts/preflight_launch.py` passes all checks
+**Verification:** `python3 scripts/preflight_launch.py --mode development` passes; `--mode production` correctly blocks on missing Redis/CORS
 
 ---
 
@@ -808,7 +815,7 @@ Week 1 (Parallel):
 └── WS6.4  Self-host CDN dependencies        [Frontend]       ✅ DONE
 
 Week 2 (Depends on Week 1):
-├── WS1.2  Secrets management                [Security Lead]  ← WS1.1
+├── WS1.2  Secrets management                [Security Lead]  ✅ DONE
 ├── WS2.2  Redis configuration               [Backend]        ← WS1.1
 ├── WS2.3  Alembic migrations                [Backend]        ← WS2.1
 ├── WS3.5  Startup validation                [DevOps]         ← WS1.1
