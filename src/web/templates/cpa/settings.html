@@ -400,7 +400,7 @@ document.addEventListener('alpine:init', () => {
             else if (this.passwordForm.newPass !== this.passwordForm.confirm) { this.passwordErrors.confirm = 'Passwords do not match'; valid = false; }
             if (valid) {
                 try {
-                    const res = await fetch('/api/auth/change-password', {
+                    const res = await fetch('/api/core/users/me/change-password', {
                         method: 'POST',
                         headers: this._getAuthHeaders(),
                         body: JSON.stringify({ current_password: this.passwordForm.current, new_password: this.passwordForm.newPass })

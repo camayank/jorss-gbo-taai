@@ -20,6 +20,8 @@ from datetime import datetime
 import logging
 import traceback
 
+from rbac.dependencies import require_auth
+from rbac.context import AuthContext
 from models.tax_return import TaxReturn, FilingStatus, TaxPayer
 from models.income import W2Income, Income1099Misc, Income1099NEC
 from models.deductions import ItemizedDeductions, StandardDeduction
@@ -129,7 +131,7 @@ class PriorYearImportRequest(BaseModel):
 # =============================================================================
 
 @router.post("/express-lane", response_model=ExpressLaneResponse)
-async def submit_express_lane(submission: ExpressLaneSubmission):
+async def submit_express_lane(submission: ExpressLaneSubmission, ctx: AuthContext = Depends(require_auth)):
     """
     Process Express Lane submission with AI-extracted data.
 
@@ -318,7 +320,7 @@ async def submit_express_lane(submission: ExpressLaneSubmission):
 
 
 @router.post("/import-prior-year")
-async def import_prior_year(request: PriorYearImportRequest):
+async def import_prior_year(request: PriorYearImportRequest, ctx: AuthContext = Depends(require_auth)):
     """
     Import data from prior year tax return - IMPROVED
 
@@ -365,7 +367,7 @@ async def import_prior_year(request: PriorYearImportRequest):
 
 
 @router.get("/check-prior-year")
-async def check_prior_year():
+async def check_prior_year(ctx: AuthContext = Depends(require_auth)):
     """
     Check if user has prior year tax returns available - IMPROVED
 
@@ -402,7 +404,7 @@ async def check_prior_year():
 
 
 @router.get("/{session_id}/pdf")
-async def download_express_lane_pdf(session_id: str):
+async def download_express_lane_pdf(session_id: str, ctx: AuthContext = Depends(require_auth)):
     """Download PDF report for an Express Lane result."""
     try:
         persistence = get_session_persistence()

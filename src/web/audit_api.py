@@ -6,9 +6,12 @@ Provides compliance-ready audit trail export for tax filing sessions.
 """
 from datetime import datetime, timedelta
 from typing import Optional, List
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
 import logging
+
+from rbac.dependencies import require_auth, require_platform_admin
+from rbac.context import AuthContext
 
 # Import audit logger
 try:
@@ -77,7 +80,8 @@ async def get_session_audit(
     session_id: str,
     event_type: Optional[str] = None,
     limit: int = Query(default=100, le=1000),
-    offset: int = Query(default=0, ge=0)
+    offset: int = Query(default=0, ge=0),
+    ctx: AuthContext = Depends(require_auth),
 ):
     """
     Get audit trail for a specific tax filing session.
@@ -108,7 +112,7 @@ async def get_session_audit(
 
 
 @router.get("/session/{session_id}/summary")
-async def get_session_audit_summary(session_id: str):
+async def get_session_audit_summary(session_id: str, ctx: AuthContext = Depends(require_auth)):
     """
     Get summary of audit activity for a session.
 
@@ -165,7 +169,7 @@ async def get_session_audit_summary(session_id: str):
 
 
 @router.get("/session/{session_id}/report")
-async def get_session_audit_report(session_id: str):
+async def get_session_audit_report(session_id: str, ctx: AuthContext = Depends(require_auth)):
     """
     Export comprehensive audit report for compliance purposes.
 
@@ -185,7 +189,7 @@ async def get_session_audit_report(session_id: str):
 
 
 @router.get("/session/{session_id}/field/{field_name}")
-async def get_field_history(session_id: str, field_name: str):
+async def get_field_history(session_id: str, field_name: str, ctx: AuthContext = Depends(require_auth)):
     """
     Get complete history of changes to a specific field.
 
@@ -221,7 +225,7 @@ async def get_field_history(session_id: str, field_name: str):
 
 
 @router.get("/session/{session_id}/calculations")
-async def get_calculation_history(session_id: str):
+async def get_calculation_history(session_id: str, ctx: AuthContext = Depends(require_auth)):
     """
     Get history of all tax calculations for a session.
 
@@ -255,7 +259,8 @@ async def get_calculation_history(session_id: str):
 @router.get("/user/{user_id}/activity")
 async def get_user_activity(
     user_id: str,
-    days: int = Query(default=30, le=365)
+    days: int = Query(default=30, le=365),
+    ctx: AuthContext = Depends(require_platform_admin),
 ):
     """
     Get recent audit activity for a specific user.
@@ -284,7 +289,8 @@ async def get_user_activity(
 @router.get("/security/events")
 async def get_security_events(
     days: int = Query(default=7, le=90),
-    severity: Optional[str] = None
+    severity: Optional[str] = None,
+    ctx: AuthContext = Depends(require_platform_admin),
 ):
     """
     Get security-related audit events.

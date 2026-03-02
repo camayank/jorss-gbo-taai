@@ -475,6 +475,7 @@ if RBAC_V2_ENABLED:
                 "/api/v1/auth/forgot-password",
                 "/api/v1/auth/reset-password",
                 "/api/v1/auth/verify-email",
+                "/api/mfa/validate",
                 "/docs",
                 "/redoc",
                 "/openapi.json",
@@ -1921,6 +1922,12 @@ def projections_redirect(request: Request, session_id: str = None):
     """Redirect to intelligent advisor for tax projections."""
     if session_id:
         return RedirectResponse(url=f"/intelligent-advisor?session_id={session_id}", status_code=302)
+    return RedirectResponse(url="/intelligent-advisor", status_code=302)
+
+
+@app.get("/contact", response_class=HTMLResponse)
+def contact_page(request: Request):
+    """Contact page — redirects to intelligent advisor."""
     return RedirectResponse(url="/intelligent-advisor", status_code=302)
 
 

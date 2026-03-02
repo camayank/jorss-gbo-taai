@@ -4,10 +4,12 @@ Auto-Save API Endpoints
 Provides manual trigger for auto-save and status information.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 
+from rbac.dependencies import require_auth, require_platform_admin
+from rbac.context import AuthContext
 from web.auto_save import get_auto_save_manager
 from database.session_persistence import get_session_persistence
 from database.unified_session import UnifiedFilingSession
@@ -37,7 +39,7 @@ class AutoSaveStatsResponse(BaseModel):
 
 
 @router.post("/trigger", response_model=AutoSaveResponse)
-async def trigger_auto_save(request: AutoSaveRequest):
+async def trigger_auto_save(request: AutoSaveRequest, ctx: AuthContext = Depends(require_auth)):
     """
     Manually trigger auto-save for a specific session.
 
@@ -81,7 +83,7 @@ async def trigger_auto_save(request: AutoSaveRequest):
 
 
 @router.get("/stats", response_model=AutoSaveStatsResponse)
-async def get_auto_save_stats():
+async def get_auto_save_stats(ctx: AuthContext = Depends(require_auth)):
     """
     Get auto-save manager statistics.
 
@@ -97,7 +99,7 @@ async def get_auto_save_stats():
 
 
 @router.post("/flush")
-async def flush_auto_save():
+async def flush_auto_save(ctx: AuthContext = Depends(require_platform_admin)):
     """
     Force immediate flush of all pending auto-saves.
 
