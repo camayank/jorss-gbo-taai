@@ -17,16 +17,16 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 import logging
 
-from src.database.unified_session import FilingState, WorkflowType
-from src.database.session_persistence import get_session_persistence
-from src.security.session_token import generate_session_token, SESSION_TOKEN_KEY
+from database.unified_session import FilingState, WorkflowType
+from database.session_persistence import get_session_persistence
+from security.session_token import generate_session_token, SESSION_TOKEN_KEY
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/sessions", tags=["session-management"])
 
 # Auth dependencies
-from src.rbac.dependencies import require_auth, optional_auth, require_platform_admin
-from src.rbac.context import AuthContext
+from rbac.dependencies import require_auth, optional_auth, require_platform_admin
+from rbac.context import AuthContext
 
 
 # =============================================================================

@@ -662,8 +662,8 @@
                         <span id="error-message">Invalid email or password</span>
                     </div>
 
-                    <form id="login-form" action="/api/auth/login" method="POST">
-                        <input type="hidden" name="next" id="next-url" value="/advisor">
+                    <form id="login-form" action="/api/core/auth/login" method="POST">
+                        <input type="hidden" name="next" id="next-url" value="/intelligent-advisor">
 
                         <div class="form-group">
                             <label class="form-label" for="email">Email Address</label>
@@ -820,7 +820,7 @@
         // Check for estimate data and OAuth callback
         document.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
-            const nextUrl = urlParams.get('next') || '/advisor';
+            const nextUrl = urlParams.get('next') || '/intelligent-advisor';
             document.getElementById('next-url').value = nextUrl;
 
             // Handle OAuth callback

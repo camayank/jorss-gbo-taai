@@ -47,7 +47,7 @@ async def get_aggregated_insights(
 
     try:
         # Get all sessions/returns for this tenant
-        from src.database.session_persistence import get_session_persistence
+        from database.session_persistence import get_session_persistence
         from cpa_panel.adapters import TaxReturnAdapter
 
         persistence = get_session_persistence()
@@ -204,7 +204,7 @@ async def get_insights_by_category(
 
     try:
         # Get all aggregated insights first
-        from src.database.session_persistence import get_session_persistence
+        from database.session_persistence import get_session_persistence
         from cpa_panel.adapters import TaxReturnAdapter
         from calculator.recommendations import get_recommendations
 
@@ -384,7 +384,7 @@ async def get_insights_summary(
     tenant_id = get_tenant_id(request)
 
     try:
-        from src.database.session_persistence import get_session_persistence
+        from database.session_persistence import get_session_persistence
         from cpa_panel.adapters import TaxReturnAdapter
         from calculator.recommendations import get_recommendations, RecommendationPriority
 

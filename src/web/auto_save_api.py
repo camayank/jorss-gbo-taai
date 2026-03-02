@@ -8,9 +8,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 
-from src.web.auto_save import get_auto_save_manager
-from src.database.session_persistence import get_session_persistence
-from src.database.unified_session import UnifiedFilingSession
+from web.auto_save import get_auto_save_manager
+from database.session_persistence import get_session_persistence
+from database.unified_session import UnifiedFilingSession
 
 router = APIRouter(prefix="/api/auto-save", tags=["auto-save"])
 

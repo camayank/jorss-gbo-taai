@@ -15,7 +15,7 @@ This implements the state machine for return lifecycle and CPA approval workflow
 
 from enum import Enum
 from typing import Optional
-from src.rbac.permissions import Role, Permission
+from rbac.permissions import Role, Permission
 
 
 class ReturnStatus(str, Enum):

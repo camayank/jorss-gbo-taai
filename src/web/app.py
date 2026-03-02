@@ -482,6 +482,7 @@ if RBAC_V2_ENABLED:
             public_path_prefixes={
                 "/static/",
                 "/assets/",
+                "/api/core/auth/",
             },
             rbac_v2_enabled=True,
             fallback_to_legacy=True,
@@ -1381,7 +1382,7 @@ def intelligent_tax_advisor(request: Request):
         "branding": branding,
         "user": {"role": "client", "name": "Guest"},
         "current_path": str(request.url.path),
-        "brand_name": branding.get("platform_name", "Tax Advisory"),
+        "brand_name": getattr(branding, "platform_name", "Tax Advisory"),
     })
 
 
@@ -1491,7 +1492,7 @@ def mfa_setup_page(request: Request):
 
 @app.get("/auth/mfa-verify", response_class=HTMLResponse)
 @app.get("/mfa-verify", response_class=HTMLResponse)
-def mfa_verify_page(request: Request, next: str = "/advisor"):
+def mfa_verify_page(request: Request, next: str = "/intelligent-advisor"):
     """MFA Verification Page - Enter TOTP code during login."""
     from config.branding import get_branding_config
     branding = get_branding_config()
@@ -1611,7 +1612,7 @@ async def app_router(request: Request):
     - PLATFORM_ADMIN, SUPER_ADMIN -> /admin
     - PARTNER, STAFF, CPA, PREPARER -> /cpa/dashboard
     - CLIENT, TAXPAYER -> /app/portal
-    - Unauthenticated -> /advisor
+    - Unauthenticated -> /intelligent-advisor
     """
     role_bucket = _resolve_request_role_bucket(request)
 
@@ -1622,8 +1623,8 @@ async def app_router(request: Request):
     elif role_bucket == "client":
         return RedirectResponse(url="/app/portal", status_code=302)
 
-    # Default to advisor for unknown/anonymous roles
-    return RedirectResponse(url="/advisor", status_code=302)
+    # Default to intelligent-advisor for unknown/anonymous roles
+    return RedirectResponse(url="/intelligent-advisor", status_code=302)
 
 
 @app.get("/app/workspace", response_class=HTMLResponse)
@@ -2060,19 +2061,10 @@ def _require_any_auth(request: Request) -> Optional[RedirectResponse]:
     return RedirectResponse(url=f"/login?next={_safe_next_path(request.url.path)}", status_code=302)
 
 
-@app.get("/admin/api-keys", response_class=HTMLResponse)
-def admin_api_keys_page(request: Request):
-    """
-    API Keys Management - Platform Admin.
-
-    Dedicated page for managing API keys, tokens, and integrations.
-    Separate from main admin SPA for focused key management workflow.
-    """
-    denied = _require_admin_page_access(request)
-    if denied:
-        return denied
-    return templates.TemplateResponse("admin_api_keys.html", {"request": request})
-
+# NOTE: /admin/api-keys is now handled by the admin SPA (admin_dashboard.html).
+# The standalone admin_api_keys.html is no longer served — all admin/* routes
+# go through the SPA catch-all to prevent the "all links same page" regression.
+# See admin_dashboard.html section-api-keys for the SPA implementation.
 
 @app.get("/admin", response_class=HTMLResponse)
 @app.get("/admin/{path:path}", response_class=HTMLResponse)
@@ -5142,7 +5134,7 @@ async def list_saved_returns(
     from database.persistence import list_tax_returns, get_persistence
 
     # Get paginated results
-    returns = list_tax_returns(tax_year, limit, offset)
+    returns = list_tax_returns(tax_year, limit)
 
     # Get total count for pagination (without limit/offset)
     try:
@@ -7405,20 +7397,10 @@ async def dismiss_smart_insight(insight_id: str, request: Request):
 # ============================================================================
 # AI TAX ADVISOR - Conversational Chat Interface
 # ============================================================================
-@app.get("/advisor", response_class=HTMLResponse)
-def ai_tax_advisor(request: Request):
-    """
-    AI Tax Advisor - Intelligent chatbot interface.
-    """
-    from config.branding import get_branding_config
-    branding = get_branding_config()
-    return templates.TemplateResponse("intelligent_advisor.html", {
-        "request": request,
-        "branding": branding,
-        "user": {"role": "client", "name": "Guest"},
-        "current_path": str(request.url.path),
-        "brand_name": branding.get("platform_name", "Tax Advisory"),
-    })
+@app.get("/advisor", response_class=HTMLResponse, include_in_schema=False)
+def ai_tax_advisor():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/intelligent-advisor", status_code=301)
 
 
 # ============================================================================
@@ -7439,7 +7421,7 @@ def legacy_routes_redirect():
     Legacy routes redirected to AI Tax Advisor.
 
     Old form-wizard and prototype routes now redirect to the main
-    AI-powered tax advisor at /advisor.
+    AI-powered tax advisor at /intelligent-advisor.
     """
     from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/advisor", status_code=302)
+    return RedirectResponse(url="/intelligent-advisor", status_code=302)

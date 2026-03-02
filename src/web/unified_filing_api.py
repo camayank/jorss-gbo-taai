@@ -272,7 +272,7 @@ async def upload_document(
         validate_uploaded_file(file, content)
 
         # Process document with OCR
-        from src.services.ocr.ocr_engine import OCREngine
+        from services.ocr.ocr_engine import OCREngine
 
         ocr = OCREngine()
 
@@ -376,8 +376,8 @@ async def calculate_taxes(
 
     try:
         # Build tax return from session data
-        from src.models.tax_return import TaxReturn
-        from src.calculation.tax_calculator import TaxCalculator
+        from models.tax_return import TaxReturn
+        from calculation.tax_calculator import TaxCalculator
 
         extracted_data = session_data.get("extracted_data", {})
 
@@ -533,8 +533,8 @@ async def submit_return(
 
 def _build_tax_return(extracted_data: Dict[str, Any], request: CalculateTaxRequest):
     """Build TaxReturn object from extracted data."""
-    from src.models.tax_return import TaxReturn, FilingStatus, TaxPayer
-    from src.models.income import W2Income
+    from models.tax_return import TaxReturn, FilingStatus, TaxPayer
+    from models.income import W2Income
 
     # This is simplified - real implementation would handle all income types
     taxpayer = TaxPayer(

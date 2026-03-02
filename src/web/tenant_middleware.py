@@ -19,8 +19,8 @@ from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from typing import Optional
 
-from src.database.tenant_persistence import get_tenant_persistence
-from src.database.tenant_models import Tenant
+from database.tenant_persistence import get_tenant_persistence
+from database.tenant_models import Tenant
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ class TenantResolutionMiddleware(BaseHTTPMiddleware):
             request.state.branding = self._tenant_branding_to_dict(tenant)
         else:
             # Use default branding from environment
-            from src.config.branding import get_branding_config
+            from config.branding import get_branding_config
             request.state.branding = get_branding_config().to_dict()
 
         response = await call_next(request)

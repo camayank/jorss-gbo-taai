@@ -4,7 +4,7 @@ Feature Flags Configuration
 Allows controlled rollout of the unified tax filing platform.
 
 Usage:
-    from src.config.feature_flags import is_enabled
+    from config.feature_flags import is_enabled
 
     if is_enabled("unified_filing"):
         # Use new unified flow

@@ -200,7 +200,7 @@ async def check_redis_async() -> DependencyStatus:
 def check_tax_calculator() -> DependencyStatus:
     """Check tax calculator service."""
     try:
-        from src.calculation.tax_calculator import TaxCalculator
+        from calculation.tax_calculator import TaxCalculator
 
         # Quick sanity check
         calculator = TaxCalculator()

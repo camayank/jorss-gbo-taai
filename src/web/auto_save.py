@@ -10,7 +10,7 @@ Features:
 - Error recovery
 
 Usage in FastAPI:
-    from src.web.auto_save import get_auto_save_manager
+    from web.auto_save import get_auto_save_manager
 
     @app.on_event("startup")
     async def startup():
@@ -28,8 +28,8 @@ from typing import Dict, Optional
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 
-from src.database.unified_session import UnifiedFilingSession
-from src.database.session_persistence import get_session_persistence
+from database.unified_session import UnifiedFilingSession
+from database.session_persistence import get_session_persistence
 
 logger = logging.getLogger(__name__)
 

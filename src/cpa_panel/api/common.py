@@ -739,7 +739,7 @@ def get_lead_state_engine():
     global _lead_state_engine
     if _lead_state_engine is None:
         from cpa_panel.lead_state import LeadStateEngine
-        from src.database.lead_state_persistence import get_lead_state_persistence
+        from database.lead_state_persistence import get_lead_state_persistence
 
         persistence = get_lead_state_persistence()
         _lead_state_engine = LeadStateEngine(persistence=persistence)

@@ -480,7 +480,7 @@
                     </div>
 
                     <form id="signup-form">
-                        <input type="hidden" name="next" id="next-url" value="/advisor">
+                        <input type="hidden" name="next" id="next-url" value="/intelligent-advisor">
 
                         <div class="form-row">
                             <div class="form-group">
@@ -631,7 +631,7 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
-            const nextUrl = urlParams.get('next') || '/advisor';
+            const nextUrl = urlParams.get('next') || '/intelligent-advisor';
             document.getElementById('next-url').value = nextUrl;
 
             // Handle OAuth callback
@@ -662,6 +662,12 @@
                         document.getElementById('estimate-banner').classList.add('show');
                     }
                 }
+            }
+
+            // Pre-fill email from assessment flow
+            const prefillEmail = urlParams.get('email') || sessionStorage.getItem('leadEmail');
+            if (prefillEmail) {
+                document.getElementById('email').value = prefillEmail;
             }
         });
 

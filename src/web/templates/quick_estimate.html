@@ -959,7 +959,7 @@
                         </div>
 
                         <div class="results-cta" id="skip-email-cta">
-                            <a href="/signup?next=/advisor&estimate=true" class="btn btn-primary btn-large">
+                            <a href="/signup?next=/intelligent-advisor&estimate=true" class="btn btn-primary btn-large">
                                 Start Full Analysis Now
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="5" y1="12" x2="19" y2="12"/>
@@ -967,7 +967,7 @@
                                 </svg>
                             </a>
                             <div style="margin-top: var(--space-3);">
-                                <a href="/login?next=/advisor&estimate=true" style="color: var(--text-muted); font-size: 0.85rem; text-decoration: none;">
+                                <a href="/login?next=/intelligent-advisor&estimate=true" style="color: var(--text-muted); font-size: 0.85rem; text-decoration: none;">
                                     Already have an account? <span style="color: var(--primary); font-weight: var(--font-semibold);">Sign in</span>
                                 </a>
                             </div>
@@ -1410,11 +1410,11 @@
                 sessionStorage.setItem('leadEmail', email);
 
                 // Redirect to signup
-                window.location.href = '/signup?next=/advisor&estimate=true&email=' + encodeURIComponent(email);
+                window.location.href = '/signup?next=/intelligent-advisor&estimate=true&email=' + encodeURIComponent(email);
             } catch (e) {
                 console.error('Lead capture error:', e);
                 // Still redirect on error
-                window.location.href = '/signup?next=/advisor&estimate=true';
+                window.location.href = '/signup?next=/intelligent-advisor&estimate=true';
             }
         }
 

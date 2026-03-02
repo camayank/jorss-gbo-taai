@@ -16,8 +16,8 @@ import json
 import logging
 
 # Import database persistence
-from src.database.unified_session import UnifiedFilingSession, FilingState, WorkflowType, DocumentInfo
-from src.database.session_persistence import get_session_persistence
+from database.unified_session import UnifiedFilingSession, FilingState, WorkflowType, DocumentInfo
+from database.session_persistence import get_session_persistence
 
 logger = logging.getLogger(__name__)
 
@@ -228,9 +228,9 @@ class SmartTaxOrchestrator:
             return {"error": "Session not found"}
 
         # Import here to avoid circular imports
-        from src.services.ocr.confidence_scorer import ConfidenceScorer, DocumentConfidenceAggregator
-        from src.services.ocr.inference_engine import FieldInferenceEngine
-        from src.recommendation.realtime_estimator import RealTimeEstimator
+        from services.ocr.confidence_scorer import ConfidenceScorer, DocumentConfidenceAggregator
+        from services.ocr.inference_engine import FieldInferenceEngine
+        from recommendation.realtime_estimator import RealTimeEstimator
 
         # Score confidence for each field
         scorer = ConfidenceScorer()

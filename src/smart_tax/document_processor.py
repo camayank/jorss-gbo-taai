@@ -16,14 +16,14 @@ from enum import Enum
 from decimal import Decimal
 import re
 
-from src.services.ocr.confidence_scorer import (
+from services.ocr.confidence_scorer import (
     ConfidenceScorer,
     ConfidenceResult,
     ConfidenceLevel,
     ConfidenceFactors,
     DocumentConfidenceAggregator,
 )
-from src.services.ocr.inference_engine import (
+from services.ocr.inference_engine import (
     FieldInferenceEngine,
     InferenceResult,
     MultiDocumentInference,

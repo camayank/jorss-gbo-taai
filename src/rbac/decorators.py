@@ -15,8 +15,8 @@ from functools import wraps
 from typing import Optional, Callable
 from fastapi import HTTPException, Depends, status
 
-from src.rbac.permissions import Role, Permission, has_permission
-from src.rbac.status_permissions import (
+from rbac.permissions import Role, Permission, has_permission
+from rbac.status_permissions import (
     ReturnStatus,
     can_edit_return,
     can_approve_return,
@@ -25,7 +25,7 @@ from src.rbac.status_permissions import (
     can_generate_filing_package,
     can_view_return
 )
-from src.database.session_persistence import get_session_persistence
+from database.session_persistence import get_session_persistence
 
 
 # Import AuthContext from your auth module
@@ -38,7 +38,7 @@ _rbac_logger = logging.getLogger(__name__)
 # Try multiple import paths for auth module
 _AUTH_AVAILABLE = False
 try:
-    from src.auth.auth_context import AuthContext, require_auth
+    from auth.auth_context import AuthContext, require_auth
     _AUTH_AVAILABLE = True
 except ImportError:
     try:

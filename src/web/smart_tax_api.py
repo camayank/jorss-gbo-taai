@@ -34,13 +34,13 @@ from smart_tax.complexity_router import assess_and_route
 from recommendation.realtime_estimator import RealTimeEstimator, quick_estimate_from_w2
 
 # OCR imports
-from src.services.ocr import (
+from services.ocr import (
     OCREngine,
     OCREngineType,
     OCREngineError,
     FieldExtractor,
 )
-from src.services.ocr.field_extractor import get_templates_for_document
+from services.ocr.field_extractor import get_templates_for_document
 
 # Environment variable for OCR mode
 OCR_STRICT_MODE = os.environ.get("OCR_STRICT_MODE", "false").lower() == "true"

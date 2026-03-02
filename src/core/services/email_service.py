@@ -410,7 +410,7 @@ If you didn't request this link, you can safely ignore this email.
         user_name: str = ""
     ) -> EmailResult:
         """Send welcome email to new users."""
-        dashboard_url = f"{self.config.APP_URL}/advisor"
+        dashboard_url = f"{self.config.APP_URL}/intelligent-advisor"
 
         html_body = f"""
 <!DOCTYPE html>

@@ -20,15 +20,15 @@ from datetime import datetime
 import logging
 import traceback
 
-from src.models.tax_return import TaxReturn, FilingStatus, TaxPayer
-from src.models.income import W2Income, Income1099Misc, Income1099NEC
-from src.models.deductions import ItemizedDeductions, StandardDeduction
-from src.calculation.tax_calculator import TaxCalculator
-from src.export.professional_pdf_templates import ProfessionalPDFGenerator
-from src.recommendation.recommendation_engine import RecommendationEngine
+from models.tax_return import TaxReturn, FilingStatus, TaxPayer
+from models.income import W2Income, Income1099Misc, Income1099NEC
+from models.deductions import ItemizedDeductions, StandardDeduction
+from calculation.tax_calculator import TaxCalculator
+from export.professional_pdf_templates import ProfessionalPDFGenerator
+from recommendation.recommendation_engine import RecommendationEngine
 
 # Import our new validation helpers
-from src.web.validation_helpers import (
+from web.validation_helpers import (
     validate_express_lane_data,
     format_validation_errors,
     validate_ssn,
@@ -38,8 +38,8 @@ from src.web.validation_helpers import (
 )
 
 # Import database persistence
-from src.database.unified_session import UnifiedFilingSession, FilingState, WorkflowType
-from src.database.session_persistence import get_session_persistence
+from database.unified_session import UnifiedFilingSession, FilingState, WorkflowType
+from database.session_persistence import get_session_persistence
 from calculator.decimal_math import money, to_decimal
 
 logger = logging.getLogger(__name__)
@@ -263,7 +263,7 @@ async def submit_express_lane(submission: ExpressLaneSubmission):
             persistence.save_unified_session(session)
 
             # Mark for auto-save (future changes will be auto-saved)
-            from src.web.auto_save import mark_session_for_auto_save
+            from web.auto_save import mark_session_for_auto_save
             mark_session_for_auto_save(session)
 
             logger.info(f"[{request_id}] Session saved to database: {return_id}")

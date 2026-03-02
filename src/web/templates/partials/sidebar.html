@@ -168,7 +168,7 @@
         {% endif %}
 
         <ul class="nav-list">
-          {% for item in section.items %}
+          {% for item in section['items'] %}
             {% if item.roles is not defined or user_role in item.roles %}
               <li {% if item.children %}x-data="{ expanded: {{ 'true' if item.url in current_path else 'false' }} }"{% endif %}>
                 {% if item.children %}

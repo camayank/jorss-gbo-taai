@@ -75,7 +75,7 @@ async def verify_session_token(
         raise HTTPException(status_code=400, detail="No session_id found in request")
 
     # Look up session in the chat engine
-    from src.web.intelligent_advisor_api import chat_engine
+    from web.intelligent_advisor_api import chat_engine
 
     if not chat_engine:
         logger.error("Chat engine not initialized")

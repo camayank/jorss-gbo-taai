@@ -25,7 +25,7 @@ import asyncio
 import logging
 import os
 
-from src.security.session_token import verify_session_token, generate_session_token, SESSION_TOKEN_KEY
+from security.session_token import verify_session_token, generate_session_token, SESSION_TOKEN_KEY
 
 # ---------------------------------------------------------------------------
 # AI Feature Flags — each integration is independently toggleable
@@ -2678,8 +2678,8 @@ async def get_session_stats():
     return {
         "in_memory_sessions": session_counts["in_memory"],
         "database_sessions": session_counts["in_database"],
-        "persistence_enabled": chat_engine._persistence is not None,
-        "persistence_type": "SQLite" if chat_engine._persistence else "In-memory only"
+        "persistence_enabled": chat_engine._sqlite_persistence is not None,
+        "persistence_type": "SQLite" if chat_engine._sqlite_persistence else "In-memory only"
     }
 
 
