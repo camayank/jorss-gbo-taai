@@ -927,8 +927,9 @@ class CoreAuthService:
         self._users_db[user.id] = user
         self._users_db[user.email] = user
 
-        # Generate tokens
+        # Generate tokens (include refresh token so the session persists)
         access_token = self._generate_access_token(user)
+        refresh_token = await self._generate_refresh_token(user)
 
         logger.info(f"User registered: {user.email} ({user.user_type})")
 
@@ -947,6 +948,7 @@ class CoreAuthService:
             success=True,
             message="Registration successful",
             access_token=access_token,
+            refresh_token=refresh_token,
             expires_in=self.config.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
             user={
                 "id": user.id,

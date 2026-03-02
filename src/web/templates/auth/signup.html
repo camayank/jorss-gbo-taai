@@ -512,7 +512,7 @@
                             <div class="password-strength">
                                 <div class="password-strength-fill" id="password-strength"></div>
                             </div>
-                            <p class="form-hint">At least 8 characters with a mix of letters and numbers</p>
+                            <p class="form-hint">At least 8 characters with uppercase, lowercase, and a number</p>
                         </div>
 
                         <div class="terms-checkbox">
@@ -688,9 +688,9 @@
             const value = this.value;
             strength.className = 'password-strength-fill';
 
-            if (value.length >= 8 && /[A-Z]/.test(value) && /[0-9]/.test(value) && /[^A-Za-z0-9]/.test(value)) {
+            if (value.length >= 8 && /[A-Z]/.test(value) && /[a-z]/.test(value) && /[0-9]/.test(value) && /[^A-Za-z0-9]/.test(value)) {
                 strength.classList.add('strong');
-            } else if (value.length >= 8 && (/[A-Z]/.test(value) || /[0-9]/.test(value))) {
+            } else if (value.length >= 8 && /[A-Z]/.test(value) && /[a-z]/.test(value) && /[0-9]/.test(value)) {
                 strength.classList.add('medium');
             } else if (value.length > 0) {
                 strength.classList.add('weak');

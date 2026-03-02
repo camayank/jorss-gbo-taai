@@ -250,7 +250,7 @@ class TenantIsolationMiddleware(BaseHTTPMiddleware):
         path = request.url.path
 
         # Skip exempt paths
-        if path in self.exempt_paths or path.startswith("/static"):
+        if path in self.exempt_paths or path.startswith("/static") or path.startswith("/api/core/auth/"):
             return await call_next(request)
 
         # Extract tenant context from request
