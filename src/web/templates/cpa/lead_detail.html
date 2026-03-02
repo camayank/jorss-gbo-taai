@@ -846,6 +846,14 @@
     const sessionId = '{{ lead.session_id or "" }}';
     const cpaSlug = '{{ cpa.cpa_slug or "default" }}';
 
+    function getAuthHeaders(json = true) {
+        const headers = {};
+        const token = localStorage.getItem('auth_token') || localStorage.getItem('access_token');
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        if (json) headers['Content-Type'] = 'application/json';
+        return headers;
+    }
+
     async function engageLead() {
         if (!confirm('Mark this lead as engaged? This allows the client to access their full report after acknowledging the engagement letter.')) {
             return;
@@ -854,7 +862,7 @@
         try {
             const response = await fetch(`/api/cpa/lead-magnet/leads/${leadId}/engage`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({})
             });
 
@@ -880,7 +888,7 @@
         try {
             const response = await fetch(`/api/cpa/lead-magnet/leads/${leadId}/convert`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: getAuthHeaders()
             });
 
             if (!response.ok) {
@@ -940,7 +948,7 @@
         try {
             const response = await fetch(`/api/cpa/lead-magnet/leads/${leadId}/notes`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ content: note })
             });
 
@@ -956,17 +964,47 @@
         }
     }
 
-    function assignTo() {
-        // Show assignment modal (placeholder)
-        const staff = prompt('Enter staff member name or email to assign:');
-        if (staff) {
-            showToast(`Assignment to "${staff}" saved (feature coming soon)`);
+    async function assignTo() {
+        const cpaId = prompt('Enter CPA ID or email to assign this lead to:');
+        if (!cpaId) return;
+        try {
+            const response = await fetch(`/api/cpa/leads/${leadId}/assign`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ cpa_id: cpaId })
+            });
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.detail || 'Assignment failed');
+            }
+            showToast(`Lead assigned to "${cpaId}" successfully`);
+        } catch (e) {
+            showToast('Failed to assign lead: ' + e.message, 'error');
         }
     }
 
-    function archiveLead() {
-        if (confirm('Are you sure you want to archive this lead? This can be undone later.')) {
-            showToast('Lead archived (feature coming soon)');
+    async function archiveLead() {
+        if (!confirm('Are you sure you want to archive this lead? This can be undone later.')) return;
+        try {
+            const headers = { 'Content-Type': 'application/json' };
+            const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+            const csrf = document.querySelector('meta[name="csrf-token"]');
+            if (csrf) headers['X-CSRFToken'] = csrf.content;
+
+            const res = await fetch(`/api/cpa/leads/${leadId}/archive`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ note: 'Archived from lead detail page' }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Archive failed');
+            }
+            showToast('Lead archived successfully');
+            setTimeout(() => window.location.href = '/cpa/leads', 1200);
+        } catch (e) {
+            showToast('Failed to archive lead: ' + e.message, 'error');
         }
     }
 
