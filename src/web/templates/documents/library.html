@@ -1227,7 +1227,7 @@
         </div>
     </div>
 
-    <script>
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         // View toggle
         function setView(view) {
             const gridBtn = document.getElementById('gridViewBtn');
@@ -1410,6 +1410,15 @@
             window.location.href = `/api/documents/${id}/download`;
         }
 
+        function _showToast(msg, type) {
+            const t = document.createElement('div');
+            t.textContent = msg;
+            t.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:12px 24px;border-radius:8px;color:#fff;font-weight:500;z-index:10000;' +
+                'background:' + (type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#3b82f6');
+            document.body.appendChild(t);
+            setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 4000);
+        }
+
         function deleteDocument(id) {
             if (!confirm('Are you sure you want to delete this document?')) return;
             fetch(`/api/documents/${id}`, {
@@ -1421,10 +1430,11 @@
                 if (r.ok) {
                     const card = document.querySelector(`.document-card [onclick*="'${id}'"]`)?.closest('.document-card');
                     if (card) card.remove();
+                    _showToast('Document deleted', 'success');
                 } else {
-                    alert('Failed to delete document');
+                    _showToast('Failed to delete document', 'error');
                 }
-            }).catch(() => alert('Error deleting document'));
+            }).catch(() => _showToast('Error deleting document', 'error'));
         }
 
         // Search and filter

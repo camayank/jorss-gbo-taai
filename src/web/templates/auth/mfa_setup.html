@@ -1124,7 +1124,7 @@
         <div class="toast" :class="{ visible: toastVisible }" x-text="toastMessage"></div>
     </main>
 
-    <script>
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         function mfaSetup() {
             return {
                 /* ── State ── */

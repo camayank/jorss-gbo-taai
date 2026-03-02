@@ -18,7 +18,7 @@ class TestAPIKeyModels:
 
     def test_api_key_create_model(self):
         """Test APIKeyCreate model."""
-        from src.web.routers.admin_api_keys_api import APIKeyCreate
+        from web.routers.admin_api_keys_api import APIKeyCreate
 
         key = APIKeyCreate(
             name="Production API Key",
@@ -33,7 +33,7 @@ class TestAPIKeyModels:
 
     def test_api_key_create_defaults(self):
         """Test default values for APIKeyCreate."""
-        from src.web.routers.admin_api_keys_api import APIKeyCreate
+        from web.routers.admin_api_keys_api import APIKeyCreate
 
         key = APIKeyCreate(name="Test Key")
 
@@ -43,7 +43,7 @@ class TestAPIKeyModels:
 
     def test_api_key_update_model(self):
         """Test APIKeyUpdate model."""
-        from src.web.routers.admin_api_keys_api import APIKeyUpdate
+        from web.routers.admin_api_keys_api import APIKeyUpdate
 
         update = APIKeyUpdate(
             name="Updated Name",
@@ -59,7 +59,7 @@ class TestAPIKeyClass:
 
     def test_api_key_creation(self):
         """Test creating an APIKey."""
-        from src.web.routers.admin_api_keys_api import APIKey
+        from web.routers.admin_api_keys_api import APIKey
 
         key = APIKey(
             key_id="key-001",
@@ -81,7 +81,7 @@ class TestAPIKeyClass:
 
     def test_api_key_is_active_when_not_revoked(self):
         """Test key is active when not revoked."""
-        from src.web.routers.admin_api_keys_api import APIKey
+        from web.routers.admin_api_keys_api import APIKey
 
         key = APIKey(
             key_id="key-002",
@@ -99,7 +99,7 @@ class TestAPIKeyClass:
 
     def test_api_key_inactive_when_revoked(self):
         """Test key is inactive when revoked."""
-        from src.web.routers.admin_api_keys_api import APIKey
+        from web.routers.admin_api_keys_api import APIKey
 
         key = APIKey(
             key_id="key-003",
@@ -118,7 +118,7 @@ class TestAPIKeyClass:
 
     def test_api_key_inactive_when_expired(self):
         """Test key is inactive when expired."""
-        from src.web.routers.admin_api_keys_api import APIKey
+        from web.routers.admin_api_keys_api import APIKey
 
         # Set expires_at to past
         past = datetime.utcnow() - timedelta(days=1)
@@ -139,7 +139,7 @@ class TestAPIKeyClass:
 
     def test_api_key_to_dict(self):
         """Test APIKey serialization."""
-        from src.web.routers.admin_api_keys_api import APIKey
+        from web.routers.admin_api_keys_api import APIKey
 
         key = APIKey(
             key_id="key-005",
@@ -168,7 +168,7 @@ class TestAPIKeyGeneration:
 
     def test_generate_api_key_format(self):
         """Test that generated keys have correct format."""
-        from src.web.routers.admin_api_keys_api import _generate_api_key
+        from web.routers.admin_api_keys_api import _generate_api_key
 
         raw_key, key_hash, prefix = _generate_api_key()
 
@@ -183,7 +183,7 @@ class TestAPIKeyGeneration:
 
     def test_generate_unique_keys(self):
         """Test that each generated key is unique."""
-        from src.web.routers.admin_api_keys_api import _generate_api_key
+        from web.routers.admin_api_keys_api import _generate_api_key
 
         keys = set()
         for _ in range(100):
@@ -198,7 +198,7 @@ class TestScopeValidation:
 
     def test_validate_known_scopes(self):
         """Test that known scopes are validated."""
-        from src.web.routers.admin_api_keys_api import _validate_scopes, AVAILABLE_SCOPES
+        from web.routers.admin_api_keys_api import _validate_scopes, AVAILABLE_SCOPES
 
         input_scopes = ["clients:read", "returns:write"]
         validated = _validate_scopes(input_scopes)
@@ -208,7 +208,7 @@ class TestScopeValidation:
 
     def test_filter_invalid_scopes(self):
         """Test that invalid scopes are filtered out."""
-        from src.web.routers.admin_api_keys_api import _validate_scopes
+        from web.routers.admin_api_keys_api import _validate_scopes
 
         input_scopes = ["clients:read", "invalid:scope", "fake:permission"]
         validated = _validate_scopes(input_scopes)
@@ -219,7 +219,7 @@ class TestScopeValidation:
 
     def test_available_scopes(self):
         """Test that all expected scopes are available."""
-        from src.web.routers.admin_api_keys_api import AVAILABLE_SCOPES
+        from web.routers.admin_api_keys_api import AVAILABLE_SCOPES
 
         expected_scopes = [
             "clients:read",
@@ -250,7 +250,7 @@ class TestKeyRotation:
 
     def test_rotation_preserves_metadata(self):
         """Test that rotation preserves key metadata."""
-        from src.web.routers.admin_api_keys_api import APIKey
+        from web.routers.admin_api_keys_api import APIKey
 
         old_key = APIKey(
             key_id="old-key",

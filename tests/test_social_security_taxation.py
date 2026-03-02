@@ -15,13 +15,13 @@ Tests cover:
 """
 
 import pytest
-from src.calculator.engine import FederalTaxEngine
-from src.calculator.tax_year_config import TaxYearConfig
-from src.models.tax_return import TaxReturn
-from src.models.taxpayer import TaxpayerInfo, FilingStatus
-from src.models.income import Income, ScheduleK1, K1SourceType, GamblingWinnings, GamblingType
-from src.models.deductions import Deductions
-from src.models.credits import TaxCredits
+from calculator.engine import FederalTaxEngine
+from calculator.tax_year_config import TaxYearConfig
+from models.tax_return import TaxReturn
+from models.taxpayer import TaxpayerInfo, FilingStatus
+from models.income import Income, ScheduleK1, K1SourceType, GamblingWinnings, GamblingType
+from models.deductions import Deductions
+from models.credits import TaxCredits
 
 
 class TestTier1ZeroTaxable:

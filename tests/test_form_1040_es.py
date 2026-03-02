@@ -12,7 +12,7 @@ Comprehensive test suite covering:
 
 import pytest
 from datetime import date
-from src.models.form_1040_es import (
+from models.form_1040_es import (
     Form1040ES,
     Form1040ESWorksheet,
     EstimatedTaxPayment,

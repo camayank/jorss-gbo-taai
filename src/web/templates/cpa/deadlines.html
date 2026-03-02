@@ -279,7 +279,7 @@
 
 {% block extra_scripts %}
 <script defer src="/static/js/vendor/alpine.min.js"></script>
-<script>
+<script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
 document.addEventListener('alpine:init', () => {
     Alpine.data('deadlineManager', () => ({
         activeFilter: 'all',

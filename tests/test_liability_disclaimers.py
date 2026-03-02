@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from src.web.intelligent_advisor_api import ChatResponse, STANDARD_DISCLAIMER
+from web.intelligent_advisor_api import ChatResponse, STANDARD_DISCLAIMER
 
 
 class TestChatResponseDisclaimerFields:
@@ -51,7 +51,7 @@ class TestStrategyResponseDisclaimer:
 
     def test_strategy_response_includes_disclaimer(self):
         """Strategy responses should include standard disclaimer."""
-        from src.web.intelligent_advisor_api import STANDARD_DISCLAIMER
+        from web.intelligent_advisor_api import STANDARD_DISCLAIMER
 
         response = ChatResponse(
             session_id="test-123",
@@ -65,7 +65,7 @@ class TestStrategyResponseDisclaimer:
 
     def test_calculation_response_includes_disclaimer(self):
         """Calculation responses should include standard disclaimer."""
-        from src.web.intelligent_advisor_api import STANDARD_DISCLAIMER
+        from web.intelligent_advisor_api import STANDARD_DISCLAIMER
 
         response = ChatResponse(
             session_id="test-123",
@@ -108,28 +108,28 @@ class TestComplexScenarioDetection:
 
     def test_high_income_requires_professional_review(self):
         """Income over $200K should flag requires_professional_review."""
-        from src.web.intelligent_advisor_api import should_require_professional_review
+        from web.intelligent_advisor_api import should_require_professional_review
 
         profile = {"filing_status": "single", "wages": 250000}
         assert should_require_professional_review(profile) is True
 
     def test_multi_state_requires_professional_review(self):
         """Multi-state income should flag requires_professional_review."""
-        from src.web.intelligent_advisor_api import should_require_professional_review
+        from web.intelligent_advisor_api import should_require_professional_review
 
         profile = {"states": ["CA", "NY"]}
         assert should_require_professional_review(profile) is True
 
     def test_crypto_income_requires_professional_review(self):
         """Crypto income should flag requires_professional_review."""
-        from src.web.intelligent_advisor_api import should_require_professional_review
+        from web.intelligent_advisor_api import should_require_professional_review
 
         profile = {"has_crypto": True}
         assert should_require_professional_review(profile) is True
 
     def test_simple_scenario_no_professional_review(self):
         """Simple W-2 income should not require professional review."""
-        from src.web.intelligent_advisor_api import should_require_professional_review
+        from web.intelligent_advisor_api import should_require_professional_review
 
         profile = {"filing_status": "single", "wages": 75000}
         assert should_require_professional_review(profile) is False

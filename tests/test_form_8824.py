@@ -14,7 +14,7 @@ Comprehensive test suite covering:
 
 import pytest
 from datetime import date, timedelta
-from src.models.form_8824 import (
+from models.form_8824 import (
     Form8824,
     Form8824Part1,
     Form8824Part2,

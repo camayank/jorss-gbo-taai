@@ -12,13 +12,13 @@ Tests verify:
 """
 
 import pytest
-from src.models.income import Income, W2Info
-from src.models.taxpayer import TaxpayerInfo, FilingStatus
-from src.models.deductions import Deductions, ItemizedDeductions
-from src.models.credits import TaxCredits
-from src.models.tax_return import TaxReturn
-from src.calculator.engine import FederalTaxEngine
-from src.calculator.tax_year_config import TaxYearConfig
+from models.income import Income, W2Info
+from models.taxpayer import TaxpayerInfo, FilingStatus
+from models.deductions import Deductions, ItemizedDeductions
+from models.credits import TaxCredits
+from models.tax_return import TaxReturn
+from calculator.engine import FederalTaxEngine
+from calculator.tax_year_config import TaxYearConfig
 
 
 def make_w2(wages: float, federal_withheld: float = 0.0) -> W2Info:

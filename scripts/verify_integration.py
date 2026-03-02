@@ -69,7 +69,7 @@ class IntegrationVerifier:
 
         # Check tenant persistence
         try:
-            from src.database.tenant_persistence import get_tenant_persistence
+            from database.tenant_persistence import get_tenant_persistence
             persistence = get_tenant_persistence()
             self.add_result(
                 "Database",
@@ -87,7 +87,7 @@ class IntegrationVerifier:
 
         # Check session persistence
         try:
-            from src.database.session_persistence import get_session_persistence
+            from database.session_persistence import get_session_persistence
             session_persistence = get_session_persistence()
             self.add_result(
                 "Database",
@@ -105,7 +105,7 @@ class IntegrationVerifier:
 
         # Check audit logger
         try:
-            from src.audit.audit_logger import get_audit_logger
+            from audit.audit_logger import get_audit_logger
             audit_logger = get_audit_logger()
             self.add_result(
                 "Database",
@@ -133,7 +133,7 @@ class IntegrationVerifier:
 
         # Check permission definitions
         try:
-            from src.rbac.enhanced_permissions import Permissions, get_permissions_for_role
+            from rbac.enhanced_permissions import Permissions, get_permissions_for_role
             all_perms = [attr for attr in dir(Permissions) if not attr.startswith('_')]
             self.add_result(
                 "RBAC",
@@ -171,7 +171,7 @@ class IntegrationVerifier:
 
         # Check FIRM_CLIENT edit permission (bug fix verification)
         try:
-            from src.rbac.enhanced_permissions import Permissions
+            from rbac.enhanced_permissions import Permissions
             client_perms = get_permissions_for_role('FIRM_CLIENT')
 
             if Permissions.CLIENT_RETURNS_EDIT_SELF in client_perms:
@@ -208,7 +208,7 @@ class IntegrationVerifier:
 
         # Check feature definitions
         try:
-            from src.rbac.feature_access_control import Features, Feature
+            from rbac.feature_access_control import Features, Feature
             all_features = [attr for attr in dir(Features)
                           if isinstance(getattr(Features, attr), Feature)]
             self.add_result(
@@ -264,7 +264,7 @@ class IntegrationVerifier:
 
         # Check admin APIs
         try:
-            from src.web.admin_tenant_api import router as admin_tenant_router
+            from web.admin_tenant_api import router as admin_tenant_router
             endpoint_count = len([r for r in admin_tenant_router.routes])
             self.add_result(
                 "API",
@@ -281,7 +281,7 @@ class IntegrationVerifier:
             )
 
         try:
-            from src.web.admin_user_management_api import router as admin_user_router
+            from web.admin_user_management_api import router as admin_user_router
             endpoint_count = len([r for r in admin_user_router.routes])
             self.add_result(
                 "API",
@@ -299,7 +299,7 @@ class IntegrationVerifier:
 
         # Check CPA APIs
         try:
-            from src.web.cpa_branding_api import router as cpa_branding_router
+            from web.cpa_branding_api import router as cpa_branding_router
             endpoint_count = len([r for r in cpa_branding_router.routes])
             self.add_result(
                 "API",
@@ -317,7 +317,7 @@ class IntegrationVerifier:
 
         # Check feature access API
         try:
-            from src.web.feature_access_api import router as feature_router
+            from web.feature_access_api import router as feature_router
             endpoint_count = len([r for r in feature_router.routes])
             self.add_result(
                 "API",
@@ -335,7 +335,7 @@ class IntegrationVerifier:
 
         # Check unified filing API
         try:
-            from src.web.unified_filing_api import router as filing_router
+            from web.unified_filing_api import router as filing_router
             endpoint_count = len([r for r in filing_router.routes])
             self.add_result(
                 "API",
@@ -363,7 +363,7 @@ class IntegrationVerifier:
 
         # Check branding config
         try:
-            from src.config.branding import get_branding_config
+            from config.branding import get_branding_config
             config = get_branding_config()
             self.add_result(
                 "White-Label",
@@ -381,7 +381,7 @@ class IntegrationVerifier:
 
         # Check tenant models
         try:
-            from src.database.tenant_models import Tenant, TenantBranding, TenantFeatureFlags
+            from database.tenant_models import Tenant, TenantBranding, TenantFeatureFlags
             self.add_result(
                 "White-Label",
                 "Tenant Models",
@@ -398,7 +398,7 @@ class IntegrationVerifier:
 
         # Check CPA branding models
         try:
-            from src.database.tenant_models import CPABranding
+            from database.tenant_models import CPABranding
             self.add_result(
                 "White-Label",
                 "CPA Branding Models",

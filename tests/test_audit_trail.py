@@ -9,7 +9,7 @@ class TestAIResponseAuditEvent:
 
     def test_audit_event_has_required_fields(self):
         """AIResponseAuditEvent should have all required fields."""
-        from src.audit.audit_models import AIResponseAuditEvent
+        from audit.audit_models import AIResponseAuditEvent
 
         event = AIResponseAuditEvent(
             session_id="test-123",
@@ -27,7 +27,7 @@ class TestAIResponseAuditEvent:
 
     def test_audit_event_has_timestamp(self):
         """Audit event should auto-set timestamp."""
-        from src.audit.audit_models import AIResponseAuditEvent
+        from audit.audit_models import AIResponseAuditEvent
 
         event = AIResponseAuditEvent(
             session_id="test-456",
@@ -47,8 +47,8 @@ class TestAuditLogging:
 
     def test_log_ai_response_stores_event(self):
         """log_ai_response should store the event."""
-        from src.audit.audit_models import AIResponseAuditEvent
-        from src.audit.audit_logger import log_ai_response, get_ai_response_audit_trail
+        from audit.audit_models import AIResponseAuditEvent
+        from audit.audit_logger import log_ai_response, get_ai_response_audit_trail
 
         event = AIResponseAuditEvent(
             session_id="test-log-789",
@@ -68,7 +68,7 @@ class TestAuditLogging:
 
     def test_get_prompt_hash_is_consistent(self):
         """Same prompt should produce same hash."""
-        from src.audit.audit_logger import get_prompt_hash
+        from audit.audit_logger import get_prompt_hash
 
         hash1 = get_prompt_hash("test prompt")
         hash2 = get_prompt_hash("test prompt")
@@ -76,7 +76,7 @@ class TestAuditLogging:
 
     def test_get_prompt_hash_different_for_different_prompts(self):
         """Different prompts should produce different hashes."""
-        from src.audit.audit_logger import get_prompt_hash
+        from audit.audit_logger import get_prompt_hash
 
         hash1 = get_prompt_hash("prompt one")
         hash2 = get_prompt_hash("prompt two")

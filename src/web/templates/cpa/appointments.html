@@ -259,7 +259,7 @@
 
 {% block extra_scripts %}
 <script defer src="/static/js/vendor/alpine.min.js"></script>
-<script>
+<script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
 function appointmentManager() {
     const today = new Date();
     const y = today.getFullYear(), m = today.getMonth();

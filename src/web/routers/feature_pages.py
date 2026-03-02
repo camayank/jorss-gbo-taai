@@ -218,13 +218,10 @@ def settings_notifications(request: Request, current_user: dict = Depends(_requi
 # ADMIN IMPERSONATION (admin-only)
 # =============================================================================
 
-@router.get("/admin/impersonation", response_class=HTMLResponse)
-def admin_impersonation(request: Request, current_user: dict = Depends(_require_admin_page)):
-    """Admin impersonation - view as another user for support purposes."""
-    return templates.TemplateResponse(
-        "admin_impersonation.html",
-        {"request": request, "user": current_user, "page_title": "User Impersonation"}
-    )
+# NOTE: /admin/impersonation is now handled by the admin SPA (admin_dashboard.html).
+# The standalone admin_impersonation.html is no longer served — all admin/* routes
+# go through the SPA catch-all to prevent the "all links same page" regression.
+# See admin_dashboard.html section-impersonation for the SPA implementation.
 
 
 # =============================================================================
@@ -309,10 +306,7 @@ def filing_package(request: Request, current_user: dict = Depends(_require_page_
 # ADMIN REFUNDS (admin-only)
 # =============================================================================
 
-@router.get("/admin/refunds", response_class=HTMLResponse)
-def admin_refunds(request: Request, current_user: dict = Depends(_require_admin_page)):
-    """Admin refund management - review and process client refund requests."""
-    return templates.TemplateResponse(
-        "admin_refunds.html",
-        {"request": request, "user": current_user, "page_title": "Refund Management"}
-    )
+# NOTE: /admin/refunds is now handled by the admin SPA (admin_dashboard.html).
+# The standalone admin_refunds.html is no longer served — all admin/* routes
+# go through the SPA catch-all to prevent the "all links same page" regression.
+# See admin_dashboard.html section-refunds for the SPA implementation.

@@ -9,7 +9,7 @@ class TestProfessionalAcknowledgment:
 
     def test_acknowledgment_model_has_required_fields(self):
         """ProfessionalAcknowledgment should have all required fields."""
-        from src.web.intelligent_advisor_api import ProfessionalAcknowledgment
+        from web.intelligent_advisor_api import ProfessionalAcknowledgment
 
         ack = ProfessionalAcknowledgment(
             acknowledged=True,
@@ -21,7 +21,7 @@ class TestProfessionalAcknowledgment:
 
     def test_acknowledgment_defaults_to_false(self):
         """Acknowledgment should default to False."""
-        from src.web.intelligent_advisor_api import ProfessionalAcknowledgment
+        from web.intelligent_advisor_api import ProfessionalAcknowledgment
 
         ack = ProfessionalAcknowledgment(session_id="test-123")
         assert ack.acknowledged == False
@@ -33,14 +33,14 @@ class TestAcknowledgmentFunctions:
 
     def test_check_acknowledgment_returns_false_initially(self):
         """New sessions should not be acknowledged."""
-        from src.web.intelligent_advisor_api import check_acknowledgment
+        from web.intelligent_advisor_api import check_acknowledgment
 
         result = check_acknowledgment("new-session-unique-123")
         assert result == False
 
     def test_store_acknowledgment_persists(self):
         """Storing acknowledgment should persist."""
-        from src.web.intelligent_advisor_api import (
+        from web.intelligent_advisor_api import (
             store_acknowledgment, check_acknowledgment
         )
 
@@ -50,7 +50,7 @@ class TestAcknowledgmentFunctions:
 
     def test_get_acknowledgment_returns_details(self):
         """Should be able to retrieve acknowledgment details."""
-        from src.web.intelligent_advisor_api import (
+        from web.intelligent_advisor_api import (
             store_acknowledgment, get_acknowledgment
         )
 

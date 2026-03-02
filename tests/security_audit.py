@@ -161,7 +161,7 @@ class SecurityAudit:
     def test_rbac_permissions(self):
         """Test RBAC permissions are correctly configured"""
         try:
-            from src.rbac.permissions import Role, Permission, ROLE_PERMISSIONS
+            from rbac.permissions import Role, Permission, ROLE_PERMISSIONS
 
             # Test: FIRM_CLIENT must have SELF_EDIT_RETURN
             firm_client_perms = ROLE_PERMISSIONS.get(Role.FIRM_CLIENT, frozenset())
@@ -212,7 +212,7 @@ class SecurityAudit:
     def test_password_security(self):
         """Test password hashing configuration"""
         try:
-            from src.security.auth import hash_password, verify_password
+            from security.auth import hash_password, verify_password
 
             # Test weak password detection
             weak_passwords = ["123456", "password", "admin"]
@@ -252,7 +252,7 @@ class SecurityAudit:
     def test_input_sanitization(self):
         """Test input sanitization functions exist and work"""
         try:
-            from src.security.validation import sanitize_string, sanitize_email, sanitize_phone
+            from security.validation import sanitize_string, sanitize_email, sanitize_phone
 
             # Test XSS protection
             xss_input = "<script>alert('xss')</script>Hello"
@@ -283,7 +283,7 @@ class SecurityAudit:
     def test_file_upload_validation(self):
         """Test file upload security"""
         try:
-            from src.services.ocr.ocr_engine import OCREngine
+            from services.ocr.ocr_engine import OCREngine
 
             # Check allowed file types
             ocr = OCREngine()
@@ -357,7 +357,7 @@ class SecurityAudit:
     def test_session_hijacking_protection(self):
         """Test session token security"""
         try:
-            from src.security.auth import create_access_token
+            from security.auth import create_access_token
 
             # Check token generation
             token = create_access_token(user_id="test_user", role="FIRM_CLIENT")
@@ -452,8 +452,8 @@ class SecurityAudit:
     def test_tax_calculation_validation(self):
         """Test tax calculation edge cases"""
         try:
-            from src.calculator.tax_calculator import TaxCalculator
-            from src.models.tax_return import TaxReturn
+            from calculator.tax_calculator import TaxCalculator
+            from models.tax_return import TaxReturn
 
             calc = TaxCalculator()
 

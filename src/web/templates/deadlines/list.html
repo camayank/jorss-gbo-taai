@@ -771,7 +771,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     function toggleSection(header) {
         const toggle = header.querySelector('.section-toggle');
         const list = header.nextElementSibling;

@@ -10,7 +10,7 @@ Tests cover:
 """
 
 import pytest
-from src.models.schedule_e import (
+from models.schedule_e import (
     ScheduleE,
     RentalProperty,
     PropertyType,

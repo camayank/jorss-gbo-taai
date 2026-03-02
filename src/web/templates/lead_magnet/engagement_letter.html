@@ -455,7 +455,7 @@
         </div>
     </div>
 
-    <script>
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         const sessionId = '{{ session_id }}';
         const leadId = '{{ lead_id }}';
 

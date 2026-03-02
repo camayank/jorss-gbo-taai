@@ -19,7 +19,7 @@ class TestRefundModels:
 
     def test_refund_request_model(self):
         """Test RefundRequest model."""
-        from src.web.routers.admin_refunds_api import RefundRequest
+        from web.routers.admin_refunds_api import RefundRequest
 
         request = RefundRequest(
             subscription_id="sub-001",
@@ -33,7 +33,7 @@ class TestRefundModels:
 
     def test_refund_request_with_firm(self):
         """Test RefundRequest with firm_id."""
-        from src.web.routers.admin_refunds_api import RefundRequest
+        from web.routers.admin_refunds_api import RefundRequest
 
         request = RefundRequest(
             subscription_id="sub-002",
@@ -46,7 +46,7 @@ class TestRefundModels:
 
     def test_refund_decision_model(self):
         """Test RefundDecision model."""
-        from src.web.routers.admin_refunds_api import RefundDecision
+        from web.routers.admin_refunds_api import RefundDecision
 
         decision = RefundDecision(
             status="approved",
@@ -58,7 +58,7 @@ class TestRefundModels:
 
     def test_refund_decision_without_notes(self):
         """Test RefundDecision without notes."""
-        from src.web.routers.admin_refunds_api import RefundDecision
+        from web.routers.admin_refunds_api import RefundDecision
 
         decision = RefundDecision(status="rejected")
 
@@ -71,7 +71,7 @@ class TestRefundClass:
 
     def test_refund_creation(self):
         """Test creating a Refund."""
-        from src.web.routers.admin_refunds_api import Refund
+        from web.routers.admin_refunds_api import Refund
 
         refund = Refund(
             refund_id="ref-001",
@@ -92,7 +92,7 @@ class TestRefundClass:
 
     def test_refund_approved(self):
         """Test approved refund."""
-        from src.web.routers.admin_refunds_api import Refund
+        from web.routers.admin_refunds_api import Refund
 
         refund = Refund(
             refund_id="ref-002",
@@ -115,7 +115,7 @@ class TestRefundClass:
 
     def test_refund_processed(self):
         """Test processed refund."""
-        from src.web.routers.admin_refunds_api import Refund
+        from web.routers.admin_refunds_api import Refund
 
         refund = Refund(
             refund_id="ref-003",
@@ -139,7 +139,7 @@ class TestRefundClass:
 
     def test_refund_to_dict(self):
         """Test refund serialization."""
-        from src.web.routers.admin_refunds_api import Refund
+        from web.routers.admin_refunds_api import Refund
 
         refund = Refund(
             refund_id="ref-004",
@@ -185,7 +185,7 @@ class TestRefundAmountValidation:
 
     def test_positive_amount_required(self):
         """Test that amount must be positive."""
-        from src.web.routers.admin_refunds_api import RefundRequest
+        from web.routers.admin_refunds_api import RefundRequest
 
         # Field constraint: gt=0
         request = RefundRequest(
@@ -198,7 +198,7 @@ class TestRefundAmountValidation:
 
     def test_large_refund_amount(self):
         """Test large refund amounts are valid."""
-        from src.web.routers.admin_refunds_api import RefundRequest
+        from web.routers.admin_refunds_api import RefundRequest
 
         request = RefundRequest(
             subscription_id="sub-test",

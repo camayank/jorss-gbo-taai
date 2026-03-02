@@ -11,7 +11,7 @@ Tests cover:
 """
 
 import pytest
-from src.models.form_8995 import (
+from models.form_8995 import (
     Form8995,
     QualifiedBusiness,
     BusinessType,

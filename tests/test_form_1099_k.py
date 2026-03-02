@@ -12,7 +12,7 @@ Comprehensive test suite covering:
 """
 
 import pytest
-from src.models.form_1099_k import (
+from models.form_1099_k import (
     Form1099K,
     Form1099KAdjustments,
     Form1099KSummary,

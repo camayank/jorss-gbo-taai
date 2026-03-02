@@ -792,7 +792,16 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
+    function _showToast(msg, type) {
+        const t = document.createElement('div');
+        t.textContent = msg;
+        t.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:12px 24px;border-radius:8px;color:#fff;font-weight:500;z-index:10000;' +
+            'background:' + (type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#3b82f6');
+        document.body.appendChild(t);
+        setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 4000);
+    }
+
     // Frequency option selection
     document.querySelectorAll('.frequency-option').forEach(option => {
         option.addEventListener('click', function() {
@@ -869,7 +878,7 @@
             btn.innerHTML = 'Saved!';
             setTimeout(() => { btn.innerHTML = origText; }, 2000);
         } catch (err) {
-            alert('Failed to save preferences. Please try again.');
+            _showToast('Failed to save preferences. Please try again.', 'error');
             btn.innerHTML = origText;
         } finally {
             btn.disabled = false;

@@ -18,7 +18,7 @@ class TestSupportTicketsModels:
 
     def test_ticket_create_model(self):
         """Test TicketCreate model validation."""
-        from src.web.routers.support_api import TicketCreate
+        from web.routers.support_api import TicketCreate
 
         # Valid ticket
         ticket = TicketCreate(
@@ -33,7 +33,7 @@ class TestSupportTicketsModels:
 
     def test_ticket_create_default_priority(self):
         """Test default priority is 'normal'."""
-        from src.web.routers.support_api import TicketCreate
+        from web.routers.support_api import TicketCreate
 
         ticket = TicketCreate(
             subject="Test",
@@ -44,7 +44,7 @@ class TestSupportTicketsModels:
 
     def test_message_create_model(self):
         """Test MessageCreate model validation."""
-        from src.web.routers.support_api import MessageCreate
+        from web.routers.support_api import MessageCreate
 
         message = MessageCreate(content="Test message content")
         assert message.content == "Test message content"
@@ -55,7 +55,7 @@ class TestSupportTicketClass:
 
     def test_ticket_creation(self):
         """Test creating a SupportTicket."""
-        from src.web.routers.support_api import SupportTicket
+        from web.routers.support_api import SupportTicket
 
         now = datetime.utcnow()
         ticket = SupportTicket(
@@ -79,7 +79,7 @@ class TestSupportTicketClass:
 
     def test_ticket_with_messages(self):
         """Test ticket with messages."""
-        from src.web.routers.support_api import SupportTicket
+        from web.routers.support_api import SupportTicket
 
         now = datetime.utcnow()
         ticket = SupportTicket(
@@ -161,7 +161,7 @@ class TestTicketUpdate:
 
     def test_update_status_only(self):
         """Test updating only status."""
-        from src.web.routers.support_api import TicketUpdate
+        from web.routers.support_api import TicketUpdate
 
         update = TicketUpdate(status="resolved")
         assert update.status == "resolved"
@@ -169,7 +169,7 @@ class TestTicketUpdate:
 
     def test_update_priority_only(self):
         """Test updating only priority."""
-        from src.web.routers.support_api import TicketUpdate
+        from web.routers.support_api import TicketUpdate
 
         update = TicketUpdate(priority="urgent")
         assert update.priority == "urgent"
@@ -177,7 +177,7 @@ class TestTicketUpdate:
 
     def test_update_both(self):
         """Test updating both status and priority."""
-        from src.web.routers.support_api import TicketUpdate
+        from web.routers.support_api import TicketUpdate
 
         update = TicketUpdate(status="in_progress", priority="high")
         assert update.status == "in_progress"

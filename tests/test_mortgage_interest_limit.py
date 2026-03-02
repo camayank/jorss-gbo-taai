@@ -13,7 +13,7 @@ Tests cover:
 """
 
 import pytest
-from src.models.deductions import ItemizedDeductions
+from models.deductions import ItemizedDeductions
 
 
 class TestMortgageUnderLimit:

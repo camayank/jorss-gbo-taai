@@ -694,7 +694,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     // Category selection
     document.querySelectorAll('.category-option').forEach(option => {
         option.addEventListener('click', function() {

@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.web.intelligent_advisor_api import ChatResponse
+from web.intelligent_advisor_api import ChatResponse
 
 
 class TestChatResponseConfidenceFields:
@@ -45,7 +45,7 @@ class TestConfidenceCalculation:
 
     def test_high_confidence_with_complete_profile(self):
         """Profile >=70% complete, no complex scenario = high confidence."""
-        from src.web.intelligent_advisor_api import calculate_response_confidence
+        from web.intelligent_advisor_api import calculate_response_confidence
 
         confidence, reason = calculate_response_confidence(
             profile_completeness=0.75,
@@ -56,7 +56,7 @@ class TestConfidenceCalculation:
 
     def test_medium_confidence_with_partial_profile(self):
         """Profile 40-70% complete = medium confidence."""
-        from src.web.intelligent_advisor_api import calculate_response_confidence
+        from web.intelligent_advisor_api import calculate_response_confidence
 
         confidence, reason = calculate_response_confidence(
             profile_completeness=0.55,
@@ -67,7 +67,7 @@ class TestConfidenceCalculation:
 
     def test_low_confidence_with_minimal_profile(self):
         """Profile <40% complete = low confidence."""
-        from src.web.intelligent_advisor_api import calculate_response_confidence
+        from web.intelligent_advisor_api import calculate_response_confidence
 
         confidence, reason = calculate_response_confidence(
             profile_completeness=0.25,
@@ -78,7 +78,7 @@ class TestConfidenceCalculation:
 
     def test_medium_confidence_with_complex_scenario(self):
         """Complex scenario reduces to medium even with complete profile."""
-        from src.web.intelligent_advisor_api import calculate_response_confidence
+        from web.intelligent_advisor_api import calculate_response_confidence
 
         confidence, reason = calculate_response_confidence(
             profile_completeness=0.80,

@@ -947,9 +947,8 @@
                             </div>
                             <div style="display: flex; gap: var(--space-2);">
                                 <input type="email" id="lead-email" placeholder="Enter your email"
-                                    style="flex: 1; padding: var(--space-3-5) var(--space-4); border: 2px solid var(--border); border-radius: var(--radius-lg-plus); font-size: 1rem; outline: none; transition: border-color 0.2s;"
-                                    onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">
-                                <button onclick="captureLeadAndContinue()" class="btn btn-primary" style="white-space: nowrap;">
+                                    style="flex: 1; padding: var(--space-3-5) var(--space-4); border: 2px solid var(--border); border-radius: var(--radius-lg-plus); font-size: 1rem; outline: none; transition: border-color 0.2s;">
+                                <button id="btn-lead-capture" class="btn btn-primary" style="white-space: nowrap;">
                                     Get Analysis
                                 </button>
                             </div>
@@ -1031,7 +1030,7 @@
         <div class="loading-subtext">Applying 2025 IRS tax brackets and rates</div>
     </div>
 
-    <script>
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         // Quiz State
         const state = {
             currentStep: 1,
@@ -1058,6 +1057,19 @@
 
             btnNext.addEventListener('click', nextStep);
             btnBack.addEventListener('click', prevStep);
+
+            // Lead capture button (moved from inline onclick)
+            const btnLeadCapture = document.getElementById('btn-lead-capture');
+            if (btnLeadCapture) {
+                btnLeadCapture.addEventListener('click', captureLeadAndContinue);
+            }
+
+            // Email input focus/blur styling (moved from inline handlers)
+            const leadEmail = document.getElementById('lead-email');
+            if (leadEmail) {
+                leadEmail.addEventListener('focus', function() { this.style.borderColor = 'var(--primary)'; });
+                leadEmail.addEventListener('blur', function() { this.style.borderColor = 'var(--border)'; });
+            }
 
             updateUI();
         }

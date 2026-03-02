@@ -11,7 +11,7 @@ Tests cover:
 """
 
 import pytest
-from src.models.schedule_d import (
+from models.schedule_d import (
     ScheduleD,
     Form8949Summary,
     create_schedule_d,

@@ -11,7 +11,7 @@ Tests cover:
 """
 
 import pytest
-from src.models.schedule_a import (
+from models.schedule_a import (
     ScheduleA,
     MortgageInterestInfo,
     MortgageType,

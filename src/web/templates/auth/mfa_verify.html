@@ -621,7 +621,7 @@
         </div>
     </main>
 
-    <script>
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         /**
          * MFA Verification - Alpine.js Component
          *

@@ -544,7 +544,7 @@
         </div>
     </div>
 
-    <script>
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         let currentStep = 1;
         let selectedType = null;
         let selectedDate = null;

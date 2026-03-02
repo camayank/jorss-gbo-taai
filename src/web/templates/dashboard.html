@@ -896,7 +896,7 @@
     }
   </style>
 
-  <script>
+  <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     // ================================================================
     // SECURITY: XSS Prevention - Always use this for user-generated content
     // ================================================================
@@ -1255,12 +1255,11 @@
     }
 
     function showSettings() {
-      showToast('Settings coming soon', 'info');
+      window.location.href = '/cpa/settings';
     }
 
     function showRegistrationModal() {
-      // For simplicity, redirect to a registration page or show modal
-      showToast('Registration modal coming soon', 'info');
+      window.location.href = '/intelligent-advisor';
     }
   </script>
 </body>

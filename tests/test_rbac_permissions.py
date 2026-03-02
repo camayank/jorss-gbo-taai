@@ -42,7 +42,7 @@ from database.tenant_models import SubscriptionTier
 def platform_admin_context():
     """Platform admin auth context"""
     from uuid import UUID
-    from src.rbac.context import UserType
+    from rbac.context import UserType
     return AuthContext.for_platform_admin(
         user_id=UUID("00000000-0000-0000-0000-000000000001"),
         email="admin@platform.com",
@@ -376,7 +376,7 @@ class TestPermissionEnforcement:
 
     def test_require_permission_decorator_allows_authorized(self, platform_admin_context):
         """Decorator should allow users with required permission"""
-        from src.rbac.permission_enforcement import require_permission
+        from rbac.permission_enforcement import require_permission
 
         @require_permission(Permissions.PLATFORM_TENANT_CREATE)
         async def create_tenant(ctx: AuthContext):
@@ -389,7 +389,7 @@ class TestPermissionEnforcement:
 
     def test_require_permission_decorator_blocks_unauthorized(self, firm_client_context):
         """Decorator should block users without required permission"""
-        from src.rbac.permission_enforcement import require_permission
+        from rbac.permission_enforcement import require_permission
         from fastapi import HTTPException
 
         @require_permission(Permissions.PLATFORM_TENANT_CREATE)

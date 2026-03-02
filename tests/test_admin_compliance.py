@@ -18,7 +18,7 @@ class TestComplianceModels:
 
     def test_audit_request_model(self):
         """Test AuditRequest model."""
-        from src.web.routers.admin_compliance_api import AuditRequest
+        from web.routers.admin_compliance_api import AuditRequest
 
         request = AuditRequest(
             firm_id="firm-001",
@@ -32,7 +32,7 @@ class TestComplianceModels:
 
     def test_audit_request_defaults(self):
         """Test AuditRequest default values."""
-        from src.web.routers.admin_compliance_api import AuditRequest
+        from web.routers.admin_compliance_api import AuditRequest
 
         request = AuditRequest(audit_type="data_access")
 
@@ -41,7 +41,7 @@ class TestComplianceModels:
 
     def test_alert_acknowledge_model(self):
         """Test AlertAcknowledge model."""
-        from src.web.routers.admin_compliance_api import AlertAcknowledge
+        from web.routers.admin_compliance_api import AlertAcknowledge
 
         ack = AlertAcknowledge(notes="Issue resolved by updating firewall rules")
 
@@ -49,7 +49,7 @@ class TestComplianceModels:
 
     def test_alert_acknowledge_without_notes(self):
         """Test AlertAcknowledge without notes."""
-        from src.web.routers.admin_compliance_api import AlertAcknowledge
+        from web.routers.admin_compliance_api import AlertAcknowledge
 
         ack = AlertAcknowledge()
 
@@ -61,7 +61,7 @@ class TestComplianceReportClass:
 
     def test_report_creation(self):
         """Test creating a ComplianceReport."""
-        from src.web.routers.admin_compliance_api import ComplianceReport
+        from web.routers.admin_compliance_api import ComplianceReport
 
         report = ComplianceReport(
             report_id="rpt-001",
@@ -79,7 +79,7 @@ class TestComplianceReportClass:
 
     def test_report_with_findings(self):
         """Test report with findings."""
-        from src.web.routers.admin_compliance_api import ComplianceReport
+        from web.routers.admin_compliance_api import ComplianceReport
 
         report = ComplianceReport(
             report_id="rpt-002",
@@ -101,7 +101,7 @@ class TestComplianceReportClass:
 
     def test_report_to_dict(self):
         """Test report serialization."""
-        from src.web.routers.admin_compliance_api import ComplianceReport
+        from web.routers.admin_compliance_api import ComplianceReport
 
         report = ComplianceReport(
             report_id="rpt-003",
@@ -124,7 +124,7 @@ class TestComplianceAlertClass:
 
     def test_alert_creation(self):
         """Test creating a ComplianceAlert."""
-        from src.web.routers.admin_compliance_api import ComplianceAlert
+        from web.routers.admin_compliance_api import ComplianceAlert
 
         alert = ComplianceAlert(
             alert_id="alert-001",
@@ -141,7 +141,7 @@ class TestComplianceAlertClass:
 
     def test_alert_acknowledged(self):
         """Test acknowledged alert."""
-        from src.web.routers.admin_compliance_api import ComplianceAlert
+        from web.routers.admin_compliance_api import ComplianceAlert
 
         alert = ComplianceAlert(
             alert_id="alert-002",
@@ -160,7 +160,7 @@ class TestComplianceAlertClass:
 
     def test_alert_to_dict(self):
         """Test alert serialization."""
-        from src.web.routers.admin_compliance_api import ComplianceAlert
+        from web.routers.admin_compliance_api import ComplianceAlert
 
         alert = ComplianceAlert(
             alert_id="alert-003",
@@ -293,7 +293,7 @@ class TestAuditLogs:
 
     def test_date_range_validation(self):
         """Test audit log date range validation."""
-        from src.web.routers.admin_compliance_api import AuditRequest
+        from web.routers.admin_compliance_api import AuditRequest
 
         # Default is 30 days
         request = AuditRequest(audit_type="data_access")

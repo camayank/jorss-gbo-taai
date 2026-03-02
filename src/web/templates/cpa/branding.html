@@ -445,7 +445,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     function copyLink() {
         const linkInput = document.getElementById('leadMagnetLink');
         navigator.clipboard.writeText(linkInput.value).then(function() {

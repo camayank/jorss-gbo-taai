@@ -3,7 +3,7 @@
 import pytest
 from decimal import Decimal
 
-from src.services.ocr.inference_engine import (
+from services.ocr.inference_engine import (
     FieldInferenceEngine,
     InferenceResult,
     InferredField,

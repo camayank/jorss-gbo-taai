@@ -12,7 +12,7 @@ Tests cover:
 """
 
 import pytest
-from src.models.form_4562 import (
+from models.form_4562 import (
     Form4562,
     DepreciableAsset,
     AmortizableAsset,

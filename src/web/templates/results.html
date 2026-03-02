@@ -443,7 +443,7 @@
         </div>
     </footer>
 
-    <script>
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         // Display return ID from URL or template
         const urlParams = new URLSearchParams(window.location.search);
         const sessionId = urlParams.get('session_id') || '{{ session_id }}';

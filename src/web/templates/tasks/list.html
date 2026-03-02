@@ -561,7 +561,7 @@
         </div>
     </main>
 
-    <script>
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         function openNewTask() { window.location.href = '/tasks/detail?new=true'; }
         function openTaskDetail(id) { window.location.href = '/tasks/detail?id=' + id; }
     </script>

@@ -13,7 +13,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.database.session_persistence import get_session_persistence
+from database.session_persistence import get_session_persistence
 
 def main():
     print("Initializing database...")

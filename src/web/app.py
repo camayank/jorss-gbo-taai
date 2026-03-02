@@ -21,6 +21,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 import uuid
+import secrets
 import traceback
 import threading
 from typing import Dict, Optional, List, Any
@@ -1384,6 +1385,7 @@ def intelligent_tax_advisor(request: Request):
         "user": {"role": "client", "name": "Guest"},
         "current_path": str(request.url.path),
         "brand_name": getattr(branding, "platform_name", "Tax Advisory"),
+        "tenant_features": {},
     })
 
 

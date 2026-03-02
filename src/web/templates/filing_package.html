@@ -308,7 +308,7 @@
   }
 </style>
 
-<script>
+<script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
 function filingPackageManager() {
     return {
         taxYear: 2025,

@@ -596,7 +596,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     function getAuthHeaders(json = true) {
         const headers = {};
         const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');

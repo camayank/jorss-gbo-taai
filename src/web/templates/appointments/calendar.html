@@ -481,7 +481,7 @@
         </aside>
     </main>
 
-    <script>
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         let currentDate = new Date();
         const appointments = [
             { date: '2025-01-28', title: 'Tax Consultation', client: 'John Smith', type: 'consultation' },

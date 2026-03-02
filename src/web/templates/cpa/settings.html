@@ -318,7 +318,7 @@
 
 {% block extra_scripts %}
 <script defer src="/static/js/vendor/alpine.min.js"></script>
-<script>
+<script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
 document.addEventListener('alpine:init', () => {
     Alpine.data('settingsManager', () => ({
         activeSection: 'notifications',
@@ -428,20 +428,42 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        toggleIntegration(integration) {
-            if (integration.connected) {
-                if (confirm('Disconnect ' + integration.name + '?')) {
+        async toggleIntegration(integration) {
+            const action = integration.connected ? 'disconnect' : 'connect';
+            if (integration.connected && !confirm('Disconnect ' + integration.name + '?')) return;
+            try {
+                const res = await fetch(`/api/cpa/integrations/${integration.id}/${action}`, {
+                    method: 'POST',
+                    headers: this._getAuthHeaders(),
+                });
+                if (res.status === 401) { window.location.href = '/cpa/login'; return; }
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Request failed');
+
+                if (data.status === 'connected') {
+                    integration.connected = true;
+                    this.showToast(data.message, 'success');
+                } else if (data.status === 'pending') {
                     integration.connected = false;
-                    this.showToast(integration.name + ' disconnected — integration management coming soon');
+                    this.showToast(data.message + (data.setup_url ? ' Visit: ' + data.setup_url : ''), 'info');
+                } else {
+                    integration.connected = false;
+                    this.showToast(data.message, 'success');
                 }
-            } else {
-                this.showToast(integration.name + ' integration coming soon', 'success');
+            } catch (e) {
+                this.showToast('Integration error: ' + e.message, 'error');
             }
         },
 
         exportData(type, format) {
             const labels = { clients: 'Client', leads: 'Lead', activity: 'Activity Log' };
-            this.showToast(labels[type] + ' export (' + format.toUpperCase() + ') — export feature coming soon');
+            const validTypes = ['clients', 'leads', 'activity'];
+            if (!validTypes.includes(type)) {
+                this.showToast('Unknown export type', 'error');
+                return;
+            }
+            this.showToast(`Downloading ${labels[type]} export...`, 'success');
+            window.location.href = `/api/cpa/export/${type}?format=${format}`;
         },
 
         async saveRetention() {

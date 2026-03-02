@@ -687,7 +687,7 @@
             Loading firms...
         </div>
     </div>
-    <script>
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     (async function loadFirms() {
         const grid = document.getElementById('firms-grid');
         try {
@@ -813,7 +813,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     function openImpersonateModal(firmName, firmInitials) {
         document.getElementById('modalFirmName').textContent = firmName;
         document.getElementById('modalFirmLogo').textContent = firmInitials;

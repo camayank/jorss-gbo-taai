@@ -9,7 +9,7 @@ Tests cover:
 """
 
 import pytest
-from src.models.schedule_b import (
+from models.schedule_b import (
     ScheduleB,
     InterestPayer,
     InterestType,

@@ -11,7 +11,7 @@ Comprehensive test suite covering:
 """
 
 import pytest
-from src.models.form_3800 import (
+from models.form_3800 import (
     Form3800,
     Form3800Part1,
     Form3800Part2,

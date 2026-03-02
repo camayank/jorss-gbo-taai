@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment Settings - CPA Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         tailwind.config = {
             theme: {
                 extend: {
@@ -116,7 +116,7 @@
         <div class="bg-white rounded-lg shadow-sm border p-6">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-lg font-semibold text-gray-900">Recent Payments</h2>
-                <a href="/cpa/payments" class="text-primary hover:underline text-sm">View All</a>
+                <a href="/cpa/billing" class="text-primary hover:underline text-sm">View All</a>
             </div>
 
             <div id="payment-history">
@@ -132,7 +132,7 @@
         </div>
     </main>
 
-    <script>
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         // Get CPA ID from URL or session
         const urlParams = new URLSearchParams(window.location.search);
         const cpaId = urlParams.get('cpa') || (typeof currentCpaId !== 'undefined' ? currentCpaId : null);

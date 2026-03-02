@@ -611,7 +611,7 @@
     </div>
 
     <script src="/static/js/lead_magnet_analytics.js"></script>
-    <script>
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         // Get CPA slug from URL or use default
         const urlParams = new URLSearchParams(window.location.search);
         const cpaSlug = urlParams.get('cpa') || '{{ cpa.cpa_slug }}';

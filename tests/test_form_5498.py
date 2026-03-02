@@ -13,7 +13,7 @@ Comprehensive test suite covering:
 
 import pytest
 from datetime import date
-from src.models.form_5498 import (
+from models.form_5498 import (
     Form5498,
     IRAType,
     ContributionType,

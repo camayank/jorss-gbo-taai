@@ -3,7 +3,7 @@
 import pytest
 from decimal import Decimal
 
-from src.services.ocr.confidence_scorer import (
+from services.ocr.confidence_scorer import (
     ConfidenceScorer,
     ConfidenceLevel,
     ConfidenceFactors,

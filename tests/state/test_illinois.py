@@ -2,13 +2,13 @@
 
 import pytest
 
-from src.calculator.state import StateTaxEngine, StateCalculatorRegistry
-from src.calculator.state.configs.state_2025.illinois import IllinoisCalculator, get_illinois_config
-from src.models.taxpayer import TaxpayerInfo, FilingStatus
-from src.models.income import Income, W2Info
-from src.models.deductions import Deductions, ItemizedDeductions
-from src.models.credits import TaxCredits
-from src.models.tax_return import TaxReturn
+from calculator.state import StateTaxEngine, StateCalculatorRegistry
+from calculator.state.configs.state_2025.illinois import IllinoisCalculator, get_illinois_config
+from models.taxpayer import TaxpayerInfo, FilingStatus
+from models.income import Income, W2Info
+from models.deductions import Deductions, ItemizedDeductions
+from models.credits import TaxCredits
+from models.tax_return import TaxReturn
 
 
 def create_il_return(

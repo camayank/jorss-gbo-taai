@@ -28,7 +28,7 @@ def test_feature_flags():
     print("TEST 1: Feature Flag Module")
     print("=" * 60)
 
-    from src.web.feature_flags import (
+    from web.feature_flags import (
         should_use_ux_v2,
         get_template_path,
         UX_V2_ENABLED,

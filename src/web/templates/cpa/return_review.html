@@ -581,7 +581,7 @@
     .status-approved { background: var(--color-gray-100); color: var(--color-gray-700); }
 </style>
 
-<script>
+<script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     const sessionId = '{{ session_id }}';
     const cpaReviewerId = '{{ current_user.id | default("") }}';
     const cpaReviewerName = '{{ current_user.name | default(cpa.full_name | default("CPA Reviewer")) }}';

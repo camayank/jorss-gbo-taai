@@ -10,7 +10,7 @@ Tests cover:
 """
 
 import pytest
-from src.models.schedule_f import (
+from models.schedule_f import (
     ScheduleF,
     FarmType,
     AccountingMethod,

@@ -810,7 +810,7 @@
     </div>
 
     <script src="/static/js/lead_magnet_analytics.js"></script>
-    <script>
+    <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         const sessionId = window.LeadMagnetAnalytics
             ? window.LeadMagnetAnalytics.getSessionId('{{ session_id }}')
             : ('{{ session_id }}' || sessionStorage.getItem('assessment_session_id'));

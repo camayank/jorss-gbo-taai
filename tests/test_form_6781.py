@@ -10,7 +10,7 @@ Tests cover:
 """
 
 import pytest
-from src.models.form_6781 import (
+from models.form_6781 import (
     Form6781,
     Section1256Contract,
     ContractType,

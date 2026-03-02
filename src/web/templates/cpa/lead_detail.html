@@ -840,7 +840,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     const leadId = '{{ lead.id }}';
     const leadEmail = '{{ lead.email }}';
     const sessionId = '{{ lead.session_id or "" }}';

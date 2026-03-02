@@ -1382,6 +1382,22 @@
             <span class="nav-item-icon" aria-hidden="true">&#128273;</span>
             API Keys
           </a>
+          <a href="/admin/analytics" class="nav-item" data-page="analytics">
+            <span class="nav-item-icon" aria-hidden="true">&#128200;</span>
+            Analytics
+          </a>
+        </div>
+
+        <div class="nav-section" role="group">
+          <div class="nav-section-title">Settings</div>
+          <a href="/admin/billing" class="nav-item" data-page="billing">
+            <span class="nav-item-icon" aria-hidden="true">&#128179;</span>
+            Billing
+          </a>
+          <a href="/admin/settings" class="nav-item" data-page="settings">
+            <span class="nav-item-icon" aria-hidden="true">&#9881;</span>
+            Settings
+          </a>
         </div>
 
         <div class="nav-section">
@@ -1771,7 +1787,7 @@
         <div class="page-section" id="section-features">
           <div class="section-header">
             <h2 class="section-title">Feature Flags</h2>
-            <button class="btn btn-primary">&#43; Create Flag</button>
+            <button class="btn btn-primary" onclick="openCreateFeatureModal()">&#43; Create Flag</button>
           </div>
 
           <div class="card">
@@ -2092,6 +2108,291 @@
           </div>
         </div>
 
+        <!-- Support Tickets Section -->
+        <div class="page-section" id="section-support">
+          <div class="section-header">
+            <h2 class="section-title">Support Tickets</h2>
+            <button class="btn btn-secondary" onclick="loadSupportTickets()">&#128260; Refresh</button>
+          </div>
+          <div class="filter-bar">
+            <select class="filter-select" id="support-status-filter" onchange="loadSupportTickets()">
+              <option value="">All Statuses</option>
+              <option value="open">Open</option>
+              <option value="in_progress">In Progress</option>
+              <option value="resolved">Resolved</option>
+              <option value="closed">Closed</option>
+            </select>
+            <select class="filter-select" id="support-priority-filter" onchange="loadSupportTickets()">
+              <option value="">All Priorities</option>
+              <option value="urgent">Urgent</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+            <input type="text" class="search-input" id="support-search" placeholder="Search tickets...">
+          </div>
+          <div class="card">
+            <div class="card-body" id="support-tickets-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Ticket ID</th>
+                    <th>Subject</th>
+                    <th>Requester</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="support-tickets-tbody">
+                  <tr><td colspan="7" style="text-align:center; padding: var(--space-8); color: var(--gray-500);">Loading support tickets...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Refunds Section -->
+        <div class="page-section" id="section-refunds">
+          <div class="section-header">
+            <h2 class="section-title">Refund Management</h2>
+            <button class="btn btn-secondary" onclick="loadRefunds()">&#128260; Refresh</button>
+          </div>
+          <div class="filter-bar">
+            <select class="filter-select" id="refund-status-filter" onchange="loadRefunds()">
+              <option value="">All Statuses</option>
+              <option value="pending">Pending Review</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="processed">Processed</option>
+            </select>
+            <input type="text" class="search-input" id="refund-search" placeholder="Search refunds...">
+          </div>
+          <div class="card">
+            <div class="card-body" id="refunds-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Refund ID</th>
+                    <th>User</th>
+                    <th>Firm</th>
+                    <th>Amount</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                    <th>Requested</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="refunds-tbody">
+                  <tr><td colspan="8" style="text-align:center; padding: var(--space-8); color: var(--gray-500);">Loading refunds...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Impersonation Section -->
+        <div class="page-section" id="section-impersonation">
+          <div class="section-header">
+            <h2 class="section-title">User Impersonation</h2>
+          </div>
+          <div class="card" style="margin-bottom: var(--space-6);">
+            <div class="card-body">
+              <p style="color: var(--gray-400); margin-bottom: var(--space-4);">
+                Impersonate a user to troubleshoot issues from their perspective. All actions during impersonation are logged in the audit trail.
+              </p>
+              <div class="filter-bar" style="margin-bottom: 0;">
+                <input type="text" class="search-input" id="impersonate-user-search" placeholder="Search by email or user ID..." style="flex: 1;">
+                <button class="btn btn-primary" onclick="searchImpersonateUser()">Search User</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body" id="impersonation-results">
+              <p style="text-align:center; padding: var(--space-8); color: var(--gray-500);">Search for a user to begin impersonation.</p>
+            </div>
+          </div>
+          <div class="card" style="margin-top: var(--space-6);">
+            <div class="card-body">
+              <h3 style="margin-bottom: var(--space-4);">Recent Impersonation Sessions</h3>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Admin</th>
+                    <th>Impersonated User</th>
+                    <th>Started</th>
+                    <th>Duration</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody id="impersonation-history-tbody">
+                  <tr><td colspan="5" style="text-align:center; padding: var(--space-8); color: var(--gray-500);">Loading history...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- API Keys Section -->
+        <div class="page-section" id="section-api-keys">
+          <div class="section-header">
+            <h2 class="section-title">API Keys</h2>
+            <button class="btn btn-primary" onclick="showCreateApiKeyModal()">+ New API Key</button>
+          </div>
+          <div class="filter-bar">
+            <select class="filter-select" id="apikey-status-filter" onchange="loadApiKeys()">
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="revoked">Revoked</option>
+              <option value="expired">Expired</option>
+            </select>
+            <input type="text" class="search-input" id="apikey-search" placeholder="Search API keys...">
+          </div>
+          <div class="card">
+            <div class="card-body" id="api-keys-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Key Prefix</th>
+                    <th>Firm</th>
+                    <th>Scopes</th>
+                    <th>Status</th>
+                    <th>Last Used</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="api-keys-tbody">
+                  <tr><td colspan="7" style="text-align:center; padding: var(--space-8); color: var(--gray-500);">Loading API keys...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analytics Section -->
+        <div class="page-section" id="section-analytics">
+          <div class="section-header">
+            <h2 class="section-title">Platform Analytics</h2>
+            <div style="display: flex; gap: var(--space-2);">
+              <select class="filter-select" id="analytics-period-filter" onchange="loadAnalytics()">
+                <option value="7d">Last 7 Days</option>
+                <option value="30d" selected>Last 30 Days</option>
+                <option value="90d">Last 90 Days</option>
+                <option value="1y">Last Year</option>
+              </select>
+              <button class="btn btn-secondary" onclick="loadAnalytics()">&#128260; Refresh</button>
+            </div>
+          </div>
+          <div class="platform-stats" id="analytics-stats">
+            <div class="stat-card">
+              <div class="stat-value" id="analytics-active-users">--</div>
+              <div class="stat-label">Active Users</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="analytics-returns-filed">--</div>
+              <div class="stat-label">Returns Filed</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="analytics-revenue">--</div>
+              <div class="stat-label">Revenue</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="analytics-conversion">--</div>
+              <div class="stat-label">Conversion Rate</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body" id="analytics-charts-container" style="min-height: 300px;">
+              <p style="text-align:center; padding: var(--space-8); color: var(--gray-500);">Loading analytics data...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Billing Section -->
+        <div class="page-section" id="section-billing">
+          <div class="section-header">
+            <h2 class="section-title">Billing Management</h2>
+            <button class="btn btn-secondary" onclick="loadBilling()">&#128260; Refresh</button>
+          </div>
+          <div class="platform-stats" id="billing-stats">
+            <div class="stat-card">
+              <div class="stat-value" id="billing-mrr">--</div>
+              <div class="stat-label">Monthly Recurring Revenue</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="billing-outstanding">--</div>
+              <div class="stat-label">Outstanding Invoices</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="billing-churn">--</div>
+              <div class="stat-label">Churn Rate</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body" id="billing-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Firm</th>
+                    <th>Plan</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Next Billing</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="billing-tbody">
+                  <tr><td colspan="6" style="text-align:center; padding: var(--space-8); color: var(--gray-500);">Loading billing data...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div class="page-section" id="section-settings">
+          <div class="section-header">
+            <h2 class="section-title">Platform Settings</h2>
+          </div>
+          <div class="card" style="margin-bottom: var(--space-6);">
+            <div class="card-body">
+              <h3 style="margin-bottom: var(--space-4);">General Settings</h3>
+              <div style="display: grid; gap: var(--space-4);">
+                <div>
+                  <label style="display: block; margin-bottom: var(--space-1); color: var(--gray-300); font-size: var(--text-sm);">Platform Name</label>
+                  <input type="text" class="search-input" id="settings-platform-name" value="TaxFlow" style="max-width: 400px;">
+                </div>
+                <div>
+                  <label style="display: block; margin-bottom: var(--space-1); color: var(--gray-300); font-size: var(--text-sm);">Support Email</label>
+                  <input type="email" class="search-input" id="settings-support-email" value="support@taxflow.com" style="max-width: 400px;">
+                </div>
+                <div>
+                  <label style="display: block; margin-bottom: var(--space-1); color: var(--gray-300); font-size: var(--text-sm);">Default Timezone</label>
+                  <select class="filter-select" id="settings-timezone" style="max-width: 400px;">
+                    <option value="America/New_York">Eastern (ET)</option>
+                    <option value="America/Chicago">Central (CT)</option>
+                    <option value="America/Denver">Mountain (MT)</option>
+                    <option value="America/Los_Angeles">Pacific (PT)</option>
+                  </select>
+                </div>
+              </div>
+              <button class="btn btn-primary" style="margin-top: var(--space-4);" onclick="saveSettings()">Save Settings</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body">
+              <h3 style="margin-bottom: var(--space-4);">Maintenance Mode</h3>
+              <p style="color: var(--gray-400); margin-bottom: var(--space-4);">Enable maintenance mode to temporarily disable platform access for all non-admin users.</p>
+              <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+                <input type="checkbox" id="settings-maintenance-mode">
+                <span style="color: var(--gray-300);">Enable Maintenance Mode</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
       </div>
     </main>
   </div>
@@ -2107,7 +2408,7 @@
     </div>
   </aside>
 
-  <script>
+  <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     // =============================================================================
     // SECURITY UTILITIES
     // =============================================================================
@@ -2457,11 +2758,38 @@
      */
     async function loadSystemHealth() {
       try {
-        systemHealth = await api('/system/health');
+        const [health, errors] = await Promise.all([
+          api('/system/health').catch(() => null),
+          api('/system/errors').catch(() => null)
+        ]);
+        systemHealth = health;
         updateSystemHealthUI(systemHealth);
+        updateHealthIncidents(errors);
       } catch (error) {
         console.error('Failed to load system health:', error);
       }
+    }
+
+    function updateHealthIncidents(errors) {
+      const container = document.querySelector('#section-health .activity-feed');
+      if (!container) return;
+      const items = errors?.errors || errors?.incidents || (Array.isArray(errors) ? errors : []);
+      if (items.length === 0) {
+        container.innerHTML = '<div class="activity-item"><div class="activity-icon success">&#10003;</div><div class="activity-content"><div class="activity-text"><strong>No recent incidents</strong></div><div class="activity-meta">All systems running smoothly</div></div></div>';
+        return;
+      }
+      container.innerHTML = items.slice(0, 10).map(err => {
+        const isResolved = err.resolved || err.status === 'resolved';
+        return `
+          <div class="activity-item">
+            <div class="activity-icon ${isResolved ? 'success' : 'warning'}">${isResolved ? '&#10003;' : '&#9888;'}</div>
+            <div class="activity-content">
+              <div class="activity-text"><strong>${escapeHtml(err.title || err.error_type || err.message || 'Error')}</strong>${err.description ? ' - ' + escapeHtml(err.description) : ''}</div>
+              <div class="activity-meta">${isResolved ? 'Resolved' : 'Active'} - ${escapeHtml(err.created_at || err.timestamp || '')}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
     /**
@@ -2574,17 +2902,46 @@
           }
           break;
         case 'admins':
-          content.innerHTML = `
-            <div class="card">
-              <div class="card-header">
-                <h2 class="card-title">Platform Administrators</h2>
-                <button class="btn btn-primary btn-sm" onclick="openAddAdminModal()">+ Add Admin</button>
+          content.innerHTML = '<div style="text-align: center; padding: var(--space-10);"><div class="loading-spinner"></div></div>';
+          try {
+            const adminData = await api('/users?role=admin');
+            const admins = adminData.users || [];
+            content.innerHTML = `
+              <div class="card">
+                <div class="card-header">
+                  <h2 class="card-title">Platform Administrators</h2>
+                  <button class="btn btn-primary btn-sm" onclick="openAddAdminModal()">+ Add Admin</button>
+                </div>
+                <div class="card-body no-padding">
+                  ${admins.length === 0 ? '<p style="text-align: center; color: var(--gray-500); padding: var(--space-8);">No platform admins found.</p>' : `
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Firm</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${admins.map(u => `
+                        <tr>
+                          <td>${escapeHtml(u.name)}</td>
+                          <td>${escapeHtml(u.email)}</td>
+                          <td><span class="badge badge-${u.status === 'active' ? 'success' : 'warning'}">${escapeHtml(u.status || 'active')}</span></td>
+                          <td>${escapeHtml(u.firm_name || 'Platform')}</td>
+                          <td><button class="btn btn-ghost btn-sm" onclick="removeAdmin('${escapeAttr(u.user_id)}')">Remove Admin</button></td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>`}
+                </div>
               </div>
-              <div class="card-body">
-                <p style="text-align: center; color: var(--gray-500);">Platform admin management will load from API</p>
-              </div>
-            </div>
-          `;
+            `;
+          } catch (error) {
+            content.innerHTML = '<div style="text-align: center; padding: var(--space-10); color: var(--danger);">Failed to load platform admins</div>';
+          }
           break;
         default:
           loadRbac();
@@ -2592,7 +2949,97 @@
     }
 
     function openAddAdminModal() {
-      showNotification('Add platform admin - Feature coming soon', 'info');
+      createModal('Add Platform Admin', `
+        <form id="add-admin-form" onsubmit="submitAddAdmin(event)">
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display:block; margin-bottom:var(--space-1-5); font-weight:var(--font-medium);">Search User by Email</label>
+            <input type="email" id="admin-email" required placeholder="user@example.com"
+              style="width:100%; padding:var(--space-2-5); border:1px solid var(--gray-200); border-radius:var(--radius-md);">
+            <button type="button" onclick="searchUserForAdmin()" class="btn btn-secondary" style="margin-top:var(--space-2);">Search</button>
+            <div id="admin-user-result" style="margin-top:var(--space-2);"></div>
+          </div>
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display:block; margin-bottom:var(--space-1-5); font-weight:var(--font-medium);">Admin Role</label>
+            <select id="admin-role" required style="width:100%; padding:var(--space-2-5); border:1px solid var(--gray-200); border-radius:var(--radius-md);">
+              <option value="support">Support</option>
+              <option value="billing">Billing</option>
+              <option value="compliance">Compliance</option>
+              <option value="engineering">Engineering</option>
+            </select>
+          </div>
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display:block; margin-bottom:var(--space-1-5); font-weight:var(--font-medium);">Reason</label>
+            <input type="text" id="admin-reason" required minlength="5" placeholder="Reason for promotion"
+              style="width:100%; padding:var(--space-2-5); border:1px solid var(--gray-200); border-radius:var(--radius-md);">
+          </div>
+          <div style="display:flex; gap:var(--space-3); justify-content:flex-end;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="promote-btn" disabled>Promote to Admin</button>
+          </div>
+        </form>
+      `);
+    }
+
+    let _selectedUserId = null;
+
+    async function searchUserForAdmin() {
+      const email = document.getElementById('admin-email').value.trim();
+      if (!email) return;
+      const resultDiv = document.getElementById('admin-user-result');
+      resultDiv.innerHTML = '<span style="color:var(--gray-500);">Searching...</span>';
+      try {
+        const users = await api('/users?search=' + encodeURIComponent(email) + '&limit=5');
+        const list = users.users || users;
+        if (!list.length) {
+          resultDiv.innerHTML = '<span style="color:var(--danger);">No users found with that email</span>';
+          document.getElementById('promote-btn').disabled = true;
+          _selectedUserId = null;
+          return;
+        }
+        const u = list[0];
+        _selectedUserId = u.user_id;
+        resultDiv.innerHTML = `<div style="padding:var(--space-2); background:var(--gray-50); border-radius:var(--radius-md);">
+          <strong>${escapeHtml(u.full_name || u.email)}</strong><br>
+          <span style="color:var(--gray-500); font-size:var(--text-sm);">${escapeHtml(u.email)} — ${escapeHtml(u.role || 'user')}</span>
+        </div>`;
+        document.getElementById('promote-btn').disabled = false;
+      } catch (e) {
+        resultDiv.innerHTML = '<span style="color:var(--danger);">Search failed: ' + escapeHtml(e.message) + '</span>';
+      }
+    }
+
+    async function submitAddAdmin(e) {
+      e.preventDefault();
+      if (!_selectedUserId) { showNotification('Please search for a user first', 'warning'); return; }
+      try {
+        await api(`/users/${_selectedUserId}/promote-admin`, {
+          method: 'POST',
+          body: JSON.stringify({
+            email: document.getElementById('admin-email').value.trim(),
+            admin_role: document.getElementById('admin-role').value,
+            reason: document.getElementById('admin-reason').value.trim(),
+          }),
+        });
+        showNotification('User promoted to platform admin', 'success');
+        closeModal();
+        showRbacTab('admins');
+      } catch (error) {
+        showNotification('Failed to promote user: ' + error.message, 'error');
+      }
+    }
+
+    async function removeAdmin(userId) {
+      if (!confirm('Are you sure you want to remove this user as a platform admin?')) return;
+      try {
+        await api('/users/' + encodeURIComponent(userId) + '/role', {
+          method: 'PUT',
+          body: JSON.stringify({ role: 'cpa_admin' })
+        });
+        showNotification('Admin role removed', 'success');
+        showRbacTab('admins');
+      } catch (e) {
+        showNotification('Failed to remove admin: ' + e.message, 'error');
+      }
     }
 
     // loadAuditLogs() is defined below using adminApi() for correct /admin prefix
@@ -2602,11 +3049,47 @@
      */
     async function loadSubscriptionData() {
       try {
-        const [mrr, churn] = await Promise.all([
+        const [mrr, churn, activity, pending] = await Promise.all([
           api('/subscriptions/mrr').catch(() => null),
-          api('/subscriptions/churn').catch(() => null)
+          api('/subscriptions/churn').catch(() => null),
+          api('/activity?activity_type=subscription_upgraded&limit=10').catch(() => null),
+          api('/platform-billing/pending-payments').catch(() => null)
         ]);
         updateSubscriptionUI(mrr, churn);
+
+        // Populate subscription activity table
+        const activityBody = document.getElementById('subscription-activity-body');
+        if (activityBody && activity?.activities && activity.activities.length > 0) {
+          activityBody.innerHTML = activity.activities.map(a => `
+            <tr>
+              <td>${escapeHtml(a.firm_name || a.user_name || 'Unknown')}</td>
+              <td>${escapeHtml(a.description || a.activity_type || '')}</td>
+              <td>${a.metadata?.mrr_impact ? formatCurrency(a.metadata.mrr_impact) : '--'}</td>
+              <td>${escapeHtml(a.created_at || '')}</td>
+            </tr>
+          `).join('');
+        }
+
+        // Populate failed/pending payments table
+        const failedBody = document.getElementById('failed-payments-body');
+        const payments = pending?.pending_payments || [];
+        if (failedBody && payments.length > 0) {
+          failedBody.innerHTML = payments.map(p => `
+            <tr>
+              <td>${escapeHtml(p.firm_name || p.invoice_id)}</td>
+              <td>${formatCurrency(p.amount_due || 0)}</td>
+              <td>${p.attempts || 1}</td>
+              <td><button class="btn btn-ghost btn-sm">Retry</button></td>
+            </tr>
+          `).join('');
+          // Update badge count
+          const badge = document.querySelector('#section-subscriptions .badge-error');
+          if (badge) badge.textContent = payments.length + ' pending';
+        } else if (failedBody) {
+          failedBody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--gray-500); padding: 2rem;">No failed payments.</td></tr>';
+          const badge = document.querySelector('#section-subscriptions .badge-error');
+          if (badge) badge.textContent = '0 pending';
+        }
       } catch (error) {
         console.error('Failed to load subscription data:', error);
       }
@@ -3169,6 +3652,53 @@
     }
 
     /**
+     * Open create feature flag modal
+     */
+    function openCreateFeatureModal() {
+      createModal('Create Feature Flag', `
+        <form id="create-feature-form">
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-medium);">Flag Name *</label>
+            <input type="text" name="name" required class="form-input" placeholder="e.g. ai_tax_review" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
+          </div>
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-medium);">Description</label>
+            <textarea name="description" class="form-input" rows="3" placeholder="What does this feature flag control?" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);"></textarea>
+          </div>
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+              <input type="checkbox" name="enabled">
+              <span>Enable globally on creation</span>
+            </label>
+          </div>
+          <div style="display: flex; gap: var(--space-3); justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Flag</button>
+          </div>
+        </form>
+      `);
+      document.getElementById('create-feature-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        try {
+          await api('/features', {
+            method: 'POST',
+            body: JSON.stringify({
+              name: form.name.value,
+              description: form.description.value,
+              is_enabled_globally: form.enabled.checked
+            })
+          });
+          closeModal();
+          showNotification('Feature flag created successfully', 'success');
+          await loadFeatureFlags();
+        } catch (err) {
+          showNotification('Failed to create feature flag: ' + err.message, 'error');
+        }
+      });
+    }
+
+    /**
      * Create new firm
      */
     async function createFirm(formData) {
@@ -3178,10 +3708,11 @@
           body: JSON.stringify(formData)
         });
         await loadFirms();
-        closeDetailPanel();
+        closeModal();
+        showNotification('Firm created successfully', 'success');
         return result;
       } catch (error) {
-        showNotification('Failed to create firm. Please try again.', 'error');
+        showNotification('Firm creation endpoint not yet available (POST /api/v1/superadmin/firms). Backend route needs to be created.', 'warning');
         throw error;
       }
     }
@@ -3226,14 +3757,18 @@
      * Impersonate user
      */
     async function impersonateUser(userId) {
-      const reason = prompt('Enter reason for impersonation (required for audit):');
-      if (!reason) return;
-
+      const reason = prompt('Enter reason for impersonation (required for audit, min 10 characters):');
+      if (!reason || reason.length < 10) {
+        showNotification('Impersonation requires a reason of at least 10 characters.', 'warning');
+        return;
+      }
       try {
-        // This would need a backend endpoint
-        showNotification('User impersonation - Feature coming soon', 'info');
+        const result = await api('/users/' + encodeURIComponent(userId) + '/impersonate?reason=' + encodeURIComponent(reason), {
+          method: 'POST'
+        });
+        showNotification('Impersonation session started. Token valid for 30 minutes.', 'success');
       } catch (error) {
-        showNotification('Failed to impersonate user. Please try again.', 'error');
+        showNotification('Failed to impersonate user: ' + error.message, 'error');
       }
     }
 
@@ -3763,8 +4298,57 @@
       }
     }
 
-    function viewPartnerPayouts(partnerId) {
-      showNotification('Partner payout history - Feature coming soon', 'info');
+    async function viewPartnerPayouts(partnerId) {
+      try {
+        const data = await api(`/partners/${partnerId}/payouts?months=12`);
+        const rows = (data.payouts || []).map(p => `
+          <tr>
+            <td style="padding:var(--space-2);">${escapeHtml(p.month)}</td>
+            <td style="padding:var(--space-2); text-align:right;">${formatCurrency(p.firm_mrr)}</td>
+            <td style="padding:var(--space-2); text-align:center;">${p.revenue_share_percent}%</td>
+            <td style="padding:var(--space-2); text-align:right; font-weight:var(--font-semibold);">${formatCurrency(p.payout_amount)}</td>
+            <td style="padding:var(--space-2); text-align:center;">
+              <span class="badge ${p.status === 'paid' ? 'badge-success' : 'badge-warning'}">${p.status}</span>
+            </td>
+          </tr>
+        `).join('');
+
+        createModal(`Payout History — ${escapeHtml(data.partner_name || partnerId)}`, `
+          <div style="display:flex; gap:var(--space-4); margin-bottom:var(--space-4);">
+            <div style="flex:1; padding:var(--space-3); background:var(--gray-50); border-radius:var(--radius-md); text-align:center;">
+              <div style="font-size:var(--text-xs); color:var(--gray-500);">Revenue Share</div>
+              <div style="font-size:var(--text-lg); font-weight:var(--font-bold);">${data.revenue_share_percent}%</div>
+            </div>
+            <div style="flex:1; padding:var(--space-3); background:var(--success-light, #e8f5e9); border-radius:var(--radius-md); text-align:center;">
+              <div style="font-size:var(--text-xs); color:var(--gray-500);">Total Paid</div>
+              <div style="font-size:var(--text-lg); font-weight:var(--font-bold); color:var(--success);">${formatCurrency(data.total_paid)}</div>
+            </div>
+            <div style="flex:1; padding:var(--space-3); background:var(--warning-light, #fff8e1); border-radius:var(--radius-md); text-align:center;">
+              <div style="font-size:var(--text-xs); color:var(--gray-500);">Pending</div>
+              <div style="font-size:var(--text-lg); font-weight:var(--font-bold); color:var(--warning);">${formatCurrency(data.total_pending)}</div>
+            </div>
+          </div>
+          <div style="max-height:40vh; overflow:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:var(--text-sm);">
+              <thead>
+                <tr style="border-bottom:2px solid var(--gray-200);">
+                  <th style="padding:var(--space-2); text-align:left;">Month</th>
+                  <th style="padding:var(--space-2); text-align:right;">Firm MRR</th>
+                  <th style="padding:var(--space-2); text-align:center;">Share %</th>
+                  <th style="padding:var(--space-2); text-align:right;">Payout</th>
+                  <th style="padding:var(--space-2); text-align:center;">Status</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+          <div style="margin-top:var(--space-4); text-align:right;">
+            <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+          </div>
+        `);
+      } catch (error) {
+        showNotification('Failed to load payout history: ' + error.message, 'error');
+      }
     }
 
     /**
@@ -3869,26 +4453,382 @@
     }
 
     // =============================================================================
+    // DATA LOADERS FOR NEW SECTIONS
+    // =============================================================================
+
+    async function loadSupportTickets() {
+      try {
+        const status = document.getElementById('support-status-filter')?.value || '';
+        const priority = document.getElementById('support-priority-filter')?.value || '';
+        const params = new URLSearchParams();
+        if (status) params.set('status', status);
+        if (priority) params.set('priority', priority);
+        const resp = await fetch('/api/cpa/support?' + params.toString());
+        if (!resp.ok) throw new Error('Failed to load tickets');
+        const data = await resp.json();
+        const tbody = document.getElementById('support-tickets-tbody');
+        if (!data.tickets || data.tickets.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: var(--space-8); color: var(--gray-500);">No support tickets found.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.tickets.map(t => `
+          <tr>
+            <td>${escapeHtml(t.ticket_id)}</td>
+            <td>${escapeHtml(t.subject)}</td>
+            <td>${escapeHtml(t.created_by_name)}</td>
+            <td><span class="badge badge-${t.priority === 'urgent' ? 'danger' : t.priority === 'high' ? 'warning' : 'info'}">${escapeHtml(t.priority)}</span></td>
+            <td><span class="badge badge-${t.status === 'open' ? 'success' : 'secondary'}">${escapeHtml(t.status)}</span></td>
+            <td>${escapeHtml(t.created_at)}</td>
+            <td><button class="btn btn-ghost btn-sm" onclick="openFirmDetail('${escapeAttr(t.ticket_id)}')">View</button></td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading support tickets:', error);
+        document.getElementById('support-tickets-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center; padding: var(--space-8); color: var(--gray-500);">Unable to load support tickets.</td></tr>';
+      }
+    }
+
+    async function loadRefunds() {
+      try {
+        const status = document.getElementById('refund-status-filter')?.value || '';
+        const params = new URLSearchParams();
+        if (status) params.set('status', status);
+        const resp = await fetch('/api/admin/refunds?' + params.toString());
+        if (!resp.ok) throw new Error('Failed to load refunds');
+        const data = await resp.json();
+        const tbody = document.getElementById('refunds-tbody');
+        if (!data.refunds || data.refunds.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: var(--space-8); color: var(--gray-500);">No refund requests found.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.refunds.map(r => `
+          <tr>
+            <td>${escapeHtml(r.id)}</td>
+            <td>${escapeHtml(r.user)}</td>
+            <td>${escapeHtml(r.firm)}</td>
+            <td>$${escapeHtml(r.amount)}</td>
+            <td>${escapeHtml(r.reason)}</td>
+            <td><span class="badge badge-${r.status === 'pending' ? 'warning' : r.status === 'approved' ? 'success' : 'secondary'}">${escapeHtml(r.status)}</span></td>
+            <td>${escapeHtml(r.requested_at)}</td>
+            <td><button class="btn btn-ghost btn-sm" onclick="openFirmDetail('${escapeAttr(r.id)}')">Review</button></td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading refunds:', error);
+        document.getElementById('refunds-tbody').innerHTML = '<tr><td colspan="8" style="text-align:center; padding: var(--space-8); color: var(--gray-500);">Unable to load refunds.</td></tr>';
+      }
+    }
+
+    async function loadImpersonationHistory() {
+      try {
+        const resp = await fetch('/api/admin/impersonation/history');
+        if (!resp.ok) throw new Error('Failed to load history');
+        const data = await resp.json();
+        const tbody = document.getElementById('impersonation-history-tbody');
+        if (!data.sessions || data.sessions.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: var(--space-8); color: var(--gray-500);">No impersonation sessions found.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.sessions.map(s => `
+          <tr>
+            <td>${escapeHtml(s.admin)}</td>
+            <td>${escapeHtml(s.target_user)}</td>
+            <td>${escapeHtml(s.started_at)}</td>
+            <td>${escapeHtml(s.duration)}</td>
+            <td>${escapeHtml(s.reason)}</td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading impersonation history:', error);
+        document.getElementById('impersonation-history-tbody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding: var(--space-8); color: var(--gray-500);">Unable to load history.</td></tr>';
+      }
+    }
+
+    async function searchImpersonateUser() {
+      const query = document.getElementById('impersonate-user-search')?.value;
+      if (!query) return;
+      const container = document.getElementById('impersonation-results');
+      container.innerHTML = '<p style="text-align:center; padding: var(--space-8); color: var(--gray-500);">Searching...</p>';
+      try {
+        const data = await api('/users?search=' + encodeURIComponent(query) + '&limit=10');
+        if (!data.users || data.users.length === 0) {
+          container.innerHTML = '<p style="text-align:center; padding: var(--space-8); color: var(--gray-500);">No users found matching "' + escapeHtml(query) + '".</p>';
+          return;
+        }
+        container.innerHTML = '<table class="data-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Firm</th><th>Action</th></tr></thead><tbody>' +
+          data.users.map(u => `<tr><td>${escapeHtml(u.name)}</td><td>${escapeHtml(u.email)}</td><td>${escapeHtml(u.role)}</td><td>${escapeHtml(u.firm_name || 'N/A')}</td><td><button class="btn btn-warning btn-sm" onclick="startImpersonation('${escapeAttr(u.user_id)}')">Impersonate</button></td></tr>`).join('') +
+          '</tbody></table>';
+      } catch (e) {
+        container.innerHTML = '<p style="text-align:center; padding: var(--space-8); color: var(--danger);">Error searching users.</p>';
+      }
+    }
+
+    async function startImpersonation(userId) {
+      const reason = prompt('Please provide a reason for impersonation (required, min 10 characters):');
+      if (!reason || reason.length < 10) {
+        showNotification('Impersonation requires a reason of at least 10 characters.', 'warning');
+        return;
+      }
+      if (!confirm('Are you sure you want to impersonate this user? This action will be logged.')) return;
+      try {
+        const resp = await fetch('/api/admin/impersonation/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, reason: reason })
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.detail || 'Failed to start impersonation');
+        }
+        const data = await resp.json();
+        if (data.redirect_url) {
+          window.location.href = data.redirect_url;
+        } else {
+          showNotification('Impersonation started successfully', 'success');
+          loadImpersonationHistory();
+        }
+      } catch (e) {
+        showNotification('Failed to start impersonation: ' + e.message, 'error');
+      }
+    }
+
+    async function loadApiKeys() {
+      try {
+        const status = document.getElementById('apikey-status-filter')?.value || '';
+        const params = new URLSearchParams();
+        if (status) params.set('status', status);
+        const resp = await fetch('/api/admin/api-keys?' + params.toString());
+        if (!resp.ok) throw new Error('Failed to load API keys');
+        const data = await resp.json();
+        const tbody = document.getElementById('api-keys-tbody');
+        if (!data.keys || data.keys.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: var(--space-8); color: var(--gray-500);">No API keys found.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.keys.map(k => `
+          <tr>
+            <td>${escapeHtml(k.name)}</td>
+            <td><code>${escapeHtml(k.prefix)}...</code></td>
+            <td>${escapeHtml(k.firm)}</td>
+            <td>${escapeHtml(k.scopes)}</td>
+            <td><span class="badge badge-${k.status === 'active' ? 'success' : 'secondary'}">${escapeHtml(k.status)}</span></td>
+            <td>${escapeHtml(k.last_used || 'Never')}</td>
+            <td><button class="btn btn-ghost btn-sm" onclick="revokeApiKey('${escapeAttr(k.id)}')">Revoke</button></td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading API keys:', error);
+        document.getElementById('api-keys-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center; padding: var(--space-8); color: var(--gray-500);">Unable to load API keys.</td></tr>';
+      }
+    }
+
+    async function showCreateApiKeyModal() {
+      const availableScopes = [
+        'clients:read', 'clients:write', 'returns:read', 'returns:write',
+        'documents:read', 'documents:write', 'reports:read', 'analytics:read', 'webhooks:manage'
+      ];
+      createModal('Create API Key', `
+        <form id="create-api-key-form">
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-medium);">Key Name *</label>
+            <input type="text" name="name" required class="form-input" placeholder="e.g. Production API Key" style="width: 100%; padding: var(--space-2-5); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
+          </div>
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; margin-bottom: var(--space-1-5); font-weight: var(--font-medium);">Scopes *</label>
+            <div style="display: grid; gap: var(--space-2); max-height: 200px; overflow-y: auto; padding: var(--space-2); border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
+              ${availableScopes.map(s => `
+                <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+                  <input type="checkbox" name="scopes" value="${s}">
+                  <code style="font-size: var(--text-xs);">${s}</code>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+          <div style="display: flex; gap: var(--space-3); justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Key</button>
+          </div>
+        </form>
+      `);
+      document.getElementById('create-api-key-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const selectedScopes = Array.from(form.querySelectorAll('input[name="scopes"]:checked')).map(cb => cb.value);
+        if (selectedScopes.length === 0) {
+          showNotification('Please select at least one scope', 'warning');
+          return;
+        }
+        try {
+          const resp = await fetch('/api/admin/api-keys', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: form.name.value, scopes: selectedScopes })
+          });
+          if (!resp.ok) throw new Error('Failed to create API key');
+          const data = await resp.json();
+          closeModal();
+          // Show the raw key once — it won't be retrievable again
+          if (data.key || data.api_key) {
+            const rawKey = data.key || data.api_key;
+            createModal('API Key Created', `
+              <div style="margin-bottom: var(--space-4);">
+                <p style="margin-bottom: var(--space-3); color: var(--warning); font-weight: var(--font-semibold);">Copy this key now — it will not be shown again!</p>
+                <div style="background: var(--gray-100); padding: var(--space-3); border-radius: var(--radius-md); font-family: monospace; word-break: break-all; font-size: var(--text-sm);">${escapeHtml(rawKey)}</div>
+              </div>
+              <div style="display: flex; justify-content: flex-end;">
+                <button class="btn btn-primary" onclick="navigator.clipboard.writeText('${escapeAttr(rawKey)}'); showNotification('Copied!', 'success');">Copy to Clipboard</button>
+              </div>
+            `);
+          } else {
+            showNotification('API key created successfully', 'success');
+          }
+          await loadApiKeys();
+        } catch (err) {
+          showNotification('Failed to create API key: ' + err.message, 'error');
+        }
+      });
+    }
+
+    async function revokeApiKey(keyId) {
+      if (!confirm('Are you sure you want to revoke this API key? This cannot be undone.')) return;
+      try {
+        const resp = await fetch('/api/admin/api-keys/' + encodeURIComponent(keyId), { method: 'DELETE' });
+        if (resp.ok) {
+          showNotification('API key revoked successfully', 'success');
+          await loadApiKeys();
+        } else {
+          showNotification('Failed to revoke API key', 'error');
+        }
+      } catch (e) {
+        showNotification('Error revoking API key: ' + e.message, 'error');
+      }
+    }
+
+    async function loadAnalytics() {
+      try {
+        const period = document.getElementById('analytics-period-filter')?.value || '30d';
+        const [dashboard, mrrData, activity] = await Promise.all([
+          api('/dashboard').catch(() => null),
+          api('/subscriptions/mrr').catch(() => null),
+          api('/activity?limit=20').catch(() => null)
+        ]);
+        const el = (id) => document.getElementById(id);
+        if (el('analytics-active-users')) el('analytics-active-users').textContent = dashboard?.total_users?.toLocaleString() || '--';
+        if (el('analytics-returns-filed')) el('analytics-returns-filed').textContent = dashboard?.total_returns?.toLocaleString() || dashboard?.active_firms?.toLocaleString() || '--';
+        if (el('analytics-revenue')) el('analytics-revenue').textContent = mrrData?.total_mrr ? formatCurrency(mrrData.total_mrr) : '--';
+        if (el('analytics-conversion')) el('analytics-conversion').textContent = dashboard?.conversion_rate ? dashboard.conversion_rate + '%' : '--';
+        const chartsContainer = el('analytics-charts-container');
+        if (chartsContainer && activity?.activities) {
+          chartsContainer.innerHTML = '<div style="padding: var(--space-4);"><h4 style="margin-bottom: var(--space-3);">Recent Activity</h4>' +
+            activity.activities.slice(0, 10).map(a => `
+              <div style="display: flex; justify-content: space-between; padding: var(--space-2) 0; border-bottom: 1px solid var(--gray-700);">
+                <span>${escapeHtml(a.description || a.activity_type || 'Activity')}</span>
+                <span style="color: var(--gray-500); font-size: var(--text-xs);">${escapeHtml(a.created_at || '')}</span>
+              </div>
+            `).join('') + '</div>';
+        } else if (chartsContainer) {
+          chartsContainer.innerHTML = '<p style="text-align:center; padding: var(--space-8); color: var(--gray-400);">Analytics loaded for ' + escapeHtml(period) + ' period.</p>';
+        }
+      } catch (error) {
+        console.error('Error loading analytics:', error);
+      }
+    }
+
+    async function loadBilling() {
+      try {
+        const [revenue, pending] = await Promise.all([
+          api('/platform-billing/revenue').catch(() => null),
+          api('/platform-billing/pending-payments').catch(() => null)
+        ]);
+        const el = (id) => document.getElementById(id);
+        if (el('billing-mrr')) el('billing-mrr').textContent = revenue?.mrr ? formatCurrency(revenue.mrr) : '--';
+        if (el('billing-outstanding')) el('billing-outstanding').textContent = pending?.total_pending?.toLocaleString() || '0';
+        if (el('billing-churn')) el('billing-churn').textContent = revenue?.churn_rate ? revenue.churn_rate.toFixed(1) + '%' : '--';
+        const tbody = el('billing-tbody');
+        if (!tbody) return;
+        const payments = pending?.pending_payments || [];
+        if (payments.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: var(--space-8); color: var(--gray-500);">No pending payments found.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = payments.map(p => `
+          <tr>
+            <td>${escapeHtml(p.firm_name || p.invoice_id)}</td>
+            <td>${escapeHtml(p.invoice_id)}</td>
+            <td>${formatCurrency(p.amount_due || 0)}</td>
+            <td><span class="badge badge-${p.status === 'paid' ? 'success' : 'warning'}">${escapeHtml(p.status)}</span></td>
+            <td>${escapeHtml(p.due_date || '')}</td>
+            <td><button class="btn btn-ghost btn-sm">Manage</button></td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading billing:', error);
+        const tbody = document.getElementById('billing-tbody');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: var(--space-8); color: var(--gray-500);">Unable to load billing data.</td></tr>';
+      }
+    }
+
+    async function loadSettings() {
+      try {
+        const data = await api('/platform-billing/settings').catch(() => null);
+        if (data) {
+          const el = (id) => document.getElementById(id);
+          if (data.platform_name && el('settings-platform-name')) el('settings-platform-name').value = data.platform_name;
+          if (data.support_email && el('settings-support-email')) el('settings-support-email').value = data.support_email;
+          if (data.timezone && el('settings-timezone')) el('settings-timezone').value = data.timezone;
+          if (el('settings-maintenance-mode')) el('settings-maintenance-mode').checked = !!data.maintenance_mode;
+        }
+      } catch (e) {
+        console.error('Error loading settings:', e);
+      }
+    }
+
+    async function saveSettings() {
+      try {
+        const settings = {
+          platform_name: document.getElementById('settings-platform-name')?.value || '',
+          support_email: document.getElementById('settings-support-email')?.value || '',
+          timezone: document.getElementById('settings-timezone')?.value || '',
+          maintenance_mode: document.getElementById('settings-maintenance-mode')?.checked || false
+        };
+        await api('/platform-billing/settings', {
+          method: 'PUT',
+          body: JSON.stringify(settings)
+        });
+        showNotification('Settings saved successfully', 'success');
+      } catch (e) {
+        showNotification('Failed to save settings: ' + e.message, 'error');
+      }
+    }
+
+    // =============================================================================
     // PAGE CONFIGURATION
     // =============================================================================
 
     // Page configuration
+    // PAGE CONFIG: Each page MUST map to its own unique section div.
+    // NEVER map multiple pages to 'section-overview' — that causes the
+    // "all links land on same page" bug. Every sidebar item needs a
+    // corresponding <div class="page-section" id="section-{name}"> above.
     const pageConfig = {
-      '': { title: 'Platform Overview', subtitle: 'Multi-tenant administration', section: 'section-overview' },
-      'firms': { title: 'Firms Management', subtitle: 'All CPA firms on the platform', section: 'section-firms' },
-      'users': { title: 'Users Management', subtitle: 'All users across all firms', section: 'section-users' },
-      'partners': { title: 'Partner Management', subtitle: 'White-label partners', section: 'section-partners' },
-      'subscriptions': { title: 'Subscriptions', subtitle: 'Billing and revenue management', section: 'section-subscriptions' },
-      'revenue': { title: 'Revenue Analytics', subtitle: 'Platform revenue metrics', section: 'section-subscriptions' },
-      'compliance': { title: 'Compliance', subtitle: 'Platform-wide compliance status', section: 'section-audit' },
-      'audit': { title: 'Audit Logs', subtitle: 'Platform activity audit trail', section: 'section-audit' },
-      'support': { title: 'Support Tickets', subtitle: 'Customer support queue', section: 'section-overview' },
-      'features': { title: 'Feature Flags', subtitle: 'Platform feature configuration', section: 'section-features' },
-      'rbac': { title: 'RBAC Configuration', subtitle: 'Roles and permissions', section: 'section-rbac' },
-      'health': { title: 'System Health', subtitle: 'Infrastructure status', section: 'section-health' },
-      'refunds': { title: 'Refund Management', subtitle: 'Review and process refund requests', section: 'section-overview' },
-      'impersonation': { title: 'User Impersonation', subtitle: 'Support mode for troubleshooting', section: 'section-overview' },
-      'api-keys': { title: 'API Keys', subtitle: 'Manage API keys and integrations', section: 'section-overview' },
+      '':              { title: 'Platform Overview',    subtitle: 'Multi-tenant administration',       section: 'section-overview' },
+      'firms':         { title: 'Firms Management',     subtitle: 'All CPA firms on the platform',     section: 'section-firms' },
+      'users':         { title: 'Users Management',     subtitle: 'All users across all firms',        section: 'section-users' },
+      'partners':      { title: 'Partner Management',   subtitle: 'White-label partners',              section: 'section-partners' },
+      'subscriptions': { title: 'Subscriptions',        subtitle: 'Billing and revenue management',    section: 'section-subscriptions' },
+      'revenue':       { title: 'Revenue Analytics',    subtitle: 'Platform revenue metrics',          section: 'section-subscriptions' },
+      'compliance':    { title: 'Compliance',           subtitle: 'Platform-wide compliance status',   section: 'section-audit' },
+      'audit':         { title: 'Audit Logs',           subtitle: 'Platform activity audit trail',     section: 'section-audit' },
+      'support':       { title: 'Support Tickets',      subtitle: 'Customer support queue',            section: 'section-support' },
+      'features':      { title: 'Feature Flags',        subtitle: 'Platform feature configuration',    section: 'section-features' },
+      'rbac':          { title: 'RBAC Configuration',   subtitle: 'Roles and permissions',             section: 'section-rbac' },
+      'health':        { title: 'System Health',        subtitle: 'Infrastructure status',             section: 'section-health' },
+      'refunds':       { title: 'Refund Management',    subtitle: 'Review and process refund requests',section: 'section-refunds' },
+      'impersonation': { title: 'User Impersonation',   subtitle: 'Support mode for troubleshooting',  section: 'section-impersonation' },
+      'api-keys':      { title: 'API Keys',             subtitle: 'Manage API keys and integrations',  section: 'section-api-keys' },
+      'analytics':     { title: 'Platform Analytics',   subtitle: 'Usage metrics and insights',        section: 'section-analytics' },
+      'billing':       { title: 'Billing Management',   subtitle: 'Invoices and subscriptions',        section: 'section-billing' },
+      'settings':      { title: 'Platform Settings',    subtitle: 'Global configuration',              section: 'section-settings' },
     };
 
     function getCurrentPage() {
@@ -3919,7 +4859,20 @@
 
     function showCurrentSection() {
       const currentPage = getCurrentPage();
-      const config = pageConfig[currentPage] || pageConfig[''];
+      const config = pageConfig[currentPage];
+
+      // Defensive: if page not in config, redirect to overview and warn
+      if (!config) {
+        console.warn('[Admin SPA] Unknown page "' + currentPage + '" — redirecting to overview. Add it to pageConfig and create a section div.');
+        history.replaceState(null, '', '/admin');
+        const fallback = pageConfig[''];
+        document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+        const overviewSection = document.getElementById(fallback.section);
+        if (overviewSection) overviewSection.classList.add('active');
+        document.getElementById('page-title').textContent = fallback.title;
+        document.getElementById('page-subtitle').textContent = fallback.subtitle;
+        return;
+      }
 
       document.querySelectorAll('.page-section').forEach(section => {
         section.classList.remove('active');
@@ -3928,6 +4881,11 @@
       const activeSection = document.getElementById(config.section);
       if (activeSection) {
         activeSection.classList.add('active');
+      } else {
+        // Section div missing — show overview as fallback, log error
+        console.error('[Admin SPA] Section "' + config.section + '" not found in DOM for page "' + currentPage + '". Create <div class="page-section" id="' + config.section + '">.');
+        const overviewSection = document.getElementById('section-overview');
+        if (overviewSection) overviewSection.classList.add('active');
       }
     }
 
@@ -4403,8 +5361,96 @@
       showFirmTab('billing', firmId);
     }
 
-    function manageFirmPermissions(firmId) {
-      showNotification('Permission management - Feature coming soon', 'info');
+    async function manageFirmPermissions(firmId) {
+      try {
+        // Load roles and permissions from RBAC API
+        const [rolesData, permsData] = await Promise.all([
+          adminApi('/rbac/roles'),
+          adminApi('/rbac/permissions'),
+        ]);
+        const roles = rolesData.roles || [];
+        const permissions = permsData.permissions || [];
+
+        // Group permissions by category
+        const categories = {};
+        permissions.forEach(p => {
+          if (!categories[p.category]) categories[p.category] = [];
+          categories[p.category].push(p);
+        });
+
+        let tableRows = '';
+        for (const [cat, perms] of Object.entries(categories)) {
+          perms.forEach(perm => {
+            tableRows += `<tr>
+              <td style="padding:var(--space-2); font-size:var(--text-xs); text-transform:uppercase; color:var(--gray-500);">${escapeHtml(cat)}</td>
+              <td style="padding:var(--space-2); font-weight:var(--font-medium);">${escapeHtml(perm.name)}</td>`;
+            roles.forEach(role => {
+              const checked = (role.permissions || []).includes(perm.code || perm.id) ? 'checked' : '';
+              const disabled = role.is_system ? 'disabled title="System role"' : '';
+              tableRows += `<td style="padding:var(--space-2); text-align:center;">
+                <input type="checkbox" ${checked} ${disabled}
+                  data-role-id="${role.role_id || role.code}" data-perm="${perm.code || perm.id}"
+                  onchange="toggleRolePerm(this)" style="cursor:pointer;">
+              </td>`;
+            });
+            tableRows += '</tr>';
+          });
+        }
+
+        let roleHeaders = roles.map(r =>
+          `<th style="padding:var(--space-2); text-align:center; font-size:var(--text-sm);">${escapeHtml(r.name)}</th>`
+        ).join('');
+
+        createModal('Manage Firm Permissions', `
+          <div style="max-height:60vh; overflow:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:var(--text-sm);">
+              <thead>
+                <tr style="border-bottom:2px solid var(--gray-200);">
+                  <th style="padding:var(--space-2); text-align:left;">Category</th>
+                  <th style="padding:var(--space-2); text-align:left;">Permission</th>
+                  ${roleHeaders}
+                </tr>
+              </thead>
+              <tbody>${tableRows}</tbody>
+            </table>
+          </div>
+          <div style="margin-top:var(--space-4); display:flex; gap:var(--space-3); justify-content:flex-end;">
+            <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+            <button class="btn btn-primary" onclick="savePermissionMatrix('${firmId}')">Save Changes</button>
+          </div>
+        `);
+      } catch (error) {
+        showNotification('Failed to load permissions: ' + error.message, 'error');
+      }
+    }
+
+    async function toggleRolePerm(checkbox) {
+      // Visual feedback only — actual save happens on "Save Changes"
+      checkbox.closest('td').style.background = 'var(--warning-light, #fff8e1)';
+    }
+
+    async function savePermissionMatrix(firmId) {
+      try {
+        const checkboxes = document.querySelectorAll('#modal-overlay input[type="checkbox"]:not(:disabled)');
+        const rolePerms = {};
+        checkboxes.forEach(cb => {
+          const roleId = cb.dataset.roleId;
+          if (!rolePerms[roleId]) rolePerms[roleId] = [];
+          if (cb.checked) rolePerms[roleId].push(cb.dataset.perm);
+        });
+
+        for (const [roleId, codes] of Object.entries(rolePerms)) {
+          await adminApi(`/rbac/roles/${roleId}/permissions`, {
+            method: 'PUT',
+            body: JSON.stringify({ permission_codes: codes }),
+          });
+        }
+
+        showNotification('Permissions saved successfully', 'success');
+        closeModal();
+      } catch (error) {
+        showNotification('Failed to save permissions: ' + error.message, 'error');
+      }
     }
 
     function viewFirmAuditLogs(firmId) {
@@ -4502,6 +5548,27 @@
         case 'audit':
         case 'compliance':
           await loadAuditLogs();
+          break;
+        case 'support':
+          await loadSupportTickets();
+          break;
+        case 'refunds':
+          await loadRefunds();
+          break;
+        case 'impersonation':
+          await loadImpersonationHistory();
+          break;
+        case 'api-keys':
+          await loadApiKeys();
+          break;
+        case 'analytics':
+          await loadAnalytics();
+          break;
+        case 'billing':
+          await loadBilling();
+          break;
+        case 'settings':
+          await loadSettings();
           break;
       }
     }

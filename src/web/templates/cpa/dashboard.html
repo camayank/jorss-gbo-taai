@@ -595,7 +595,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     // Auto-refresh dashboard data every 30 seconds
     setTimeout(function() {
         location.reload();

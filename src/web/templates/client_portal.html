@@ -2976,7 +2976,7 @@
   <!-- Toast Container -->
   <div class="toast-container" id="toast-container"></div>
 
-  <script>
+  <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     // ================================================================
     // SECURITY: XSS Prevention - Always use this for user-generated content
     // ================================================================

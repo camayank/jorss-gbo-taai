@@ -18,7 +18,7 @@ class TestImpersonationModels:
 
     def test_impersonation_start_request(self):
         """Test ImpersonationStartRequest model."""
-        from src.web.routers.admin_impersonation_api import ImpersonationStartRequest
+        from web.routers.admin_impersonation_api import ImpersonationStartRequest
 
         request = ImpersonationStartRequest(
             user_id="user-001",
@@ -32,7 +32,7 @@ class TestImpersonationModels:
 
     def test_impersonation_default_duration(self):
         """Test default duration is 30 minutes."""
-        from src.web.routers.admin_impersonation_api import ImpersonationStartRequest
+        from web.routers.admin_impersonation_api import ImpersonationStartRequest
 
         request = ImpersonationStartRequest(
             user_id="user-002",
@@ -43,7 +43,7 @@ class TestImpersonationModels:
 
     def test_impersonation_end_request(self):
         """Test ImpersonationEndRequest model."""
-        from src.web.routers.admin_impersonation_api import ImpersonationEndRequest
+        from web.routers.admin_impersonation_api import ImpersonationEndRequest
 
         request = ImpersonationEndRequest(session_id="session-123")
         assert request.session_id == "session-123"
@@ -54,7 +54,7 @@ class TestImpersonationSession:
 
     def test_session_creation(self):
         """Test creating an impersonation session."""
-        from src.web.routers.admin_impersonation_api import ImpersonationSession
+        from web.routers.admin_impersonation_api import ImpersonationSession
 
         session = ImpersonationSession(
             session_id="sess-001",
@@ -74,7 +74,7 @@ class TestImpersonationSession:
 
     def test_session_is_active_when_not_ended(self):
         """Test session is active when not ended."""
-        from src.web.routers.admin_impersonation_api import ImpersonationSession
+        from web.routers.admin_impersonation_api import ImpersonationSession
 
         session = ImpersonationSession(
             session_id="sess-002",
@@ -91,7 +91,7 @@ class TestImpersonationSession:
 
     def test_session_inactive_when_ended(self):
         """Test session is inactive when ended."""
-        from src.web.routers.admin_impersonation_api import ImpersonationSession
+        from web.routers.admin_impersonation_api import ImpersonationSession
 
         session = ImpersonationSession(
             session_id="sess-003",
@@ -110,7 +110,7 @@ class TestImpersonationSession:
 
     def test_session_to_dict(self):
         """Test session serialization to dict."""
-        from src.web.routers.admin_impersonation_api import ImpersonationSession
+        from web.routers.admin_impersonation_api import ImpersonationSession
 
         session = ImpersonationSession(
             session_id="sess-004",
@@ -166,7 +166,7 @@ class TestImpersonationDuration:
 
     def test_minimum_duration(self):
         """Test minimum duration is 5 minutes."""
-        from src.web.routers.admin_impersonation_api import ImpersonationStartRequest
+        from web.routers.admin_impersonation_api import ImpersonationStartRequest
 
         # Field constraint: ge=5
         request = ImpersonationStartRequest(
@@ -178,7 +178,7 @@ class TestImpersonationDuration:
 
     def test_maximum_duration(self):
         """Test maximum duration is 120 minutes."""
-        from src.web.routers.admin_impersonation_api import ImpersonationStartRequest
+        from web.routers.admin_impersonation_api import ImpersonationStartRequest
 
         # Field constraint: le=120
         request = ImpersonationStartRequest(
@@ -194,7 +194,7 @@ class TestAuditLogging:
 
     def test_session_tracks_actions(self):
         """Test that sessions can track actions."""
-        from src.web.routers.admin_impersonation_api import ImpersonationSession
+        from web.routers.admin_impersonation_api import ImpersonationSession
 
         session = ImpersonationSession(
             session_id="sess-audit",

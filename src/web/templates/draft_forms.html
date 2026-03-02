@@ -343,7 +343,7 @@
 {% endblock %}
 
 {% block scripts_extra %}
-<script>
+<script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
 function draftFormsManager() {
     return {
         availableForms: [

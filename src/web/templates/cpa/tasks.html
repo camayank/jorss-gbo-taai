@@ -410,7 +410,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
 /**
  * Serialize the authenticated user context into a global so Alpine can read it.
  * The Jinja template context passes `current_user` (a dict from require_cpa_auth)

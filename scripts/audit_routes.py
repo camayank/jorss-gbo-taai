@@ -41,7 +41,7 @@ PUBLIC_ALLOWLIST = {
     "/cookies", "/cookie-policy", "/disclaimer",
     "/health", "/docs", "/openapi.json", "/manifest.json",
     "/quick-estimate", "/estimate",
-    "/advisor", "/start", "/analysis", "/chat", "/simple", "/conversation",
+    "/intelligent-advisor", "/start", "/analysis", "/chat", "/simple", "/conversation",
     "/tax-advisory", "/advisory",
     # Self-protecting (inline role checks with redirect)
     "/app/portal",

@@ -13,7 +13,7 @@ Comprehensive test suite covering:
 
 import pytest
 from datetime import date
-from src.models.form_1099_s import (
+from models.form_1099_s import (
     Form1099S,
     RealEstateSaleCalculation,
     PropertyType,

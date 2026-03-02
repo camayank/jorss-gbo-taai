@@ -4,7 +4,7 @@ import pytest
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
-from src.smart_tax import (
+from smart_tax import (
     SmartTaxOrchestrator,
     SmartTaxSession,
     ComplexityRouter,
@@ -14,10 +14,10 @@ from src.smart_tax import (
     ProcessedDocument,
     DocumentSummary,
 )
-from src.smart_tax.orchestrator import SessionState, ComplexityLevel
-from src.database.unified_session import UnifiedFilingSession, FilingState
-from src.smart_tax.complexity_router import ComplexityFactor, assess_and_route
-from src.smart_tax.document_processor import DocumentType, ExtractedField
+from smart_tax.orchestrator import SessionState, ComplexityLevel
+from database.unified_session import UnifiedFilingSession, FilingState
+from smart_tax.complexity_router import ComplexityFactor, assess_and_route
+from smart_tax.document_processor import DocumentType, ExtractedField
 
 
 class TestComplexityRouter:
@@ -603,7 +603,7 @@ class TestEdgeCases:
 # Phase 4 Tests: Question Generator, Deduction Detector, Planning Insights
 # =============================================================================
 
-from src.smart_tax import (
+from smart_tax import (
     AdaptiveQuestionGenerator,
     AdaptiveQuestion,
     QuestionPriority,

@@ -12,7 +12,7 @@ Comprehensive test suite covering:
 """
 
 import pytest
-from src.models.form_8829 import (
+from models.form_8829 import (
     Form8829,
     Form8829Part1,
     Form8829Part2,

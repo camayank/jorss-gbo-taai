@@ -1,5 +1,5 @@
-from src.calculator.engine import FederalTaxEngine
-from src.calculator.tax_year_config import TaxYearConfig
+from calculator.engine import FederalTaxEngine
+from calculator.tax_year_config import TaxYearConfig
 
 
 def test_ordinary_income_tax_single_basic():
