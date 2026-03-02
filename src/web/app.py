@@ -471,6 +471,22 @@ if RBAC_V2_ENABLED:
                 "/",
                 "/health",
                 "/metrics",
+                # HTML pages that must be accessible without auth
+                "/login",
+                "/signin",
+                "/signup",
+                "/register",
+                "/auth/login",
+                "/auth/register",
+                "/forgot-password",
+                "/reset-password",
+                "/mfa-verify",
+                "/auth/mfa-verify",
+                "/landing",
+                "/quick-estimate",
+                "/estimate",
+                "/client/login",
+                # Legacy API auth paths
                 "/api/v1/auth/login",
                 "/api/v1/auth/register",
                 "/api/v1/auth/forgot-password",
@@ -1377,12 +1393,18 @@ def intelligent_tax_advisor(request: Request):
     The platform positions tax advisory as the primary service,
     with tax filing available as a secondary service later.
     """
+    # Require authentication — redirect to login if not signed in
+    denied = _require_any_auth(request)
+    if denied:
+        return denied
+
     from config.branding import get_branding_config
     branding = get_branding_config()
+    user_ctx = _ui_user_context(request, default_role="client")
     return templates.TemplateResponse("intelligent_advisor.html", {
         "request": request,
         "branding": branding,
-        "user": {"role": "client", "name": "Guest"},
+        "user": user_ctx,
         "current_path": str(request.url.path),
         "brand_name": getattr(branding, "platform_name", "Tax Advisory"),
         "tenant_features": {},
@@ -1626,7 +1648,9 @@ async def app_router(request: Request):
     elif role_bucket == "client":
         return RedirectResponse(url="/app/portal", status_code=302)
 
-    # Default to intelligent-advisor for unknown/anonymous roles
+    # Anonymous users → login; authenticated users with no specific role → intelligent-advisor
+    if role_bucket == "anonymous":
+        return RedirectResponse(url="/login?next=/intelligent-advisor", status_code=302)
     return RedirectResponse(url="/intelligent-advisor", status_code=302)
 
 
@@ -1913,7 +1937,7 @@ def scenarios_page(request: Request, session_id: str = None):
     denied = _require_any_auth(request)
     if denied:
         return denied
-    return _templates.TemplateResponse(
+    return templates.TemplateResponse(
         "scenarios.html",
         {"request": request, "session_id": session_id, "page_title": "Scenario Comparison"}
     )
@@ -3011,6 +3035,60 @@ async def get_document(document_id: str, request: Request):
         "errors": result_data.get("errors", []),
         "created_at": doc_record.created_at,
     })
+
+
+@app.get("/api/documents/{document_id}/download")
+@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER, Role.ADMIN])
+async def download_document(document_id: str, request: Request):
+    """Download original document file."""
+    from fastapi.responses import Response
+
+    session_id = request.cookies.get("tax_session_id") or ""
+    persistence = _get_persistence()
+
+    doc_record = persistence.load_document_result(document_id, session_id=session_id)
+    if not doc_record:
+        doc_any = persistence.load_document_result(document_id)
+        if doc_any:
+            raise HTTPException(status_code=403, detail="Access denied")
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    # Tenant isolation
+    user = _request_user_dict(request)
+    if user and hasattr(doc_record, 'result') and doc_record.result:
+        user_role = str(user.get("role") or "").lower()
+        is_admin = user_role in {Role.ADMIN.value, "super_admin", "platform_admin"}
+        user_firm = str(user.get("firm_id") or "")
+        doc_firm = str(doc_record.result.get("firm_id") or doc_record.result.get("tenant_id") or "")
+        if doc_firm and user_firm and doc_firm != user_firm and not is_admin:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+    result_data = doc_record.result or {}
+    filename = result_data.get("original_filename") or result_data.get("filename") or f"{document_id}.pdf"
+    mime_type = result_data.get("mime_type") or "application/octet-stream"
+
+    # Try to get the raw file content from persistence
+    file_data = None
+    if hasattr(persistence, 'load_document_file'):
+        file_data = persistence.load_document_file(document_id)
+    elif hasattr(doc_record, 'data') and doc_record.data:
+        file_data = doc_record.data
+
+    if not file_data:
+        raise HTTPException(status_code=404, detail="Document file not available for download")
+
+    if isinstance(file_data, str):
+        import base64
+        try:
+            file_data = base64.b64decode(file_data)
+        except Exception:
+            file_data = file_data.encode('utf-8')
+
+    return Response(
+        content=file_data,
+        media_type=mime_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 def _build_extracted_data(extracted_fields: list) -> dict:

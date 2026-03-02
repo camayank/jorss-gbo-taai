@@ -49,13 +49,25 @@ router = APIRouter(prefix="/api/cpa/branding", tags=["cpa-branding"])
 class UpdateCPABrandingRequest(BaseModel):
     """Request to update CPA branding"""
     display_name: Optional[str] = Field(None, max_length=100, description="Display name")
+    first_name: Optional[str] = Field(None, max_length=50, description="First name")
+    last_name: Optional[str] = Field(None, max_length=50, description="Last name")
     tagline: Optional[str] = Field(None, max_length=200, description="Professional tagline")
-    accent_color: Optional[str] = Field(None, pattern=r'^#[0-9A-Fa-f]{6}$', description="Hex color code (e.g., #1a2b3c)")
+    headline: Optional[str] = Field(None, max_length=200, description="Headline (alias for tagline)")
+    cpa_slug: Optional[str] = Field(None, max_length=100, description="CPA URL slug")
 
-    # Contact
+    # Colors
+    primary_color: Optional[str] = Field(None, pattern=r'^#[0-9A-Fa-f]{6}$', description="Primary hex color")
+    secondary_color: Optional[str] = Field(None, pattern=r'^#[0-9A-Fa-f]{6}$', description="Secondary hex color")
+    accent_color: Optional[str] = Field(None, pattern=r'^#[0-9A-Fa-f]{6}$', description="Accent hex color")
+
+    # Contact — accept both frontend field names and canonical names
+    email: Optional[EmailStr] = Field(None, description="Email (alias for direct_email)")
     direct_email: Optional[EmailStr] = None
+    phone: Optional[str] = Field(None, description="Phone (alias for direct_phone)")
     direct_phone: Optional[str] = Field(None, description="Phone number")
     office_address: Optional[str] = Field(None, max_length=500, description="Office address")
+    booking_link: Optional[str] = Field(None, max_length=500, description="Scheduling/booking URL")
+    favicon_url: Optional[str] = Field(None, max_length=500, description="Favicon URL")
 
     # Bio
     bio: Optional[str] = Field(None, max_length=2000, description="Professional biography")
@@ -81,7 +93,7 @@ class UpdateCPABrandingRequest(BaseModel):
             raise ValueError("Phone number contains invalid characters")
         return v
 
-    @field_validator('display_name', 'tagline', 'bio', 'office_address', 'welcome_message')
+    @field_validator('display_name', 'first_name', 'last_name', 'tagline', 'headline', 'bio', 'office_address', 'welcome_message')
     @classmethod
     def sanitize_text_fields(cls, v):
         """Sanitize text fields to prevent XSS."""
@@ -137,8 +149,12 @@ class CPABrandingResponse(BaseModel):
 # =============================================================================
 
 def require_cpa_role(ctx: AuthContext = Depends(require_auth)) -> AuthContext:
-    """Require STAFF or PARTNER role"""
-    if ctx.role not in {Role.STAFF, Role.PARTNER, Role.PLATFORM_ADMIN}:
+    """Require CPA-related role (Staff, Partner, or legacy CPA/Preparer roles)"""
+    allowed_roles = {Role.STAFF, Role.PARTNER, Role.PLATFORM_ADMIN, Role.SUPER_ADMIN}
+    # Also accept string-based role values for legacy compatibility
+    allowed_values = {r.value for r in allowed_roles} | {"cpa", "admin", "preparer"}
+    role_val = ctx.role.value if isinstance(ctx.role, Role) else str(ctx.role)
+    if ctx.role not in allowed_roles and role_val not in allowed_values:
         raise HTTPException(403, "CPA access required")
     return ctx
 
@@ -230,19 +246,38 @@ async def update_my_branding(
         if tenant and not tenant.branding.allow_sub_branding:
             raise HTTPException(403, "CPA branding customization not allowed by tenant")
 
+    # Resolve aliases: frontend sends email/phone, backend stores direct_email/direct_phone
+    effective_email = request.direct_email or request.email
+    effective_phone = request.direct_phone or request.phone
+    effective_tagline = request.tagline or request.headline
+
     # Update fields
     if request.display_name is not None:
         cpa_branding.display_name = request.display_name
-    if request.tagline is not None:
-        cpa_branding.tagline = request.tagline
+    if request.first_name is not None and hasattr(cpa_branding, 'first_name'):
+        cpa_branding.first_name = request.first_name
+    if request.last_name is not None and hasattr(cpa_branding, 'last_name'):
+        cpa_branding.last_name = request.last_name
+    if effective_tagline is not None:
+        cpa_branding.tagline = effective_tagline
+    if request.cpa_slug is not None and hasattr(cpa_branding, 'cpa_slug'):
+        cpa_branding.cpa_slug = request.cpa_slug
+    if request.primary_color is not None and hasattr(cpa_branding, 'primary_color'):
+        cpa_branding.primary_color = request.primary_color
+    if request.secondary_color is not None and hasattr(cpa_branding, 'secondary_color'):
+        cpa_branding.secondary_color = request.secondary_color
     if request.accent_color is not None:
         cpa_branding.accent_color = request.accent_color
-    if request.direct_email is not None:
-        cpa_branding.direct_email = request.direct_email
-    if request.direct_phone is not None:
-        cpa_branding.direct_phone = request.direct_phone
+    if effective_email is not None:
+        cpa_branding.direct_email = effective_email
+    if effective_phone is not None:
+        cpa_branding.direct_phone = effective_phone
     if request.office_address is not None:
         cpa_branding.office_address = request.office_address
+    if request.booking_link is not None and hasattr(cpa_branding, 'booking_link'):
+        cpa_branding.booking_link = request.booking_link
+    if request.favicon_url is not None and hasattr(cpa_branding, 'favicon_url'):
+        cpa_branding.favicon_url = request.favicon_url
     if request.bio is not None:
         cpa_branding.bio = request.bio
     if request.credentials is not None:

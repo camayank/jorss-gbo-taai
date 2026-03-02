@@ -170,12 +170,13 @@ async def google_oauth_callback(
         # Create or link user account
         result = await oauth_service.create_or_link_user(user_info)
 
-        # Set token in HttpOnly cookie (not URL) to prevent leakage
-        redirect_url = f"/login?oauth_success=true&is_new={result['is_new_user']}"
+        # Pass token in URL so JS can persist to localStorage, plus HttpOnly cookie as backup
+        token = result["access_token"]
+        redirect_url = f"/login?oauth_success=true&is_new={result['is_new_user']}&token={token}"
         response = RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
         response.set_cookie(
             key="access_token",
-            value=result["access_token"],
+            value=token,
             httponly=True,
             secure=_is_production,
             samesite="lax",
@@ -303,12 +304,13 @@ async def microsoft_oauth_callback(
         # Create or link user account
         result = await oauth_service.create_or_link_user(user_info)
 
-        # Set token in HttpOnly cookie (not URL) to prevent leakage
-        redirect_url = f"/login?oauth_success=true&is_new={result['is_new_user']}"
+        # Pass token in URL so JS can persist to localStorage, plus HttpOnly cookie as backup
+        token = result["access_token"]
+        redirect_url = f"/login?oauth_success=true&is_new={result['is_new_user']}&token={token}"
         response = RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
         response.set_cookie(
             key="access_token",
-            value=result["access_token"],
+            value=token,
             httponly=True,
             secure=_is_production,
             samesite="lax",
