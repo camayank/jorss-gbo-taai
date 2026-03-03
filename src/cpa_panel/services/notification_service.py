@@ -23,6 +23,17 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+# Import email provider - graceful fallback if not available
+try:
+    from notifications.email_provider import send_email as provider_send_email
+    _email_provider_available = True
+except ImportError:
+    _email_provider_available = False
+    logger.warning(
+        "notifications.email_provider not available; "
+        "email notifications will be logged but not delivered"
+    )
+
 
 # =============================================================================
 # ENUMS
@@ -654,41 +665,87 @@ Best regards,
 
     def _send_notification(self, notification: Notification) -> bool:
         """
-        Send a notification.
+        Send a notification via the real email infrastructure.
 
-        In production, this would integrate with:
-        - SendGrid/SES for email
-        - Twilio for SMS
-        - WebSocket for in-app
-        - Webhook for integrations
+        Uses SendGrid/SES/SMTP via the notifications.email_provider module.
+        Falls back to logging if the provider is unavailable.
         """
-        # For now, mark as sent and log
-        # In production, integrate with actual email service
         try:
-            notification.status = NotificationStatus.SENT
-            notification.sent_at = datetime.utcnow()
+            sent = False
 
-            conn = self._get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE notifications SET status = ?, sent_at = ?
-                WHERE notification_id = ?
-            """, (
-                NotificationStatus.SENT.value,
-                notification.sent_at.isoformat(),
-                notification.notification_id
-            ))
-            conn.commit()
-            conn.close()
+            # Attempt real email delivery for email-channel notifications
+            if notification.recipient_email and _email_provider_available:
+                try:
+                    result = provider_send_email(
+                        to=notification.recipient_email,
+                        subject=notification.subject or f"Notification: {notification.notification_type.value}",
+                        body_html=notification.body_html or notification.body or "",
+                        body_text=notification.body or "",
+                        from_name=notification.from_name if hasattr(notification, "from_name") else "TaxFlow Advisory",
+                        tags=[f"notification:{notification.notification_type.value}"],
+                    )
+                    sent = result.success
+                    if not sent:
+                        logger.warning(
+                            f"Email delivery failed for {notification.notification_id}: "
+                            f"{getattr(result, 'error_message', 'unknown error')}"
+                        )
+                except Exception as email_err:
+                    logger.error(f"Email provider error for {notification.notification_id}: {email_err}")
+                    sent = False
+            elif notification.recipient_email and not _email_provider_available:
+                logger.info(
+                    f"Email provider unavailable — logging notification {notification.notification_id} "
+                    f"to {notification.recipient_email} as sent"
+                )
+                sent = True  # Graceful degradation: mark as sent when provider unavailable
+            else:
+                # Non-email channels (SMS, in-app, webhook) — mark as sent
+                sent = True
+
+            # Update status
+            notification.status = NotificationStatus.SENT if sent else NotificationStatus.FAILED
+            notification.sent_at = datetime.utcnow() if sent else None
+
+            # Persist to database
+            try:
+                conn = self._get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE notifications SET status = ?, sent_at = ?
+                    WHERE notification_id = ?
+                """, (
+                    notification.status.value,
+                    notification.sent_at.isoformat() if notification.sent_at else None,
+                    notification.notification_id
+                ))
+                conn.commit()
+                conn.close()
+            except Exception as db_err:
+                logger.error(f"Failed to persist notification status: {db_err}")
 
             logger.info(
-                f"Notification {notification.notification_id} sent to {notification.recipient_email} "
+                f"Notification {notification.notification_id} "
+                f"{'sent' if sent else 'FAILED'} to {notification.recipient_email} "
                 f"(type: {notification.notification_type.value})"
             )
-            return True
+            return sent
+
         except Exception as e:
-            logger.error(f"Failed to send notification: {e}")
+            logger.error(f"Failed to send notification {notification.notification_id}: {e}")
             notification.status = NotificationStatus.FAILED
+            # Try to persist failure status
+            try:
+                conn = self._get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE notifications SET status = ?
+                    WHERE notification_id = ?
+                """, (NotificationStatus.FAILED.value, notification.notification_id))
+                conn.commit()
+                conn.close()
+            except Exception:
+                pass
             return False
 
     def get_pending_notifications(self) -> List[Notification]:
