@@ -3626,6 +3626,36 @@ To get started, what's your filing status?"""
         except Exception as e:
             logger.warning(f"AI routing failed, falling back to rules: {e}")
 
+    # --- FALLBACK: UnifiedAIService deep reasoning for unanswered questions ---
+    if user_intent in ("ask_question", "request_advice"):
+        try:
+            ai_answer = await chat_engine._ai_reason_about_tax_question(msg_original, session)
+            if ai_answer:
+                ai_answer += f"\n\n---\n*{STANDARD_DISCLAIMER}*"
+                conversation = session.get("conversation", [])
+                conversation.append({"role": "user", "content": msg_original, "timestamp": datetime.now().isoformat()})
+                conversation.append({"role": "assistant", "content": ai_answer, "timestamp": datetime.now().isoformat()})
+                session["conversation"] = chat_engine._prune_conversation(conversation)
+
+                return ChatResponse(
+                    session_id=request.session_id,
+                    response=ai_answer,
+                    response_type="ai_reasoning",
+                    disclaimer=STANDARD_DISCLAIMER,
+                    profile_completeness=chat_engine.calculate_profile_completeness(profile),
+                    lead_score=chat_engine.calculate_lead_score(profile),
+                    complexity=chat_engine.determine_complexity(profile),
+                    quick_actions=[
+                        {"label": "Continue Profile", "value": "continue_profile"},
+                        {"label": "Ask Another Question", "value": "ask_question"},
+                        {"label": "Generate Report", "value": "generate_report"},
+                    ],
+                    response_confidence="medium",
+                    confidence_reason="AI-generated reasoning based on your profile",
+                )
+        except Exception as e:
+            logger.warning(f"AI reasoning fallback failed: {e}")
+
     # =========================================================================
     # MULTI-TURN UNDO SYSTEM - Handle various undo requests dynamically
     # =========================================================================
