@@ -219,6 +219,10 @@ class TaxReturnRecord(Base):
     original_return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=True)
     amendment_number = Column(Integer, default=0)
 
+    # Firm and Client linkage (added for firm isolation)
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="SET NULL"), nullable=True, index=True)
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.client_id", ondelete="SET NULL"), nullable=True, index=True)
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
