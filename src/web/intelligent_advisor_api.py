@@ -2034,8 +2034,43 @@ class IntelligentChatEngine:
         )
 
     async def get_tax_strategies(self, profile: Dict[str, Any], calculation: TaxCalculationResult) -> List[StrategyRecommendation]:
-        """Get personalized tax optimization strategies."""
+        """Get personalized tax optimization strategies using AI + rule-based detection."""
         strategies = []
+        ai_categories: set = set()
+
+        # --- AI-POWERED OPPORTUNITY DETECTION ---
+        if AI_OPPORTUNITIES_ENABLED:
+            try:
+                taxpayer_profile = _session_profile_to_taxpayer_profile(profile)
+                detector = TaxOpportunityDetector()
+                opportunities = detector.detect_opportunities(taxpayer_profile)
+
+                for i, opp in enumerate(opportunities):
+                    confidence_val = opp.confidence if isinstance(opp.confidence, float) else 0.8
+                    confidence_str = "high" if confidence_val >= 0.8 else "medium" if confidence_val >= 0.5 else "low"
+                    priority_str = opp.priority.value if hasattr(opp.priority, "value") else str(opp.priority)
+                    category_str = opp.category.value if hasattr(opp.category, "value") else str(opp.category)
+                    ai_categories.add(category_str.lower())
+
+                    strategies.append(StrategyRecommendation(
+                        id=opp.id or f"ai_opp_{i}",
+                        category=category_str.replace("_", " ").title(),
+                        title=opp.title,
+                        summary=opp.description,
+                        detailed_explanation=opp.description,
+                        estimated_savings=float(opp.estimated_savings) if opp.estimated_savings else 0,
+                        confidence=confidence_str,
+                        priority=priority_str,
+                        action_steps=[opp.action_required] if opp.action_required else [],
+                        irs_reference=opp.irs_reference or "",
+                        tier="free" if priority_str == "high" else "premium",
+                        risk_level="low",
+                    ))
+                logger.info(f"AI detected {len(opportunities)} opportunities")
+            except Exception as e:
+                logger.warning(f"AI opportunity detection failed, falling back to rules: {e}")
+
+        # --- EXISTING HARDCODED STRATEGIES (as fallback/supplement) ---
         marginal_rate = calculation.marginal_rate / 100
 
         # 1. Retirement Optimization
@@ -2422,8 +2457,39 @@ Estimated tax savings: **${savings:,.0f}**""",
                 deadline="December 31, 2025" if total_cap_gains > 0 else None
             ))
 
-        # Sort by estimated savings
-        strategies.sort(key=lambda x: x.estimated_savings, reverse=True)
+        # --- RECOMMENDATION ORCHESTRATOR ENRICHMENT ---
+        if AI_RECOMMENDATIONS_ENABLED and len(strategies) < 10:
+            try:
+                rec_dict = _session_profile_to_rec_dict(profile)
+                rec_result = await get_recommendations(
+                    profile=rec_dict,
+                    max_recommendations=10 - len(strategies),
+                )
+                existing_titles = {s.title.lower() for s in strategies}
+                for rec in rec_result.recommendations:
+                    if rec.title.lower() not in existing_titles:
+                        strategies.append(StrategyRecommendation(
+                            id=f"rec_{rec.source}_{len(strategies)}",
+                            category=rec.category,
+                            title=rec.title,
+                            summary=rec.description,
+                            detailed_explanation=rec.description,
+                            estimated_savings=rec.potential_savings,
+                            confidence=rec.confidence if isinstance(rec.confidence, str) else (
+                                "high" if rec.confidence >= 0.8 else "medium" if rec.confidence >= 0.5 else "low"
+                            ),
+                            priority=rec.priority,
+                            action_steps=rec.action_items,
+                            irs_reference="",
+                            tier="premium" if rec.complexity == "complex" else "free",
+                            risk_level="medium" if rec.warnings else "low",
+                        ))
+                logger.info(f"Orchestrator added {len(rec_result.recommendations)} recommendations")
+            except Exception as e:
+                logger.warning(f"Recommendation orchestrator failed: {e}")
+
+        # Sort: AI-detected first (higher confidence), then by estimated savings
+        strategies.sort(key=lambda x: (-x.estimated_savings,))
 
         return strategies
 
