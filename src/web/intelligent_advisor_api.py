@@ -2033,6 +2033,68 @@ class IntelligentChatEngine:
             used_fallback=True,
         )
 
+    async def _ai_extract_profile_data(self, message: str, session: dict) -> dict:
+        """Use IntelligentTaxAgent for NLP entity extraction from user message."""
+        if not AI_ENTITY_EXTRACTION_ENABLED:
+            return {}
+        try:
+            agent = IntelligentTaxAgent(use_ocr=False)
+            existing_profile = session.get("profile", {})
+            context_msg = f"Current profile: {existing_profile}. User says: {message}"
+            # process_message is synchronous — run in executor to avoid blocking
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, agent.process_message, context_msg)
+
+            extracted = {}
+            context = agent.context
+            for entity in context.extraction_history:
+                if entity.confidence.value in ("HIGH", "MEDIUM"):
+                    key_map = {
+                        "w2_wages": "w2_income",
+                        "total_income": "total_income",
+                        "filing_status": "filing_status",
+                        "dependents": "dependents",
+                        "state": "state",
+                        "age": "age",
+                        "mortgage_interest": "mortgage_interest",
+                        "self_employment_income": "self_employment_income",
+                        "business_income": "business_income",
+                        "retirement_contributions": "retirement_401k",
+                        "charitable_contributions": "charitable_donations",
+                        "hsa_contribution": "hsa_contributions",
+                        "student_loan_interest": "student_loan_interest",
+                    }
+                    profile_key = key_map.get(entity.entity_type, entity.entity_type)
+                    extracted[profile_key] = entity.value
+
+            if extracted:
+                logger.info(f"AI extracted {len(extracted)} entities: {list(extracted.keys())}")
+            return extracted
+        except Exception as e:
+            logger.warning(f"AI entity extraction failed: {e}")
+            return {}
+
+    async def _ai_reason_about_tax_question(self, question: str, session: dict) -> Optional[str]:
+        """Use UnifiedAIService for deep tax reasoning when user asks complex questions."""
+        try:
+            ai = get_ai_service()
+            profile = session.get("profile", {})
+            profile_summary = _summarize_profile(profile)
+
+            response = await ai.reason(
+                problem=question,
+                context=f"""You are a tax advisor assistant. The taxpayer's profile:
+{profile_summary}
+
+Answer their question with specific, actionable advice based on their situation.
+Include IRS references where applicable. Keep response under 200 words.
+Always note this is not official tax advice and they should consult a CPA.""",
+            )
+            return response.content
+        except Exception as e:
+            logger.warning(f"AI reasoning failed: {e}")
+            return None
+
     async def get_tax_strategies(self, profile: Dict[str, Any], calculation: TaxCalculationResult) -> List[StrategyRecommendation]:
         """Get personalized tax optimization strategies using AI + rule-based detection."""
         strategies = []
@@ -3869,6 +3931,17 @@ To get started, what's your filing status?"""
         # Handle validation warnings
         if parse_result.get("warnings"):
             validation_warnings = parse_result["warnings"]
+
+        # Augment regex extraction with AI entity extraction (fills gaps only)
+        try:
+            ai_updates = await chat_engine._ai_extract_profile_data(request.message, session)
+            for key, value in ai_updates.items():
+                if key not in extracted or not extracted[key]:
+                    extracted[key] = value
+                    if key not in extracted_fields:
+                        extracted_fields.append(key)
+        except Exception as e:
+            logger.warning(f"AI extraction augmentation failed: {e}")
 
         if extracted:
             # Check if this is a correction
