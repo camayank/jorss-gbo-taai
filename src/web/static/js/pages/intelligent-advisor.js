@@ -7362,7 +7362,7 @@
           data.new_opportunities.forEach(function(opp) {
             const alertText = opp.title || opp.summary || 'New savings opportunity detected!';
             const savingsText = opp.estimated_savings ? ' — Save $' + Number(opp.estimated_savings).toLocaleString() : '';
-            showNotification(alertText + savingsText, 'success');
+            showToast(alertText + savingsText, 'success');
           });
         }
 
