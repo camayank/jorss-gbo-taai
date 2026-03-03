@@ -4803,6 +4803,55 @@ async def upload_document(
             tmp_path = tmp.name
 
         try:
+            # --- ML DOCUMENT CLASSIFICATION ---
+            ml_classification = {}
+            try:
+                # Read text content for classification (if text-extractable)
+                extracted_text = ""
+                if safe_suffix == ".pdf":
+                    try:
+                        import fitz  # PyMuPDF
+                        pdf_doc = fitz.open(tmp_path)
+                        for page in pdf_doc:
+                            extracted_text += page.get_text()
+                        pdf_doc.close()
+                    except Exception:
+                        pass  # PDF text extraction optional
+                elif safe_suffix in (".jpg", ".jpeg", ".png", ".tiff", ".tif"):
+                    # Image — classifier can still work with OCR text from advisor
+                    pass
+
+                if extracted_text:
+                    classifier = DocumentClassifier()
+                    classification = classifier.classify(extracted_text)
+                    ml_classification = {
+                        "detected_type": classification.document_type,
+                        "classification_confidence": classification.confidence,
+                        "type_description": classification.document_type_description,
+                        "expected_fields": _get_expected_fields_for_type(classification.document_type),
+                    }
+                    logger.info(
+                        f"ML classified document as {classification.document_type} "
+                        f"({classification.confidence:.0%} confidence)"
+                    )
+
+                    # Use ML classification if user didn't specify type and confidence is high
+                    if not document_type and classification.confidence >= 0.7:
+                        # Map ML doc types to DocumentType enum values
+                        ml_type_map = {
+                            "w2": "w2", "1099-nec": "1099_nec", "1099-int": "1099_int",
+                            "1099-div": "1099_div", "1099-b": "1099_b", "1099-misc": "1099_misc",
+                            "1098": "1098", "k1": "k1",
+                        }
+                        mapped_type = ml_type_map.get(classification.document_type)
+                        if mapped_type:
+                            try:
+                                document_type = mapped_type
+                            except Exception:
+                                pass
+            except Exception as e:
+                logger.warning(f"ML classification failed (non-blocking): {e}")
+
             # Determine document type
             doc_type = DocumentType(document_type) if document_type else DocumentType.OTHER
 
@@ -4816,6 +4865,7 @@ async def upload_document(
                 "confidence": extracted.extraction_confidence,
                 "needs_review": extracted.needs_review,
                 "payer_name": extracted.payer_name,
+                "ml_classification": ml_classification if ml_classification else None,
                 "message": f"Successfully extracted data from {file.filename}"
             }
         finally:
