@@ -230,6 +230,10 @@ class ChatResponse(BaseModel):
     detected_savings: float = 0.0  # Running total of AI-detected potential savings
     new_opportunities: Optional[List[Dict[str, Any]]] = []  # New opportunities found this turn
 
+    # Progress transparency
+    missing_fields: Optional[List[str]] = []
+    completion_hint: Optional[str] = None
+
     # Tiered conversion fields
     premium_unlocked: bool = False
     safety_summary: Optional[Dict[str, Any]] = None

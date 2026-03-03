@@ -3189,6 +3189,38 @@ def _get_suggested_questions(profile: dict) -> List[str]:
     return suggestions[:2]
 
 
+def _compute_missing_fields(profile: dict) -> tuple:
+    """Return (missing_field_labels, savings_hint) for progress display."""
+    FIELDS = [
+        ("filing_status", "Filing status", None),
+        ("total_income", "Income", None),
+        ("state", "State", None),
+        ("dependents", "Dependents", None),
+        ("age", "Age", "_asked_age"),
+        ("retirement_401k", "Retirement contributions", "_asked_retirement"),
+        ("mortgage_interest", "Mortgage/deductions", "_asked_deductions"),
+        ("investment_income", "Investment income", "_asked_investments"),
+        ("hsa_contributions", "HSA contributions", "_asked_hsa"),
+        ("charitable_donations", "Charitable giving", "_asked_charitable"),
+    ]
+    HINTS = {
+        "retirement_401k": "Retirement info could unlock ~$2,000+ in savings",
+        "mortgage_interest": "Deduction details could reveal itemization opportunities",
+        "hsa_contributions": "HSA provides triple tax benefits \u2014 could save $1,000+",
+        "investment_income": "Investment details help optimize capital gains strategy",
+    }
+
+    missing = []
+    hint = None
+    for field, label, asked_flag in FIELDS:
+        if not profile.get(field) and (not asked_flag or not profile.get(asked_flag)):
+            missing.append(label)
+            if not hint and field in HINTS:
+                hint = HINTS[field]
+
+    return missing[:5], hint
+
+
 def _get_dynamic_next_question(profile: dict, last_extracted: dict = None) -> tuple:
     """
     Dynamically determine the next question based on what's missing.
@@ -3463,6 +3495,9 @@ async def intelligent_chat(request: ChatRequest, _session: str = Depends(verify_
                 {"label": "Try Again", "value": "retry"}
             ]
         )
+
+    # Compute missing fields for progress transparency
+    missing_fields, completion_hint = _compute_missing_fields(profile)
 
     # Sanitize and validate message
     msg_original = (request.message or "").strip()
@@ -4645,6 +4680,8 @@ To get started, what's your filing status?"""
             premium_unlocked=premium_unlocked,
             detected_savings=session.get("detected_savings", 0),
             new_opportunities=session.get("opportunity_alerts", []),
+            missing_fields=missing_fields,
+            completion_hint=completion_hint,
             safety_summary=_build_safety_summary(safety_data),
             safety_checks=safety_data,
         )

@@ -7350,7 +7350,11 @@
 
         // Update side panel with API insights
         if (data.profile_completeness !== undefined) {
-          updateProgress(Math.round(data.profile_completeness * 100));
+          updateProgress(
+            Math.round(data.profile_completeness * 100),
+            data.missing_fields || [],
+            data.completion_hint || null
+          );
         }
 
         // Also update phase based on local extracted data
@@ -7587,7 +7591,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       return 0;
     }
 
-    function updateProgress(percentage) {
+    function updateProgress(percentage, missingFields, completionHint) {
       const progressFill = document.getElementById('progressFill');
       const progressText = document.getElementById('progressText');
       if (progressFill) progressFill.style.width = percentage + '%';
@@ -7596,6 +7600,26 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       // Auto-update journey stepper based on percentage
       const stepNumber = percentage < 25 ? 1 : percentage < 50 ? 2 : percentage < 75 ? 3 : 4;
       updateActiveStep(stepNumber);
+
+      // Show missing fields and savings hint
+      var missingEl = document.getElementById('progressMissing');
+      if (!missingEl) {
+        missingEl = document.createElement('div');
+        missingEl.id = 'progressMissing';
+        missingEl.style.cssText = 'font-size:0.8em;margin-top:4px;color:var(--text-secondary,#6b7280);';
+        var bar = document.getElementById('progressFill');
+        if (bar && bar.parentElement) bar.parentElement.parentElement.appendChild(missingEl);
+      }
+
+      if (missingFields && missingFields.length > 0 && percentage < 100) {
+        missingEl.innerHTML = '<strong>Still needed:</strong> ' + missingFields.join(' \u00b7 ');
+        if (completionHint) {
+          missingEl.innerHTML += '<br><em style="color:var(--accent-gold,#d4a843);">' + completionHint + '</em>';
+        }
+        missingEl.style.display = 'block';
+      } else {
+        missingEl.style.display = 'none';
+      }
     }
 
     // Phase mapping from backend to UI
