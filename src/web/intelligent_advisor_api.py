@@ -152,6 +152,31 @@ def _income_range_label(income: float) -> str:
     return "over $500k"
 
 
+def _identify_quick_wins(strategies: list, max_wins: int = 2) -> list:
+    """Identify strategies with simplest action steps the user can do today."""
+    QUICK_KEYWORDS = ["increase", "contribute", "open", "enroll", "switch", "set up", "log into", "contact"]
+    scored = []
+    for s in strategies:
+        s_dict = s.dict() if hasattr(s, 'dict') else s
+        steps = s_dict.get("action_steps", [])
+        if not steps:
+            continue
+        simplicity = sum(1 for step in steps if any(kw in step.lower() for kw in QUICK_KEYWORDS))
+        complexity = s_dict.get("implementation_complexity", "simple")
+        if complexity == "simple" or simplicity > 0:
+            scored.append((simplicity + (2 if complexity == "simple" else 0), s_dict))
+    scored.sort(key=lambda x: (-x[0], -x[1].get("estimated_savings", 0)))
+    return [
+        {
+            "label": f"\u26a1 Do Today: {s['title'][:35]}",
+            "value": f"strategy_detail_{s['id']}",
+            "style": "quick_win",
+            "estimated_savings": s.get("estimated_savings", 0),
+        }
+        for _, s in scored[:max_wins]
+    ]
+
+
 def _get_expected_fields_for_type(doc_type: str) -> list:
     """Return expected fields for a document type to guide extraction."""
     field_map = {
@@ -4497,6 +4522,11 @@ To get started, what's your filing status?"""
             {"label": "Update My Info", "value": "update_info"},
             {"label": "Connect with CPA", "value": "connect_cpa"}
         ]
+
+        # Prepend quick wins (immediately actionable strategies) before other actions
+        if strategies:
+            quick_wins = _identify_quick_wins(strategies)
+            quick_actions = quick_wins + quick_actions
 
         # Add deep analysis buttons when AI is enabled (Round 10.4)
         if AI_CHAT_ENABLED:

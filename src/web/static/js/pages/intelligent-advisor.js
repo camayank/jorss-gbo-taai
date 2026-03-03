@@ -2462,8 +2462,13 @@
 
           quickActions.forEach((action, index) => {
             const btn = document.createElement('button');
-            btn.className = action.primary ? 'quick-action primary' : 'quick-action';
-            btn.textContent = action.label;
+            if (action.style === 'quick_win') {
+              btn.className = 'quick-action quick-action--quick-win';
+              btn.innerHTML = action.label;  // Already has emoji from backend
+            } else {
+              btn.className = action.primary ? 'quick-action primary' : 'quick-action';
+              btn.textContent = action.label;
+            }
             btn.setAttribute('aria-label', action.label.replace(/[^\w\s]/g, '').trim());
             btn.onclick = () => handleQuickAction(action.value);
             actionsDiv.appendChild(btn);
