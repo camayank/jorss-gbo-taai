@@ -21,6 +21,7 @@ from functools import lru_cache
 from typing import Any, Dict, Optional
 
 from celery import Celery, Task
+from celery.schedules import crontab
 from celery.signals import (
     task_failure,
     task_postrun,
@@ -70,6 +71,7 @@ def create_celery_app(
         include=[
             "tasks.ocr_tasks",
             "tasks.data_retention",
+            "tasks.notification_tasks",
         ],
     )
 
@@ -124,6 +126,23 @@ def create_celery_app(
             "trim-audit-logs": {
                 "task": "tasks.data_retention.trim_audit_logs",
                 "schedule": 604800.0,  # Every 7 days
+            },
+            # --- Proactive notification tasks ---
+            "process-deadline-reminders": {
+                "task": "tasks.notifications.process_deadline_reminders",
+                "schedule": 3600.0,  # Every hour
+            },
+            "process-nurture-emails": {
+                "task": "tasks.notifications.process_nurture_emails",
+                "schedule": 3600.0,  # Every hour
+            },
+            "scan-client-opportunities": {
+                "task": "tasks.notifications.scan_client_opportunities",
+                "schedule": crontab(hour=6, minute=0),  # Daily at 6 AM
+            },
+            "compile-daily-digest": {
+                "task": "tasks.notifications.compile_and_send_daily_digest",
+                "schedule": crontab(hour=7, minute=0),  # Daily at 7 AM
             },
         },
     )
