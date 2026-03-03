@@ -244,7 +244,6 @@ class TestMLSettings:
 
         assert settings.primary_classifier == "ensemble"
         assert settings.fallback_enabled is True
-        assert settings.openai_model == "gpt-4o-mini"
         assert settings.min_confidence_threshold == 0.7
         assert settings.high_confidence_threshold == 0.9
 
@@ -298,13 +297,12 @@ class TestDocumentTypes:
 class TestOpenAIClassifier:
     """Tests for OpenAIClassifier with mocked API."""
 
-    def test_classify_without_api_key(self):
-        """Test behavior when API key is not configured."""
+    def test_classify_without_providers(self):
+        """Test behavior when no AI provider is configured."""
         from ml.classifiers.openai_classifier import OpenAIClassifier
 
-        # Temporarily clear the API key
-        with patch.dict(os.environ, {"OPENAI_API_KEY": ""}, clear=True):
-            classifier = OpenAIClassifier(api_key=None)
+        with patch('ml.classifiers.openai_classifier.get_available_providers', return_value=[]):
+            classifier = OpenAIClassifier()
 
             assert classifier.is_available() is False
 
@@ -313,24 +311,19 @@ class TestOpenAIClassifier:
             assert result.metadata.get("reason") == "api_key_not_configured"
 
     def test_classify_with_mocked_api(self):
-        """Test classification with mocked OpenAI API."""
+        """Test classification with mocked unified AI service."""
         from ml.classifiers.openai_classifier import OpenAIClassifier
 
-        mock_response = MagicMock()
-        mock_response.choices = [
-            MagicMock(
-                message=MagicMock(
-                    content='{"document_type": "w2", "confidence": 0.95, "reasoning": "Form W-2 header detected", "key_indicators": ["Form W-2"]}'
-                )
-            )
-        ]
-        mock_response.usage = MagicMock(total_tokens=100)
+        mock_ai_response = MagicMock()
+        mock_ai_response.content = '{"document_type": "w2", "confidence": 0.95, "reasoning": "Form W-2 header detected", "key_indicators": ["Form W-2"]}'
+        mock_ai_response.model = "gpt-4o-mini"
+        mock_ai_response.input_tokens = 80
+        mock_ai_response.output_tokens = 20
 
-        with patch.object(OpenAIClassifier, 'client', create=True) as mock_client:
-            mock_client.chat.completions.create.return_value = mock_response
+        with patch('ml.classifiers.openai_classifier.get_available_providers', return_value=["openai"]), \
+             patch('ml.classifiers.openai_classifier.run_async', return_value=mock_ai_response):
 
-            classifier = OpenAIClassifier(api_key="test-key")
-            classifier._client = mock_client
+            classifier = OpenAIClassifier()
 
             result = classifier.classify("Form W-2 Wage and Tax Statement")
 
@@ -342,7 +335,7 @@ class TestOpenAIClassifier:
         """Test classifying empty text."""
         from ml.classifiers.openai_classifier import OpenAIClassifier
 
-        classifier = OpenAIClassifier(api_key="test-key")
+        classifier = OpenAIClassifier()
         result = classifier.classify("")
 
         assert result.document_type == "unknown"

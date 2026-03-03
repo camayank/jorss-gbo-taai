@@ -87,12 +87,12 @@
     .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
     .btn-secondary { background: var(--bg-light); color: var(--text-dark); border: 1px solid var(--border-color); }
     .btn-secondary:hover { background: var(--border-color); }
-    .btn-danger { background: var(--color-error-50); color: var(--color-error-600); border: 1px solid #fecaca; }
+    .btn-danger { background: var(--color-error-50); color: var(--color-error-600); border: 1px solid var(--color-error-200); }
     .btn-danger:hover { background: var(--color-error-100); }
     .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
     .btn-connect { background: var(--primary-color); color: white; }
     .btn-connect:hover { opacity: 0.9; }
-    .btn-disconnect { background: var(--color-error-50); color: var(--color-error-600); border: 1px solid #fecaca; }
+    .btn-disconnect { background: var(--color-error-50); color: var(--color-error-600); border: 1px solid var(--color-error-200); }
     .btn-disconnect:hover { background: var(--color-error-100); }
     .save-bar { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3); padding-top: var(--space-4); }
     .settings-toast { position: fixed; bottom: 24px; right: 24px; padding: var(--space-3-5) var(--space-6); border-radius: var(--radius-lg-plus); font-size: 0.9rem; font-weight: var(--font-medium); display: flex; align-items: center; gap: var(--space-2-5); z-index: 9999; box-shadow: 0 8px 24px rgba(0,0,0,0.15); transform: translateY(100px); opacity: 0; transition: all 0.3s ease; }
@@ -383,7 +383,7 @@ document.addEventListener('alpine:init', () => {
                     headers: this._getAuthHeaders(),
                     body: JSON.stringify(this.settings.notifications)
                 });
-                if (res.status === 401) { window.location.href = '/cpa/login'; return; }
+                if (res.status === 401) { window.location.href = '/auth/login'; return; }
                 this.showToast(res.ok ? 'Notification preferences saved successfully' : 'Failed to save preferences', res.ok ? 'success' : 'error');
             } catch(e) {
                 this.showToast('Error saving preferences: ' + e.message, 'error');
@@ -405,7 +405,7 @@ document.addEventListener('alpine:init', () => {
                         headers: this._getAuthHeaders(),
                         body: JSON.stringify({ current_password: this.passwordForm.current, new_password: this.passwordForm.newPass })
                     });
-                    if (res.status === 401) { window.location.href = '/cpa/login'; return; }
+                    if (res.status === 401) { window.location.href = '/auth/login'; return; }
                     if (res.ok) {
                         this.passwordForm = { current: '', newPass: '', confirm: '' };
                         this.showPasswordForm = false;
@@ -436,7 +436,7 @@ document.addEventListener('alpine:init', () => {
                     method: 'POST',
                     headers: this._getAuthHeaders(),
                 });
-                if (res.status === 401) { window.location.href = '/cpa/login'; return; }
+                if (res.status === 401) { window.location.href = '/auth/login'; return; }
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.detail || 'Request failed');
 

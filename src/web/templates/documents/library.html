@@ -7,7 +7,7 @@
     <title>Document Library | JORSS-GBO Tax Platform</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/core/variables.css">
     <link rel="stylesheet" href="/static/css/core/reset.css">
     <link rel="stylesheet" href="/static/css/core/typography.css">
@@ -125,7 +125,7 @@
             display: flex;
             align-items: center;
             gap: var(--space-3);
-            box-shadow: var(--shadow-sm);
+            box-shadow: var(--shadow-xs);
         }
 
         .stat-icon {
@@ -258,7 +258,7 @@
         .view-btn.active {
             background: white;
             color: var(--color-primary-600);
-            box-shadow: var(--shadow-sm);
+            box-shadow: var(--shadow-xs);
         }
 
         .view-btn svg {
@@ -1413,8 +1413,8 @@
         function _showToast(msg, type) {
             const t = document.createElement('div');
             t.textContent = msg;
-            t.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:12px 24px;border-radius:8px;color:#fff;font-weight:500;z-index:10000;' +
-                'background:' + (type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#3b82f6');
+            t.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:12px 24px;border-radius:8px;color:white;font-weight:500;z-index:10000;' +
+                'background:' + (type === 'error' ? 'var(--color-error-500)' : type === 'success' ? 'var(--color-success-500)' : 'var(--color-info-500)');
             document.body.appendChild(t);
             setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 4000);
         }

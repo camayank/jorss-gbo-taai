@@ -24,7 +24,7 @@ Structure:
 
 # Re-export main interfaces
 from .models import UnifiedRecommendation, RecommendationResult
-from .orchestrator import get_recommendations, get_recommendations_sync
+from .orchestrator import get_recommendations, get_recommendations_sync, enrich_calculation_with_recommendations
 from .utils import (
     safe_float,
     safe_int,
@@ -50,6 +50,7 @@ __all__ = [
     # Main interfaces
     "get_recommendations",
     "get_recommendations_sync",
+    "enrich_calculation_with_recommendations",
     # Models
     "UnifiedRecommendation",
     "RecommendationResult",

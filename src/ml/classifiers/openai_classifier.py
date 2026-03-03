@@ -11,10 +11,10 @@ import time
 import logging
 from typing import Optional, List
 
-from openai import OpenAI
-
 from .base import BaseClassifier, ClassificationResult, DOCUMENT_TYPES, DOCUMENT_TYPE_DESCRIPTIONS
 from ..settings import get_ml_settings
+from services.ai import get_ai_service, run_async
+from config.ai_providers import ModelCapability, get_available_providers
 
 logger = logging.getLogger(__name__)
 
@@ -54,31 +54,13 @@ IMPORTANT:
 - If you cannot determine the document type, use "unknown" with low confidence
 - Focus on form numbers, headers, and specific tax terminology"""
 
-    def __init__(self, api_key: Optional[str] = None):
-        """
-        Initialize the OpenAI classifier.
-
-        Args:
-            api_key: Optional OpenAI API key. If not provided, uses OPENAI_API_KEY env var.
-        """
+    def __init__(self):
+        """Initialize the OpenAI classifier."""
         self.settings = get_ml_settings()
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        self._client: Optional[OpenAI] = None
-
-    @property
-    def client(self) -> OpenAI:
-        """Lazy initialization of OpenAI client."""
-        if self._client is None:
-            if not self.api_key:
-                raise ValueError(
-                    "OpenAI API key required. Set OPENAI_API_KEY environment variable."
-                )
-            self._client = OpenAI(api_key=self.api_key)
-        return self._client
 
     def is_available(self) -> bool:
-        """Check if OpenAI classifier is available."""
-        return bool(self.api_key)
+        """Check if AI classifier is available."""
+        return len(get_available_providers()) > 0
 
     def _build_document_types_description(self) -> str:
         """Build formatted list of document types for the prompt."""
@@ -149,23 +131,17 @@ IMPORTANT:
         )
 
         try:
-            response = self.client.chat.completions.create(
-                model=self.settings.openai_model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a tax document classification expert. Always respond with valid JSON.",
-                    },
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0.1,  # Low temperature for consistent classification
+            ai = get_ai_service()
+            ai_response = run_async(ai.complete(
+                prompt=prompt,
+                system_prompt="You are a tax document classification expert. Always respond with valid JSON.",
+                capability=ModelCapability.FAST,
+                temperature=0.1,
                 max_tokens=500,
-                response_format={"type": "json_object"},
-                timeout=self.settings.openai_timeout,
-            )
+            ))
 
             # Parse response
-            response_text = response.choices[0].message.content
+            response_text = ai_response.content
             result = json.loads(response_text)
 
             document_type = result.get("document_type", "unknown").lower()
@@ -190,8 +166,8 @@ IMPORTANT:
                 metadata={
                     "reasoning": result.get("reasoning", ""),
                     "key_indicators": result.get("key_indicators", []),
-                    "model": self.settings.openai_model,
-                    "tokens_used": response.usage.total_tokens if response.usage else 0,
+                    "model": ai_response.model,
+                    "tokens_used": ai_response.input_tokens + ai_response.output_tokens,
                 },
             )
 

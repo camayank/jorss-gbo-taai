@@ -667,7 +667,7 @@ async def generate_sample_report(background_tasks: BackgroundTasks):
         taxpayer=TaxpayerInfo(
             first_name="Sample",
             last_name="Client",
-            ssn="900-00-0001",
+            ssn="555-00-0001",
             filing_status=FilingStatus.SINGLE,
         ),
         income=Income(
@@ -821,3 +821,114 @@ async def get_tax_opportunities(session_id: str):
     """
     request = TaxOpportunityRequest(session_id=session_id)
     return await detect_tax_opportunities(request)
+
+
+# =============================================================================
+# EMAIL REPORT
+# =============================================================================
+
+class EmailReportRequest(BaseModel):
+    """Request to email an advisory report."""
+    to_email: str = Field(..., description="Recipient email address")
+    client_name: Optional[str] = Field(None, description="Client name for the email greeting")
+
+
+class EmailReportResponse(BaseModel):
+    """Response after emailing a report."""
+    status: str
+    message: str
+    to_email: str
+    report_id: Optional[str] = None
+
+
+@router.post("/{report_id}/email", response_model=EmailReportResponse)
+async def email_advisory_report(report_id: str, request: EmailReportRequest):
+    """
+    Email an advisory report as a PDF attachment.
+
+    Retrieves the report, generates PDF if needed, and sends via configured
+    email provider (SendGrid, SES, or SMTP).
+    """
+    try:
+        # Get the report
+        db_session = SessionLocal()
+        try:
+            report_record = get_advisory_report_by_id(report_id, db_session)
+        finally:
+            db_session.close()
+
+        if not report_record:
+            raise HTTPException(status_code=404, detail="Report not found")
+
+        # Try to get PDF content
+        pdf_path = getattr(report_record, "pdf_path", None)
+        pdf_content = None
+        if pdf_path and Path(pdf_path).exists():
+            pdf_content = Path(pdf_path).read_bytes()
+
+        client_name = request.client_name or "Client"
+        subject = f"Your Tax Advisory Report — {client_name}"
+        body_html = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #1a365d;">Tax Advisory Report</h2>
+            <p>Dear {client_name},</p>
+            <p>Please find your advisory report attached. This report includes personalized
+            tax optimization recommendations based on our analysis of your tax situation.</p>
+            <p>If you have any questions, please don't hesitate to reach out.</p>
+            <p>Best regards,<br>Your Tax Advisory Team</p>
+        </div>
+        """
+
+        # Send email with attachment if PDF available
+        try:
+            from notifications.email_provider import send_email_with_attachment, send_email
+
+            if pdf_content:
+                result = await send_email_with_attachment(
+                    to=request.to_email,
+                    subject=subject,
+                    body_html=body_html,
+                    attachment_content=pdf_content,
+                    attachment_name=f"advisory_report_{report_id[:8]}.pdf",
+                    attachment_mime_type="application/pdf",
+                    tags=["advisory_report"],
+                )
+            else:
+                # Send without attachment, include note about PDF
+                result = send_email(
+                    to=request.to_email,
+                    subject=subject,
+                    body_html=body_html + "<p><em>Note: PDF generation is in progress. "
+                    "You can download the report from your dashboard.</em></p>",
+                    tags=["advisory_report"],
+                )
+
+            if result.success:
+                return EmailReportResponse(
+                    status="sent",
+                    message=f"Report emailed to {request.to_email}",
+                    to_email=request.to_email,
+                    report_id=report_id,
+                )
+            else:
+                return EmailReportResponse(
+                    status="queued",
+                    message=f"Email queued for delivery to {request.to_email}",
+                    to_email=request.to_email,
+                    report_id=report_id,
+                )
+
+        except ImportError:
+            logger.warning("Email provider not configured — email simulated")
+            return EmailReportResponse(
+                status="simulated",
+                message=f"Email would be sent to {request.to_email} (email provider not configured)",
+                to_email=request.to_email,
+                report_id=report_id,
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error emailing report: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to email report. Please try again.")

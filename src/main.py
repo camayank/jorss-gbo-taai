@@ -22,12 +22,13 @@ def main():
     print("=" * 60)
     print()
     
-    # Check for API key
-    if not os.getenv("OPENAI_API_KEY"):
-        print("ERROR: OPENAI_API_KEY not found in environment variables.")
-        print("Please set your OpenAI API key in a .env file or environment variable.")
+    # Check for AI provider availability
+    from config.ai_providers import get_available_providers
+    if not get_available_providers():
+        print("ERROR: No AI provider API keys found in environment variables.")
+        print("Please set at least one of: OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY")
         sys.exit(1)
-    
+
     # Initialize components
     try:
         agent = TaxAgent()

@@ -4,24 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment Settings - CPA Dashboard</title>
+    <!-- Core Design System loaded first -->
+    <link rel="stylesheet" href="/static/css/core/variables.css">
+    <link rel="stylesheet" href="/static/css/core/reset.css">
+    <link rel="stylesheet" href="/static/css/core/typography.css">
+    <link rel="stylesheet" href="/static/css/unified-theme.css">
+    <!-- Tailwind (legacy — this page should migrate to design system) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#1e3a5f',
-                        secondary: '#5387c1',
-                        accent: '#10b981'
+                        primary: { DEFAULT: '#1e3a5f', 50: '#eef3f9', 100: '#d4e1f0', 400: '#5387c1', 700: '#152b47' },
+                        accent: { DEFAULT: '#14b8a6', 500: '#14b8a6' },
+                        success: '#10b981'
                     }
                 }
             }
         }
     </script>
-    <link rel="stylesheet" href="/static/css/core/variables.css">
-    <link rel="stylesheet" href="/static/css/core/reset.css">
-    <link rel="stylesheet" href="/static/css/core/typography.css">
-    <link rel="stylesheet" href="/static/css/unified-theme.css">
 </head>
 <body class="bg-gray-50 min-h-screen">
     <!-- Navigation -->
@@ -132,12 +134,13 @@
         </div>
     </main>
 
+    <script src="/static/js/toast.js"{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}></script>
     <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         // Get CPA ID from URL or session
         const urlParams = new URLSearchParams(window.location.search);
         const cpaId = urlParams.get('cpa') || (typeof currentCpaId !== 'undefined' ? currentCpaId : null);
         if (!cpaId) {
-            document.querySelector('main').innerHTML = '<div style="text-align:center;padding:3rem;color:var(--gray-500);">No CPA ID provided. Please log in as a CPA to access payment settings.</div>';
+            document.querySelector('main').innerHTML = '<div style="text-align:center;padding:3rem;color:var(--color-gray-500);">No CPA ID provided. Please log in as a CPA to access payment settings.</div>';
         }
 
         // Load payment settings

@@ -414,7 +414,7 @@
                     credentials: 'same-origin'
                 });
 
-                if (response.status === 401) { window.location.href = '/cpa/login'; return; }
+                if (response.status === 401) { window.location.href = '/auth/login'; return; }
 
                 if (!response.ok) {
                     const error = await response.json().catch(() => ({}));
@@ -472,6 +472,6 @@
     .btn-success { background: var(--success-color, #10b981) !important; }
     .btn-error { background: var(--error-color, #ef4444) !important; }
     .alert { padding: 12px 16px; border-radius: var(--radius-lg); margin-bottom: var(--space-4); }
-    .alert-error { background: var(--color-error-50); color: #b91c1c; border: 1px solid #fecaca; }
+    .alert-error { background: var(--color-error-50); color: var(--color-error-700); border: 1px solid var(--color-error-200); }
 </style>
 {% endblock %}

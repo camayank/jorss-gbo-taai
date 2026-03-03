@@ -196,15 +196,21 @@ class TestMultiTenantIsolation:
         self, test_client, csrf_headers, sample_tax_return_data
     ):
         """Data from one tenant should not be visible to another."""
+        # Create a mock tax return object with model_dump()
+        mock_tax_return = MagicMock()
+        mock_tax_return.model_dump.return_value = sample_tax_return_data
+
         # Create return for tenant A
-        tenant_a_payload = {"sub": "user-a", "firm_id": "tenant-a", "role": "cpa_staff"}
+        tenant_a_payload = {"sub": "user-a", "firm_id": "tenant-a", "role": "cpa"}
 
         headers_a = {
             **csrf_headers,
             "Authorization": "Bearer tenant_a_token",
         }
 
-        with patch("rbac.jwt.decode_token_safe", return_value=tenant_a_payload):
+        with patch("rbac.jwt.decode_token_safe", return_value=tenant_a_payload), \
+             patch("web.app._get_tax_return_for_session", return_value=mock_tax_return), \
+             patch("database.persistence.save_tax_return", return_value="return-001"):
             create_response = test_client.post(
                 "/api/returns/save",
                 headers=headers_a,
@@ -215,7 +221,7 @@ class TestMultiTenantIsolation:
         assert create_response.status_code == 200
 
         # Try to access from tenant B
-        tenant_b_payload = {"sub": "user-b", "firm_id": "tenant-b", "role": "cpa_staff"}
+        tenant_b_payload = {"sub": "user-b", "firm_id": "tenant-b", "role": "cpa"}
 
         headers_b = {
             **csrf_headers,

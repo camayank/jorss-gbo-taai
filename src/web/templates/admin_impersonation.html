@@ -683,7 +683,7 @@
 
     <!-- Firms Grid — populated dynamically from /api/admin/tenants -->
     <div class="firms-grid" id="firms-grid">
-        <div class="firm-card" style="text-align: center; padding: 2rem; color: var(--gray-500);">
+        <div class="firm-card" style="text-align: center; padding: 2rem; color: var(--color-gray-500);">
             Loading firms...
         </div>
     </div>
@@ -695,7 +695,7 @@
             if (!resp.ok) throw new Error('Failed to load tenants');
             const firms = await resp.json();
             if (!firms.length) {
-                grid.innerHTML = '<div class="firm-card" style="text-align:center;padding:2rem;color:var(--gray-500);">No firms registered yet.</div>';
+                grid.innerHTML = '<div class="firm-card" style="text-align:center;padding:2rem;color:var(--color-gray-500);">No firms registered yet.</div>';
                 return;
             }
             grid.innerHTML = firms.map(f => {
@@ -733,7 +733,7 @@
                 </div>`;
             }).join('');
         } catch (e) {
-            grid.innerHTML = '<div class="firm-card" style="text-align:center;padding:2rem;color:var(--gray-500);">Could not load firms. Check API connectivity.</div>';
+            grid.innerHTML = '<div class="firm-card" style="text-align:center;padding:2rem;color:var(--color-gray-500);">Could not load firms. Check API connectivity.</div>';
             console.warn('Failed to load firms:', e);
         }
     })();
@@ -759,7 +759,7 @@
                 </thead>
                 <tbody id="recent-sessions-body">
                     <tr>
-                        <td colspan="6" style="text-align: center; color: var(--gray-500); padding: 2rem;">
+                        <td colspan="6" style="text-align: center; color: var(--color-gray-500); padding: 2rem;">
                             No impersonation sessions recorded yet.
                         </td>
                     </tr>

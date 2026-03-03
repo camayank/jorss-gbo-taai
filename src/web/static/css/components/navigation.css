@@ -21,7 +21,7 @@
   justify-content: space-between;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .mobile-header {
     display: flex;
   }
@@ -82,7 +82,8 @@
   left: 0;
   bottom: 0;
   width: var(--sidebar-width);
-  background: var(--sidebar-bg, var(--color-primary-500));
+  background: var(--sidebar-bg, #FFFFFF);
+  border-right: 1px solid var(--color-gray-200);
   z-index: var(--z-modal);
   display: flex;
   flex-direction: column;
@@ -95,7 +96,7 @@
 }
 
 /* Mobile: Hidden by default */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .sidebar {
     transform: translateX(-100%);
   }
@@ -106,7 +107,7 @@
 }
 
 /* Desktop: Always visible */
-@media (min-width: 769px) {
+@media (min-width: 768px) {
   .sidebar {
     transform: translateX(0);
   }
@@ -140,7 +141,7 @@
   visibility: visible;
 }
 
-@media (min-width: 769px) {
+@media (min-width: 768px) {
   .sidebar-overlay {
     display: none;
   }
@@ -156,7 +157,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--white-alpha-10);
+  border-bottom: 1px solid var(--color-gray-200);
   flex-shrink: 0;
 }
 
@@ -175,7 +176,7 @@
 .sidebar-brand-text {
   font-size: var(--text-lg);
   font-weight: var(--font-semibold);
-  color: white;
+  color: var(--color-gray-900);
 }
 
 .sidebar.collapsed .sidebar-brand-text {
@@ -189,13 +190,13 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-md);
-  color: var(--color-gray-400);
+  color: var(--color-gray-500);
   transition: all var(--transition-fast);
 }
 
 .sidebar-toggle:hover {
-  background: var(--color-gray-800);
-  color: white;
+  background: var(--color-gray-100);
+  color: var(--color-gray-700);
 }
 
 /* =========================
@@ -243,7 +244,7 @@
   padding: var(--space-2-5) var(--space-5);
   margin: var(--space-0-5) var(--space-3);
   border-radius: var(--radius-lg);
-  color: var(--color-gray-400);
+  color: var(--color-gray-600);
   text-decoration: none;
   transition: all var(--transition-fast);
   font-size: var(--text-sm);
@@ -251,13 +252,15 @@
 }
 
 .nav-item:hover {
-  background: var(--sidebar-hover, var(--color-primary-400));
-  color: white;
+  background: var(--color-gray-100);
+  color: var(--color-gray-900);
 }
 
 .nav-item.active {
-  background: var(--sidebar-active, var(--color-accent-500));
-  color: white;
+  background: var(--color-accent-50);
+  color: var(--color-accent-600);
+  font-weight: var(--font-semibold);
+  border-left: 3px solid var(--color-gold, #C9A84C);
 }
 
 .sidebar.collapsed .nav-item {
@@ -334,7 +337,7 @@
 
 .sidebar-footer {
   padding: var(--space-4);
-  border-top: 1px solid var(--white-alpha-10);
+  border-top: 1px solid var(--color-gray-200);
 }
 
 /* =========================
@@ -352,20 +355,21 @@
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-lg);
-  color: white;
+  color: var(--color-gray-700);
   text-align: left;
   transition: background var(--transition-fast);
 }
 
 .user-menu-trigger:hover {
-  background: var(--color-gray-800);
+  background: var(--color-gray-100);
 }
 
 .user-avatar {
   width: 36px;
   height: 36px;
   border-radius: var(--radius-full);
-  background: var(--color-primary-600);
+  background: var(--color-primary-500);
+  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -393,25 +397,28 @@
   left: 0;
   right: 0;
   margin-bottom: var(--space-2);
-  background: var(--color-gray-800);
-  border-radius: var(--radius-lg);
+  background: white;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-xl);
   padding: var(--space-2);
   box-shadow: var(--shadow-lg);
 }
 
 .user-dropdown a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
-  color: var(--color-gray-300);
+  color: var(--color-gray-700);
   text-decoration: none;
   font-size: var(--text-sm);
   transition: all var(--transition-fast);
 }
 
 .user-dropdown a:hover {
-  background: var(--color-gray-700);
-  color: white;
+  background: var(--color-gray-100);
+  color: var(--color-gray-900);
 }
 
 /* =========================

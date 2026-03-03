@@ -5,23 +5,18 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block extra_styles %}
-<style>
     /* Summary Cards Grid */
     .summary-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: var(--space-5);
-
         margin-bottom: var(--space-8);
-
     }
 
     .summary-card {
         background: var(--white);
         border-radius: var(--radius-2xl);
-
         padding: var(--space-6);
-
         border: 1px solid var(--border-color);
         transition: all 0.2s ease;
         cursor: pointer;
@@ -37,32 +32,26 @@
 
     .summary-card-icon {
         width: var(--space-12);
-
         height: var(--space-12);
-
         border-radius: var(--radius-xl);
-
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.5rem;
         margin-bottom: var(--space-4);
-
     }
 
-    .summary-card-icon.new { background: #eef3f9; }
+    .summary-card-icon.new { background: var(--color-primary-50); }
     .summary-card-icon.contacted { background: var(--color-warning-100); }
     .summary-card-icon.engaged { background: var(--color-success-100); }
-    .summary-card-icon.converted { background: #ede9fe; }
-    .summary-card-icon.revenue { background: #fce7f3; }
+    .summary-card-icon.converted { background: var(--color-purple-100); }
+    .summary-card-icon.revenue { background: var(--color-pink-100); }
 
     .summary-card-value {
         font-size: 2rem;
         font-weight: var(--font-bold);
-
         line-height: 1;
         margin-bottom: var(--space-1);
-
     }
 
     .summary-card-label {
@@ -74,14 +63,12 @@
         display: flex;
         align-items: center;
         gap: var(--space-1);
-
         margin-top: var(--space-3);
-
         font-size: 0.8rem;
     }
 
-    .trend-up { color: var(--success); }
-    .trend-down { color: var(--danger); }
+    .trend-up { color: var(--color-success-500); }
+    .trend-down { color: var(--color-error-500); }
     .trend-neutral { color: var(--text-muted); }
 
     /* Dashboard Grid */
@@ -89,196 +76,84 @@
         display: grid;
         grid-template-columns: 2fr 1fr;
         gap: var(--space-6);
-
     }
 
     @media (max-width: 1200px) {
-        .dashboard-grid {
-            grid-template-columns: 1fr;
-        }
+        .dashboard-grid { grid-template-columns: 1fr; }
     }
 
     /* Lead List Table */
-    .lead-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .lead-table th,
-    .lead-table td {
+    .lead-table { width: 100%; border-collapse: collapse; }
+    .lead-table th, .lead-table td {
         padding: var(--space-3) var(--space-4);
-
         text-align: left;
         border-bottom: 1px solid var(--border-color);
     }
-
     .lead-table th {
         font-weight: var(--font-semibold);
-
         font-size: 0.8rem;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         color: var(--text-muted);
         background: var(--bg-light);
     }
-
-    .lead-table tbody tr {
-        transition: background 0.15s ease;
-        cursor: pointer;
-    }
-
-    .lead-table tbody tr:hover {
-        background: var(--bg-light);
-    }
-
-    .lead-name {
-        font-weight: var(--font-semibold);
-
-    }
-
-    .lead-email {
-        font-size: 0.85rem;
-        color: var(--text-muted);
-    }
-
-    /* State Badge */
-    .state-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--space-1);
-
-        padding: var(--space-1) var(--space-2-5);
-
-        border-radius: var(--radius-2xl-plus);
-        font-size: 0.75rem;
-        font-weight: var(--font-semibold);
-
-    }
-
-    .state-badge.browsing { background: var(--color-gray-100); color: var(--color-gray-500); }
-    .state-badge.curious { background: #eef3f9; color: var(--color-primary-500); }
-    .state-badge.evaluating { background: var(--color-warning-100); color: #b45309; }
-    .state-badge.advisory_ready { background: var(--color-success-100); color: #047857; }
-    .state-badge.high_leverage { background: #fce7f3; color: #be185d; }
-
-    /* Temperature Badge */
-    .temp-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--space-1);
-
-        padding: var(--space-1) var(--space-2);
-
-        border-radius: var(--radius-md);
-
-        font-size: 0.75rem;
-        font-weight: var(--font-semibold);
-
-    }
-
-    .temp-badge.hot { background: var(--color-error-100); color: #b91c1c; }
-    .temp-badge.warm { background: var(--color-warning-100); color: #b45309; }
-    .temp-badge.cold { background: #eef3f9; color: var(--color-primary-500); }
+    .lead-table tbody tr { transition: background 0.15s ease; cursor: pointer; }
+    .lead-table tbody tr:hover { background: var(--bg-light); }
+    .lead-name { font-weight: var(--font-semibold); }
+    .lead-email { font-size: 0.85rem; color: var(--text-muted); }
 
     /* Savings Value */
-    .savings-value {
-        font-weight: var(--font-semibold);
-
-        color: var(--success);
-    }
+    .savings-value { font-weight: var(--font-semibold); color: var(--color-success-500); }
 
     /* Priority Queue */
     .priority-item {
         display: flex;
         align-items: center;
         gap: var(--space-3);
-
         padding: var(--space-4);
-
         border-bottom: 1px solid var(--border-color);
         transition: background 0.15s ease;
         cursor: pointer;
     }
-
-    .priority-item:last-child {
-        border-bottom: none;
-    }
-
-    .priority-item:hover {
-        background: var(--bg-light);
-    }
+    .priority-item:last-child { border-bottom: none; }
+    .priority-item:hover { background: var(--bg-light); }
 
     .priority-rank {
         width: var(--space-7);
-
         height: var(--space-7);
-
         border-radius: var(--radius-lg);
-
         background: var(--bg-light);
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: var(--font-semibold);
-
         font-size: 0.85rem;
         color: var(--text-muted);
     }
-
     .priority-rank.top-3 {
         background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
         color: white;
     }
 
-    .priority-info {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .priority-name {
-        font-weight: var(--font-semibold);
-
-        margin-bottom: var(--space-0-5);
-
-    }
-
-    .priority-meta {
-        font-size: 0.8rem;
-        color: var(--text-muted);
-    }
-
-    .priority-value {
-        text-align: right;
-    }
-
-    .priority-savings {
-        font-weight: var(--font-semibold);
-
-        color: var(--success);
-    }
-
-    .priority-time {
-        font-size: 0.75rem;
-        color: var(--text-muted);
-    }
+    .priority-info { flex: 1; min-width: 0; }
+    .priority-name { font-weight: var(--font-semibold); margin-bottom: var(--space-0-5); }
+    .priority-meta { font-size: 0.8rem; color: var(--text-muted); }
+    .priority-value { text-align: right; }
+    .priority-savings { font-weight: var(--font-semibold); color: var(--color-success-500); }
+    .priority-time { font-size: 0.75rem; color: var(--text-muted); }
 
     /* Quick Actions */
     .quick-actions {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: var(--space-3);
-
         margin-top: var(--space-5);
-
     }
-
     .quick-action {
         display: flex;
         align-items: center;
         gap: var(--space-3);
-
         padding: var(--space-3-5) var(--space-4);
-
         background: var(--bg-light);
         border-radius: var(--radius-lg-plus);
         text-decoration: none;
@@ -286,65 +161,25 @@
         transition: all 0.15s ease;
         border: 1px solid transparent;
     }
-
     .quick-action:hover {
         background: var(--white);
         border-color: var(--border-color);
         transform: translateY(-1px);
     }
-
-    .quick-action-icon {
-        font-size: 1.3rem;
-    }
-
-    .quick-action-text {
-        font-size: 0.9rem;
-        font-weight: var(--font-medium);
-
-    }
-
-    /* Empty State */
-    .empty-state {
-        text-align: center;
-        padding: var(--space-12) var(--space-6);
-
-        color: var(--text-muted);
-    }
-
-    .empty-state-icon {
-        font-size: 3rem;
-        margin-bottom: var(--space-4);
-
-    }
-
-    .empty-state-title {
-        font-size: 1.1rem;
-        font-weight: var(--font-semibold);
-
-        color: var(--text-dark);
-        margin-bottom: var(--space-2);
-
-    }
+    .quick-action-icon { font-size: 1.3rem; }
+    .quick-action-text { font-size: 0.9rem; font-weight: var(--font-medium); }
 
     /* Activity Feed */
     .activity-item {
         display: flex;
         gap: var(--space-3);
-
         padding: var(--space-3) 0;
-
         border-bottom: 1px solid var(--border-color);
     }
-
-    .activity-item:last-child {
-        border-bottom: none;
-    }
-
+    .activity-item:last-child { border-bottom: none; }
     .activity-icon {
         width: var(--space-8);
-
         height: var(--space-8);
-
         border-radius: 50%;
         background: var(--bg-light);
         display: flex;
@@ -353,28 +188,10 @@
         font-size: 0.9rem;
         flex-shrink: 0;
     }
-
-    .activity-content {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .activity-text {
-        font-size: 0.9rem;
-        margin-bottom: var(--space-0-5);
-
-    }
-
-    .activity-text strong {
-        font-weight: var(--font-semibold);
-
-    }
-
-    .activity-time {
-        font-size: 0.75rem;
-        color: var(--text-muted);
-    }
-</style>
+    .activity-content { flex: 1; min-width: 0; }
+    .activity-text { font-size: 0.9rem; margin-bottom: var(--space-0-5); }
+    .activity-text strong { font-weight: var(--font-semibold); }
+    .activity-time { font-size: 0.75rem; color: var(--text-muted); }
 {% endblock %}
 
 {% block content %}
@@ -388,7 +205,7 @@
 
 <!-- Summary Cards -->
 <div class="summary-grid">
-    <a href="/cpa/leads?state=new" class="summary-card">
+    <a href="/cpa/leads?state=new" class="summary-card hover-lift animate-fade-in-up">
         <div class="summary-card-icon new">{{ icon('arrow-down-tray') }}</div>
         <div class="summary-card-value">{{ stats.new_leads or 0 }}</div>
         <div class="summary-card-label">New Leads</div>
@@ -398,7 +215,7 @@
         </div>
     </a>
 
-    <a href="/cpa/leads?state=advisory_ready" class="summary-card">
+    <a href="/cpa/leads?state=advisory_ready" class="summary-card hover-lift animate-fade-in-up">
         <div class="summary-card-icon contacted">{{ icon('star') }}</div>
         <div class="summary-card-value">{{ stats.advisory_ready or 0 }}</div>
         <div class="summary-card-label">Advisory Ready</div>
@@ -407,7 +224,7 @@
         </div>
     </a>
 
-    <a href="/cpa/leads?state=high_leverage" class="summary-card">
+    <a href="/cpa/leads?state=high_leverage" class="summary-card hover-lift animate-fade-in-up">
         <div class="summary-card-icon engaged">🔥</div>
         <div class="summary-card-value">{{ stats.high_leverage or 0 }}</div>
         <div class="summary-card-label">High Leverage</div>
@@ -416,7 +233,7 @@
         </div>
     </a>
 
-    <a href="/cpa/converted" class="summary-card">
+    <a href="/cpa/converted" class="summary-card hover-lift animate-fade-in-up">
         <div class="summary-card-icon converted">{{ icon('check-circle') }}</div>
         <div class="summary-card-value">{{ stats.converted or 0 }}</div>
         <div class="summary-card-label">Converted</div>
@@ -425,7 +242,7 @@
         </div>
     </a>
 
-    <a href="/cpa/analytics" class="summary-card">
+    <a href="/cpa/analytics" class="summary-card hover-lift animate-fade-in-up">
         <div class="summary-card-icon revenue">{{ icon('banknotes') }}</div>
         <div class="summary-card-value">${{ '{:,.0f}'.format(stats.total_revenue or 0) }}</div>
         <div class="summary-card-label">Est. Pipeline Value</div>
@@ -438,7 +255,7 @@
 <!-- Dashboard Grid -->
 <div class="dashboard-grid">
     <!-- Recent Leads -->
-    <div class="card">
+    <div class="card animate-fade-in-up">
         <div class="card-header">
             <h3 class="card-title">Recent Leads</h3>
             <a href="/cpa/leads" class="btn btn-secondary btn-sm">View All</a>
@@ -500,7 +317,7 @@
     <!-- Right Column -->
     <div>
         <!-- Priority Queue -->
-        <div class="card" style="margin-bottom: var(--space-6);">
+        <div class="card animate-fade-in-up" style="margin-bottom: var(--space-6);">
             <div class="card-header">
                 <h3 class="card-title">Priority Queue</h3>
             </div>
@@ -532,25 +349,25 @@
         </div>
 
         <!-- Quick Actions -->
-        <div class="card">
+        <div class="card animate-fade-in-up">
             <div class="card-header">
                 <h3 class="card-title">Quick Actions</h3>
             </div>
             <div class="card-body">
                 <div class="quick-actions">
-                    <a href="/lead-magnet?cpa={{ cpa.cpa_slug or 'default' }}" target="_blank" class="quick-action">
+                    <a href="/lead-magnet?cpa={{ cpa.cpa_slug or 'default' }}" target="_blank" class="quick-action hover-lift">
                         <span class="quick-action-icon">{{ icon('arrow-right') }}</span>
                         <span class="quick-action-text">View Lead Magnet</span>
                     </a>
-                    <a href="/cpa/branding" class="quick-action">
+                    <a href="/cpa/branding" class="quick-action hover-lift">
                         <span class="quick-action-icon">🎨</span>
                         <span class="quick-action-text">Edit Branding</span>
                     </a>
-                    <a href="/cpa/analytics" class="quick-action">
+                    <a href="/cpa/analytics" class="quick-action hover-lift">
                         <span class="quick-action-icon">{{ icon('chart-bar') }}</span>
                         <span class="quick-action-text">View Analytics</span>
                     </a>
-                    <a href="/cpa/leads?export=csv" class="quick-action">
+                    <a href="/cpa/leads?export=csv" class="quick-action hover-lift">
                         <span class="quick-action-icon">{{ icon('arrow-down-tray') }}</span>
                         <span class="quick-action-text">Export Leads</span>
                     </a>
@@ -559,7 +376,7 @@
         </div>
 
         <!-- Recent Activity -->
-        <div class="card" style="margin-top: var(--space-6);">
+        <div class="card animate-fade-in-up" style="margin-top: var(--space-6);">
             <div class="card-header">
                 <h3 class="card-title">Recent Activity</h3>
             </div>

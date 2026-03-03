@@ -1,6 +1,9 @@
 """
 Authentication Decorators for API Endpoints
 
+DEPRECATED: Use src.rbac.dependencies instead for new code.
+This module is maintained for backward compatibility only.
+
 Provides easy-to-use decorators for protecting endpoints with authentication
 and authorization checks.
 
@@ -207,8 +210,10 @@ def require_auth(roles: Optional[List[Role]] = None, require_tenant: bool = True
                                 detail="Access denied: wrong tenant"
                             )
 
-            # Call original function
-            return await func(request, *args, **kwargs)
+            # Call original function — pass request as keyword to avoid
+            # positional conflicts with path parameters like return_id
+            kwargs["request"] = request
+            return await func(*args, **kwargs)
 
         _preserve_wrapped_signature(wrapper, func)
         return wrapper
@@ -259,7 +264,8 @@ def require_session_owner(session_param: str = "session_id", enforce: Optional[b
                         status_code=401,
                         detail="Authentication required"
                     )
-                return await func(request, *args, **kwargs)
+                kwargs["request"] = request
+                return await func(*args, **kwargs)
 
             # Get session_id from kwargs
             session_id = kwargs.get(session_param)
@@ -275,7 +281,8 @@ def require_session_owner(session_param: str = "session_id", enforce: Optional[b
                         detail="Access denied: not your session"
                     )
 
-            return await func(request, *args, **kwargs)
+            kwargs["request"] = request
+            return await func(*args, **kwargs)
 
         _preserve_wrapped_signature(wrapper, func)
         return wrapper
@@ -324,8 +331,10 @@ def rate_limit(requests_per_minute: int = None, max_requests: int = None, window
                 logger.warning(f"Rate limit exceeded for user {user_id} on {request.url.path}")
                 raise HTTPException(429, "Too many requests. Please try again later.")
 
-            return await func(request, *args, **kwargs)
+            kwargs["request"] = request
+            return await func(*args, **kwargs)
 
+        _preserve_wrapped_signature(wrapper, func)
         return wrapper
     return decorator
 

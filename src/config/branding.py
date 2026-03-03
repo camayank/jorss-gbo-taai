@@ -31,9 +31,9 @@ class BrandingConfig:
     firm_credentials: str = "Comprehensive Tax Advisory Services"
 
     # Visual Branding
-    primary_color: str = "#1e3a5f"
-    secondary_color: str = "#1e3a5f"
-    accent_color: str = "#f59e0b"  # For highlights, badges, etc.
+    primary_color: str = "#0B1D3A"
+    secondary_color: str = "#132B50"
+    accent_color: str = "#C9A84C"  # Warm gold for highlights, badges, etc.
     logo_url: Optional[str] = None
     favicon_url: Optional[str] = None
 
@@ -114,9 +114,9 @@ def load_branding_from_env() -> BrandingConfig:
         tagline=os.getenv('PLATFORM_TAGLINE', 'CPA-Grade Tax Analysis & Optimization'),
         firm_credentials=os.getenv('FIRM_CREDENTIALS', 'Comprehensive Tax Advisory Services'),
 
-        primary_color=os.getenv('BRAND_PRIMARY_COLOR', '#1e3a5f'),
-        secondary_color=os.getenv('BRAND_SECONDARY_COLOR', '#1e3a5f'),
-        accent_color=os.getenv('BRAND_ACCENT_COLOR', '#f59e0b'),
+        primary_color=os.getenv('BRAND_PRIMARY_COLOR', '#0B1D3A'),
+        secondary_color=os.getenv('BRAND_SECONDARY_COLOR', '#132B50'),
+        accent_color=os.getenv('BRAND_ACCENT_COLOR', '#C9A84C'),
         logo_url=os.getenv('BRAND_LOGO_URL'),
         favicon_url=os.getenv('BRAND_FAVICON_URL'),
 

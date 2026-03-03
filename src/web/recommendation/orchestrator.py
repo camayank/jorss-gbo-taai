@@ -453,3 +453,26 @@ def get_recommendations_sync(
         return asyncio.run(
             get_recommendations(profile, generators, max_recommendations)
         )
+
+
+async def enrich_calculation_with_recommendations(
+    profile: Dict[str, Any],
+    calculation_result: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Enrich a calculation result with recommendations.
+
+    Takes a calculation dict and adds recommendation data to it.
+    """
+    rec_result = await get_recommendations(profile, calculation_result)
+
+    calculation_result["recommendations"] = rec_result.to_dict()
+    calculation_result["urgency"] = {
+        "level": rec_result.urgency_level,
+        "message": rec_result.deadline_info or "",
+        "days_to_deadline": 0,
+    }
+    calculation_result["lead_score"] = rec_result.lead_score
+    calculation_result["total_potential_savings"] = rec_result.total_potential_savings
+
+    return calculation_result

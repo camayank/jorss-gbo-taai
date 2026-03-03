@@ -350,7 +350,7 @@
     .card {
         background: white;
         border-radius: var(--radius-xl);
-        box-shadow: var(--shadow-sm);
+        box-shadow: var(--shadow-xs);
         overflow: hidden;
     }
 
@@ -596,7 +596,7 @@
     }
 
     function handleAuthError(response) {
-        if (response.status === 401) { window.location.href = '/cpa/login'; return true; }
+        if (response.status === 401) { window.location.href = '/auth/login'; return true; }
         return false;
     }
 

@@ -2,7 +2,7 @@
 
 {% block title %}Notification Preferences - {{ config.APP_NAME }}{% endblock %}
 
-{% block extra_css %}
+{% block head_extra %}
 <style>
     .notifications-page {
         padding: var(--space-6);
@@ -871,7 +871,7 @@
                 body: JSON.stringify(collectPreferences())
             });
             if (resp.status === 401) {
-                window.location.href = '/cpa/login';
+                window.location.href = '/auth/login';
                 return;
             }
             if (!resp.ok) throw new Error('Failed to save');

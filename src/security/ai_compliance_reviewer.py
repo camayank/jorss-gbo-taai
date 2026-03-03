@@ -11,20 +11,16 @@ Uses Claude (Anthropic) for intelligent compliance review including:
 
 import os
 import json
-import asyncio
 import logging
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
+from services.ai import get_ai_service, AIMessage
+from config.ai_providers import ModelCapability, AIProvider
 
-try:
-    from anthropic import Anthropic
-    ANTHROPIC_AVAILABLE = True
-except ImportError:
-    ANTHROPIC_AVAILABLE = False
+logger = logging.getLogger(__name__)
 
 
 class ComplianceRiskLevel(Enum):
@@ -99,26 +95,10 @@ class ClaudeComplianceReviewer:
     """
 
     def __init__(self, api_key: Optional[str] = None):
-        """Initialize the compliance reviewer.
+        """Initialize the compliance reviewer."""
+        pass
 
-        Args:
-            api_key: Anthropic API key. If not provided, uses ANTHROPIC_API_KEY env var.
-        """
-        self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
-        self._client: Optional[Any] = None
-
-    @property
-    def client(self):
-        """Lazy-load the Anthropic client."""
-        if self._client is None:
-            if not ANTHROPIC_AVAILABLE:
-                raise ImportError("anthropic package not installed. Run: pip install anthropic")
-            if not self.api_key:
-                raise ValueError("ANTHROPIC_API_KEY not configured")
-            self._client = Anthropic(api_key=self.api_key)
-        return self._client
-
-    def review_compliance(
+    async def review_compliance(
         self,
         tax_return: Dict[str, Any],
         preparer_info: Optional[Dict[str, Any]] = None,
@@ -141,28 +121,23 @@ class ClaudeComplianceReviewer:
         prompt = self._build_compliance_prompt(tax_return, preparer_info, prior_year_data)
 
         try:
-            response = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=4096,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                system="""You are an expert tax compliance reviewer specializing in IRS regulations,
+            ai = get_ai_service()
+            response = await ai.complete(
+                prompt=prompt,
+                system_prompt="""You are an expert tax compliance reviewer specializing in IRS regulations,
 Circular 230 requirements, and preparer due diligence obligations.
 
 Analyze tax returns for compliance issues and provide detailed, actionable findings.
-Always respond with valid JSON matching the requested structure."""
+Always respond with valid JSON matching the requested structure.""",
+                capability=ModelCapability.STANDARD,
+                preferred_provider=AIProvider.ANTHROPIC,
+                max_tokens=4096,
             )
 
-            # Parse the response
-            content = response.content[0].text
+            content = response.content
             return self._parse_compliance_response(return_id, content)
 
         except Exception as e:
-            # Return result with error indication
             return ComplianceReviewResult(
                 return_id=return_id,
                 review_timestamp=datetime.now(),
@@ -179,7 +154,7 @@ Always respond with valid JSON matching the requested structure."""
                 raw_analysis=str(e)
             )
 
-    def check_eitc_due_diligence(self, tax_return: Dict[str, Any]) -> List[DueDiligenceRequirement]:
+    async def check_eitc_due_diligence(self, tax_return: Dict[str, Any]) -> List[DueDiligenceRequirement]:
         """
         Check EITC due diligence requirements (Form 8867).
 
@@ -224,14 +199,15 @@ Respond with JSON array of due diligence requirements:
 ]"""
 
         try:
-            response = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
+            ai = get_ai_service()
+            response = await ai.complete(
+                prompt=prompt,
+                capability=ModelCapability.STANDARD,
+                preferred_provider=AIProvider.ANTHROPIC,
                 max_tokens=2048,
-                messages=[{"role": "user", "content": prompt}]
             )
 
-            content = response.content[0].text
-            # Extract JSON from response
+            content = response.content
             json_start = content.find('[')
             json_end = content.rfind(']') + 1
             if json_start >= 0 and json_end > json_start:
@@ -252,7 +228,7 @@ Respond with JSON array of due diligence requirements:
         except Exception:
             return []
 
-    def assess_preparer_penalty_risk(
+    async def assess_preparer_penalty_risk(
         self,
         tax_return: Dict[str, Any],
         preparer_info: Dict[str, Any]
@@ -300,13 +276,15 @@ Respond with JSON:
 }}"""
 
         try:
-            response = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
+            ai = get_ai_service()
+            response = await ai.complete(
+                prompt=prompt,
+                capability=ModelCapability.STANDARD,
+                preferred_provider=AIProvider.ANTHROPIC,
                 max_tokens=2048,
-                messages=[{"role": "user", "content": prompt}]
             )
 
-            content = response.content[0].text
+            content = response.content
             json_start = content.find('{')
             json_end = content.rfind('}') + 1
             if json_start >= 0 and json_end > json_start:
@@ -316,7 +294,7 @@ Respond with JSON:
         except Exception as e:
             return {"overall_penalty_risk": "unknown", "error": str(e)}
 
-    def generate_compliance_documentation(
+    async def generate_compliance_documentation(
         self,
         tax_return: Dict[str, Any],
         review_result: ComplianceReviewResult
@@ -358,13 +336,15 @@ Respond with JSON:
 }}"""
 
         try:
-            response = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
+            ai = get_ai_service()
+            response = await ai.complete(
+                prompt=prompt,
+                capability=ModelCapability.STANDARD,
+                preferred_provider=AIProvider.ANTHROPIC,
                 max_tokens=4096,
-                messages=[{"role": "user", "content": prompt}]
             )
 
-            content = response.content[0].text
+            content = response.content
             json_start = content.find('{')
             json_end = content.rfind('}') + 1
             if json_start >= 0 and json_end > json_start:
@@ -374,7 +354,7 @@ Respond with JSON:
         except Exception as e:
             return {"error": str(e)}
 
-    def check_circular_230_compliance(
+    async def check_circular_230_compliance(
         self,
         preparer_info: Dict[str, Any],
         client_communications: Optional[List[Dict[str, Any]]] = None
@@ -428,13 +408,15 @@ Respond with JSON:
 }}"""
 
         try:
-            response = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
+            ai = get_ai_service()
+            response = await ai.complete(
+                prompt=prompt,
+                capability=ModelCapability.STANDARD,
+                preferred_provider=AIProvider.ANTHROPIC,
                 max_tokens=2048,
-                messages=[{"role": "user", "content": prompt}]
             )
 
-            content = response.content[0].text
+            content = response.content
             json_start = content.find('{')
             json_end = content.rfind('}') + 1
             if json_start >= 0 and json_end > json_start:

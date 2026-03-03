@@ -92,7 +92,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         if nonce and self.use_nonce:
             # SECURITY: Use nonce instead of 'unsafe-inline' for scripts
             # This prevents XSS attacks from injecting arbitrary scripts
-            script_src = f"script-src 'self' 'nonce-{nonce}' 'unsafe-hashes' https://cdn.tailwindcss.com"
+            script_src = f"script-src 'self' 'nonce-{nonce}' 'unsafe-eval' 'unsafe-hashes' https://cdn.tailwindcss.com"
             # Note: We still need 'unsafe-inline' for styles due to Alpine.js/inline styles
             # This is a known limitation - inline styles are lower risk than inline scripts
             style_src = "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com"

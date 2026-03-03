@@ -216,6 +216,20 @@ try:
 except ImportError as e:
     logger.warning(f"Funnel routes not available: {e}")
 
+# NEW: Data Export routes - CSV export for clients, leads, activity
+try:
+    from .export_routes import export_router
+    _include_internal_router(export_router, "Export")
+except ImportError as e:
+    logger.warning(f"Export routes not available: {e}")
+
+# NEW: Integration Status routes - Third-party integration management
+try:
+    from .integration_routes import integration_router
+    _include_internal_router(integration_router, "Integration")
+except ImportError as e:
+    logger.warning(f"Integration routes not available: {e}")
+
 # Include core domain routers
 _include_internal_router(workflow_router, "Workflow")
 _include_internal_router(analysis_router, "Analysis")

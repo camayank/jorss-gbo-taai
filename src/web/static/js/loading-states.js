@@ -424,7 +424,7 @@
     }
 
     .spinner-animation {
-      color: var(--primary, var(--color-primary-500, #1e3a5f));
+      color: var(--primary, var(--color-primary-500, #0B1D3A));
     }
 
     .loading-status {
@@ -444,7 +444,7 @@
     .loading-progress {
       height: 100%;
       width: 0%;
-      background: var(--primary, var(--color-primary-500, #1e3a5f));
+      background: var(--primary, var(--color-primary-500, #0B1D3A));
       border-radius: 2px;
       transition: width 0.3s ease;
     }
@@ -470,7 +470,7 @@
 
     .retry-btn {
       padding: 8px 16px;
-      background: var(--primary, var(--color-primary-500, #1e3a5f));
+      background: var(--primary, var(--color-primary-500, #0B1D3A));
       color: white;
       border: none;
       border-radius: 6px;
@@ -483,7 +483,7 @@
     }
 
     .retry-btn:focus {
-      outline: 2px solid var(--primary, var(--color-primary-500, #1e3a5f));
+      outline: 2px solid var(--primary, var(--color-primary-500, #0B1D3A));
       outline-offset: 2px;
     }
 

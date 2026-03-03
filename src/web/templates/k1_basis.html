@@ -6,36 +6,12 @@
 {% block head_extra %}
 <style>
   /* ── K-1 Basis Tracker Styles ─────────────────────────────── */
-  :root {
-    --k1-navy: var(--color-primary-500);
-    --k1-navy-dark: var(--color-primary-700);
-    --k1-navy-light: #2d5a8e;
-    --k1-teal: var(--color-accent-500);
-    --k1-teal-light: var(--color-accent-100);
-    --k1-success: var(--color-success-500);
-    --k1-success-light: var(--color-success-100);
-    --k1-error: var(--color-error-500);
-    --k1-error-light: var(--color-error-100);
-    --k1-warning: var(--color-warning-500);
-    --k1-warning-light: var(--color-warning-100);
-    --k1-gray-50: var(--color-gray-50);
-    --k1-gray-100: var(--color-gray-100);
-    --k1-gray-200: var(--color-gray-200);
-    --k1-gray-300: var(--color-gray-300);
-    --k1-gray-400: var(--color-gray-400);
-    --k1-gray-500: var(--color-gray-500);
-    --k1-gray-600: var(--color-gray-600);
-    --k1-gray-700: var(--color-gray-700);
-    --k1-gray-800: var(--color-gray-800);
-    --k1-gray-900: var(--color-gray-900);
-  }
-
   .k1-page {
     max-width: 1320px;
     margin: 0 auto;
     padding: var(--space-8) var(--space-6) var(--space-16);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    color: var(--k1-gray-900);
+    font-family: var(--font-sans);
+    color: var(--color-gray-900);
   }
 
   /* ── Header ────────────────────────────────────────────────── */
@@ -50,13 +26,13 @@
   .k1-page-header h1 {
     font-size: 1.75rem;
     font-weight: var(--font-bold);
-    color: var(--k1-navy);
+    color: var(--color-primary-500);
     margin: 0;
     line-height: 1.2;
   }
   .k1-page-header p {
     font-size: 0.9rem;
-    color: var(--k1-gray-500);
+    color: var(--color-gray-500);
     margin: var(--space-1) 0 0;
   }
 
@@ -76,37 +52,37 @@
     white-space: nowrap;
   }
   .k1-btn:focus-visible {
-    outline: 2px solid var(--k1-teal);
+    outline: 2px solid var(--color-accent-500);
     outline-offset: 2px;
   }
   .k1-btn-primary {
-    background: var(--k1-navy);
+    background: var(--color-primary-500);
     color: var(--white);
   }
-  .k1-btn-primary:hover { background: var(--k1-navy-dark); }
+  .k1-btn-primary:hover { background: var(--color-primary-700); }
   .k1-btn-teal {
-    background: var(--k1-teal);
+    background: var(--color-accent-500);
     color: var(--white);
   }
   .k1-btn-teal:hover { background: var(--color-accent-700); }
   .k1-btn-outline {
     background: var(--white);
-    color: var(--k1-gray-700);
-    border: 1px solid var(--k1-gray-300);
+    color: var(--color-gray-700);
+    border: 1px solid var(--color-gray-300);
   }
-  .k1-btn-outline:hover { background: var(--k1-gray-50); border-color: var(--k1-gray-400); }
+  .k1-btn-outline:hover { background: var(--color-gray-50); border-color: var(--color-gray-400); }
   .k1-btn-ghost {
     background: transparent;
-    color: var(--k1-gray-500);
+    color: var(--color-gray-500);
     padding: var(--space-2) var(--space-3);
   }
-  .k1-btn-ghost:hover { background: var(--k1-gray-100); color: var(--k1-gray-700); }
+  .k1-btn-ghost:hover { background: var(--color-gray-100); color: var(--color-gray-700); }
   .k1-btn-danger-ghost {
     background: transparent;
-    color: var(--k1-gray-400);
+    color: var(--color-gray-400);
     padding: var(--space-2) var(--space-3);
   }
-  .k1-btn-danger-ghost:hover { background: var(--k1-error-light); color: var(--k1-error); }
+  .k1-btn-danger-ghost:hover { background: var(--color-error-100); color: var(--color-error-500); }
   .k1-btn-sm { padding: 6px 12px; font-size: 0.8125rem; }
   .k1-btn-xs { padding: 4px 10px; font-size: 0.75rem; border-radius: var(--radius-md); }
 
@@ -123,17 +99,17 @@
 
     font-size: 0.8125rem;
     font-weight: var(--font-medium);
-    border: 1px solid var(--k1-gray-200);
+    border: 1px solid var(--color-gray-200);
     background: var(--white);
-    color: var(--k1-gray-600);
+    color: var(--color-gray-600);
     cursor: pointer;
     transition: all 160ms ease;
   }
-  .k1-pill:hover { border-color: var(--k1-gray-400); }
+  .k1-pill:hover { border-color: var(--color-gray-400); }
   .k1-pill.active {
-    background: var(--k1-navy);
+    background: var(--color-primary-500);
     color: var(--white);
-    border-color: var(--k1-navy);
+    border-color: var(--color-primary-500);
   }
 
   /* ── Card Grid ─────────────────────────────────────────────── */
@@ -152,7 +128,7 @@
     padding: var(--space-6);
     transition: box-shadow 180ms ease, border-color 180ms ease;
   }
-  .k1-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); border-color: var(--k1-gray-300); }
+  .k1-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); border-color: var(--color-gray-300); }
 
   .k1-card-head {
     display: flex;
@@ -163,7 +139,7 @@
   .k1-card-head h3 {
     font-size: 1.05rem;
     font-weight: var(--font-semibold);
-    color: var(--k1-gray-900);
+    color: var(--color-gray-900);
     margin: 0;
   }
 
@@ -182,7 +158,7 @@
 
   .k1-ein {
     font-size: 0.8rem;
-    color: var(--k1-gray-400);
+    color: var(--color-gray-400);
     margin-bottom: var(--space-4);
     font-family: 'SF Mono', 'Fira Code', monospace;
   }
@@ -196,12 +172,12 @@
   .k1-basis-display .k1-amount {
     font-size: 1.6rem;
     font-weight: var(--font-bold);
-    color: var(--k1-navy);
+    color: var(--color-primary-500);
     letter-spacing: -0.02em;
   }
   .k1-basis-display .k1-label {
     font-size: 0.75rem;
-    color: var(--k1-gray-400);
+    color: var(--color-gray-400);
     font-weight: var(--font-medium);
     text-transform: uppercase;
     letter-spacing: var(--tracking-wider);
@@ -216,11 +192,11 @@
     font-size: 0.85rem;
   }
   .k1-at-risk-row .k1-atr-amount {
-    color: var(--k1-gray-600);
+    color: var(--color-gray-600);
     font-weight: var(--font-medium);
   }
   .k1-at-risk-row .k1-atr-label {
-    color: var(--k1-gray-400);
+    color: var(--color-gray-400);
     font-size: 0.78rem;
   }
   .k1-status-dot {
@@ -231,15 +207,15 @@
     border-radius: 50%;
     flex-shrink: 0;
   }
-  .k1-status-ok { background: var(--k1-success); }
-  .k1-status-limited { background: var(--k1-warning); }
-  .k1-status-exceeded { background: var(--k1-error); }
+  .k1-status-ok { background: var(--color-success-500); }
+  .k1-status-limited { background: var(--color-warning-500); }
+  .k1-status-exceeded { background: var(--color-error-500); }
 
   .k1-card-actions {
     display: flex;
     gap: var(--space-1-5);
     flex-wrap: wrap;
-    border-top: 1px solid var(--k1-gray-100);
+    border-top: 1px solid var(--color-gray-100);
     padding-top: var(--space-4);
   }
 
@@ -252,7 +228,7 @@
     overflow: hidden;
   }
   .k1-detail-header {
-    background: linear-gradient(135deg, var(--k1-navy) 0%, var(--k1-navy-light) 100%);
+    background: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-400) 100%);
     padding: var(--space-7) var(--space-8);
     color: var(--white);
   }
@@ -305,14 +281,14 @@
   .k1-worksheet-title {
     font-size: 1rem;
     font-weight: var(--font-bold);
-    color: var(--k1-navy);
+    color: var(--color-primary-500);
     margin-bottom: var(--space-1);
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
   .k1-worksheet-subtitle {
     font-size: 0.78rem;
-    color: var(--k1-gray-400);
+    color: var(--color-gray-400);
     margin-bottom: var(--space-4);
   }
 
@@ -326,21 +302,21 @@
     font-weight: var(--font-semibold);
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--k1-gray-400);
+    color: var(--color-gray-400);
     padding: var(--space-2) var(--space-3);
-    border-bottom: 2px solid var(--k1-gray-200);
+    border-bottom: 2px solid var(--color-gray-200);
   }
   .k1-ws-table th:last-child { text-align: right; }
   .k1-ws-table td {
     padding: var(--space-2-5) var(--space-3);
     font-size: 0.875rem;
-    border-bottom: 1px solid var(--k1-gray-100);
-    color: var(--k1-gray-700);
+    border-bottom: 1px solid var(--color-gray-100);
+    color: var(--color-gray-700);
   }
   .k1-ws-table td:first-child {
     font-family: 'SF Mono', 'Fira Code', monospace;
     font-size: 0.78rem;
-    color: var(--k1-gray-400);
+    color: var(--color-gray-400);
     width: var(--space-11);
 
     text-align: center;
@@ -355,33 +331,33 @@
 
   .k1-ws-row-section td {
     font-weight: var(--font-bold);
-    color: var(--k1-gray-900);
-    background: var(--k1-gray-50);
-    border-bottom: 1px solid var(--k1-gray-200);
+    color: var(--color-gray-900);
+    background: var(--color-gray-50);
+    border-bottom: 1px solid var(--color-gray-200);
   }
   .k1-ws-row-indent td:nth-child(2) {
     padding-left: var(--space-7);
-    color: var(--k1-gray-600);
+    color: var(--color-gray-600);
   }
   .k1-ws-row-total td {
     font-weight: var(--font-bold);
-    color: var(--k1-navy);
-    border-top: 2px solid var(--k1-gray-300);
-    border-bottom: 2px solid var(--k1-gray-300);
+    color: var(--color-primary-500);
+    border-top: 2px solid var(--color-gray-300);
+    border-bottom: 2px solid var(--color-gray-300);
     background: rgba(30, 58, 95, 0.03);
   }
   .k1-ws-row-subtotal td {
     font-weight: var(--font-semibold);
-    color: var(--k1-gray-800);
-    border-top: 1px solid var(--k1-gray-200);
+    color: var(--color-gray-800);
+    border-top: 1px solid var(--color-gray-200);
   }
-  .k1-ws-negative { color: var(--k1-error) !important; }
-  .k1-ws-positive { color: var(--k1-success) !important; }
+  .k1-ws-negative { color: var(--color-error-500) !important; }
+  .k1-ws-positive { color: var(--color-success-500) !important; }
 
   /* ── Limitation Sections ───────────────────────────────────── */
   .k1-limit-section {
-    background: var(--k1-gray-50);
-    border: 1px solid var(--k1-gray-200);
+    background: var(--color-gray-50);
+    border: 1px solid var(--color-gray-200);
     border-radius: var(--radius-lg-plus);
     padding: var(--space-6);
     margin-bottom: var(--space-6);
@@ -389,7 +365,7 @@
   .k1-limit-section h4 {
     font-size: 0.9rem;
     font-weight: var(--font-bold);
-    color: var(--k1-gray-800);
+    color: var(--color-gray-800);
     margin: 0 0 var(--space-4);
     display: flex;
     align-items: center;
@@ -419,7 +395,7 @@
     text-transform: uppercase;
     letter-spacing: var(--tracking-wider);
 
-    color: var(--k1-gray-400);
+    color: var(--color-gray-400);
     display: block;
     margin-bottom: var(--space-1);
   }
@@ -443,7 +419,7 @@
     bottom: var(--space-1);
 
     width: 2px;
-    background: var(--k1-gray-200);
+    background: var(--color-gray-200);
     border-radius: 1px;
   }
   .k1-timeline-item {
@@ -462,20 +438,20 @@
 
     border-radius: 50%;
     border: 2px solid var(--white);
-    box-shadow: 0 0 0 2px var(--k1-gray-300);
+    box-shadow: 0 0 0 2px var(--color-gray-300);
   }
-  .k1-timeline-dot.positive { background: var(--k1-success); box-shadow: 0 0 0 2px var(--k1-success-light); }
-  .k1-timeline-dot.negative { background: var(--k1-error); box-shadow: 0 0 0 2px var(--k1-error-light); }
-  .k1-timeline-dot.neutral { background: var(--k1-gray-400); box-shadow: 0 0 0 2px var(--k1-gray-200); }
+  .k1-timeline-dot.positive { background: var(--color-success-500); box-shadow: 0 0 0 2px var(--color-success-100); }
+  .k1-timeline-dot.negative { background: var(--color-error-500); box-shadow: 0 0 0 2px var(--color-error-100); }
+  .k1-timeline-dot.neutral { background: var(--color-gray-400); box-shadow: 0 0 0 2px var(--color-gray-200); }
   .k1-timeline-date {
     font-size: 0.72rem;
-    color: var(--k1-gray-400);
+    color: var(--color-gray-400);
     margin-bottom: var(--space-0-5);
 
   }
   .k1-timeline-desc {
     font-size: 0.84rem;
-    color: var(--k1-gray-700);
+    color: var(--color-gray-700);
     font-weight: var(--font-medium);
   }
   .k1-timeline-amt {
@@ -512,12 +488,12 @@
   .k1-modal-head h3 {
     font-size: 1.1rem;
     font-weight: var(--font-bold);
-    color: var(--k1-gray-900);
+    color: var(--color-gray-900);
     margin: 0 0 var(--space-1);
   }
   .k1-modal-head p {
     font-size: 0.82rem;
-    color: var(--k1-gray-400);
+    color: var(--color-gray-400);
     margin: 0;
   }
   .k1-modal-body {
@@ -538,23 +514,23 @@
     display: block;
     font-size: 0.8rem;
     font-weight: var(--font-semibold);
-    color: var(--k1-gray-700);
+    color: var(--color-gray-700);
     margin-bottom: var(--space-1-5);
   }
   .k1-input, .k1-select {
     width: 100%;
     padding: var(--space-2-5) var(--space-3-5);
-    border: 1px solid var(--k1-gray-300);
+    border: 1px solid var(--color-gray-300);
     border-radius: var(--radius-lg);
     font-size: 0.875rem;
     font-family: inherit;
-    color: var(--k1-gray-900);
+    color: var(--color-gray-900);
     background: var(--white);
     transition: border-color 160ms ease, box-shadow 160ms ease;
   }
   .k1-input:focus, .k1-select:focus {
     outline: none;
-    border-color: var(--k1-teal);
+    border-color: var(--color-accent-500);
     box-shadow: 0 0 0 3px rgba(20,184,166,0.15);
   }
   .k1-form-row {
@@ -574,7 +550,7 @@
     width: 72px;
     height: 72px;
     border-radius: 50%;
-    background: var(--k1-gray-100);
+    background: var(--color-gray-100);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -584,12 +560,12 @@
   .k1-empty h3 {
     font-size: 1.05rem;
     font-weight: var(--font-semibold);
-    color: var(--k1-gray-800);
+    color: var(--color-gray-800);
     margin: 0 0 var(--space-1-5);
   }
   .k1-empty p {
     font-size: 0.85rem;
-    color: var(--k1-gray-400);
+    color: var(--color-gray-400);
     max-width: 360px;
     margin: 0 auto;
   }
@@ -601,8 +577,8 @@
 
     height: var(--space-5);
 
-    border: 2px solid var(--k1-gray-200);
-    border-top-color: var(--k1-teal);
+    border: 2px solid var(--color-gray-200);
+    border-top-color: var(--color-accent-500);
     border-radius: 50%;
     animation: k1spin 0.6s linear infinite;
   }
@@ -614,7 +590,7 @@
     justify-content: center;
     gap: var(--space-2-5);
     padding: var(--space-12) var(--space-6);
-    color: var(--k1-gray-400);
+    color: var(--color-gray-400);
     font-size: 0.875rem;
   }
 
@@ -626,7 +602,7 @@
     margin: var(--space-7) 0 var(--space-5);
     font-size: 0.8rem;
     font-weight: var(--font-bold);
-    color: var(--k1-gray-500);
+    color: var(--color-gray-500);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
@@ -634,21 +610,21 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: var(--k1-gray-200);
+    background: var(--color-gray-200);
   }
 
   /* ── Tabs ──────────────────────────────────────────────────── */
   .k1-tabs {
     display: flex;
     gap: 0;
-    border-bottom: 2px solid var(--k1-gray-200);
+    border-bottom: 2px solid var(--color-gray-200);
     margin-bottom: var(--space-6);
   }
   .k1-tab {
     padding: var(--space-2-5) var(--space-5);
     font-size: 0.84rem;
     font-weight: var(--font-medium);
-    color: var(--k1-gray-400);
+    color: var(--color-gray-400);
     background: none;
     border: none;
     cursor: pointer;
@@ -657,10 +633,10 @@
 
     transition: all 160ms ease;
   }
-  .k1-tab:hover { color: var(--k1-gray-700); }
+  .k1-tab:hover { color: var(--color-gray-700); }
   .k1-tab.active {
-    color: var(--k1-navy);
-    border-bottom-color: var(--k1-navy);
+    color: var(--color-primary-500);
+    border-bottom-color: var(--color-primary-500);
     font-weight: var(--font-semibold);
   }
 </style>
@@ -702,7 +678,7 @@
     <template x-if="filteredRecords.length === 0 && !loading">
       <div class="k1-empty">
         <div class="k1-empty-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--color-gray-400)" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14 2 14 8 20 8"/>
             <line x1="12" y1="18" x2="12" y2="12"/>
@@ -1019,12 +995,12 @@
         <div class="k1-limit-grid">
           <div class="k1-limit-stat">
             <label>At-Risk Amount</label>
-            <div class="k1-stat-val" style="color: var(--k1-navy);"
+            <div class="k1-stat-val" style="color: var(--color-primary-500);"
                  x-text="formatCurrency(worksheet?.at_risk?.amount || selectedEntity?.at_risk_amount || 0)"></div>
           </div>
           <div class="k1-limit-stat">
             <label>Losses Limited by At-Risk</label>
-            <div class="k1-stat-val" style="color: var(--k1-error);"
+            <div class="k1-stat-val" style="color: var(--color-error-500);"
                  x-text="formatCurrency(worksheet?.at_risk?.limited_losses || 0)"></div>
           </div>
           <div class="k1-limit-stat">
@@ -1052,22 +1028,22 @@
         <div class="k1-limit-grid">
           <div class="k1-limit-stat">
             <label>Passive Income</label>
-            <div class="k1-stat-val" style="color: var(--k1-success);"
+            <div class="k1-stat-val" style="color: var(--color-success-500);"
                  x-text="formatCurrency(worksheet?.passive_activity?.income || 0)"></div>
           </div>
           <div class="k1-limit-stat">
             <label>Passive Losses</label>
-            <div class="k1-stat-val" style="color: var(--k1-error);"
+            <div class="k1-stat-val" style="color: var(--color-error-500);"
                  x-text="formatCurrency(worksheet?.passive_activity?.losses || 0)"></div>
           </div>
           <div class="k1-limit-stat">
             <label>Suspended Passive Losses</label>
-            <div class="k1-stat-val" style="color: var(--k1-warning);"
+            <div class="k1-stat-val" style="color: var(--color-warning-500);"
                  x-text="formatCurrency(worksheet?.passive_activity?.suspended || 0)"></div>
           </div>
         </div>
         <div style="margin-top:var(--space-4); display:flex; align-items:center; gap:var(--space-2);">
-          <span style="font-size:0.78rem; color:var(--k1-gray-400);">Material Participation:</span>
+          <span style="font-size:0.78rem; color:var(--color-gray-400);">Material Participation:</span>
           <span style="padding:3px var(--space-2-5); border-radius:var(--radius-full); font-size:0.72rem; font-weight:var(--font-semibold);"
                 :style="worksheet?.passive_activity?.material_participation
                   ? 'background:#d1fae5; color:#065f46;'
@@ -1093,7 +1069,7 @@
               <div class="k1-timeline-date" x-text="adj.date ? new Date(adj.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No date'"></div>
               <div class="k1-timeline-desc" x-text="adj.description || adj.adjustment_type?.replace(/_/g, ' ')"></div>
               <div class="k1-timeline-amt"
-                   :style="adj.amount >= 0 ? 'color: var(--k1-success);' : 'color: var(--k1-error);'"
+                   :style="adj.amount >= 0 ? 'color: var(--color-success-500);' : 'color: var(--color-error-500);'"
                    x-text="(adj.amount >= 0 ? '+' : '') + formatCurrency(adj.amount)"></div>
             </div>
           </template>
@@ -1102,7 +1078,7 @@
 
       <template x-if="!worksheet?.adjustments || worksheet.adjustments.length === 0">
         <div style="text-align:center; padding:var(--space-8) var(--space-4);">
-          <div style="font-size:0.85rem; color:var(--k1-gray-400);">No adjustments recorded yet.</div>
+          <div style="font-size:0.85rem; color:var(--color-gray-400);">No adjustments recorded yet.</div>
           <button class="k1-btn k1-btn-outline k1-btn-sm" style="margin-top:var(--space-3);"
                   @click="showAddAdjustment = true; newAdjustment = { adjustment_type: 'capital_contribution', amount: 0, description: '', date: new Date().toISOString().split('T')[0] };">
             Add First Adjustment

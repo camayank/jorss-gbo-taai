@@ -244,7 +244,7 @@ async function request(url, options = {}) {
         // Attempt token refresh on 401 before giving up
         if (error.status === 401 && !options._isRetryAfterRefresh) {
           try {
-            const refreshResp = await fetch('/api/v1/auth/refresh', {
+            const refreshResp = await fetch('/api/core/auth/refresh', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               credentials: 'same-origin',

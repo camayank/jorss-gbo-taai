@@ -1,30 +1,45 @@
 """
 Intelligent Tax Advisor Package.
 
-This package provides the intelligent tax advisory chatbot backend.
-Currently re-exports from the monolithic intelligent_advisor_api.py.
-
-Future work: Decompose intelligent_advisor_api.py into:
+Decomposed from the monolithic intelligent_advisor_api.py into:
 - models.py: Pydantic request/response models
-- chat_engine.py: IntelligentChatEngine class
 - parsers.py: Message parsing and intent detection
-- converters.py: Profile/tax return conversion
-- routes.py: API route handlers
+- report_routes.py: Safety check, PDF generation, universal report endpoints
 """
 
-# Re-export from the monolithic module for now
+# Re-export models
+from web.advisor.models import (  # noqa: F401
+    FilingStatus,
+    ChatMessage,
+    TaxProfileInput,
+    ChatRequest,
+    StrategyRecommendation,
+    TaxCalculationResult,
+    ChatResponse,
+    FullAnalysisRequest,
+    FullAnalysisResponse,
+)
+
+# Re-export parsers
+from web.advisor.parsers import (  # noqa: F401
+    parse_user_message,
+    enhanced_parse_user_message,
+    EnhancedParser,
+    ConversationContext,
+    detect_user_intent,
+)
+
+# Re-export key items from the main module (chat engine, router)
 try:
-    from web.intelligent_advisor_api import (
+    from web.intelligent_advisor_api import (  # noqa: F401
         router,
         IntelligentChatEngine,
-        parse_user_message,
-        enhanced_parse_user_message,
         convert_profile_to_tax_return,
     )
 except ImportError:
     pass
 
-# Registration function
+
 def register_intelligent_advisor_routes(app):
     """Register advisor routes with the app."""
     try:

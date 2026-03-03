@@ -5,23 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Set Up Two-Factor Authentication | Jorss-Gbo</title>
     <meta name="description" content="Secure your account with two-factor authentication using an authenticator app.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/core/variables.css">
+    <link rel="stylesheet" href="/static/css/core/reset.css">
+    <link rel="stylesheet" href="/static/css/core/typography.css">
+    <link rel="stylesheet" href="/static/css/unified-theme.css">
     <style>
-        :root {
-            --primary: var(--color-primary-500);
-            --primary-light: var(--color-primary-300);
-            --primary-dark: #0c1b2f;
-            --bg: #f7fafc;
-            --surface: var(--white);
-            --text: #0c1b2f;
-            --text-light: #4a5568;
-            --text-muted: #718096;
-            --success: #276749;
-            --success-light: #c6f6d5;
-            --error: #c53030;
-            --error-light: #fed7d7;
-            --border: var(--color-slate-200);
-            --border-focus: var(--color-primary-500);
-        }
 
         * {
             margin: 0;
@@ -31,7 +22,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            background: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-400) 100%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -101,7 +92,7 @@
 
         /* ── Card ── */
         .auth-card {
-            background: var(--surface);
+            background: var(--white);
             border-radius: var(--radius-2xl-plus);
             box-shadow: 0 25px 60px rgba(0,0,0,0.3);
             overflow: hidden;
@@ -116,7 +107,7 @@
         .auth-icon {
             width: 64px;
             height: 64px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            background: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-400) 100%);
             border-radius: var(--radius-2xl);
 
             display: flex;
@@ -138,7 +129,7 @@
             font-size: 1.75rem;
             font-weight: var(--font-bold);
 
-            color: var(--text);
+            color: var(--color-gray-900);
             margin-bottom: var(--space-2);
 
         }
@@ -184,22 +175,22 @@
             font-size: 0.8rem;
             font-weight: var(--font-bold);
 
-            border: 2px solid var(--border);
+            border: 2px solid var(--color-gray-200);
             color: var(--text-muted);
-            background: var(--surface);
+            background: var(--white);
             transition: all 0.3s;
             flex-shrink: 0;
         }
 
         .stepper-dot.active {
-            border-color: var(--primary);
-            background: var(--primary);
+            border-color: var(--color-primary-500);
+            background: var(--color-primary-500);
             color: white;
         }
 
         .stepper-dot.completed {
-            border-color: var(--success);
-            background: var(--success);
+            border-color: var(--color-success-500);
+            background: var(--color-success-500);
             color: white;
         }
 
@@ -213,18 +204,18 @@
         }
 
         .stepper-label.active {
-            color: var(--text);
+            color: var(--color-gray-900);
         }
 
         .stepper-label.completed {
-            color: var(--success);
+            color: var(--color-success-500);
         }
 
         .stepper-line {
             width: var(--space-10);
 
             height: 2px;
-            background: var(--border);
+            background: var(--color-gray-200);
             margin: 0 var(--space-2);
 
             transition: background 0.3s;
@@ -232,7 +223,7 @@
         }
 
         .stepper-line.completed {
-            background: var(--success);
+            background: var(--color-success-500);
         }
 
         /* ── Alerts ── */
@@ -253,17 +244,17 @@
 
         .alert-error {
             background: var(--error-light);
-            color: var(--error);
+            color: var(--color-error-500);
         }
 
         .alert-success {
-            background: var(--success-light);
-            color: var(--success);
+            background: var(--color-success-100);
+            color: var(--color-success-500);
         }
 
         .alert-info {
             background: #ebf4ff;
-            color: var(--primary);
+            color: var(--color-primary-500);
         }
 
         .alert svg {
@@ -285,7 +276,7 @@
 
         .qr-frame {
             background: white;
-            border: 2px solid var(--border);
+            border: 2px solid var(--color-gray-200);
             border-radius: var(--radius-xl);
 
             padding: var(--space-4);
@@ -340,8 +331,8 @@
             align-items: center;
             gap: var(--space-2);
 
-            background: var(--bg);
-            border: 1px solid var(--border);
+            background: var(--color-gray-50);
+            border: 1px solid var(--color-gray-200);
             border-radius: var(--radius-lg);
 
             padding: var(--space-2-5) var(--space-3-5);
@@ -354,7 +345,7 @@
             font-size: 0.9rem;
             font-weight: var(--font-semibold);
 
-            color: var(--text);
+            color: var(--color-gray-900);
             letter-spacing: 1px;
             word-break: break-all;
             user-select: all;
@@ -364,7 +355,7 @@
             flex-shrink: 0;
             background: none;
             border: none;
-            color: var(--primary);
+            color: var(--color-primary-500);
             cursor: pointer;
             padding: var(--space-1);
 
@@ -394,7 +385,7 @@
             font-size: 0.875rem;
             font-weight: var(--font-semibold);
 
-            color: var(--text);
+            color: var(--color-gray-900);
             margin-bottom: var(--space-2);
 
         }
@@ -404,17 +395,17 @@
             padding: var(--space-3-5) var(--space-4);
 
             font-size: 1rem;
-            border: 2px solid var(--border);
+            border: 2px solid var(--color-gray-200);
             border-radius: var(--radius-lg-plus);
             outline: none;
             transition: border-color 0.2s, box-shadow 0.2s;
-            background: var(--surface);
-            color: var(--text);
+            background: var(--white);
+            color: var(--color-gray-900);
             font-family: inherit;
         }
 
         .form-input:focus {
-            border-color: var(--primary);
+            border-color: var(--color-primary-500);
             box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
         }
 
@@ -449,7 +440,7 @@
             font-weight: var(--font-semibold);
 
             color: white;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            background: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-400) 100%);
             border: none;
             border-radius: var(--radius-lg-plus);
             cursor: pointer;
@@ -492,9 +483,9 @@
             font-size: 0.95rem;
             font-weight: var(--font-semibold);
 
-            color: var(--text);
-            background: var(--surface);
-            border: 2px solid var(--border);
+            color: var(--color-gray-900);
+            background: var(--white);
+            border: 2px solid var(--color-gray-200);
             border-radius: var(--radius-lg-plus);
             cursor: pointer;
             transition: border-color 0.2s, background 0.2s;
@@ -508,7 +499,7 @@
 
         .btn-secondary:hover {
             border-color: var(--text-muted);
-            background: var(--bg);
+            background: var(--color-gray-50);
         }
 
         .btn-secondary svg {
@@ -554,8 +545,8 @@
         }
 
         .backup-code {
-            background: var(--bg);
-            border: 1px solid var(--border);
+            background: var(--color-gray-50);
+            border: 1px solid var(--color-gray-200);
             border-radius: var(--radius-md);
 
             padding: var(--space-2-5) var(--space-3);
@@ -564,7 +555,7 @@
             font-size: 0.9rem;
             font-weight: var(--font-semibold);
 
-            color: var(--text);
+            color: var(--color-gray-900);
             text-align: center;
             letter-spacing: 1px;
             user-select: all;
@@ -602,7 +593,7 @@
         .success-icon {
             width: 80px;
             height: 80px;
-            background: var(--success-light);
+            background: var(--color-success-100);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -616,7 +607,7 @@
 
             height: var(--space-10);
 
-            color: var(--success);
+            color: var(--color-success-500);
         }
 
         /* ── Instructions ── */
@@ -629,7 +620,7 @@
             font-size: 0.95rem;
             font-weight: var(--font-semibold);
 
-            color: var(--text);
+            color: var(--color-gray-900);
             margin-bottom: var(--space-3);
 
         }
@@ -661,15 +652,15 @@
             height: var(--space-6);
 
             border-radius: 50%;
-            background: var(--bg);
-            border: 1px solid var(--border);
+            background: var(--color-gray-50);
+            border: 1px solid var(--color-gray-200);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 0.75rem;
             font-weight: var(--font-bold);
 
-            color: var(--text);
+            color: var(--color-gray-900);
             flex-shrink: 0;
         }
 
@@ -706,7 +697,7 @@
 
             left: 50%;
             transform: translateX(-50%) translateY(20px);
-            background: var(--text);
+            background: var(--color-gray-900);
             color: white;
             padding: var(--space-2-5) var(--space-5);
 
@@ -998,7 +989,7 @@
 
                         <div style="margin-top: var(--space-4); text-align: center;">
                             <button type="button"
-                                    style="background: none; border: none; color: var(--primary); font-size: 0.9rem; font-weight: var(--font-medium); cursor: pointer; font-family: inherit; padding: var(--space-1) var(--space-2);"
+                                    style="background: none; border: none; color: var(--color-primary-500); font-size: 0.9rem; font-weight: var(--font-medium); cursor: pointer; font-family: inherit; padding: var(--space-1) var(--space-2);"
                                     @click="step = 1; error = ''; totpCode = ''">
                                 &larr; Back to QR code
                             </button>
@@ -1094,7 +1085,7 @@
 
                         <div style="margin-top: var(--space-3);">
                             <a href="/settings"
-                               style="font-size: 0.9rem; color: var(--primary); text-decoration: none; font-weight: var(--font-medium);">
+                               style="font-size: 0.9rem; color: var(--color-primary-500); text-decoration: none; font-weight: var(--font-medium);">
                                 Return to Settings
                             </a>
                         </div>

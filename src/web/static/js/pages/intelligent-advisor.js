@@ -62,7 +62,7 @@
 
       // Log acknowledgment to server
       try {
-        await fetch('/api/intelligent-advisor/acknowledge-standards', {
+        await fetch('/api/advisor/acknowledge-standards', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -521,7 +521,9 @@
 
     function handleOnline() {
       isOnline = true;
-      showToast('Connection restored', 'success');
+      updateConnectionStatus(true);
+      hideOfflineBanner();
+      showToast('Connection restored!', 'success');
 
       // Process queued messages
       processOfflineQueue();
@@ -529,7 +531,8 @@
 
     function handleOffline() {
       isOnline = false;
-      showToast('You\'re offline. Messages will be sent when connection is restored.', 'warning');
+      updateConnectionStatus(false);
+      showOfflineBanner();
     }
 
     async function processOfflineQueue() {
@@ -932,7 +935,7 @@
         overlay.className = 'celebration-overlay';
         document.body.appendChild(overlay);
 
-        const colors = ['#1e3a5f', '#5387c1', '#10b981', '#14b8a6', '#f59e0b', '#34d399'];
+        const colors = ['#C9A84C', '#E0C778', '#0B1D3A', '#1A3560', '#B5953F', '#F0DBAA'];
 
         for (let i = 0; i < count; i++) {
           const confetti = document.createElement('div');
@@ -1692,7 +1695,7 @@
       } else if (type === 'success') {
         toast.style.background = '#10b981';
       } else {
-        toast.style.background = '#5387c1';
+        toast.style.background = '#2098d4';
       }
 
       toast.textContent = message;
@@ -1712,6 +1715,7 @@
       const statusEl = document.getElementById('connectionStatus');
       const textEl = document.getElementById('connectionText');
       const dotEl = document.getElementById('connectionDot');
+      if (!statusEl || !textEl || !dotEl) return;
 
       if (online) {
         statusEl.classList.remove('offline');
@@ -1725,17 +1729,7 @@
       }
     }
 
-    // Monitor connection status
-    window.addEventListener('online', () => {
-      updateConnectionStatus(true);
-      hideOfflineBanner();
-      showToast('Connection restored!', 'success');
-    });
-
-    window.addEventListener('offline', () => {
-      updateConnectionStatus(false);
-      showOfflineBanner();
-    });
+    // Note: online/offline listeners are registered in initNetworkMonitoring() above
 
     // Periodic health check
     let healthCheckInterval = null;
@@ -1974,13 +1968,13 @@
       let score = 0;
       let maxScore = 100;
 
-      if (extractedData.filing_status) score += 15;
-      if (extractedData.income_range || extractedData.tax_profile?.total_income) score += 20;
-      if (extractedData.deductions && extractedData.deductions.length > 0) score += 15;
-      if (extractedData.credits && extractedData.credits.length > 0) score += 15;
+      if (extractedData.tax_profile?.filing_status) score += 15;
+      if (extractedData.tax_profile?.total_income) score += 20;
+      if (extractedData.tax_items?.mortgage_interest || extractedData.tax_items?.charitable || extractedData.tax_items?.medical) score += 15;
+      if (extractedData.tax_items?.retirement_contributions || extractedData.tax_items?.has_hsa) score += 15;
       if (extractedData.contact?.name) score += 5;
       if (extractedData.documents && extractedData.documents.length > 0) score += 20;
-      if (extractedData.focus_area) score += 10;
+      if (extractedData.tax_profile?.state) score += 10;
 
       const percentage = Math.round((score / maxScore) * 100);
 
@@ -2150,7 +2144,7 @@
       timestamp.setAttribute('aria-label', `Sent at ${timeStr}`);
       bubble.appendChild(timestamp);
 
-      if (quickActions.length > 0) {
+      if (quickActions.length > 0 || options.inputType === 'dropdown') {
         // Check if this is a multi-select question
         const isMultiSelect = options.multiSelect === true;
 
@@ -2296,45 +2290,107 @@
           bubble.appendChild(actionsDiv);
 
         } else if (options.inputType === 'dropdown') {
-          // Render as dropdown for many options
+          // Render as searchable dropdown for many options
           const actionsDiv = document.createElement('div');
           actionsDiv.className = 'dropdown-actions';
 
-          const select = document.createElement('select');
-          select.className = 'dropdown-select';
-          select.setAttribute('aria-label', 'Select an option');
-
-          // Add placeholder option
-          const placeholder = document.createElement('option');
-          placeholder.value = '';
-          placeholder.textContent = options.placeholder || 'Select an option...';
-          placeholder.disabled = true;
-          placeholder.selected = true;
-          select.appendChild(placeholder);
-
-          // Group options if categories provided
+          // Build flat list of all options for search
+          const allOptions = [];
           if (options.groups) {
             options.groups.forEach(group => {
-              const optgroup = document.createElement('optgroup');
-              optgroup.label = group.label;
               group.options.forEach(action => {
-                const option = document.createElement('option');
-                option.value = action.value;
-                option.textContent = action.label;
-                optgroup.appendChild(option);
+                allOptions.push({ ...action, group: group.label });
               });
-              select.appendChild(optgroup);
             });
           } else {
-            quickActions.forEach(action => {
-              const option = document.createElement('option');
-              option.value = action.value;
-              option.textContent = action.label;
-              select.appendChild(option);
-            });
+            quickActions.forEach(action => allOptions.push(action));
           }
 
-          actionsDiv.appendChild(select);
+          // Searchable dropdown container
+          const wrapper = document.createElement('div');
+          wrapper.className = 'searchable-dropdown';
+
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'dropdown-search';
+          input.placeholder = options.placeholder || 'Type to search...';
+          input.setAttribute('aria-label', 'Search options');
+          input.setAttribute('autocomplete', 'off');
+
+          const listContainer = document.createElement('div');
+          listContainer.className = 'dropdown-list';
+
+          let selectedValue = null;
+
+          function renderList(filter) {
+            listContainer.innerHTML = '';
+            const query = (filter || '').toLowerCase();
+            let hasResults = false;
+            let currentGroup = '';
+
+            allOptions.forEach(opt => {
+              if (query && !opt.label.toLowerCase().includes(query)) return;
+              hasResults = true;
+
+              // Add group header
+              if (opt.group && opt.group !== currentGroup) {
+                currentGroup = opt.group;
+                const groupHeader = document.createElement('div');
+                groupHeader.className = 'dropdown-group-header';
+                groupHeader.textContent = opt.group;
+                listContainer.appendChild(groupHeader);
+              }
+
+              const item = document.createElement('div');
+              item.className = 'dropdown-item' + (opt.value === selectedValue ? ' selected' : '');
+              item.textContent = opt.label;
+              item.addEventListener('click', () => {
+                selectedValue = opt.value;
+                input.value = opt.label;
+                listContainer.classList.remove('open');
+                submitBtn.disabled = false;
+                // Highlight selected
+                listContainer.querySelectorAll('.dropdown-item').forEach(i => i.classList.remove('selected'));
+                item.classList.add('selected');
+              });
+              listContainer.appendChild(item);
+            });
+
+            if (!hasResults) {
+              const noResult = document.createElement('div');
+              noResult.className = 'dropdown-no-results';
+              noResult.textContent = 'No states found';
+              listContainer.appendChild(noResult);
+            }
+          }
+
+          // Show list on focus
+          input.addEventListener('focus', () => {
+            renderList(input.value);
+            listContainer.classList.add('open');
+          });
+
+          // Filter on input
+          input.addEventListener('input', () => {
+            selectedValue = null;
+            submitBtn.disabled = true;
+            renderList(input.value);
+            listContainer.classList.add('open');
+          });
+
+          // Close on outside click
+          document.addEventListener('click', (e) => {
+            if (!wrapper.contains(e.target)) {
+              listContainer.classList.remove('open');
+            }
+          });
+
+          wrapper.appendChild(input);
+          wrapper.appendChild(listContainer);
+          actionsDiv.appendChild(wrapper);
+
+          // Render initial list
+          renderList('');
 
           // Add continue button
           const submitDiv = document.createElement('div');
@@ -2344,16 +2400,12 @@
           submitBtn.textContent = 'Continue →';
           submitBtn.disabled = true;
 
-          select.onchange = () => {
-            submitBtn.disabled = !select.value;
-          };
-
-          submitBtn.onclick = () => {
-            if (select.value) {
-              const selectedOption = quickActions.find(a => a.value === select.value);
-              handleQuickAction(select.value, selectedOption?.label);
+          submitBtn.addEventListener('click', () => {
+            if (selectedValue) {
+              const selectedOption = allOptions.find(a => a.value === selectedValue);
+              handleQuickAction(selectedValue, selectedOption?.label);
             }
-          };
+          });
 
           submitDiv.appendChild(submitBtn);
           actionsDiv.appendChild(submitDiv);
@@ -2432,6 +2484,7 @@
 
     function showTyping() {
       const messages = document.getElementById('messages');
+      if (!messages) return;
       const typing = document.createElement('div');
       typing.className = 'message ai';
       typing.id = 'typing-indicator';
@@ -2445,8 +2498,8 @@
             <span></span>
             <span></span>
             <span></span>
+            <span class="typing-text sr-only">Please wait, the assistant is preparing a response...</span>
           </div>
-          <span class="sr-only">Please wait, the assistant is preparing a response...</span>
         </div>
       `;
       messages.appendChild(typing);
@@ -2844,815 +2897,7 @@
         return;
       }
 
-      // =========================================================================
-      // UNIFIED GUIDED FLOW - Clean single mode (post-login)
-      // =========================================================================
 
-      if (value === 'guided_start') {
-        addMessage('user', 'Answer Questions');
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<strong>Let's get to know your tax situation.</strong><br><br>
-          <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 1 of 5</span>
-          </div>
-          <strong>What best describes your situation?</strong>`, [
-            { label: getIcon('briefcase', 'sm') + ' W-2 Employee', value: 'guided_type_w2', primary: true },
-            { label: getIcon('building-office', 'sm') + ' Self-Employed / 1099', value: 'guided_type_self' },
-            { label: getIcon('chart-bar', 'sm') + ' Both W-2 + Self-Employed', value: 'guided_type_both' },
-            { label: "🏖️ Retired / Other Income", value: 'guided_type_retired' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Guided - Select income type
-      if (value.startsWith('guided_type_')) {
-        const typeMap = {
-          'w2': { source: 'w2', label: 'W-2 Employee' },
-          'self': { source: 'self_employed', label: 'Self-Employed / 1099' },
-          'both': { source: 'mixed', label: 'Both W-2 + Self-Employed' },
-          'retired': { source: 'retirement', label: 'Retired / Other Income' }
-        };
-        const typeKey = value.replace('guided_type_', '');
-        const info = typeMap[typeKey] || typeMap['w2'];
-        extractedData.tax_profile.income_source = info.source;
-        if (typeKey === 'self' || typeKey === 'both') {
-          extractedData.tax_profile.is_self_employed = true;
-        }
-        addMessage('user', info.label);
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 2 of 5</span>
-          </div>
-          <strong>What's your filing status?</strong>`, [
-            { label: "Single", value: 'guided_filing_single' },
-            { label: "Married Filing Jointly", value: 'guided_filing_mfj' },
-            { label: "Head of Household", value: 'guided_filing_hoh' },
-            { label: "Married Filing Separately", value: 'guided_filing_mfs' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Guided - Filing status
-      if (value.startsWith('guided_filing_')) {
-        const statusMap = { 'single': 'Single', 'mfj': 'Married Filing Jointly', 'hoh': 'Head of Household', 'mfs': 'Married Filing Separately' };
-        const statusKey = value.replace('guided_filing_', '');
-        extractedData.tax_profile.filing_status = statusMap[statusKey] || 'Single';
-        addMessage('user', statusMap[statusKey] || 'Single');
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 3 of 5</span>
-          </div>
-          <strong>What's your approximate annual income?</strong>`, [
-            { label: "Under $50k", value: 'guided_income_50k' },
-            { label: "$50k - $100k", value: 'guided_income_100k' },
-            { label: "$100k - $200k", value: 'guided_income_200k' },
-            { label: "$200k+", value: 'guided_income_200kplus' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Guided - Income
-      if (value.startsWith('guided_income_')) {
-        const incomeMap = { '50k': 35000, '100k': 75000, '200k': 150000, '200kplus': 250000 };
-        const labelMap = { '50k': 'Under $50k', '100k': '$50k - $100k', '200k': '$100k - $200k', '200kplus': '$200k+' };
-        const incomeKey = value.replace('guided_income_', '');
-        extractedData.tax_profile.total_income = incomeMap[incomeKey] || 75000;
-        addMessage('user', labelMap[incomeKey]);
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 4 of 5</span>
-          </div>
-          <strong>Any dependents?</strong>`, [
-            { label: "No dependents", value: 'guided_deps_0' },
-            { label: "1 dependent", value: 'guided_deps_1' },
-            { label: "2 dependents", value: 'guided_deps_2' },
-            { label: "3+ dependents", value: 'guided_deps_3plus' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Guided - Dependents
-      if (value.startsWith('guided_deps_')) {
-        const depsMap = { '0': 0, '1': 1, '2': 2, '3plus': 3 };
-        const labelMap = { '0': 'No dependents', '1': '1 dependent', '2': '2 dependents', '3plus': '3+ dependents' };
-        const depsKey = value.replace('guided_deps_', '');
-        extractedData.tax_profile.dependents = depsMap[depsKey] || 0;
-        extractedData.tax_profile.qualifying_children_ctc = depsMap[depsKey] || 0;
-        if (depsMap[depsKey] > 0) extractedData.tax_profile.has_dependents = true;
-        addMessage('user', labelMap[depsKey]);
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          // Show relevant deductions based on income source
-          const isSelfEmployed = extractedData.tax_profile.is_self_employed;
-          const deductionOptions = [
-            { label: getIcon('home', 'sm') + ' Mortgage Interest', value: 'guided_ded_mortgage' },
-            { label: getIcon('currency-dollar', 'sm') + ' 401k/IRA', value: 'guided_ded_retirement' },
-            { label: getIcon('gift', 'sm') + ' Charitable Donations', value: 'guided_ded_charity' }
-          ];
-          if (isSelfEmployed) {
-            deductionOptions.push({ label: getIcon('truck', 'sm') + ' Business Expenses', value: 'guided_ded_business' });
-            deductionOptions.push({ label: getIcon('home', 'sm') + ' Home Office', value: 'guided_ded_homeoffice' });
-          }
-          deductionOptions.push({ label: getIcon('arrow-right', 'sm') + ' None - Get My Results', value: 'guided_ded_none' });
-
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 5 of 5</span>
-          </div>
-          <strong>Any of these apply?</strong> <span style="color: var(--text-secondary);">(Select any that apply)</span>`, deductionOptions);
-        }, 600);
-        return;
-      }
-
-      // Guided - Deductions & Generate Report
-      if (value.startsWith('guided_ded_')) {
-        const ded = value.replace('guided_ded_', '');
-        const dedLabels = {
-          'mortgage': '🏠 Mortgage Interest',
-          'retirement': '💰 401k/IRA',
-          'charity': '🎁 Charitable Donations',
-          'business': '🚗 Business Expenses',
-          'homeoffice': '🏠 Home Office',
-          'none': 'Get My Results'
-        };
-
-        if (ded === 'mortgage') extractedData.tax_items.has_mortgage = true;
-        if (ded === 'retirement') extractedData.tax_items.has_retirement = true;
-        if (ded === 'charity') extractedData.tax_items.charitable = true;
-        if (ded === 'business') extractedData.tax_items.business_expenses = true;
-        if (ded === 'homeoffice') extractedData.tax_items.home_office = true;
-
-        addMessage('user', dedLabels[ded] || 'Get Results');
-        showTyping();
-        setTimeout(async () => {
-          hideTyping();
-          addMessage('ai', `<div style="text-align: center; padding: var(--space-5);">
-            <div style="font-size: var(--text-5xl); margin-bottom: var(--space-4);">✅</div>
-            <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--primary); margin-bottom: var(--space-2);">Profile Complete!</div>
-            <div style="color: var(--text-secondary); margin-bottom: var(--space-5);">Generating your personalized tax analysis...</div>
-          </div>`, []);
-          await performTaxCalculation();
-        }, 800);
-        return;
-      }
-
-      // Express W-2 Simple Flow (legacy - no longer accessible from UI)
-      if (value.startsWith('express_filing_')) {
-        const status = value.replace('express_filing_', '');
-        const statusMap = { 'single': 'Single', 'married': 'Married Filing Jointly', 'hoh': 'Head of Household', 'mfs': 'Married Filing Separately' };
-        extractedData.tax_profile.filing_status = statusMap[status] || 'Single';
-        addMessage('user', statusMap[status] || 'Single');
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 2 of 5</span>
-          </div>
-          <strong>What's your approximate annual income?</strong>`, [
-            { label: "Under $50k", value: 'express_income_50k' },
-            { label: "$50k - $100k", value: 'express_income_100k' },
-            { label: "$100k - $200k", value: 'express_income_200k' },
-            { label: "$200k+", value: 'express_income_200kplus' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Express Income Selection
-      if (value.startsWith('express_income_')) {
-        const incomeMap = { '50k': 35000, '100k': 75000, '200k': 150000, '200kplus': 250000 };
-        const incomeKey = value.replace('express_income_', '');
-        extractedData.tax_profile.total_income = incomeMap[incomeKey] || 75000;
-        const labelMap = { '50k': 'Under $50k', '100k': '$50k - $100k', '200k': '$100k - $200k', '200kplus': '$200k+' };
-        addMessage('user', labelMap[incomeKey]);
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 3 of 5</span>
-          </div>
-          <strong>Which state do you live in?</strong>`, [
-            { label: "California", value: 'express_state_CA' },
-            { label: "Texas", value: 'express_state_TX' },
-            { label: "New York", value: 'express_state_NY' },
-            { label: "Florida", value: 'express_state_FL' },
-            { label: "Other State →", value: 'express_state_other' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Express State Selection
-      if (value.startsWith('express_state_')) {
-        const state = value.replace('express_state_', '');
-        if (state === 'other') {
-          // Show more states
-          addMessage('user', 'Other State');
-          showTyping();
-          setTimeout(() => {
-            hideTyping();
-            addMessage('ai', `<strong>Select your state:</strong>`, [
-              { label: "Illinois", value: 'express_state_IL' },
-              { label: "Pennsylvania", value: 'express_state_PA' },
-              { label: "Ohio", value: 'express_state_OH' },
-              { label: "Georgia", value: 'express_state_GA' },
-              { label: "North Carolina", value: 'express_state_NC' },
-              { label: "Michigan", value: 'express_state_MI' },
-              { label: "New Jersey", value: 'express_state_NJ' },
-              { label: "Washington", value: 'express_state_WA' },
-              { label: "Arizona", value: 'express_state_AZ' },
-              { label: "Colorado", value: 'express_state_CO' }
-            ]);
-          }, 400);
-          return;
-        }
-        extractedData.tax_profile.state = state;
-        addMessage('user', state);
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 4 of 5</span>
-          </div>
-          <strong>Any dependents (children, elderly parents)?</strong>`, [
-            { label: "No dependents", value: 'express_deps_0' },
-            { label: "1 dependent", value: 'express_deps_1' },
-            { label: "2 dependents", value: 'express_deps_2' },
-            { label: "3+ dependents", value: 'express_deps_3plus' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Express Dependents Selection
-      if (value.startsWith('express_deps_')) {
-        const depsMap = { '0': 0, '1': 1, '2': 2, '3plus': 3 };
-        const depsKey = value.replace('express_deps_', '');
-        extractedData.tax_profile.dependents = depsMap[depsKey] || 0;
-        const labelMap = { '0': 'No dependents', '1': '1 dependent', '2': '2 dependents', '3plus': '3+ dependents' };
-        addMessage('user', labelMap[depsKey]);
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 5 of 5</span>
-          </div>
-          <strong>Any of these deductions?</strong> <span style="color: var(--text-secondary);">(Select all that apply)</span>`, [
-            { label: getIcon('home', 'sm') + ' Mortgage interest', value: 'express_ded_mortgage' },
-            { label: getIcon('currency-dollar', 'sm') + ' 401k/IRA contributions', value: 'express_ded_retirement' },
-            { label: getIcon('gift', 'sm') + ' Charitable donations', value: 'express_ded_charity' },
-            { label: getIcon('academic-cap', 'sm') + ' Student loans', value: 'express_ded_student' },
-            { label: getIcon('arrow-right', 'sm') + ' None / Skip to Report', value: 'express_ded_none' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Express Deduction Selection - Generate Report
-      if (value.startsWith('express_ded_')) {
-        const ded = value.replace('express_ded_', '');
-        if (ded === 'mortgage') {
-          extractedData.tax_items.has_mortgage = true;
-          addMessage('user', '🏠 Mortgage interest');
-        } else if (ded === 'retirement') {
-          extractedData.tax_items.has_retirement = true;
-          addMessage('user', '💰 401k/IRA contributions');
-        } else if (ded === 'charity') {
-          extractedData.tax_items.charitable = true;
-          addMessage('user', '🎁 Charitable donations');
-        } else if (ded === 'student') {
-          extractedData.tax_items.student_loan_interest = true;
-          addMessage('user', '📚 Student loans');
-        } else {
-          addMessage('user', 'Skip to Report');
-        }
-
-        // Now generate the report
-        showTyping();
-        setTimeout(async () => {
-          hideTyping();
-          // Show completion message
-          addMessage('ai', `<div style="text-align: center; padding: var(--space-5);">
-            <div style="font-size: var(--text-5xl); margin-bottom: var(--space-4);">✅</div>
-            <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--accent-light); margin-bottom: var(--space-2);">Profile Complete!</div>
-            <div style="color: var(--text-secondary); margin-bottom: var(--space-5);">Generating your personalized tax analysis...</div>
-          </div>`, []);
-
-          // Calculate and show results
-          await performTaxCalculation();
-        }, 800);
-        return;
-      }
-
-      // Express Family Flow - Kids count
-      if (value.startsWith('express_fam_')) {
-        const kidsMap = { '1kid': 1, '2kids': 2, '3kids': 3, '4plus': 4 };
-        const kidsKey = value.replace('express_fam_', '');
-        extractedData.tax_profile.dependents = kidsMap[kidsKey] || 1;
-        extractedData.tax_profile.qualifying_children_ctc = kidsMap[kidsKey] || 1;
-        const labelMap = { '1kid': '1 child', '2kids': '2 children', '3kids': '3 children', '4plus': '4+ children' };
-        addMessage('user', labelMap[kidsKey]);
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 2 of 6</span>
-          </div>
-          <strong>Combined household income?</strong>`, [
-            { label: "Under $75k", value: 'express_fam_inc_75k' },
-            { label: "$75k - $150k", value: 'express_fam_inc_150k' },
-            { label: "$150k - $250k", value: 'express_fam_inc_250k' },
-            { label: "$250k+", value: 'express_fam_inc_250kplus' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Express Family - Income
-      if (value.startsWith('express_fam_inc_')) {
-        const incomeMap = { '75k': 50000, '150k': 112500, '250k': 200000, '250kplus': 350000 };
-        const incKey = value.replace('express_fam_inc_', '');
-        extractedData.tax_profile.total_income = incomeMap[incKey] || 112500;
-        const labelMap = { '75k': 'Under $75k', '150k': '$75k - $150k', '250k': '$150k - $250k', '250kplus': '$250k+' };
-        addMessage('user', labelMap[incKey]);
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 3 of 6</span>
-          </div>
-          <strong>Do you pay for childcare?</strong>`, [
-            { label: "Yes, daycare/preschool", value: 'express_fam_care_yes' },
-            { label: "Yes, after-school care", value: 'express_fam_care_after' },
-            { label: "No childcare expenses", value: 'express_fam_care_no' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Express Family - Childcare
-      if (value.startsWith('express_fam_care_')) {
-        const care = value.replace('express_fam_care_', '');
-        if (care === 'yes' || care === 'after') {
-          extractedData.tax_profile.has_dependent_care = true;
-          addMessage('user', care === 'yes' ? 'Yes, daycare/preschool' : 'Yes, after-school care');
-        } else {
-          addMessage('user', 'No childcare expenses');
-        }
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 4 of 6</span>
-          </div>
-          <strong>Which state?</strong>`, [
-            { label: "California", value: 'express_fam_state_CA' },
-            { label: "Texas", value: 'express_fam_state_TX' },
-            { label: "New York", value: 'express_fam_state_NY' },
-            { label: "Florida", value: 'express_fam_state_FL' },
-            { label: "Other →", value: 'express_fam_state_other' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Express Family - State
-      if (value.startsWith('express_fam_state_')) {
-        const state = value.replace('express_fam_state_', '');
-        if (state === 'other') {
-          addMessage('user', 'Other State');
-          // Show more states
-          showTyping();
-          setTimeout(() => {
-            hideTyping();
-            addMessage('ai', `<strong>Select your state:</strong>`, [
-              { label: "Illinois", value: 'express_fam_state_IL' },
-              { label: "Pennsylvania", value: 'express_fam_state_PA' },
-              { label: "Ohio", value: 'express_fam_state_OH' },
-              { label: "Georgia", value: 'express_fam_state_GA' },
-              { label: "North Carolina", value: 'express_fam_state_NC' },
-              { label: "New Jersey", value: 'express_fam_state_NJ' },
-              { label: "Michigan", value: 'express_fam_state_MI' }
-            ]);
-          }, 400);
-          return;
-        }
-        extractedData.tax_profile.state = state;
-        addMessage('user', state);
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 5 of 6</span>
-          </div>
-          <strong>Do you own a home?</strong>`, [
-            { label: "Yes, with mortgage", value: 'express_fam_home_yes' },
-            { label: "Yes, paid off", value: 'express_fam_home_paid' },
-            { label: "No, renting", value: 'express_fam_home_no' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Express Family - Home
-      if (value.startsWith('express_fam_home_')) {
-        const home = value.replace('express_fam_home_', '');
-        if (home === 'yes') {
-          extractedData.tax_items.has_mortgage = true;
-          addMessage('user', 'Yes, with mortgage');
-        } else if (home === 'paid') {
-          addMessage('user', 'Yes, paid off');
-        } else {
-          addMessage('user', 'No, renting');
-        }
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 6 of 6</span>
-          </div>
-          <strong>401k or retirement contributions?</strong>`, [
-            { label: "Yes, contributing", value: 'express_fam_ret_yes' },
-            { label: "No", value: 'express_fam_ret_no' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Express Family - Retirement (Final step)
-      if (value.startsWith('express_fam_ret_')) {
-        const ret = value.replace('express_fam_ret_', '');
-        if (ret === 'yes') {
-          extractedData.tax_items.has_retirement = true;
-          addMessage('user', 'Yes, contributing');
-        } else {
-          addMessage('user', 'No');
-        }
-        showTyping();
-        setTimeout(async () => {
-          hideTyping();
-          addMessage('ai', `<div style="text-align: center; padding: var(--space-5);">
-            <div style="font-size: var(--text-5xl); margin-bottom: var(--space-4);">✅</div>
-            <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--accent-light); margin-bottom: var(--space-2);">Family Profile Complete!</div>
-            <div style="color: var(--text-secondary); margin-bottom: var(--space-5);">Calculating your Child Tax Credits and deductions...</div>
-          </div>`, []);
-          await performTaxCalculation();
-        }, 800);
-        return;
-      }
-
-      // Express Self-Employed Flow
-      if (value.startsWith('express_se_')) {
-        const seKey = value.replace('express_se_', '');
-        if (seKey === 'single' || seKey === 'married' || seKey === 'hoh') {
-          const statusMap = { 'single': 'Single', 'married': 'Married Filing Jointly', 'hoh': 'Head of Household' };
-          extractedData.tax_profile.filing_status = statusMap[seKey];
-          addMessage('user', statusMap[seKey]);
-          showTyping();
-          setTimeout(() => {
-            hideTyping();
-            addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-              <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 2 of 7</span>
-            </div>
-            <strong>What type of self-employment?</strong>`, [
-              { label: "Freelance/Consulting", value: 'express_se_type_freelance' },
-              { label: "Small Business", value: 'express_se_type_business' },
-              { label: "Gig Work (Uber, DoorDash)", value: 'express_se_type_gig' },
-              { label: "Online Sales", value: 'express_se_type_online' }
-            ]);
-          }, 600);
-          return;
-        }
-      }
-
-      // Express SE Type
-      if (value.startsWith('express_se_type_')) {
-        const type = value.replace('express_se_type_', '');
-        const typeMap = { 'freelance': 'Freelance/Consulting', 'business': 'Small Business', 'gig': 'Gig Work', 'online': 'Online Sales' };
-        extractedData.business.type = typeMap[type];
-        addMessage('user', typeMap[type]);
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 3 of 7</span>
-          </div>
-          <strong>Annual self-employment income?</strong>`, [
-            { label: "Under $50k", value: 'express_se_inc_50k' },
-            { label: "$50k - $100k", value: 'express_se_inc_100k' },
-            { label: "$100k - $200k", value: 'express_se_inc_200k' },
-            { label: "$200k+", value: 'express_se_inc_200kplus' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Express SE Income
-      if (value.startsWith('express_se_inc_')) {
-        const incMap = { '50k': 35000, '100k': 75000, '200k': 150000, '200kplus': 300000 };
-        const incKey = value.replace('express_se_inc_', '');
-        extractedData.tax_profile.total_income = incMap[incKey];
-        extractedData.business.revenue = incMap[incKey];
-        const labelMap = { '50k': 'Under $50k', '100k': '$50k - $100k', '200k': '$100k - $200k', '200kplus': '$200k+' };
-        addMessage('user', labelMap[incKey]);
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 4 of 7</span>
-          </div>
-          <strong>Common business expenses?</strong> <span style="color: var(--text-secondary);">(Select all)</span>`, [
-            { label: getIcon('home', 'sm') + ' Home office', value: 'express_se_exp_home' },
-            { label: getIcon('truck', 'sm') + ' Vehicle/mileage', value: 'express_se_exp_vehicle' },
-            { label: getIcon('cpu-chip', 'sm') + ' Equipment/software', value: 'express_se_exp_equip' },
-            { label: "📱 Phone/internet", value: 'express_se_exp_phone' },
-            { label: getIcon('arrow-right', 'sm') + ' Continue', value: 'express_se_exp_done' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Express SE Expenses
-      if (value.startsWith('express_se_exp_')) {
-        const exp = value.replace('express_se_exp_', '');
-        if (exp === 'home') {
-          extractedData.business.home_office = true;
-          addMessage('user', '🏠 Home office');
-          return; // Allow multiple selections
-        } else if (exp === 'vehicle') {
-          extractedData.business.vehicle = true;
-          addMessage('user', '🚗 Vehicle/mileage');
-          return;
-        } else if (exp === 'equip') {
-          extractedData.business.equipment = true;
-          addMessage('user', '💻 Equipment/software');
-          return;
-        } else if (exp === 'phone') {
-          extractedData.business.phone_internet = true;
-          addMessage('user', '📱 Phone/internet');
-          return;
-        } else { // done
-          addMessage('user', 'Continue');
-          showTyping();
-          setTimeout(() => {
-            hideTyping();
-            addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-              <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 5 of 7</span>
-            </div>
-            <strong>Which state?</strong>`, [
-              { label: "California", value: 'express_se_state_CA' },
-              { label: "Texas", value: 'express_se_state_TX' },
-              { label: "New York", value: 'express_se_state_NY' },
-              { label: "Florida", value: 'express_se_state_FL' },
-              { label: "Other →", value: 'express_se_state_other' }
-            ]);
-          }, 600);
-        }
-        return;
-      }
-
-      // Express SE State
-      if (value.startsWith('express_se_state_')) {
-        const state = value.replace('express_se_state_', '');
-        if (state === 'other') {
-          addMessage('user', 'Other State');
-          showTyping();
-          setTimeout(() => {
-            hideTyping();
-            addMessage('ai', `<strong>Select your state:</strong>`, [
-              { label: "Illinois", value: 'express_se_state_IL' },
-              { label: "Pennsylvania", value: 'express_se_state_PA' },
-              { label: "Washington", value: 'express_se_state_WA' },
-              { label: "Colorado", value: 'express_se_state_CO' },
-              { label: "Georgia", value: 'express_se_state_GA' }
-            ]);
-          }, 400);
-          return;
-        }
-        extractedData.tax_profile.state = state;
-        addMessage('user', state);
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 6 of 7</span>
-          </div>
-          <strong>Do you pay quarterly estimated taxes?</strong>`, [
-            { label: "Yes, I pay quarterly", value: 'express_se_est_yes' },
-            { label: "No / Not sure", value: 'express_se_est_no' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Express SE Estimated Taxes
-      if (value.startsWith('express_se_est_')) {
-        const est = value.replace('express_se_est_', '');
-        extractedData.tax_profile.pays_estimated = est === 'yes';
-        addMessage('user', est === 'yes' ? 'Yes, I pay quarterly' : 'No / Not sure');
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 7 of 7</span>
-          </div>
-          <strong>Any retirement contributions (SEP-IRA, Solo 401k)?</strong>`, [
-            { label: "Yes", value: 'express_se_ret_yes' },
-            { label: "No, but interested", value: 'express_se_ret_interested' },
-            { label: "No", value: 'express_se_ret_no' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Express SE Retirement (Final)
-      if (value.startsWith('express_se_ret_')) {
-        const ret = value.replace('express_se_ret_', '');
-        if (ret === 'yes') {
-          extractedData.tax_items.has_retirement = true;
-          addMessage('user', 'Yes');
-        } else if (ret === 'interested') {
-          extractedData.tax_profile.retirement_interested = true;
-          addMessage('user', 'No, but interested');
-        } else {
-          addMessage('user', 'No');
-        }
-        showTyping();
-        setTimeout(async () => {
-          hideTyping();
-          addMessage('ai', `<div style="text-align: center; padding: var(--space-5);">
-            <div style="font-size: var(--text-5xl); margin-bottom: var(--space-4);">✅</div>
-            <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--accent-light); margin-bottom: var(--space-2);">Self-Employment Profile Complete!</div>
-            <div style="color: var(--text-secondary); margin-bottom: var(--space-5);">Finding your QBI deduction and business write-offs...</div>
-          </div>`, []);
-          await performTaxCalculation();
-        }, 800);
-        return;
-      }
-
-      // Express Homeowner Flow
-      if (value.startsWith('express_home_')) {
-        const homeKey = value.replace('express_home_', '');
-        if (homeKey === 'single' || homeKey === 'married' || homeKey === 'hoh') {
-          const statusMap = { 'single': 'Single', 'married': 'Married Filing Jointly', 'hoh': 'Head of Household' };
-          extractedData.tax_profile.filing_status = statusMap[homeKey];
-          addMessage('user', statusMap[homeKey]);
-          showTyping();
-          setTimeout(() => {
-            hideTyping();
-            addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-              <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 2 of 6</span>
-            </div>
-            <strong>Annual household income?</strong>`, [
-              { label: "Under $75k", value: 'express_hm_inc_75k' },
-              { label: "$75k - $150k", value: 'express_hm_inc_150k' },
-              { label: "$150k - $300k", value: 'express_hm_inc_300k' },
-              { label: "$300k+", value: 'express_hm_inc_300kplus' }
-            ]);
-          }, 600);
-          return;
-        }
-      }
-
-      // Express Homeowner Income
-      if (value.startsWith('express_hm_inc_')) {
-        const incMap = { '75k': 50000, '150k': 112500, '300k': 225000, '300kplus': 400000 };
-        const incKey = value.replace('express_hm_inc_', '');
-        extractedData.tax_profile.total_income = incMap[incKey];
-        const labelMap = { '75k': 'Under $75k', '150k': '$75k - $150k', '300k': '$150k - $300k', '300kplus': '$300k+' };
-        addMessage('user', labelMap[incKey]);
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 3 of 6</span>
-          </div>
-          <strong>Annual mortgage interest paid?</strong>`, [
-            { label: "Under $5,000", value: 'express_hm_mort_5k' },
-            { label: "$5,000 - $15,000", value: 'express_hm_mort_15k' },
-            { label: "$15,000 - $30,000", value: 'express_hm_mort_30k' },
-            { label: "Over $30,000", value: 'express_hm_mort_30kplus' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Express Homeowner Mortgage
-      if (value.startsWith('express_hm_mort_')) {
-        const mortMap = { '5k': 3000, '15k': 10000, '30k': 22500, '30kplus': 40000 };
-        const mortKey = value.replace('express_hm_mort_', '');
-        extractedData.tax_items.mortgage_interest = mortMap[mortKey];
-        extractedData.tax_items.has_mortgage = true;
-        const labelMap = { '5k': 'Under $5,000', '15k': '$5,000 - $15,000', '30k': '$15,000 - $30,000', '30kplus': 'Over $30,000' };
-        addMessage('user', labelMap[mortKey]);
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 4 of 6</span>
-          </div>
-          <strong>Annual property taxes paid?</strong>`, [
-            { label: "Under $3,000", value: 'express_hm_prop_3k' },
-            { label: "$3,000 - $8,000", value: 'express_hm_prop_8k' },
-            { label: "$8,000 - $15,000", value: 'express_hm_prop_15k' },
-            { label: "Over $15,000", value: 'express_hm_prop_15kplus' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Express Homeowner Property Tax
-      if (value.startsWith('express_hm_prop_')) {
-        const propMap = { '3k': 2000, '8k': 5500, '15k': 11500, '15kplus': 20000 };
-        const propKey = value.replace('express_hm_prop_', '');
-        extractedData.tax_items.property_tax = propMap[propKey];
-        const labelMap = { '3k': 'Under $3,000', '8k': '$3,000 - $8,000', '15k': '$8,000 - $15,000', '15kplus': 'Over $15,000' };
-        addMessage('user', labelMap[propKey]);
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 5 of 6</span>
-          </div>
-          <strong>Which state?</strong>`, [
-            { label: "California", value: 'express_hm_state_CA' },
-            { label: "Texas", value: 'express_hm_state_TX' },
-            { label: "New York", value: 'express_hm_state_NY' },
-            { label: "Florida", value: 'express_hm_state_FL' },
-            { label: "New Jersey", value: 'express_hm_state_NJ' },
-            { label: "Other →", value: 'express_hm_state_other' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Express Homeowner State
-      if (value.startsWith('express_hm_state_')) {
-        const state = value.replace('express_hm_state_', '');
-        if (state === 'other') {
-          addMessage('user', 'Other State');
-          showTyping();
-          setTimeout(() => {
-            hideTyping();
-            addMessage('ai', `<strong>Select your state:</strong>`, [
-              { label: "Illinois", value: 'express_hm_state_IL' },
-              { label: "Pennsylvania", value: 'express_hm_state_PA' },
-              { label: "Massachusetts", value: 'express_hm_state_MA' },
-              { label: "Connecticut", value: 'express_hm_state_CT' },
-              { label: "Maryland", value: 'express_hm_state_MD' },
-              { label: "Virginia", value: 'express_hm_state_VA' }
-            ]);
-          }, 400);
-          return;
-        }
-        extractedData.tax_profile.state = state;
-        addMessage('user', state);
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-            <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Step 6 of 6</span>
-          </div>
-          <strong>Any dependents?</strong>`, [
-            { label: "No dependents", value: 'express_hm_deps_0' },
-            { label: "1-2 dependents", value: 'express_hm_deps_2' },
-            { label: "3+ dependents", value: 'express_hm_deps_3plus' }
-          ]);
-        }, 600);
-        return;
-      }
-
-      // Express Homeowner Dependents (Final)
-      if (value.startsWith('express_hm_deps_')) {
-        const depsMap = { '0': 0, '2': 2, '3plus': 3 };
-        const depsKey = value.replace('express_hm_deps_', '');
-        extractedData.tax_profile.dependents = depsMap[depsKey];
-        const labelMap = { '0': 'No dependents', '2': '1-2 dependents', '3plus': '3+ dependents' };
-        addMessage('user', labelMap[depsKey]);
-        showTyping();
-        setTimeout(async () => {
-          hideTyping();
-          addMessage('ai', `<div style="text-align: center; padding: var(--space-5);">
-            <div style="font-size: var(--text-5xl); margin-bottom: var(--space-4);">✅</div>
-            <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--accent-light); margin-bottom: var(--space-2);">Homeowner Profile Complete!</div>
-            <div style="color: var(--text-secondary); margin-bottom: var(--space-5);">Calculating your itemized deduction potential...</div>
-          </div>`, []);
-          await performTaxCalculation();
-        }, 800);
-        return;
-      }
 
       // Lead capture - Name entry
       if (value === 'enter_name') {
@@ -3748,106 +2993,6 @@
       } else if (value === 'upload_w2' || value === 'upload_1099' || value === 'upload_other') {
         addMessage('user', 'I want to upload a document');
         document.getElementById('fileInput').click();
-
-      // Post-Upload Express Flow handlers
-      } else if (value.startsWith('post_upload_filing_')) {
-        const status = value.replace('post_upload_filing_', '');
-        const statusMap = { 'single': 'Single', 'married': 'Married Filing Jointly', 'hoh': 'Head of Household', 'mfs': 'Married Filing Separately' };
-        extractedData.tax_profile.filing_status = statusMap[status];
-        addMessage('user', statusMap[status]);
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          // Check if state is needed
-          if (!extractedData.tax_profile.state) {
-            addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-              <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Quick Question 2</span>
-            </div>
-            <strong>Which state?</strong>`, [
-              { label: 'California', value: 'post_upload_state_CA' },
-              { label: 'Texas', value: 'post_upload_state_TX' },
-              { label: 'New York', value: 'post_upload_state_NY' },
-              { label: 'Florida', value: 'post_upload_state_FL' },
-              { label: 'Other →', value: 'post_upload_state_other' }
-            ]);
-          } else if (!extractedData.tax_profile.dependents && extractedData.tax_profile.dependents !== 0) {
-            addMessage('ai', `<strong>Any dependents?</strong>`, [
-              { label: 'No dependents', value: 'post_upload_deps_0' },
-              { label: '1-2 dependents', value: 'post_upload_deps_2' },
-              { label: '3+ dependents', value: 'post_upload_deps_3plus' }
-            ]);
-          } else {
-            // All done - generate report
-            addMessage('ai', `<div style="text-align: center; padding: var(--space-4);">
-              <div style="font-size: 32px; margin-bottom: var(--space-3);">✅</div>
-              <div style="font-size: var(--text-lg); font-weight: var(--font-semibold);">Ready to Generate Report!</div>
-            </div>`, [
-              { label: getIcon('chart-bar', 'sm') + ' Generate My Tax Report', value: 'generate_report', primary: true }
-            ]);
-          }
-        }, 500);
-        return;
-
-      } else if (value.startsWith('post_upload_state_')) {
-        const state = value.replace('post_upload_state_', '');
-        if (state === 'other') {
-          addMessage('user', 'Other State');
-          showTyping();
-          setTimeout(() => {
-            hideTyping();
-            addMessage('ai', `<strong>Select your state:</strong>`, [
-              { label: 'Illinois', value: 'post_upload_state_IL' },
-              { label: 'Pennsylvania', value: 'post_upload_state_PA' },
-              { label: 'Ohio', value: 'post_upload_state_OH' },
-              { label: 'Georgia', value: 'post_upload_state_GA' },
-              { label: 'Washington', value: 'post_upload_state_WA' },
-              { label: 'Colorado', value: 'post_upload_state_CO' }
-            ]);
-          }, 300);
-          return;
-        }
-        extractedData.tax_profile.state = state;
-        addMessage('user', state);
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          if (!extractedData.tax_profile.dependents && extractedData.tax_profile.dependents !== 0) {
-            addMessage('ai', `<div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-              <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Last Question</span>
-            </div>
-            <strong>Any dependents?</strong>`, [
-              { label: 'No dependents', value: 'post_upload_deps_0' },
-              { label: '1-2 dependents', value: 'post_upload_deps_2' },
-              { label: '3+ dependents', value: 'post_upload_deps_3plus' }
-            ]);
-          } else {
-            addMessage('ai', `<div style="text-align: center; padding: var(--space-4);">
-              <div style="font-size: 32px; margin-bottom: var(--space-3);">✅</div>
-              <div style="font-size: var(--text-lg); font-weight: var(--font-semibold);">Ready to Generate Report!</div>
-            </div>`, [
-              { label: getIcon('chart-bar', 'sm') + ' Generate My Tax Report', value: 'generate_report', primary: true }
-            ]);
-          }
-        }, 500);
-        return;
-
-      } else if (value.startsWith('post_upload_deps_')) {
-        const depsMap = { '0': 0, '2': 2, '3plus': 3 };
-        const depsKey = value.replace('post_upload_deps_', '');
-        extractedData.tax_profile.dependents = depsMap[depsKey] || 0;
-        const labelMap = { '0': 'No dependents', '2': '1-2 dependents', '3plus': '3+ dependents' };
-        addMessage('user', labelMap[depsKey]);
-        showTyping();
-        setTimeout(async () => {
-          hideTyping();
-          addMessage('ai', `<div style="text-align: center; padding: var(--space-5);">
-            <div style="font-size: var(--text-5xl); margin-bottom: var(--space-4);">✅</div>
-            <div style="font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--accent-light); margin-bottom: var(--space-2);">Profile Complete!</div>
-            <div style="color: var(--text-secondary); margin-bottom: var(--space-5);">Generating your personalized tax analysis...</div>
-          </div>`, []);
-          await performTaxCalculation();
-        }, 600);
-        return;
 
       } else if (value.startsWith('filing_')) {
         const status = value.replace('filing_', '');
@@ -4161,14 +3306,7 @@
       // State selection handlers
       } else if (value.startsWith('state_')) {
         const stateCode = value.replace('state_', '');
-        const stateLabels = {
-          'CA': 'California',
-          'NY': 'New York',
-          'TX': 'Texas',
-          'FL': 'Florida',
-          'other': 'Other state'
-        };
-        const stateText = stateLabels[stateCode] || stateCode;
+        const stateText = displayLabel || stateCode;
 
         addMessage('user', stateText);
         // Use 'OTHER' for other states so the flow continues (not empty string)
@@ -4526,8 +3664,8 @@
       // Mortgage amount handlers
       } else if (value.startsWith('mortgageamt_')) {
         const amt = value.replace('mortgageamt_', '');
-        const amounts = { 'under5k': 3000, '5_15k': 10000, '15_30k': 22500, 'over30k': 40000 };
-        const labels = { 'under5k': 'Under $5,000', '5_15k': '$5,000-$15,000', '15_30k': '$15,000-$30,000', 'over30k': 'Over $30,000' };
+        const amounts = { 'under5k': 3000, '5_15k': 10000, '15_30k': 22500, 'over30k': 40000, 'none': 0 };
+        const labels = { 'under5k': 'Under $5,000', '5_15k': '$5,000-$15,000', '15_30k': '$15,000-$30,000', 'over30k': 'Over $30,000', 'none': 'No mortgage' };
         addMessage('user', labels[amt] || amt);
         extractedData.tax_items.mortgage_interest = amounts[amt] || 10000;
 
@@ -6687,8 +5825,9 @@
       } else if (value === 'generate_report_early') {
         addMessage('user', 'Generate my full report');
         updateProgress(90);
-        // Generate actual advisory report
-        value = 'generate_report'; // Fall through to existing handler
+        // Dispatch to the main generate_report handler
+        handleQuickAction('generate_report');
+        return;
 
       } else if (value === 'request_cpa_early') {
         addMessage('user', 'I want to speak with a CPA');
@@ -6786,11 +5925,11 @@
           if (homeType === 'yes') {
             // Primary residence - ask about mortgage and property tax
             addMessage('ai', `Homeownership offers great tax benefits! Let me understand your situation better.<br><br><strong>What's your approximate annual mortgage interest?</strong>`, [
-              { label: 'Under $5,000', value: 'mortgage_under5k' },
-              { label: '$5,000 - $15,000', value: 'mortgage_5_15k' },
-              { label: '$15,000 - $30,000', value: 'mortgage_15_30k' },
-              { label: 'Over $30,000', value: 'mortgage_over30k' },
-              { label: 'No mortgage / Paid off', value: 'mortgage_none' }
+              { label: 'Under $5,000', value: 'mortgageamt_under5k' },
+              { label: '$5,000 - $15,000', value: 'mortgageamt_5_15k' },
+              { label: '$15,000 - $30,000', value: 'mortgageamt_15_30k' },
+              { label: 'Over $30,000', value: 'mortgageamt_over30k' },
+              { label: 'No mortgage / Paid off', value: 'mortgageamt_none' }
             ]);
           } else if (homeType === 'rental') {
             // Rental property owner - ask about rental details
@@ -6804,50 +5943,6 @@
             continueToDeductionsFromFocus();
           }
         }, 1000);
-
-      // Mortgage amount handlers
-      } else if (value.startsWith('mortgage_')) {
-        const mortgageLevel = value.replace('mortgage_', '');
-        const mortgageAmounts = {
-          'under5k': 2500, '5_15k': 10000, '15_30k': 22500, 'over30k': 40000, 'none': 0
-        };
-        const mortgageLabels = {
-          'under5k': 'Under $5,000', '5_15k': '$5,000 - $15,000',
-          '15_30k': '$15,000 - $30,000', 'over30k': 'Over $30,000', 'none': 'No mortgage'
-        };
-        addMessage('user', mortgageLabels[mortgageLevel] || mortgageLevel);
-        extractedData.tax_items.mortgage_interest = mortgageAmounts[mortgageLevel] || 0;
-
-        // Now ask about property tax
-        showTyping();
-        setTimeout(() => {
-          hideTyping();
-          addMessage('ai', `<strong>What's your approximate annual property tax?</strong>`, [
-            { label: 'Under $3,000', value: 'proptax_under3k' },
-            { label: '$3,000 - $8,000', value: 'proptax_3_8k' },
-            { label: '$8,000 - $15,000', value: 'proptax_8_15k' },
-            { label: 'Over $15,000', value: 'proptax_over15k' },
-            { label: 'Not sure / Skip', value: 'proptax_skip' }
-          ]);
-        }, 800);
-
-      // Property tax handlers
-      } else if (value.startsWith('proptax_')) {
-        const propTaxLevel = value.replace('proptax_', '');
-        const propTaxAmounts = {
-          'under3k': 1500, '3_8k': 5500, '8_15k': 11500, 'over15k': 20000, 'skip': 0
-        };
-        if (propTaxLevel !== 'skip') {
-          const propTaxLabels = {
-            'under3k': 'Under $3,000', '3_8k': '$3,000 - $8,000',
-            '8_15k': '$8,000 - $15,000', 'over15k': 'Over $15,000'
-          };
-          addMessage('user', propTaxLabels[propTaxLevel] || propTaxLevel);
-        } else {
-          addMessage('user', 'Skip');
-        }
-        extractedData.tax_items.property_tax = propTaxAmounts[propTaxLevel] || 0;
-        continueToDeductionsFromFocus();
 
       // Rental property count handlers
       } else if (value.startsWith('rental_props_')) {
@@ -7047,10 +6142,10 @@
           if (invType === 'brokerage' || invType === 'multiple') {
             // Ask about capital gains/losses
             addMessage('ai', `Taxable investment accounts have important tax implications.<br><br><strong>Did you have any capital gains or losses this year?</strong>`, [
-              { label: 'Net gains (profit)', value: 'capgains_gains' },
-              { label: 'Net losses', value: 'capgains_losses' },
-              { label: 'About break-even', value: 'capgains_even' },
-              { label: 'Haven\'t sold anything', value: 'capgains_none' }
+              { label: 'Net gains (profit)', value: 'capgain_gains' },
+              { label: 'Net losses', value: 'capgain_losses' },
+              { label: 'About break-even', value: 'capgain_even' },
+              { label: 'Haven\'t sold anything', value: 'capgain_none' }
             ]);
           } else if (invType === 'traditional') {
             // Ask about 401k contributions
@@ -7070,63 +6165,6 @@
             ]);
           }
         }, 800);
-
-      // Capital gains handlers
-      } else if (value.startsWith('capgains_')) {
-        const cgType = value.replace('capgains_', '');
-        const cgLabels = {
-          'gains': 'Net gains (profit)', 'losses': 'Net losses',
-          'even': 'About break-even', 'none': 'Haven\'t sold anything'
-        };
-        addMessage('user', cgLabels[cgType] || cgType);
-        extractedData.tax_profile.has_capital_gains = (cgType === 'gains');
-        extractedData.tax_profile.has_capital_losses = (cgType === 'losses');
-
-        if (cgType === 'gains') {
-          showTyping();
-          setTimeout(() => {
-            hideTyping();
-            addMessage('ai', `<strong>Approximately how much in capital gains?</strong>`, [
-              { label: 'Under $10,000', value: 'capgains_amt_under10k' },
-              { label: '$10,000 - $50,000', value: 'capgains_amt_10_50k' },
-              { label: '$50,000 - $100,000', value: 'capgains_amt_50_100k' },
-              { label: 'Over $100,000', value: 'capgains_amt_over100k' }
-            ]);
-          }, 800);
-        } else if (cgType === 'losses') {
-          showTyping();
-          setTimeout(() => {
-            hideTyping();
-            addMessage('ai', `Tax-loss harvesting can offset gains and up to $3,000 of ordinary income!<br><br><strong>Approximately how much in capital losses?</strong>`, [
-              { label: 'Under $3,000', value: 'caploss_amt_under3k' },
-              { label: '$3,000 - $10,000', value: 'caploss_amt_3_10k' },
-              { label: 'Over $10,000', value: 'caploss_amt_over10k' }
-            ]);
-          }, 800);
-        } else {
-          continueToDeductionsFromFocus();
-        }
-
-      // Capital gains amount handlers
-      } else if (value.startsWith('capgains_amt_')) {
-        const amt = value.replace('capgains_amt_', '');
-        const amounts = { 'under10k': 5000, '10_50k': 30000, '50_100k': 75000, 'over100k': 150000 };
-        const labels = {
-          'under10k': 'Under $10,000', '10_50k': '$10,000 - $50,000',
-          '50_100k': '$50,000 - $100,000', 'over100k': 'Over $100,000'
-        };
-        addMessage('user', labels[amt] || amt);
-        extractedData.tax_profile.capital_gains = amounts[amt] || 0;
-        continueToDeductionsFromFocus();
-
-      // Capital loss amount handlers
-      } else if (value.startsWith('caploss_amt_')) {
-        const amt = value.replace('caploss_amt_', '');
-        const amounts = { 'under3k': 1500, '3_10k': 6500, 'over10k': 15000 };
-        const labels = { 'under3k': 'Under $3,000', '3_10k': '$3,000 - $10,000', 'over10k': 'Over $10,000' };
-        addMessage('user', labels[amt] || amt);
-        extractedData.tax_profile.capital_losses = amounts[amt] || 0;
-        continueToDeductionsFromFocus();
 
       // Traditional contribution handlers
       } else if (value.startsWith('trad_contrib_')) {
@@ -7257,11 +6295,11 @@
 
         // Actually generate the report via API
         try {
-          const reportResponse = await fetch(`/api/advisor/report`, {
+          const reportResponse = await fetchWithRetry(`/api/advisor/report`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              ...(window.csrfToken ? {'X-CSRF-Token': window.csrfToken} : {})
+              ...(getCSRFToken() ? {'X-CSRF-Token': getCSRFToken()} : {})
             },
             body: JSON.stringify({ session_id: sessionId })
           });
@@ -7306,7 +6344,7 @@
           }
         } catch (error) {
           hideTyping();
-          console.error('Report generation failed:', error);
+          DevLogger.error('Report generation failed:', error);
           addMessage('ai', `<strong>Connection issue while generating report.</strong><br><br>Your data is saved. Please check your connection and try again.`, [
             { label: getIcon('arrow-path', 'sm') + ' Retry', value: 'generate_report' },
             { label: getIcon('document-text', 'sm') + ' View Strategies', value: 'show_strategies' }
@@ -7641,15 +6679,12 @@
         sessionStorage.removeItem('tax_session_id');
         conversationHistory = [];
         extractedData = {
-          filing_status: null,
-          income_range: null,
-          income_amount: null,
-          deductions: [],
-          credits: [],
-          focus_area: null,
-          tax_profile: {},
-          documents: [],
-          lead_data: { score: 0 }
+          contact: { name: null, email: null, phone: null, preferred_contact: null },
+          tax_profile: { filing_status: null, total_income: null, w2_income: null, business_income: null, investment_income: null, rental_income: null, dependents: null, state: null },
+          tax_items: { mortgage_interest: null, property_tax: null, charitable: null, medical: null, student_loan_interest: null, retirement_contributions: null, has_hsa: false, has_529: false },
+          business: { type: null, revenue: null, expenses: null, entity_type: null },
+          lead_data: { score: 0, complexity: 'simple', estimated_savings: 0, engagement_level: 0, ready_for_cpa: false, urgency: 'normal' },
+          documents: []
         };
         // Reset questioning state to allow all questions again
         resetQuestioningState();
@@ -7876,11 +6911,11 @@
       showTyping();
 
       try {
-        const response = await fetch('/api/advisor/report/email', {
+        const response = await fetchWithRetry('/api/advisor/report/email', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(window.csrfToken ? {'X-CSRF-Token': window.csrfToken} : {})
+            ...(getCSRFToken() ? {'X-CSRF-Token': getCSRFToken()} : {})
           },
           body: JSON.stringify({
             session_id: sessionId,
@@ -7905,7 +6940,7 @@
         }
       } catch (error) {
         hideTyping();
-        console.error('Email send failed:', error);
+        DevLogger.error('Email send failed:', error);
         addMessage('ai', `<strong>Unable to send email right now.</strong><br><br>Please download the PDF report instead. You can then email it manually or share it with your CPA.`, [
           { label: getIcon('arrow-down-tray', 'sm') + ' Download PDF Report', value: 'download_report' },
           { label: getIcon('arrow-path', 'sm') + ' Try Again', value: 'email_report' }
@@ -8951,74 +7986,11 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         // Update phase based on new extracted data
         updatePhaseFromData();
 
-        // INTEGRATION: Continue questioning flow after document upload
-        // Only if we have enough data and didn't already show quick actions
-        const hasBasicData = extractedData.tax_profile.filing_status ||
-                            extractedData.tax_profile.total_income ||
-                            (data.extracted_data && Object.keys(data.extracted_data).length > 2);
-
-        if (hasBasicData && (!data.quick_actions || data.quick_actions.length === 0)) {
-          // Offer Express Mode completion after document upload
+        // After document analysis, use IQ engine to fill remaining gaps
+        // The IQ engine automatically skips questions for fields already extracted
+        if (!data.quick_actions || data.quick_actions.length === 0) {
           setTimeout(() => {
-            // Check what's missing and offer targeted follow-up
-            const missingFields = [];
-            if (!extractedData.tax_profile.filing_status) missingFields.push('filing_status');
-            if (!extractedData.tax_profile.state) missingFields.push('state');
-            if (!extractedData.tax_profile.dependents && extractedData.tax_profile.dependents !== 0) missingFields.push('dependents');
-
-            const incomeDisplay = extractedData.tax_profile.total_income
-              ? `<div style="background: rgba(76, 175, 80, 0.15); padding: var(--space-3); border-radius: var(--radius-lg); margin: var(--space-3) 0;">
-                  <span style="color: var(--accent-light);">✓ Income detected:</span>
-                  <strong>$${extractedData.tax_profile.total_income.toLocaleString()}</strong>
-                </div>`
-              : '';
-
-            if (missingFields.length > 0) {
-              // Ask the first missing question in Express style
-              if (!extractedData.tax_profile.filing_status) {
-                addMessage('ai', `<div style="font-size: var(--text-lg); font-weight: var(--font-semibold); margin-bottom: var(--space-3);">📋 Document Analyzed!</div>
-                ${incomeDisplay}
-                <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-3);">
-                  <span style="background: var(--primary); color: white; padding: var(--space-0-5) var(--space-2); border-radius: var(--radius-xl); font-size: var(--text-2xs);">Quick Question 1 of ${missingFields.length}</span>
-                </div>
-                <strong>What's your filing status?</strong>`, [
-                  { label: 'Single', value: 'post_upload_filing_single' },
-                  { label: 'Married Filing Jointly', value: 'post_upload_filing_married' },
-                  { label: 'Head of Household', value: 'post_upload_filing_hoh' },
-                  { label: 'Married Filing Separately', value: 'post_upload_filing_mfs' }
-                ]);
-              } else if (!extractedData.tax_profile.state) {
-                addMessage('ai', `<div style="font-size: var(--text-lg); font-weight: var(--font-semibold); margin-bottom: var(--space-3);">📋 Almost Done!</div>
-                ${incomeDisplay}
-                <strong>Which state do you live in?</strong>`, [
-                  { label: 'California', value: 'post_upload_state_CA' },
-                  { label: 'Texas', value: 'post_upload_state_TX' },
-                  { label: 'New York', value: 'post_upload_state_NY' },
-                  { label: 'Florida', value: 'post_upload_state_FL' },
-                  { label: 'Other →', value: 'post_upload_state_other' }
-                ]);
-              } else {
-                addMessage('ai', `<div style="font-size: var(--text-lg); font-weight: var(--font-semibold); margin-bottom: var(--space-3);">📋 One More Question!</div>
-                ${incomeDisplay}
-                <strong>Any dependents?</strong>`, [
-                  { label: 'No dependents', value: 'post_upload_deps_0' },
-                  { label: '1-2 dependents', value: 'post_upload_deps_2' },
-                  { label: '3+ dependents', value: 'post_upload_deps_3plus' }
-                ]);
-              }
-            } else {
-              // All data present - offer to generate report
-              addMessage('ai', `<div style="text-align: center; padding: var(--space-4);">
-                <div style="font-size: 32px; margin-bottom: var(--space-3);">✅</div>
-                <div style="font-size: var(--text-lg); font-weight: var(--font-semibold); margin-bottom: var(--space-2);">Document Analysis Complete!</div>
-                ${incomeDisplay}
-                <div style="color: var(--text-secondary);">I have everything needed for your analysis.</div>
-              </div>`, [
-                { label: getIcon('chart-bar', 'sm') + ' Generate My Tax Report', value: 'generate_report', primary: true },
-                { label: getIcon('document-text', 'sm') + ' Upload more documents', value: 'yes_upload' },
-                { label: getIcon('clipboard-document-list', 'sm') + ' Review extracted data', value: 'review_data' }
-              ]);
-            }
+            startIntelligentQuestioning();
           }, 500);
         }
 
@@ -9100,29 +8072,34 @@ If they're ready to move forward, suggest generating their comprehensive advisor
     }
 
     // Auto-resize textarea
-    document.getElementById('userInput').addEventListener('input', function() {
-      this.style.height = 'auto';
-      this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-    });
+    const userInputEl = document.getElementById('userInput');
+    if (userInputEl) {
+      userInputEl.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+      });
+    }
 
     // Drag and drop
     const uploadZone = document.querySelector('.upload-zone');
-    uploadZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      uploadZone.classList.add('dragover');
-    });
+    if (uploadZone) {
+      uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('dragover');
+      });
 
-    uploadZone.addEventListener('dragleave', () => {
-      uploadZone.classList.remove('dragover');
-    });
+      uploadZone.addEventListener('dragleave', () => {
+        uploadZone.classList.remove('dragover');
+      });
 
-    uploadZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      uploadZone.classList.remove('dragover');
-      const files = e.dataTransfer.files;
-      document.getElementById('fileInput').files = files;
-      handleFileSelect({ target: { files } });
-    });
+      uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        document.getElementById('fileInput').files = files;
+        handleFileSelect({ target: { files } });
+      });
+    }
 
     // ===================================================================
     // LEAD CAPTURE & QUALIFICATION FUNCTIONS
@@ -9590,6 +8567,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         hideTyping();
 
         const profile = extractedData.tax_profile;
+        const items = extractedData.tax_items;
         const isHighEarner = (profile.total_income || 0) >= 200000;
         const isVeryHighEarner = (profile.total_income || 0) >= 500000;
         const isSelfEmployed = profile.is_self_employed || profile.income_source === 'Self-Employed / 1099';
@@ -9703,32 +8681,6 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           return;
         }
 
-        // Step 2b: Other State - ask which one
-        if (profile.state === 'OTHER' && !profile.state_name && !wasQuestionAsked('state_name')) {
-          markQuestionAsked('state_name');
-          addMessage('ai', `Which state do you reside in?<br><br>
-            <select id="stateSelect" style="width: 100%; padding: var(--space-3); margin: var(--space-2) 0; border: 2px solid var(--border); border-radius: var(--radius-lg); font-size: 15px; background: white;">
-              <option value="">Select your state...</option>
-              <option value="AL">Alabama</option><option value="AK">Alaska</option><option value="AZ">Arizona</option>
-              <option value="AR">Arkansas</option><option value="CO">Colorado</option><option value="CT">Connecticut</option>
-              <option value="DE">Delaware</option><option value="DC">District of Columbia</option><option value="GA">Georgia</option>
-              <option value="HI">Hawaii</option><option value="ID">Idaho</option><option value="IL">Illinois</option>
-              <option value="IN">Indiana</option><option value="IA">Iowa</option><option value="KS">Kansas</option>
-              <option value="KY">Kentucky</option><option value="LA">Louisiana</option><option value="ME">Maine</option>
-              <option value="MD">Maryland</option><option value="MA">Massachusetts</option><option value="MI">Michigan</option>
-              <option value="MN">Minnesota</option><option value="MS">Mississippi</option><option value="MO">Missouri</option>
-              <option value="MT">Montana</option><option value="NE">Nebraska</option><option value="NV">Nevada</option>
-              <option value="NH">New Hampshire</option><option value="NJ">New Jersey</option><option value="NM">New Mexico</option>
-              <option value="NC">North Carolina</option><option value="ND">North Dakota</option><option value="OH">Ohio</option>
-              <option value="OK">Oklahoma</option><option value="OR">Oregon</option><option value="PA">Pennsylvania</option>
-              <option value="RI">Rhode Island</option><option value="SC">South Carolina</option><option value="SD">South Dakota</option>
-              <option value="TN">Tennessee</option><option value="UT">Utah</option><option value="VT">Vermont</option>
-              <option value="VA">Virginia</option><option value="WA">Washington</option><option value="WV">West Virginia</option>
-              <option value="WI">Wisconsin</option><option value="WY">Wyoming</option>
-            </select>
-            <button onclick="selectOtherState()" style="padding: var(--space-3) var(--space-6); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold); margin-top: var(--space-2);">Continue →</button>`);
-          return;
-        }
 
         // Step 3: Income Range
         if (!profile.total_income) {
@@ -10126,8 +9078,8 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
         // Standard Deduction vs Itemized Decision
         const hasItemizableDeductions = profile.has_mortgage || profile.has_charitable || profile.has_medical || (items.property_tax > 0);
-        const standardDeduction = profile.filing_status === 'Married Filing Jointly' ? 29200 :
-                                  profile.filing_status === 'Head of Household' ? 21900 : 14600;
+        const standardDeduction = profile.filing_status === 'Married Filing Jointly' ? 30000 :
+                                  profile.filing_status === 'Head of Household' ? 22500 : 15000;
         if (hasItemizableDeductions && !profile.itemize_decision_explored && !wasQuestionAsked('itemize_decision')) {
           markQuestionAsked('itemize_decision');
           const estimatedItemized = (items.mortgage_interest || 0) + Math.min((items.property_tax || 0), 10000) + (items.charitable || 0) + (items.medical || 0);
@@ -10252,25 +9204,6 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       }, 1000);
     }
 
-    // Handler for selecting state from dropdown
-    function selectOtherState() {
-      const select = document.getElementById('stateSelect');
-      const stateCode = select ? select.value : '';
-
-      if (!stateCode) {
-        showToast('Please select your state', 'warning');
-        return;
-      }
-
-      const stateName = select.options[select.selectedIndex].text;
-      addMessage('user', stateName);
-      extractedData.tax_profile.state = stateCode;
-      extractedData.tax_profile.state_name = stateName;
-      calculateLeadScore();
-
-      // Ask about multi-state filing
-      askMultiStateQuestion();
-    }
 
     // Multi-state filing question
     function askMultiStateQuestion() {
@@ -10795,7 +9728,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           showToast('Unable to unlock strategies. Please try again.', 'error');
         }
       } catch (error) {
-        console.error('Unlock error:', error);
+        DevLogger.error('Unlock error:', error);
         showToast('Connection issue. Please try again to unlock strategies.', 'error');
       }
     };
@@ -11191,6 +10124,10 @@ If they're ready to move forward, suggest generating their comprehensive advisor
         if (sessionToken) {
             xhr.setRequestHeader('X-Session-Token', sessionToken);
         }
+        const csrfToken = typeof getCSRFToken === 'function' ? getCSRFToken() : null;
+        if (csrfToken) {
+            xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+        }
         xhr.send(formData);
       });
     }
@@ -11326,20 +10263,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
     }
 
     // Phase 3.5: Offline Detection
-    // Note: isOnline, offlineQueue, showOfflineBanner, hideOfflineBanner,
-    // and processOfflineQueue are all declared earlier in the file.
-
-    window.addEventListener('offline', () => {
-      isOnline = false;
-      showOfflineBanner();
-    });
-
-    window.addEventListener('online', async () => {
-      isOnline = true;
-      hideOfflineBanner();
-      // Use the async version defined earlier to process messages sequentially
-      await processOfflineQueue();
-    });
+    // Note: online/offline listeners are registered in initNetworkMonitoring() above
 
     // ===================================================================
     // PHASE 4: DOCUMENT HANDLING IMPROVEMENTS

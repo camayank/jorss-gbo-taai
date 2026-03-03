@@ -18,7 +18,8 @@ from decimal import Decimal
 from enum import Enum
 from datetime import datetime
 
-from openai import OpenAI
+from services.ai import get_ai_service, run_async
+from config.ai_providers import ModelCapability, get_available_providers
 
 logger = logging.getLogger(__name__)
 
@@ -197,15 +198,10 @@ class TaxOpportunityDetector:
     }
 
     def __init__(self, api_key: Optional[str] = None):
-        """Initialize detector with OpenAI client."""
-        api_key = api_key or os.getenv("OPENAI_API_KEY")
-        if api_key:
-            self.client = OpenAI(api_key=api_key)
-            self.model = os.getenv("OPENAI_MODEL", "gpt-4o")
-        else:
-            self.client = None
-            self.model = None
-            logger.warning("No OpenAI API key - running in rule-based mode only")
+        """Initialize detector."""
+        self._ai_available = len(get_available_providers()) > 0
+        if not self._ai_available:
+            logger.warning("No AI providers configured - running in rule-based mode only")
 
     def detect_opportunities(self, profile: TaxpayerProfile) -> List[TaxOpportunity]:
         """
@@ -226,7 +222,7 @@ class TaxOpportunityDetector:
         opportunities.extend(self._detect_timing_opportunities(profile))
 
         # AI-powered analysis for nuanced opportunities
-        if self.client:
+        if self._ai_available:
             ai_opportunities = self._ai_detect_opportunities(profile)
             opportunities.extend(ai_opportunities)
 
@@ -739,46 +735,45 @@ class TaxOpportunityDetector:
         """Use AI to detect nuanced opportunities that rules might miss."""
         opportunities = []
 
-        if not self.client:
+        if not self._ai_available:
             return opportunities
 
-        # Define multi-function schema for comprehensive analysis
-        functions = [
-            {
-                "name": "identify_tax_opportunities",
-                "description": "Identify personalized tax-saving opportunities based on taxpayer profile",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "opportunities": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "title": {"type": "string"},
-                                    "description": {"type": "string"},
-                                    "category": {
-                                        "type": "string",
-                                        "enum": ["deduction", "credit", "retirement", "business",
-                                                "education", "healthcare", "real_estate", "investment", "timing"]
-                                    },
-                                    "priority": {"type": "string", "enum": ["high", "medium", "low"]},
-                                    "estimated_savings_min": {"type": "number"},
-                                    "estimated_savings_max": {"type": "number"},
-                                    "action_required": {"type": "string"},
-                                    "confidence": {"type": "number", "minimum": 0, "maximum": 1}
-                                },
-                                "required": ["title", "description", "category", "priority", "action_required"]
-                            }
-                        }
-                    },
-                    "required": ["opportunities"]
+        # JSON schema for structured extraction
+        extraction_schema = {
+            "type": "object",
+            "properties": {
+                "opportunities": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "title": {"type": "string"},
+                            "description": {"type": "string"},
+                            "category": {
+                                "type": "string",
+                                "enum": ["deduction", "credit", "retirement", "business",
+                                        "education", "healthcare", "real_estate", "investment", "timing"]
+                            },
+                            "priority": {"type": "string", "enum": ["high", "medium", "low"]},
+                            "estimated_savings_min": {"type": "number"},
+                            "estimated_savings_max": {"type": "number"},
+                            "action_required": {"type": "string"},
+                            "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+                        },
+                        "required": ["title", "description", "category", "priority", "action_required"]
+                    }
                 }
-            }
-        ]
+            },
+            "required": ["opportunities"]
+        }
 
         # Build profile summary for AI
-        profile_summary = f"""
+        profile_summary = f"""You are a tax expert identifying personalized tax-saving opportunities.
+Focus on actionable opportunities that could save the taxpayer money.
+Be specific and practical. Include opportunities that may not be obvious.
+
+Based on this taxpayer profile, identify tax-saving opportunities:
+
 Taxpayer Profile for {self.TAX_YEAR}:
 - Filing Status: {profile.filing_status}
 - Age: {profile.age}
@@ -804,52 +799,33 @@ Life Events This Year:
 """
 
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a tax expert identifying personalized tax-saving opportunities. "
-                                  "Focus on actionable opportunities that could save the taxpayer money. "
-                                  "Be specific and practical. Include opportunities that may not be obvious."
-                    },
-                    {
-                        "role": "user",
-                        "content": f"Based on this taxpayer profile, identify tax-saving opportunities:\n{profile_summary}"
-                    }
-                ],
-                functions=functions,
-                function_call={"name": "identify_tax_opportunities"},
-                temperature=0.3
-            )
+            ai = get_ai_service()
+            result = run_async(ai.extract(profile_summary, extraction_schema))
 
-            if response.choices and response.choices[0].message.function_call:
-                result = json.loads(response.choices[0].message.function_call.arguments)
+            for opp_data in result.get("opportunities", []):
+                # Create unique ID
+                opp_id = f"ai_{opp_data['category']}_{hash(opp_data['title']) % 10000}"
 
-                for opp_data in result.get("opportunities", []):
-                    # Create unique ID
-                    opp_id = f"ai_{opp_data['category']}_{hash(opp_data['title']) % 10000}"
+                savings = None
+                savings_range = None
+                if opp_data.get("estimated_savings_min") and opp_data.get("estimated_savings_max"):
+                    savings_range = (
+                        Decimal(str(opp_data["estimated_savings_min"])),
+                        Decimal(str(opp_data["estimated_savings_max"]))
+                    )
+                    savings = (savings_range[0] + savings_range[1]) / 2
 
-                    savings = None
-                    savings_range = None
-                    if opp_data.get("estimated_savings_min") and opp_data.get("estimated_savings_max"):
-                        savings_range = (
-                            Decimal(str(opp_data["estimated_savings_min"])),
-                            Decimal(str(opp_data["estimated_savings_max"]))
-                        )
-                        savings = (savings_range[0] + savings_range[1]) / 2
-
-                    opportunities.append(TaxOpportunity(
-                        id=opp_id,
-                        title=opp_data["title"],
-                        description=opp_data["description"],
-                        category=OpportunityCategory(opp_data["category"]),
-                        priority=OpportunityPriority(opp_data["priority"]),
-                        estimated_savings=savings,
-                        savings_range=savings_range,
-                        action_required=opp_data["action_required"],
-                        confidence=opp_data.get("confidence", 0.7)
-                    ))
+                opportunities.append(TaxOpportunity(
+                    id=opp_id,
+                    title=opp_data["title"],
+                    description=opp_data["description"],
+                    category=OpportunityCategory(opp_data["category"]),
+                    priority=OpportunityPriority(opp_data["priority"]),
+                    estimated_savings=savings,
+                    savings_range=savings_range,
+                    action_required=opp_data["action_required"],
+                    confidence=opp_data.get("confidence", 0.7)
+                ))
 
         except Exception as e:
             logger.error(f"AI opportunity detection failed: {e}")

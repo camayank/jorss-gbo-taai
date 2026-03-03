@@ -1,0 +1,349 @@
+/**
+ * CPA Layout
+ * CPA-specific layout styles: sidebar, header, profile, and responsive overrides.
+ * Base component styles come from the design system (buttons.css, cards.css, etc.)
+ */
+
+/* =========================
+   LAYOUT
+   ========================= */
+
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* =========================
+   SIDEBAR - CPA OVERRIDES
+   ========================= */
+
+.sidebar {
+  width: var(--sidebar-width, 260px);
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease;
+}
+
+.sidebar-header {
+  padding: var(--space-5);
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-decoration: none;
+}
+
+.sidebar-logo {
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-lg);
+  object-fit: cover;
+}
+
+.sidebar-logo-placeholder {
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: var(--font-semibold);
+  font-size: 1.1rem;
+}
+
+.sidebar-title {
+  font-weight: var(--font-semibold);
+  font-size: 1rem;
+}
+
+/* =========================
+   CPA SIDEBAR NAVIGATION
+   ========================= */
+
+.sidebar-nav {
+  flex: 1;
+  padding: var(--space-4) var(--space-3);
+  overflow-y: auto;
+}
+
+.nav-section {
+  margin-bottom: var(--space-6);
+}
+
+.nav-section-title {
+  font-size: 0.7rem;
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2-5) var(--space-3);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: all 0.15s ease;
+  margin-bottom: var(--space-0-5);
+}
+
+.nav-icon {
+  width: var(--space-5);
+  height: var(--space-5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.nav-badge {
+  margin-left: auto;
+  font-size: 0.7rem;
+  font-weight: var(--font-semibold);
+  padding: var(--space-0-5) var(--space-2);
+  border-radius: var(--radius-xl);
+  min-width: var(--space-5);
+  text-align: center;
+}
+
+/* =========================
+   SIDEBAR FOOTER & CPA PROFILE
+   ========================= */
+
+.sidebar-footer {
+  padding: var(--space-4);
+}
+
+.cpa-profile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg-plus);
+}
+
+.cpa-avatar {
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.cpa-avatar-placeholder {
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: var(--font-semibold);
+  font-size: 0.9rem;
+}
+
+.cpa-profile-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cpa-profile-name {
+  font-weight: var(--font-semibold);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cpa-profile-role {
+  font-size: 0.75rem;
+}
+
+/* =========================
+   MAIN CONTENT
+   ========================= */
+
+.main-content {
+  flex: 1;
+  margin-left: var(--sidebar-width, 260px);
+  min-height: 100vh;
+}
+
+/* =========================
+   PAGE HEADER
+   ========================= */
+
+.page-header {
+  background: var(--white);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 var(--space-8);
+  height: var(--header-height, 64px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.page-title-section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: var(--space-2);
+  color: var(--text-dark);
+}
+
+.page-title {
+  font-size: 1.25rem;
+  font-weight: var(--font-semibold);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.header-search {
+  position: relative;
+}
+
+.header-search input {
+  width: 240px;
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-9);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  font-size: 0.9rem;
+  background: var(--bg-light);
+  transition: all 0.15s ease;
+}
+
+.header-search input:focus {
+  border-color: var(--color-accent-500);
+  background: var(--white);
+}
+
+.header-search-icon {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+}
+
+.header-btn {
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-lg-plus);
+  background: var(--bg-light);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: var(--text-muted);
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.header-btn:hover {
+  background: var(--border-color);
+  color: var(--text-dark);
+}
+
+.notification-dot {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: var(--space-2);
+  height: var(--space-2);
+  background: var(--color-error-500);
+  border-radius: 50%;
+}
+
+/* =========================
+   PAGE CONTENT
+   ========================= */
+
+.page-content {
+  padding: var(--space-6) var(--space-8);
+}
+
+/* =========================
+   MOBILE RESPONSIVE
+   ========================= */
+
+@media (max-width: 1024px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .main-content {
+    margin-left: 0;
+  }
+
+  .mobile-menu-btn {
+    display: block;
+  }
+
+  .header-search input {
+    width: 160px;
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 45;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  .sidebar-overlay.show {
+    opacity: 1;
+    pointer-events: all;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-header {
+    padding: 0 var(--space-4);
+  }
+
+  .page-content {
+    padding: var(--space-4);
+  }
+
+  .header-search {
+    display: none;
+  }
+}

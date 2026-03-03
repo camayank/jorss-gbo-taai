@@ -359,12 +359,12 @@ class SavingsGauge {
             <!-- Needle -->
             <g transform="translate(100, 100)">
               <line x1="0" y1="0" x2="0" y2="-60"
-                    stroke="var(--color-primary-500, #1e3a5f)"
+                    stroke="var(--color-primary-500, #0B1D3A)"
                     stroke-width="3"
                     stroke-linecap="round"
                     transform="rotate(${needleRotation})"
                     class="gauge-needle"/>
-              <circle r="8" fill="var(--color-primary-500, #1e3a5f)"/>
+              <circle r="8" fill="var(--color-primary-500, #0B1D3A)"/>
               <circle r="4" fill="#ffffff"/>
             </g>
 

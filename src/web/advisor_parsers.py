@@ -9,10 +9,8 @@ Usage:
     from web.advisor_parsers import parse_user_message, EnhancedParser, detect_user_intent
 """
 
-# Re-export parser functions from the main module.
-# These have zero dependency on IntelligentChatEngine and are
-# safe to import independently.
-from web.intelligent_advisor_api import (
+# Re-export parser functions from the modular sub-package.
+from web.advisor.parsers import (
     parse_user_message,
     enhanced_parse_user_message,
     EnhancedParser,

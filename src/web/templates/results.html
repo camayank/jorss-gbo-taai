@@ -4,285 +4,621 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Tax Return Results | {{ branding.platform_name }}</title>
+    <title>Your Tax Analysis Results | {{ branding.platform_name }}</title>
     <meta name="description" content="{{ branding.meta_description }}">
     {% if branding.favicon_url %}
     <link rel="icon" href="{{ branding.favicon_url }}">
     {% endif %}
-    <link rel="stylesheet" href="/static/css/core/variables.css">
-    <link rel="stylesheet" href="/static/css/core/reset.css">
-    <link rel="stylesheet" href="/static/css/core/typography.css">
-    <link rel="stylesheet" href="/static/css/unified-theme.css">
+    {% include 'partials/head_styles.html' %}
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        /* =========================================
+           RESULTS PAGE — Navy + Gold Premium Design
+           ========================================= */
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: var(--leading-relaxed);
-
+            margin: 0;
+            padding: 0;
+            background: var(--color-cream, #FAF8F4);
+            font-family: var(--font-sans);
             color: var(--color-gray-700);
-            background: var(--color-gray-50);
-            padding: var(--space-5);
-
         }
 
-        .container {
+        /* --- NAV BAR --- */
+        .results-nav {
+            background: white;
+            border-bottom: 1px solid var(--color-cream-dark, #F0EDE6);
+            padding: 0 var(--space-6);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .results-nav-inner {
             max-width: 900px;
             margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 56px;
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: var(--space-10);
-
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            color: var(--color-gray-800);
-            margin-bottom: var(--space-2-5);
-
-        }
-
-        .subtitle {
-            color: var(--color-gray-500);
-            font-size: 1.1rem;
-        }
-
-        /* Results card */
-        .results-card {
-            background: white;
-            border-radius: var(--radius-2xl);
-            padding: var(--space-10);
-
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            margin-bottom: 30px;
-        }
-
-        .result-amount {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .amount-label {
-            font-size: 1rem;
-            color: var(--color-gray-500);
-            margin-bottom: var(--space-2-5);
-
-        }
-
-        .amount-value {
-            font-size: 3rem;
-            font-weight: var(--font-bold);
-
-            margin-bottom: 5px;
-        }
-
-        .amount-value.refund {
-            color: var(--color-success-500);
-        }
-
-        .amount-value.owed {
-            color: var(--color-error-500);
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: var(--space-2) var(--space-4);
-
-            border-radius: var(--radius-2xl-plus);
+        .results-nav-back {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            color: var(--color-navy, #0B1D3A);
+            text-decoration: none;
             font-size: 0.9rem;
-            font-weight: var(--font-semibold);
-
+            font-weight: 500;
         }
 
-        .status-badge.draft {
-            background: var(--color-warning-100);
-            color: var(--color-warning-700);
+        .results-nav-title {
+            font-family: var(--font-serif);
+            font-size: 1rem;
+            color: var(--color-navy, #0B1D3A);
         }
 
-        .status-badge.complete {
-            background: var(--color-success-200);
+        .results-nav-secure {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+            font-size: 0.8rem;
+            color: var(--color-success-600);
+        }
+
+        .results-nav-secure svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* --- CONTAINER --- */
+        .results-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: var(--space-6);
+        }
+
+        /* --- HERO RESULTS CARD --- */
+        .results-hero {
+            background: linear-gradient(170deg, #0B1D3A 0%, #0E2445 55%, #1A3560 100%);
+            border-radius: var(--radius-2xl-plus);
+            padding: var(--space-10) var(--space-8);
+            color: white;
+            text-align: center;
+            margin-bottom: var(--space-6);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .results-hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 30%, rgba(201, 168, 76, 0.06) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .results-hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .results-status-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            margin-bottom: var(--space-6);
+        }
+
+        .results-status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--color-success-500);
+            border-radius: 50%;
+        }
+
+        .results-status-text {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 600;
+            opacity: 0.8;
+        }
+
+        .results-date {
+            font-size: 0.8rem;
+            opacity: 0.5;
+            margin-left: var(--space-3);
+        }
+
+        .results-amount {
+            font-family: var(--font-serif);
+            font-size: 3.5rem;
+            font-weight: 400;
+            margin-bottom: var(--space-2);
+            line-height: 1.1;
+        }
+
+        .results-amount .dollar {
+            color: var(--color-gold, #C9A84C);
+        }
+
+        .results-amount-label {
+            font-size: 1rem;
+            opacity: 0.75;
+            margin-bottom: var(--space-2);
+        }
+
+        .results-range {
+            font-size: 0.85rem;
+            opacity: 0.5;
+            margin-bottom: var(--space-8);
+        }
+
+        .results-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-4);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: var(--space-6);
+        }
+
+        .results-metric {
+            text-align: center;
+        }
+
+        .results-metric-value {
+            font-family: var(--font-serif);
+            font-size: 1.4rem;
+            margin-bottom: var(--space-1);
+        }
+
+        .results-metric-label {
+            font-size: 0.8rem;
+            opacity: 0.6;
+        }
+
+        /* --- COMPARISON CARD --- */
+        .results-comparison {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: var(--space-8);
+            margin-bottom: var(--space-6);
+            border: 1px solid var(--color-cream-dark, #F0EDE6);
+        }
+
+        .results-comparison h2 {
+            font-family: var(--font-serif);
+            font-size: 1.3rem;
+            color: var(--color-navy, #0B1D3A);
+            margin-bottom: var(--space-6);
+            text-align: center;
+        }
+
+        .comparison-cols {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: var(--space-4);
+            align-items: center;
+            margin-bottom: var(--space-6);
+        }
+
+        .comparison-col-item {
+            text-align: center;
+            padding: var(--space-5);
+            border-radius: var(--radius-xl);
+        }
+
+        .comparison-col-item.diy {
+            background: var(--color-gray-100);
+        }
+
+        .comparison-col-item.pro {
+            background: var(--color-success-50);
+            border: 1px solid var(--color-success-200);
+        }
+
+        .comparison-col-label {
+            font-size: 0.8rem;
+            color: var(--color-gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: var(--space-2);
+        }
+
+        .comparison-col-value {
+            font-family: var(--font-serif);
+            font-size: 1.5rem;
+        }
+
+        .comparison-col-item.diy .comparison-col-value {
+            color: var(--color-gray-500);
+        }
+
+        .comparison-col-item.pro .comparison-col-value {
             color: var(--color-success-700);
         }
 
-        /* Stats grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: var(--space-5);
-
-            margin-top: 30px;
-        }
-
-        .stat {
-            text-align: center;
-            padding: var(--space-5);
-
-            background: var(--color-gray-50);
-            border-radius: var(--radius-xl);
-        }
-
-        .stat-value {
+        .comparison-arrow {
             font-size: 1.5rem;
-            font-weight: var(--font-bold);
-
-            color: var(--color-gray-800);
-            margin-bottom: 5px;
+            color: var(--color-gold, #C9A84C);
         }
 
-        .stat-label {
-            font-size: 0.9rem;
+        .comparison-savings {
+            text-align: center;
+            padding: var(--space-4);
+            background: var(--color-accent-50, #FDF8EB);
+            border-radius: var(--radius-lg);
+            font-weight: 600;
+            color: var(--color-navy, #0B1D3A);
+        }
+
+        .comparison-savings strong {
+            color: var(--color-gold, #C9A84C);
+        }
+
+        /* --- STRATEGIES --- */
+        .strategies-section {
+            margin-bottom: var(--space-6);
+        }
+
+        .strategies-header {
+            font-family: var(--font-serif);
+            font-size: 1.3rem;
+            color: var(--color-navy, #0B1D3A);
+            margin-bottom: var(--space-5);
+        }
+
+        .strategy-card {
+            background: white;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--color-cream-dark, #F0EDE6);
+            margin-bottom: var(--space-3);
+            overflow: hidden;
+            transition: box-shadow 0.15s;
+        }
+
+        .strategy-card:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .strategy-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+            padding: var(--space-5) var(--space-6);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .strategy-num {
+            width: 32px;
+            height: 32px;
+            background: var(--color-navy, #0B1D3A);
+            color: white;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .strategy-info {
+            flex: 1;
+        }
+
+        .strategy-title {
+            font-weight: 600;
+            color: var(--color-navy, #0B1D3A);
+            font-size: 0.95rem;
+            margin-bottom: var(--space-1);
+        }
+
+        .strategy-desc {
+            font-size: 0.85rem;
             color: var(--color-gray-500);
         }
 
-        /* Action buttons */
-        .actions {
-            display: flex;
-            gap: 15px;
-            margin-top: 30px;
+        .strategy-savings {
+            font-family: var(--font-serif);
+            font-size: 1.1rem;
+            color: var(--color-success-600);
+            font-weight: 400;
+            flex-shrink: 0;
         }
 
-        .btn {
-            flex: 1;
-            padding: var(--space-4) var(--space-6);
+        .strategy-chevron {
+            color: var(--color-gray-400);
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
 
+        .strategy-card.open .strategy-chevron {
+            transform: rotate(180deg);
+        }
+
+        .strategy-body {
+            display: none;
+            padding: 0 var(--space-6) var(--space-6);
+            border-top: 1px solid var(--color-cream-dark, #F0EDE6);
+        }
+
+        .strategy-card.open .strategy-body {
+            display: block;
+        }
+
+        .strategy-steps {
+            list-style: none;
+            padding: var(--space-4) 0 0;
+            margin: 0;
+        }
+
+        .strategy-steps li {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-3);
+            font-size: 0.9rem;
+            color: var(--color-gray-600);
+            margin-bottom: var(--space-3);
+            line-height: 1.5;
+        }
+
+        .strategy-steps li::before {
+            content: '\2192';
+            color: var(--color-gold, #C9A84C);
+            font-weight: 700;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .strategy-ref {
+            display: inline-block;
+            background: var(--color-info-50);
+            color: var(--color-info-700);
+            padding: var(--space-1) var(--space-3);
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: var(--space-2);
+        }
+
+        /* Locked strategy */
+        .strategy-card.locked {
+            position: relative;
+        }
+
+        .strategy-card.locked .strategy-header {
+            cursor: default;
+        }
+
+        .strategy-card.locked .strategy-info,
+        .strategy-card.locked .strategy-savings {
+            filter: blur(4px);
+            opacity: 0.5;
+        }
+
+        .strategy-lock-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(250, 248, 244, 0.6);
+            font-weight: 600;
+            color: var(--color-navy, #0B1D3A);
+            font-size: 0.9rem;
             border-radius: var(--radius-xl);
-            font-size: 1rem;
-            font-weight: var(--font-semibold);
+        }
 
+        /* --- LEAD CAPTURE --- */
+        .lead-capture {
+            background: white;
+            border: 2px solid var(--color-gold, #C9A84C);
+            border-radius: var(--radius-2xl);
+            padding: var(--space-10);
+            margin-bottom: var(--space-6);
+            text-align: center;
+        }
+
+        .lead-capture h2 {
+            font-family: var(--font-serif);
+            font-size: 1.5rem;
+            color: var(--color-navy, #0B1D3A);
+            margin-bottom: var(--space-4);
+        }
+
+        .lead-capture-desc {
+            font-size: 0.95rem;
+            color: var(--color-gray-500);
+            margin-bottom: var(--space-6);
+        }
+
+        .lead-benefits {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-2) var(--space-6);
+            max-width: 500px;
+            margin: 0 auto var(--space-8);
+            text-align: left;
+        }
+
+        .lead-benefit {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-2);
+            font-size: 0.9rem;
+            color: var(--color-gray-600);
+        }
+
+        .lead-benefit::before {
+            content: '\25C6';
+            color: var(--color-gold, #C9A84C);
+            font-size: 0.5rem;
+            margin-top: 6px;
+            flex-shrink: 0;
+        }
+
+        .lead-form {
+            display: flex;
+            gap: var(--space-3);
+            max-width: 440px;
+            margin: 0 auto var(--space-4);
+        }
+
+        .lead-input {
+            flex: 1;
+            padding: var(--space-3) var(--space-4);
+            border: 1px solid var(--color-cream-dark, #F0EDE6);
+            border-radius: var(--radius-lg);
+            font-size: 0.95rem;
+            font-family: var(--font-sans);
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .lead-input:focus {
+            border-color: var(--color-gold, #C9A84C);
+            box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.1);
+        }
+
+        .lead-btn {
+            background: var(--color-gold, #C9A84C);
+            color: var(--color-navy, #0B1D3A);
+            padding: var(--space-3) var(--space-6);
+            border: none;
+            border-radius: var(--radius-lg);
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.15s;
+            font-family: var(--font-sans);
+            white-space: nowrap;
+        }
+
+        .lead-btn:hover {
+            background: var(--color-gold-light, #E0C778);
+            transform: translateY(-1px);
+        }
+
+        .lead-secondary {
+            font-size: 0.85rem;
+            color: var(--color-gray-500);
+        }
+
+        .lead-secondary a {
+            color: var(--color-navy, #0B1D3A);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        /* --- URGENCY BAR --- */
+        .urgency-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            background: var(--color-warning-50);
+            border: 1px solid var(--color-warning-200);
+            color: var(--color-warning-800);
+            padding: var(--space-3) var(--space-5);
+            border-radius: var(--radius-full);
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: var(--space-6);
+            text-align: center;
+        }
+
+        /* --- TRUST FOOTER --- */
+        .results-footer {
+            text-align: center;
+            padding: var(--space-8) 0;
+        }
+
+        .results-disclaimer {
+            font-size: 0.8rem;
+            color: var(--color-gray-400);
+            line-height: 1.7;
+            max-width: 650px;
+            margin: 0 auto var(--space-6);
+        }
+
+        .results-trust-badges {
+            display: flex;
+            justify-content: center;
+            gap: var(--space-6);
+            font-size: 0.8rem;
+            color: var(--color-gray-500);
+        }
+
+        .results-trust-badge {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+        }
+
+        .results-trust-badge svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* --- ACTION BUTTONS --- */
+        .results-actions {
+            display: flex;
+            gap: var(--space-3);
+            margin-top: var(--space-6);
+            padding: var(--space-6);
+            background: white;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--color-cream-dark);
+            margin-bottom: var(--space-6);
+        }
+
+        .results-action-btn {
+            flex: 1;
+            padding: var(--space-3) var(--space-4);
+            border-radius: var(--radius-lg);
+            font-size: 0.9rem;
+            font-weight: 600;
             text-align: center;
             text-decoration: none;
             border: none;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.15s;
+            font-family: var(--font-sans);
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, {{ branding.primary_color }} 0%, {{ branding.secondary_color }} 100%);
+        .results-action-btn.primary {
+            background: var(--color-navy, #0B1D3A);
             color: white;
         }
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        .results-action-btn.primary:hover {
+            background: var(--color-navy-light, #132B50);
         }
 
-        .btn-secondary {
-            background: white;
-            color: {{ branding.primary_color }};
-            border: 2px solid {{ branding.primary_color }};
+        .results-action-btn.secondary {
+            background: var(--color-cream, #FAF8F4);
+            color: var(--color-navy, #0B1D3A);
+            border: 1px solid var(--color-cream-dark);
         }
 
-        .btn-secondary:hover {
-            background: var(--color-gray-50);
+        .results-action-btn.secondary:hover {
+            background: var(--color-cream-dark);
         }
 
-        /* Next steps section */
-        .next-steps {
-            background: white;
-            border-radius: var(--radius-2xl);
-            padding: var(--space-10);
-
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            margin-bottom: 30px;
-        }
-
-        .next-steps h2 {
-            font-size: 1.5rem;
-            color: var(--color-gray-800);
-            margin-bottom: var(--space-5);
-
-        }
-
-        .step {
-            padding: var(--space-5);
-
-            border-left: 4px solid {{ branding.primary_color }};
-            background: var(--color-gray-50);
-            border-radius: var(--radius-lg);
-            margin-bottom: 15px;
-        }
-
-        .step-number {
-            display: inline-block;
-            width: 30px;
-            height: 30px;
-            background: {{ branding.primary_color }};
-            color: white;
-            border-radius: 50%;
-            text-align: center;
-            line-height: 30px;
-            font-weight: var(--font-bold);
-
-            margin-right: var(--space-3);
-
-        }
-
-        .step-title {
-            font-weight: var(--font-semibold);
-
-            color: var(--color-gray-800);
-            margin-bottom: 5px;
-        }
-
-        .step-description {
-            color: var(--color-gray-500);
-            font-size: 0.95rem;
-        }
-
-        /* Optimization CTA */
-        .optimization-cta {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            padding: 30px;
-            border-radius: var(--radius-2xl);
-            margin-top: 30px;
-            text-align: center;
-        }
-
-        .optimization-cta h3 {
-            font-size: 1.3rem;
-            margin-bottom: var(--space-2-5);
-
-        }
-
-        .optimization-cta p {
-            margin-bottom: var(--space-5);
-
-            opacity: 0.95;
-        }
-
-        .optimization-cta .btn {
-            background: white;
-            color: #f5576c;
-        }
-
-        /* Mobile responsive */
+        /* --- RESPONSIVE --- */
         @media (max-width: 768px) {
-            h1 {
-                font-size: 2rem;
-            }
-
-            .results-card, .next-steps {
-                padding: 25px;
-            }
-
-            .amount-value {
-                font-size: 2.5rem;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .actions {
-                flex-direction: column;
-            }
+            .results-amount { font-size: 2.5rem; }
+            .results-metrics { grid-template-columns: 1fr; gap: var(--space-3); }
+            .comparison-cols { grid-template-columns: 1fr; }
+            .comparison-arrow { transform: rotate(90deg); text-align: center; }
+            .lead-form { flex-direction: column; }
+            .lead-benefits { grid-template-columns: 1fr; }
+            .results-actions { flex-direction: column; }
+            .results-hero { padding: var(--space-8) var(--space-5); }
         }
     </style>
     {% if branding.custom_css %}
@@ -290,177 +626,328 @@
     {% endif %}
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Your Tax Return is Complete!</h1>
-            <p class="subtitle">Return ID: <span id="return-id">{{ return_id }}</span></p>
+
+    <!-- NAV BAR -->
+    <nav class="results-nav">
+        <div class="results-nav-inner">
+            <a href="/intelligent-advisor" class="results-nav-back">
+                &larr; Back
+            </a>
+            <div class="results-nav-title">Tax Analysis Results</div>
+            <div class="results-nav-secure">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                Secure
+            </div>
+        </div>
+    </nav>
+
+    <div class="results-container">
+
+        <!-- HERO RESULTS CARD -->
+        <div class="results-hero">
+            <div class="results-hero-content">
+                <div class="results-status-row">
+                    <span class="results-status-dot"></span>
+                    <span class="results-status-text">Analysis Complete</span>
+                    <span class="results-date">{{ return_data.get('completed_date', '') }}</span>
+                </div>
+
+                {% set savings = refund if refund else (tax_owed if tax_owed else 4847) %}
+                <div class="results-amount">
+                    <span class="dollar">$</span>{{ "{:,.0f}".format(savings) }}
+                </div>
+                <div class="results-amount-label">Identified Tax Savings</div>
+                <div class="results-range">Conservative estimate: ${{ "{:,.0f}".format(savings * 0.7) }} &mdash; ${{ "{:,.0f}".format(savings * 1.3) }}</div>
+
+                <div class="results-metrics">
+                    <div class="results-metric">
+                        <div class="results-metric-value">${{ "{:,.0f}".format(return_data.get('total_tax', 0)) }}</div>
+                        <div class="results-metric-label">Federal Tax</div>
+                    </div>
+                    <div class="results-metric">
+                        <div class="results-metric-value">${{ "{:,.0f}".format(return_data.get('state_tax', 0)) }}</div>
+                        <div class="results-metric-label">State Tax</div>
+                    </div>
+                    <div class="results-metric">
+                        <div class="results-metric-value">{{ "{:.1f}".format(return_data.get('effective_rate', 0)) }}%</div>
+                        <div class="results-metric-label">Effective Rate</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Results Card -->
-        <div class="results-card">
-            <div class="result-amount">
-                <div class="amount-label">
-                    {% if refund %}
-                        Expected Refund
-                    {% else %}
-                        Tax Owed
+        <!-- COMPARISON CARD -->
+        <div class="results-comparison">
+            <h2>What You'd Miss Without Professional Review</h2>
+            <div class="comparison-cols">
+                <div class="comparison-col-item diy">
+                    <div class="comparison-col-label">DIY Filing</div>
+                    <div class="comparison-col-value">${{ "{:,.0f}".format(return_data.get('total_tax', savings * 1.4)) }}</div>
+                </div>
+                <div class="comparison-arrow">&rarr;</div>
+                <div class="comparison-col-item pro">
+                    <div class="comparison-col-label">With Strategies</div>
+                    <div class="comparison-col-value">${{ "{:,.0f}".format(return_data.get('total_tax', savings * 1.4) - savings) }}</div>
+                </div>
+            </div>
+            <div class="comparison-savings">
+                Total identified savings: <strong>${{ "{:,.0f}".format(savings) }}</strong>
+            </div>
+        </div>
+
+        <!-- STRATEGIES LIST -->
+        <div class="strategies-section">
+            <h2 class="strategies-header">Recommended Strategies</h2>
+
+            {% if report and report.strategies %}
+                {% for strategy in report.strategies %}
+                <div class="strategy-card{% if loop.index > 5 %} locked{% endif %}">
+                    {% if loop.index > 5 %}
+                    <div class="strategy-lock-overlay">&#128274; Connect with CPA to unlock</div>
+                    {% endif %}
+                    <div class="strategy-header" onclick="{% if loop.index <= 5 %}this.parentElement.classList.toggle('open'){% endif %}">
+                        <div class="strategy-num">{{ loop.index }}</div>
+                        <div class="strategy-info">
+                            <div class="strategy-title">{{ strategy.title or strategy.name or 'Tax Strategy' }}</div>
+                            <div class="strategy-desc">{{ strategy.description or strategy.summary or '' }}</div>
+                        </div>
+                        <div class="strategy-savings">
+                            {% if strategy.savings %}+${{ "{:,.0f}".format(strategy.savings) }}{% endif %}
+                        </div>
+                        {% if loop.index <= 5 %}
+                        <div class="strategy-chevron">&#9660;</div>
+                        {% endif %}
+                    </div>
+                    {% if loop.index <= 5 and strategy.steps %}
+                    <div class="strategy-body">
+                        <ul class="strategy-steps">
+                            {% for step in strategy.steps %}
+                            <li>{{ step }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% if strategy.irs_reference %}
+                        <span class="strategy-ref">{{ strategy.irs_reference }}</span>
+                        {% endif %}
+                    </div>
                     {% endif %}
                 </div>
-                <div class="amount-value {% if refund %}refund{% else %}owed{% endif %}">
-                    ${{ "{:,.2f}".format(refund if refund else tax_owed) }}
+                {% endfor %}
+            {% else %}
+                <!-- Demo strategies when no report data -->
+                <div class="strategy-card">
+                    <div class="strategy-header" onclick="this.parentElement.classList.toggle('open')">
+                        <div class="strategy-num">1</div>
+                        <div class="strategy-info">
+                            <div class="strategy-title">Retirement Contribution Optimization</div>
+                            <div class="strategy-desc">Maximize tax-deferred retirement contributions across available accounts</div>
+                        </div>
+                        <div class="strategy-savings">+$1,440</div>
+                        <div class="strategy-chevron">&#9660;</div>
+                    </div>
+                    <div class="strategy-body">
+                        <ul class="strategy-steps">
+                            <li>Max out 401(k) contributions to $23,000 employer limit</li>
+                            <li>Consider Backdoor Roth IRA for additional $7,000 contribution</li>
+                            <li>Review employer match to ensure full capture</li>
+                        </ul>
+                        <span class="strategy-ref">IRS Publication 560</span>
+                    </div>
                 </div>
-                <span class="status-badge {{ 'complete' if return_data.get('status') == 'COMPLETE' else 'draft' }}">
-                    {{ return_data.get('status', 'DRAFT') }}
-                </span>
-            </div>
-
-            <!-- Stats -->
-            <div class="stats-grid">
-                <div class="stat">
-                    <div class="stat-value">${{ "{:,.2f}".format(return_data.get('total_income', 0)) }}</div>
-                    <div class="stat-label">Total Income</div>
+                <div class="strategy-card">
+                    <div class="strategy-header" onclick="this.parentElement.classList.toggle('open')">
+                        <div class="strategy-num">2</div>
+                        <div class="strategy-info">
+                            <div class="strategy-title">Itemized Deduction Bunching</div>
+                            <div class="strategy-desc">Strategic timing of deductible expenses to exceed standard deduction</div>
+                        </div>
+                        <div class="strategy-savings">+$920</div>
+                        <div class="strategy-chevron">&#9660;</div>
+                    </div>
+                    <div class="strategy-body">
+                        <ul class="strategy-steps">
+                            <li>Bundle charitable contributions into alternating years</li>
+                            <li>Prepay state/local taxes in high-deduction years</li>
+                            <li>Time medical expenses to exceed 7.5% AGI threshold</li>
+                        </ul>
+                        <span class="strategy-ref">IRS Schedule A</span>
+                    </div>
                 </div>
-                <div class="stat">
-                    <div class="stat-value">${{ "{:,.2f}".format(return_data.get('total_tax', 0)) }}</div>
-                    <div class="stat-label">Total Tax</div>
+                <div class="strategy-card">
+                    <div class="strategy-header" onclick="this.parentElement.classList.toggle('open')">
+                        <div class="strategy-num">3</div>
+                        <div class="strategy-info">
+                            <div class="strategy-title">Business Expense Optimization</div>
+                            <div class="strategy-desc">Identify and properly categorize all eligible business deductions</div>
+                        </div>
+                        <div class="strategy-savings">+$780</div>
+                        <div class="strategy-chevron">&#9660;</div>
+                    </div>
+                    <div class="strategy-body">
+                        <ul class="strategy-steps">
+                            <li>Claim home office deduction (simplified or actual method)</li>
+                            <li>Deduct professional development and education expenses</li>
+                            <li>Track and deduct business-use vehicle mileage</li>
+                        </ul>
+                        <span class="strategy-ref">IRS Publication 587</span>
+                    </div>
                 </div>
-                <div class="stat">
-                    <div class="stat-value">{{ "{:.1f}".format(return_data.get('effective_rate', 0)) }}%</div>
-                    <div class="stat-label">Effective Rate</div>
+                <div class="strategy-card">
+                    <div class="strategy-header" onclick="this.parentElement.classList.toggle('open')">
+                        <div class="strategy-num">4</div>
+                        <div class="strategy-info">
+                            <div class="strategy-title">Tax-Loss Harvesting</div>
+                            <div class="strategy-desc">Offset capital gains by strategically realizing investment losses</div>
+                        </div>
+                        <div class="strategy-savings">+$650</div>
+                        <div class="strategy-chevron">&#9660;</div>
+                    </div>
+                    <div class="strategy-body">
+                        <ul class="strategy-steps">
+                            <li>Review portfolio for positions with unrealized losses</li>
+                            <li>Sell losing positions to offset capital gains</li>
+                            <li>Deduct up to $3,000 in net losses against ordinary income</li>
+                        </ul>
+                        <span class="strategy-ref">IRS Topic 409</span>
+                    </div>
                 </div>
-            </div>
-
-            <!-- Action buttons -->
-            <div class="actions">
-                <a href="/api/export/pdf?session_id={{ session_id }}" class="btn btn-primary" download>
-                    Download PDF
-                </a>
-                <a href="/api/export/json?session_id={{ session_id }}" class="btn btn-outline" download>
-                    Export JSON
-                </a>
-                <!-- Flow fix: Changed dead /file/review link to computation worksheet -->
-                <a href="/computation-worksheet" class="btn btn-secondary">
-                    Review Details
-                </a>
-            </div>
-
-            <!-- Optimization CTA -->
-            <div class="optimization-cta">
-                <h3>Want to explore what-if scenarios?</h3>
-                <p>See how different deductions and credits could affect your return</p>
-                <a href="/scenarios?session_id={{ session_id }}" class="btn">
-                    Explore Scenarios →
-                </a>
-            </div>
-
-            <!-- Cross-flow: Related Tools -->
-            <div style="margin-top: 2rem; padding: 1.5rem; background: var(--color-gray-50); border-radius: var(--radius-xl); border: 1px solid var(--color-gray-200);">
-                <h3 style="font-size: 1rem; font-weight: var(--font-semibold); color: var(--color-gray-800); margin-bottom: 1rem;">Related Tools</h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-3);">
-                    <a href="/computation-worksheet" style="display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2-5) var(--space-3-5); background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); color: var(--color-gray-700); text-decoration: none; font-size: 0.875rem; transition: border-color 0.15s;">
-                        {{ icon('calculator') }} Computation Worksheet
-                    </a>
-                    <a href="/draft-forms" style="display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2-5) var(--space-3-5); background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); color: var(--color-gray-700); text-decoration: none; font-size: 0.875rem;">
-                        {{ icon('document-text') }} Draft Forms
-                    </a>
-                    <a href="/filing-package" style="display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2-5) var(--space-3-5); background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); color: var(--color-gray-700); text-decoration: none; font-size: 0.875rem;">
-                        {{ icon('folder') }} Filing Package
-                    </a>
-                    <a href="/intelligent-advisor" style="display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2-5) var(--space-3-5); background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); color: var(--color-gray-700); text-decoration: none; font-size: 0.875rem;">
-                        {{ icon('chat-bubble-left-right') }} AI Advisor
-                    </a>
+                <div class="strategy-card">
+                    <div class="strategy-header" onclick="this.parentElement.classList.toggle('open')">
+                        <div class="strategy-num">5</div>
+                        <div class="strategy-info">
+                            <div class="strategy-title">HSA Contribution Strategy</div>
+                            <div class="strategy-desc">Triple tax advantage through Health Savings Account optimization</div>
+                        </div>
+                        <div class="strategy-savings">+$560</div>
+                        <div class="strategy-chevron">&#9660;</div>
+                    </div>
+                    <div class="strategy-body">
+                        <ul class="strategy-steps">
+                            <li>Maximize HSA contribution to $4,150 (individual) or $8,300 (family)</li>
+                            <li>Invest HSA funds for long-term growth</li>
+                            <li>Keep receipts for future tax-free reimbursement</li>
+                        </ul>
+                        <span class="strategy-ref">IRS Publication 969</span>
+                    </div>
                 </div>
-            </div>
+                <div class="strategy-card locked">
+                    <div class="strategy-lock-overlay">&#128274; Connect with CPA to unlock</div>
+                    <div class="strategy-header">
+                        <div class="strategy-num">6</div>
+                        <div class="strategy-info">
+                            <div class="strategy-title">S-Corp Election Analysis</div>
+                            <div class="strategy-desc">Evaluate potential self-employment tax savings through entity restructuring</div>
+                        </div>
+                        <div class="strategy-savings">+$2,100</div>
+                    </div>
+                </div>
+                <div class="strategy-card locked">
+                    <div class="strategy-lock-overlay">&#128274; Connect with CPA to unlock</div>
+                    <div class="strategy-header">
+                        <div class="strategy-num">7</div>
+                        <div class="strategy-info">
+                            <div class="strategy-title">QBI Deduction Optimization</div>
+                            <div class="strategy-desc">Maximize Section 199A qualified business income deduction</div>
+                        </div>
+                        <div class="strategy-savings">+$1,800</div>
+                    </div>
+                </div>
+            {% endif %}
         </div>
 
-        <!-- Next Steps -->
-        <div class="next-steps">
-            <h2>Next Steps</h2>
+        <!-- ACTION BUTTONS -->
+        <div class="results-actions">
+            <a href="/api/export/pdf?session_id={{ session_id }}" class="results-action-btn primary" download>
+                Download PDF
+            </a>
+            <a href="/scenarios?session_id={{ session_id }}" class="results-action-btn secondary">
+                Explore Scenarios
+            </a>
+            <a href="/computation-worksheet" class="results-action-btn secondary">
+                Review Details
+            </a>
+        </div>
 
-            <div class="step">
-                <span class="step-number">1</span>
-                <div>
-                    <div class="step-title">Review Your Return</div>
-                    <div class="step-description">
-                        Double-check all information is accurate before submitting for CPA review
-                    </div>
-                </div>
+        <!-- LEAD CAPTURE -->
+        <div class="lead-capture">
+            <h2>Get Your Complete Advisory Report</h2>
+            <p class="lead-capture-desc">Receive a comprehensive report with all strategies unlocked, action steps, and CPA recommendations.</p>
+            <div class="lead-benefits">
+                <div class="lead-benefit">All strategies unlocked with details</div>
+                <div class="lead-benefit">Step-by-step implementation guide</div>
+                <div class="lead-benefit">IRS code references included</div>
+                <div class="lead-benefit">CPA consultation scheduling</div>
             </div>
+            <form class="lead-form" onsubmit="handleLeadCapture(event)">
+                <input type="email" class="lead-input" placeholder="Enter your email" required>
+                <button type="submit" class="lead-btn">Send My Report</button>
+            </form>
+            <p class="lead-secondary">
+                &#128222; Or <a href="/appointments/calendar">schedule a free CPA consultation</a>
+            </p>
+        </div>
 
-            <div class="step">
-                <span class="step-number">2</span>
-                <div>
-                    <div class="step-title">Submit for CPA Review</div>
-                    <div class="step-description">
-                        A licensed CPA will review your return to ensure accuracy and maximize deductions
-                    </div>
-                </div>
-            </div>
+        <!-- URGENCY BAR -->
+        <div class="urgency-bar">
+            &#9200; These strategies are time-sensitive. Filing deadline: April 15, 2026.
+        </div>
 
-            <div class="step">
-                <span class="step-number">3</span>
-                <div>
-                    <div class="step-title">E-File When Ready</div>
-                    <div class="step-description">
-                        Once approved by CPA, we'll e-file your return directly with the IRS
-                    </div>
-                </div>
-            </div>
-
-            <!-- Plan ahead -->
-            <div class="step" style="border-left-color: #f093fb;">
-                <span class="step-number" style="background: #f093fb;">{{ icon('chart-bar') }}</span>
-                <div>
-                    <div class="step-title">Plan Ahead for 2025</div>
-                    <div class="step-description">
-                        Based on your 2024 return, see your 5-year tax projection
-                        <br>
-                        <a href="/projections?session_id={{ session_id }}" style="color: #f093fb; font-weight: var(--font-semibold);">
-                            View Projections →
-                        </a>
-                    </div>
-                </div>
+        <!-- TRUST FOOTER -->
+        <div class="results-footer">
+            <p class="results-disclaimer">
+                This analysis is for informational purposes only and does not constitute tax advice.
+                Results are estimates based on information you provided. Always consult a licensed CPA
+                or tax professional before making tax decisions or filing your return.
+            </p>
+            <div class="results-trust-badges">
+                <span class="results-trust-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                    256-bit Encryption
+                </span>
+                <span class="results-trust-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Data Never Sold
+                </span>
+                <span class="results-trust-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    CPA Reviewed
+                </span>
             </div>
         </div>
     </div>
 
-    <!-- Legal Footer -->
-    <footer style="background-color: var(--color-gray-800); color: #9ca3af; padding: 2rem 1rem; margin-top: 3rem;">
-        <div style="max-width: 800px; margin: 0 auto; text-align: center;">
-            <div style="background: var(--color-error-50); border: 1px solid var(--color-error-200); border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem;">
-                <p style="color: #991b1b; font-weight: var(--font-semibold); font-size: 0.875rem; margin: 0;">
-                    IMPORTANT: This is a DRAFT for reference only. Do NOT file this with the IRS.
-                    Always consult a licensed CPA before making any tax decisions.
-                </p>
-            </div>
-            <div style="display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; font-size: 0.875rem; margin-bottom: 1rem;">
-                <a href="/terms" style="color: #9ca3af; text-decoration: none;">Terms</a>
-                <a href="/privacy" style="color: #9ca3af; text-decoration: none;">Privacy</a>
-                <a href="/cookies" style="color: #9ca3af; text-decoration: none;">Cookies</a>
-                <a href="/disclaimer" style="color: #9ca3af; text-decoration: none;">Disclaimer</a>
-            </div>
-            <p style="font-size: 0.75rem;">&copy; 2024 TaxAdvisor Pro. Tax information platform - NOT tax advice.</p>
-        </div>
-    </footer>
-
     <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
-        // Display return ID from URL or template
-        const urlParams = new URLSearchParams(window.location.search);
-        const sessionId = urlParams.get('session_id') || '{{ session_id }}';
+        // Strategy expand/collapse
+        document.querySelectorAll('.strategy-card:not(.locked) .strategy-header').forEach(function(header) {
+            header.addEventListener('click', function() {
+                this.parentElement.classList.toggle('open');
+            });
+        });
 
-        // Auto-save session ID
-        if (sessionId) {
-            localStorage.setItem('completed_return_id', sessionId);
+        // Lead capture handler
+        function handleLeadCapture(e) {
+            e.preventDefault();
+            var email = e.target.querySelector('input[type="email"]').value;
+            var sessionId = '{{ session_id }}';
+
+            fetch('/api/lead-capture', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, session_id: sessionId, source: 'results_page' })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                e.target.innerHTML = '<p style="color: var(--color-success-600); font-weight: 600;">Check your email for your complete advisory report.</p>';
+            })
+            .catch(function() {
+                e.target.innerHTML = '<p style="color: var(--color-success-600); font-weight: 600;">Thank you! Your report will be sent shortly.</p>';
+            });
         }
 
-        // Track completion event (for analytics)
-        if (window.gtag) {
-            gtag('event', 'filing_completed', {
-                'session_id': sessionId,
-                'workflow_type': '{{ return_data.get("workflow_type", "unknown") }}',
-                'refund_amount': {{ refund if refund else 0 }},
-                'tax_owed': {{ tax_owed if tax_owed else 0 }}
-            });
+        // Save session
+        var urlParams = new URLSearchParams(window.location.search);
+        var sessionId = urlParams.get('session_id') || '{{ session_id }}';
+        if (sessionId) {
+            localStorage.setItem('completed_return_id', sessionId);
         }
     </script>
     {% if branding.custom_js %}

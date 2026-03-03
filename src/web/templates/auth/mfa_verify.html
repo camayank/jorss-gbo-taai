@@ -8,29 +8,15 @@
     {% if branding.favicon_url %}
     <link rel="icon" href="{{ branding.favicon_url }}">
     {% endif %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/core/variables.css">
     <link rel="stylesheet" href="/static/css/core/reset.css">
     <link rel="stylesheet" href="/static/css/core/typography.css">
     <link rel="stylesheet" href="/static/css/unified-theme.css">
     <script defer src="/static/js/vendor/alpine.min.js"></script>
     <style>
-        :root {
-            --primary: var(--color-primary-500);
-            --primary-light: var(--color-primary-300);
-            --primary-dark: #0c1b2f;
-            --bg: #f7fafc;
-            --surface: var(--white);
-            --text: #0c1b2f;
-            --text-light: #4a5568;
-            --text-muted: #718096;
-            --success: #276749;
-            --success-light: #c6f6d5;
-            --error: #c53030;
-            --error-light: #fed7d7;
-            --border: var(--color-slate-200);
-            --border-focus: var(--color-primary-500);
-        }
-
         * {
             margin: 0;
             padding: 0;
@@ -38,8 +24,8 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            font-family: var(--font-sans, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+            background: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-300) 100%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -115,7 +101,7 @@
         /* Auth Card                                                          */
         /* ------------------------------------------------------------------ */
         .auth-card {
-            background: var(--surface);
+            background: var(--white);
             border-radius: var(--radius-2xl-plus);
             box-shadow: 0 25px 60px rgba(0,0,0,0.3);
             overflow: hidden;
@@ -130,7 +116,7 @@
         .auth-icon {
             width: 64px;
             height: 64px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            background: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-300) 100%);
             border-radius: var(--radius-2xl);
 
             display: flex;
@@ -152,14 +138,14 @@
             font-size: 1.75rem;
             font-weight: var(--font-bold);
 
-            color: var(--text);
+            color: var(--color-gray-900);
             margin-bottom: var(--space-2);
 
         }
 
         .auth-subtitle {
             font-size: 1rem;
-            color: var(--text-muted);
+            color: var(--color-gray-500);
             line-height: var(--leading-normal);
 
         }
@@ -190,8 +176,8 @@
         }
 
         .alert-error {
-            background: var(--error-light);
-            color: var(--error);
+            background: var(--color-error-100);
+            color: var(--color-error-500);
         }
 
         .alert svg {
@@ -219,13 +205,13 @@
             font-size: 1.5rem;
             font-weight: var(--font-bold);
 
-            color: var(--text);
-            border: 2px solid var(--border);
+            color: var(--color-gray-900);
+            border: 2px solid var(--color-gray-200);
             border-radius: var(--radius-lg-plus);
             outline: none;
-            background: var(--surface);
+            background: var(--white);
             transition: border-color 0.2s, box-shadow 0.2s;
-            caret-color: var(--primary);
+            caret-color: var(--color-primary-500);
             -moz-appearance: textfield;
         }
 
@@ -236,17 +222,17 @@
         }
 
         .otp-input:focus {
-            border-color: var(--primary);
+            border-color: var(--color-primary-500);
             box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
         }
 
         .otp-input.filled {
-            border-color: var(--primary-light);
+            border-color: var(--color-primary-300);
             background: #f0f5ff;
         }
 
         .otp-input.error {
-            border-color: var(--error);
+            border-color: var(--color-error-500);
             animation: shake 0.4s ease-in-out;
         }
 
@@ -269,24 +255,24 @@
             font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
             letter-spacing: var(--tracking-wider);
 
-            border: 2px solid var(--border);
+            border: 2px solid var(--color-gray-200);
             border-radius: var(--radius-lg-plus);
             outline: none;
             transition: border-color 0.2s, box-shadow 0.2s;
-            background: var(--surface);
-            color: var(--text);
+            background: var(--white);
+            color: var(--color-gray-900);
             text-align: center;
             margin-bottom: var(--space-6);
 
         }
 
         .backup-input:focus {
-            border-color: var(--primary);
+            border-color: var(--color-primary-500);
             box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
         }
 
         .backup-input::placeholder {
-            color: var(--text-muted);
+            color: var(--color-gray-500);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             letter-spacing: normal;
         }
@@ -300,7 +286,7 @@
             margin-bottom: var(--space-6);
 
             font-size: 0.9rem;
-            color: var(--primary);
+            color: var(--color-primary-500);
             text-decoration: none;
             font-weight: var(--font-medium);
 
@@ -309,7 +295,7 @@
         }
 
         .toggle-link:hover {
-            color: var(--primary-light);
+            color: var(--color-primary-300);
             text-decoration: underline;
         }
 
@@ -324,7 +310,7 @@
             font-weight: var(--font-semibold);
 
             color: white;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            background: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-300) 100%);
             border: none;
             border-radius: var(--radius-lg-plus);
             cursor: pointer;
@@ -373,20 +359,20 @@
         .auth-footer {
             padding: var(--space-5) var(--space-10);
 
-            background: var(--bg);
+            background: var(--color-gray-50);
             text-align: center;
-            border-top: 1px solid var(--border);
+            border-top: 1px solid var(--color-gray-200);
         }
 
         .auth-footer p {
             font-size: 0.9rem;
-            color: var(--text-light);
+            color: var(--color-gray-600);
             line-height: var(--leading-normal);
 
         }
 
         .auth-footer a {
-            color: var(--primary);
+            color: var(--color-primary-500);
             text-decoration: none;
             font-weight: var(--font-semibold);
 

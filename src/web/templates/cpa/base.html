@@ -8,17 +8,8 @@
     {% if cpa.favicon_url %}
     <link rel="icon" href="{{ cpa.favicon_url }}">
     {% endif %}
-    <!-- Core Design System -->
-    <link rel="stylesheet" href="/static/css/core/variables.css">
-    <link rel="stylesheet" href="/static/css/core/reset.css">
-    <link rel="stylesheet" href="/static/css/core/typography.css">
-    <link rel="stylesheet" href="/static/css/core/layout.css">
-    <link rel="stylesheet" href="/static/css/components/buttons.css">
-    <link rel="stylesheet" href="/static/css/components/cards.css">
-    <link rel="stylesheet" href="/static/css/components/forms.css">
-    <link rel="stylesheet" href="/static/css/components/tables.css">
-    <link rel="stylesheet" href="/static/css/components/navigation.css">
-    <link rel="stylesheet" href="/static/css/unified-theme.css">
+    {% set page_css = 'cpa-layout' %}
+    {% include 'partials/head_styles.html' %}
     <style>
         :root {
             /* CPA Branding Overrides - Dynamic from database */
@@ -35,442 +26,9 @@
         body {
             font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
             line-height: var(--leading-normal);
-
             color: var(--text-dark);
             background: var(--bg-page);
             min-height: 100vh;
-        }
-
-        /* Layout */
-        .app-layout {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar - structure only, colors from unified-theme.css */
-        .sidebar {
-            width: var(--sidebar-width, 260px);
-            position: fixed;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            z-index: 50;
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.3s ease;
-        }
-
-        .sidebar-header {
-            padding: var(--space-5);
-
-        }
-
-        .sidebar-brand {
-            display: flex;
-            align-items: center;
-            gap: var(--space-3);
-
-            text-decoration: none;
-        }
-
-        .sidebar-logo {
-            width: var(--space-10);
-
-            height: var(--space-10);
-
-            border-radius: var(--radius-lg);
-
-            object-fit: cover;
-        }
-
-        .sidebar-logo-placeholder {
-            width: var(--space-10);
-
-            height: var(--space-10);
-
-            border-radius: var(--radius-lg);
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: var(--font-semibold);
-
-            font-size: 1.1rem;
-        }
-
-        .sidebar-title {
-            font-weight: var(--font-semibold);
-
-            font-size: 1rem;
-        }
-
-        /* Navigation */
-        .sidebar-nav {
-            flex: 1;
-            padding: var(--space-4) var(--space-3);
-
-            overflow-y: auto;
-        }
-
-        .nav-section {
-            margin-bottom: var(--space-6);
-
-        }
-
-        .nav-section-title {
-            font-size: 0.7rem;
-            font-weight: var(--font-semibold);
-
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 0 var(--space-3);
-
-            margin-bottom: var(--space-2);
-
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: var(--space-3);
-
-            padding: var(--space-2-5) var(--space-3);
-
-            border-radius: var(--radius-lg);
-
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: all 0.15s ease;
-            margin-bottom: var(--space-0-5);
-
-        }
-
-        .nav-icon {
-            width: var(--space-5);
-
-            height: var(--space-5);
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-        }
-
-        .nav-badge {
-            margin-left: auto;
-            font-size: 0.7rem;
-            font-weight: var(--font-semibold);
-
-            padding: var(--space-0-5) var(--space-2);
-
-            border-radius: var(--radius-xl);
-
-            min-width: var(--space-5);
-
-            text-align: center;
-        }
-
-        /* Sidebar Footer */
-        .sidebar-footer {
-            padding: var(--space-4);
-
-        }
-
-        .cpa-profile {
-            display: flex;
-            align-items: center;
-            gap: var(--space-3);
-
-            padding: var(--space-3);
-
-            border-radius: var(--radius-lg-plus);
-        }
-
-        .cpa-avatar {
-            width: var(--space-9);
-
-            height: var(--space-9);
-
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .cpa-avatar-placeholder {
-            width: var(--space-9);
-
-            height: var(--space-9);
-
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: var(--font-semibold);
-
-            font-size: 0.9rem;
-        }
-
-        .cpa-profile-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .cpa-profile-name {
-            font-weight: var(--font-semibold);
-
-            font-size: 0.85rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .cpa-profile-role {
-            font-size: 0.75rem;
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: var(--sidebar-width, 260px);
-            min-height: 100vh;
-        }
-
-        /* Header */
-        .page-header {
-            background: var(--white);
-            border-bottom: 1px solid var(--border-color);
-            padding: 0 var(--space-8);
-
-            height: var(--header-height, 64px);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 40;
-        }
-
-        .page-title-section {
-            display: flex;
-            align-items: center;
-            gap: var(--space-4);
-
-        }
-
-        .mobile-menu-btn {
-            display: none;
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: var(--space-2);
-
-            color: var(--text-dark);
-        }
-
-        .page-title {
-            font-size: 1.25rem;
-            font-weight: var(--font-semibold);
-
-        }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: var(--space-4);
-
-        }
-
-        .header-search {
-            position: relative;
-        }
-
-        .header-search input {
-            width: 240px;
-            padding: var(--space-2) var(--space-3) var(--space-2) var(--space-9);
-
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-
-            font-size: 0.9rem;
-            background: var(--bg-light);
-            transition: all 0.15s ease;
-        }
-
-        .header-search input:focus {
-            border-color: var(--color-accent-500);
-            background: var(--white);
-        }
-
-        .header-search-icon {
-            position: absolute;
-            left: var(--space-3);
-
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-        }
-
-        .header-btn {
-            width: var(--space-10);
-
-            height: var(--space-10);
-
-            border-radius: var(--radius-lg-plus);
-            background: var(--bg-light);
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            color: var(--text-muted);
-            position: relative;
-            transition: all 0.15s ease;
-        }
-
-        .header-btn:hover {
-            background: var(--border-color);
-            color: var(--text-dark);
-        }
-
-        .notification-dot {
-            position: absolute;
-            top: var(--space-2);
-
-            right: var(--space-2);
-
-            width: var(--space-2);
-
-            height: var(--space-2);
-
-            background: var(--error);
-            border-radius: 50%;
-        }
-
-        /* Page Content */
-        .page-content {
-            padding: var(--space-6) var(--space-8);
-
-        }
-
-        /* Card structure */
-        .card-header {
-            padding: var(--space-4) var(--space-5);
-
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .card-title {
-            font-weight: var(--font-semibold);
-
-            font-size: 1rem;
-        }
-
-        .card-body {
-            padding: var(--space-5);
-
-        }
-
-        /* Buttons */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: var(--space-2);
-
-            padding: var(--space-2-5) var(--space-5);
-
-            border-radius: var(--radius-lg);
-
-            font-size: 0.9rem;
-            font-weight: var(--font-medium);
-
-            cursor: pointer;
-            transition: all 0.15s ease;
-            border: none;
-            text-decoration: none;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-primary);
-        }
-
-        .btn-secondary {
-            background: var(--bg-light);
-            color: var(--text-dark);
-            border: 1px solid var(--border-color);
-        }
-
-        .btn-secondary:hover {
-            background: var(--border-color);
-        }
-
-        .btn-sm {
-            padding: var(--space-1-5) var(--space-3);
-
-            font-size: 0.8rem;
-        }
-
-        /* Mobile Responsive */
-        @media (max-width: 1024px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-
-            .sidebar.open {
-                transform: translateX(0);
-            }
-
-            .main-content {
-                margin-left: 0;
-            }
-
-            .mobile-menu-btn {
-                display: block;
-            }
-
-            .header-search input {
-                width: 160px;
-            }
-
-            .sidebar-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.5);
-                z-index: 45;
-                opacity: 0;
-                pointer-events: none;
-                transition: opacity 0.3s ease;
-            }
-
-            .sidebar-overlay.show {
-                opacity: 1;
-                pointer-events: all;
-            }
-        }
-
-        @media (max-width: 640px) {
-            .page-header {
-                padding: 0 var(--space-4);
-
-            }
-
-            .page-content {
-                padding: var(--space-4);
-
-            }
-
-            .header-search {
-                display: none;
-            }
         }
 
         {% block extra_styles %}{% endblock %}
@@ -486,7 +44,7 @@
             <div class="sidebar-header">
                 <a href="/cpa/dashboard" class="sidebar-brand">
                     {% if cpa.logo_url %}
-                    <img src="{{ cpa.logo_url }}" alt="" class="sidebar-logo">
+                    <img src="{{ cpa.logo_url }}" alt="{{ cpa.firm_name }} logo" class="sidebar-logo">
                     {% else %}
                     <div class="sidebar-logo-placeholder">
                         {{ (cpa.firm_name or cpa.display_name or 'T')[0] }}
@@ -649,7 +207,7 @@
             <div class="sidebar-footer">
                 <div class="cpa-profile">
                     {% if cpa.profile_photo_url %}
-                    <img src="{{ cpa.profile_photo_url }}" alt="" class="cpa-avatar">
+                    <img src="{{ cpa.profile_photo_url }}" alt="{{ cpa.display_name }} avatar" class="cpa-avatar">
                     {% else %}
                     <div class="cpa-avatar-placeholder">
                         {{ (cpa.display_name or 'U')[0] }}
@@ -675,17 +233,17 @@
                 <div class="header-actions">
                     <div class="header-search">
                         <span class="header-search-icon">{{ icon('magnifying-glass') }}</span>
-                        <input type="text" placeholder="Search leads..." id="globalSearch">
+                        <input type="text" placeholder="Search leads..." id="globalSearch" aria-label="Search leads">
                     </div>
 
-                    <button class="header-btn" title="Notifications">
+                    <button class="header-btn" title="Notifications" aria-label="Notifications">
                         {{ icon('bell') }}
                         {% if stats and stats.new_leads > 0 %}
                         <span class="notification-dot"></span>
                         {% endif %}
                     </button>
 
-                    <button class="header-btn" title="Settings" onclick="location.href='/cpa/profile'">
+                    <button class="header-btn" title="Settings" aria-label="Settings" onclick="location.href='/cpa/profile'">
                         {{ icon('cog-6-tooth') }}
                     </button>
                 </div>

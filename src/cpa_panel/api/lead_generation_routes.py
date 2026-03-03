@@ -72,7 +72,7 @@ class TeaserResponse(BaseModel):
 
 class CaptureContactRequest(BaseModel):
     """Request to capture prospect contact info."""
-    email: str = Field(..., description="Prospect's email address")
+    email: EmailStr = Field(..., description="Prospect's email address")
     name: Optional[str] = Field(None, description="Prospect's name")
     phone: Optional[str] = Field(None, description="Prospect's phone number")
 
@@ -518,7 +518,7 @@ async def update_status(lead_id: str, request: UpdateStatusRequest):
     """
     Update the status of a lead.
 
-    Valid statuses: new, qualified, contacted, engaged, converted, lost
+    Valid statuses: new, qualified, contacted, engaged, converted, lost, archived
     """
     try:
         status = LeadStatus(request.status)
@@ -538,6 +538,32 @@ async def update_status(lead_id: str, request: UpdateStatusRequest):
 
     except ValueError as e:
         raise HTTPException(status_code=404, detail="Resource not found")
+
+
+class ArchiveLeadRequest(BaseModel):
+    note: Optional[str] = Field(None, description="Reason for archiving")
+
+
+@lead_generation_router.post(
+    "/{lead_id}/archive",
+    summary="Archive a lead",
+    description="Move a lead to archived status. Can be reversed by updating status back.",
+    dependencies=[Depends(require_internal_cpa_auth)],
+)
+async def archive_lead(lead_id: str, request: ArchiveLeadRequest = ArchiveLeadRequest()):
+    """Archive a lead so it no longer appears in the default pipeline view."""
+    try:
+        service = get_lead_generation_service()
+        note = request.note or "Lead archived"
+        lead = service.update_lead_status(lead_id, LeadStatus.ARCHIVED, note)
+
+        return {
+            "lead_id": lead.lead_id,
+            "status": lead.status.value,
+            "message": "Lead archived successfully",
+        }
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Lead not found")
 
 
 @lead_generation_router.post(

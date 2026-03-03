@@ -1,29 +1,23 @@
 """
 AI Agent for tax return preparation
-Uses OpenAI to guide users through tax information collection
+Uses unified AI service to guide users through tax information collection
 """
 import os
 from typing import Dict, Any, Optional, List
-from openai import OpenAI
 
 from models.tax_return import TaxReturn
 from models.taxpayer import TaxpayerInfo, FilingStatus, Dependent
 from models.income import Income, W2Info, Form1099Info
 from models.deductions import Deductions, ItemizedDeductions
 from models.credits import TaxCredits
+from services.ai import get_ai_service, run_async, AIMessage
+from config.ai_providers import ModelCapability
 
 
 class TaxAgent:
     """AI agent that guides users through tax return preparation"""
 
-    def __init__(self, api_key: Optional[str] = None):
-        api_key = api_key or os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("OpenAI API key required. Set OPENAI_API_KEY environment variable.")
-
-        self.client = OpenAI(api_key=api_key)
-        self.model = os.getenv("OPENAI_MODEL", "gpt-4o")
-
+    def __init__(self):
         self.messages: List[Dict[str, str]] = []
         self.tax_return: Optional[TaxReturn] = None
         self.collection_stage = "personal_info"  # personal_info, income, deductions, credits, review
@@ -81,15 +75,17 @@ Let's get started! What is your first name?"""
         messages_with_context = self.messages.copy()
         messages_with_context[-1]["content"] = user_input + context
 
-        # Get response from OpenAI
+        # Get response from AI
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages_with_context,
+            ai = get_ai_service()
+            ai_messages = [AIMessage(role=m["role"], content=m["content"]) for m in messages_with_context]
+            response = run_async(ai.chat(
+                messages=ai_messages,
+                capability=ModelCapability.STANDARD,
                 temperature=0.3,
-                max_tokens=500
-            )
-            assistant_message = response.choices[0].message.content
+                max_tokens=500,
+            ))
+            assistant_message = response.content
         except Exception as e:
             assistant_message = f"I apologize, but I encountered an issue. Let's continue - {str(e)[:100]}"
 
@@ -256,7 +252,6 @@ Let's get started! What is your first name?"""
         state = {
             "collection_stage": self.collection_stage,
             "messages": self.messages.copy(),  # Chat history
-            "model": self.model,
         }
 
         # Serialize tax return if present
@@ -285,7 +280,6 @@ Let's get started! What is your first name?"""
         # Restore basic state
         self.collection_stage = state.get("collection_stage", "personal_info")
         self.messages = state.get("messages", [])
-        self.model = state.get("model", os.getenv("OPENAI_MODEL", "gpt-4o"))
 
         # Restore tax return if present
         tax_return_data = state.get("tax_return")

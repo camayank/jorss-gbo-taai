@@ -498,9 +498,10 @@ class PerplexityAdapter(BaseProviderAdapter):
 class GeminiAdapter(BaseProviderAdapter):
     """Adapter for Google Gemini API (for multimodal processing)."""
 
-    def __init__(self, config: ProviderConfig):
+    def __init__(self, config: ProviderConfig, timeout: int = LLM_REQUEST_TIMEOUT):
         super().__init__(config)
         self._client = None
+        self.timeout = timeout
 
     @property
     def client(self):
@@ -554,12 +555,16 @@ class GeminiAdapter(BaseProviderAdapter):
                     system_instruction=system_instruction
                 )
 
-            response = await asyncio.get_event_loop().run_in_executor(
-                None,
-                lambda: gen_model.generate_content(
-                    contents,
-                    generation_config=generation_config
-                )
+            loop = asyncio.get_running_loop()
+            response = await asyncio.wait_for(
+                loop.run_in_executor(
+                    None,
+                    lambda: gen_model.generate_content(
+                        contents,
+                        generation_config=generation_config
+                    )
+                ),
+                timeout=self.timeout
             )
 
             latency_ms = int((time.time() - start_time) * 1000)
@@ -582,6 +587,9 @@ class GeminiAdapter(BaseProviderAdapter):
                 latency_ms=latency_ms,
                 cost_estimate=estimate_cost(model_name, input_tokens, output_tokens),
             )
+        except asyncio.TimeoutError:
+            self.circuit_breaker.record_failure()
+            raise TimeoutError(f"Gemini request timed out after {self.timeout}s")
         except Exception as e:
             self.circuit_breaker.record_failure()
             raise
@@ -616,9 +624,13 @@ class GeminiAdapter(BaseProviderAdapter):
 
             gen_model = self.client.GenerativeModel(model_name)
 
-            response = await asyncio.get_event_loop().run_in_executor(
-                None,
-                lambda: gen_model.generate_content([prompt, image])
+            loop = asyncio.get_running_loop()
+            response = await asyncio.wait_for(
+                loop.run_in_executor(
+                    None,
+                    lambda: gen_model.generate_content([prompt, image])
+                ),
+                timeout=self.timeout
             )
 
             latency_ms = int((time.time() - start_time) * 1000)
@@ -641,6 +653,9 @@ class GeminiAdapter(BaseProviderAdapter):
                 cost_estimate=estimate_cost(model_name, input_tokens, output_tokens),
                 metadata={"multimodal": True}
             )
+        except asyncio.TimeoutError:
+            self.circuit_breaker.record_failure()
+            raise TimeoutError(f"Gemini image analysis timed out after {self.timeout}s")
         except Exception as e:
             self.circuit_breaker.record_failure()
             raise

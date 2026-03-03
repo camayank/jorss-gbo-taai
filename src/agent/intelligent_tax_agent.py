@@ -22,8 +22,8 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, date
 from enum import Enum
 
-from openai import OpenAI
-import openai
+from services.ai import get_ai_service, run_async, AIMessage as UnifiedAIMessage
+from config.ai_providers import ModelCapability
 
 logger = logging.getLogger(__name__)
 
@@ -258,16 +258,10 @@ class IntelligentTaxAgent:
     - Integration with questionnaire engine
     """
 
-    def __init__(self, api_key: Optional[str] = None, use_ocr: bool = True, session_id: Optional[str] = None):
+    def __init__(self, use_ocr: bool = True, session_id: Optional[str] = None):
         """Initialize the intelligent agent."""
         import uuid
 
-        api_key = api_key or os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("OpenAI API key required. Set OPENAI_API_KEY environment variable.")
-
-        self.client = OpenAI(api_key=api_key, timeout=30.0)
-        self.model = os.getenv("OPENAI_MODEL", "gpt-4o")  # gpt-4o for structured outputs
         self.use_ocr = use_ocr
         self.session_id = session_id or str(uuid.uuid4())
 
@@ -293,7 +287,7 @@ class IntelligentTaxAgent:
         self._audit_logger = get_audit_logger() if AUDIT_AVAILABLE else None
 
         # Tax opportunity detector for proactive savings identification
-        self._opportunity_detector = TaxOpportunityDetector(api_key=api_key) if OPPORTUNITY_DETECTOR_AVAILABLE else None
+        self._opportunity_detector = TaxOpportunityDetector() if OPPORTUNITY_DETECTOR_AVAILABLE else None
         self._detected_opportunities = []
         self._opportunities_last_checked = None
 
@@ -314,7 +308,7 @@ class IntelligentTaxAgent:
             resource_type="tax_session",
             resource_id=self.session_id,
             details={
-                "model": self.model,
+                "model": "unified_ai_service",
                 "ocr_enabled": self.use_ocr
             },
             severity=AuditSeverity.INFO
@@ -584,47 +578,27 @@ Let's start with the basics. What's your first name?"""
         }
 
         try:
-            # Call OpenAI with tool calling for structured extraction (with retry)
-            response = None
+            # Call unified AI service for structured extraction (with retry)
+            result = None
             max_retries = 2
             for attempt in range(max_retries + 1):
                 try:
-                    response = self.client.chat.completions.create(
-                        model=self.model,
-                        messages=[
-                            {"role": "system", "content": self.system_prompt},
-                            {"role": "user", "content": f"Extract all tax-related information from this message:\n\n{user_input}"}
-                        ],
-                        tools=[{"type": "function", "function": extraction_schema}],
-                        tool_choice={"type": "function", "function": {"name": "extract_tax_entities"}},
-                        temperature=0.1  # Low temperature for reliable extraction
-                    )
+                    ai = get_ai_service()
+                    extraction_text = f"{self.system_prompt}\n\nExtract all tax-related information from this message:\n\n{user_input}"
+                    result = run_async(ai.extract(extraction_text, extraction_schema["parameters"]))
                     break  # Success
-                except openai.APITimeoutError as e:
-                    logger.warning(f"OpenAI timeout on entity extraction (attempt {attempt + 1}/{max_retries + 1}): {e}")
-                    if attempt < max_retries:
-                        time.sleep(2 ** attempt)
-                        continue
-                    return []
-                except openai.RateLimitError as e:
-                    logger.warning(f"OpenAI rate limit on entity extraction (attempt {attempt + 1}/{max_retries + 1}): {e}")
-                    if attempt < max_retries:
-                        time.sleep(2 ** attempt)
-                        continue
-                    return []
-                except openai.APIError as e:
-                    logger.warning(f"OpenAI API error on entity extraction (attempt {attempt + 1}/{max_retries + 1}): {e}")
+                except Exception as e:
+                    logger.warning(f"AI error on entity extraction (attempt {attempt + 1}/{max_retries + 1}): {e}")
                     if attempt < max_retries:
                         time.sleep(2 ** attempt)
                         continue
                     return []
 
-            if response is None:
+            if result is None:
                 return []
 
-            # Parse tool call result
-            if response.choices[0].message.tool_calls:
-                result = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
+            # Parse extraction result
+            if result:
 
                 # Update context with detected forms and life events
                 self.context.detected_forms.extend(result.get("detected_forms", []))
@@ -1579,42 +1553,33 @@ CRITICAL GUIDELINES FOR THIS RESPONSE:
 
 Keep responses conversational, friendly, and professional. Always acknowledge what they just shared before moving forward."""
 
-            response = None
+            ai_response = None
             max_retries = 2
             for attempt in range(max_retries + 1):
                 try:
-                    response = self.client.chat.completions.create(
-                        model=self.model,
-                        messages=self.messages + [
-                            {"role": "system", "content": system_prompt}
-                        ],
-                        temperature=0.6,  # Reduced from 0.7 for more consistent responses
-                        max_tokens=500
-                    )
+                    ai = get_ai_service()
+                    ai_messages = [
+                        UnifiedAIMessage(role=m["role"], content=m["content"])
+                        for m in self.messages
+                    ] + [UnifiedAIMessage(role="system", content=system_prompt)]
+                    ai_response = run_async(ai.chat(
+                        messages=ai_messages,
+                        capability=ModelCapability.STANDARD,
+                        temperature=0.6,
+                        max_tokens=500,
+                    ))
                     break  # Success
-                except openai.APITimeoutError as e:
-                    logger.warning(f"OpenAI timeout on response generation (attempt {attempt + 1}/{max_retries + 1}): {e}")
-                    if attempt < max_retries:
-                        time.sleep(2 ** attempt)
-                        continue
-                    return "I'm having trouble processing that right now. Could you rephrase or try again?"
-                except openai.RateLimitError as e:
-                    logger.warning(f"OpenAI rate limit on response generation (attempt {attempt + 1}/{max_retries + 1}): {e}")
-                    if attempt < max_retries:
-                        time.sleep(2 ** attempt)
-                        continue
-                    return "I'm having trouble processing that right now. Could you rephrase or try again?"
-                except openai.APIError as e:
-                    logger.warning(f"OpenAI API error on response generation (attempt {attempt + 1}/{max_retries + 1}): {e}")
+                except Exception as e:
+                    logger.warning(f"AI error on response generation (attempt {attempt + 1}/{max_retries + 1}): {e}")
                     if attempt < max_retries:
                         time.sleep(2 ** attempt)
                         continue
                     return "I'm having trouble processing that right now. Could you rephrase or try again?"
 
-            if response is None:
+            if ai_response is None:
                 return "I'm having trouble processing that right now. Could you rephrase or try again?"
 
-            response_text = response.choices[0].message.content
+            response_text = ai_response.content
 
             # Phase 1.5: Prepend contradiction warnings if any
             if hasattr(self, '_current_contradictions') and self._current_contradictions:
@@ -1886,7 +1851,6 @@ Keep responses conversational, friendly, and professional. Always acknowledge wh
 
         state = {
             "messages": self.messages.copy(),
-            "model": self.model,
             "context": {
                 "current_topic": self.context.current_topic,
                 "discussed_topics": self.context.discussed_topics,

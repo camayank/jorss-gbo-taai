@@ -5,70 +5,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Smart Tax - Quick & Easy Tax Filing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/core/variables.css">
   <link rel="stylesheet" href="/static/css/core/reset.css">
   <link rel="stylesheet" href="/static/css/core/typography.css">
   <link rel="stylesheet" href="/static/css/unified-theme.css">
   <style>
-    :root {
-      /* Primary Colors - Indigo (Unified Design System) */
-      --primary: var(--color-primary-500);
-      --primary-dark: var(--color-primary-700);
-      --primary-light: var(--color-primary-400);
-      --primary-50: var(--color-primary-50);
-
-      /* Accent - Teal (Unified Design System) */
-      --accent: var(--color-accent-500);
-      --accent-light: var(--color-accent-100);
-
-      /* Grayscale */
-      --gray-50: var(--color-gray-50);
-      --gray-100: var(--color-gray-100);
-      --gray-200: var(--color-gray-200);
-      --gray-300: var(--color-gray-300);
-      --gray-400: var(--color-gray-400);
-      --gray-500: var(--color-gray-500);
-      --gray-600: var(--color-gray-600);
-      --gray-700: var(--color-gray-700);
-      --gray-800: var(--color-gray-800);
-      --gray-900: var(--color-gray-900);
-
-      /* Semantic Colors */
-      --success: var(--color-success-500);
-      --success-light: var(--color-success-100);
-      --warning: var(--color-warning-500);
-      --warning-light: var(--color-warning-100);
-      --error: var(--color-error-500);
-      --error-light: var(--color-error-100);
-      --info: var(--color-primary-400);
-      --info-light: var(--color-primary-50);
-
-      /* Layout */
-      --max-width: 800px;
-      --header-height: 64px;
-
-      /* Shadows */
-      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
-      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
-      --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1);
-
-      /* Border Radius */
-      --radius-sm: 6px;
-      --radius-md: 8px;
-      --radius-lg: 12px;
-      --radius-xl: 16px;
-
-      /* Transitions */
-      --transition: 200ms ease;
-    }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, var(--primary-50) 0%, white 50%, var(--gray-50) 100%);
-      color: var(--gray-900);
+      font-family: var(--font-sans, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+      background: linear-gradient(135deg, var(--color-primary-50) 0%, white 50%, var(--color-gray-50) 100%);
+      color: var(--color-gray-900);
       min-height: 100vh;
       line-height: var(--leading-normal);
 
@@ -77,7 +27,7 @@
     /* Header */
     .header {
       background: white;
-      border-bottom: 1px solid var(--gray-200);
+      border-bottom: 1px solid var(--color-gray-200);
       padding: 0 var(--space-6);
 
       height: var(--header-height);
@@ -95,7 +45,7 @@
       gap: var(--space-3);
 
       text-decoration: none;
-      color: var(--gray-900);
+      color: var(--color-gray-900);
     }
 
     .logo-icon {
@@ -103,7 +53,7 @@
 
       height: var(--space-10);
 
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      background: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-700) 100%);
       border-radius: var(--radius-lg-plus);
       display: flex;
       align-items: center;
@@ -123,7 +73,7 @@
     }
 
     .logo-badge {
-      background: var(--accent);
+      background: var(--color-accent-500);
       color: white;
       font-size: 10px;
       padding: var(--space-0-5) var(--space-2);
@@ -138,7 +88,7 @@
     /* Progress Bar */
     .progress-container {
       background: white;
-      border-bottom: 1px solid var(--gray-200);
+      border-bottom: 1px solid var(--color-gray-200);
       padding: var(--space-4) var(--space-6);
 
     }
@@ -160,8 +110,8 @@
       padding: var(--space-2) var(--space-4);
 
       border-radius: var(--radius-lg);
-      background: var(--gray-100);
-      color: var(--gray-500);
+      background: var(--color-gray-100);
+      color: var(--color-gray-500);
       font-size: var(--text-sm);
 
       font-weight: var(--font-medium);
@@ -170,13 +120,13 @@
     }
 
     .progress-step.active {
-      background: var(--primary);
+      background: var(--color-primary-500);
       color: white;
     }
 
     .progress-step.completed {
-      background: var(--accent-light);
-      color: var(--accent);
+      background: var(--color-accent-100);
+      color: var(--color-accent-500);
     }
 
     .progress-step-number {
@@ -243,32 +193,32 @@
 
       font-weight: var(--font-bold);
 
-      color: var(--gray-900);
+      color: var(--color-gray-900);
       margin-bottom: var(--space-2);
 
     }
 
     .card-subtitle {
-      color: var(--gray-500);
+      color: var(--color-gray-500);
       font-size: var(--text-base);
 
     }
 
     /* Upload Zone */
     .upload-zone {
-      border: 2px dashed var(--gray-300);
+      border: 2px dashed var(--color-gray-300);
       border-radius: var(--radius-lg);
       padding: var(--space-12);
 
       text-align: center;
       cursor: pointer;
       transition: var(--transition);
-      background: var(--gray-50);
+      background: var(--color-gray-50);
     }
 
     .upload-zone:hover, .upload-zone.drag-over {
-      border-color: var(--primary);
-      background: var(--primary-50);
+      border-color: var(--color-primary-500);
+      background: var(--color-primary-50);
     }
 
     .upload-icon {
@@ -276,7 +226,7 @@
       height: 64px;
       margin: 0 auto var(--space-4);
 
-      background: var(--primary-50);
+      background: var(--color-primary-50);
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -289,13 +239,13 @@
 
       font-weight: var(--font-semibold);
 
-      color: var(--gray-900);
+      color: var(--color-gray-900);
       margin-bottom: var(--space-2);
 
     }
 
     .upload-subtitle {
-      color: var(--gray-500);
+      color: var(--color-gray-500);
       font-size: var(--text-sm);
 
     }
@@ -317,7 +267,7 @@
 
       padding: var(--space-4);
 
-      background: var(--gray-50);
+      background: var(--color-gray-50);
       border-radius: var(--radius-md);
       margin-bottom: var(--space-3);
 
@@ -328,7 +278,7 @@
 
       height: var(--space-12);
 
-      background: var(--primary-50);
+      background: var(--color-primary-50);
       border-radius: var(--radius-md);
       display: flex;
       align-items: center;
@@ -344,13 +294,13 @@
     .document-name {
       font-weight: var(--font-semibold);
 
-      color: var(--gray-900);
+      color: var(--color-gray-900);
     }
 
     .document-meta {
       font-size: var(--text-sm);
 
-      color: var(--gray-500);
+      color: var(--color-gray-500);
     }
 
     .document-confidence {
@@ -369,23 +319,23 @@
     }
 
     .confidence-high {
-      background: var(--success-light);
-      color: var(--success);
+      background: var(--color-success-100);
+      color: var(--color-success-500);
     }
 
     .confidence-medium {
-      background: var(--warning-light);
-      color: var(--warning);
+      background: var(--color-warning-100);
+      color: var(--color-warning-500);
     }
 
     .confidence-low {
-      background: var(--error-light);
-      color: var(--error);
+      background: var(--color-error-100);
+      color: var(--color-error-500);
     }
 
     /* Estimate Card */
     .estimate-card {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      background: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-700) 100%);
       color: white;
       border-radius: var(--radius-xl);
       padding: var(--space-8);
@@ -419,11 +369,11 @@
     }
 
     .estimate-refund {
-      background: linear-gradient(135deg, var(--accent) 0%, var(--color-success-600) 100%);
+      background: linear-gradient(135deg, var(--color-accent-500) 0%, var(--color-success-600) 100%);
     }
 
     .estimate-owed {
-      background: linear-gradient(135deg, var(--error) 0%, var(--color-error-600) 100%);
+      background: linear-gradient(135deg, var(--color-error-500) 0%, var(--color-error-600) 100%);
     }
 
     /* Confidence Meter */
@@ -462,7 +412,7 @@
       display: block;
       font-weight: var(--font-medium);
 
-      color: var(--gray-700);
+      color: var(--color-gray-700);
       margin-bottom: var(--space-2);
 
     }
@@ -471,7 +421,7 @@
       width: 100%;
       padding: var(--space-3) var(--space-4);
 
-      border: 1px solid var(--gray-300);
+      border: 1px solid var(--color-gray-300);
       border-radius: var(--radius-md);
       font-size: var(--text-base);
 
@@ -480,8 +430,8 @@
 
     .form-input:focus {
       outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px var(--primary-50);
+      border-color: var(--color-primary-500);
+      box-shadow: 0 0 0 3px var(--color-primary-50);
     }
 
     .form-select {
@@ -503,20 +453,20 @@
       padding: var(--space-3) var(--space-4);
 
       text-align: left;
-      border-bottom: 1px solid var(--gray-200);
+      border-bottom: 1px solid var(--color-gray-200);
     }
 
     .data-table th {
-      background: var(--gray-50);
+      background: var(--color-gray-50);
       font-weight: var(--font-semibold);
 
-      color: var(--gray-700);
+      color: var(--color-gray-700);
       font-size: var(--text-sm);
 
     }
 
     .data-table td {
-      color: var(--gray-900);
+      color: var(--color-gray-900);
     }
 
     .data-value {
@@ -534,7 +484,7 @@
     }
 
     .data-editable:hover {
-      background: var(--primary-50);
+      background: var(--color-primary-50);
     }
 
     /* Buttons */
@@ -558,25 +508,25 @@
     }
 
     .btn-primary {
-      background: var(--primary);
+      background: var(--color-primary-500);
       color: white;
     }
 
     .btn-primary:hover {
-      background: var(--primary-dark);
+      background: var(--color-primary-700);
     }
 
     .btn-secondary {
-      background: var(--gray-100);
-      color: var(--gray-700);
+      background: var(--color-gray-100);
+      color: var(--color-gray-700);
     }
 
     .btn-secondary:hover {
-      background: var(--gray-200);
+      background: var(--color-gray-200);
     }
 
     .btn-success {
-      background: var(--accent);
+      background: var(--color-accent-500);
       color: white;
     }
 
@@ -618,17 +568,17 @@
     }
 
     .alert-warning {
-      background: var(--warning-light);
+      background: var(--color-warning-100);
       color: var(--color-warning-800);
     }
 
     .alert-info {
-      background: var(--info-light);
+      background: var(--color-primary-50);
       color: var(--color-primary-500);
     }
 
     .alert-success {
-      background: var(--success-light);
+      background: var(--color-success-100);
       color: var(--color-success-800);
     }
 
@@ -653,8 +603,8 @@
 
       height: var(--space-12);
 
-      border: 3px solid var(--gray-200);
-      border-top-color: var(--primary);
+      border: 3px solid var(--color-gray-200);
+      border-top-color: var(--color-primary-500);
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
@@ -666,7 +616,7 @@
     .loading-text {
       margin-top: var(--space-4);
 
-      color: var(--gray-600);
+      color: var(--color-gray-600);
       font-size: var(--text-base);
 
     }
@@ -687,23 +637,23 @@
     }
 
     .complexity-simple {
-      background: var(--success-light);
-      color: var(--success);
+      background: var(--color-success-100);
+      color: var(--color-success-500);
     }
 
     .complexity-moderate {
-      background: var(--info-light);
-      color: var(--info);
+      background: var(--color-primary-50);
+      color: var(--color-primary-400);
     }
 
     .complexity-complex {
-      background: var(--warning-light);
-      color: var(--warning);
+      background: var(--color-warning-100);
+      color: var(--color-warning-500);
     }
 
     .complexity-professional {
-      background: var(--error-light);
-      color: var(--error);
+      background: var(--color-error-100);
+      color: var(--color-error-500);
     }
 
     /* Summary Grid */
@@ -717,7 +667,7 @@
     }
 
     .summary-item {
-      background: var(--gray-50);
+      background: var(--color-gray-50);
       padding: var(--space-4);
 
       border-radius: var(--radius-md);
@@ -726,7 +676,7 @@
     .summary-label {
       font-size: var(--text-sm);
 
-      color: var(--gray-500);
+      color: var(--color-gray-500);
       margin-bottom: var(--space-1);
 
     }
@@ -736,12 +686,12 @@
 
       font-weight: var(--font-bold);
 
-      color: var(--gray-900);
+      color: var(--color-gray-900);
     }
 
     /* CPA Option */
     .cpa-option {
-      border: 2px solid var(--primary);
+      border: 2px solid var(--color-primary-500);
       border-radius: var(--radius-lg);
       padding: var(--space-6);
 
@@ -751,13 +701,13 @@
     }
 
     .cpa-option h3 {
-      color: var(--primary);
+      color: var(--color-primary-500);
       margin-bottom: var(--space-2);
 
     }
 
     .cpa-option p {
-      color: var(--gray-600);
+      color: var(--color-gray-600);
       margin-bottom: var(--space-4);
 
     }
@@ -933,7 +883,7 @@
       <span class="logo-text">TaxFlow</span>
       <span class="logo-badge">Smart Tax</span>
     </a>
-    <div id="session-info" style="font-size: var(--text-sm); color: var(--gray-500);"></div>
+    <div id="session-info" style="font-size: var(--text-sm); color: var(--color-gray-500);"></div>
   </header>
 
   <!-- Progress Bar -->
@@ -1007,7 +957,7 @@
       <!-- Quick Start Option -->
       <div class="card" style="text-align: center;" role="region" aria-label="Manual entry option">
         <h3 style="margin-bottom: var(--space-2);">No documents yet?</h3>
-        <p style="color: var(--gray-500); margin-bottom: var(--space-4);">Get a quick estimate by entering your W-2 info manually</p>
+        <p style="color: var(--color-gray-500); margin-bottom: var(--space-4);">Get a quick estimate by entering your W-2 info manually</p>
         <button class="btn btn-secondary" onclick="showManualEntry()" aria-label="Enter tax information manually">Enter Manually</button>
       </div>
     </section>
@@ -1128,19 +1078,19 @@
         </div>
 
         <div class="path-options" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-6); margin-top: var(--space-6);">
-          <div style="border: 2px solid var(--gray-200); border-radius: var(--radius-lg); padding: var(--space-8); cursor: pointer; transition: var(--transition);" onclick="selectOption('self-file')" id="option-self">
+          <div style="border: 2px solid var(--color-gray-200); border-radius: var(--radius-lg); padding: var(--space-8); cursor: pointer; transition: var(--transition);" onclick="selectOption('self-file')" id="option-self">
             <div style="font-size: var(--text-5xl); margin-bottom: var(--space-4);">{{ icon('pencil') }}</div>
             <h3>Self-File</h3>
-            <p style="color: var(--gray-500); margin: var(--space-4) 0;">File your return yourself</p>
-            <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--accent);">Free</div>
+            <p style="color: var(--color-gray-500); margin: var(--space-4) 0;">File your return yourself</p>
+            <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--color-accent-500);">Free</div>
           </div>
 
-          <div style="border: 2px solid var(--primary); border-radius: var(--radius-lg); padding: var(--space-8); cursor: pointer; transition: var(--transition); background: var(--primary-50);" onclick="selectOption('cpa-review')" id="option-cpa">
+          <div style="border: 2px solid var(--color-primary-500); border-radius: var(--radius-lg); padding: var(--space-8); cursor: pointer; transition: var(--transition); background: var(--color-primary-50);" onclick="selectOption('cpa-review')" id="option-cpa">
             <div style="font-size: var(--text-5xl); margin-bottom: var(--space-4);">{{ icon('user') }}‍{{ icon('building-office') }}</div>
             <h3>CPA Review</h3>
-            <p style="color: var(--gray-500); margin: var(--space-4) 0;">Expert review and filing</p>
-            <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--primary);">$99</div>
-            <div style="font-size: var(--text-xs); color: var(--gray-500);">Recommended</div>
+            <p style="color: var(--color-gray-500); margin: var(--space-4) 0;">Expert review and filing</p>
+            <div style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--color-primary-500);">$99</div>
+            <div style="font-size: var(--text-xs); color: var(--color-gray-500);">Recommended</div>
           </div>
         </div>
 
@@ -1163,6 +1113,7 @@
     </section>
   </main>
 
+  <script src="/static/js/toast.js"{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}></script>
   <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     // ==========================================================================
     // SECURITY UTILITIES
@@ -1193,25 +1144,6 @@
         .replace(/'/g, '&#39;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
-    }
-
-    /**
-     * Shows a toast notification to the user
-     * @param {string} message - The message to display
-     * @param {string} type - 'success', 'error', 'warning', 'info'
-     */
-    function showToast(message, type = 'info') {
-      const toast = document.createElement('div');
-      toast.className = `toast toast-${type}`;
-      toast.textContent = message;
-      toast.style.cssText = `
-        position: fixed; bottom: 20px; right: 20px; padding: 12px 24px;
-        border-radius: 8px; color: white; font-weight: 500; z-index: 10000;
-        animation: slideIn 0.3s ease; max-width: 400px;
-        background: ${type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : type === 'warning' ? '#f59e0b' : '#5387c1'};
-      `;
-      document.body.appendChild(toast);
-      setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 4000);
     }
 
     // ==========================================================================
@@ -1711,7 +1643,7 @@
           <span class="complexity-badge complexity-${level}">
             ${level.charAt(0).toUpperCase() + level.slice(1)} Return
           </span>
-          <span style="color: var(--gray-500); margin-left: var(--space-3);">${complexity.estimated_time?.[0] || 3}-${complexity.estimated_time?.[1] || 5} min estimated</span>
+          <span style="color: var(--color-gray-500); margin-left: var(--space-3);">${complexity.estimated_time?.[0] || 3}-${complexity.estimated_time?.[1] || 5} min estimated</span>
         `;
       }
 
@@ -1735,11 +1667,11 @@
               </p>
               <div style="display: flex; gap: var(--space-6); margin-top: var(--space-3);">
                 <div>
-                  <span style="color: var(--gray-500);">Standard Deduction</span>
+                  <span style="color: var(--color-gray-500);">Standard Deduction</span>
                   <p style="font-size: 1.25em; font-weight: var(--font-semibold);">$${deductions.standard_deduction?.toLocaleString() || '0'}</p>
                 </div>
                 <div>
-                  <span style="color: var(--gray-500);">Itemized Total</span>
+                  <span style="color: var(--color-gray-500);">Itemized Total</span>
                   <p style="font-size: 1.25em; font-weight: var(--font-semibold);">$${deductions.total_itemized?.toLocaleString() || '0'}</p>
                 </div>
               </div>
@@ -1756,7 +1688,7 @@
                 <div class="alert alert-success" style="display: flex; justify-content: space-between; align-items: center;">
                   <div>
                     <strong>${escapeHtml(credit.name)}</strong>
-                    <p style="margin: var(--space-1) 0 0; color: var(--gray-600);">${escapeHtml(credit.description)}</p>
+                    <p style="margin: var(--space-1) 0 0; color: var(--color-gray-600);">${escapeHtml(credit.description)}</p>
                   </div>
                   <span style="font-size: 1.25em; font-weight: var(--font-semibold); color: #22c55e;">+$${credit.estimated_amount?.toLocaleString() || '0'}</span>
                 </div>
@@ -1829,8 +1761,8 @@
       // AI Summary
       if (intel?.summary) {
         recommendationsHtml += `
-          <div class="card" style="background: var(--gray-50); margin-top: var(--space-6); padding: var(--space-4);">
-            <p style="margin: 0; font-style: italic; color: var(--gray-600);">
+          <div class="card" style="background: var(--color-gray-50); margin-top: var(--space-6); padding: var(--space-4);">
+            <p style="margin: 0; font-style: italic; color: var(--color-gray-600);">
               <strong>AI Summary:</strong> ${escapeHtml(intel.summary)}
             </p>
           </div>
@@ -1889,10 +1821,10 @@
               <div style="display: grid; gap: var(--space-3);">
                 ${planning.year_end_checklist.slice(0, 5).map((item, i) => `
                   <label style="display: flex; align-items: flex-start; gap: var(--space-3); cursor: pointer;">
-                    <input type="checkbox" id="checklist-${i}" style="margin-top: var(--space-1); width: 18px; height: 18px; accent-color: var(--primary);">
+                    <input type="checkbox" id="checklist-${i}" style="margin-top: var(--space-1); width: 18px; height: 18px; accent-color: var(--color-primary-500);">
                     <div>
                       <strong>${escapeHtml(item.item)}</strong>
-                      <p style="margin: var(--space-1) 0 0; color: var(--gray-500); font-size: 0.9em;">${escapeHtml(item.description)}</p>
+                      <p style="margin: var(--space-1) 0 0; color: var(--color-gray-500); font-size: 0.9em;">${escapeHtml(item.description)}</p>
                     </div>
                   </label>
                 `).join('')}
@@ -1914,10 +1846,10 @@
                 </h3>
                 <div style="display: grid; gap: var(--space-3);">
                   ${relevantEstimates.map(q => `
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3); background: var(--gray-50); border-radius: var(--radius-lg);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3); background: var(--color-gray-50); border-radius: var(--radius-lg);">
                       <div>
                         <strong>Q${q.quarter} ${new Date().getFullYear()}</strong>
-                        <p style="margin: var(--space-1) 0 0; color: var(--gray-500); font-size: 0.9em;">Due: ${new Date(q.due_date).toLocaleDateString()}</p>
+                        <p style="margin: var(--space-1) 0 0; color: var(--color-gray-500); font-size: 0.9em;">Due: ${new Date(q.due_date).toLocaleDateString()}</p>
                       </div>
                       <div style="text-align: right;">
                         <span style="font-size: 1.25em; font-weight: var(--font-semibold);">$${q.recommended_payment?.toLocaleString() || '0'}</span>
@@ -1955,7 +1887,7 @@
                         <span>${style.icon}</span>
                         <div style="flex: 1;">
                           <strong>${escapeHtml(insight.title)}</strong>
-                          <p style="margin: var(--space-1) 0 0; color: var(--gray-600); font-size: 0.9em;">${escapeHtml(insight.description)}</p>
+                          <p style="margin: var(--space-1) 0 0; color: var(--color-gray-600); font-size: 0.9em;">${escapeHtml(insight.description)}</p>
                           ${insight.estimated_savings ? `<p style="margin: var(--space-2) 0 0; font-weight: var(--font-semibold); color: ${style.border};">Potential savings: $${insight.estimated_savings.toLocaleString()}</p>` : ''}
                         </div>
                       </div>
@@ -1986,11 +1918,11 @@
       state.selectedOption = option;
 
       // Update visual selection
-      document.getElementById('option-self').style.borderColor = option === 'self-file' ? 'var(--primary)' : 'var(--gray-200)';
-      document.getElementById('option-self').style.background = option === 'self-file' ? 'var(--primary-50)' : 'white';
+      document.getElementById('option-self').style.borderColor = option === 'self-file' ? 'var(--color-primary-500)' : 'var(--color-gray-200)';
+      document.getElementById('option-self').style.background = option === 'self-file' ? 'var(--color-primary-50)' : 'white';
 
-      document.getElementById('option-cpa').style.borderColor = option === 'cpa-review' ? 'var(--primary)' : 'var(--gray-200)';
-      document.getElementById('option-cpa').style.background = option === 'cpa-review' ? 'var(--primary-50)' : 'white';
+      document.getElementById('option-cpa').style.borderColor = option === 'cpa-review' ? 'var(--color-primary-500)' : 'var(--color-gray-200)';
+      document.getElementById('option-cpa').style.background = option === 'cpa-review' ? 'var(--color-primary-50)' : 'white';
     }
 
     function proceedWithOption() {

@@ -11,30 +11,30 @@
      COLOR SYSTEM
      ========================= */
 
-  /* Primary Colors (Deep Navy) */
-  --color-primary-50: #eef3f9;
-  --color-primary-100: #d4e1f0;
-  --color-primary-200: #a9c3e0;
-  --color-primary-300: #7ea5d1;
-  --color-primary-400: #5387c1;
-  --color-primary-500: #1e3a5f;
-  --color-primary-600: #1a3253;
-  --color-primary-700: #152b47;
-  --color-primary-800: #11233b;
-  --color-primary-900: #0c1b2f;
-  --color-primary-950: #081620;
+  /* Primary Colors (Navy — Premium advisory) */
+  --color-primary-50: #F0F3F8;
+  --color-primary-100: #D9E1EE;
+  --color-primary-200: #B3C3DD;
+  --color-primary-300: #7A9AC4;
+  --color-primary-400: #4A73A8;
+  --color-primary-500: #1A3560;
+  --color-primary-600: #132B50;
+  --color-primary-700: #0F2344;
+  --color-primary-800: #0B1D3A;
+  --color-primary-900: #081530;
+  --color-primary-950: #040C1E;
 
-  /* Secondary/Accent Colors (Teal) */
-  --color-accent-50: #f0fdfa;
-  --color-accent-100: #ccfbf1;
-  --color-accent-200: #99f6e4;
-  --color-accent-300: #5eead4;
-  --color-accent-400: #2dd4bf;
-  --color-accent-500: #14b8a6;
-  --color-accent-600: #0d9488;
-  --color-accent-700: #0f766e;
-  --color-accent-800: #115e59;
-  --color-accent-900: #134e4a;
+  /* Accent Colors (Warm Gold — Premium advisory) */
+  --color-accent-50: #FDF8EB;
+  --color-accent-100: #F7ECCC;
+  --color-accent-200: #F0DBAA;
+  --color-accent-300: #E8CA87;
+  --color-accent-400: #E0C778;
+  --color-accent-500: #C9A84C;
+  --color-accent-600: #B5953F;
+  --color-accent-700: #9F8236;
+  --color-accent-800: #8A6F2D;
+  --color-accent-900: #745C24;
 
   /* Grayscale - WCAG 2.1 AA compliant
      Contrast ratios on white (#fff):
@@ -42,15 +42,17 @@
      gray-500: 5.74:1 (meets AA for normal text)
      gray-600: 7.21:1 (meets AAA for normal text)
   */
-  --color-gray-50: #f9fafb;
-  --color-gray-100: #f3f4f6;
+  --color-gray-50: #FAF8F4;   /* Cream */
+  --color-gray-100: #F0EDE6;  /* Cream dark */
   --color-gray-200: #e5e7eb;
   --color-gray-300: #d1d5db;
   --color-gray-400: #737d8c;  /* Darkened from #9ca3af for 4.5:1 contrast */
   --color-gray-500: #5b6370;  /* Darkened from #6b7280 for 5.7:1 contrast */
   --color-gray-600: #4b5563;
   --color-gray-700: #374151;
+  --color-gray-750: #252b3b;
   --color-gray-800: #1f2937;
+  --color-gray-850: #1a1f2e;
   --color-gray-900: #111827;
   --color-gray-950: #030712;
 
@@ -106,6 +108,7 @@
   --space-3: 0.75rem;     /* 12px */
   --space-3-5: 0.875rem;  /* 14px */
   --space-4: 1rem;        /* 16px */
+  --space-4-5: 1.125rem;  /* 18px */
   --space-5: 1.25rem;     /* 20px */
   --space-6: 1.5rem;      /* 24px */
   --space-7: 1.75rem;     /* 28px */
@@ -124,9 +127,9 @@
   /* =========================
      TYPOGRAPHY
      ========================= */
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
   --font-mono: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
-  --font-serif: Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-serif: 'DM Serif Display', Georgia, serif;
 
   /* Font Sizes */
   --text-2xs: 0.6875rem;  /* 11px */
@@ -201,7 +204,7 @@
   --shadow-none: none;
 
   /* Colored shadows for buttons/cards */
-  --shadow-primary: 0 4px 14px 0 rgb(30 58 95 / 0.39);
+  --shadow-primary: 0 4px 14px 0 rgb(11 29 58 / 0.25);
   --shadow-success: 0 4px 14px 0 rgb(16 185 129 / 0.39);
   --shadow-error: 0 4px 14px 0 rgb(239 68 68 / 0.39);
 
@@ -317,6 +320,12 @@
   --accent-dark: var(--color-accent-700);
   --accent-light: var(--color-accent-400);
 
+  /* Purple bridge */
+  --purple: var(--color-purple-500);
+  --purple-light: var(--color-purple-100);
+  --pink: var(--color-pink-500);
+  --pink-light: var(--color-pink-100);
+
   /* Gray bridge */
   --gray-50: var(--color-gray-50);
   --gray-100: var(--color-gray-100);
@@ -425,6 +434,16 @@
   --gradient-primary: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700));
   --gradient-primary-hover: linear-gradient(135deg, var(--color-primary-400), var(--color-primary-600));
 
+  /* Named premium tokens */
+  --color-navy: #0B1D3A;
+  --color-navy-light: #132B50;
+  --color-navy-mid: #1A3560;
+  --color-gold: #C9A84C;
+  --color-gold-light: #E0C778;
+  --color-cream: #FAF8F4;
+  --color-cream-dark: #F0EDE6;
+  --gradient-navy: linear-gradient(135deg, #0B1D3A, #132B50);
+
   /* Colored shadows for specific contexts */
   --shadow-accent: 0 4px 14px 0 rgb(20 184 166 / 0.39);
   --shadow-accent-hover: 0 6px 20px 0 rgb(20 184 166 / 0.45);
@@ -432,6 +451,28 @@
   --shadow-success-glow-hover: 0 6px 16px rgba(16, 185, 129, 0.4);
   --shadow-primary-glow: 0 0 20px rgba(30, 58, 95, 0.3);
   --shadow-info-focus: 0 0 0 3px rgba(37, 99, 235, 0.1);
+
+  /* =========================
+     STATUS BADGE TOKENS
+     Consistent badge colors across all templates.
+     Usage: background: var(--badge-new-bg); color: var(--badge-new-text);
+     ========================= */
+  --badge-new-bg: var(--color-info-100);
+  --badge-new-text: var(--color-info-700);
+  --badge-active-bg: var(--color-success-100);
+  --badge-active-text: var(--color-success-700);
+  --badge-pending-bg: var(--color-warning-100);
+  --badge-pending-text: var(--color-warning-700);
+  --badge-error-bg: var(--color-error-100);
+  --badge-error-text: var(--color-error-700);
+  --badge-neutral-bg: var(--color-gray-100);
+  --badge-neutral-text: var(--color-gray-700);
+  --badge-purple-bg: var(--color-purple-100);
+  --badge-purple-text: var(--color-purple-700);
+  --badge-pink-bg: var(--color-pink-100);
+  --badge-pink-text: var(--color-pink-700);
+  --badge-primary-bg: var(--color-primary-50);
+  --badge-primary-text: var(--color-primary-500);
 }
 
 /* =========================

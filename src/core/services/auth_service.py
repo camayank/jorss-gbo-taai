@@ -93,27 +93,11 @@ def _get_auth_secret() -> str:
     """
     Get auth secret from environment.
 
-    SECURITY: In production, AUTH_SECRET_KEY must be set.
+    Uses the same JWT secret as rbac/jwt.py to ensure tokens signed here
+    can be verified by the RBAC middleware and vice versa.
     """
-    secret = os.environ.get("AUTH_SECRET_KEY")
-
-    if not secret:
-        if _IS_PRODUCTION:
-            raise RuntimeError(
-                "CRITICAL SECURITY ERROR: AUTH_SECRET_KEY environment variable is required in production. "
-                "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
-            )
-        import warnings
-        warnings.warn(
-            "AUTH_SECRET_KEY not set - using insecure development default.",
-            UserWarning
-        )
-        return "DEV-AUTH-SECRET-INSECURE-" + str(os.getpid())
-
-    if len(secret) < 32:
-        raise ValueError("AUTH_SECRET_KEY must be at least 32 characters")
-
-    return secret
+    from rbac.jwt import get_jwt_secret
+    return get_jwt_secret()
 
 
 class AuthConfig:

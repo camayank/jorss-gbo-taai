@@ -1,6 +1,9 @@
 """
 Authentication and Authorization Module.
 
+DEPRECATED: Use src.rbac.dependencies instead for new code.
+This module is maintained for backward compatibility only.
+
 Provides JWT-based authentication with proper token validation.
 CRITICAL: Replaces unvalidated header/cookie-based authentication.
 """

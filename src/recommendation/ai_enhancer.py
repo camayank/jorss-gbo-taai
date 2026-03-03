@@ -7,7 +7,6 @@ personalized advice, and natural language summaries.
 
 from __future__ import annotations
 
-import os
 import json
 import logging
 from typing import Dict, List, Any, Optional, TYPE_CHECKING
@@ -15,6 +14,9 @@ from dataclasses import dataclass, field
 
 if TYPE_CHECKING:
     from recommendation.recommendation_engine import ComprehensiveRecommendation, TaxSavingOpportunity
+
+from services.ai import get_ai_service, run_async
+from config.ai_providers import ModelCapability, get_available_providers
 
 logger = logging.getLogger(__name__)
 
@@ -65,29 +67,14 @@ class AIRecommendationEnhancer:
     - Confidence explanations
     """
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self):
         """Initialize the AI enhancer."""
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-        self._client = None
-
-    @property
-    def client(self):
-        """Lazy initialization of OpenAI client."""
-        if self._client is None and self.api_key:
-            try:
-                from openai import OpenAI
-                self._client = OpenAI(api_key=self.api_key)
-            except ImportError:
-                logger.warning("OpenAI package not available")
-            except Exception as e:
-                logger.warning(f"Failed to initialize OpenAI client: {e}")
-        return self._client
+        pass
 
     @property
     def is_available(self) -> bool:
         """Check if AI enhancement is available."""
-        return self.client is not None
+        return len(get_available_providers()) > 0
 
     def enhance_recommendation(
         self,
@@ -291,24 +278,22 @@ Generate a JSON response with these fields:
 Be concise, professional, and helpful. Return only valid JSON, no markdown code blocks."""
 
     def _call_openai(self, prompt: str, as_json: bool = True) -> Optional[str]:
-        """Make an OpenAI API call."""
-        if not self.client:
+        """Make an AI API call via unified service."""
+        if not self.is_available:
             return None
 
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": "You are a helpful tax advisor AI. Provide accurate, IRS-compliant advice."},
-                    {"role": "user", "content": prompt}
-                ],
+            ai = get_ai_service()
+            response = run_async(ai.complete(
+                prompt=prompt,
+                system_prompt="You are a helpful tax advisor AI. Provide accurate, IRS-compliant advice.",
+                capability=ModelCapability.FAST,
                 temperature=0.3,
                 max_tokens=1000,
-                response_format={"type": "json_object"} if as_json else None
-            )
-            return response.choices[0].message.content
+            ))
+            return response.content
         except Exception as e:
-            logger.error(f"OpenAI API call failed: {e}")
+            logger.error(f"AI API call failed: {e}")
             return None
 
     def _fallback_enhancement(self, opportunity: "TaxSavingOpportunity") -> AIEnhancedRecommendation:

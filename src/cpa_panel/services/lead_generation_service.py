@@ -49,6 +49,7 @@ class LeadStatus(str, Enum):
     ENGAGED = "engaged"  # Responded to outreach
     CONVERTED = "converted"  # Became a client
     LOST = "lost"  # Did not convert
+    ARCHIVED = "archived"  # Archived by CPA
 
 
 class LeadPriority(str, Enum):

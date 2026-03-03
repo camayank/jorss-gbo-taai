@@ -427,7 +427,7 @@
     <!-- Loading State -->
     <div id="advisoryLoading" class="advisory-loading">
       <div class="advisory-loading-spinner"></div>
-      <div style="font-size: var(--text-base); color: #6b7280;">Analyzing your tax situation...</div>
+      <div style="font-size: var(--text-base); color: var(--color-gray-500);">Analyzing your tax situation...</div>
     </div>
 
     <!-- Metrics Grid -->
@@ -983,18 +983,18 @@
         <div style="margin-bottom:12px;">
           <label style="display:block; margin-bottom:4px; font-weight:500; font-size:14px;">Recipient Email</label>
           <input type="email" id="report-email-to" required placeholder="client@example.com"
-            style="width:100%; padding:8px 12px; border:1px solid #d1d5db; border-radius:6px; font-size:14px;">
+            style="width:100%; padding:8px 12px; border:1px solid var(--color-gray-300); border-radius:6px; font-size:14px;">
         </div>
         <div style="margin-bottom:16px;">
           <label style="display:block; margin-bottom:4px; font-weight:500; font-size:14px;">Client Name (optional)</label>
           <input type="text" id="report-email-name" placeholder="John Doe"
-            style="width:100%; padding:8px 12px; border:1px solid #d1d5db; border-radius:6px; font-size:14px;">
+            style="width:100%; padding:8px 12px; border:1px solid var(--color-gray-300); border-radius:6px; font-size:14px;">
         </div>
         <div style="display:flex; gap:8px; justify-content:flex-end;">
           <button onclick="document.getElementById('email-report-form').remove()"
-            style="padding:8px 16px; border:1px solid #d1d5db; border-radius:6px; background:white; cursor:pointer;">Cancel</button>
+            style="padding:8px 16px; border:1px solid var(--color-gray-300); border-radius:6px; background:white; cursor:pointer;">Cancel</button>
           <button onclick="sendReportEmail('${reportId}')"
-            style="padding:8px 16px; border:none; border-radius:6px; background:#1a365d; color:white; cursor:pointer;">Send Email</button>
+            style="padding:8px 16px; border:none; border-radius:6px; background:var(--color-primary-800); color:white; cursor:pointer;">Send Email</button>
         </div>
       </div>
     `;

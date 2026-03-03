@@ -384,17 +384,22 @@ def main() -> int:
         checks.append(Check("Database config", "FAIL", database_hint))
         failures += 1
 
-    openai_key = get_env("OPENAI_API_KEY")
-    allow_missing_openai = get_env_bool("ALLOW_MISSING_OPENAI")
-    if is_placeholder(openai_key):
-        if is_production_mode and not allow_missing_openai:
-            checks.append(Check("OPENAI_API_KEY", "FAIL", "missing"))
-            failures += 1
-        else:
-            checks.append(Check("OPENAI_API_KEY", "WARN", "missing (AI features disabled)"))
-            warnings += 1
+    # Check AI provider keys — at least one must be configured for AI features
+    ai_provider_keys = {
+        "OPENAI_API_KEY": get_env("OPENAI_API_KEY"),
+        "ANTHROPIC_API_KEY": get_env("ANTHROPIC_API_KEY"),
+        "GOOGLE_API_KEY": get_env("GOOGLE_API_KEY"),
+        "PERPLEXITY_API_KEY": get_env("PERPLEXITY_API_KEY"),
+    }
+    configured_providers = [k for k, v in ai_provider_keys.items() if not is_placeholder(v)]
+    if configured_providers:
+        checks.append(Check("AI Provider Keys", "PASS", f"{len(configured_providers)} configured: {', '.join(configured_providers)}"))
+    elif is_production_mode:
+        checks.append(Check("AI Provider Keys", "FAIL", "no AI provider keys set (need at least one of: OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY, PERPLEXITY_API_KEY)"))
+        failures += 1
     else:
-        checks.append(Check("OPENAI_API_KEY", "PASS", "configured"))
+        checks.append(Check("AI Provider Keys", "WARN", "no AI provider keys (AI features disabled)"))
+        warnings += 1
 
     graph_check = check_migration_graph()
     checks.append(graph_check)

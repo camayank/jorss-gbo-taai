@@ -22,11 +22,11 @@
 
         :root {
             /* Professional Navy Blue & Teal Theme */
-            --primary-color: {{ cpa.primary_color or '#1e3a5f' }};
-            --secondary-color: {{ cpa.secondary_color or '#152b47' }};
+            --primary-color: {{ cpa.primary_color or '#0B1D3A' }};
+            --secondary-color: {{ cpa.secondary_color or '#132B50' }};
             --accent-color: {{ cpa.accent_color or '#059669' }};
-            --text-dark: var(--color-slate-800);
-            --text-muted: var(--color-slate-500);
+            --text-dark: var(--color-gray-800);
+            --text-muted: var(--color-gray-500);
             --bg-light: #f8fafc;
             --white: var(--white);
             --error: var(--color-error-600);
@@ -253,7 +253,7 @@
             outline: none;
             border-color: var(--primary-color);
             background: var(--white);
-            box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
+            box-shadow: 0 0 0 3px rgba(0, 119, 197, 0.1);
         }
 
         /* Multi-select for checkboxes */
@@ -366,7 +366,7 @@
 
         .processing-subtitle {
             font-size: 0.82rem;
-            color: var(--color-slate-600);
+            color: var(--color-gray-600);
             margin-bottom: var(--space-3);
         }
 
@@ -384,7 +384,7 @@
             grid-template-columns: 20px 1fr;
             gap: var(--space-2);
             align-items: center;
-            color: var(--color-slate-500);
+            color: var(--color-gray-500);
             font-size: 0.82rem;
         }
 

@@ -37,6 +37,8 @@ except ImportError as e:
 
 logger = logging.getLogger(__name__)
 
+_SAFE_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".tiff", ".tif", ".gif", ".bmp", ".webp"}
+
 router = APIRouter(prefix="/api/v1/advisor", tags=["Unified Tax Advisor"])
 
 
@@ -301,7 +303,6 @@ async def upload_document(
         advisor = UnifiedTaxAdvisor()
 
         # Save validated file temporarily (sanitize extension to known safe set)
-        _SAFE_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".tiff", ".tif", ".gif", ".bmp", ".webp"}
         raw_ext = os.path.splitext(file.filename or "")[1].lower()
         safe_suffix = raw_ext if raw_ext in _SAFE_EXTENSIONS else ".bin"
         with tempfile.NamedTemporaryFile(delete=False, suffix=safe_suffix) as tmp:

@@ -5,6 +5,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Premium Tax Advisory | Individual Tax Strategy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/core/variables.css">
   <link rel="stylesheet" href="/static/css/core/reset.css">
   <link rel="stylesheet" href="/static/css/core/typography.css">
@@ -17,7 +20,7 @@
   <script src="/static/js/core/icons.js" defer></script>
   <!-- DOMPurify for XSS-safe HTML sanitization of AI responses -->
   <script src="/static/js/vendor/purify.min.js"></script>
-  <script src="/static/js/pages/intelligent-advisor.js" defer></script>
+  <script src="/static/js/pages/intelligent-advisor.js?v=2" defer></script>
 </head>
 <body class="has-sidebar has-mobile-header">
   {% include 'partials/sidebar.html' %}
@@ -86,7 +89,7 @@
       <div class="logo-subtitle">AI-Powered Wealth Strategy</div>
     </div>
     <div class="header-right">
-      <button class="workflow-mode-btn" onclick="openWorkflowSelector()" title="Choose filing workflow" aria-label="Choose filing workflow" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; padding: var(--space-2) var(--space-4); border-radius: var(--radius-lg); cursor: pointer; font-size: var(--text-xs-plus); font-weight: var(--font-semibold); margin-right: var(--space-3); transition: all 0.2s;">
+      <button class="workflow-mode-btn" onclick="openWorkflowSelector()" title="Choose filing workflow" aria-label="Choose filing workflow">
         {{ icon('bolt', 'sm') }} Choose Workflow
       </button>
       <button class="clear-chat-btn" onclick="clearConversation()" title="Start new conversation" aria-label="Start new conversation">
@@ -112,7 +115,7 @@
     <div class="camera-preview">
       <video id="cameraVideo" autoplay playsinline></video>
       <div class="document-guide">
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
+        <div class="document-guide-text">
           {{ icon('document-arrow-up', 'lg') }} Position document inside frame
         </div>
       </div>
@@ -120,7 +123,7 @@
     <div class="camera-controls">
       <button class="capture-btn" onclick="PhotoCapture.capture()" aria-label="Take photo"></button>
     </div>
-    <div style="color: white; text-align: center; margin-top: var(--space-5); font-size: var(--text-sm);">
+    <div class="camera-hint">
       Supported: W-2, 1099, 1098, K-1, and other tax documents
     </div>
   </div>
@@ -168,20 +171,20 @@
         <div class="message ai" role="article" aria-label="AI assistant message">
           <div class="avatar" aria-hidden="true">{{ icon('briefcase', 'md') }}</div>
           <div class="bubble">
-            <div style="margin-bottom: var(--space-4);">
-              <span style="font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--accent-light);">Welcome to Your Tax Advisory Session</span>
+            <div class="welcome-title-wrap">
+              <span class="welcome-title">Welcome to Your Tax Advisory Session</span>
             </div>
             I'm your AI-powered tax strategist, trained on thousands of tax scenarios to help you <strong>maximize savings</strong> and <strong>minimize liability</strong>.<br><br>
-            <div class="insight-card" style="margin: var(--space-4) 0;">
+            <div class="insight-card">
               <div class="insight-header">
                 {{ icon('chart-bar', 'md') }}
                 <span>Average Client Savings</span>
               </div>
               <div class="savings-amount">$4,200 - $12,500</div>
-              <div style="font-size: var(--text-xs-plus); color: var(--text-secondary); margin-top: var(--space-2);">per year through strategic tax planning</div>
+              <div class="savings-subtitle">per year through strategic tax planning</div>
             </div>
             <strong>How would you like to begin?</strong>
-            <div class="quick-actions" id="initialQuickActions" style="margin-top: var(--space-5);" role="group" aria-label="Quick response options">
+            <div class="quick-actions" id="initialQuickActions" role="group" aria-label="Quick response options">
               <button class="quick-action primary" data-action="no_manual" aria-label="Start guided analysis">Start Guided Analysis →</button>
               <button class="quick-action" data-action="yes_upload" aria-label="Upload tax documents">Upload Documents</button>
               <button class="quick-action" data-action="what_docs" aria-label="Learn more about the process">Learn More</button>
@@ -225,24 +228,21 @@
         <div class="progress-bar">
           <div class="progress-fill" id="progressFill" style="width: 0%"></div>
         </div>
-        <div style="text-align: center; font-size: var(--text-xs-plus); color: var(--text-secondary);">
-          <span id="progressText">Not started</span>
+        <div class="progress-label">
+          <span id="progressText">Getting started</span>
         </div>
         <div class="stats-grid" id="statsGrid">
-          <div class="stat-item skeleton-placeholder"><div class="skeleton skeleton-text" style="width: 60%"></div><div class="skeleton skeleton-text" style="width: 40%"></div></div>
-          <div class="stat-item skeleton-placeholder"><div class="skeleton skeleton-text" style="width: 50%"></div><div class="skeleton skeleton-text" style="width: 45%"></div></div>
-          <div class="stat-item skeleton-placeholder"><div class="skeleton skeleton-text" style="width: 70%"></div><div class="skeleton skeleton-text" style="width: 35%"></div></div>
+          <div class="stat-item" style="text-align: center; color: var(--color-gray-500); font-size: var(--text-sm); grid-column: 1 / -1; padding: var(--space-2) 0;">
+            Start a conversation to track your tax profile completion.
+          </div>
         </div>
       </div>
 
       <div class="panel-card">
         <div class="panel-header">{{ icon('light-bulb', 'sm') }} Strategic Recommendations</div>
-        <div id="insights" style="font-size: var(--text-sm); color: var(--text-secondary);">
-          <div class="skeleton-placeholder">
-            <div class="skeleton skeleton-title"></div>
-            <div class="skeleton skeleton-text" style="width: 95%"></div>
-            <div class="skeleton skeleton-text" style="width: 80%"></div>
-            <div class="skeleton skeleton-text" style="width: 88%"></div>
+        <div id="insights" class="insights-content">
+          <div style="text-align: center; color: var(--color-gray-500); font-size: var(--text-sm); padding: var(--space-3) 0;">
+            Share your income and filing details to receive personalized tax-saving strategies.
           </div>
         </div>
       </div>
@@ -250,9 +250,9 @@
       <div class="panel-card" id="uploadPanel">
         <div class="panel-header">{{ icon('folder', 'sm') }} Quick Upload</div>
         <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
-          <div style="margin-bottom: var(--space-2);">{{ icon('document-arrow-up', 'xl') }}</div>
-          <div style="font-size: var(--text-sm); margin-bottom: var(--space-1);">Drop documents here</div>
-          <div style="font-size: var(--text-xs); color: var(--text-secondary);">or click to browse</div>
+          <div class="upload-icon">{{ icon('document-arrow-up', 'xl') }}</div>
+          <div class="upload-label">Drop documents here</div>
+          <div class="upload-hint">or click to browse</div>
         </div>
         <input type="file" id="fileInput" style="display: none" onchange="handleFileSelect(event)" accept=".pdf,.jpg,.jpeg,.png" multiple aria-label="Upload tax documents">
       </div>
@@ -299,7 +299,7 @@
   </div><!-- /.main-content -->
 
   <!-- Alpine.js sidebar store + Alpine CDN -->
-  <script type="module">
+  <script type="module"{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     import { registerSidebarStore } from '/static/js/alpine/stores/sidebar.js';
     document.addEventListener('alpine:init', () => {
       registerSidebarStore(Alpine);

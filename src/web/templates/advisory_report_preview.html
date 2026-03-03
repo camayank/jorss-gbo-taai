@@ -5,29 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advisory Report - {{ taxpayer_name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/advisory-report.css">
     <link rel="stylesheet" href="/static/css/core/variables.css">
     <link rel="stylesheet" href="/static/css/core/reset.css">
     <link rel="stylesheet" href="/static/css/core/typography.css">
     <link rel="stylesheet" href="/static/css/unified-theme.css">
     <style>
-        :root {
-            --primary: var(--color-primary-500);
-            --primary-light: var(--color-primary-300);
-            --success: #276749;
-            --success-light: #38a169;
-            --warning: var(--color-warning-500);
-            --danger: #c53030;
-            --bg: #f7fafc;
-            --surface: var(--white);
-            --border: var(--color-slate-200);
-            --text: #0c1b2f;
-            --text-secondary: #4a5568;
-            --text-muted: #718096;
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
         * {
             margin: 0;
             padding: 0;
@@ -35,9 +21,9 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: var(--bg);
-            color: var(--text);
+            font-family: var(--font-sans, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+            background: var(--color-gray-50);
+            color: var(--color-gray-900);
             line-height: var(--leading-relaxed);
 
         }
@@ -50,7 +36,7 @@
         }
 
         .header {
-            background: var(--primary);
+            background: var(--color-primary-500);
             color: white;
             padding: var(--space-8);
 
@@ -82,16 +68,16 @@
         }
 
         .metric-card {
-            background: var(--surface);
+            background: var(--white);
             padding: var(--space-6);
 
             border-radius: var(--radius-lg-plus);
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border);
+            box-shadow: var(--shadow-xs);
+            border: 1px solid var(--color-gray-200);
         }
 
         .metric-card .label {
-            color: var(--text-muted);
+            color: var(--color-gray-500);
             font-size: var(--text-xs-plus);
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -100,25 +86,25 @@
         }
 
         .metric-card .value {
-            color: var(--primary);
+            color: var(--color-primary-500);
             font-size: 26px;
             font-weight: var(--font-bold);
 
         }
 
         .metric-card .subvalue {
-            color: var(--text-muted);
+            color: var(--color-gray-500);
             font-size: var(--text-xs-plus);
             margin-top: var(--space-1-5);
 
         }
 
         .metric-card.savings {
-            border-left: 4px solid var(--success);
+            border-left: 4px solid var(--color-success-700);
         }
 
         .metric-card.savings .value {
-            color: var(--success);
+            color: var(--color-success-700);
         }
 
         .action-buttons {
@@ -149,59 +135,59 @@
         }
 
         .btn-primary {
-            background: var(--primary);
+            background: var(--color-primary-500);
             color: white;
         }
 
         .btn-primary:hover {
-            background: var(--primary-light);
+            background: var(--color-primary-300);
             transform: translateY(-1px);
             box-shadow: var(--shadow-md);
         }
 
         .btn-secondary {
-            background: var(--surface);
-            color: var(--primary);
-            border: 2px solid var(--primary);
+            background: var(--white);
+            color: var(--color-primary-500);
+            border: 2px solid var(--color-primary-500);
         }
 
         .btn-secondary:hover {
-            background: var(--bg);
+            background: var(--color-gray-50);
         }
 
         .btn-success {
-            background: var(--success);
+            background: var(--color-success-700);
             color: white;
         }
 
         .btn-success:hover {
-            background: var(--success-light);
+            background: var(--color-success-400);
         }
 
         .section {
-            background: var(--surface);
+            background: var(--white);
             padding: var(--space-6);
 
             border-radius: var(--radius-lg-plus);
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border);
+            box-shadow: var(--shadow-xs);
+            border: 1px solid var(--color-gray-200);
             margin-bottom: var(--space-5);
 
         }
 
         .section h2 {
-            color: var(--primary);
+            color: var(--color-primary-500);
             font-size: var(--text-xl);
 
             margin-bottom: var(--space-5);
 
             padding-bottom: var(--space-3);
 
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--color-gray-200);
         }
 
         .section h3 {
-            color: var(--text-secondary);
+            color: var(--color-gray-600);
             font-size: var(--text-base);
 
             margin-top: var(--space-5);
@@ -217,7 +203,7 @@
         }
 
         table th {
-            background: var(--primary);
+            background: var(--color-primary-500);
             color: white;
             padding: var(--space-3) var(--space-4);
 
@@ -230,13 +216,13 @@
         table td {
             padding: var(--space-3) var(--space-4);
 
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--color-gray-200);
             font-size: var(--text-sm);
 
         }
 
         table tr:hover {
-            background: var(--bg);
+            background: var(--color-gray-50);
         }
 
         table tr:last-child td {
@@ -246,26 +232,26 @@
         .amount {
             font-weight: var(--font-semibold);
 
-            color: var(--primary);
+            color: var(--color-primary-500);
         }
 
         .savings-amount {
             font-weight: var(--font-semibold);
 
-            color: var(--success);
+            color: var(--color-success-700);
         }
 
         .recommendation {
-            background: var(--bg);
+            background: var(--color-gray-50);
             padding: var(--space-5);
 
             border-radius: var(--radius-lg);
             margin: 15px 0;
-            border-left: 4px solid var(--primary);
+            border-left: 4px solid var(--color-primary-500);
         }
 
         .recommendation h4 {
-            color: var(--primary);
+            color: var(--color-primary-500);
             margin-bottom: var(--space-2-5);
 
             font-size: var(--text-base);
@@ -273,7 +259,7 @@
         }
 
         .recommendation .savings {
-            color: var(--success);
+            color: var(--color-success-700);
             font-weight: var(--font-bold);
 
             font-size: var(--text-lg);
@@ -283,7 +269,7 @@
         }
 
         .recommendation .action {
-            background: var(--surface);
+            background: var(--white);
             padding: var(--space-3);
 
             border-radius: var(--radius-md);
@@ -291,16 +277,16 @@
 
             font-weight: var(--font-medium);
 
-            border: 1px solid var(--border);
+            border: 1px solid var(--color-gray-200);
         }
 
         .savings-visualization {
-            background: var(--surface);
+            background: var(--white);
             padding: var(--space-6);
 
             border-radius: var(--radius-lg-plus);
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border);
+            box-shadow: var(--shadow-xs);
+            border: 1px solid var(--color-gray-200);
             margin-bottom: var(--space-6);
 
         }
@@ -409,17 +395,17 @@
         }
 
         .priority-immediate {
-            background: var(--danger);
+            background: var(--color-error-600);
             color: var(--text-inverse);
         }
 
         .priority-current-year {
-            background: var(--warning);
-            color: var(--text-primary);
+            background: var(--color-warning-500);
+            color: var(--color-gray-900);
         }
 
         .priority-long-term {
-            background: var(--info);
+            background: var(--color-info-500);
             color: var(--text-inverse);
         }
 
@@ -493,7 +479,7 @@
 
         .disclaimer {
             background: var(--warning-lighter);
-            border: 1px solid var(--warning);
+            border: 1px solid var(--color-warning-500);
             padding: var(--space-5);
 
             border-radius: var(--radius-lg);
@@ -541,7 +527,7 @@
         }
 
         .notification-error {
-            background: var(--danger);
+            background: var(--color-error-600);
         }
 
         .notification-info {
@@ -549,8 +535,8 @@
         }
 
         .notification-warning {
-            background: var(--warning);
-            color: var(--text-primary);
+            background: var(--color-warning-500);
+            color: var(--color-gray-900);
         }
 
         @keyframes slideInRight {

@@ -98,7 +98,6 @@ class DocumentClassifier:
             "fallback_enabled": self.settings.fallback_enabled,
             "min_confidence_threshold": self.settings.min_confidence_threshold,
             "available_classifiers": self._classifier.get_available_classifiers(),
-            "openai_model": self.settings.openai_model,
         }
 
 

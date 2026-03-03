@@ -37,7 +37,7 @@ def create_ma_return(
             last_name="Taxpayer",
             filing_status=filing_status,
             state="MA",
-            dependents=[Dependent(name=f"Dep {i}", relationship="child", age=10) for i in range(dependents)],
+            dependents=[Dependent(name="Jane Doe", relationship="child", age=10) for _ in range(dependents)],
         ),
         income=Income(
             w2_forms=[

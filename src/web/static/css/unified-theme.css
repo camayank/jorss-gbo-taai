@@ -158,13 +158,10 @@ textarea:focus {
    UTILITY CLASSES
    ========================= */
 
-.text-primary { color: var(--color-primary-500); }
+/* Note: .text-success/warning/error/info are defined in typography.css with -700 values for accessibility */
+.text-primary { color: var(--color-primary-600); }
 .text-accent { color: var(--color-accent-500); }
-.text-success { color: var(--color-success-500); }
-.text-warning { color: var(--color-warning-500); }
-.text-danger, .text-error { color: var(--color-error-500); }
-.text-info { color: var(--color-info-500); }
-.text-muted { color: var(--color-gray-500); }
+.text-danger { color: var(--color-error-700); }
 
 .bg-primary { background-color: var(--color-primary-500); }
 .bg-accent { background-color: var(--color-accent-500); }

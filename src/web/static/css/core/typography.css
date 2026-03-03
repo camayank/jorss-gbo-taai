@@ -15,6 +15,11 @@ h1, h2, h3, h4, h5, h6,
   letter-spacing: var(--tracking-tight);
 }
 
+/* Serif headings for premium feel */
+h1, h2, .heading-serif {
+  font-family: var(--font-serif);
+}
+
 h1, .h1 {
   font-size: var(--text-4xl);
   font-weight: var(--font-bold);
@@ -65,10 +70,10 @@ p {
 .text-primary { color: var(--color-primary-600); }
 .text-secondary { color: var(--color-gray-600); }
 .text-muted { color: var(--color-gray-500); }
-.text-success { color: var(--color-success-600); }
-.text-warning { color: var(--color-warning-600); }
-.text-error { color: var(--color-error-600); }
-.text-info { color: var(--color-info-600); }
+.text-success { color: var(--color-success-700); }
+.text-warning { color: var(--color-warning-700); }
+.text-error { color: var(--color-error-700); }
+.text-info { color: var(--color-info-700); }
 
 /* =========================
    FONT WEIGHTS

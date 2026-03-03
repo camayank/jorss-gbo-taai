@@ -139,17 +139,17 @@
 
     }
 
-    .status-badge.state.high_leverage { background: #fce7f3; color: #be185d; }
-    .status-badge.state.advisory_ready { background: var(--color-success-100); color: #047857; }
-    .status-badge.state.evaluating { background: var(--color-warning-100); color: #b45309; }
+    .status-badge.state.high_leverage { background: var(--badge-pink-bg); color: var(--badge-pink-text); }
+    .status-badge.state.advisory_ready { background: var(--badge-active-bg); color: var(--badge-active-text); }
+    .status-badge.state.evaluating { background: var(--badge-pending-bg); color: var(--badge-pending-text); }
 
     .status-badge.temperature {
-        background: var(--color-error-100);
-        color: #b91c1c;
+        background: var(--badge-error-bg);
+        color: var(--badge-error-text);
     }
 
-    .status-badge.temperature.warm { background: var(--color-warning-100); color: #b45309; }
-    .status-badge.temperature.cold { background: #eef3f9; color: var(--color-primary-500); }
+    .status-badge.temperature.warm { background: var(--badge-pending-bg); color: var(--badge-pending-text); }
+    .status-badge.temperature.cold { background: var(--badge-primary-bg); color: var(--badge-primary-text); }
 
     .status-badge.complexity {
         background: var(--bg-light);
@@ -319,7 +319,7 @@
         margin-left: auto;
         font-weight: var(--font-bold);
 
-        color: var(--success);
+        color: var(--color-success-500);
     }
 
     .insight-title {
@@ -456,8 +456,8 @@
     }
 
     .timeline-item.completed .timeline-dot {
-        background: var(--success);
-        border-color: var(--success);
+        background: var(--color-success-500);
+        border-color: var(--color-success-500);
     }
 
     .timeline-item.current .timeline-dot {
@@ -527,7 +527,7 @@
     }
 
     .engagement-check.done {
-        background: var(--success);
+        background: var(--color-success-500);
         color: white;
     }
 
@@ -829,7 +829,7 @@
                     <button class="btn btn-secondary" style="width: 100%; justify-content: flex-start;" onclick="assignTo()">
                         {{ icon('users') }} Assign to Staff
                     </button>
-                    <button class="btn btn-secondary" style="width: 100%; justify-content: flex-start; color: var(--danger);" onclick="archiveLead()">
+                    <button class="btn btn-secondary" style="width: 100%; justify-content: flex-start; color: var(--color-error-500);" onclick="archiveLead()">
                         {{ icon('trash') }} Archive Lead
                     </button>
                 </div>
@@ -840,6 +840,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="/static/js/toast.js"{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}></script>
 <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
     const leadId = '{{ lead.id }}';
     const leadEmail = '{{ lead.email }}';
@@ -930,15 +931,6 @@
         navigator.clipboard.writeText(leadEmail).then(function() {
             showToast('Email copied to clipboard!');
         });
-    }
-
-    function showToast(message) {
-        // Simple toast notification
-        const toast = document.createElement('div');
-        toast.style.cssText = 'position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; padding: 12px 24px; border-radius: 8px; z-index: 1000; font-size: 0.9rem;';
-        toast.textContent = message;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
     }
 
     async function addNote() {

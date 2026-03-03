@@ -32,7 +32,8 @@ def test_portal_route_accepts_token_link_for_client_magic_link_flow():
     client = TestClient(app)
     response = client.get("/app/portal?token=demo-token", follow_redirects=False)
     assert response.status_code == 200
-    assert "client portal" in response.text.lower()
+    # Page title is "Tax Advisory Portal"; verify the portal page rendered
+    assert "tax advisory portal" in response.text.lower()
 
 
 def test_admin_shell_rejects_spoofed_role_cookie_without_auth():

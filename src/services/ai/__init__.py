@@ -12,11 +12,14 @@ Provides unified AI capabilities across multiple providers:
 - ComplianceReviewer: Compliance checking via Claude
 
 Usage:
-    from services.ai import get_ai_service, get_chat_router
+    from services.ai import get_ai_service, get_chat_router, run_async
 
-    # Direct AI access
+    # Direct AI access (async)
     ai = get_ai_service()
     response = await ai.complete("Explain tax deductions")
+
+    # From sync code, use run_async bridge
+    response = run_async(ai.complete("Explain tax deductions"))
 
     # Intelligent routing
     router = get_chat_router()
@@ -30,6 +33,24 @@ Usage:
     detector = get_anomaly_detector()
     report = await detector.analyze_return(tax_return_data)
 """
+
+import asyncio
+
+# =============================================================================
+# SYNC-TO-ASYNC BRIDGE
+# =============================================================================
+
+def run_async(coro):
+    """Run an async coroutine from sync code. Safe inside or outside event loop."""
+    try:
+        loop = asyncio.get_running_loop()
+        # We're inside an event loop — schedule on it from a thread
+        future = asyncio.run_coroutine_threadsafe(coro, loop)
+        return future.result(timeout=120)
+    except RuntimeError:
+        # No event loop running — create one
+        return asyncio.run(coro)
+
 
 # Core AI service
 from services.ai.unified_ai_service import (
@@ -110,6 +131,8 @@ from services.ai.compliance_reviewer import (
 )
 
 __all__ = [
+    # Sync-to-async bridge
+    "run_async",
     # Core service
     "UnifiedAIService",
     "AIMessage",

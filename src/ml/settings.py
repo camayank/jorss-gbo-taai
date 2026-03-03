@@ -29,16 +29,6 @@ class MLSettings(BaseSettings):
         description="Enable fallback chain if primary fails"
     )
 
-    # OpenAI settings
-    openai_model: str = Field(
-        default="gpt-4o-mini",
-        description="OpenAI model for classification"
-    )
-    openai_timeout: int = Field(
-        default=30,
-        description="Timeout for OpenAI API calls in seconds"
-    )
-
     # Confidence thresholds
     min_confidence_threshold: float = Field(
         default=0.7,

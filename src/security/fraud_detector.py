@@ -18,13 +18,10 @@ from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
+from services.ai import get_ai_service, AIMessage
+from config.ai_providers import ModelCapability, get_available_providers
 
-try:
-    from openai import OpenAI
-    OPENAI_AVAILABLE = True
-except ImportError:
-    OPENAI_AVAILABLE = False
+logger = logging.getLogger(__name__)
 
 
 class FraudRiskLevel(Enum):
@@ -145,26 +142,10 @@ class OpenAIFraudDetector:
     ]
 
     def __init__(self, api_key: Optional[str] = None):
-        """Initialize the fraud detector.
+        """Initialize the fraud detector."""
+        pass
 
-        Args:
-            api_key: OpenAI API key. If not provided, uses OPENAI_API_KEY env var.
-        """
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        self._client: Optional[Any] = None
-
-    @property
-    def client(self):
-        """Lazy-load the OpenAI client."""
-        if self._client is None:
-            if not OPENAI_AVAILABLE:
-                raise ImportError("openai package not installed. Run: pip install openai")
-            if not self.api_key:
-                raise ValueError("OPENAI_API_KEY not configured")
-            self._client = OpenAI(api_key=self.api_key)
-        return self._client
-
-    def detect_fraud(
+    async def detect_fraud(
         self,
         tax_return: Dict[str, Any],
         historical_data: Optional[List[Dict[str, Any]]] = None,
@@ -189,28 +170,21 @@ class OpenAIFraudDetector:
         )
 
         try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """You are an expert tax fraud detection analyst specializing in
+            ai = get_ai_service()
+            response = await ai.complete(
+                prompt=prompt,
+                system_prompt="""You are an expert tax fraud detection analyst specializing in
 identifying fraudulent tax returns, identity theft, and tax evasion schemes.
 
 Analyze tax returns for fraud indicators using IRS guidelines and known fraud patterns.
 Be thorough but avoid false positives. Provide confidence scores for all findings.
-Always respond with valid JSON matching the requested structure."""
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                temperature=0.1,  # Low temperature for consistent analysis
-                max_tokens=4096
+Always respond with valid JSON matching the requested structure.""",
+                capability=ModelCapability.STANDARD,
+                temperature=0.1,
+                max_tokens=4096,
             )
 
-            content = response.choices[0].message.content
+            content = response.content
             return self._parse_fraud_response(return_id, content)
 
         except Exception as e:
@@ -232,7 +206,7 @@ Always respond with valid JSON matching the requested structure."""
                 raw_analysis=str(e)
             )
 
-    def check_identity_theft_indicators(
+    async def check_identity_theft_indicators(
         self,
         tax_return: Dict[str, Any],
         prior_filings: Optional[List[Dict[str, Any]]] = None
@@ -282,14 +256,15 @@ Respond with JSON:
 }}"""
 
         try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
+            ai = get_ai_service()
+            response = await ai.complete(
+                prompt=prompt,
+                capability=ModelCapability.STANDARD,
                 temperature=0.1,
-                max_tokens=2048
+                max_tokens=2048,
             )
 
-            content = response.choices[0].message.content
+            content = response.content
             json_start = content.find('{')
             json_end = content.rfind('}') + 1
             if json_start >= 0 and json_end > json_start:
@@ -299,7 +274,7 @@ Respond with JSON:
         except Exception as e:
             return {"identity_theft_risk": "unknown", "error": str(e)}
 
-    def analyze_refund_risk(self, tax_return: Dict[str, Any]) -> Dict[str, Any]:
+    async def analyze_refund_risk(self, tax_return: Dict[str, Any]) -> Dict[str, Any]:
         """
         Analyze refund fraud risk.
 
@@ -348,14 +323,15 @@ Respond with JSON:
 }}"""
 
         try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
+            ai = get_ai_service()
+            response = await ai.complete(
+                prompt=prompt,
+                capability=ModelCapability.STANDARD,
                 temperature=0.1,
-                max_tokens=2048
+                max_tokens=2048,
             )
 
-            content = response.choices[0].message.content
+            content = response.content
             json_start = content.find('{')
             json_end = content.rfind('}') + 1
             if json_start >= 0 and json_end > json_start:
@@ -365,7 +341,7 @@ Respond with JSON:
         except Exception as e:
             return {"refund_risk_level": "unknown", "error": str(e)}
 
-    def match_known_patterns(
+    async def match_known_patterns(
         self,
         tax_return: Dict[str, Any]
     ) -> List[PatternMatch]:
@@ -407,14 +383,15 @@ Respond with JSON array:
 Only include patterns with match_confidence > 0.3"""
 
         try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
+            ai = get_ai_service()
+            response = await ai.complete(
+                prompt=prompt,
+                capability=ModelCapability.STANDARD,
                 temperature=0.1,
-                max_tokens=2048
+                max_tokens=2048,
             )
 
-            content = response.choices[0].message.content
+            content = response.content
             json_start = content.find('[')
             json_end = content.rfind(']') + 1
             if json_start >= 0 and json_end > json_start:
@@ -436,7 +413,7 @@ Only include patterns with match_confidence > 0.3"""
         except Exception:
             return []
 
-    def detect_anomalies(
+    async def detect_anomalies(
         self,
         tax_return: Dict[str, Any],
         population_statistics: Optional[Dict[str, Any]] = None
@@ -490,14 +467,15 @@ Respond with JSON:
 }}"""
 
         try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
+            ai = get_ai_service()
+            response = await ai.complete(
+                prompt=prompt,
+                capability=ModelCapability.STANDARD,
                 temperature=0.1,
-                max_tokens=2048
+                max_tokens=2048,
             )
 
-            content = response.choices[0].message.content
+            content = response.content
             json_start = content.find('{')
             json_end = content.rfind('}') + 1
             if json_start >= 0 and json_end > json_start:
@@ -507,7 +485,7 @@ Respond with JSON:
         except Exception as e:
             return {"anomaly_score": 0, "error": str(e)}
 
-    def generate_fraud_report(
+    async def generate_fraud_report(
         self,
         detection_result: FraudDetectionResult
     ) -> Dict[str, str]:
@@ -558,14 +536,15 @@ Respond with JSON:
 }}"""
 
         try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
+            ai = get_ai_service()
+            response = await ai.complete(
+                prompt=prompt,
+                capability=ModelCapability.STANDARD,
                 temperature=0.3,
-                max_tokens=4096
+                max_tokens=4096,
             )
 
-            content = response.choices[0].message.content
+            content = response.content
             json_start = content.find('{')
             json_end = content.rfind('}') + 1
             if json_start >= 0 and json_end > json_start:

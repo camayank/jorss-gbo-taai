@@ -41,12 +41,6 @@ except Exception:  # pragma: no cover - guarded for deployments without RBAC pac
     get_jwt_secret = None
     JWT_ALGORITHM = "HS256"
 
-# =============================================================================
-# LEGACY CLIENT TOKEN STORAGE (backward compatibility only)
-# =============================================================================
-
-_client_tokens: dict = {}  # token -> {client_id, email, expires_at}
-
 router = APIRouter(prefix="/client", tags=["Client Portal"])
 
 
@@ -171,22 +165,6 @@ async def verify_client_token(
             "email": payload.get("email", ""),
         }
 
-    # Legacy compatibility path for old in-memory tokens.
-    token_data = _client_tokens.get(token)
-    if token_data:
-        if datetime.utcnow() > token_data["expires_at"]:
-            del _client_tokens[token]
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has expired"
-            )
-        return {
-            "valid": True,
-            "client_id": token_data["client_id"],
-            "name": f"{token_data['first_name']} {token_data['last_name']}",
-            "email": token_data["email"]
-        }
-
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or expired token"
@@ -235,21 +213,11 @@ async def get_current_client(
             )
         client_id = str(payload.get("client_id") or payload.get("sub") or "")
 
-    # Legacy compatibility path for old in-memory tokens.
     if client_id is None:
-        token_data = _client_tokens.get(token)
-        if not token_data:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired token"
-            )
-        if datetime.utcnow() > token_data["expires_at"]:
-            del _client_tokens[token]
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has expired"
-            )
-        client_id = token_data["client_id"]
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
 
     # Get full client info from database
     query = text("""
@@ -375,15 +343,18 @@ async def get_client_dashboard(
     - Billing info
     """
     # Get CPA info
+    if not client.firm_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No firm context")
+
     cpa_info = {"id": "", "name": "Unassigned", "email": "", "phone": ""}
     if client.cpa_id:
         cpa_query = text("""
             SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone, f.name as firm_name
             FROM users u
             LEFT JOIN firms f ON u.firm_id = f.firm_id
-            WHERE u.user_id = :cpa_id
+            WHERE u.user_id = :cpa_id AND u.firm_id = :firm_id
         """)
-        cpa_result = await session.execute(cpa_query, {"cpa_id": client.cpa_id})
+        cpa_result = await session.execute(cpa_query, {"cpa_id": client.cpa_id, "firm_id": client.firm_id})
         cpa_row = cpa_result.fetchone()
         if cpa_row:
             cpa_info = {
@@ -400,11 +371,12 @@ async def get_client_dashboard(
         FROM tax_returns tr
         JOIN taxpayers tp ON tr.return_id = tp.return_id
         JOIN clients c ON tp.email = c.email
-        WHERE c.client_id = :client_id
+        JOIN users u ON c.preparer_id = u.user_id
+        WHERE c.client_id = :client_id AND u.firm_id = :firm_id
         ORDER BY tr.tax_year DESC
         LIMIT 10
     """)
-    returns_result = await session.execute(returns_query, {"client_id": client.client_id})
+    returns_result = await session.execute(returns_query, {"client_id": client.client_id, "firm_id": client.firm_id})
     returns_rows = returns_result.fetchall()
 
     status_labels = {
@@ -440,13 +412,14 @@ async def get_client_dashboard(
         WHERE taxpayer_id IN (
             SELECT tp.taxpayer_id FROM taxpayers tp
             JOIN clients c ON tp.email = c.email
-            WHERE c.client_id = :client_id
+            JOIN users u ON c.preparer_id = u.user_id
+            WHERE c.client_id = :client_id AND u.firm_id = :firm_id
         )
         AND status IN ('uploaded', 'processing')
         ORDER BY created_at DESC
         LIMIT 10
     """)
-    doc_requests_result = await session.execute(doc_requests_query, {"client_id": client.client_id})
+    doc_requests_result = await session.execute(doc_requests_query, {"client_id": client.client_id, "firm_id": client.firm_id})
     doc_rows = doc_requests_result.fetchall()
 
     # Simulated document requests (in production, use a dedicated document_requests table)
@@ -556,16 +529,20 @@ async def get_client_returns(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Get all tax returns for the client."""
+    if not client.firm_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No firm context")
+
     query = text("""
         SELECT tr.return_id, tr.tax_year, tr.filing_status, tr.status,
                tr.line_35a_refund, tr.line_37_amount_owed, tr.updated_at
         FROM tax_returns tr
         JOIN taxpayers tp ON tr.return_id = tp.return_id
         JOIN clients c ON tp.email = c.email
-        WHERE c.client_id = :client_id
+        JOIN users u ON c.preparer_id = u.user_id
+        WHERE c.client_id = :client_id AND u.firm_id = :firm_id
         ORDER BY tr.tax_year DESC
     """)
-    result = await session.execute(query, {"client_id": client.client_id})
+    result = await session.execute(query, {"client_id": client.client_id, "firm_id": client.firm_id})
     rows = result.fetchall()
 
     status_labels = {
@@ -597,6 +574,9 @@ async def get_return_details(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Get detailed information about a specific return."""
+    if not client.firm_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No firm context")
+
     # Verify client has access to this return
     query = text("""
         SELECT tr.return_id, tr.tax_year, tr.filing_status, tr.status,
@@ -605,9 +585,10 @@ async def get_return_details(
         FROM tax_returns tr
         JOIN taxpayers tp ON tr.return_id = tp.return_id
         JOIN clients c ON tp.email = c.email
-        WHERE c.client_id = :client_id AND tr.return_id = :return_id
+        JOIN users u ON c.preparer_id = u.user_id
+        WHERE c.client_id = :client_id AND tr.return_id = :return_id AND u.firm_id = :firm_id
     """)
-    result = await session.execute(query, {"client_id": client.client_id, "return_id": return_id})
+    result = await session.execute(query, {"client_id": client.client_id, "return_id": return_id, "firm_id": client.firm_id})
     row = result.fetchone()
 
     if not row:
@@ -652,15 +633,19 @@ async def download_return(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Get download URL for a filed return."""
+    if not client.firm_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No firm context")
+
     # Verify client has access and return is filed
     query = text("""
         SELECT tr.return_id, tr.status
         FROM tax_returns tr
         JOIN taxpayers tp ON tr.return_id = tp.return_id
         JOIN clients c ON tp.email = c.email
-        WHERE c.client_id = :client_id AND tr.return_id = :return_id
+        JOIN users u ON c.preparer_id = u.user_id
+        WHERE c.client_id = :client_id AND tr.return_id = :return_id AND u.firm_id = :firm_id
     """)
-    result = await session.execute(query, {"client_id": client.client_id, "return_id": return_id})
+    result = await session.execute(query, {"client_id": client.client_id, "return_id": return_id, "firm_id": client.firm_id})
     row = result.fetchone()
 
     if not row:
@@ -687,15 +672,20 @@ async def get_document_requests(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Get all document requests for the client."""
+    if not client.firm_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No firm context")
+
     # Check for document_requests table, if it exists
     query = text("""
         SELECT dr.request_id, dr.document_type, dr.description, dr.is_urgent, dr.is_fulfilled, dr.created_at
         FROM document_requests dr
-        WHERE dr.client_id = :client_id AND dr.is_fulfilled = false
+        JOIN clients c ON dr.client_id = c.client_id
+        JOIN users u ON c.preparer_id = u.user_id
+        WHERE dr.client_id = :client_id AND dr.is_fulfilled = false AND u.firm_id = :firm_id
         ORDER BY dr.is_urgent DESC, dr.created_at DESC
     """)
     try:
-        result = await session.execute(query, {"client_id": client.client_id})
+        result = await session.execute(query, {"client_id": client.client_id, "firm_id": client.firm_id})
         rows = result.fetchall()
         requests = []
         for row in rows:
@@ -720,18 +710,22 @@ async def get_uploaded_documents(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Get all documents uploaded by the client."""
+    if not client.firm_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No firm context")
+
     query = text("""
         SELECT d.document_id, d.original_filename, d.file_size_bytes, d.status, d.created_at
         FROM documents d
-        WHERE d.taxpayer_id IN (
+        WHERE (d.taxpayer_id IN (
             SELECT tp.taxpayer_id FROM taxpayers tp
             JOIN clients c ON tp.email = c.email
-            WHERE c.client_id = :client_id
+            JOIN users u ON c.preparer_id = u.user_id
+            WHERE c.client_id = :client_id AND u.firm_id = :firm_id
         )
-        OR d.uploaded_by = :client_id
+        OR d.uploaded_by = :client_id)
         ORDER BY d.created_at DESC
     """)
-    result = await session.execute(query, {"client_id": client.client_id})
+    result = await session.execute(query, {"client_id": client.client_id, "firm_id": client.firm_id})
     rows = result.fetchall()
 
     status_labels = {
@@ -784,15 +778,19 @@ async def upload_document(
             detail="File too large. Maximum size is 10MB"
         )
 
+    if not client.firm_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No firm context")
+
     # Get taxpayer_id for this client
     taxpayer_query = text("""
         SELECT tp.taxpayer_id FROM taxpayers tp
         JOIN clients c ON tp.email = c.email
-        WHERE c.client_id = :client_id
+        JOIN users u ON c.preparer_id = u.user_id
+        WHERE c.client_id = :client_id AND u.firm_id = :firm_id
         ORDER BY tp.created_at DESC
         LIMIT 1
     """)
-    taxpayer_result = await session.execute(taxpayer_query, {"client_id": client.client_id})
+    taxpayer_result = await session.execute(taxpayer_query, {"client_id": client.client_id, "firm_id": client.firm_id})
     taxpayer_row = taxpayer_result.fetchone()
 
     doc_id = str(uuid4())
@@ -1199,9 +1197,9 @@ async def get_client_profile(
             SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone, f.name as firm_name
             FROM users u
             LEFT JOIN firms f ON u.firm_id = f.firm_id
-            WHERE u.user_id = :cpa_id
+            WHERE u.user_id = :cpa_id AND u.firm_id = :firm_id
         """)
-        cpa_result = await session.execute(cpa_query, {"cpa_id": client.cpa_id})
+        cpa_result = await session.execute(cpa_query, {"cpa_id": client.cpa_id, "firm_id": client.firm_id})
         cpa_row = cpa_result.fetchone()
         if cpa_row:
             cpa_info = {

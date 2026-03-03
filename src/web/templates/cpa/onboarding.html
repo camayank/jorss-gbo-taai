@@ -7,7 +7,7 @@
 {% block extra_styles %}
 <style>
     .wizard-summary {
-        background: linear-gradient(135deg, var(--color-accent-700), #115e59);
+        background: linear-gradient(135deg, var(--color-accent-700), var(--color-accent-900));
         color: var(--white);
         border-radius: var(--radius-2xl);
 
@@ -70,7 +70,7 @@
 
     .step-card {
         background: var(--white);
-        border: 1px solid #dbe6f2;
+        border: 1px solid var(--color-gray-200);
         border-radius: 14px;
         padding: var(--space-5);
 
@@ -81,7 +81,7 @@
     }
 
     .step-card.complete {
-        border-color: #16a34a;
+        border-color: var(--color-success-600);
         box-shadow: 0 8px 24px rgba(22, 163, 74, 0.12);
     }
 
@@ -98,7 +98,7 @@
         font-size: 1.05rem;
         font-weight: var(--font-bold);
 
-        color: var(--color-slate-900);
+        color: var(--color-gray-900);
     }
 
     .status-chip {
@@ -112,20 +112,20 @@
         border-radius: var(--radius-full);
         padding: 5px var(--space-2-5);
 
-        border: 1px solid var(--color-slate-300);
-        color: var(--color-slate-600);
-        background: #f8fafc;
+        border: 1px solid var(--color-gray-300);
+        color: var(--color-gray-600);
+        background: var(--color-gray-50);
     }
 
     .status-chip.complete {
-        border-color: #16a34a;
-        background: #dcfce7;
-        color: #166534;
+        border-color: var(--color-success-600);
+        background: var(--color-success-100);
+        color: var(--color-success-800);
     }
 
     .step-description {
         margin: 0;
-        color: var(--color-slate-600);
+        color: var(--color-gray-600);
         font-size: 0.92rem;
     }
 
@@ -143,12 +143,12 @@
         align-items: center;
         gap: var(--space-2);
 
-        color: var(--color-slate-800);
+        color: var(--color-gray-800);
         font-size: 0.9rem;
     }
 
     .check-done {
-        color: #16a34a;
+        color: var(--color-success-600);
     }
 
     .check-pending {
@@ -167,8 +167,8 @@
         align-items: center;
         gap: 7px;
         border-radius: var(--radius-lg-plus);
-        border: 1px solid var(--color-slate-300);
-        color: var(--color-slate-900);
+        border: 1px solid var(--color-gray-300);
+        color: var(--color-gray-900);
         text-decoration: none;
         padding: 9px var(--space-3);
 
@@ -185,8 +185,8 @@
     }
 
     .embed-box {
-        border: 1px solid var(--color-slate-200);
-        background: #f8fafc;
+        border: 1px solid var(--color-gray-200);
+        background: var(--color-gray-50);
         border-radius: var(--radius-xl);
 
         padding: var(--space-3-5);
@@ -198,7 +198,7 @@
         white-space: pre-wrap;
         word-break: break-word;
         font-size: 0.82rem;
-        color: var(--color-slate-900);
+        color: var(--color-gray-900);
     }
 
     .embed-meta {

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(PYTHONPATH=\".:src\" python -m pytest:*)",
+      "Bash(python -m pytest:*)"
+    ]
+  }
+}

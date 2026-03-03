@@ -15,35 +15,13 @@ from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 import logging
+import re
+
+from web.auth import require_page_auth as _require_page_auth, require_admin_page as _require_admin_page
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Pages"])
-
-# Auth helper — mirrors feature_pages.py pattern
-try:
-    from security.auth_decorators import get_user_from_request
-except ImportError:
-    get_user_from_request = lambda r: None
-
-_ADMIN_UI_ROLES = {"super_admin", "platform_admin", "admin", "support", "billing"}
-
-
-async def _require_page_auth(request: Request) -> dict:
-    """Require any authenticated user. Raises 401 -> login redirect via exception handler."""
-    user = get_user_from_request(request)
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    return user
-
-
-async def _require_admin_page(request: Request) -> dict:
-    """Require admin role. Raises 401/403."""
-    user = await _require_page_auth(request)
-    role = (user.get("role") or "").lower()
-    if role not in _ADMIN_UI_ROLES:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    return user
 
 # Templates will be set by the main app
 templates: Jinja2Templates = None
@@ -120,7 +98,7 @@ def cpa_landing_page(request: Request):
 
 
 @router.get("/client", response_class=HTMLResponse)
-def client_portal(request: Request):
+def client_portal(request: Request, current_user: dict = Depends(_require_page_auth)):
     """Client portal page."""
     return templates.TemplateResponse(
         "client_portal.html",
@@ -179,6 +157,8 @@ def logout_redirect(request: Request):
 @router.get("/scenarios", response_class=HTMLResponse)
 def scenarios_redirect(request: Request, session_id: str = None):
     """Redirect to scenarios page."""
+    if session_id and not re.match(r'^[a-zA-Z0-9_-]+$', session_id):
+        session_id = None
     url = f"/intelligent-advisor?tab=scenarios"
     if session_id:
         url += f"&session_id={session_id}"
@@ -188,6 +168,8 @@ def scenarios_redirect(request: Request, session_id: str = None):
 @router.get("/projections", response_class=HTMLResponse)
 def projections_redirect(request: Request, session_id: str = None):
     """Redirect to projections page."""
+    if session_id and not re.match(r'^[a-zA-Z0-9_-]+$', session_id):
+        session_id = None
     url = f"/intelligent-advisor?tab=projections"
     if session_id:
         url += f"&session_id={session_id}"
@@ -221,12 +203,9 @@ def clients_redirect(request: Request):
 # =============================================================================
 # ADMIN PAGES
 # =============================================================================
-
-@router.get("/admin", response_class=HTMLResponse)
-@router.get("/admin/{path:path}", response_class=HTMLResponse)
-def admin_dashboard(request: Request, path: str = "", current_user: dict = Depends(_require_admin_page)):
-    """Admin dashboard SPA."""
-    return templates.TemplateResponse("admin_dashboard.html", {"request": request, "user": current_user})
+# NOTE: Admin SPA routes (/admin, /admin/{path}) are defined in app.py only.
+# Do NOT add duplicate catch-all routes here — it causes ambiguous routing
+# and the "all sidebar links land on same page" regression.
 
 
 @router.get("/hub", response_class=HTMLResponse)

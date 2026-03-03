@@ -7,7 +7,6 @@ for identifying tax optimization opportunities.
 
 from __future__ import annotations
 
-import os
 import json
 import logging
 from dataclasses import dataclass, field
@@ -16,6 +15,8 @@ from decimal import Decimal
 from enum import Enum
 
 from .form_1040_parser import Parsed1040Data, FilingStatus
+from services.ai import get_ai_service, run_async
+from config.ai_providers import ModelCapability
 
 logger = logging.getLogger(__name__)
 
@@ -97,24 +98,9 @@ class AIQuestionGenerator:
     questions would help identify optimization opportunities.
     """
 
-    def __init__(self, use_ai: bool = True):
-        """
-        Initialize the question generator.
-
-        Args:
-            use_ai: Whether to use OpenAI for enhanced question generation.
-                   Falls back to rule-based generation if False or API unavailable.
-        """
-        self.use_ai = use_ai and bool(os.getenv("OPENAI_API_KEY"))
-        self._openai_client = None
-
-        if self.use_ai:
-            try:
-                import openai
-                self._openai_client = openai.OpenAI()
-            except ImportError:
-                logger.warning("OpenAI package not installed, using rule-based generation")
-                self.use_ai = False
+    def __init__(self):
+        """Initialize the question generator."""
+        pass
 
     def generate_questions(self, parsed_data: Parsed1040Data) -> QuestionSet:
         """
@@ -546,13 +532,10 @@ class AIQuestionGenerator:
         parsed_data: Parsed1040Data
     ) -> QuestionSet:
         """
-        Use OpenAI to generate enhanced, personalized questions.
+        Use AI to generate enhanced, personalized questions.
 
         Falls back to rule-based if AI unavailable.
         """
-        if not self.use_ai or not self._openai_client:
-            return self.generate_questions(parsed_data)
-
         try:
             # Get rule-based questions first
             base_questions = self.generate_questions(parsed_data)
@@ -560,24 +543,20 @@ class AIQuestionGenerator:
             # Use AI to enhance and personalize
             prompt = self._build_ai_prompt(parsed_data, base_questions)
 
-            response = self._openai_client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """You are a tax advisor helping identify the most important
-                        follow-up questions to ask a client. Based on their tax return data,
-                        suggest which questions are most likely to uncover tax savings opportunities.
-                        Be specific about potential dollar impacts when possible."""
-                    },
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=1000,
+            ai = get_ai_service()
+            response = await ai.complete(
+                prompt=prompt,
+                system_prompt="""You are a tax advisor helping identify the most important
+                follow-up questions to ask a client. Based on their tax return data,
+                suggest which questions are most likely to uncover tax savings opportunities.
+                Be specific about potential dollar impacts when possible.""",
+                capability=ModelCapability.FAST,
                 temperature=0.3,
+                max_tokens=1000,
             )
 
             # Parse AI response to enhance questions
-            ai_insights = response.choices[0].message.content
+            ai_insights = response.content
 
             # For now, add AI insights to profile and return base questions
             # Future: parse AI response to reorder/enhance questions

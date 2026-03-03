@@ -237,7 +237,7 @@
         display: flex;
         align-items: center;
         gap: var(--space-3);
-        box-shadow: var(--shadow-sm);
+        box-shadow: var(--shadow-xs);
     }
 
     .stat-icon {
@@ -270,7 +270,7 @@
     .card {
         background: white;
         border-radius: var(--radius-xl);
-        box-shadow: var(--shadow-sm);
+        box-shadow: var(--shadow-xs);
         overflow: hidden;
     }
 
@@ -443,7 +443,7 @@
                 showToast('Return approved successfully!', 'success');
                 window.location.reload();
             } else {
-                if (response.status === 401) { window.location.href = '/cpa/login'; return; }
+                if (response.status === 401) { window.location.href = '/auth/login'; return; }
                 const data = await response.json();
                 showToast('Failed to approve: ' + (data.detail || 'Unknown error'), 'error');
             }

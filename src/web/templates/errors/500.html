@@ -4,111 +4,53 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Server Error - Jorss-Gbo</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: var(--font-sans, 'DM Sans', system-ui, -apple-system, sans-serif);
             background: #f8fafc;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 1.25rem;
-
             color: #1e293b;
         }
-        .error-page {
-            text-align: center;
-            max-width: 480px;
+        .error-page { text-align: center; max-width: 480px; }
+        .error-illustration { margin-bottom: 1.5rem; }
+        .error-illustration svg { animation: gentle-float 3s ease-in-out infinite; }
+        @keyframes gentle-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
         }
-        .error-icon {
-            font-size: 80px;
-            margin-bottom: 1rem;
-
-        }
-        .error-code {
-            font-size: 96px;
-            font-weight: 700;
-
-            color: #1e3a5f;
-            line-height: 1;
-            margin-bottom: 0.5rem;
-
-        }
-        .error-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-
-            margin-bottom: 0.75rem;
-
-        }
-        .error-message {
-            color: #64748b;
-            line-height: 1.625;
-
-            margin-bottom: 2rem;
-
-            font-size: 1rem;
-        }
-        .error-actions {
-            display: flex;
-            gap: 0.75rem;
-
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-
-            padding: 0.75rem 1.5rem;
-
-            border-radius: 0.5rem;
-            font-size: 0.9rem;
-            font-weight: 500;
-
-            text-decoration: none;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            border: none;
-        }
-        .btn-primary {
-            background: #1e3a5f;
-            color: #ffffff;
-        }
-        .btn-primary:hover {
-            background: #132844;
-
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(30, 58, 95, 0.3);
-        }
-        .btn-secondary {
-            background: #f1f5f9;
-            color: #334155;
-            border: 1px solid #e2e8f0;
-        }
-        .btn-secondary:hover {
-            background: #e2e8f0;
-        }
-        .brand {
-            margin-top: 3rem;
-
-            color: #94a3b8;
-            font-size: 0.8rem;
-        }
-        .brand a {
-            color: #64748b;
-            text-decoration: none;
-        }
+        .error-code { font-size: 96px; font-weight: 700; color: #0B1D3A; line-height: 1; margin-bottom: 0.5rem; }
+        .error-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.75rem; }
+        .error-message { color: #64748b; line-height: 1.625; margin-bottom: 2rem; font-size: 1rem; }
+        .error-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+        .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-size: 0.9rem; font-weight: 500; text-decoration: none; transition: all 0.2s ease; cursor: pointer; border: none; }
+        .btn-primary { background: #0B1D3A; color: #ffffff; }
+        .btn-primary:hover { background: #132844; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30, 58, 95, 0.3); }
+        .btn-secondary { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
+        .btn-secondary:hover { background: #e2e8f0; }
+        .brand { margin-top: 3rem; color: #94a3b8; font-size: 0.8rem; }
+        .brand a { color: #64748b; text-decoration: none; }
     </style>
 </head>
 <body>
     <div class="error-page">
-        <div class="error-icon">&#x26A0;&#xFE0F;</div>
+        <div class="error-illustration">
+            <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+                <!-- Gear/cog outer shape -->
+                <path d="M60 20a4 4 0 0 1 4 4v4.2a28.1 28.1 0 0 1 9.7 5.6l3.6-2.1a4 4 0 0 1 5.5 1.5l4 6.9a4 4 0 0 1-1.5 5.5l-3.6 2.1a28.3 28.3 0 0 1 0 11.2l3.6 2.1a4 4 0 0 1 1.5 5.5l-4 6.9a4 4 0 0 1-5.5 1.5l-3.6-2.1a28.1 28.1 0 0 1-9.7 5.6V87a4 4 0 0 1-4 4h-8a4 4 0 0 1-4-4v-4.2a28.1 28.1 0 0 1-9.7-5.6l-3.6 2.1a4 4 0 0 1-5.5-1.5l-4-6.9a4 4 0 0 1 1.5-5.5l3.6-2.1a28.3 28.3 0 0 1 0-11.2l-3.6-2.1a4 4 0 0 1-1.5-5.5l4-6.9a4 4 0 0 1 5.5-1.5l3.6 2.1A28.1 28.1 0 0 1 48 28.2V24a4 4 0 0 1 4-4h8z" fill="#0B1D3A" opacity="0.1" stroke="#0B1D3A" stroke-width="2.5"/>
+                <!-- Gear inner circle -->
+                <circle cx="56" cy="55.5" r="12" fill="#f8fafc" stroke="#0B1D3A" stroke-width="2.5"/>
+                <!-- Warning triangle -->
+                <path d="M78 78l16 28H62l16-28z" fill="#0B1D3A" opacity="0.9" stroke="#0B1D3A" stroke-width="2" stroke-linejoin="round"/>
+                <!-- Exclamation mark on triangle -->
+                <line x1="78" y1="88" x2="78" y2="97" stroke="#f8fafc" stroke-width="3" stroke-linecap="round"/>
+                <circle cx="78" cy="101" r="1.5" fill="#f8fafc"/>
+            </svg>
+        </div>
         <div class="error-code">500</div>
         <h1 class="error-title">Server Error</h1>
         <p class="error-message">
@@ -116,7 +58,7 @@
             Please try again later or contact support if the problem persists.
         </p>
         <div class="error-actions">
-            <a href="/" class="btn btn-primary">Go Home</a>
+            <a href="{{ dashboard_url | default('/') }}" class="btn btn-primary">Return to Dashboard</a>
             <button onclick="location.reload()" class="btn btn-secondary">Try Again</button>
         </div>
         <p class="brand">

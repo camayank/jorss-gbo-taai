@@ -28,19 +28,20 @@ class TestAIRecommendationEnhancer:
         assert AIRecommendationSummary is not None
         assert get_ai_enhancer is not None
 
-    def test_enhancer_without_api_key(self):
-        """Test enhancer works without API key (fallback mode)."""
+    def test_enhancer_without_providers(self):
+        """Test enhancer works without any AI provider (fallback mode)."""
         from recommendation.ai_enhancer import AIRecommendationEnhancer
 
-        enhancer = AIRecommendationEnhancer(api_key=None)
-        assert not enhancer.is_available
+        with patch('recommendation.ai_enhancer.get_available_providers', return_value=[]):
+            enhancer = AIRecommendationEnhancer()
+            assert not enhancer.is_available
 
     def test_fallback_enhancement(self):
         """Test fallback enhancement when AI is unavailable."""
         from recommendation.ai_enhancer import AIRecommendationEnhancer
         from recommendation.recommendation_engine import TaxSavingOpportunity
 
-        enhancer = AIRecommendationEnhancer(api_key=None)
+        enhancer = AIRecommendationEnhancer()
 
         opportunity = TaxSavingOpportunity(
             category="credits",
@@ -87,7 +88,7 @@ class TestAIRecommendationEnhancer:
         from recommendation.ai_enhancer import AIRecommendationEnhancer
         from recommendation.recommendation_engine import TaxSavingOpportunity
 
-        enhancer = AIRecommendationEnhancer(api_key=None)
+        enhancer = AIRecommendationEnhancer()
 
         opportunity = TaxSavingOpportunity(
             category="deductions",
@@ -178,7 +179,7 @@ class TestFallbackSummary:
             TaxStrategyReport,
         )
 
-        enhancer = AIRecommendationEnhancer(api_key=None)
+        enhancer = AIRecommendationEnhancer()
 
         # Create mock comprehensive recommendation
         opportunity = TaxSavingOpportunity(
@@ -246,7 +247,7 @@ class TestPlainLanguageExplanation:
         from recommendation.ai_enhancer import AIRecommendationEnhancer
         from recommendation.recommendation_engine import TaxSavingOpportunity
 
-        enhancer = AIRecommendationEnhancer(api_key=None)
+        enhancer = AIRecommendationEnhancer()
 
         opportunity = TaxSavingOpportunity(
             category="retirement",
@@ -273,7 +274,7 @@ class TestIntegrationWithRecommendationEngine:
         from recommendation.ai_enhancer import AIRecommendationEnhancer
         from recommendation.recommendation_engine import TaxSavingOpportunity
 
-        enhancer = AIRecommendationEnhancer(api_key=None)
+        enhancer = AIRecommendationEnhancer()
 
         # Simulate output from recommendation engine
         opportunities = [
