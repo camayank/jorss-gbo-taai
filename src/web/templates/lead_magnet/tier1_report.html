@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="/static/css/core/reset.css">
     <link rel="stylesheet" href="/static/css/core/typography.css">
     <link rel="stylesheet" href="/static/css/unified-theme.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -21,17 +22,17 @@
         }
 
         :root {
-            --primary-color: {{ cpa.primary_color or '#0B1D3A' }};
-            --secondary-color: {{ cpa.secondary_color or '#132B50' }};
-            --accent-color: {{ cpa.accent_color or '#10b981' }};
+            --primary-color: {{ cpa.primary_color or 'var(--color-navy, #0B1D3A)' }};
+            --secondary-color: {{ cpa.secondary_color or 'var(--color-navy-light, #132B50)' }};
+            --accent-color: {{ cpa.accent_color or 'var(--color-gold, #C9A84C)' }};
             --text-dark: var(--color-gray-800);
             --text-muted: var(--color-gray-500);
-            --bg-light: var(--color-gray-50);
+            --bg-light: var(--color-cream, #FAF8F4);
             --white: var(--white);
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: var(--font-sans, 'DM Sans', system-ui, sans-serif);
             line-height: var(--leading-relaxed);
 
             color: var(--text-dark);
@@ -67,6 +68,7 @@
         }
 
         .report-title {
+            font-family: var(--font-serif, 'DM Serif Display', Georgia, serif);
             font-size: 1.8rem;
             font-weight: var(--font-bold);
             margin-bottom: var(--space-2);
@@ -109,7 +111,7 @@
         .savings-amount {
             font-size: 3rem;
             font-weight: var(--font-bold);
-            background: linear-gradient(135deg, var(--accent-color) 0%, var(--color-success-600) 100%);
+            background: linear-gradient(135deg, var(--color-success-500, #10b981) 0%, var(--color-success-600) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -194,7 +196,7 @@
 
         .subscore-row:hover,
         .subscore-row:focus {
-            background: #eef2ff;
+            background: var(--color-cream, #FAF8F4);
             outline: none;
         }
 
@@ -234,11 +236,11 @@
 
         .score-action {
             border-radius: var(--radius-lg);
-            background: #eef2ff;
-            border: 1px solid #c7d2fe;
+            background: var(--color-cream, #FAF8F4);
+            border: 1px solid var(--color-cream-dark, #F0EDE6);
             padding: var(--space-2) var(--space-2-5);
             font-size: 0.78rem;
-            color: #3730a3;
+            color: var(--color-navy, #0B1D3A);
         }
 
         .comparison-summary {
@@ -287,9 +289,9 @@
         .priority-action {
             border-radius: var(--radius-lg);
             padding: 9px 11px;
-            border: 1px solid #c7d2fe;
-            background: #eef2ff;
-            color: #3730a3;
+            border: 1px solid var(--color-cream-dark, #F0EDE6);
+            background: var(--color-cream, #FAF8F4);
+            color: var(--color-navy, #0B1D3A);
             font-size: 0.78rem;
             font-weight: var(--font-semibold);
         }
@@ -304,6 +306,7 @@
         }
 
         .section-title {
+            font-family: var(--font-serif, 'DM Serif Display', Georgia, serif);
             font-size: 1.25rem;
             font-weight: var(--font-semibold);
             margin-bottom: var(--space-5);
@@ -350,7 +353,7 @@
         }
 
         .insight-savings {
-            background: linear-gradient(135deg, var(--accent-color) 0%, var(--color-success-600) 100%);
+            background: linear-gradient(135deg, var(--color-success-500, #10b981) 0%, var(--color-success-600) 100%);
             color: white;
             padding: var(--space-1) var(--space-3);
             border-radius: var(--radius-2xl-plus);
@@ -491,6 +494,7 @@
         }
 
         .cta-title {
+            font-family: var(--font-serif, 'DM Serif Display', Georgia, serif);
             font-size: 1.4rem;
             font-weight: var(--font-bold);
             margin-bottom: var(--space-3);
@@ -503,20 +507,21 @@
 
         .cta-button {
             display: inline-block;
-            background: white;
-            color: var(--primary-color);
+            background: var(--color-gold, #C9A84C);
+            color: var(--color-navy, #0B1D3A);
             padding: var(--space-4) var(--space-10);
             border-radius: 50px;
             font-size: 1.1rem;
-            font-weight: var(--font-semibold);
+            font-weight: 700;
             text-decoration: none;
             transition: all var(--transition-base);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px rgba(201, 168, 76, 0.3);
         }
 
         .cta-button:hover {
+            background: var(--color-gold-light, #E0C778);
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 6px 16px rgba(201, 168, 76, 0.4);
         }
 
         .cta-benefits {
@@ -568,7 +573,7 @@
             border-radius: var(--radius-xl);
             overflow: hidden;
             border: 1px solid var(--color-gray-700);
-            background: #0b1120;
+            background: var(--color-navy, #0B1D3A);
         }
 
         .share-card-preview img {

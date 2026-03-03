@@ -11,6 +11,7 @@ import pytest
 os.environ.setdefault("APP_ENVIRONMENT", "test")
 os.environ.setdefault("DATABASE_URL", "")
 os.environ.setdefault("DB_DRIVER", "sqlite+aiosqlite")
+os.environ.setdefault("JWT_SECRET", "e2e-test-secret-key-that-is-at-least-32-chars-long")
 
 # Add src to path for imports
 src_path = Path(__file__).parent.parent / "src"

@@ -87,7 +87,7 @@ def test_compare_scenarios_surfaces_validation_error_detail():
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Invalid or out-of-scope scenario IDs: bad-id"
+    assert response.json()["detail"] == "Invalid scenario parameters"
 
 
 def test_apply_scenario_requires_session_id_from_body_or_cookie():

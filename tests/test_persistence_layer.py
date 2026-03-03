@@ -412,15 +412,19 @@ class TestAdvisoryServicePersistence:
     """Integration tests for AdvisoryService with persistence."""
 
     def test_advisory_service_source_uses_database(self):
-        """Test that AdvisoryService source code uses database instead of in-memory dict."""
-        source_path = os.path.join(os.path.dirname(__file__), '..', 'src', 'services', 'advisory_service.py')
+        """Test that AdvisoryService was removed - use recommendation_helper.py instead.
 
-        with open(source_path, 'r') as f:
+        The advisory_service.py was unused and has been deleted.
+        The services/__init__.py confirms this with a note.
+        """
+        init_path = os.path.join(os.path.dirname(__file__), '..', 'src', 'services', '__init__.py')
+
+        with open(init_path, 'r') as f:
             source = f.read()
 
-        # Verify persistence import is present
-        assert 'from database.advisory_persistence import get_advisory_persistence' in source
-        # Verify in-memory dict is NOT present
-        assert 'self._plans: Dict[str, AdvisoryPlan] = {}' not in source
-        # Verify persistence is used
-        assert 'self._advisory_persistence = get_advisory_persistence()' in source
+        # Verify advisory_service removal is documented
+        assert 'advisory_service' in source.lower()
+        # Verify advisory persistence module still exists and works
+        from database.advisory_persistence import AdvisoryPersistence, get_advisory_persistence
+        assert AdvisoryPersistence is not None
+        assert get_advisory_persistence is not None

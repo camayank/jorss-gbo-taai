@@ -10,6 +10,7 @@ import sys
 import uuid
 import tempfile
 from pathlib import Path
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch, MagicMock, AsyncMock
 
 import pytest
@@ -19,6 +20,86 @@ from fastapi.testclient import TestClient
 src_path = Path(__file__).parent.parent.parent / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
+
+# =============================================================================
+# JWT SECRET FOR TESTS
+# =============================================================================
+# Set a known JWT secret BEFORE any app imports so that tokens we generate
+# here can be verified by the application's auth stack (rbac.jwt, rbac.dependencies,
+# core.rbac.middleware, security.auth_decorators).
+_TEST_JWT_SECRET = "e2e-test-secret-key-that-is-at-least-32-chars-long"
+os.environ["JWT_SECRET"] = _TEST_JWT_SECRET
+
+
+# =============================================================================
+# STABLE TEST UUIDs
+# =============================================================================
+CONSUMER_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
+CPA_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
+ADMIN_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000003")
+SUPERADMIN_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000004")
+CPA_B_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000005")
+FIRM_ID_1 = uuid.UUID("00000000-0000-0000-0000-0000000000f1")
+FIRM_ID_2 = uuid.UUID("00000000-0000-0000-0000-0000000000f2")
+
+
+# =============================================================================
+# TOKEN GENERATION HELPER
+# =============================================================================
+def _make_test_token(
+    user_id,
+    email,
+    name,
+    role,
+    user_type,
+    firm_id=None,
+    firm_name=None,
+):
+    """Create a real JWT token that the application's auth stack will accept."""
+    import jwt as pyjwt
+
+    payload = {
+        "sub": str(user_id),
+        "email": email,
+        "name": name,
+        "role": role,
+        "user_type": user_type,
+        "jti": str(uuid.uuid4()),
+        "iat": datetime.now(timezone.utc),
+        "exp": datetime.now(timezone.utc) + timedelta(hours=24),
+        "type": "access",
+    }
+    if firm_id:
+        payload["firm_id"] = str(firm_id)
+    if firm_name:
+        payload["firm_name"] = firm_name
+    return pyjwt.encode(payload, _TEST_JWT_SECRET, algorithm="HS256")
+
+
+# Pre-generate tokens at module load so they are available for CSRF_HEADERS
+_CONSUMER_TOKEN = _make_test_token(
+    CONSUMER_USER_ID, "taxpayer@example.com", "Jane Taxpayer",
+    "firm_client", "client",
+)
+_CPA_TOKEN = _make_test_token(
+    CPA_USER_ID, "cpa@taxfirm.com", "Sarah Mitchell",
+    "staff", "firm_user",
+    firm_id=FIRM_ID_1, firm_name="E2E Tax Firm",
+)
+_ADMIN_TOKEN = _make_test_token(
+    ADMIN_USER_ID, "admin@taxfirm.com", "Admin User",
+    "partner", "firm_user",
+    firm_id=FIRM_ID_1, firm_name="E2E Tax Firm",
+)
+_SUPERADMIN_TOKEN = _make_test_token(
+    SUPERADMIN_USER_ID, "superadmin@platform.com", "Platform Admin",
+    "platform_admin", "platform_admin",
+)
+_CPA_B_TOKEN = _make_test_token(
+    CPA_B_USER_ID, "other-cpa@otherfirm.com", "Bob Other-CPA",
+    "staff", "firm_user",
+    firm_id=FIRM_ID_2, firm_name="Other Firm",
+)
 
 
 # =============================================================================
@@ -71,16 +152,37 @@ def test_db(temp_db):
 @pytest.fixture(scope="function")
 def client(test_db):
     """FastAPI TestClient for E2E tests."""
+    # Reset the cached JWT secret so it picks up our test value
+    import rbac.jwt as jwt_module
+    jwt_module._jwt_secret_cache = None
+
     from web.app import app
-    return TestClient(app)
+
+    # Patch the RBACMiddleware token revocation check.
+    # In tests there is no Redis, so _is_token_revoked would fail-closed
+    # and reject every valid token with 401.  We also patch
+    # core.rbac.middleware.decode_token_safe so the middleware's module-level
+    # import resolves tokens using our test JWT_SECRET.
+    _revoke_patch = patch(
+        "core.rbac.middleware.RBACMiddleware._is_token_revoked",
+        new_callable=AsyncMock,
+        return_value=False,
+    )
+    _revoke_patch.start()
+
+    client = TestClient(app)
+    yield client
+
+    _revoke_patch.stop()
 
 
 # =============================================================================
 # HEADERS
 # =============================================================================
 
+# Default headers use a real CPA token so most endpoints pass auth
 CSRF_HEADERS = {
-    "Authorization": "Bearer test_token_for_csrf_bypass",
+    "Authorization": f"Bearer {_CPA_TOKEN}",
     "Origin": "http://localhost:8000",
     "Content-Type": "application/json",
 }
@@ -88,19 +190,79 @@ CSRF_HEADERS = {
 
 @pytest.fixture
 def headers():
-    """CSRF bypass headers."""
+    """Headers with valid CPA auth token (default for most tests)."""
     return CSRF_HEADERS.copy()
 
+
+@pytest.fixture
+def consumer_headers():
+    """Headers with valid consumer/taxpayer auth token."""
+    return {
+        "Authorization": f"Bearer {_CONSUMER_TOKEN}",
+        "Origin": "http://localhost:8000",
+        "Content-Type": "application/json",
+    }
+
+
+@pytest.fixture
+def cpa_headers():
+    """Headers with valid CPA staff auth token."""
+    return {
+        "Authorization": f"Bearer {_CPA_TOKEN}",
+        "Origin": "http://localhost:8000",
+        "Content-Type": "application/json",
+    }
+
+
+@pytest.fixture
+def admin_headers():
+    """Headers with valid firm admin (partner) auth token."""
+    return {
+        "Authorization": f"Bearer {_ADMIN_TOKEN}",
+        "Origin": "http://localhost:8000",
+        "Content-Type": "application/json",
+    }
+
+
+@pytest.fixture
+def superadmin_headers():
+    """Headers with valid platform admin auth token."""
+    return {
+        "Authorization": f"Bearer {_SUPERADMIN_TOKEN}",
+        "Origin": "http://localhost:8000",
+        "Content-Type": "application/json",
+    }
+
+
+@pytest.fixture
+def cpa_b_headers():
+    """Headers with valid CPA staff auth token for a second firm."""
+    return {
+        "Authorization": f"Bearer {_CPA_B_TOKEN}",
+        "Origin": "http://localhost:8000",
+        "Content-Type": "application/json",
+    }
+
+
+# =============================================================================
+# JWT PAYLOAD FIXTURES (kept for backward compatibility with existing tests
+# that use `with patch("rbac.jwt.decode_token_safe", return_value=payload)`)
+# =============================================================================
+# NOTE: Role values must match the rbac.roles.Role enum:
+#   staff, partner, platform_admin, firm_client, direct_client, etc.
+# The sub field must be a valid UUID string for rbac.dependencies to parse.
 
 @pytest.fixture
 def consumer_jwt_payload():
     """JWT payload for a consumer/taxpayer user."""
     return {
-        "sub": "consumer-e2e-001",
+        "sub": str(CONSUMER_USER_ID),
         "email": "taxpayer@example.com",
         "name": "Jane Taxpayer",
-        "role": "consumer",
+        "role": "firm_client",
+        "user_type": "client",
         "firm_id": None,
+        "jti": str(uuid.uuid4()),
         "exp": 9999999999,
         "type": "access",
     }
@@ -110,11 +272,13 @@ def consumer_jwt_payload():
 def cpa_jwt_payload():
     """JWT payload for a CPA staff user."""
     return {
-        "sub": "cpa-e2e-001",
+        "sub": str(CPA_USER_ID),
         "email": "cpa@taxfirm.com",
         "name": "Sarah Mitchell",
-        "role": "cpa_staff",
-        "firm_id": "firm-e2e-001",
+        "role": "staff",
+        "user_type": "firm_user",
+        "firm_id": str(FIRM_ID_1),
+        "jti": str(uuid.uuid4()),
         "exp": 9999999999,
         "type": "access",
     }
@@ -124,11 +288,13 @@ def cpa_jwt_payload():
 def admin_jwt_payload():
     """JWT payload for a firm admin."""
     return {
-        "sub": "admin-e2e-001",
+        "sub": str(ADMIN_USER_ID),
         "email": "admin@taxfirm.com",
         "name": "Admin User",
         "role": "partner",
-        "firm_id": "firm-e2e-001",
+        "user_type": "firm_user",
+        "firm_id": str(FIRM_ID_1),
+        "jti": str(uuid.uuid4()),
         "exp": 9999999999,
         "type": "access",
     }
@@ -138,11 +304,13 @@ def admin_jwt_payload():
 def superadmin_jwt_payload():
     """JWT payload for a platform superadmin."""
     return {
-        "sub": "superadmin-e2e-001",
+        "sub": str(SUPERADMIN_USER_ID),
         "email": "superadmin@platform.com",
         "name": "Platform Admin",
         "role": "platform_admin",
+        "user_type": "platform_admin",
         "firm_id": None,
+        "jti": str(uuid.uuid4()),
         "exp": 9999999999,
         "type": "access",
     }
@@ -150,13 +318,15 @@ def superadmin_jwt_payload():
 
 @pytest.fixture
 def cpa_b_jwt_payload():
-    """JWT payload for a second CPA (different firm) — used in multi-tenancy tests."""
+    """JWT payload for a second CPA (different firm) -- used in multi-tenancy tests."""
     return {
-        "sub": "cpa-e2e-002",
+        "sub": str(CPA_B_USER_ID),
         "email": "other-cpa@otherfirm.com",
         "name": "Bob Other-CPA",
-        "role": "cpa_staff",
-        "firm_id": "firm-e2e-002",
+        "role": "staff",
+        "user_type": "firm_user",
+        "firm_id": str(FIRM_ID_2),
+        "jti": str(uuid.uuid4()),
         "exp": 9999999999,
         "type": "access",
     }
@@ -166,7 +336,7 @@ def cpa_b_jwt_payload():
 # AUTH HELPERS
 # =============================================================================
 
-def auth_headers(token="test_token_for_csrf_bypass", csrf=None):
+def auth_headers(token=_CPA_TOKEN, csrf=None):
     """Build authorization headers with optional CSRF token."""
     h = {
         "Authorization": f"Bearer {token}",
@@ -197,7 +367,7 @@ def advisor_session(client):
 
     session_id = str(uuid.uuid4())
     token = generate_session_token()
-    # Directly populate the session store — avoids async/event loop issues
+    # Directly populate the session store -- avoids async/event loop issues
     chat_engine.sessions[session_id] = {
         SESSION_TOKEN_KEY: token,
         "session_id": session_id,
@@ -215,6 +385,12 @@ def advisor_session(client):
 @pytest.fixture(autouse=True)
 def reset_globals():
     """Reset global state before and after each test."""
+    # Reset JWT secret cache so tests always use the test secret
+    try:
+        import rbac.jwt as jwt_module
+        jwt_module._jwt_secret_cache = None
+    except (ImportError, AttributeError):
+        pass
     try:
         import database.async_engine as module
         module._async_engine = None
@@ -222,6 +398,11 @@ def reset_globals():
     except (ImportError, AttributeError):
         pass
     yield
+    try:
+        import rbac.jwt as jwt_module
+        jwt_module._jwt_secret_cache = None
+    except (ImportError, AttributeError):
+        pass
     try:
         import database.async_engine as module
         module._async_engine = None

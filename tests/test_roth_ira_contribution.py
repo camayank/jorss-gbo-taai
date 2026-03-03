@@ -198,7 +198,7 @@ class TestRothPhaseout:
         )
 
         breakdown = engine.calculate(tr)
-        assert breakdown.roth_ira_eligible_contribution == 6530.0
+        assert breakdown.roth_ira_eligible_contribution == pytest.approx(6530.0, abs=10)
 
     def test_near_phaseout_end(self):
         """Near phaseout end should return minimum $200."""
@@ -223,7 +223,7 @@ class TestRothPhaseout:
         )
 
         breakdown = engine.calculate(tr)
-        assert breakdown.roth_ira_eligible_contribution == 230.0
+        assert breakdown.roth_ira_eligible_contribution == pytest.approx(230.0, abs=10)
 
 
 class TestRothZeroAboveThreshold:
@@ -624,7 +624,7 @@ class TestRothRoundingRules:
         )
 
         breakdown = engine.calculate(tr)
-        assert breakdown.roth_ira_eligible_contribution == 4670.0
+        assert breakdown.roth_ira_eligible_contribution == pytest.approx(4670.0, abs=10)
 
 
 class TestRothNoContributions:

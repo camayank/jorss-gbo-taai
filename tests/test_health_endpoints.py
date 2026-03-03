@@ -98,8 +98,9 @@ class TestHealthEndpoints:
                 # Verify it's open
                 assert engine.is_circuit_open is True
 
-        # Call reset endpoint with CSRF bypass
-        response = client.post("/api/health/resilience/reset", headers=CSRF_BYPASS_HEADERS)
+        # Call reset endpoint with CSRF bypass, mock admin access check
+        with patch("web.app._require_admin_page_access", return_value=None):
+            response = client.post("/api/health/resilience/reset", headers=CSRF_BYPASS_HEADERS)
 
         assert response.status_code == 200
         data = response.json()
@@ -114,7 +115,8 @@ class TestHealthEndpoints:
 
     def test_resilience_reset_returns_success_message(self, client):
         """Reset endpoint returns success message."""
-        response = client.post("/api/health/resilience/reset", headers=CSRF_BYPASS_HEADERS)
+        with patch("web.app._require_admin_page_access", return_value=None):
+            response = client.post("/api/health/resilience/reset", headers=CSRF_BYPASS_HEADERS)
 
         assert response.status_code == 200
         data = response.json()

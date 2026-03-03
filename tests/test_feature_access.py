@@ -214,7 +214,7 @@ class TestFeatureDefinitions:
 class TestFeatureAccessChecking:
     """Test feature access checking logic"""
 
-    @patch('src.rbac.feature_access_control.get_tenant_persistence')
+    @patch('rbac.feature_access_control.get_tenant_persistence')
     def test_free_tier_access_express_lane(self, mock_persistence, staff_context_free_tier, free_tier_tenant):
         """Free tier should have access to Express Lane"""
         mock_persistence.return_value.get_tenant.return_value = free_tier_tenant
@@ -223,7 +223,7 @@ class TestFeatureAccessChecking:
 
         assert access["allowed"], "Free tier should have Express Lane access"
 
-    @patch('src.rbac.feature_access_control.get_tenant_persistence')
+    @patch('rbac.feature_access_control.get_tenant_persistence')
     def test_free_tier_blocked_from_ai_chat(self, mock_persistence, staff_context_free_tier, free_tier_tenant):
         """Free tier should NOT have access to AI Chat"""
         mock_persistence.return_value.get_tenant.return_value = free_tier_tenant
@@ -234,7 +234,7 @@ class TestFeatureAccessChecking:
         assert "upgrade_tier" in access, "Should provide upgrade tier info"
         assert access["upgrade_tier"] == "professional"
 
-    @patch('src.rbac.feature_access_control.get_tenant_persistence')
+    @patch('rbac.feature_access_control.get_tenant_persistence')
     def test_professional_tier_access_ai_chat(self, mock_persistence, staff_context_pro_tier, professional_tier_tenant):
         """Professional tier should have access to AI Chat"""
         mock_persistence.return_value.get_tenant.return_value = professional_tier_tenant
@@ -243,7 +243,7 @@ class TestFeatureAccessChecking:
 
         assert access["allowed"], "Professional tier should have AI Chat access"
 
-    @patch('src.rbac.feature_access_control.get_tenant_persistence')
+    @patch('rbac.feature_access_control.get_tenant_persistence')
     def test_feature_flag_enforcement(self, mock_persistence, staff_context_pro_tier, professional_tier_tenant):
         """Feature flags should be enforced even if tier allows it"""
         # Disable AI chat flag
@@ -280,7 +280,7 @@ class TestFeatureAccessChecking:
 class TestGetUserFeatures:
     """Test get_user_features function"""
 
-    @patch('src.rbac.feature_access_control.get_tenant_persistence')
+    @patch('rbac.feature_access_control.get_tenant_persistence')
     def test_get_user_features_returns_all(self, mock_persistence, staff_context_pro_tier, professional_tier_tenant):
         """get_user_features should return all features with access status"""
         mock_persistence.return_value.get_tenant.return_value = professional_tier_tenant
@@ -297,7 +297,7 @@ class TestGetUserFeatures:
             assert "category" in info
             assert "icon" in info
 
-    @patch('src.rbac.feature_access_control.get_tenant_persistence')
+    @patch('rbac.feature_access_control.get_tenant_persistence')
     def test_get_user_features_shows_locked(self, mock_persistence, staff_context_free_tier, free_tier_tenant):
         """get_user_features should show locked features with upgrade info"""
         mock_persistence.return_value.get_tenant.return_value = free_tier_tenant
@@ -319,7 +319,7 @@ class TestGetUserFeatures:
 class TestGetFeaturesByCategory:
     """Test get_features_by_category function"""
 
-    @patch('src.rbac.feature_access_control.get_tenant_persistence')
+    @patch('rbac.feature_access_control.get_tenant_persistence')
     def test_get_features_by_category(self, mock_persistence, staff_context_pro_tier, professional_tier_tenant):
         """Should return features filtered by category"""
         mock_persistence.return_value.get_tenant.return_value = professional_tier_tenant
@@ -331,7 +331,7 @@ class TestGetFeaturesByCategory:
         for feature in ai_features:
             assert feature["category"] == "ai"
 
-    @patch('src.rbac.feature_access_control.get_tenant_persistence')
+    @patch('rbac.feature_access_control.get_tenant_persistence')
     def test_category_filtering_accurate(self, mock_persistence, staff_context_pro_tier, professional_tier_tenant):
         """Category filtering should be accurate"""
         mock_persistence.return_value.get_tenant.return_value = professional_tier_tenant
@@ -356,8 +356,8 @@ class TestGetFeaturesByCategory:
 class TestAdminFeatureManagement:
     """Test admin functions for enabling/disabling features"""
 
-    @patch('src.audit.audit_logger.get_audit_logger')
-    @patch('src.rbac.feature_access_control.get_tenant_persistence')
+    @patch('audit.audit_logger.get_audit_logger')
+    @patch('rbac.feature_access_control.get_tenant_persistence')
     def test_enable_feature_for_tenant(self, mock_persistence, mock_audit_logger, free_tier_tenant):
         """Admin should be able to enable features for tenant"""
         mock_persistence.return_value.get_tenant.return_value = free_tier_tenant
@@ -377,8 +377,8 @@ class TestAdminFeatureManagement:
         # Verify audit log was called
         mock_audit_logger.return_value.log.assert_called_once()
 
-    @patch('src.audit.audit_logger.get_audit_logger')
-    @patch('src.rbac.feature_access_control.get_tenant_persistence')
+    @patch('audit.audit_logger.get_audit_logger')
+    @patch('rbac.feature_access_control.get_tenant_persistence')
     def test_disable_feature_for_tenant(self, mock_persistence, mock_audit_logger, professional_tier_tenant):
         """Admin should be able to disable features for tenant"""
         mock_persistence.return_value.get_tenant.return_value = professional_tier_tenant
@@ -418,7 +418,7 @@ class TestAdminFeatureManagement:
 class TestFeatureAccessIntegration:
     """Integration tests for feature access in real scenarios"""
 
-    @patch('src.rbac.feature_access_control.get_tenant_persistence')
+    @patch('rbac.feature_access_control.get_tenant_persistence')
     def test_subscription_upgrade_flow(self, mock_persistence):
         """Test feature access after subscription upgrade"""
         # Create contexts
@@ -477,7 +477,7 @@ class TestFeatureAccessIntegration:
 class TestFeatureAccessPerformance:
     """Test performance of feature access checks"""
 
-    @patch('src.rbac.feature_access_control.get_tenant_persistence')
+    @patch('rbac.feature_access_control.get_tenant_persistence')
     def test_bulk_feature_check_performance(self, mock_persistence, staff_context_pro_tier, professional_tier_tenant):
         """Checking all features should be fast"""
         import time

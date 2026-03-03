@@ -40,15 +40,14 @@ class TestCreateEngine:
                 call_kwargs = mock_create.call_args[1]
                 assert call_kwargs['poolclass'] is NullPool
 
-    def test_postgres_uses_queue_pool(self):
-        """PostgreSQL should use QueuePool."""
+    def test_postgres_uses_default_pool(self):
+        """PostgreSQL should use SQLAlchemy's default async-compatible pool (no explicit poolclass)."""
         with patch('database.async_engine.create_async_engine') as mock_create:
             with patch('database.async_engine._setup_engine_events'):
                 mock_engine = MagicMock()
                 mock_create.return_value = mock_engine
 
                 from database.async_engine import create_engine
-                from sqlalchemy.pool import QueuePool
 
                 settings = DatabaseSettings(
                     driver="postgresql+asyncpg",
@@ -59,7 +58,11 @@ class TestCreateEngine:
                 create_engine(settings)
 
                 call_kwargs = mock_create.call_args[1]
-                assert call_kwargs['poolclass'] is QueuePool
+                # PostgreSQL relies on SQLAlchemy's async-compatible default pool
+                # rather than explicitly setting poolclass
+                assert 'poolclass' not in call_kwargs
+                # But pool_size and other pool settings should be present
+                assert 'pool_size' in call_kwargs
 
     def test_engine_url_matches_settings(self):
         """Engine URL should match settings."""

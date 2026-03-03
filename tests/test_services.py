@@ -52,7 +52,10 @@ from services.logging_config import (
 
 # Import models
 from models.tax_return import TaxReturn
-from models.taxpayer import FilingStatus
+from models.taxpayer import FilingStatus, TaxpayerInfo
+from models.income import Income
+from models.deductions import Deductions
+from models.credits import TaxCredits
 
 
 # =============================================================================
@@ -222,7 +225,19 @@ class TestRequiredFieldRule:
             "deductions": {},
             "credits": {}
         }
-        tax_return = TaxReturn(**data)
+        tax_return = TaxReturn.model_construct(
+            tax_year=2025,
+            taxpayer=TaxpayerInfo.model_construct(
+                first_name="",
+                last_name="Doe",
+                ssn="123-45-6789",
+                filing_status="single",
+                dependents=[],
+            ),
+            income=Income.model_construct(w2_forms=[]),
+            deductions=Deductions.model_construct(),
+            credits=TaxCredits.model_construct(),
+        )
 
         issues = rule.validate(tax_return, data)
         assert any(i.code == "REQ_001" for i in issues)
@@ -360,7 +375,7 @@ class TestFilingStatusConsistencyRule:
                 "filing_status": "married_joint",
                 "spouse_first_name": "Jane",
                 "spouse_last_name": "Doe",
-                "spouse_ssn": "987-65-4321",
+                "spouse_ssn": "187-65-4321",
             },
             "income": {"w2_forms": []},
             "deductions": {},

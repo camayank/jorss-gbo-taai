@@ -4,13 +4,13 @@
 {% block theme %}default{% endblock %}
 
 {% block content %}
-<div style="max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;"
+<div style="max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; font-family: var(--font-sans);"
      x-data="filingPackageManager()">
 
   {# ── Header ── #}
   <header style="margin-bottom: 2rem;">
     <h1 style="font-size: 1.875rem; font-weight: var(--font-bold); color: var(--color-primary-500); margin: 0 0 0.5rem 0;">Filing Package Export</h1>
-    <p style="font-size: 1rem; color: #6b7280; margin: 0;">Generate comprehensive filing packages for e-filing software</p>
+    <p style="font-size: 1rem; color: var(--color-gray-500, #6b7280); margin: 0;">Generate comprehensive filing packages for e-filing software</p>
   </header>
 
   {# ── Package Configuration Card ── #}
@@ -23,8 +23,8 @@
         <label style="display: block; font-size: 0.875rem; font-weight: var(--font-medium); color: var(--color-gray-700); margin-bottom: 0.375rem;">Tax Year</label>
         <select x-model.number="taxYear"
                 style="width: 100%; padding: 0.625rem 0.75rem; border: 1px solid var(--color-gray-300); border-radius: var(--radius-lg); font-size: 0.9375rem; color: var(--color-gray-800); background: white; outline: none; transition: border-color 0.15s;"
-                @focus="$el.style.borderColor='#14b8a6'; $el.style.boxShadow='0 0 0 3px rgba(20,184,166,0.12)'"
-                @blur="$el.style.borderColor='#d1d5db'; $el.style.boxShadow='none'">
+                @focus="$el.style.borderColor='var(--color-gold, #C9A84C)'; $el.style.boxShadow='0 0 0 3px rgba(201,168,76,0.15)'"
+                @blur="$el.style.borderColor='var(--color-gray-300, #d1d5db)'; $el.style.boxShadow='none'">
           <option :value="2024">2024</option>
           <option :value="2025">2025</option>
         </select>
@@ -33,8 +33,8 @@
         <label style="display: block; font-size: 0.875rem; font-weight: var(--font-medium); color: var(--color-gray-700); margin-bottom: 0.375rem;">Return ID</label>
         <input type="text" x-model="returnId" placeholder="e.g. RTN-2025-00142"
                style="width: 100%; padding: 0.625rem 0.75rem; border: 1px solid var(--color-gray-300); border-radius: var(--radius-lg); font-size: 0.9375rem; color: var(--color-gray-800); outline: none; box-sizing: border-box; transition: border-color 0.15s;"
-               @focus="$el.style.borderColor='#14b8a6'; $el.style.boxShadow='0 0 0 3px rgba(20,184,166,0.12)'"
-               @blur="$el.style.borderColor='#d1d5db'; $el.style.boxShadow='none'">
+               @focus="$el.style.borderColor='var(--color-gold, #C9A84C)'; $el.style.boxShadow='0 0 0 3px rgba(201,168,76,0.15)'"
+               @blur="$el.style.borderColor='var(--color-gray-300, #d1d5db)'; $el.style.boxShadow='none'">
       </div>
     </div>
 
@@ -46,30 +46,30 @@
                :style="`
                  display: flex; flex-direction: column; align-items: center; text-align: center;
                  padding: 1.125rem 0.5rem; border-radius: 10px; cursor: pointer;
-                 border: 2px solid ${exportFormat === fmt.id ? '#14b8a6' : '#e5e7eb'};
-                 background: ${exportFormat === fmt.id ? '#f0fdfa' : '#fff'};
+                 border: 2px solid ${exportFormat === fmt.id ? 'var(--color-gold, #C9A84C)' : 'var(--color-gray-200, #e5e7eb)'};
+                 background: ${exportFormat === fmt.id ? 'rgba(201,168,76,0.08)' : '#fff'};
                  transition: all 0.2s;
                `"
-               @mouseenter="if(exportFormat !== fmt.id) $el.style.borderColor='#99f6e4'"
-               @mouseleave="if(exportFormat !== fmt.id) $el.style.borderColor='#e5e7eb'">
+               @mouseenter="if(exportFormat !== fmt.id) $el.style.borderColor='rgba(201,168,76,0.15)'"
+               @mouseleave="if(exportFormat !== fmt.id) $el.style.borderColor='var(--color-gray-200, #e5e7eb)'"
           {# Icon badge #}
           <span :style="`
                   display: flex; align-items: center; justify-content: center;
                   width: 2.75rem; height: 2.75rem; border-radius: 10px; margin-bottom: 0.625rem;
                   font-size: 0.8125rem; font-weight: 700; letter-spacing: -0.02em;
-                  background: ${exportFormat === fmt.id ? '#14b8a6' : '#f3f4f6'};
-                  color: ${exportFormat === fmt.id ? '#fff' : '#6b7280'};
+                  background: ${exportFormat === fmt.id ? 'var(--color-gold, #C9A84C)' : '#f3f4f6'};
+                  color: ${exportFormat === fmt.id ? '#fff' : 'var(--color-gray-500, #6b7280)'};
                   transition: all 0.2s;
                 `" x-text="fmt.icon"></span>
           {# Name #}
           <span style="font-size: 0.8125rem; font-weight: var(--font-semibold); color: var(--color-primary-500); margin-bottom: 0.25rem;" x-text="fmt.name"></span>
           {# Description #}
-          <span style="font-size: 0.6875rem; color: #6b7280; line-height: 1.35;" x-text="fmt.desc"></span>
+          <span style="font-size: 0.6875rem; color: var(--color-gray-500, #6b7280); line-height: 1.35;" x-text="fmt.desc"></span>
           {# Radio indicator #}
           <span :style="`
                   display: flex; align-items: center; justify-content: center;
                   width: 1.125rem; height: 1.125rem; border-radius: 50%; margin-top: 0.625rem;
-                  border: 2px solid ${exportFormat === fmt.id ? '#14b8a6' : '#d1d5db'};
+                  border: 2px solid ${exportFormat === fmt.id ? 'var(--color-gold, #C9A84C)' : 'var(--color-gray-300, #d1d5db)'};
                   transition: all 0.2s;
                 `">
             <span x-show="exportFormat === fmt.id"
@@ -92,7 +92,7 @@
                style="width: 1.125rem; height: 1.125rem; accent-color: var(--color-accent-500); cursor: pointer;">
         <span style="flex: 1;">
           <span style="font-size: 0.9375rem; font-weight: var(--font-medium); color: var(--color-gray-800);">Form 1040</span>
-          <span style="font-size: 0.8125rem; color: #6b7280; margin-left: 0.5rem;">Federal Income Tax Return</span>
+          <span style="font-size: 0.8125rem; color: var(--color-gray-500, #6b7280); margin-left: 0.5rem;">Federal Income Tax Return</span>
         </span>
       </label>
       {# State Return #}
@@ -101,7 +101,7 @@
                style="width: 1.125rem; height: 1.125rem; accent-color: var(--color-accent-500); cursor: pointer;">
         <span style="flex: 1;">
           <span style="font-size: 0.9375rem; font-weight: var(--font-medium); color: var(--color-gray-800);">State Return</span>
-          <span style="font-size: 0.8125rem; color: #6b7280; margin-left: 0.5rem;">(if applicable)</span>
+          <span style="font-size: 0.8125rem; color: var(--color-gray-500, #6b7280); margin-left: 0.5rem;">(if applicable)</span>
         </span>
       </label>
       {# Schedules #}
@@ -110,7 +110,7 @@
                style="width: 1.125rem; height: 1.125rem; accent-color: var(--color-accent-500); cursor: pointer;">
         <span style="flex: 1;">
           <span style="font-size: 0.9375rem; font-weight: var(--font-medium); color: var(--color-gray-800);">All Applicable Schedules</span>
-          <span style="font-size: 0.8125rem; color: #6b7280; margin-left: 0.5rem;">Schedules A, B, C, D, etc.</span>
+          <span style="font-size: 0.8125rem; color: var(--color-gray-500, #6b7280); margin-left: 0.5rem;">Schedules A, B, C, D, etc.</span>
         </span>
       </label>
       {# W-2 / 1099 #}
@@ -119,7 +119,7 @@
                style="width: 1.125rem; height: 1.125rem; accent-color: var(--color-accent-500); cursor: pointer;">
         <span style="flex: 1;">
           <span style="font-size: 0.9375rem; font-weight: var(--font-medium); color: var(--color-gray-800);">Form W-2 / 1099 Summaries</span>
-          <span style="font-size: 0.8125rem; color: #6b7280; margin-left: 0.5rem;">Income document summaries</span>
+          <span style="font-size: 0.8125rem; color: var(--color-gray-500, #6b7280); margin-left: 0.5rem;">Income document summaries</span>
         </span>
       </label>
       {# Worksheets #}
@@ -128,7 +128,7 @@
                style="width: 1.125rem; height: 1.125rem; accent-color: var(--color-accent-500); cursor: pointer;">
         <span style="flex: 1;">
           <span style="font-size: 0.9375rem; font-weight: var(--font-medium); color: var(--color-gray-800);">Supporting Worksheets</span>
-          <span style="font-size: 0.8125rem; color: #6b7280; margin-left: 0.5rem;">Calculation details &amp; supporting data</span>
+          <span style="font-size: 0.8125rem; color: var(--color-gray-500, #6b7280); margin-left: 0.5rem;">Calculation details &amp; supporting data</span>
         </span>
       </label>
       {# Cover Letter #}
@@ -137,7 +137,7 @@
                style="width: 1.125rem; height: 1.125rem; accent-color: var(--color-accent-500); cursor: pointer;">
         <span style="flex: 1;">
           <span style="font-size: 0.9375rem; font-weight: var(--font-medium); color: var(--color-gray-800);">Client Cover Letter</span>
-          <span style="font-size: 0.8125rem; color: #6b7280; margin-left: 0.5rem;">Personalized cover letter for the client</span>
+          <span style="font-size: 0.8125rem; color: var(--color-gray-500, #6b7280); margin-left: 0.5rem;">Personalized cover letter for the client</span>
         </span>
       </label>
       {# Engagement Letter #}
@@ -146,13 +146,13 @@
                style="width: 1.125rem; height: 1.125rem; accent-color: var(--color-accent-500); cursor: pointer;">
         <span style="flex: 1;">
           <span style="font-size: 0.9375rem; font-weight: var(--font-medium); color: var(--color-gray-800);">Engagement Letter</span>
-          <span style="font-size: 0.8125rem; color: #6b7280; margin-left: 0.5rem;">Firm engagement agreement</span>
+          <span style="font-size: 0.8125rem; color: var(--color-gray-500, #6b7280); margin-left: 0.5rem;">Firm engagement agreement</span>
         </span>
       </label>
     </div>
 
     <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--color-gray-200);">
-      <span style="font-size: 0.8125rem; color: #6b7280;"
+      <span style="font-size: 0.8125rem; color: var(--color-gray-500, #6b7280);"
             x-text="selectedContents.length + ' of 7 items selected'"></span>
     </div>
   </section>
@@ -190,7 +190,7 @@
           <span style="font-size: 0.9375rem; color: var(--color-gray-800);" x-text="check.label"></span>
           {# Toggle button #}
           <button @click="check.passed = !check.passed"
-                  style="margin-left: auto; font-size: 0.75rem; color: #6b7280; background: none; border: none; cursor: pointer; text-decoration: underline;"
+                  style="margin-left: auto; font-size: 0.75rem; color: var(--color-gray-500, #6b7280); background: none; border: none; cursor: pointer; text-decoration: underline;"
                   x-text="check.passed ? 'Mark failed' : 'Mark passed'"></button>
         </div>
       </template>
@@ -210,7 +210,7 @@
               box-shadow: 0 1px 3px rgba(30,58,95,0.2);
               ${generating ? 'cursor: not-allowed;' : ''}
             `"
-            @mouseenter="if(!generating) { $el.style.background='#14b8a6'; $el.style.boxShadow='0 4px 12px rgba(20,184,166,0.3)'; }"
+            @mouseenter="if(!generating) { $el.style.background='var(--color-gold, #C9A84C)'; $el.style.boxShadow='0 4px 12px rgba(201,168,76,0.3)'; }"
             @mouseleave="if(!generating) { $el.style.background='#1e3a5f'; $el.style.boxShadow='0 1px 3px rgba(30,58,95,0.2)'; }">
       {# Spinner #}
       <svg x-show="generating" style="animation: fpSpin 1s linear infinite; width: 1.25rem; height: 1.25rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4m0 12v4m-7.07-3.93l2.83-2.83m8.48-8.48l2.83-2.83M2 12h4m12 0h4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83"/></svg>
@@ -222,7 +222,7 @@
       <div style="height: 6px; background: var(--color-gray-200); border-radius: var(--radius-full); overflow: hidden;">
         <div style="height: 100%; background: linear-gradient(90deg, var(--color-accent-500), var(--color-primary-500)); border-radius: var(--radius-full); animation: fpProgress 2s ease-in-out infinite; width: 60%;"></div>
       </div>
-      <p style="font-size: 0.8125rem; color: #6b7280; margin-top: 0.5rem;">Assembling package&hellip; This may take a moment.</p>
+      <p style="font-size: 0.8125rem; color: var(--color-gray-500, #6b7280); margin-top: 0.5rem;">Assembling package&hellip; This may take a moment.</p>
     </div>
 
     {# Success state #}
@@ -255,11 +255,11 @@
       <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
         <thead>
           <tr style="border-bottom: 2px solid var(--color-gray-200);">
-            <th style="text-align: left; padding: 0.625rem 0.75rem; font-weight: var(--font-semibold); color: #6b7280; font-size: 0.75rem; text-transform: uppercase; letter-spacing: var(--tracking-wider);">Date</th>
-            <th style="text-align: left; padding: 0.625rem 0.75rem; font-weight: var(--font-semibold); color: #6b7280; font-size: 0.75rem; text-transform: uppercase; letter-spacing: var(--tracking-wider);">Format</th>
-            <th style="text-align: left; padding: 0.625rem 0.75rem; font-weight: var(--font-semibold); color: #6b7280; font-size: 0.75rem; text-transform: uppercase; letter-spacing: var(--tracking-wider);">Tax Year</th>
-            <th style="text-align: left; padding: 0.625rem 0.75rem; font-weight: var(--font-semibold); color: #6b7280; font-size: 0.75rem; text-transform: uppercase; letter-spacing: var(--tracking-wider);">Status</th>
-            <th style="text-align: right; padding: 0.625rem 0.75rem; font-weight: var(--font-semibold); color: #6b7280; font-size: 0.75rem; text-transform: uppercase; letter-spacing: var(--tracking-wider);">Action</th>
+            <th style="text-align: left; padding: 0.625rem 0.75rem; font-weight: var(--font-semibold); color: var(--color-gray-500, #6b7280); font-size: 0.75rem; text-transform: uppercase; letter-spacing: var(--tracking-wider);">Date</th>
+            <th style="text-align: left; padding: 0.625rem 0.75rem; font-weight: var(--font-semibold); color: var(--color-gray-500, #6b7280); font-size: 0.75rem; text-transform: uppercase; letter-spacing: var(--tracking-wider);">Format</th>
+            <th style="text-align: left; padding: 0.625rem 0.75rem; font-weight: var(--font-semibold); color: var(--color-gray-500, #6b7280); font-size: 0.75rem; text-transform: uppercase; letter-spacing: var(--tracking-wider);">Tax Year</th>
+            <th style="text-align: left; padding: 0.625rem 0.75rem; font-weight: var(--font-semibold); color: var(--color-gray-500, #6b7280); font-size: 0.75rem; text-transform: uppercase; letter-spacing: var(--tracking-wider);">Status</th>
+            <th style="text-align: right; padding: 0.625rem 0.75rem; font-weight: var(--font-semibold); color: var(--color-gray-500, #6b7280); font-size: 0.75rem; text-transform: uppercase; letter-spacing: var(--tracking-wider);">Action</th>
           </tr>
         </thead>
         <tbody>
@@ -282,8 +282,8 @@
               <td style="padding: 0.75rem; text-align: right;">
                 <button @click="downloadPackage(entry)"
                         style="padding: 0.3125rem 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--color-gray-300); background: white; color: var(--color-gray-700); font-size: 0.8125rem; font-weight: var(--font-medium); cursor: pointer; transition: all 0.15s;"
-                        @mouseenter="$el.style.borderColor='#14b8a6'; $el.style.color='#14b8a6'"
-                        @mouseleave="$el.style.borderColor='#d1d5db'; $el.style.color='#374151'">
+                        @mouseenter="$el.style.borderColor='var(--color-gold, #C9A84C)'; $el.style.color='var(--color-gold, #C9A84C)'"
+                        @mouseleave="$el.style.borderColor='var(--color-gray-300, #d1d5db)'; $el.style.color='#374151'"
                   Download
                 </button>
               </td>

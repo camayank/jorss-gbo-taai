@@ -100,9 +100,9 @@ def create_base_tax_return(
 def fixture_child_tax_credit() -> TaxReturn:
     """Married couple with 3 children under 17, income $120,000."""
     dependents = [
-        Dependent(name="Child1", age=10, relationship="son"),
-        Dependent(name="Child2", age=8, relationship="daughter"),
-        Dependent(name="Child3", age=5, relationship="son"),
+        Dependent(name="ChildOne", age=10, relationship="son"),
+        Dependent(name="ChildTwo", age=8, relationship="daughter"),
+        Dependent(name="ChildThree", age=5, relationship="son"),
     ]
     return create_base_tax_return(
         filing_status="married_joint",
@@ -140,8 +140,8 @@ class TestChildTaxCreditPath:
 def fixture_eitc() -> TaxReturn:
     """Single parent with 2 children, income $28,000 - EITC eligible."""
     dependents = [
-        Dependent(name="Child1", age=8, relationship="son"),
-        Dependent(name="Child2", age=6, relationship="daughter"),
+        Dependent(name="ChildOne", age=8, relationship="son"),
+        Dependent(name="ChildTwo", age=6, relationship="daughter"),
     ]
     return create_base_tax_return(
         filing_status="head_of_household",
@@ -259,8 +259,8 @@ class TestSaversCreditPath:
 def fixture_child_care_credit() -> TaxReturn:
     """Married couple with 2 young children and childcare expenses."""
     dependents = [
-        Dependent(name="Child1", age=4, relationship="son"),
-        Dependent(name="Child2", age=2, relationship="daughter"),
+        Dependent(name="ChildOne", age=4, relationship="son"),
+        Dependent(name="ChildTwo", age=2, relationship="daughter"),
     ]
     return create_base_tax_return(
         filing_status="married_joint",

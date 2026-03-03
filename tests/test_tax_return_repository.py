@@ -40,10 +40,11 @@ class TestTaxReturnRepositoryGet:
         mock_session = AsyncMock()
         return_id = uuid4()
 
-        # Mock row data matching the SELECT query columns
+        # Mock row data matching the SELECT query columns (20 columns)
         mock_row = (
             str(return_id),  # return_id
             "session-123",  # session_id
+            "abc123hash",  # taxpayer_ssn_hash
             "John Doe",  # taxpayer_name
             2025,  # tax_year
             "single",  # filing_status
@@ -256,6 +257,7 @@ class TestTaxReturnRepositoryGetByClient:
         mock_row = (
             str(uuid4()),
             "session-123",
+            "abc123hash",
             "John Doe",
             2025,
             "single",
@@ -310,6 +312,7 @@ class TestTaxReturnRepositoryGetByYear:
         mock_row = (
             str(uuid4()),
             "session-123",
+            "abc123hash",
             "John Doe",
             2024,
             "single",
@@ -440,6 +443,7 @@ class TestTaxReturnRepositoryGetCalculationResult:
         mock_row = (
             str(uuid4()),
             "session-123",
+            "abc123hash",
             "John Doe",
             2025,
             "single",
@@ -494,6 +498,7 @@ class TestTaxReturnRepositoryGetBySession:
         mock_row = (
             str(uuid4()),
             "session-xyz",
+            "abc123hash",
             "John Doe",
             2025,
             "single",
@@ -543,6 +548,7 @@ class TestTaxReturnRepositoryRowToDict:
         mock_row = (
             str(uuid4()),
             "session-123",
+            "abc123hash",
             "John Doe",
             2025,
             "single",
@@ -576,6 +582,7 @@ class TestTaxReturnRepositoryRowToDict:
         mock_row = (
             str(uuid4()),
             "session-123",
+            "abc123hash",  # taxpayer_ssn_hash
             "John Doe",
             2025,
             "single",

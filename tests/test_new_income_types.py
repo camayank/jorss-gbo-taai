@@ -609,7 +609,7 @@ class TestCalculatorEngineIntegration:
         taxpayer = TaxpayerInfo(
             first_name="Jane",
             last_name="Doe",
-            ssn="987-65-4321",
+            ssn="187-65-4321",
             filing_status=FilingStatus.SINGLE,
         )
         income = Income(
@@ -995,7 +995,7 @@ class TestCalculatorWith1099QAndRefunds:
         taxpayer = TaxpayerInfo(
             first_name="Test",
             last_name="User",
-            ssn="987-65-4321",
+            ssn="187-65-4321",
             filing_status=FilingStatus.SINGLE,
         )
         income = Income(

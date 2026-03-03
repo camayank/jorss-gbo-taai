@@ -37,7 +37,7 @@ def sample_tax_return():
         taxpayer=TaxpayerInfo(
             first_name="Integration",
             last_name="Test",
-            ssn="000-00-0000",
+            ssn="555-12-3456",
             filing_status=FilingStatus.SINGLE,
         ),
         income=Income(
@@ -245,7 +245,7 @@ class TestBusinessOwnerScenario:
             taxpayer=TaxpayerInfo(
                 first_name="Business",
                 last_name="Owner",
-                ssn="000-00-0001",
+                ssn="555-12-3457",
                 filing_status=FilingStatus.SINGLE,
             ),
             income=Income(
@@ -284,7 +284,7 @@ class TestEdgeCases:
             taxpayer=TaxpayerInfo(
                 first_name="Zero",
                 last_name="Income",
-                ssn="000-00-0002",
+                ssn="555-12-3458",
                 filing_status=FilingStatus.SINGLE,
             ),
             income=Income(
@@ -313,7 +313,7 @@ class TestEdgeCases:
             taxpayer=TaxpayerInfo(
                 first_name="High",
                 last_name="Earner",
-                ssn="000-00-0003",
+                ssn="555-12-3459",
                 filing_status=FilingStatus.SINGLE,
             ),
             income=Income(
