@@ -131,8 +131,8 @@ async def list_clients(
 
     Supports filtering by status, assignment, priority, and search.
     """
-    # Build conditions
-    conditions = ["u.firm_id = :firm_id"]
+    # Build conditions — prefer direct firm_id, fall back to JOIN through users
+    conditions = ["(c.firm_id = :firm_id OR (c.firm_id IS NULL AND u.firm_id = :firm_id))"]
     params = {"firm_id": firm_id, "limit": limit, "offset": offset}
 
     if status_filter:
@@ -165,7 +165,7 @@ async def list_clients(
                (SELECT COUNT(*) FROM returns r WHERE r.client_id = c.client_id) as returns_count,
                c.last_activity_at, c.created_at
         FROM clients c
-        JOIN users u ON c.preparer_id = u.user_id
+        LEFT JOIN users u ON c.preparer_id = u.user_id
         LEFT JOIN users p ON c.preparer_id = p.user_id
         WHERE {where_clause}
         ORDER BY c.{sort_by} {sort_dir}
@@ -219,9 +219,10 @@ async def get_client(
                (SELECT COUNT(*) FROM returns r WHERE r.client_id = c.client_id) as returns_count,
                (SELECT COALESCE(SUM(fee_amount), 0) FROM returns r WHERE r.client_id = c.client_id) as total_revenue
         FROM clients c
-        JOIN users u ON c.preparer_id = u.user_id
+        LEFT JOIN users u ON c.preparer_id = u.user_id
         LEFT JOIN users p ON c.preparer_id = p.user_id
-        WHERE c.client_id = :client_id AND u.firm_id = :firm_id
+        WHERE c.client_id = :client_id
+          AND (c.firm_id = :firm_id OR (c.firm_id IS NULL AND u.firm_id = :firm_id))
     """)
 
     result = await session.execute(query, {"client_id": client_id, "firm_id": firm_id})
@@ -410,8 +411,9 @@ async def reassign_client(
         SELECT c.preparer_id, p.first_name || ' ' || p.last_name as old_name
         FROM clients c
         LEFT JOIN users p ON c.preparer_id = p.user_id
-        JOIN users u ON c.preparer_id = u.user_id
-        WHERE c.client_id = :client_id AND u.firm_id = :firm_id
+        LEFT JOIN users u ON c.preparer_id = u.user_id
+        WHERE c.client_id = :client_id
+          AND (c.firm_id = :firm_id OR (c.firm_id IS NULL AND u.firm_id = :firm_id))
     """)
     client_result = await session.execute(client_query, {"client_id": client_id, "firm_id": firm_id})
     client_row = client_result.fetchone()
@@ -503,8 +505,8 @@ async def get_assignment_summary(
     # Get total clients count
     total_query = text("""
         SELECT COUNT(*) FROM clients c
-        JOIN users u ON c.preparer_id = u.user_id
-        WHERE u.firm_id = :firm_id
+        LEFT JOIN users u ON c.preparer_id = u.user_id
+        WHERE (c.firm_id = :firm_id OR (c.firm_id IS NULL AND u.firm_id = :firm_id))
     """)
     total_result = await session.execute(total_query, {"firm_id": firm_id})
     total_clients = total_result.fetchone()[0] or 0
@@ -574,8 +576,9 @@ async def update_client_status(
     # Verify client belongs to firm
     check_query = text("""
         SELECT c.client_id FROM clients c
-        JOIN users u ON c.preparer_id = u.user_id
-        WHERE c.client_id = :client_id AND u.firm_id = :firm_id
+        LEFT JOIN users u ON c.preparer_id = u.user_id
+        WHERE c.client_id = :client_id
+          AND (c.firm_id = :firm_id OR (c.firm_id IS NULL AND u.firm_id = :firm_id))
     """)
     check_result = await session.execute(check_query, {"client_id": client_id, "firm_id": firm_id})
     if not check_result.fetchone():
@@ -631,8 +634,11 @@ async def bulk_update_status(
         update_query = text("""
             UPDATE clients SET status = :status, updated_at = :updated_at
             WHERE client_id = :client_id
-            AND EXISTS (
-                SELECT 1 FROM users u WHERE u.user_id = clients.preparer_id AND u.firm_id = :firm_id
+            AND (
+                clients.firm_id = :firm_id
+                OR (clients.firm_id IS NULL AND EXISTS (
+                    SELECT 1 FROM users u WHERE u.user_id = clients.preparer_id AND u.firm_id = :firm_id
+                ))
             )
         """)
         result = await session.execute(update_query, {
@@ -676,8 +682,9 @@ async def update_client_priority(
     # Verify client belongs to firm
     check_query = text("""
         SELECT c.client_id FROM clients c
-        JOIN users u ON c.preparer_id = u.user_id
-        WHERE c.client_id = :client_id AND u.firm_id = :firm_id
+        LEFT JOIN users u ON c.preparer_id = u.user_id
+        WHERE c.client_id = :client_id
+          AND (c.firm_id = :firm_id OR (c.firm_id IS NULL AND u.firm_id = :firm_id))
     """)
     check_result = await session.execute(check_query, {"client_id": client_id, "firm_id": firm_id})
     if not check_result.fetchone():
@@ -723,8 +730,8 @@ async def get_client_metrics(
     status_query = text("""
         SELECT c.status, COUNT(*) as count
         FROM clients c
-        JOIN users u ON c.preparer_id = u.user_id
-        WHERE u.firm_id = :firm_id
+        LEFT JOIN users u ON c.preparer_id = u.user_id
+        WHERE (c.firm_id = :firm_id OR (c.firm_id IS NULL AND u.firm_id = :firm_id))
         GROUP BY c.status
     """)
     status_result = await session.execute(status_query, {"firm_id": firm_id})
@@ -742,8 +749,8 @@ async def get_client_metrics(
     priority_query = text("""
         SELECT c.priority, COUNT(*) as count
         FROM clients c
-        JOIN users u ON c.preparer_id = u.user_id
-        WHERE u.firm_id = :firm_id
+        LEFT JOIN users u ON c.preparer_id = u.user_id
+        WHERE (c.firm_id = :firm_id OR (c.firm_id IS NULL AND u.firm_id = :firm_id))
         GROUP BY c.priority
     """)
     priority_result = await session.execute(priority_query, {"firm_id": firm_id})
@@ -757,10 +764,11 @@ async def get_client_metrics(
     # Get growth metrics
     growth_query = text("""
         SELECT
-            (SELECT COUNT(*) FROM clients c JOIN users u ON c.preparer_id = u.user_id
-             WHERE u.firm_id = :firm_id AND c.created_at >= DATE_TRUNC('month', NOW())) as this_month,
-            (SELECT COUNT(*) FROM clients c JOIN users u ON c.preparer_id = u.user_id
-             WHERE u.firm_id = :firm_id
+            (SELECT COUNT(*) FROM clients c LEFT JOIN users u ON c.preparer_id = u.user_id
+             WHERE (c.firm_id = :firm_id OR (c.firm_id IS NULL AND u.firm_id = :firm_id))
+             AND c.created_at >= DATE_TRUNC('month', NOW())) as this_month,
+            (SELECT COUNT(*) FROM clients c LEFT JOIN users u ON c.preparer_id = u.user_id
+             WHERE (c.firm_id = :firm_id OR (c.firm_id IS NULL AND u.firm_id = :firm_id))
              AND c.created_at >= DATE_TRUNC('month', NOW() - INTERVAL '1 month')
              AND c.created_at < DATE_TRUNC('month', NOW())) as last_month
     """)
@@ -774,8 +782,8 @@ async def get_client_metrics(
     # Get churn metrics
     churn_query = text("""
         SELECT COUNT(*) FROM clients c
-        JOIN users u ON c.preparer_id = u.user_id
-        WHERE u.firm_id = :firm_id
+        LEFT JOIN users u ON c.preparer_id = u.user_id
+        WHERE (c.firm_id = :firm_id OR (c.firm_id IS NULL AND u.firm_id = :firm_id))
         AND c.status = 'churned'
         AND c.updated_at >= DATE_TRUNC('quarter', NOW())
     """)
@@ -833,8 +841,8 @@ async def get_client_revenue_summary(
                COALESCE(SUM(r.fee_amount), 0) as revenue
         FROM clients c
         JOIN returns r ON c.client_id = r.client_id
-        JOIN users u ON c.preparer_id = u.user_id
-        WHERE u.firm_id = :firm_id
+        LEFT JOIN users u ON c.preparer_id = u.user_id
+        WHERE (c.firm_id = :firm_id OR (c.firm_id IS NULL AND u.firm_id = :firm_id))
         AND r.created_at >= NOW() - INTERVAL '{interval}'
         GROUP BY c.client_id, c.first_name, c.last_name
         ORDER BY revenue DESC
@@ -872,8 +880,9 @@ async def get_client_revenue_summary(
     client_count_query = text("""
         SELECT COUNT(DISTINCT c.client_id)
         FROM clients c
-        JOIN users u ON c.preparer_id = u.user_id
-        WHERE u.firm_id = :firm_id AND c.status = 'active'
+        LEFT JOIN users u ON c.preparer_id = u.user_id
+        WHERE (c.firm_id = :firm_id OR (c.firm_id IS NULL AND u.firm_id = :firm_id))
+        AND c.status = 'active'
     """)
     client_count_result = await session.execute(client_count_query, {"firm_id": firm_id})
     client_count = client_count_result.fetchone()[0] or 0
@@ -912,8 +921,8 @@ async def search_clients(
                    ELSE 'name'
                END as match_field
         FROM clients c
-        JOIN users u ON c.preparer_id = u.user_id
-        WHERE u.firm_id = :firm_id
+        LEFT JOIN users u ON c.preparer_id = u.user_id
+        WHERE (c.firm_id = :firm_id OR (c.firm_id IS NULL AND u.firm_id = :firm_id))
         AND (
             c.first_name ILIKE :search
             OR c.last_name ILIKE :search
@@ -969,8 +978,8 @@ async def export_clients(
     # Get client count
     count_query = text("""
         SELECT COUNT(*) FROM clients c
-        JOIN users u ON c.preparer_id = u.user_id
-        WHERE u.firm_id = :firm_id
+        LEFT JOIN users u ON c.preparer_id = u.user_id
+        WHERE (c.firm_id = :firm_id OR (c.firm_id IS NULL AND u.firm_id = :firm_id))
     """)
     count_result = await session.execute(count_query, {"firm_id": firm_id})
     client_count = count_result.fetchone()[0] or 0
@@ -1013,8 +1022,8 @@ async def export_clients(
     cols_sql = ", ".join(f"c.{col}" for col in columns if col != "ssn_last4" and col != "address")
     export_query = text(f"""
         SELECT {cols_sql} FROM clients c
-        JOIN users u ON c.preparer_id = u.user_id
-        WHERE u.firm_id = :firm_id
+        LEFT JOIN users u ON c.preparer_id = u.user_id
+        WHERE (c.firm_id = :firm_id OR (c.firm_id IS NULL AND u.firm_id = :firm_id))
         ORDER BY c.last_name, c.first_name
     """)
     export_result = await session.execute(export_query, {"firm_id": firm_id})
@@ -1057,8 +1066,9 @@ async def list_client_tags(
         FROM (
             SELECT jsonb_array_elements_text(c.tags) as tag
             FROM clients c
-            JOIN users u ON c.preparer_id = u.user_id
-            WHERE u.firm_id = :firm_id AND c.tags IS NOT NULL
+            LEFT JOIN users u ON c.preparer_id = u.user_id
+            WHERE (c.firm_id = :firm_id OR (c.firm_id IS NULL AND u.firm_id = :firm_id))
+            AND c.tags IS NOT NULL
         ) as tag_data
         GROUP BY tag
         ORDER BY count DESC
@@ -1090,8 +1100,9 @@ async def update_client_tags(
     # Verify client belongs to firm
     check_query = text("""
         SELECT c.client_id FROM clients c
-        JOIN users u ON c.preparer_id = u.user_id
-        WHERE c.client_id = :client_id AND u.firm_id = :firm_id
+        LEFT JOIN users u ON c.preparer_id = u.user_id
+        WHERE c.client_id = :client_id
+          AND (c.firm_id = :firm_id OR (c.firm_id IS NULL AND u.firm_id = :firm_id))
     """)
     check_result = await session.execute(check_query, {"client_id": client_id, "firm_id": firm_id})
     if not check_result.fetchone():

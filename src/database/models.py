@@ -1328,6 +1328,9 @@ class ClientRecord(Base):
     # Foreign Key to Preparer
     preparer_id = Column(UUID(as_uuid=True), ForeignKey("preparers.preparer_id"), nullable=False, index=True)
 
+    # Foreign Key to Firm (direct link for firm-scoped queries)
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="SET NULL"), nullable=True, index=True)
+
     # External ID (CPA's own numbering)
     external_id = Column(String(100), nullable=True, index=True)
 
