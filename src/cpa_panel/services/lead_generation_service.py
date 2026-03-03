@@ -27,6 +27,13 @@ from .smart_onboarding_service import (
     InstantAnalysis,
 )
 
+try:
+    from src.database.models import ClientRecord
+    from src.database.connection import get_db_session
+    _HAS_DB = True
+except ImportError:
+    _HAS_DB = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -354,9 +361,14 @@ class LeadGenerationService:
         self,
         lead_id: str,
         cpa_id: str,
+        firm_id: Optional[str] = None,
     ) -> tuple[ProspectLead, str]:
         """
         Convert a qualified lead to a client.
+
+        Creates a ClientRecord in the database and updates the lead status.
+        If the database is unavailable, the lead conversion still completes
+        (graceful degradation).
 
         Returns the updated lead and the new client ID.
         """
@@ -367,8 +379,33 @@ class LeadGenerationService:
         if not lead.email:
             raise ValueError("Lead must have contact info to convert")
 
-        # Create client (would integrate with actual client service)
-        client_id = str(uuid.uuid4())
+        client_uuid = uuid.uuid4()
+        client_id = str(client_uuid)
+
+        # Split lead name into first/last
+        name_parts = (lead.name or "").strip().split(None, 1)
+        first_name = name_parts[0] if name_parts else "Unknown"
+        last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+        # Persist ClientRecord to the database
+        if _HAS_DB:
+            try:
+                with get_db_session() as session:
+                    client_record = ClientRecord(
+                        client_id=client_uuid,
+                        preparer_id=uuid.UUID(cpa_id),
+                        firm_id=uuid.UUID(firm_id) if firm_id else None,
+                        first_name=first_name,
+                        last_name=last_name,
+                        email=lead.email,
+                        phone=lead.phone,
+                    )
+                    session.add(client_record)
+                logger.info(f"Created ClientRecord {client_id} in database")
+            except Exception as exc:
+                logger.error(f"Failed to persist ClientRecord for lead {lead_id}: {exc}")
+        else:
+            logger.warning("Database module unavailable; skipping ClientRecord persistence")
 
         lead.status = LeadStatus.CONVERTED
         lead.converted_client_id = client_id
