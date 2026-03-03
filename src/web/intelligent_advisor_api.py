@@ -41,6 +41,9 @@ except ImportError:
 AI_CHAT_ENABLED = os.environ.get("AI_CHAT_ENABLED", "true").lower() == "true"
 AI_REPORT_NARRATIVES_ENABLED = os.environ.get("AI_REPORT_NARRATIVES_ENABLED", "true").lower() == "true"
 AI_SAFETY_CHECKS_ENABLED = os.environ.get("AI_SAFETY_CHECKS_ENABLED", "true").lower() == "true"
+AI_OPPORTUNITIES_ENABLED = os.environ.get("AI_OPPORTUNITIES_ENABLED", "true").lower() == "true"
+AI_RECOMMENDATIONS_ENABLED = os.environ.get("AI_RECOMMENDATIONS_ENABLED", "true").lower() == "true"
+AI_ENTITY_EXTRACTION_ENABLED = os.environ.get("AI_ENTITY_EXTRACTION_ENABLED", "true").lower() == "true"
 
 # ---------------------------------------------------------------------------
 # Re-export from decomposed sub-modules (backward compatibility)
@@ -55,12 +58,112 @@ from web.advisor.parsers import (  # noqa: F401
     EnhancedParser, ConversationContext, detect_user_intent,
 )
 
+# --- AI/ML Integration ---
+from services.ai.unified_ai_service import get_ai_service
+from services.tax_opportunity_detector import TaxOpportunityDetector, TaxpayerProfile
+from web.recommendation.orchestrator import get_recommendations
+from agent.intelligent_tax_agent import IntelligentTaxAgent
+from ml.document_classifier import DocumentClassifier
+from recommendation.ai_enhancer import get_ai_enhancer
+
 # Liability disclaimer constant
 STANDARD_DISCLAIMER = (
     "This is AI-generated information for educational purposes only, "
     "not professional tax advice. Consult a licensed CPA or EA for "
     "your specific situation."
 )
+
+
+def _session_profile_to_taxpayer_profile(profile: dict) -> TaxpayerProfile:
+    """Convert session profile dict to TaxpayerProfile for opportunity detection."""
+    from decimal import Decimal
+
+    def dec(key, default=0):
+        val = profile.get(key, default)
+        try:
+            return Decimal(str(val)) if val else Decimal(str(default))
+        except Exception:
+            return Decimal(str(default))
+
+    return TaxpayerProfile(
+        filing_status=profile.get("filing_status", "single"),
+        age=int(profile.get("age", 30) or 30),
+        w2_wages=dec("w2_income") + dec("total_income"),
+        self_employment_income=dec("self_employment_income"),
+        business_income=dec("business_income"),
+        traditional_401k=dec("retirement_401k") + dec("retirement_contributions"),
+        roth_401k=dec("roth_401k"),
+        traditional_ira=dec("retirement_ira") + dec("traditional_ira"),
+        roth_ira=dec("roth_ira"),
+        hsa_contribution=dec("hsa_contributions") + dec("hsa_contribution"),
+        mortgage_interest=dec("mortgage_interest"),
+        property_taxes=dec("property_taxes"),
+        charitable_contributions=dec("charitable_donations") + dec("charitable_giving"),
+        state_local_taxes=dec("state_income_tax") + dec("state_local_taxes"),
+        medical_expenses=dec("medical_expenses"),
+        student_loan_interest=dec("student_loan_interest"),
+        num_dependents=int(profile.get("dependents", 0) or 0),
+        has_children_under_17=int(profile.get("dependents", 0) or 0) > 0,
+        had_baby="dependents" in profile and int(profile.get("dependents", 0) or 0) > 0,
+        started_business=profile.get("income_type") in ("self_employed", "business_owner")
+        or profile.get("is_self_employed", False),
+        has_business=profile.get("is_self_employed", False) or bool(profile.get("business_income")),
+        business_net_income=dec("business_income"),
+        owns_home=bool(profile.get("mortgage_interest")),
+        capital_gains=dec("capital_gains_long") + dec("capital_gains_short"),
+        dividend_income=dec("dividend_income") + dec("qualified_dividends"),
+        interest_income=dec("interest_income"),
+        rental_income=dec("rental_income"),
+        education_expenses=dec("education_expenses"),
+    )
+
+
+def _session_profile_to_rec_dict(profile: dict) -> dict:
+    """Convert session profile to recommendation orchestrator input format."""
+    income = float(profile.get("total_income", 0) or 0)
+    return {
+        "filing_status": profile.get("filing_status", "single"),
+        "agi": income,
+        "total_income": income,
+        "has_dependents": int(profile.get("dependents", 0) or 0) > 0,
+        "is_self_employed": profile.get("income_type") in ("self_employed", "business_owner")
+        or profile.get("is_self_employed", False),
+        "w2_wages": float(profile.get("w2_income", 0) or 0),
+        "self_employment_income": float(profile.get("self_employment_income", 0) or 0),
+        "retirement_contributions": float(profile.get("retirement_401k", 0) or 0),
+        "mortgage_interest": float(profile.get("mortgage_interest", 0) or 0),
+        "charitable_contributions": float(profile.get("charitable_donations", 0) or 0),
+        "state": profile.get("state", ""),
+        "age": int(profile.get("age", 30) or 30),
+        "dependents": int(profile.get("dependents", 0) or 0),
+    }
+
+
+def _income_range_label(income: float) -> str:
+    """Return human-readable income range label."""
+    if income < 50000:
+        return "under $50k"
+    if income < 100000:
+        return "$50k-$100k"
+    if income < 200000:
+        return "$100k-$200k"
+    if income < 500000:
+        return "$200k-$500k"
+    return "over $500k"
+
+
+def _get_expected_fields_for_type(doc_type: str) -> list:
+    """Return expected fields for a document type to guide extraction."""
+    field_map = {
+        "w2": ["wages", "federal_withheld", "state_withheld", "social_security_wages", "employer_ein"],
+        "1099-nec": ["nonemployee_compensation", "payer_tin"],
+        "1099-int": ["interest_income", "tax_exempt_interest"],
+        "1099-div": ["ordinary_dividends", "qualified_dividends", "capital_gain_distributions"],
+        "1099-b": ["proceeds", "cost_basis", "gain_loss"],
+        "k1": ["ordinary_income", "rental_income", "interest_income", "dividends", "capital_gains"],
+        "1098": ["mortgage_interest", "points_paid", "property_taxes"],
+    }
+    return field_map.get(doc_type.lower(), [])
 
 
 def should_require_professional_review(profile: dict) -> bool:
