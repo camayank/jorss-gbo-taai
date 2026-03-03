@@ -44,6 +44,7 @@ AI_SAFETY_CHECKS_ENABLED = os.environ.get("AI_SAFETY_CHECKS_ENABLED", "true").lo
 AI_OPPORTUNITIES_ENABLED = os.environ.get("AI_OPPORTUNITIES_ENABLED", "true").lower() == "true"
 AI_RECOMMENDATIONS_ENABLED = os.environ.get("AI_RECOMMENDATIONS_ENABLED", "true").lower() == "true"
 AI_ENTITY_EXTRACTION_ENABLED = os.environ.get("AI_ENTITY_EXTRACTION_ENABLED", "true").lower() == "true"
+AI_ADAPTIVE_QUESTIONS_ENABLED = os.environ.get("AI_ADAPTIVE_QUESTIONS_ENABLED", "true").lower() == "true"
 
 # ---------------------------------------------------------------------------
 # Re-export from decomposed sub-modules (backward compatibility)
@@ -3221,7 +3222,195 @@ def _compute_missing_fields(profile: dict) -> tuple:
     return missing[:5], hint
 
 
-def _get_dynamic_next_question(profile: dict, last_extracted: dict = None) -> tuple:
+def _score_next_questions(profile: dict, conversation: list = None) -> tuple:
+    """Score Phase 2 questions by relevance to user's situation. Returns (question, actions) or (None, None)."""
+    total_income = float(profile.get("total_income", 0) or 0)
+    is_se = profile.get("is_self_employed") or profile.get("income_type") in ("self_employed", "business_owner")
+
+    # Conversation context keywords for boosting
+    context_text = ""
+    if conversation:
+        context_text = " ".join(m.get("content", "") for m in conversation[-5:] if m.get("role") == "user").lower()
+
+    # Each candidate: (score, question_text, quick_actions)
+    candidates = []
+
+    # Business deep-dive (high priority if self-employed)
+    if is_se and not profile.get("business_income") and not profile.get("_asked_business"):
+        score = 80
+        if any(kw in context_text for kw in ["freelance", "1099", "side", "business", "contractor", "gig"]):
+            score += 30
+        candidates.append((score,
+            "What's your approximate net business income (after expenses)?",
+            [
+                {"label": "Under $50K", "value": "biz_under_50k"},
+                {"label": "$50K - $100K", "value": "biz_50_100k"},
+                {"label": "$100K - $200K", "value": "biz_100_200k"},
+                {"label": "Over $200K", "value": "biz_over_200k"},
+                {"label": "Skip", "value": "skip_business"}
+            ]
+        ))
+
+    # Home office (if self-employed and business income known)
+    if is_se and profile.get("business_income") and not profile.get("home_office_sqft") and not profile.get("_asked_home_office"):
+        score = 70
+        if any(kw in context_text for kw in ["home", "remote", "office", "wfh"]):
+            score += 25
+        candidates.append((score,
+            "Do you use part of your home exclusively for business? If so, approximately how many square feet?",
+            [
+                {"label": "Yes, I have a home office", "value": "has_home_office"},
+                {"label": "No home office", "value": "no_home_office"},
+                {"label": "Skip", "value": "skip_home_office"}
+            ]
+        ))
+
+    # Retirement (universally valuable)
+    if not profile.get("retirement_401k") and not profile.get("retirement_ira") and not profile.get("_asked_retirement"):
+        score = 60
+        if total_income > 100000:
+            score += 15
+        if any(kw in context_text for kw in ["401k", "ira", "retire", "saving", "roth"]):
+            score += 25
+        candidates.append((score,
+            "Are you contributing to any retirement accounts? This can significantly reduce your taxes.",
+            [
+                {"label": "401(k) / 403(b)", "value": "has_401k"},
+                {"label": "IRA (Traditional or Roth)", "value": "has_ira"},
+                {"label": "Both 401(k) and IRA", "value": "has_both_retirement"},
+                {"label": "No retirement contributions", "value": "no_retirement"},
+                {"label": "Skip", "value": "skip_retirement"}
+            ]
+        ))
+
+    # Investments (high income = more relevant)
+    if not profile.get("investment_income") and not profile.get("capital_gains_long") and not profile.get("_asked_investments"):
+        score = 40
+        if total_income > 200000:
+            score += 25  # NIIT threshold
+        if any(kw in context_text for kw in ["stock", "invest", "crypto", "dividend", "capital", "trading"]):
+            score += 30
+        candidates.append((score,
+            "Do you have any investment income? This includes stock sales, dividends, interest, or cryptocurrency.",
+            [
+                {"label": "Yes, I have investments", "value": "has_investments"},
+                {"label": "No investment income", "value": "no_investments"},
+                {"label": "Skip", "value": "skip_investments"}
+            ]
+        ))
+
+    # Deductions (mortgage, charitable)
+    if not profile.get("mortgage_interest") and not profile.get("_asked_deductions"):
+        score = 50
+        if total_income > 100000:
+            score += 10
+        if any(kw in context_text for kw in ["mortgage", "house", "home", "bought", "deduct", "charit", "donat"]):
+            score += 25
+        candidates.append((score,
+            "Let's check your deductions. Do you have any of these? Select all that apply.",
+            [
+                {"label": "Mortgage interest", "value": "has_mortgage"},
+                {"label": "Charitable donations", "value": "has_charitable"},
+                {"label": "High medical expenses", "value": "has_medical"},
+                {"label": "None of these / Standard deduction", "value": "no_itemized_deductions"},
+                {"label": "Skip", "value": "skip_deductions"}
+            ]
+        ))
+
+    # HSA
+    if not profile.get("hsa_contributions") and not profile.get("_asked_hsa"):
+        if profile.get("retirement_401k") or profile.get("retirement_ira"):
+            score = 45
+            if any(kw in context_text for kw in ["hsa", "health", "medical", "insurance"]):
+                score += 25
+            candidates.append((score,
+                "Do you have a Health Savings Account (HSA)? Contributions are triple tax-advantaged.",
+                [
+                    {"label": "Yes, I have an HSA", "value": "has_hsa"},
+                    {"label": "No HSA", "value": "no_hsa"},
+                    {"label": "Skip", "value": "skip_hsa"}
+                ]
+            ))
+
+    # Age
+    if not profile.get("age") and not profile.get("_asked_age"):
+        score = 35
+        if any(kw in context_text for kw in ["retire", "senior", "65", "older", "age"]):
+            score += 25
+        candidates.append((score,
+            "What is your age? This helps determine your standard deduction and eligibility for certain credits.",
+            [
+                {"label": "Under 50", "value": "age_under_50"},
+                {"label": "50-64", "value": "age_50_64"},
+                {"label": "65 or older", "value": "age_65_plus"},
+                {"label": "Skip", "value": "skip_age"}
+            ]
+        ))
+
+    # K-1 income
+    if not profile.get("k1_ordinary_income") and not profile.get("_asked_k1"):
+        score = 25
+        if any(kw in context_text for kw in ["k-1", "k1", "partner", "s-corp", "trust"]):
+            score += 35
+        candidates.append((score,
+            "Do you receive any K-1 income from partnerships, S-corporations, or trusts?",
+            [
+                {"label": "Yes, I have K-1 income", "value": "has_k1_income"},
+                {"label": "No K-1 income", "value": "no_k1_income"},
+                {"label": "Skip", "value": "skip_k1"}
+            ]
+        ))
+
+    # Rental income
+    if not profile.get("rental_income") and not profile.get("_asked_rental"):
+        score = 30
+        if any(kw in context_text for kw in ["rent", "landlord", "property", "tenant"]):
+            score += 30
+        candidates.append((score,
+            "Do you own any rental properties?",
+            [
+                {"label": "Yes, I have rental income", "value": "has_rental"},
+                {"label": "No rental properties", "value": "no_rental"},
+                {"label": "Skip", "value": "skip_rental"}
+            ]
+        ))
+
+    # Student loans
+    if not profile.get("student_loan_interest") and not profile.get("_asked_student_loans"):
+        if total_income < 180000:
+            score = 20
+            if any(kw in context_text for kw in ["student", "loan", "college", "university"]):
+                score += 30
+            candidates.append((score,
+                "Did you pay any student loan interest this year? (Up to $2,500 may be deductible)",
+                [
+                    {"label": "Yes", "value": "has_student_loans"},
+                    {"label": "No student loans", "value": "no_student_loans"},
+                    {"label": "Skip", "value": "skip_student_loans"}
+                ]
+            ))
+
+    # Estimated payments
+    if total_income > 100000 and not profile.get("estimated_payments") and not profile.get("_asked_estimated"):
+        score = 30
+        if any(kw in context_text for kw in ["estimated", "quarterly", "payment"]):
+            score += 25
+        candidates.append((score,
+            "Have you made any estimated tax payments for this year?",
+            [
+                {"label": "Yes", "value": "has_estimated_payments"},
+                {"label": "No", "value": "no_estimated_payments"},
+                {"label": "Skip", "value": "skip_estimated"}
+            ]
+        ))
+
+    if not candidates:
+        return (None, None)
+    candidates.sort(key=lambda x: -x[0])
+    return (candidates[0][1], candidates[0][2])
+
+
+def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, session: dict = None) -> tuple:
     """
     Dynamically determine the next question based on what's missing.
     Returns (question_text, quick_actions)
@@ -3297,6 +3486,14 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None) -> tu
     # If user has already opted to skip deep dive, go straight to calculation
     if profile.get("_skip_deep_dive"):
         return (None, None)
+
+    # AI-driven adaptive question ordering (scores all Phase 2 questions by relevance)
+    if AI_ADAPTIVE_QUESTIONS_ENABLED:
+        conversation = session.get("conversation", []) if isinstance(session, dict) else []
+        scored_result = _score_next_questions(profile, conversation)
+        if scored_result[0]:
+            return scored_result
+    # Fall through to existing rigid ordering as fallback
 
     total_income = profile.get("total_income", 0) or 0
 
@@ -4044,7 +4241,7 @@ To get started, what's your filing status?"""
             await chat_engine.create_checkpoint(request.session_id, msg_original, real_fields)
 
         # Acknowledge and move to next question
-        next_q, next_actions = _get_dynamic_next_question(profile)
+        next_q, next_actions = _get_dynamic_next_question(profile, session=session)
 
         if next_q:
             # Build a brief acknowledgment based on what was just set
@@ -4345,7 +4542,7 @@ To get started, what's your filing status?"""
 
     # Check if there are still deep-dive questions to ask before calculating
     has_basics = profile.get("total_income") and profile.get("filing_status") and profile.get("state")
-    next_deep_q, next_deep_actions = _get_dynamic_next_question(profile)
+    next_deep_q, next_deep_actions = _get_dynamic_next_question(profile, session=session)
 
     # If basics are done but deep-dive questions remain, ask them first
     if has_basics and next_deep_q:
@@ -4591,7 +4788,7 @@ To get started, what's your filing status?"""
 
     else:
         # Need more information - use dynamic question system
-        next_q, next_actions = _get_dynamic_next_question(profile)
+        next_q, next_actions = _get_dynamic_next_question(profile, session=session)
 
         if next_q:
             response_text = correction_prefix + next_q
