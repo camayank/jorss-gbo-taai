@@ -233,6 +233,7 @@ class ChatResponse(BaseModel):
     # Progress transparency
     missing_fields: Optional[List[str]] = []
     completion_hint: Optional[str] = None
+    estimated_savings_preview: Optional[float] = None
 
     # Tiered conversion fields
     premium_unlocked: bool = False

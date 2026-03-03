@@ -1498,7 +1498,21 @@
 
         if (amount > 0) {
           this.displayElement.style.display = 'block';
+          // Reset label from "Estimated" to "Potential" when real savings arrive
+          var label = this.displayElement.querySelector('.live-savings-label');
+          if (label) label.textContent = 'Potential Savings';
           this.animateToAmount(amount);
+        }
+      },
+
+      updatePreview(amount) {
+        if (!this.displayElement) this.init();
+        if (amount > 0) {
+          this.displayElement.style.display = 'block';
+          var label = this.displayElement.querySelector('.live-savings-label');
+          if (label) label.textContent = 'Estimated Savings';
+          var amountEl = document.getElementById('liveSavingsAmount');
+          if (amountEl) amountEl.textContent = '~$' + amount.toLocaleString() + '+';
         }
       },
 
@@ -7381,6 +7395,11 @@
 
         // Update savings estimate based on new data
         updateSavingsEstimate();
+
+        // Show progressive savings preview during profile gathering
+        if (data.estimated_savings_preview && data.estimated_savings_preview > 0 && !data.total_potential_savings) {
+          LiveSavingsDisplay.updatePreview(data.estimated_savings_preview);
+        }
 
         // Update live savings display (prefer AI-detected savings when available)
         const displaySavings = data.detected_savings || data.total_potential_savings;

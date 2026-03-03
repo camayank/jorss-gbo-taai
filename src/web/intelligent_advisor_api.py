@@ -1114,6 +1114,39 @@ class IntelligentChatEngine:
 
         return min(1.0, core_score + financial_score + detail_score)
 
+    def estimate_partial_savings(self, profile: Dict[str, Any]) -> Optional[float]:
+        """Estimate potential savings from partial profile. Returns None if insufficient data."""
+        income = float(profile.get("total_income", 0) or 0)
+        status = profile.get("filing_status")
+        if not income or not status:
+            return None
+
+        # Estimate marginal rate from 2025 brackets
+        if status == "married_joint":
+            brackets = [(23200, .10), (94300, .12), (201050, .22), (383900, .24), (487450, .32), (731200, .35)]
+        else:
+            brackets = [(11600, .10), (47150, .12), (100525, .22), (191950, .24), (243725, .32), (609350, .35)]
+        rate = 0.22  # default
+        for top, r in brackets:
+            if income <= top:
+                rate = r
+                break
+
+        est = 0.0
+        # Retirement gap
+        current_401k = float(profile.get("retirement_401k", 0) or 0)
+        max_401k = 23500 + (7500 if int(profile.get("age", 0) or 0) >= 50 else 0)
+        gap = max(0, max_401k - current_401k)
+        if gap > 0:
+            est += gap * rate
+
+        # HSA gap (if not provided)
+        if not profile.get("hsa_contributions") and not profile.get("_asked_hsa"):
+            hsa_max = 8300 if status == "married_joint" else 4150
+            est += hsa_max * rate * 0.3  # Conservative 30% estimate
+
+        return round(est) if est > 200 else None
+
     def calculate_lead_score(self, profile: Dict[str, Any]) -> int:
         """Calculate lead quality score for CPA handoff."""
         score = 0
@@ -4879,6 +4912,7 @@ To get started, what's your filing status?"""
             new_opportunities=session.get("opportunity_alerts", []),
             missing_fields=missing_fields,
             completion_hint=completion_hint,
+            estimated_savings_preview=chat_engine.estimate_partial_savings(profile) if response_type != "calculation" else None,
             safety_summary=_build_safety_summary(safety_data),
             safety_checks=safety_data,
         )
