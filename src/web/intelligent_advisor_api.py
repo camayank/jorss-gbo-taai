@@ -2553,7 +2553,36 @@ Estimated tax savings: **${savings:,.0f}**""",
             except Exception as e:
                 logger.warning(f"Recommendation orchestrator failed: {e}")
 
-        # Sort: AI-detected first (higher confidence), then by estimated savings
+        # --- AI ENHANCEMENT: Personalized explanations ---
+        if AI_RECOMMENDATIONS_ENABLED:
+            try:
+                enhancer = get_ai_enhancer()
+                if enhancer.is_available:
+                    from recommendation.recommendation_engine import TaxSavingOpportunity
+                    for strategy in strategies[:5]:
+                        try:
+                            opp = TaxSavingOpportunity(
+                                category=strategy.category,
+                                title=strategy.title,
+                                estimated_savings=strategy.estimated_savings,
+                                priority=strategy.priority,
+                                description=strategy.summary,
+                                action_required=strategy.action_steps[0] if strategy.action_steps else "",
+                                confidence=80.0 if strategy.confidence == "high" else 60.0 if strategy.confidence == "medium" else 40.0,
+                                irs_reference=strategy.irs_reference or "",
+                            )
+                            explanation = enhancer.explain_in_plain_language(
+                                opportunity=opp,
+                                education_level="general",
+                            )
+                            if explanation:
+                                strategy.personalized_explanation = explanation
+                        except Exception:
+                            pass  # Individual enhancement failure is non-critical
+            except Exception as e:
+                logger.warning(f"AI enhancement failed: {e}")
+
+        # Sort by estimated savings (highest first)
         strategies.sort(key=lambda x: (-x.estimated_savings,))
 
         return strategies

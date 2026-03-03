@@ -128,6 +128,8 @@ class StrategyRecommendation(BaseModel):
     action_steps: List[str]
     irs_reference: Optional[str] = None
     deadline: Optional[str] = None
+    # AI-enhanced fields
+    personalized_explanation: Optional[str] = None  # Plain-language explanation from AI enhancer
     # Tiered conversion fields
     tier: Optional[str] = "free"  # "free" or "premium"
     risk_level: Optional[str] = "low"  # "low", "medium", "high"

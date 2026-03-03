@@ -7044,7 +7044,12 @@
       html += '<div class="strategy-content">';
       html += '<div class="strategy-card__summary">' + escapeHtml(strategy.summary || '') + '</div>';
 
-      if (strategy.detailed_explanation) {
+      // Show AI personalized explanation if available, otherwise show detailed explanation
+      if (strategy.personalized_explanation) {
+        html += '<div class="strategy-card__personalized" style="background: var(--surface-secondary, #f0f4ff); border-left: 3px solid var(--accent-gold, #d4a843); padding: 8px 12px; margin: 8px 0; border-radius: 4px; font-size: 0.9em;">';
+        html += escapeHtml(strategy.personalized_explanation);
+        html += '</div>';
+      } else if (strategy.detailed_explanation) {
         const truncated = escapeHtml(strategy.detailed_explanation.substring(0, 200)) + (strategy.detailed_explanation.length > 200 ? '...' : '');
         html += '<div class="strategy-card__explanation">' + truncated + '</div>';
       }
