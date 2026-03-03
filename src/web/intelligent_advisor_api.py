@@ -4944,6 +4944,31 @@ async def calculate_taxes(request: FullAnalysisRequest, _session: str = Depends(
         )
 
 
+_DOCUMENT_FIELD_MAP = {
+    "wages": "total_income", "federal_wages": "total_income", "w2_wages": "w2_income",
+    "federal_tax_withheld": "federal_withholding", "state_tax_withheld": "state_income_tax",
+    "employer_state": "state",
+    "nonemployee_compensation": "self_employment_income",
+    "interest_income": "interest_income", "dividend_income": "dividend_income",
+    "qualified_dividends": "qualified_dividends",
+    "mortgage_interest_received": "mortgage_interest", "real_estate_taxes": "property_taxes",
+    "ordinary_income": "k1_ordinary_income",
+}
+
+
+def _map_extracted_to_profile(extracted_fields: dict) -> dict:
+    """Map OCR-extracted document fields to session profile keys."""
+    updates = {}
+    for key, value in extracted_fields.items():
+        profile_key = _DOCUMENT_FIELD_MAP.get(key.lower())
+        if profile_key and value is not None:
+            try:
+                updates[profile_key] = float(str(value).replace(",", "").replace("$", ""))
+            except (ValueError, TypeError):
+                updates[profile_key] = value
+    return updates
+
+
 @router.post("/upload-document")
 async def upload_document(
     file: UploadFile = File(...),
@@ -5030,6 +5055,32 @@ async def upload_document(
             # Process document
             extracted = advisor.process_document(tmp_path, doc_type)
 
+            # Auto-update session profile from extracted document data
+            profile_updates = {}
+            new_strategies_list = []
+            updated_savings = 0
+            try:
+                profile_updates = _map_extracted_to_profile(extracted.extracted_fields)
+                if profile_updates:
+                    session = await chat_engine.get_or_create_session(session_id)
+                    profile = session["profile"]
+                    for k, v in profile_updates.items():
+                        if v is not None and not profile.get(k):  # Don't overwrite existing
+                            profile[k] = v
+                    await chat_engine.update_session(session_id, {"profile": profile})
+
+                    # Re-generate strategies if profile is now rich enough
+                    if profile.get("total_income") and profile.get("filing_status"):
+                        try:
+                            calc = await chat_engine.get_tax_calculation(profile)
+                            strats = await chat_engine.get_tax_strategies(profile, calc)
+                            new_strategies_list = [s.dict() for s in strats[:5]]
+                            updated_savings = sum(s.estimated_savings for s in strats)
+                        except Exception:
+                            pass
+            except Exception as e:
+                logger.warning(f"Auto profile update from document failed: {e}")
+
             return {
                 "success": True,
                 "document_type": extracted.document_type.value,
@@ -5038,6 +5089,9 @@ async def upload_document(
                 "needs_review": extracted.needs_review,
                 "payer_name": extracted.payer_name,
                 "ml_classification": ml_classification if ml_classification else None,
+                "profile_updates": profile_updates,
+                "new_strategies": new_strategies_list,
+                "updated_savings": updated_savings,
                 "message": f"Successfully extracted data from {file.filename}"
             }
         finally:

@@ -1623,12 +1623,21 @@
               showToast('Document captured successfully!', 'success');
 
               // Add message about extracted data
+              // Show profile update feedback from auto-extraction
+              if (result.profile_updates && Object.keys(result.profile_updates).length > 0) {
+                showToast('Profile updated from your document!', 'success');
+                if (result.updated_savings > 0) {
+                  LiveSavingsDisplay.update(result.updated_savings);
+                  showToast('Found $' + Math.round(result.updated_savings).toLocaleString() + ' in potential savings!', 'success');
+                }
+              }
+
               addMessage('ai', `📄 **Document Captured!**\n\nI detected a **${result.document_type || 'tax document'}** and extracted the following:\n\n${
                 Object.entries(result.extracted_fields || {})
                   .slice(0, 5)
                   .map(([key, value]) => `• ${key}: **${value}**`)
                   .join('\n')
-              }\n\nIs this information correct?`, [
+              }${result.profile_updates && Object.keys(result.profile_updates).length > 0 ? '\n\n✅ **Your profile has been updated automatically.**' : ''}\n\nIs this information correct?`, [
                 { label: '✓ Yes, looks good', value: 'document_confirmed' },
                 { label: 'Make corrections', value: 'document_corrections' },
                 { label: 'Capture another', value: 'capture_another' }
