@@ -3597,6 +3597,74 @@ To get started, what's your filing status?"""
             ]
         )
 
+    # =========================================================================
+    # STRATEGY DRILL-DOWN — let users explore individual strategies
+    # =========================================================================
+    strategy_detail_match = re.match(r'strategy_detail_(\w+)', msg_lower)
+    tell_more_match = re.search(
+        r'(?:tell me more|explain|details|more info|drill down|deep dive).*(?:strategy\s*)?(\d+|401k|ira|hsa|deduction|retirement|business|roth|income|charitable)',
+        msg_lower
+    )
+
+    if strategy_detail_match or tell_more_match:
+        strategy_ref = (strategy_detail_match.group(1) if strategy_detail_match
+                        else tell_more_match.group(1).strip())
+        cached = session.get("strategies", [])
+        target = None
+
+        # Match by index (1-based) or by id/title substring
+        if strategy_ref.isdigit():
+            idx = int(strategy_ref) - 1
+            if 0 <= idx < len(cached):
+                target = cached[idx]
+        else:
+            for s in cached:
+                s_dict = s.dict() if hasattr(s, 'dict') else s
+                if strategy_ref in (s_dict.get("id", "") + " " + s_dict.get("title", "")).lower():
+                    target = s
+                    break
+
+        if target:
+            t = target.dict() if hasattr(target, 'dict') else target
+            # Build rich detail response using AI reasoning if available
+            full_detail = t.get("detailed_explanation", t.get("summary", ""))
+            if AI_CHAT_ENABLED:
+                try:
+                    detail_prompt = (
+                        f"Explain in detail for a taxpayer: {t['title']}. "
+                        f"Summary: {t.get('summary', '')}. "
+                        f"Steps: {t.get('action_steps', [])}."
+                    )
+                    ai_detail = await chat_engine._ai_reason_about_tax_question(detail_prompt, session)
+                    if ai_detail:
+                        full_detail = ai_detail
+                except Exception as e:
+                    logger.debug(f"AI drill-down reasoning failed, using fallback: {e}")
+
+            # Include ALL action steps (not truncated)
+            steps_text = "\n".join(f"  {i+1}. {step}" for i, step in enumerate(t.get("action_steps", [])))
+            if steps_text:
+                full_detail += f"\n\n**Action Steps:**\n{steps_text}"
+            if t.get("irs_reference"):
+                full_detail += f"\n\n**IRS Reference:** {t['irs_reference']}"
+            if t.get("estimated_savings"):
+                full_detail += f"\n\n**Estimated Savings:** ${t['estimated_savings']:,.0f}"
+            full_detail += f"\n\n---\n*{STANDARD_DISCLAIMER}*"
+
+            return ChatResponse(
+                session_id=request.session_id,
+                response=full_detail,
+                response_type="strategy_detail",
+                profile_completeness=chat_engine.calculate_profile_completeness(profile),
+                lead_score=chat_engine.calculate_lead_score(profile),
+                complexity=chat_engine.determine_complexity(profile),
+                quick_actions=[
+                    {"label": "Show All Strategies", "value": "show_strategies"},
+                    {"label": "Generate Report", "value": "generate_report"},
+                    {"label": "Ask a Question", "value": "ask_question"},
+                ],
+            )
+
     # Detect user intent
     user_intent = detect_user_intent(request.message or "", profile) if request.message else "provide_info"
 
@@ -4440,6 +4508,14 @@ To get started, what's your filing status?"""
             if profile.get("retirement_401k") or profile.get("retirement_ira") or (profile.get("total_income", 0) or 0) > 100000:
                 deep_actions.append({"label": "Roth Conversion Analysis", "value": "deep_roth_analysis"})
             quick_actions.extend(deep_actions)
+
+        # Add per-strategy drill-down quick actions
+        if strategies:
+            for i, strat in enumerate(strategies[:3]):
+                quick_actions.append({
+                    "label": f"Details: {strat.title[:35]}",
+                    "value": f"strategy_detail_{strat.id}",
+                })
 
         key_insights = [
             f"Your marginal tax rate is {tax_calculation.marginal_rate}%",

@@ -7044,22 +7044,35 @@
       html += '<div class="strategy-content">';
       html += '<div class="strategy-card__summary">' + escapeHtml(strategy.summary || '') + '</div>';
 
-      // Show AI personalized explanation if available, otherwise show detailed explanation
+      // Show AI personalized explanation if available
       if (strategy.personalized_explanation) {
         html += '<div class="strategy-card__personalized" style="background: var(--surface-secondary, #f0f4ff); border-left: 3px solid var(--accent-gold, #d4a843); padding: 8px 12px; margin: 8px 0; border-radius: 4px; font-size: 0.9em;">';
         html += escapeHtml(strategy.personalized_explanation);
         html += '</div>';
-      } else if (strategy.detailed_explanation) {
-        const truncated = escapeHtml(strategy.detailed_explanation.substring(0, 200)) + (strategy.detailed_explanation.length > 200 ? '...' : '');
-        html += '<div class="strategy-card__explanation">' + truncated + '</div>';
       }
 
-      if (strategy.action_steps && strategy.action_steps.length > 0) {
-        html += '<div class="strategy-card__steps"><strong>Next steps:</strong><ul>';
-        strategy.action_steps.slice(0, 3).forEach(function(step) { html += '<li>' + escapeHtml(step) + '</li>'; });
-        html += '</ul></div>';
+      // Expandable full details section
+      if (strategy.detailed_explanation || (strategy.action_steps && strategy.action_steps.length > 0)) {
+        html += '<details class="strategy-card__details" style="margin-top:8px;">';
+        html += '<summary style="cursor:pointer;color:var(--accent-gold,#d4a843);font-size:0.9em;font-weight:600;">View full details</summary>';
+        if (strategy.detailed_explanation) {
+          html += '<div class="strategy-card__explanation" style="margin-top:6px;font-size:0.9em;">' + escapeHtml(strategy.detailed_explanation) + '</div>';
+        }
+        if (strategy.action_steps && strategy.action_steps.length > 0) {
+          html += '<div class="strategy-card__steps" style="margin-top:6px;"><strong>All steps:</strong><ul>';
+          strategy.action_steps.forEach(function(step) { html += '<li>' + escapeHtml(step) + '</li>'; });
+          html += '</ul></div>';
+        }
+        html += '</details>';
       }
       html += '</div>'; // end strategy-content
+
+      // "Tell me more" button for unlocked cards
+      if (!isLocked) {
+        html += '<button class="quick-action strategy-card__drilldown" '
+             + 'onclick="handleQuickAction(\'strategy_detail_' + escapeHtml(String(strategy.id || index)) + '\')"'
+             + ' style="margin-top:8px;font-size:0.85em;">Tell me more</button>';
+      }
 
       // Lock overlay (only on locked cards)
       if (isLocked) {
