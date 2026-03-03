@@ -7346,9 +7346,19 @@
         // Update savings estimate based on new data
         updateSavingsEstimate();
 
-        // Update live savings display
-        if (data.total_potential_savings) {
-          LiveSavingsDisplay.update(data.total_potential_savings);
+        // Update live savings display (prefer AI-detected savings when available)
+        const displaySavings = data.detected_savings || data.total_potential_savings;
+        if (displaySavings) {
+          LiveSavingsDisplay.update(displaySavings);
+        }
+
+        // Show new AI-detected opportunity alerts
+        if (data.new_opportunities && data.new_opportunities.length > 0) {
+          data.new_opportunities.forEach(function(opp) {
+            const alertText = opp.title || opp.summary || 'New savings opportunity detected!';
+            const savingsText = opp.estimated_savings ? ' — Save $' + Number(opp.estimated_savings).toLocaleString() : '';
+            showNotification(alertText + savingsText, 'success');
+          });
         }
 
         // Check for celebration triggers

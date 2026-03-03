@@ -906,6 +906,9 @@ class IntelligentChatEngine:
                 "checkpoints": [],  # List of full checkpoint objects (see below)
                 "current_turn": 0,
                 "corrections_made": 0,
+                # AI savings tracking
+                "detected_savings": 0,  # Running total of AI-detected savings
+                "opportunity_alerts": [],  # New opportunities to surface to user
                 # Checkpoint structure:
                 # {
                 #   "turn": N,
@@ -4296,11 +4299,15 @@ To get started, what's your filing status?"""
         if premium_count == 0:
             premium_unlocked = True  # Nothing to unlock
 
-        # Update session with calculations and strategies, and persist to database
+        # Update running savings total
+        total_detected_savings = sum(s.estimated_savings for s in strategies)
+
+        # Update session with calculations, strategies, and savings tracking
         await chat_engine.update_session(request.session_id, {
             "calculations": tax_calculation,
             "strategies": strategies,
-            "lead_score": chat_engine.calculate_lead_score(profile)
+            "lead_score": chat_engine.calculate_lead_score(profile),
+            "detected_savings": total_detected_savings,
         })
 
         # Run safety checks inline with timeout (results needed for this response)
@@ -4501,9 +4508,13 @@ To get started, what's your filing status?"""
             response_confidence=response_confidence,
             confidence_reason=confidence_reason,
             premium_unlocked=premium_unlocked,
+            detected_savings=session.get("detected_savings", 0),
+            new_opportunities=session.get("opportunity_alerts", []),
             safety_summary=_build_safety_summary(safety_data),
             safety_checks=safety_data,
         )
+        # Clear alerts after sending
+        session["opportunity_alerts"] = []
 
         # Log AI response for audit trail
         try:

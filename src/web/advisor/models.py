@@ -224,6 +224,10 @@ class ChatResponse(BaseModel):
     response_confidence: str = "high"  # high, medium, low
     confidence_reason: Optional[str] = None  # Why confidence is reduced
 
+    # AI savings tracking
+    detected_savings: float = 0.0  # Running total of AI-detected potential savings
+    new_opportunities: Optional[List[Dict[str, Any]]] = []  # New opportunities found this turn
+
     # Tiered conversion fields
     premium_unlocked: bool = False
     safety_summary: Optional[Dict[str, Any]] = None
