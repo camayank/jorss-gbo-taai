@@ -3839,7 +3839,8 @@ async def intelligent_chat(request: ChatRequest, _session: str = Depends(verify_
             quick_actions=[
                 {"label": "Start Fresh", "value": "start_fresh"},
                 {"label": "Try Again", "value": "retry"}
-            ]
+            ],
+            metadata={"_source": "template"},
         )
 
     # Compute missing fields for progress transparency
@@ -3874,7 +3875,8 @@ async def intelligent_chat(request: ChatRequest, _session: str = Depends(verify_
             quick_actions=next_actions or [
                 {"label": "Start Tax Analysis", "value": "start_analysis"},
                 {"label": "Upload Documents", "value": "upload_docs"}
-            ]
+            ],
+            metadata={"_source": "template"},
         )
 
     # Handle greetings
@@ -3909,7 +3911,8 @@ To get started, what's your filing status?"""
                 {"label": "Married Filing Jointly", "value": "filing_married"},
                 {"label": "Head of Household", "value": "filing_hoh"},
                 {"label": "Other", "value": "filing_other"}
-            ]
+            ],
+            metadata={"_source": "template"},
         )
 
     # Handle frustrated/confused user
@@ -3946,7 +3949,8 @@ To get started, what's your filing status?"""
                 {"label": "Start Over", "value": "reset"},
                 {"label": "Show My History", "value": "show_history"},
                 {"label": "Continue", "value": "continue"}
-            ]
+            ],
+            metadata={"_source": "template"},
         )
 
     # Handle off-topic messages (detect if message has no tax-related content)
@@ -4000,7 +4004,8 @@ To get started, what's your filing status?"""
                 {"label": "Calculate My Taxes", "value": "calculate_taxes"},
                 {"label": "Find Deductions", "value": "find_deductions"},
                 {"label": "Upload Documents", "value": "upload_docs"}
-            ]
+            ],
+            metadata={"_source": "rules"},
         )
 
     # =========================================================================
@@ -4151,6 +4156,7 @@ To get started, what's your filing status?"""
                             {"label": "Continue Profile", "value": "continue_profile"},
                         ],
                         response_confidence="high",
+                        metadata={"_source": "ai"},
                     )
 
                 return ChatResponse(
@@ -4166,6 +4172,7 @@ To get started, what's your filing status?"""
                         {"label": "Generate Report", "value": "generate_report"},
                     ],
                     response_confidence="high",
+                    metadata={"_source": "ai"},
                 )
         except Exception as e:
             logger.warning(f"AI routing failed, falling back to rules: {e}")
@@ -4200,6 +4207,7 @@ To get started, what's your filing status?"""
                             {"label": "Continue Profile", "value": "continue_profile"},
                         ],
                         response_confidence="medium",
+                        metadata={"_source": "ai"},
                     )
 
                 return ChatResponse(
@@ -4217,6 +4225,7 @@ To get started, what's your filing status?"""
                     ],
                     response_confidence="medium",
                     confidence_reason="AI-generated reasoning based on your profile",
+                    metadata={"_source": "ai"},
                 )
         except Exception as e:
             logger.warning(f"AI reasoning fallback failed: {e}")
@@ -4244,7 +4253,8 @@ To get started, what's your filing status?"""
             quick_actions=[
                 {"label": "Undo Last Turn", "value": "undo_last"},
                 {"label": "Continue", "value": "continue_conversation"}
-            ]
+            ],
+            metadata={"_source": "template"},
         )
 
     # Handle "reset all" - Complete reset to empty state
@@ -4271,7 +4281,8 @@ To get started, what's your filing status?"""
                 {"label": "Married Filing Jointly", "value": "filing_married"},
                 {"label": "Head of Household", "value": "filing_hoh"},
                 {"label": "Married Filing Separately", "value": "filing_mfs"}
-            ]
+            ],
+            metadata={"_source": "template"},
         )
 
     # Handle "undo to turn X" - Multi-turn undo to specific point
@@ -4296,7 +4307,8 @@ To get started, what's your filing status?"""
                 profile_completeness=chat_engine.calculate_profile_completeness(profile),
                 lead_score=chat_engine.calculate_lead_score(profile),
                 complexity=chat_engine.determine_complexity(profile),
-                quick_actions=next_actions or [{"label": "Continue", "value": "continue"}]
+                quick_actions=next_actions or [{"label": "Continue", "value": "continue"}],
+                metadata={"_source": "rules"},
             )
         else:
             return ChatResponse(
@@ -4305,7 +4317,8 @@ To get started, what's your filing status?"""
                 response_type="error",
                 profile_completeness=chat_engine.calculate_profile_completeness(profile),
                 lead_score=chat_engine.calculate_lead_score(profile),
-                complexity=chat_engine.determine_complexity(profile)
+                complexity=chat_engine.determine_complexity(profile),
+                metadata={"_source": "rules"},
             )
 
     # Handle simple "undo" - Undo last turn
@@ -4337,7 +4350,8 @@ To get started, what's your filing status?"""
                 quick_actions=next_actions or [
                     {"label": "Show History", "value": "show_history"},
                     {"label": "Continue", "value": "continue"}
-                ]
+                ],
+                metadata={"_source": "rules"},
             )
         else:
             return ChatResponse(
@@ -4346,7 +4360,8 @@ To get started, what's your filing status?"""
                 response_type="info",
                 profile_completeness=chat_engine.calculate_profile_completeness(profile),
                 lead_score=chat_engine.calculate_lead_score(profile),
-                complexity=chat_engine.determine_complexity(profile)
+                complexity=chat_engine.determine_complexity(profile),
+                metadata={"_source": "rules"},
             )
 
     # Update profile with any new data from request
@@ -4483,7 +4498,8 @@ To get started, what's your filing status?"""
                 profile_completeness=chat_engine.calculate_profile_completeness(profile),
                 lead_score=chat_engine.calculate_lead_score(profile),
                 complexity=chat_engine.determine_complexity(profile),
-                quick_actions=next_actions
+                quick_actions=next_actions,
+                metadata={"_source": "template"},
             )
         # else: fall through to calculation below
 
@@ -4673,7 +4689,8 @@ To get started, what's your filing status?"""
             lead_score=lead_score,
             complexity=complexity,
             quick_actions=quick_actions,
-            warnings=[f"⚠️ Low confidence: {confirmation.get('field', 'value')}"]
+            warnings=[f"⚠️ Low confidence: {confirmation.get('field', 'value')}"],
+            metadata={"_source": "rules"},
         )
 
     # If there are conflicts, ask user to resolve them
@@ -4692,7 +4709,8 @@ To get started, what's your filing status?"""
             profile_completeness=completeness,
             lead_score=lead_score,
             complexity=complexity,
-            quick_actions=quick_actions
+            quick_actions=quick_actions,
+            metadata={"_source": "rules"},
         )
 
     # If there are validation warnings that need attention
@@ -4720,7 +4738,8 @@ To get started, what's your filing status?"""
             lead_score=lead_score,
             complexity=complexity,
             quick_actions=quick_actions,
-            warnings=[warning.get("message", "")]
+            warnings=[warning.get("message", "")],
+            metadata={"_source": "rules"},
         )
 
     # Handle scenario comparison via ChatRouter (design doc: compare_scenarios wiring)
@@ -4773,7 +4792,8 @@ To get started, what's your filing status?"""
             profile_completeness=completeness,
             lead_score=lead_score,
             complexity=complexity,
-            quick_actions=next_deep_actions
+            quick_actions=next_deep_actions,
+            metadata={"_source": "template"},
         )
 
     # If we have enough data, calculate taxes
@@ -5061,6 +5081,13 @@ To get started, what's your filing status?"""
         except ImportError:
             pass  # Citations module not available
 
+    # Determine primary source for main response
+    _has_ai_strategies = strategies and any(
+        getattr(s, "metadata", None) and s.metadata.get("_source") == "ai"
+        for s in (strategies or [])
+    )
+    _main_source = "ai" if _has_ai_strategies else "rules"
+
     try:
         chat_response = ChatResponse(
             session_id=request.session_id,
@@ -5090,6 +5117,7 @@ To get started, what's your filing status?"""
             estimated_savings_preview=chat_engine.estimate_partial_savings(profile) if response_type != "calculation" else None,
             safety_summary=_build_safety_summary(safety_data),
             safety_checks=safety_data,
+            metadata={"_source": _main_source},
         )
         # Clear alerts after sending
         session["opportunity_alerts"] = []
@@ -5129,7 +5157,8 @@ To get started, what's your filing status?"""
             quick_actions=[
                 {"label": "Try Again", "value": "retry"},
                 {"label": "Start Over", "value": "reset"}
-            ]
+            ],
+            metadata={"_source": "fallback_template"},
         )
 
 
