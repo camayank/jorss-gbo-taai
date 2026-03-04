@@ -700,8 +700,8 @@
                 <div class="insight-item">
                     <div class="insight-header">
                         <span class="insight-category">{{ insight.category or 'General' }}</span>
-                        {% if insight.savings_estimate %}
-                        <span class="insight-savings">${{ '{:,.0f}'.format(insight.savings_estimate) }}</span>
+                        {% if insight.savings_range %}
+                        <span class="insight-savings">{{ insight.savings_range }}</span>
                         {% endif %}
                     </div>
                     <div class="insight-title">{{ insight.title }}</div>
