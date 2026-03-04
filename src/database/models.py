@@ -14,7 +14,7 @@ Architecture:
 Tax Year: 2025 (Filing in 2026)
 """
 
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from decimal import Decimal
 from enum import Enum as PyEnum
 from typing import Optional, List
@@ -220,12 +220,12 @@ class TaxReturnRecord(Base):
     amendment_number = Column(Integer, default=0)
 
     # Firm and Client linkage (added for firm isolation)
-    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="SET NULL"), nullable=True, index=True)
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=False, index=True)
     client_id = Column(UUID(as_uuid=True), ForeignKey("clients.client_id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     submitted_at = Column(DateTime, nullable=True)
     accepted_at = Column(DateTime, nullable=True)
 
@@ -333,7 +333,7 @@ class TaxReturnRecord(Base):
     dependent_records = relationship("DependentRecord", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin")
     state_returns = relationship("StateReturnRecord", back_populates="tax_return", cascade="all, delete-orphan", lazy="selectin")
     # Keep audit_logs and worksheets as lazy load (not commonly needed in list views)
-    audit_logs = relationship("AuditLogRecord", back_populates="tax_return", cascade="all, delete-orphan")
+    audit_logs = relationship("AuditLogRecord", back_populates="tax_return", cascade="save-update, merge")
     computation_worksheets = relationship("ComputationWorksheet", back_populates="tax_return", cascade="all, delete-orphan")
     amended_returns = relationship("TaxReturnRecord", backref="original_return", remote_side=[return_id])
 
@@ -364,6 +364,9 @@ class TaxpayerRecord(Base):
 
     # Primary Key
     taxpayer_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    # Firm scoping (denormalized for direct queries without JOINs)
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Link to Tax Return
     return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=False, index=True)
@@ -426,8 +429,8 @@ class TaxpayerRecord(Base):
     spouse_ip_pin = Column(String(6), nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     tax_returns = relationship("TaxReturnRecord", back_populates="taxpayer")
@@ -470,6 +473,9 @@ class IncomeRecord(Base):
     # Primary Key
     income_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
+    # Firm scoping
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
+
     # Foreign Key to Tax Return
     return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=False, index=True)
 
@@ -506,8 +512,8 @@ class IncomeRecord(Base):
 
     # Metadata
     notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     tax_return = relationship("TaxReturnRecord", back_populates="income_records")
@@ -529,6 +535,9 @@ class W2Record(Base):
 
     # Primary Key
     w2_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    # Firm scoping
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Foreign Key
     return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=False, index=True)
@@ -581,8 +590,8 @@ class W2Record(Base):
     validation_notes = Column(Text, nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     tax_return = relationship("TaxReturnRecord", back_populates="w2_records")
@@ -604,6 +613,9 @@ class Form1099Record(Base):
 
     # Primary Key
     form1099_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    # Firm scoping
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Foreign Key
     return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=False, index=True)
@@ -668,8 +680,8 @@ class Form1099Record(Base):
     is_corrected = Column(Boolean, default=False)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     tax_return = relationship("TaxReturnRecord", back_populates="form1099_records")
@@ -691,6 +703,9 @@ class DeductionRecord(Base):
 
     # Primary Key
     deduction_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    # Firm scoping
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Foreign Key
     return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=False, index=True)
@@ -738,8 +753,8 @@ class DeductionRecord(Base):
     receipt_on_file = Column(Boolean, default=False)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     tax_return = relationship("TaxReturnRecord", back_populates="deduction_records")
@@ -758,6 +773,9 @@ class CreditRecord(Base):
 
     # Primary Key
     credit_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    # Firm scoping
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Foreign Key
     return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=False, index=True)
@@ -796,8 +814,8 @@ class CreditRecord(Base):
     document_id = Column(String(100), nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     tax_return = relationship("TaxReturnRecord", back_populates="credit_records")
@@ -816,6 +834,9 @@ class DependentRecord(Base):
 
     # Primary Key
     dependent_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    # Firm scoping (CRITICAL: contains minor SSNs)
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Foreign Key
     return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=False, index=True)
@@ -861,8 +882,8 @@ class DependentRecord(Base):
     is_resident_alien = Column(Boolean, default=False)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     tax_return = relationship("TaxReturnRecord", back_populates="dependent_records")
@@ -892,6 +913,9 @@ class StateReturnRecord(Base):
 
     # Primary Key
     state_return_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    # Firm scoping
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Foreign Keys
     return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=False, index=True)
@@ -950,8 +974,8 @@ class StateReturnRecord(Base):
     calculation_details = Column(JSONB, nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     tax_return = relationship("TaxReturnRecord", back_populates="state_returns")
@@ -971,8 +995,11 @@ class AuditLogRecord(Base):
     # Primary Key
     log_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
+    # Firm scoping (for compliance audit trails per firm)
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
+
     # Foreign Key (optional - system events may not have return)
-    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=True, index=True)
+    return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Event Classification
     event_type = Column(String(50), nullable=False, index=True)
@@ -980,7 +1007,7 @@ class AuditLogRecord(Base):
     severity = Column(String(20), default="info", comment="info, warning, error, critical")
 
     # Timestamp (immutable)
-    timestamp = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
+    timestamp = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
 
     # User Information
     user_id = Column(String(100), nullable=True)
@@ -1022,6 +1049,9 @@ class ComputationWorksheet(Base):
     # Primary Key
     worksheet_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
+    # Firm scoping
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
+
     # Foreign Key
     return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=False, index=True)
 
@@ -1049,12 +1079,12 @@ class ComputationWorksheet(Base):
     result_description = Column(String(200), nullable=True)
 
     # Calculation Metadata
-    calculated_at = Column(DateTime, default=datetime.utcnow)
+    calculated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     calculation_engine_version = Column(String(50), nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     tax_return = relationship("TaxReturnRecord", back_populates="computation_worksheets")
@@ -1112,6 +1142,9 @@ class DocumentRecord(Base):
     # Primary Key
     document_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
+    # Firm scoping
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
+
     # Foreign Keys
     return_id = Column(UUID(as_uuid=True), ForeignKey("tax_returns.return_id"), nullable=True, index=True)
     taxpayer_id = Column(UUID(as_uuid=True), ForeignKey("taxpayers.taxpayer_id"), nullable=True, index=True)
@@ -1154,8 +1187,8 @@ class DocumentRecord(Base):
     upload_user_agent = Column(String(500), nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
         Index('ix_doc_taxpayer_year', 'taxpayer_id', 'tax_year'),
@@ -1210,8 +1243,8 @@ class ExtractedFieldRecord(Base):
     correction_reason = Column(String(200), nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
         Index('ix_field_document', 'document_id'),
@@ -1245,7 +1278,7 @@ class DocumentProcessingLog(Base):
     duration_ms = Column(Integer, nullable=True)
 
     # Timestamp
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
         Index('ix_processing_log_doc', 'document_id', 'created_at'),
@@ -1278,6 +1311,9 @@ class PreparerRecord(Base):
     # Primary Key
     preparer_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
+    # Foreign Key to Firm (bridges admin panel users → CPA workspace)
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
+
     # Professional Info
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
@@ -1300,8 +1336,8 @@ class PreparerRecord(Base):
 
     # Metadata
     is_active = Column(Boolean, default=True, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     last_login_at = Column(DateTime, nullable=True)
 
     # Relationships
@@ -1311,6 +1347,7 @@ class PreparerRecord(Base):
     __table_args__ = (
         Index('ix_preparer_email', 'email'),
         Index('ix_preparer_active', 'is_active'),
+        Index('ix_preparer_firm', 'firm_id'),
     )
 
     @property
@@ -1333,7 +1370,7 @@ class ClientRecord(Base):
     preparer_id = Column(UUID(as_uuid=True), ForeignKey("preparers.preparer_id"), nullable=False, index=True)
 
     # Foreign Key to Firm (direct link for firm-scoped queries)
-    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="SET NULL"), nullable=True, index=True)
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=False, index=True)
 
     # External ID (CPA's own numbering)
     external_id = Column(String(100), nullable=True, index=True)
@@ -1357,8 +1394,8 @@ class ClientRecord(Base):
     is_active = Column(Boolean, default=True, index=True)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     # N+1 Fix: Use lazy="selectin" for commonly accessed relationships
@@ -1388,6 +1425,9 @@ class ClientSessionRecord(Base):
 
     # Primary Key
     session_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    # Firm scoping
+    firm_id = Column(UUID(as_uuid=True), ForeignKey("firms.firm_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Foreign Keys
     client_id = Column(UUID(as_uuid=True), ForeignKey("clients.client_id"), nullable=False, index=True)
@@ -1422,9 +1462,9 @@ class ClientSessionRecord(Base):
     preparer_notes = Column(Text, nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    last_accessed_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    last_accessed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     client = relationship("ClientRecord", back_populates="sessions")
@@ -1486,8 +1526,8 @@ class MFACredential(Base):
     use_count = Column(Integer, default=0)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
         Index('ix_mfa_user_type', 'user_id', 'mfa_type'),
@@ -1523,7 +1563,7 @@ class MFAPendingSetup(Base):
     expires_at = Column(DateTime, nullable=False, index=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
         Index('ix_mfa_pending_expires', 'expires_at'),
@@ -1583,7 +1623,7 @@ def generate_return_id() -> str:
 @event.listens_for(TaxReturnRecord, 'before_update')
 def receive_before_update(mapper, connection, target):
     """Update timestamp on record modification."""
-    target.updated_at = datetime.utcnow()
+    target.updated_at = datetime.now(timezone.utc)
 
 
 @event.listens_for(AuditLogRecord, 'before_insert')

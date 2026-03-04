@@ -13,7 +13,7 @@ that spans multiple aggregates.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from enum import Enum
 from typing import Optional, Dict, Any, List, Callable, Set
 
@@ -79,7 +79,7 @@ class ValidationResult:
     """
     is_valid: bool                         # True if no errors
     issues: List[ValidationIssue] = field(default_factory=list)
-    validated_at: datetime = field(default_factory=datetime.utcnow)
+    validated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     tax_year: int = 2025
 
     @property

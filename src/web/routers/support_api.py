@@ -12,7 +12,7 @@ All endpoints require CPA/firm authentication.
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 from dataclasses import dataclass, field, asdict
 import logging
@@ -173,7 +173,7 @@ async def create_ticket(
         )
 
     firm_id = str(ctx.firm_id) if ctx.firm_id else str(ctx.user_id)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     ticket = SupportTicket(
         ticket_id=str(uuid4()),
@@ -269,11 +269,11 @@ async def add_message(
         "author_id": str(ctx.user_id),
         "author_name": ctx.name or ctx.email,
         "is_staff": ctx.is_platform,
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
     ticket.messages.append(message)
-    ticket.updated_at = datetime.utcnow()
+    ticket.updated_at = datetime.now(timezone.utc)
 
     logger.info(f"Message added to ticket {ticket_id} by user {ctx.user_id}")
 
@@ -322,7 +322,7 @@ async def update_ticket(
             )
         ticket.priority = data.priority
 
-    ticket.updated_at = datetime.utcnow()
+    ticket.updated_at = datetime.now(timezone.utc)
 
     logger.info(f"Ticket {ticket_id} updated by user {ctx.user_id}")
 

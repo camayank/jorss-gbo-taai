@@ -8,7 +8,7 @@ Platform admins are internal team members with elevated privileges:
 - Compliance: Audit log access, GDPR requests
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Set
 from uuid import uuid4
 from enum import Enum as PyEnum
@@ -106,8 +106,8 @@ class PlatformAdmin(Base):
     last_activity_at = Column(DateTime, nullable=True)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     created_by = Column(UUID(as_uuid=True), ForeignKey("platform_admins.admin_id"), nullable=True)
 
     # Relationships
@@ -189,7 +189,7 @@ class AdminAuditLog(Base):
     extra_data = Column(JSONB, nullable=True)
 
     # Timestamp (immutable)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
 
     # Relationships
     admin = relationship("PlatformAdmin", back_populates="audit_logs", foreign_keys=[admin_id])

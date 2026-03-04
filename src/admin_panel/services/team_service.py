@@ -9,7 +9,7 @@ Handles:
 """
 
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 import secrets
 import logging
@@ -98,7 +98,7 @@ class TeamService:
             if field in allowed_fields and hasattr(user, field):
                 setattr(user, field, value)
 
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(timezone.utc)
         await self.db.commit()
 
         return self._user_to_dict(user)
@@ -143,7 +143,7 @@ class TeamService:
         else:
             user.custom_permissions = None
 
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(timezone.utc)
         await self.db.commit()
 
         logger.info(f"Updated role for user {user_id} to {new_role}")
@@ -184,9 +184,9 @@ class TeamService:
             return False
 
         user.is_active = False
-        user.deactivated_at = datetime.utcnow()
+        user.deactivated_at = datetime.now(timezone.utc)
         user.deactivation_reason = reason
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(timezone.utc)
 
         await self.db.commit()
         logger.info(f"Deactivated user {user_id}")
@@ -212,7 +212,7 @@ class TeamService:
         user.is_active = True
         user.deactivated_at = None
         user.deactivation_reason = None
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(timezone.utc)
 
         await self.db.commit()
         logger.info(f"Reactivated user {user_id}")
@@ -264,7 +264,7 @@ class TeamService:
         # Generate secure token
         token = secrets.token_urlsafe(32)
         invitation_id = str(uuid4())
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         invitation = Invitation(
             invitation_id=invitation_id,
@@ -339,14 +339,14 @@ class TeamService:
         if not invitation:
             return {"error": "Invalid or expired invitation"}
 
-        if invitation.expires_at < datetime.utcnow():
+        if invitation.expires_at < datetime.now(timezone.utc):
             invitation.status = InvitationStatus.EXPIRED.value
             await self.db.commit()
             return {"error": "Invitation has expired"}
 
         # Create user
         user_id = str(uuid4())
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         user = User(
             user_id=user_id,
@@ -422,7 +422,7 @@ class TeamService:
 
         # Generate new token
         invitation.token = secrets.token_urlsafe(32)
-        invitation.expires_at = datetime.utcnow() + timedelta(days=7)
+        invitation.expires_at = datetime.now(timezone.utc) + timedelta(days=7)
         invitation.status = InvitationStatus.PENDING.value
 
         await self.db.commit()

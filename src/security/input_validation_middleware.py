@@ -390,7 +390,7 @@ class InputValidationMiddleware(BaseHTTPMiddleware):
         status_code: int
     ) -> JSONResponse:
         """Create a standardized error response."""
-        from datetime import datetime
+        from datetime import datetime, timezone
         import uuid as uuid_module
 
         return JSONResponse(
@@ -400,7 +400,7 @@ class InputValidationMiddleware(BaseHTTPMiddleware):
                 "code": code.value,
                 "message": message,
                 "status_code": status_code,
-                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
                 "request_id": str(uuid_module.uuid4()),
             }
         )

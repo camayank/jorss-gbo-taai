@@ -12,7 +12,7 @@ Access control is automatically applied based on UserContext.
 
 from fastapi import APIRouter, HTTPException, Depends, Query, status
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pydantic import BaseModel
 import logging
@@ -152,7 +152,7 @@ def _create_mock_data():
     """Create mock billing data for development."""
     import uuid
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     # Plans
     plans = [
@@ -417,7 +417,7 @@ async def create_subscription(
                 detail="Active subscription already exists. Use upgrade/downgrade endpoint."
             )
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     period_days = 30 if request.billing_cycle == BillingCycle.MONTHLY else 365
 
     subscription = Subscription(
@@ -467,7 +467,7 @@ async def cancel_subscription(
 
     if immediate:
         subscription.status = SubscriptionStatus.CANCELLED
-        subscription.current_period_end = datetime.utcnow()
+        subscription.current_period_end = datetime.now(timezone.utc)
     else:
         subscription.cancel_at_period_end = True
 
@@ -506,7 +506,7 @@ async def reactivate_subscription(
     subscription.cancel_at_period_end = False
     if subscription.status == SubscriptionStatus.CANCELLED:
         subscription.status = SubscriptionStatus.ACTIVE
-        subscription.current_period_end = datetime.utcnow() + timedelta(days=30)
+        subscription.current_period_end = datetime.now(timezone.utc) + timedelta(days=30)
 
     logger.info(f"Subscription reactivated: {subscription.id}")
 
@@ -637,7 +637,7 @@ async def pay_invoice(
 
     # In production, this would process the payment
     invoice.status = InvoiceStatus.PAID
-    invoice.paid_at = datetime.utcnow()
+    invoice.paid_at = datetime.now(timezone.utc)
 
     logger.info(f"Invoice paid: {invoice_id}")
 
@@ -703,7 +703,7 @@ async def add_payment_method(
         exp_month=12,
         exp_year=2027,
         is_default=len([pm for pm in _payment_methods_db.values() if pm.user_id == context.user_id]) == 0,
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc)
     )
 
     _payment_methods_db[payment_method.id] = payment_method

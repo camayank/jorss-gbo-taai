@@ -7,7 +7,7 @@ Manages session lifecycle and audit logging.
 
 import logging
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 
@@ -105,7 +105,7 @@ class ImpersonationService:
             reason=reason,
             reason_detail=reason_detail,
             ticket_id=ticket_id,
-            expires_at=datetime.utcnow() + timedelta(seconds=duration_seconds),
+            expires_at=datetime.now(timezone.utc) + timedelta(seconds=duration_seconds),
             session_token=session_token,
             ip_address=ip_address,
             user_agent=user_agent,
@@ -171,7 +171,7 @@ class ImpersonationService:
             reason=reason,
             reason_detail=reason_detail,
             ticket_id=ticket_id,
-            expires_at=datetime.utcnow() + timedelta(seconds=duration_seconds),
+            expires_at=datetime.now(timezone.utc) + timedelta(seconds=duration_seconds),
             session_token=session_token,
             ip_address=ip_address,
             user_agent=user_agent,
@@ -418,9 +418,9 @@ class ImpersonationService:
     ) -> Dict[str, Any]:
         """Get summary statistics for impersonation sessions."""
         if not start_date:
-            start_date = datetime.utcnow() - timedelta(days=30)
+            start_date = datetime.now(timezone.utc) - timedelta(days=30)
         if not end_date:
-            end_date = datetime.utcnow()
+            end_date = datetime.now(timezone.utc)
 
         total = 0
         active = 0

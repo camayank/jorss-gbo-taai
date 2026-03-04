@@ -14,7 +14,7 @@ All workflows now use the same UnifiedFilingSession model with:
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, List
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 import json
 
@@ -130,8 +130,8 @@ class UnifiedFilingSession:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     # Timestamps
-    created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
-    updated_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     expires_at: Optional[str] = None
 
     # Version for optimistic locking
@@ -232,8 +232,8 @@ class UnifiedFilingSession:
             scenarios_explored=data.get('scenarios_explored', []),
             return_id=data.get('return_id'),
             metadata=data.get('metadata', {}),
-            created_at=data.get('created_at', datetime.utcnow().isoformat()),
-            updated_at=data.get('updated_at', datetime.utcnow().isoformat()),
+            created_at=data.get('created_at', datetime.now(timezone.utc).isoformat()),
+            updated_at=data.get('updated_at', datetime.now(timezone.utc).isoformat()),
             expires_at=data.get('expires_at'),
             version=data.get('version', 0)
         )
@@ -241,12 +241,12 @@ class UnifiedFilingSession:
     def update_state(self, new_state: FilingState) -> None:
         """Update state and timestamp"""
         self.state = new_state
-        self.updated_at = datetime.utcnow().isoformat()
+        self.updated_at = datetime.now(timezone.utc).isoformat()
 
     def add_document(self, doc_info: DocumentInfo) -> None:
         """Add uploaded document"""
         self.documents.append(doc_info)
-        self.updated_at = datetime.utcnow().isoformat()
+        self.updated_at = datetime.now(timezone.utc).isoformat()
 
     def add_message(self, role: str, content: str, intent: Optional[str] = None) -> None:
         """Add conversation message (for chat mode)"""
@@ -254,11 +254,11 @@ class UnifiedFilingSession:
             message_id=str(uuid4()),
             role=role,
             content=content,
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
             extracted_intent=intent
         )
         self.conversation_history.append(msg)
-        self.updated_at = datetime.utcnow().isoformat()
+        self.updated_at = datetime.now(timezone.utc).isoformat()
 
     def calculate_completeness(self) -> float:
         """

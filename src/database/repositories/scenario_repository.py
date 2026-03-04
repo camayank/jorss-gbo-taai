@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from uuid import UUID, uuid4
 
@@ -68,34 +68,28 @@ class ScenarioRepository(IScenarioRepository):
         Args:
             entity: Scenario to save.
         """
-        exists = await self.exists(entity.scenario_id)
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         # Serialize the scenario to JSON
         scenario_data = entity.model_dump_json()
 
-        if exists:
-            query = text("""
-                UPDATE scenarios SET
-                    return_id = :return_id,
-                    name = :name,
-                    scenario_type = :scenario_type,
-                    status = :status,
-                    is_recommended = :is_recommended,
-                    scenario_data = :scenario_data,
-                    updated_at = :updated_at
-                WHERE scenario_id = :scenario_id
-            """)
-        else:
-            query = text("""
-                INSERT INTO scenarios (
-                    scenario_id, return_id, name, scenario_type, status,
-                    is_recommended, scenario_data, created_at, updated_at
-                ) VALUES (
-                    :scenario_id, :return_id, :name, :scenario_type, :status,
-                    :is_recommended, :scenario_data, :created_at, :updated_at
-                )
-            """)
+        query = text("""
+            INSERT INTO scenarios (
+                scenario_id, return_id, name, scenario_type, status,
+                is_recommended, scenario_data, created_at, updated_at
+            ) VALUES (
+                :scenario_id, :return_id, :name, :scenario_type, :status,
+                :is_recommended, :scenario_data, :created_at, :updated_at
+            )
+            ON CONFLICT (scenario_id) DO UPDATE SET
+                return_id = EXCLUDED.return_id,
+                name = EXCLUDED.name,
+                scenario_type = EXCLUDED.scenario_type,
+                status = EXCLUDED.status,
+                is_recommended = EXCLUDED.is_recommended,
+                scenario_data = EXCLUDED.scenario_data,
+                updated_at = EXCLUDED.updated_at
+        """)
 
         params = {
             "scenario_id": str(entity.scenario_id),
@@ -242,7 +236,7 @@ class ScenarioRepository(IScenarioRepository):
             Comparison ID.
         """
         comparison_id = uuid4()
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         query = text("""
             INSERT INTO scenario_comparisons (

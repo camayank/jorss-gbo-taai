@@ -1123,7 +1123,7 @@
                 };
 
                 document.getElementById('loading').innerHTML = `
-                    <h3 style="color: #dc3545;">Error Loading Report</h3>
+                    <h3 style="color: var(--color-error-500);">Error Loading Report</h3>
                     <p>${escapeHtml(error.message)}</p>
                     <button class="btn btn-primary" onclick="location.reload()">Retry</button>
                     <button class="btn btn-secondary" onclick="window.close()" style="margin-left: var(--space-2-5);">Close</button>
@@ -1273,7 +1273,7 @@
                         <div class="savings">Potential Savings: $${savings.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
                         <p>${description}</p>
                         <div class="action"><strong>Action Required:</strong> ${actionRequired}</div>
-                        ${irsReference ? `<p style="font-size: 0.9em; color: #666; margin-top: var(--space-2-5);"><em>IRS Reference: ${irsReference}</em></p>` : ''}
+                        ${irsReference ? `<p style="font-size: 0.9em; color: var(--color-gray-500); margin-top: var(--space-2-5);"><em>IRS Reference: ${irsReference}</em></p>` : ''}
                     `;
                     recsDiv.appendChild(recDiv);
                 });

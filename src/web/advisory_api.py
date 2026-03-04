@@ -15,6 +15,7 @@ from typing import Optional, List
 from datetime import datetime
 from pathlib import Path
 import logging
+import threading
 import uuid
 
 # Standardized error handling
@@ -122,6 +123,9 @@ class ReportListResponse(BaseModel):
 # IN-MEMORY STORAGE (with DB fallback for persistence across restarts)
 # ============================================================================
 
+# Thread lock for all in-memory store operations
+_store_lock = threading.Lock()
+
 # Store generated reports (report_id -> AdvisoryReportResult)
 _report_store: dict[str, AdvisoryReportResult] = {}
 
@@ -148,14 +152,15 @@ def _hydrate_from_db(report_id: str) -> Optional[AdvisoryReportResult]:
             report_data = db_report.report_data or {}
             report = AdvisoryReportResult(**report_data) if report_data else None
             if report:
-                _report_store[report_id] = report
-                _report_session[report_id] = db_report.session_id
-                if db_report.session_id not in _session_reports:
-                    _session_reports[db_report.session_id] = []
-                if report_id not in _session_reports[db_report.session_id]:
-                    _session_reports[db_report.session_id].append(report_id)
-                if db_report.pdf_path and db_report.pdf_generated:
-                    _pdf_store[report_id] = db_report.pdf_path
+                with _store_lock:
+                    _report_store[report_id] = report
+                    _report_session[report_id] = db_report.session_id
+                    if db_report.session_id not in _session_reports:
+                        _session_reports[db_report.session_id] = []
+                    if report_id not in _session_reports[db_report.session_id]:
+                        _session_reports[db_report.session_id].append(report_id)
+                    if db_report.pdf_path and db_report.pdf_generated:
+                        _pdf_store[report_id] = db_report.pdf_path
 
             return report
         finally:
@@ -175,18 +180,20 @@ def _hydrate_session_from_db(session_id: str) -> List[str]:
             for db_report in db_reports:
                 rid = db_report.report_id
                 report_ids.append(rid)
-                if rid not in _report_store:
-                    report_data = db_report.report_data or {}
-                    try:
-                        report = AdvisoryReportResult(**report_data)
-                        _report_store[rid] = report
-                        _report_session[rid] = session_id
-                        if db_report.pdf_path and db_report.pdf_generated:
-                            _pdf_store[rid] = db_report.pdf_path
-                    except Exception:
-                        pass
-            if report_ids:
-                _session_reports[session_id] = report_ids
+                with _store_lock:
+                    if rid not in _report_store:
+                        report_data = db_report.report_data or {}
+                        try:
+                            report = AdvisoryReportResult(**report_data)
+                            _report_store[rid] = report
+                            _report_session[rid] = session_id
+                            if db_report.pdf_path and db_report.pdf_generated:
+                                _pdf_store[rid] = db_report.pdf_path
+                        except Exception:
+                            pass
+            with _store_lock:
+                if report_ids:
+                    _session_reports[session_id] = report_ids
             return report_ids
         finally:
             db_session.close()
@@ -358,7 +365,8 @@ def _generate_pdf_async(report_id: str, report: AdvisoryReportResult, watermark:
             db_session.close()
 
         # Also store in memory for backward compatibility
-        _pdf_store[report_id] = pdf_path
+        with _store_lock:
+            _pdf_store[report_id] = pdf_path
 
     except Exception as e:
         logger.error(f"Error generating PDF for {report_id}: {str(e)}", exc_info=True)
@@ -431,15 +439,16 @@ async def generate_report(
             db_session.close()
 
         # Also store in memory for backward compatibility
-        _report_store[report.report_id] = report
+        with _store_lock:
+            _report_store[report.report_id] = report
 
-        # Track session -> report mapping (in-memory)
-        if request.session_id not in _session_reports:
-            _session_reports[request.session_id] = []
-        _session_reports[request.session_id].append(report.report_id)
+            # Track session -> report mapping (in-memory)
+            if request.session_id not in _session_reports:
+                _session_reports[request.session_id] = []
+            _session_reports[request.session_id].append(report.report_id)
 
-        # Track reverse mapping (report_id -> session_id)
-        _report_session[report.report_id] = request.session_id
+            # Track reverse mapping (report_id -> session_id)
+            _report_session[report.report_id] = request.session_id
 
         # Generate PDF in background if requested
         if request.generate_pdf:
@@ -487,7 +496,10 @@ async def get_report_status(report_id: str):
 
     Check if PDF is ready for download.
     """
-    report = _report_store.get(report_id) or _hydrate_from_db(report_id)
+    with _store_lock:
+        report = _report_store.get(report_id)
+    if not report:
+        report = _hydrate_from_db(report_id)
 
     if not report:
         if STANDARD_ERRORS_AVAILABLE:
@@ -500,10 +512,11 @@ async def get_report_status(report_id: str):
             raise HTTPException(status_code=404, detail="Report not found")
 
     # Get session_id from mapping
-    session_id = _report_session.get(report_id, "unknown")
+    with _store_lock:
+        session_id = _report_session.get(report_id, "unknown")
 
-    # Check if PDF is ready
-    pdf_available = report_id in _pdf_store
+        # Check if PDF is ready
+        pdf_available = report_id in _pdf_store
     pdf_url = f"/api/v1/advisory-reports/{report_id}/pdf" if pdf_available else None
 
     return AdvisoryReportResponse(
@@ -530,12 +543,14 @@ async def download_pdf(report_id: str):
 
     Returns 404 if PDF not ready yet.
     """
-    pdf_path = _pdf_store.get(report_id)
+    with _store_lock:
+        pdf_path = _pdf_store.get(report_id)
 
     # Try DB fallback if not in memory
     if not pdf_path:
         _hydrate_from_db(report_id)
-        pdf_path = _pdf_store.get(report_id)
+        with _store_lock:
+            pdf_path = _pdf_store.get(report_id)
 
     if not pdf_path or not Path(pdf_path).exists():
         raise HTTPException(
@@ -544,7 +559,8 @@ async def download_pdf(report_id: str):
         )
 
     # Get report for filename
-    report = _report_store.get(report_id)
+    with _store_lock:
+        report = _report_store.get(report_id)
     filename = f"advisory_report_{report.tax_year}_{report.taxpayer_name.replace(' ', '_')}.pdf"
 
     return FileResponse(
@@ -561,7 +577,10 @@ async def get_report_data(report_id: str):
 
     Returns full report structure for frontend display.
     """
-    report = _report_store.get(report_id) or _hydrate_from_db(report_id)
+    with _store_lock:
+        report = _report_store.get(report_id)
+    if not report:
+        report = _hydrate_from_db(report_id)
 
     if not report:
         if STANDARD_ERRORS_AVAILABLE:
@@ -580,7 +599,8 @@ async def list_session_reports(session_id: str):
     """
     List all reports for a session.
     """
-    report_ids = _session_reports.get(session_id, [])
+    with _store_lock:
+        report_ids = _session_reports.get(session_id, [])
 
     # Fall back to DB if no reports in memory for this session
     if not report_ids:
@@ -588,9 +608,10 @@ async def list_session_reports(session_id: str):
 
     reports = []
     for report_id in report_ids:
-        report = _report_store.get(report_id)
-        if report:
+        with _store_lock:
+            report = _report_store.get(report_id)
             pdf_available = report_id in _pdf_store
+        if report:
 
             reports.append(AdvisoryReportResponse(
                 report_id=report.report_id,
@@ -619,22 +640,25 @@ async def delete_report(report_id: str):
     Delete a report and its PDF.
     """
     # Delete from stores
-    if report_id in _report_store:
-        del _report_store[report_id]
+    with _store_lock:
+        if report_id in _report_store:
+            del _report_store[report_id]
 
-    # Delete PDF file
-    if report_id in _pdf_store:
-        pdf_path = _pdf_store[report_id]
+        # Delete PDF file
+        pdf_path = _pdf_store.pop(report_id, None)
+
+        # Remove from session mappings
+        for session_id, report_ids in _session_reports.items():
+            if report_id in report_ids:
+                report_ids.remove(report_id)
+
+        _report_session.pop(report_id, None)
+
+    if pdf_path:
         try:
             Path(pdf_path).unlink(missing_ok=True)
         except Exception as e:
             logger.warning(f"Could not delete PDF {pdf_path}: {e}")
-        del _pdf_store[report_id]
-
-    # Remove from session mappings
-    for session_id, report_ids in _session_reports.items():
-        if report_id in report_ids:
-            report_ids.remove(report_id)
 
     return {"status": "deleted", "report_id": report_id}
 

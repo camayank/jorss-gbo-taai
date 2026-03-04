@@ -16,7 +16,7 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: { DEFAULT: '#1e3a5f', 50: '#eef3f9', 100: '#d4e1f0', 400: '#5387c1', 700: '#152b47' },
+                        primary: { DEFAULT: '#0B1D3A', 50: '#eef3f9', 100: '#d4e1f0', 400: '#5387c1', 700: '#091528' },
                         accent: { DEFAULT: '#14b8a6', 500: '#14b8a6' },
                         success: '#10b981'
                     }
@@ -107,7 +107,11 @@
 
                 <div class="pt-4">
                     <button type="submit"
-                            class="bg-primary text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                            class="px-4 py-2 rounded-md transition-colors"
+                            style="background: var(--color-gold, #C9A84C); color: var(--color-navy, #0B1D3A); font-weight: 500;"
+                            onmouseover="this.style.background='var(--color-gold-light, #E0C778)'"
+                            onmouseout="this.style.background='var(--color-gold, #C9A84C)'"
+                    >
                         Save Preferences
                     </button>
                 </div>
@@ -118,7 +122,7 @@
         <div class="bg-white rounded-lg shadow-sm border p-6">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-lg font-semibold text-gray-900">Recent Payments</h2>
-                <a href="/cpa/billing" class="text-primary hover:underline text-sm">View All</a>
+                <a href="/cpa/billing" class="hover:underline text-sm" style="color: var(--color-gold, #C9A84C);">View All</a>
             </div>
 
             <div id="payment-history">

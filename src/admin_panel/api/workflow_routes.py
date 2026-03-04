@@ -13,7 +13,7 @@ All routes use database-backed queries.
 import json
 import logging
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from uuid import uuid4
 
@@ -277,7 +277,7 @@ async def get_workflow_queue(
             return datetime.fromisoformat(val.replace('Z', '+00:00'))
 
         stage_entered = parse_dt(row[10])
-        days_in_stage = (datetime.utcnow() - stage_entered).days if stage_entered else 0
+        days_in_stage = (datetime.now(timezone.utc) - stage_entered).days if stage_entered else 0
         blockers = json.loads(row[11]) if row[11] else []
 
         items.append(WorkflowItem(
@@ -285,7 +285,7 @@ async def get_workflow_queue(
             client_id=str(row[1]) if row[1] else "",
             client_name=row[2] or "Unknown",
             return_type=row[3] or "",
-            tax_year=row[4] or datetime.utcnow().year,
+            tax_year=row[4] or datetime.now(timezone.utc).year,
             stage=row[5] or "intake",
             assigned_to=str(row[6]) if row[6] else None,
             assigned_name=row[7],
@@ -293,7 +293,7 @@ async def get_workflow_queue(
             deadline=parse_dt(row[9]),
             days_in_stage=days_in_stage,
             blockers=blockers,
-            created_at=parse_dt(row[12]) or datetime.utcnow(),
+            created_at=parse_dt(row[12]) or datetime.now(timezone.utc),
         ))
 
     return items
@@ -347,7 +347,7 @@ async def get_workflow_item_details(
         "client_id": str(row[1]) if row[1] else None,
         "client_name": row[2] or "Unknown",
         "return_type": row[3] or "",
-        "tax_year": row[4] or datetime.utcnow().year,
+        "tax_year": row[4] or datetime.now(timezone.utc).year,
         "current_stage": row[5] or "intake",
         "stage_history": stage_history,
         "assigned_to": str(row[7]) if row[7] else None,
@@ -400,7 +400,7 @@ async def advance_workflow_stage(
     next_stage = stage_order[current_idx + 1] if current_idx < len(stage_order) - 1 else "complete"
 
     # Update stage history
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     stage_history.append({
         "stage": current_stage,
         "exited_at": now.isoformat(),
@@ -474,7 +474,7 @@ async def return_to_previous_stage(
     stage_history = json.loads(row[1]) if row[1] else []
 
     # Update stage history
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     stage_history.append({
         "stage": current_stage,
         "exited_at": now.isoformat(),
@@ -539,7 +539,7 @@ async def assign_return(
         "return_id": return_id,
         "preparer_id": user_id,
         "firm_id": firm_id,
-        "updated_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     })
 
     if result.rowcount == 0:
@@ -585,7 +585,7 @@ async def update_return_priority(
         "return_id": return_id,
         "priority": priority,
         "firm_id": firm_id,
-        "updated_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     })
 
     if result.rowcount == 0:
@@ -685,7 +685,7 @@ async def list_tasks(
             assigned_name=row[6],
             related_to=related_to,
             due_date=parse_dt(row[9]),
-            created_at=parse_dt(row[10]) or datetime.utcnow(),
+            created_at=parse_dt(row[10]) or datetime.now(timezone.utc),
         ))
 
     return items
@@ -723,7 +723,7 @@ async def create_task(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assigned user not found")
 
     task_id = str(uuid4())
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     query = text("""
         INSERT INTO tasks (
@@ -784,7 +784,7 @@ async def update_task(
 
     # Build update fields
     updates = []
-    params = {"task_id": task_id, "updated_at": datetime.utcnow().isoformat()}
+    params = {"task_id": task_id, "updated_at": datetime.now(timezone.utc).isoformat()}
 
     if status_update:
         try:
@@ -867,7 +867,7 @@ async def delete_task(
     result = await session.execute(query, {
         "task_id": task_id,
         "firm_id": firm_id,
-        "updated_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     })
 
     if result.rowcount == 0:
@@ -895,7 +895,7 @@ async def get_deadlines(
     include_completed: bool = Query(False),
 ):
     """Get upcoming deadlines."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     end_date = now + timedelta(days=days_ahead)
 
     # Build conditions
@@ -964,7 +964,7 @@ async def get_deadlines(
             client_id=str(row[2]) if row[2] else "",
             client_name=row[3] or "Unknown",
             return_id=str(row[4]) if row[4] else None,
-            due_date=deadline or datetime.utcnow(),
+            due_date=deadline or datetime.now(timezone.utc),
             days_until=days_until,
             status=status_val,
             assigned_to=str(row[7]) if row[7] else None,
@@ -983,7 +983,7 @@ async def get_deadline_calendar(
     month: int = Query(default=None, ge=1, le=12, description="Month"),
 ):
     """Get deadlines in calendar format."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     target_year = year or now.year
     target_month = month or now.month
 
@@ -1133,7 +1133,7 @@ async def get_review_queue(
 
     queue = []
     total_wait_hours = 0
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     for row in rows:
         submitted = parse_dt(row[6])
@@ -1170,7 +1170,7 @@ async def claim_for_review(
     session: AsyncSession = Depends(get_async_session),
 ):
     """Claim a return for review."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     # Verify return exists, is in review stage, and belongs to firm
     check_query = text("""
@@ -1235,7 +1235,7 @@ async def complete_review(
     return_to_preparer: bool = Query(False),
 ):
     """Complete review of a return."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     # Verify return exists and is in review
     check_query = text("""

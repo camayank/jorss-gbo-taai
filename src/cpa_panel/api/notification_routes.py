@@ -13,7 +13,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 from .common import get_tenant_id, get_cpa_auth_context
@@ -341,7 +341,7 @@ async def get_follow_up_reminders(
         rows = cursor.fetchall()
         conn.close()
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         reminders = []
         overdue_count = 0
 
@@ -394,7 +394,7 @@ async def complete_reminder(request: Request, reminder_id: str):
             UPDATE follow_up_reminders
             SET completed = 1, completed_at = ?
             WHERE reminder_id = ? AND cpa_email = ? AND completed = 0
-        """, (datetime.utcnow().isoformat(), reminder_id, cpa_email))
+        """, (datetime.now(timezone.utc).isoformat(), reminder_id, cpa_email))
         updated_count = cursor.rowcount
         conn.commit()
         conn.close()
@@ -430,7 +430,7 @@ async def snooze_reminder(
         from datetime import timedelta
         service = get_notification_service()
 
-        new_due = datetime.utcnow() + timedelta(hours=hours)
+        new_due = datetime.now(timezone.utc) + timedelta(hours=hours)
 
         conn = service._get_db_connection()
         cursor = conn.cursor()
@@ -489,7 +489,7 @@ async def get_notification_stats(request: Request):
         cursor.execute("""
             SELECT COUNT(*) as count FROM follow_up_reminders
             WHERE cpa_email = ? AND completed = 0 AND due_date < ?
-        """, (cpa_email, datetime.utcnow().isoformat()))
+        """, (cpa_email, datetime.now(timezone.utc).isoformat()))
         overdue_reminders = cursor.fetchone()["count"]
 
         conn.close()

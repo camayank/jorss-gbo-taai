@@ -16,7 +16,7 @@ This unified model enables:
 
 from enum import Enum
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from pydantic import BaseModel, Field, EmailStr
 from uuid import uuid4
 
@@ -86,8 +86,8 @@ class UnifiedUser(BaseModel):
 
     # Status
     is_active: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_login_at: Optional[datetime] = None
 
     # Permissions (computed from role + overrides)

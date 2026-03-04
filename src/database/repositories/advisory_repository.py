@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from uuid import UUID, uuid4
 
@@ -69,37 +69,31 @@ class AdvisoryRepository(IAdvisoryRepository):
         Args:
             entity: AdvisoryPlan to save.
         """
-        exists = await self.exists(entity.plan_id)
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         # Serialize the plan to JSON
         plan_data = entity.model_dump_json()
 
-        if exists:
-            query = text("""
-                UPDATE advisory_plans SET
-                    client_id = :client_id,
-                    return_id = :return_id,
-                    tax_year = :tax_year,
-                    is_finalized = :is_finalized,
-                    total_potential_savings = :total_potential_savings,
-                    total_realized_savings = :total_realized_savings,
-                    plan_data = :plan_data,
-                    updated_at = :updated_at
-                WHERE plan_id = :plan_id
-            """)
-        else:
-            query = text("""
-                INSERT INTO advisory_plans (
-                    plan_id, client_id, return_id, tax_year, is_finalized,
-                    total_potential_savings, total_realized_savings,
-                    plan_data, created_at, updated_at
-                ) VALUES (
-                    :plan_id, :client_id, :return_id, :tax_year, :is_finalized,
-                    :total_potential_savings, :total_realized_savings,
-                    :plan_data, :created_at, :updated_at
-                )
-            """)
+        query = text("""
+            INSERT INTO advisory_plans (
+                plan_id, client_id, return_id, tax_year, is_finalized,
+                total_potential_savings, total_realized_savings,
+                plan_data, created_at, updated_at
+            ) VALUES (
+                :plan_id, :client_id, :return_id, :tax_year, :is_finalized,
+                :total_potential_savings, :total_realized_savings,
+                :plan_data, :created_at, :updated_at
+            )
+            ON CONFLICT (plan_id) DO UPDATE SET
+                client_id = EXCLUDED.client_id,
+                return_id = EXCLUDED.return_id,
+                tax_year = EXCLUDED.tax_year,
+                is_finalized = EXCLUDED.is_finalized,
+                total_potential_savings = EXCLUDED.total_potential_savings,
+                total_realized_savings = EXCLUDED.total_realized_savings,
+                plan_data = EXCLUDED.plan_data,
+                updated_at = EXCLUDED.updated_at
+        """)
 
         params = {
             "plan_id": str(entity.plan_id),
@@ -309,7 +303,7 @@ class AdvisoryRepository(IAdvisoryRepository):
         # Find the plan containing this recommendation
         query = text("""
             SELECT plan_id, plan_data FROM advisory_plans
-            WHERE plan_data::text LIKE :rec_id_pattern
+            WHERE CAST(plan_data AS TEXT) LIKE :rec_id_pattern
         """)
         result = await self._session.execute(
             query,

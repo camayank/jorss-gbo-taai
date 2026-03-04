@@ -13,7 +13,7 @@ Design principles:
 import sqlite3
 import json
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from uuid import uuid4
@@ -174,7 +174,7 @@ class SnapshotPersistence:
 
         # Create new snapshot
         snapshot_id = str(uuid4())
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()

@@ -15,7 +15,7 @@ SCOPE BOUNDARIES (ENFORCED):
 
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import logging
 
@@ -278,7 +278,7 @@ class ClientVisibilityService:
             tax_year=session_data.get("tax_year", 2025),
             status=display_status,
             status_updated_at=datetime.fromisoformat(session_data["status_updated_at"])
-                if session_data.get("status_updated_at") else datetime.utcnow(),
+                if session_data.get("status_updated_at") else datetime.now(timezone.utc),
             next_steps=next_steps,
             cpa_contact=cpa_contact,
             documents_requested=doc_statuses,

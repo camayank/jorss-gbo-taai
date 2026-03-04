@@ -5,7 +5,7 @@ Business logic for task management.
 """
 
 import logging
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 from collections import defaultdict
@@ -187,7 +187,7 @@ class TaskService:
         if tags is not None:
             task.tags = tags
 
-        task.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(timezone.utc)
         logger.info(f"Updated task: {task_id}")
 
         return task
@@ -217,7 +217,7 @@ class TaskService:
 
         task.assigned_to = assigned_to
         task.assigned_to_name = assigned_to_name
-        task.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(timezone.utc)
 
         logger.info(f"Assigned task {task_id} to {assigned_to}")
         return task
@@ -230,7 +230,7 @@ class TaskService:
 
         task.assigned_to = None
         task.assigned_to_name = None
-        task.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(timezone.utc)
 
         logger.info(f"Unassigned task {task_id}")
         return task
@@ -253,7 +253,7 @@ class TaskService:
 
         task.assigned_to = new_assignee
         task.assigned_to_name = new_assignee_name
-        task.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(timezone.utc)
 
         # Add a comment about the reassignment
         if add_comment:
@@ -284,13 +284,13 @@ class TaskService:
 
         old_status = task.status
         task.status = new_status
-        task.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(timezone.utc)
 
         # Handle special status transitions
         if new_status == TaskStatus.IN_PROGRESS and not task.start_date:
             task.start_date = date.today()
         elif new_status == TaskStatus.COMPLETED:
-            task.completed_at = datetime.utcnow()
+            task.completed_at = datetime.now(timezone.utc)
             task.completed_by = updated_by
 
         logger.info(f"Task {task_id} status: {old_status.value} -> {new_status.value}")
@@ -317,7 +317,7 @@ class TaskService:
             return None
 
         task.status = TaskStatus.BLOCKED
-        task.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(timezone.utc)
 
         # Add comment about block
         task.add_comment(
@@ -342,7 +342,7 @@ class TaskService:
             return None
 
         task.status = TaskStatus.IN_PROGRESS
-        task.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(timezone.utc)
 
         task.add_comment(
             content="Task unblocked",
@@ -389,7 +389,7 @@ class TaskService:
         for i, comment in enumerate(task.comments):
             if comment.id == comment_id:
                 del task.comments[i]
-                task.updated_at = datetime.utcnow()
+                task.updated_at = datetime.now(timezone.utc)
                 return True
 
         return False
@@ -423,7 +423,7 @@ class TaskService:
         for i, item in enumerate(task.checklist):
             if item.get("id") == item_id:
                 del task.checklist[i]
-                task.updated_at = datetime.utcnow()
+                task.updated_at = datetime.now(timezone.utc)
                 return True
 
         return False

@@ -22,12 +22,12 @@
         }
 
         :root {
-            --primary-color: {{ cpa.primary_color or 'var(--color-navy, #0B1D3A)' }};
-            --secondary-color: {{ cpa.secondary_color or 'var(--color-navy-light, #132B50)' }};
-            --accent-color: {{ cpa.accent_color or 'var(--color-gold, #C9A84C)' }};
+            --primary-color: {{ cpa.primary_color or 'var(--color-navy)' }};
+            --secondary-color: {{ cpa.secondary_color or 'var(--color-navy-light)' }};
+            --accent-color: {{ cpa.accent_color or 'var(--color-gold)' }};
             --text-dark: var(--color-gray-800);
             --text-muted: var(--color-gray-500);
-            --bg-light: var(--color-cream, #FAF8F4);
+            --bg-light: var(--color-cream);
             --white: var(--white);
         }
 
@@ -98,7 +98,7 @@
             padding: 30px;
             margin-top: -var(--space-10);
             position: relative;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 40px rgba(11, 29, 58, 0.08);
             text-align: center;
         }
 
@@ -111,7 +111,7 @@
         .savings-amount {
             font-size: 3rem;
             font-weight: var(--font-bold);
-            background: linear-gradient(135deg, var(--color-success-500, #10b981) 0%, var(--color-success-600) 100%);
+            background: linear-gradient(135deg, var(--color-success-500) 0%, var(--color-success-600) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -196,7 +196,7 @@
 
         .subscore-row:hover,
         .subscore-row:focus {
-            background: var(--color-cream, #FAF8F4);
+            background: var(--color-cream);
             outline: none;
         }
 
@@ -236,11 +236,11 @@
 
         .score-action {
             border-radius: var(--radius-lg);
-            background: var(--color-cream, #FAF8F4);
-            border: 1px solid var(--color-cream-dark, #F0EDE6);
+            background: var(--color-cream);
+            border: 1px solid var(--color-cream-dark);
             padding: var(--space-2) var(--space-2-5);
             font-size: 0.78rem;
-            color: var(--color-navy, #0B1D3A);
+            color: var(--color-navy);
         }
 
         .comparison-summary {
@@ -289,9 +289,9 @@
         .priority-action {
             border-radius: var(--radius-lg);
             padding: 9px 11px;
-            border: 1px solid var(--color-cream-dark, #F0EDE6);
-            background: var(--color-cream, #FAF8F4);
-            color: var(--color-navy, #0B1D3A);
+            border: 1px solid var(--color-cream-dark);
+            background: var(--color-cream);
+            color: var(--color-navy);
             font-size: 0.78rem;
             font-weight: var(--font-semibold);
         }
@@ -302,7 +302,7 @@
             border-radius: var(--radius-2xl);
             padding: 30px;
             margin-top: var(--space-5);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 20px rgba(11, 29, 58, 0.05);
         }
 
         .section-title {
@@ -353,7 +353,7 @@
         }
 
         .insight-savings {
-            background: linear-gradient(135deg, var(--color-success-500, #10b981) 0%, var(--color-success-600) 100%);
+            background: linear-gradient(135deg, var(--color-success-500) 0%, var(--color-success-600) 100%);
             color: white;
             padding: var(--space-1) var(--space-3);
             border-radius: var(--radius-2xl-plus);
@@ -507,8 +507,8 @@
 
         .cta-button {
             display: inline-block;
-            background: var(--color-gold, #C9A84C);
-            color: var(--color-navy, #0B1D3A);
+            background: var(--color-gold);
+            color: var(--color-navy);
             padding: var(--space-4) var(--space-10);
             border-radius: 50px;
             font-size: 1.1rem;
@@ -519,7 +519,7 @@
         }
 
         .cta-button:hover {
-            background: var(--color-gold-light, #E0C778);
+            background: var(--color-gold-light);
             transform: translateY(-2px);
             box-shadow: 0 6px 16px rgba(201, 168, 76, 0.4);
         }
@@ -573,7 +573,7 @@
             border-radius: var(--radius-xl);
             overflow: hidden;
             border: 1px solid var(--color-gray-700);
-            background: var(--color-navy, #0B1D3A);
+            background: var(--color-navy);
         }
 
         .share-card-preview img {

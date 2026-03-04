@@ -13,7 +13,7 @@ Access restricted to platform admins only.
 import json
 import logging
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
@@ -133,7 +133,7 @@ async def list_all_firms(
     Platform admins only. Supports filtering, search, and pagination.
     """
     # Build dynamic query with filters
-    conditions = ["1=1"]
+    conditions = ["f.deleted_at IS NULL"]
     params = {"limit": limit, "offset": offset}
 
     if tier:
@@ -147,6 +147,9 @@ async def list_all_firms(
             conditions.append("f.is_active = true")  # Will filter by health score later
         elif status_filter == "inactive":
             conditions.append("f.is_active = false")
+        elif status_filter == "deleted":
+            # Override the default deleted_at filter to show deleted firms
+            conditions[0] = "f.deleted_at IS NOT NULL"
 
     if search:
         conditions.append("(LOWER(f.name) LIKE :search OR LOWER(f.email) LIKE :search)")
@@ -208,7 +211,7 @@ async def list_all_firms(
         # Calculate health score based on activity
         last_activity = parse_dt(row[8])
         if last_activity:
-            days_since = (datetime.utcnow() - last_activity).days
+            days_since = (datetime.now(timezone.utc) - last_activity).days
             health_score = max(50, 100 - (days_since * 2))
         else:
             health_score = 70
@@ -244,7 +247,7 @@ async def list_all_firms(
             returns_this_month=returns_count,
             health_score=health_score,
             churn_risk=churn_risk,
-            created_at=parse_dt(row[7]) or datetime.utcnow(),
+            created_at=parse_dt(row[7]) or datetime.now(timezone.utc),
             last_activity_at=parse_dt(row[8]),
         ))
 
@@ -307,7 +310,7 @@ async def impersonate_firm(
 
     # Look up firm details
     firm_query = text("""
-        SELECT firm_id, name FROM firms WHERE firm_id = :firm_id
+        SELECT firm_id, name FROM firms WHERE firm_id = :firm_id AND deleted_at IS NULL
     """)
     result = await session.execute(firm_query, {"firm_id": firm_id})
     firm_row = result.fetchone()
@@ -551,7 +554,7 @@ async def get_impersonation_summary(
     """Get summary statistics for impersonation sessions."""
     from ..support import impersonation_service
 
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
     summary = impersonation_service.get_session_summary(start_date=start_date)
 
     return {
@@ -631,7 +634,7 @@ async def get_platform_dashboard(
         FROM firms f
     """)
     churn_result = await session.execute(churn_query, {
-        "thirty_days_ago": (datetime.utcnow() - timedelta(days=30)).isoformat()
+        "thirty_days_ago": (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
     })
     churn_row = churn_result.fetchone()
     churned = churn_row[0] or 0
@@ -651,8 +654,8 @@ async def get_platform_dashboard(
         WHERE u.is_active = true
     """)
     health_result = await session.execute(health_query, {
-        "seven_days_ago": (datetime.utcnow() - timedelta(days=7)).isoformat(),
-        "thirty_days_ago": (datetime.utcnow() - timedelta(days=30)).isoformat(),
+        "seven_days_ago": (datetime.now(timezone.utc) - timedelta(days=7)).isoformat(),
+        "thirty_days_ago": (datetime.now(timezone.utc) - timedelta(days=30)).isoformat(),
     })
     avg_health_score = int(health_result.fetchone()[0] or 85)
 
@@ -865,7 +868,7 @@ async def get_error_logs(
     return {
         "errors": [
             {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "severity": "error",
                 "message": "OCR processing failed",
                 "service": "ocr",
@@ -1026,7 +1029,7 @@ async def list_all_users(
             mfa_enabled=row[8] if row[8] is not None else False,
             returns_this_month=row[11] or 0,
             last_login_at=parse_dt(row[9]),
-            created_at=parse_dt(row[10]) or datetime.utcnow(),
+            created_at=parse_dt(row[10]) or datetime.now(timezone.utc),
         ))
 
     return all_users
@@ -1054,10 +1057,10 @@ async def get_user_details(
         "mfa_enabled": True,
         "activity_summary": {
             "returns_this_month": 145,
-            "last_login_at": datetime.utcnow().isoformat(),
+            "last_login_at": datetime.now(timezone.utc).isoformat(),
             "logins_this_month": 42,
         },
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -1276,7 +1279,7 @@ async def list_partners(
 
         def parse_dt(val):
             if val is None:
-                return datetime.utcnow()
+                return datetime.now(timezone.utc)
             if isinstance(val, datetime):
                 return val
             return datetime.fromisoformat(str(val).replace('Z', '+00:00'))
@@ -1328,11 +1331,11 @@ async def get_partner_details(
         "revenue_share_percent": 15,
         "payout_history": {
             "last_payout": 18900.00,
-            "last_payout_date": datetime.utcnow().isoformat(),
+            "last_payout_date": datetime.now(timezone.utc).isoformat(),
             "ytd_payouts": 189000.00,
         },
         "status": "active",
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -1439,7 +1442,7 @@ async def get_partner_payouts(
         # Generate monthly payout records
         payouts = []
         for i in range(months):
-            month_date = datetime.utcnow() - timedelta(days=30 * i)
+            month_date = datetime.now(timezone.utc) - timedelta(days=30 * i)
             # Simulate slight MRR variation for historical months
             mrr = current_mrr * (1 - 0.02 * i) if i > 0 else current_mrr
             mrr = max(mrr, 0)
@@ -1468,7 +1471,7 @@ async def get_partner_payouts(
         # Fallback for environments without full DB schema
         payouts = []
         for i in range(months):
-            month_date = datetime.utcnow() - timedelta(days=30 * i)
+            month_date = datetime.now(timezone.utc) - timedelta(days=30 * i)
             payout = round(5000 * (1 - 0.02 * i) * 0.15, 2)
             payouts.append({
                 "month": month_date.strftime("%Y-%m"),
@@ -1527,7 +1530,7 @@ async def invite_user_to_firm(
         firm_id=invitation.firm_id,
         firm_name="Acme Tax Services",  # Would lookup from DB
         role=invitation.role,
-        expires_at=datetime.utcnow(),
+        expires_at=datetime.now(timezone.utc),
         status="pending",
     )
 
@@ -1551,8 +1554,8 @@ async def list_all_invitations(
                 "firm_name": "Acme Tax Services",
                 "role": "preparer",
                 "invited_by": "admin@acme.com",
-                "created_at": datetime.utcnow().isoformat(),
-                "expires_at": datetime.utcnow().isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "expires_at": datetime.now(timezone.utc).isoformat(),
                 "status": "pending",
             }
         ],
@@ -1614,7 +1617,7 @@ async def get_platform_activity(
             firm_id="firm-new",
             firm_name="New Tax Practice",
             metadata={"subscription_tier": "professional"},
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         ),
         PlatformActivity(
             activity_id="act-2",
@@ -1625,7 +1628,7 @@ async def get_platform_activity(
             firm_id=None,
             firm_name=None,
             metadata={"flag_id": "flag-1", "enabled": True},
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         ),
         PlatformActivity(
             activity_id="act-3",
@@ -1636,7 +1639,7 @@ async def get_platform_activity(
             firm_id="firm-2",
             firm_name="Smith & Associates",
             metadata={"api_calls": 15000, "threshold": 10000},
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         ),
         PlatformActivity(
             activity_id="act-4",
@@ -1647,7 +1650,7 @@ async def get_platform_activity(
             firm_id="firm-3",
             firm_name="Premier Tax Group",
             metadata={"old_tier": "professional", "new_tier": "enterprise"},
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         ),
     ]
 
@@ -1738,7 +1741,7 @@ async def get_platform_audit_logs(
 
         def parse_dt(val):
             if val is None:
-                return datetime.utcnow()
+                return datetime.now(timezone.utc)
             if isinstance(val, datetime):
                 return val
             return datetime.fromisoformat(str(val).replace('Z', '+00:00'))

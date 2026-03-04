@@ -18,7 +18,7 @@ import json
 import re
 import uuid
 import base64
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
@@ -156,6 +156,7 @@ class SessionPersistence:
                 CREATE TABLE IF NOT EXISTS session_states (
                     session_id TEXT PRIMARY KEY,
                     tenant_id TEXT NOT NULL DEFAULT 'default',
+                    firm_id TEXT,
                     session_type TEXT NOT NULL DEFAULT 'agent',
                     created_at TEXT NOT NULL,
                     last_activity TEXT NOT NULL,
@@ -172,6 +173,7 @@ class SessionPersistence:
 
             # Add missing columns to existing tables (migration for existing DBs)
             for column, coldef in [
+                ("firm_id", "TEXT"),
                 ("user_id", "TEXT"),
                 ("is_anonymous", "INTEGER DEFAULT 1"),
                 ("workflow_type", "TEXT"),
@@ -218,6 +220,7 @@ class SessionPersistence:
                 CREATE TABLE IF NOT EXISTS session_transfers (
                     transfer_id TEXT PRIMARY KEY,
                     session_id TEXT NOT NULL,
+                    firm_id TEXT,
                     from_anonymous INTEGER NOT NULL DEFAULT 1,
                     to_user_id TEXT NOT NULL,
                     transferred_at TEXT NOT NULL,
@@ -233,6 +236,10 @@ class SessionPersistence:
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_session_expires
                 ON session_states(expires_at)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_session_firm
+                ON session_states(firm_id)
             """)
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_doc_session
@@ -313,6 +320,7 @@ class SessionPersistence:
         self,
         session_id: str,
         tenant_id: str = "default",
+        firm_id: Optional[str] = None,
         session_type: str = "agent",
         data: Optional[Dict[str, Any]] = None,
         metadata: Optional[Dict[str, Any]] = None,
@@ -337,7 +345,7 @@ class SessionPersistence:
             workflow_type: Workflow type ('express', 'smart', 'chat', 'guided') (NEW)
             return_id: Link to TaxReturnRecord when filing complete (NEW)
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         expires_at = now + timedelta(hours=self.ttl_hours)
         data = data or {}
         metadata = metadata or {}
@@ -355,6 +363,7 @@ class SessionPersistence:
                 cursor.execute("""
                     UPDATE session_states SET
                         tenant_id = ?,
+                        firm_id = COALESCE(?, firm_id),
                         session_type = ?,
                         last_activity = ?,
                         expires_at = ?,
@@ -368,6 +377,7 @@ class SessionPersistence:
                     WHERE session_id = ?
                 """, (
                     tenant_id,
+                    firm_id or tenant_id,
                     session_type,
                     now.isoformat(),
                     expires_at.isoformat(),
@@ -383,14 +393,15 @@ class SessionPersistence:
             else:
                 cursor.execute("""
                     INSERT INTO session_states (
-                        session_id, tenant_id, session_type,
+                        session_id, tenant_id, firm_id, session_type,
                         created_at, last_activity, expires_at,
                         data_json, metadata_json, agent_state_blob,
                         user_id, is_anonymous, workflow_type, return_id
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     session_id,
                     tenant_id,
+                    firm_id or tenant_id,
                     session_type,
                     now.isoformat(),
                     now.isoformat(),
@@ -472,13 +483,14 @@ class SessionPersistence:
 
         return data
 
-    def load_session(self, session_id: str, tenant_id: Optional[str] = None) -> Optional[SessionRecord]:
+    def load_session(self, session_id: str, tenant_id: Optional[str] = None, firm_id: Optional[str] = None) -> Optional[SessionRecord]:
         """
         Load a session by ID.
 
         Args:
             session_id: Session identifier
             tenant_id: Optional tenant filter (for security)
+            firm_id: Optional firm_id filter (for firm isolation)
 
         Returns:
             SessionRecord or None if not found/expired
@@ -486,14 +498,16 @@ class SessionPersistence:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
-            if tenant_id:
+            # Use firm_id or tenant_id for scoping
+            scope_id = firm_id or tenant_id
+            if scope_id:
                 cursor.execute("""
                     SELECT session_id, tenant_id, session_type,
                            created_at, last_activity, expires_at,
                            data_json, metadata_json
                     FROM session_states
-                    WHERE session_id = ? AND tenant_id = ?
-                """, (session_id, tenant_id))
+                    WHERE session_id = ? AND (tenant_id = ? OR firm_id = ?)
+                """, (session_id, scope_id, scope_id))
             else:
                 cursor.execute("""
                     SELECT session_id, tenant_id, session_type,
@@ -509,7 +523,7 @@ class SessionPersistence:
 
             # Check if expired
             expires_at = datetime.fromisoformat(row[5])
-            if datetime.utcnow() > expires_at:
+            if datetime.now(timezone.utc) > expires_at:
                 self.delete_session(session_id)
                 return None
 
@@ -563,7 +577,7 @@ class SessionPersistence:
 
     def touch_session(self, session_id: str) -> bool:
         """Update session last_activity and extend expiry."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         expires_at = now + timedelta(hours=self.ttl_hours)
 
         with sqlite3.connect(self.db_path) as conn:
@@ -579,7 +593,7 @@ class SessionPersistence:
 
     def list_sessions(self, tenant_id: str) -> List[SessionRecord]:
         """List all active sessions for a tenant."""
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -620,7 +634,7 @@ class SessionPersistence:
         Returns:
             Total number of sessions deleted
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         total_deleted = 0
 
         with sqlite3.connect(self.db_path) as conn:
@@ -690,7 +704,7 @@ class SessionPersistence:
             result: Processing result data
             error_message: Error message if failed
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         result = result or {}
 
         with sqlite3.connect(self.db_path) as conn:
@@ -870,7 +884,7 @@ class SessionPersistence:
             return_data: Tax return data dictionary
             calculated_results: Calculated results (optional)
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         return_data = return_data or {}
 
         with sqlite3.connect(self.db_path) as conn:
@@ -991,7 +1005,7 @@ class SessionPersistence:
             trail_json: JSON-serialized audit trail
             tenant_id: Tenant identifier for isolation
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         # Count entries from JSON
         try:
@@ -1205,7 +1219,7 @@ class SessionPersistence:
         Returns:
             Updated status record
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -1393,7 +1407,7 @@ class SessionPersistence:
         Returns:
             List of UnifiedFilingSession objects
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -1449,7 +1463,7 @@ class SessionPersistence:
         Returns:
             True if successful, False otherwise
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         transfer_id = str(uuid.uuid4())
 
         with sqlite3.connect(self.db_path) as conn:
@@ -1534,7 +1548,7 @@ class SessionPersistence:
                     WHERE session_id = ? AND version = ?
                 """, (
                     new_version,
-                    datetime.utcnow().isoformat(),
+                    datetime.now(timezone.utc).isoformat(),
                     json.dumps({**session.extracted_data, **session.user_confirmed_data}, default=str),
                     session.session_id,
                     expected_version
@@ -1570,7 +1584,7 @@ class SessionPersistence:
         Returns:
             Dict with session info if active, None otherwise
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()

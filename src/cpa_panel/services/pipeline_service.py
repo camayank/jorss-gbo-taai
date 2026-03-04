@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 import logging
 
@@ -118,7 +118,7 @@ class LeadPipelineService:
                 "total_pipeline_value": total_value,
                 "states_with_leads": [s for s, p in pipeline.items() if p["count"] > 0],
             },
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     def get_conversion_metrics(self, tenant_id: Optional[str] = None) -> Dict[str, Any]:
@@ -187,7 +187,7 @@ class LeadPipelineService:
                     for state in LeadState
                 },
             },
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     def get_velocity_metrics(self, tenant_id: Optional[str] = None) -> Dict[str, Any]:
@@ -218,7 +218,7 @@ class LeadPipelineService:
             }
 
         # Calculate leads per day/week (based on creation dates)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         week_ago = now - timedelta(days=7)
 
         recent_leads = [l for l in all_leads if l.transitions and l.transitions[0].timestamp > week_ago]
@@ -275,7 +275,7 @@ class LeadPipelineService:
                 "bottleneck_stage": bottleneck,
                 "acceleration_opportunities": opportunities,
             },
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     def get_priority_queue(self, tenant_id: Optional[str] = None, limit: int = 20) -> Dict[str, Any]:
@@ -310,7 +310,7 @@ class LeadPipelineService:
             "success": True,
             "priority_queue": scored_leads[:limit],
             "total_monetizable": len(scored_leads),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     def advance_lead(self, lead_id: str, target_state: str, tenant_id: Optional[str] = None) -> Dict[str, Any]:
@@ -386,7 +386,7 @@ class LeadPipelineService:
         # Recency bonus (0-15 points)
         if lead.transitions:
             last_activity = lead.transitions[-1].timestamp
-            days_since = (datetime.utcnow() - last_activity).days
+            days_since = (datetime.now(timezone.utc) - last_activity).days
             if days_since == 0:
                 score += 15
             elif days_since <= 3:

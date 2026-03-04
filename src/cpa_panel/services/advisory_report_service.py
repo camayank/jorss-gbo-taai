@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import logging
 
@@ -189,7 +189,7 @@ class AdvisoryReportService:
                     "client_name": client_name,
                     "filing_status": filing_status,
                     "tax_year": tax_return.tax_year if hasattr(tax_return, 'tax_year') else 2025,
-                    "generated_at": datetime.utcnow().isoformat(),
+                    "generated_at": datetime.now(timezone.utc).isoformat(),
                     "total_potential_savings": total_savings,
                     "sections": [
                         {

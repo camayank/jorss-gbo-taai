@@ -14,7 +14,7 @@ import os
 import time
 import sqlite3
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from pathlib import Path
 from collections import defaultdict
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Health"])
 
 # Application start time for uptime calculation
-_start_time = datetime.utcnow()
+_start_time = datetime.now(timezone.utc)
 
 # Thread-safe request metrics tracking
 _metrics_lock = threading.Lock()
@@ -316,7 +316,7 @@ async def health_check() -> JSONResponse:
     disk_check = _check_disk_space()
 
     # Calculate uptime
-    uptime = datetime.utcnow() - _start_time
+    uptime = datetime.now(timezone.utc) - _start_time
     uptime_str = str(uptime).split(".")[0]  # Remove microseconds
 
     checks = {
@@ -340,7 +340,7 @@ async def health_check() -> JSONResponse:
 
     response = {
         "status": overall_status,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
         "uptime": uptime_str,
         "version": os.environ.get("APP_VERSION", "development"),
         "environment": os.environ.get("APP_ENVIRONMENT")
@@ -403,7 +403,7 @@ async def basic_metrics() -> JSONResponse:
 
     For production, consider integrating with Prometheus.
     """
-    uptime_seconds = (datetime.utcnow() - _start_time).total_seconds()
+    uptime_seconds = (datetime.now(timezone.utc) - _start_time).total_seconds()
 
     # Get database metrics
     db_check = await _check_database()
@@ -432,7 +432,7 @@ async def basic_metrics() -> JSONResponse:
             "cache_hit_rate": calc_metrics["cache_hit_rate"],
             "average_ms": float(money(calc_metrics["average_calculation_ms"])),
         },
-        "collected_at": datetime.utcnow().isoformat() + "Z",
+        "collected_at": datetime.now(timezone.utc).isoformat() + "Z",
     }
 
     return JSONResponse(content=metrics)
@@ -449,7 +449,7 @@ async def request_metrics() -> JSONResponse:
     - Total request count
     """
     metrics = get_request_metrics()
-    metrics["collected_at"] = datetime.utcnow().isoformat() + "Z"
+    metrics["collected_at"] = datetime.now(timezone.utc).isoformat() + "Z"
     return JSONResponse(content=metrics)
 
 
@@ -466,7 +466,7 @@ async def calculation_metrics() -> JSONResponse:
     - Breakdown by filing status
     """
     metrics = get_calculation_metrics()
-    metrics["collected_at"] = datetime.utcnow().isoformat() + "Z"
+    metrics["collected_at"] = datetime.now(timezone.utc).isoformat() + "Z"
     return JSONResponse(content=metrics)
 
 

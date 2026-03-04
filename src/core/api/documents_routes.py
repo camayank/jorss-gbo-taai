@@ -12,7 +12,7 @@ Access control is automatically applied based on UserContext.
 
 from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File, status
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pydantic import BaseModel
 from uuid import uuid4
@@ -247,7 +247,7 @@ def _row_to_document(row) -> Document:
         tax_year=row[4],
         notes=additional_data.get("notes"),
         uploaded_by=str(row[13]) if row[13] else additional_data.get("uploaded_by", ""),
-        uploaded_at=_parse_dt(row[11]) or datetime.utcnow(),
+        uploaded_at=_parse_dt(row[11]) or datetime.now(timezone.utc),
         verified_by=additional_data.get("verified_by"),
         verified_at=_parse_dt(additional_data.get("verified_at")),
         storage_path=row[9] or "",
@@ -340,8 +340,8 @@ async def _get_document_request(session: AsyncSession, request_id: str) -> Optio
                 "due_date": _parse_dt(row[8]),
                 "status": row[9],
                 "document_id": str(row[10]) if row[10] else None,
-                "created_at": _parse_dt(row[11]) or datetime.utcnow(),
-                "updated_at": _parse_dt(row[12]) or datetime.utcnow(),
+                "created_at": _parse_dt(row[11]) or datetime.now(timezone.utc),
+                "updated_at": _parse_dt(row[12]) or datetime.now(timezone.utc),
             }
     except (ProgrammingError, OperationalError) as e:
         # Table may not exist yet
@@ -426,7 +426,7 @@ async def list_documents(
             category=_db_type_to_category(row[3]),
             status=_db_status_to_api(row[5]),
             file_size=row[7] or 0,
-            uploaded_at=_parse_dt(row[11]) or datetime.utcnow(),
+            uploaded_at=_parse_dt(row[11]) or datetime.now(timezone.utc),
             tax_year=row[4]
         ))
 
@@ -507,7 +507,7 @@ async def upload_document(
     Note: In production, this would handle actual file upload.
     For now, it creates a document record with metadata.
     """
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     document_id = str(uuid4())
     filename = f"doc_{uuid4().hex[:8]}.pdf"
     storage_path = f"/documents/{context.user_id}/{uuid4().hex}.pdf"
@@ -654,7 +654,7 @@ async def update_document(
     updates.append("additional_data = :additional_data")
     params["additional_data"] = json.dumps(additional_data)
     updates.append("updated_at = :updated_at")
-    params["updated_at"] = datetime.utcnow().isoformat()
+    params["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     update_query = text(f"UPDATE documents SET {', '.join(updates)} WHERE document_id = :document_id")
     await session.execute(update_query, params)
@@ -703,8 +703,8 @@ async def delete_document(
             detail="You cannot delete this document"
         )
 
-    delete_query = text("DELETE FROM documents WHERE document_id = :document_id")
-    await session.execute(delete_query, {"document_id": document_id})
+    delete_query = text("DELETE FROM documents WHERE document_id = :document_id AND (firm_id = :firm_id OR firm_id IS NULL)")
+    await session.execute(delete_query, {"document_id": document_id, "firm_id": firm_id})
     await session.commit()
 
     logger.info(f"Document deleted: {document_id} by {context.user_id}")
@@ -760,7 +760,7 @@ async def verify_document(
             detail="Access denied"
         )
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     additional_data["verified_by"] = context.user_id
     additional_data["verified_at"] = now.isoformat()
     if notes:
@@ -832,7 +832,7 @@ async def reject_document(
             detail="Access denied"
         )
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     additional_data["notes"] = reason
     additional_data["rejected_by"] = context.user_id
     additional_data["rejected_at"] = now.isoformat()
@@ -918,8 +918,8 @@ async def get_pending_document_requests(
                 due_date=_parse_dt(row[8]),
                 status=row[9] or "pending",
                 document_id=str(row[10]) if row[10] else None,
-                created_at=_parse_dt(row[11]) or datetime.utcnow(),
-                updated_at=_parse_dt(row[12]) or datetime.utcnow(),
+                created_at=_parse_dt(row[11]) or datetime.now(timezone.utc),
+                updated_at=_parse_dt(row[12]) or datetime.now(timezone.utc),
             ))
         return results
     except (ProgrammingError, OperationalError) as e:
@@ -948,7 +948,7 @@ async def create_document_request(
             detail="Only CPA team or admins can request documents"
         )
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     request_id = str(uuid4())
 
     doc_request = DocumentRequest(

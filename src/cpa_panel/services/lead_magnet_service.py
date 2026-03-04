@@ -21,7 +21,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any, Tuple
 from decimal import Decimal
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from enum import Enum
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlparse
@@ -220,6 +220,7 @@ class CPAProfile:
     first_name: str
     last_name: str
     credentials: str = "CPA"  # CPA, EA, CMA, etc.
+    firm_id: Optional[str] = None
     firm_name: Optional[str] = None
     logo_url: Optional[str] = None
     email: Optional[str] = None
@@ -243,6 +244,7 @@ class CPAProfile:
         return {
             "cpa_id": self.cpa_id,
             "cpa_slug": self.cpa_slug,
+            "firm_id": self.firm_id,
             "first_name": self.first_name,
             "last_name": self.last_name,
             "credentials": self.credentials,
@@ -378,8 +380,8 @@ class LeadMagnetSession:
     tax_profile: Optional[TaxProfile] = None
     complexity: TaxComplexity = TaxComplexity.SIMPLE
     contact_captured: bool = False
-    started_at: datetime = field(default_factory=datetime.utcnow)
-    last_activity: datetime = field(default_factory=datetime.utcnow)
+    started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    last_activity: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     time_spent_seconds: int = 0
     referral_source: Optional[str] = None
     variant_id: str = "A"
@@ -415,6 +417,7 @@ class LeadMagnetLead:
     lead_id: str
     session_id: str
     cpa_id: Optional[str] = None
+    firm_id: Optional[str] = None
     first_name: str = ""
     email: str = ""
     phone: Optional[str] = None
@@ -433,7 +436,7 @@ class LeadMagnetLead:
     engagement_letter_acknowledged_at: Optional[datetime] = None
     converted: bool = False
     converted_at: Optional[datetime] = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def can_access_tier_two(self) -> bool:
         """
@@ -725,6 +728,7 @@ class LeadMagnetService:
                     first_name=row["first_name"],
                     last_name=row["last_name"],
                     credentials=row["credentials"] or "CPA",
+                    firm_id=row.get("firm_id"),
                     firm_name=row["firm_name"],
                     logo_url=row["logo_url"],
                     email=row["email"],
@@ -782,12 +786,12 @@ class LeadMagnetService:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO cpa_profiles (
-                    cpa_id, cpa_slug, first_name, last_name, credentials,
+                    cpa_id, cpa_slug, firm_id, first_name, last_name, credentials,
                     firm_name, logo_url, email, phone, booking_link,
                     address, bio, specialties_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                cpa_id, final_slug, profile.first_name, profile.last_name,
+                cpa_id, final_slug, profile.firm_id, profile.first_name, profile.last_name,
                 profile.credentials, profile.firm_name, profile.logo_url,
                 profile.email, profile.phone, profile.booking_link,
                 profile.address, profile.bio, json.dumps(profile.specialties),
@@ -978,7 +982,7 @@ class LeadMagnetService:
             return None
 
         session.current_screen = screen
-        session.last_activity = datetime.utcnow()
+        session.last_activity = datetime.now(timezone.utc)
 
         try:
             conn = self._get_db_connection()
@@ -988,7 +992,7 @@ class LeadMagnetService:
                     current_screen = ?,
                     last_activity = ?
                 WHERE session_id = ?
-            """, (screen, datetime.utcnow().isoformat(), session_id))
+            """, (screen, datetime.now(timezone.utc).isoformat(), session_id))
             conn.commit()
             conn.close()
         except Exception as e:
@@ -1028,7 +1032,7 @@ class LeadMagnetService:
             raise ValueError(f"Session {session_id} not found")
 
         event_id = f"evt-{uuid.uuid4().hex[:12]}"
-        created_at = datetime.utcnow().isoformat()
+        created_at = datetime.now(timezone.utc).isoformat()
         safe_metadata = metadata or {}
         derived_variant = (
             variant_id
@@ -1131,7 +1135,7 @@ class LeadMagnetService:
                     current_screen = 'teaser',
                     last_activity = ?
                 WHERE session_id = ?
-            """, (json.dumps(profile_data), datetime.utcnow().isoformat(), session_id))
+            """, (json.dumps(profile_data), datetime.now(timezone.utc).isoformat(), session_id))
             conn.commit()
             conn.close()
         except Exception as e:
@@ -1821,6 +1825,7 @@ class LeadMagnetService:
             lead_id=lead_id,
             session_id=session_id,
             cpa_id=self._persistable_cpa_id(session.cpa_profile),
+            firm_id=session.cpa_profile.firm_id if session.cpa_profile else None,
             first_name=first_name,
             email=email,
             phone=phone,
@@ -1848,18 +1853,18 @@ class LeadMagnetService:
                     completed_at = ?,
                     last_activity = ?
                 WHERE session_id = ?
-            """, (datetime.utcnow().isoformat(), datetime.utcnow().isoformat(), session_id))
+            """, (datetime.now(timezone.utc).isoformat(), datetime.now(timezone.utc).isoformat(), session_id))
 
             # Insert lead
             cursor.execute("""
                 INSERT INTO lead_magnet_leads (
-                    lead_id, session_id, cpa_id, first_name, email, phone,
+                    lead_id, session_id, cpa_id, firm_id, first_name, email, phone,
                     filing_status, complexity, income_range,
                     lead_score, lead_temperature, estimated_engagement_value,
                     conversion_probability, savings_range_low, savings_range_high
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                lead_id, session_id, lead.cpa_id, first_name, email, phone,
+                lead_id, session_id, lead.cpa_id, lead.firm_id, first_name, email, phone,
                 lead.filing_status, lead.complexity.value, lead.income_range,
                 lead_score, temperature.value, engagement_value,
                 lead.conversion_probability, savings_low, savings_high,
@@ -2209,6 +2214,7 @@ class LeadMagnetService:
                     lead_id=row["lead_id"],
                     session_id=row["session_id"],
                     cpa_id=row["cpa_id"],
+                    firm_id=row.get("firm_id"),
                     first_name=row["first_name"],
                     email=row["email"],
                     phone=row["phone"],
@@ -2255,11 +2261,11 @@ class LeadMagnetService:
             return None
 
         lead.engaged = True
-        lead.engaged_at = datetime.utcnow()
+        lead.engaged_at = datetime.now(timezone.utc)
 
         if engagement_letter_acknowledged:
             lead.engagement_letter_acknowledged = True
-            lead.engagement_letter_acknowledged_at = datetime.utcnow()
+            lead.engagement_letter_acknowledged_at = datetime.now(timezone.utc)
 
         try:
             conn = self._get_db_connection()
@@ -2272,9 +2278,9 @@ class LeadMagnetService:
                     engagement_letter_acknowledged_at = ?
                 WHERE lead_id = ?
             """, (
-                datetime.utcnow().isoformat(),
+                datetime.now(timezone.utc).isoformat(),
                 bool(engagement_letter_acknowledged),
-                datetime.utcnow().isoformat() if engagement_letter_acknowledged else None,
+                datetime.now(timezone.utc).isoformat() if engagement_letter_acknowledged else None,
                 lead_id
             ))
             conn.commit()
@@ -2307,7 +2313,7 @@ class LeadMagnetService:
             return None
 
         lead.engagement_letter_acknowledged = True
-        lead.engagement_letter_acknowledged_at = datetime.utcnow()
+        lead.engagement_letter_acknowledged_at = datetime.now(timezone.utc)
 
         try:
             conn = self._get_db_connection()
@@ -2317,7 +2323,7 @@ class LeadMagnetService:
                     engagement_letter_acknowledged = TRUE,
                     engagement_letter_acknowledged_at = ?
                 WHERE lead_id = ?
-            """, (datetime.utcnow().isoformat(), lead_id))
+            """, (datetime.now(timezone.utc).isoformat(), lead_id))
             conn.commit()
             conn.close()
         except Exception as e:
@@ -2419,6 +2425,7 @@ class LeadMagnetService:
                     lead_id=row["lead_id"],
                     session_id=row["session_id"],
                     cpa_id=row["cpa_id"],
+                    firm_id=row.get("firm_id"),
                     first_name=row["first_name"],
                     email=row["email"],
                     phone=row["phone"],
@@ -2620,6 +2627,7 @@ class LeadMagnetService:
                     lead_id=row["lead_id"],
                     session_id=row["session_id"],
                     cpa_id=row["cpa_id"],
+                    firm_id=row.get("firm_id"),
                     first_name=row["first_name"],
                     email=row["email"],
                     phone=row["phone"],
@@ -2787,12 +2795,20 @@ class LeadMagnetService:
     def get_leads(
         self,
         cpa_id: Optional[str] = None,
+        firm_id: Optional[str] = None,
         temperature: Optional[str] = None,
         engaged: Optional[bool] = None,
+        state: Optional[str] = None,
+        search: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> List[Dict[str, Any]]:
-        """Get leads with filtering options."""
+        """Get leads with filtering options.
+
+        Args:
+            state: Filter by lifecycle state — "new", "engaged", "converted", or "all".
+            search: Free-text search against first_name and email.
+        """
         leads = []
 
         try:
@@ -2800,11 +2816,15 @@ class LeadMagnetService:
             cursor = conn.cursor()
 
             query = "SELECT * FROM lead_magnet_leads WHERE 1=1"
-            params = []
+            params: list = []
 
             if cpa_id:
                 query += " AND cpa_id = ?"
                 params.append(cpa_id)
+
+            if firm_id:
+                query += " AND firm_id = ?"
+                params.append(firm_id)
 
             if temperature:
                 query += " AND lead_temperature = ?"
@@ -2813,6 +2833,21 @@ class LeadMagnetService:
             if engaged is not None:
                 query += " AND engaged = ?"
                 params.append(1 if engaged else 0)
+
+            # State filtering (lifecycle stage)
+            if state and state != "all":
+                if state == "converted":
+                    query += " AND converted = TRUE"
+                elif state == "engaged":
+                    query += " AND engaged = TRUE AND converted = FALSE"
+                elif state == "new":
+                    query += " AND engaged = FALSE AND converted = FALSE"
+
+            # Free-text search on name and email
+            if search:
+                query += " AND (first_name LIKE ? OR email LIKE ?)"
+                like_term = f"%{search}%"
+                params.extend([like_term, like_term])
 
             query += " ORDER BY lead_score DESC, created_at DESC"
             query += " LIMIT ? OFFSET ?"
@@ -2841,7 +2876,10 @@ class LeadMagnetService:
                     "savings_range_high": row["savings_range_high"],
                     "savings_range": f"${row['savings_range_low']:,.0f} - ${row['savings_range_high']:,.0f}",
                     "engaged": bool(row["engaged"]),
+                    "converted": bool(row["converted"]) if "converted" in row.keys() else False,
                     "engagement_letter_acknowledged": bool(row["engagement_letter_acknowledged"]) if "engagement_letter_acknowledged" in row.keys() else False,
+                    "state": "converted" if row.get("converted") else ("engaged" if row.get("engaged") else "new"),
+                    "state_display": "Converted" if row.get("converted") else ("Engaged" if row.get("engaged") else "New Lead"),
                     "created_at": row["created_at"],
                 })
 
@@ -2853,18 +2891,24 @@ class LeadMagnetService:
     def list_leads(
         self,
         cpa_id: Optional[str] = None,
+        firm_id: Optional[str] = None,
         temperature: Optional[str] = None,
         engaged: Optional[bool] = None,
+        state: Optional[str] = None,
+        search: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> List[Dict[str, Any]]:
         """Alias for get_leads() for backward compatibility."""
         return self.get_leads(
             cpa_id=cpa_id,
+            firm_id=firm_id,
             temperature=temperature,
             engaged=engaged,
+            state=state,
+            search=search,
             limit=limit,
-            offset=offset
+            offset=offset,
         )
 
     def get_lead_statistics(self, cpa_id: Optional[str] = None) -> Dict[str, Any]:
@@ -3048,8 +3092,17 @@ class LeadMagnetService:
             },
         }
 
-    def convert_lead(self, lead_id: str) -> Dict[str, Any]:
-        """Convert a lead to a client."""
+    def convert_lead(
+        self,
+        lead_id: str,
+        cpa_id: Optional[str] = None,
+        firm_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Convert a lead to a client.
+
+        Creates a real ClientRecord in the database (if available) and marks
+        the lead as converted in the lead_magnet_leads table.
+        """
         lead = self.get_lead(lead_id)
         if not lead:
             raise ValueError(f"Lead not found: {lead_id}")
@@ -3057,8 +3110,41 @@ class LeadMagnetService:
         if not lead.engaged:
             raise ValueError("Lead must be engaged before converting")
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
+        resolved_cpa_id = cpa_id or lead.cpa_id
+        client_id: Optional[str] = None
 
+        # Create a real ClientRecord in the relational database
+        try:
+            from database.models import ClientRecord
+            from database.session import get_db_session
+            import uuid as _uuid
+
+            name_parts = (lead.first_name or "").strip().split(None, 1)
+            first_name = name_parts[0] if name_parts else "Unknown"
+            last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+            client_uuid = _uuid.uuid4()
+            client_id = str(client_uuid)
+
+            with get_db_session() as db:
+                client_record = ClientRecord(
+                    client_id=client_uuid,
+                    preparer_id=_uuid.UUID(resolved_cpa_id) if resolved_cpa_id else client_uuid,
+                    firm_id=_uuid.UUID(firm_id) if firm_id else None,
+                    first_name=first_name,
+                    last_name=last_name,
+                    email=lead.email,
+                    phone=lead.phone,
+                )
+                db.add(client_record)
+            logger.info(f"Created ClientRecord {client_id} from lead {lead_id}")
+        except ImportError:
+            logger.warning("Database module unavailable; skipping ClientRecord creation")
+        except Exception as exc:
+            logger.error(f"Failed to create ClientRecord for lead {lead_id}: {exc}")
+
+        # Update the lead_magnet_leads row
         try:
             conn = self._get_db_connection()
             cursor = conn.cursor()
@@ -3070,16 +3156,16 @@ class LeadMagnetService:
             """, (now.isoformat(), lead_id))
             conn.commit()
             conn.close()
-
-            return {
-                "lead_id": lead_id,
-                "converted": True,
-                "converted_at": now.isoformat(),
-            }
-
         except Exception as e:
-            logger.error(f"Failed to convert lead: {e}")
+            logger.error(f"Failed to update lead conversion flag: {e}")
             raise
+
+        return {
+            "lead_id": lead_id,
+            "converted": True,
+            "converted_at": now.isoformat(),
+            "client_id": client_id,
+        }
 
     def update_cpa_profile(
         self,
@@ -3131,7 +3217,7 @@ class LeadMagnetService:
                 address,
                 bio,
                 json.dumps(specialties or []),
-                datetime.utcnow().isoformat(),
+                datetime.now(timezone.utc).isoformat(),
                 cpa_id,
             ))
             conn.commit()

@@ -12,7 +12,7 @@ Helps clients understand:
 
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import logging
 from decimal import Decimal, ROUND_HALF_UP
@@ -116,7 +116,7 @@ class TaxDriversResult:
     credit_breakdown: List[CreditUtilization]
     top_drivers: List[TaxDriver]
     insights: Dict[str, str]
-    analysis_timestamp: datetime = field(default_factory=datetime.utcnow)
+    analysis_timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API response."""

@@ -20,7 +20,7 @@ via webhook integration.
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List, Callable
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ class NotificationEvent:
     body_html: Optional[str] = None
 
     # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     sent_at: Optional[datetime] = None
     status: str = "pending"  # pending, sent, failed
 
@@ -310,7 +310,7 @@ This is an automated notification. Please do not reply to this email.
                 if callback(event):
                     sent = True
                     event.status = "sent"
-                    event.sent_at = datetime.utcnow()
+                    event.sent_at = datetime.now(timezone.utc)
                     break
             except Exception as e:
                 logger.error(f"Send callback failed: {e}")

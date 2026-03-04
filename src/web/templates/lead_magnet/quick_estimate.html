@@ -22,12 +22,12 @@
         }
 
         :root {
-            --primary-color: {{ cpa.primary_color or 'var(--color-navy, #0B1D3A)' }};
-            --secondary-color: {{ cpa.secondary_color or 'var(--color-navy-light, #132B50)' }};
-            --accent-color: {{ cpa.accent_color or 'var(--color-gold, #C9A84C)' }};
+            --primary-color: {{ cpa.primary_color or 'var(--color-navy)' }};
+            --secondary-color: {{ cpa.secondary_color or 'var(--color-navy-light)' }};
+            --accent-color: {{ cpa.accent_color or 'var(--color-gold)' }};
             --text-dark: var(--color-gray-800);
             --text-muted: var(--color-gray-500);
-            --bg-light: var(--color-cream, #FAF8F4);
+            --bg-light: var(--color-cream);
             --white: var(--white);
             --error: var(--color-error-600);
             --success: var(--color-success-600);
@@ -78,7 +78,7 @@
             background: var(--white);
             border-radius: var(--radius-2xl-plus);
             padding: var(--space-10);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 20px 60px rgba(11, 29, 58, 0.15);
         }
 
         .cpa-header {
@@ -107,8 +107,8 @@
             margin-bottom: var(--space-5);
             padding: var(--space-2-5) var(--space-3);
             border-radius: var(--radius-lg-plus);
-            background: var(--color-cream, #FAF8F4);
-            color: var(--color-navy, #0B1D3A);
+            background: var(--color-cream);
+            color: var(--color-navy);
             font-size: 0.82rem;
             font-weight: var(--font-medium);
         }
@@ -244,7 +244,7 @@
             width: 100%;
             border: 2px solid #dbe4ef;
             border-radius: var(--radius-xl);
-            background: var(--color-cream, #FAF8F4);
+            background: var(--color-cream);
             padding: var(--space-3-5) var(--space-4);
             font-size: 1rem;
             color: var(--text-dark);
@@ -290,14 +290,14 @@
         }
 
         .btn-primary {
-            background: var(--color-gold, #C9A84C);
-            color: var(--color-navy, #0B1D3A);
+            background: var(--color-gold);
+            color: var(--color-navy);
             font-weight: 700;
             box-shadow: 0 4px 12px rgba(201, 168, 76, 0.3);
         }
 
         .btn-primary:hover:not(:disabled) {
-            background: var(--color-gold-light, #E0C778);
+            background: var(--color-gold-light);
             transform: translateY(-1px);
             box-shadow: 0 6px 16px rgba(201, 168, 76, 0.4);
         }
@@ -325,7 +325,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(11, 29, 58, 0.4);
             z-index: 100;
             align-items: center;
             justify-content: center;

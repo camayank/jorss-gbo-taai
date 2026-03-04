@@ -18,12 +18,16 @@ Routes:
 
 import os
 
-from fastapi import APIRouter, Request, Response, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, Depends, Request, Response, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Optional, Dict, Any, List
 import uuid
 import logging
 from datetime import datetime
+
+from rbac.dependencies import require_auth, require_role
+from rbac.context import AuthContext
+from rbac.roles import Role
 
 # File upload security validation
 from web.utils.file_validation import (
@@ -76,6 +80,7 @@ async def upload_document(
     response: Response,
     file: UploadFile = File(...),
     session_id: Optional[str] = Form(None),
+    ctx: AuthContext = Depends(require_auth),
 ):
     """
     Upload and process a tax document synchronously.
@@ -173,6 +178,7 @@ async def upload_document_async(
     response: Response,
     file: UploadFile = File(...),
     session_id: Optional[str] = Form(None),
+    ctx: AuthContext = Depends(require_auth),
 ):
     """
     Upload a document for async processing via Celery.
@@ -254,7 +260,7 @@ async def upload_document_async(
 
 
 @router.get("/upload/status/{task_id}")
-async def get_upload_status(task_id: str, request: Request):
+async def get_upload_status(task_id: str, request: Request, ctx: AuthContext = Depends(require_auth)):
     """Check the status of an async document upload task."""
     try:
         from celery.result import AsyncResult
@@ -306,7 +312,7 @@ async def get_upload_status(task_id: str, request: Request):
 
 
 @router.post("/upload/cancel/{task_id}")
-async def cancel_upload_task(task_id: str, request: Request):
+async def cancel_upload_task(task_id: str, request: Request, ctx: AuthContext = Depends(require_auth)):
     """Cancel an async document upload task."""
     try:
         from celery.result import AsyncResult
@@ -342,6 +348,7 @@ async def cancel_upload_task(task_id: str, request: Request):
 async def list_documents(
     request: Request,
     session_id: Optional[str] = None,
+    ctx: AuthContext = Depends(require_auth),
 ):
     """List all documents for a session."""
     try:
@@ -381,7 +388,7 @@ async def list_documents(
 
 
 @router.get("/documents/{document_id}")
-async def get_document(document_id: str, request: Request):
+async def get_document(document_id: str, request: Request, ctx: AuthContext = Depends(require_auth)):
     """Get document details by ID."""
     try:
         session_id = request.cookies.get("tax_session_id")
@@ -415,7 +422,7 @@ async def get_document(document_id: str, request: Request):
 
 
 @router.get("/documents/{document_id}/status")
-async def get_document_status(document_id: str, request: Request):
+async def get_document_status(document_id: str, request: Request, ctx: AuthContext = Depends(require_auth)):
     """Get document processing status."""
     try:
         session_id = request.cookies.get("tax_session_id")
@@ -444,7 +451,7 @@ async def get_document_status(document_id: str, request: Request):
 
 
 @router.post("/documents/{document_id}/apply")
-async def apply_document(document_id: str, request: Request):
+async def apply_document(document_id: str, request: Request, ctx: AuthContext = Depends(require_auth)):
     """Apply extracted document data to the tax return."""
     try:
         session_id = request.cookies.get("tax_session_id")
@@ -508,7 +515,7 @@ async def apply_document(document_id: str, request: Request):
 
 
 @router.delete("/documents/{document_id}")
-async def delete_document(document_id: str, request: Request):
+async def delete_document(document_id: str, request: Request, ctx: AuthContext = Depends(require_auth)):
     """Delete a document."""
     try:
         session_id = request.cookies.get("tax_session_id")

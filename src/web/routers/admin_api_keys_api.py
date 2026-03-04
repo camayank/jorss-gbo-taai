@@ -17,7 +17,7 @@ Security considerations:
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 import secrets
 import hashlib
@@ -88,7 +88,7 @@ class APIKey:
         self.scopes = scopes
         self.description = description
         self.created_by = created_by
-        self.created_at = datetime.utcnow()
+        self.created_at = datetime.now(timezone.utc)
         self.expires_at = expires_at
         self.last_used_at: Optional[datetime] = None
         self.use_count: int = 0
@@ -100,7 +100,7 @@ class APIKey:
         """Check if key is active (not revoked or expired)."""
         if self.revoked:
             return False
-        if self.expires_at and datetime.utcnow() > self.expires_at:
+        if self.expires_at and datetime.now(timezone.utc) > self.expires_at:
             return False
         return True
 
@@ -237,7 +237,7 @@ async def create_api_key(
     # Calculate expiration
     expires_at = None
     if data.expires_in_days:
-        expires_at = datetime.utcnow() + timedelta(days=data.expires_in_days)
+        expires_at = datetime.now(timezone.utc) + timedelta(days=data.expires_in_days)
 
     # Create key object
     api_key = APIKey(
@@ -378,7 +378,7 @@ async def revoke_api_key(
         }
 
     api_key.revoked = True
-    api_key.revoked_at = datetime.utcnow()
+    api_key.revoked_at = datetime.now(timezone.utc)
 
     logger.info(
         f"[AUDIT] API key revoked | key_id={key_id} | "
@@ -458,7 +458,7 @@ async def rotate_api_key(
 
     # Revoke old key
     old_key.revoked = True
-    old_key.revoked_at = datetime.utcnow()
+    old_key.revoked_at = datetime.now(timezone.utc)
 
     logger.info(
         f"[AUDIT] API key rotated | old_key={key_id} | "

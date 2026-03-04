@@ -13,7 +13,7 @@ All routes use database-backed queries.
 import json
 import logging
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -107,7 +107,7 @@ async def get_dashboard(
 
     Returns key metrics, alerts, and recent activity for the firm.
     """
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     last_month = now - timedelta(days=30)
 
     # Get firm info and subscription
@@ -116,7 +116,7 @@ async def get_dashboard(
         FROM firms f
         LEFT JOIN subscriptions s ON f.firm_id = s.firm_id AND s.status = 'active'
         LEFT JOIN subscription_plans sp ON s.plan_id = sp.plan_id
-        WHERE f.firm_id = :firm_id
+        WHERE f.firm_id = :firm_id AND f.deleted_at IS NULL
     """)
     firm_result = await session.execute(firm_query, {"firm_id": firm_id})
     firm_row = firm_result.fetchone()
@@ -210,7 +210,7 @@ async def get_dashboard(
 
     def parse_dt(val):
         if val is None:
-            return datetime.utcnow()
+            return datetime.now(timezone.utc)
         if isinstance(val, datetime):
             return val
         return datetime.fromisoformat(val.replace('Z', '+00:00'))
@@ -303,7 +303,7 @@ async def get_dashboard_alerts(
     - Churn risk signals
     - Upgrade opportunities
     """
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     # Build conditions for stored alerts
     conditions = ["a.firm_id = :firm_id"]
@@ -332,7 +332,7 @@ async def get_dashboard_alerts(
 
     def parse_dt(val):
         if val is None:
-            return datetime.utcnow()
+            return datetime.now(timezone.utc)
         if isinstance(val, datetime):
             return val
         return datetime.fromisoformat(val.replace('Z', '+00:00'))
@@ -413,7 +413,7 @@ async def mark_alert_read(
     result = await session.execute(query, {
         "alert_id": alert_id,
         "firm_id": firm_id,
-        "read_at": datetime.utcnow().isoformat(),
+        "read_at": datetime.now(timezone.utc).isoformat(),
     })
 
     if result.rowcount == 0:
@@ -476,7 +476,7 @@ async def get_activity_feed(
 
     def parse_dt(val):
         if val is None:
-            return datetime.utcnow()
+            return datetime.now(timezone.utc)
         if isinstance(val, datetime):
             return val
         return datetime.fromisoformat(val.replace('Z', '+00:00'))
@@ -518,7 +518,7 @@ async def get_stats_summary(
 
     Used for dashboard hero metrics and trend analysis.
     """
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     # Calculate period start date
     period_map = {

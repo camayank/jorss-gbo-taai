@@ -10,7 +10,7 @@ Events are used for:
 3. Event sourcing - Reconstructing state from events
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
@@ -61,7 +61,7 @@ class DomainEvent(BaseModel):
     """
     event_id: UUID = Field(default_factory=uuid4)
     event_type: EventType
-    occurred_at: datetime = Field(default_factory=datetime.utcnow)
+    occurred_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = Field(default=1, description="Event schema version")
 
     # Context metadata

@@ -20,7 +20,7 @@ Design Principles:
 import sqlite3
 import json
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass, field
@@ -383,7 +383,7 @@ class ReportVersionStore:
     ) -> ReportVersion:
         """Internal method to create and persist a version."""
         version_id = str(uuid4())
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         content_json = json.dumps(content, sort_keys=True, default=str)
         content_hash = compute_content_hash(content)
         integrity_hash = compute_version_hash(
@@ -454,7 +454,7 @@ class ReportVersionStore:
     ):
         """Record an audit entry."""
         audit_id = str(uuid4())
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()

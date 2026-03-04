@@ -4,7 +4,7 @@ Firm Model - Core multi-tenancy entity for the platform.
 Each CPA firm is a tenant with isolated data, team members, and clients.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from uuid import uuid4
 
@@ -85,10 +85,11 @@ class Firm(Base):
     verification_date = Column(DateTime, nullable=True)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     onboarded_at = Column(DateTime, nullable=True, comment="Completed onboarding flow")
     created_by = Column(UUID(as_uuid=True), nullable=True, comment="Platform admin who created")
+    deleted_at = Column(DateTime, nullable=True, index=True, comment="Soft delete timestamp")
 
     # Settings (JSON for flexibility)
     settings = Column(JSONB, default=dict, comment="Firm-specific settings")
@@ -114,6 +115,11 @@ class Firm(Base):
 
     def __repr__(self):
         return f"<Firm(id={self.firm_id}, name={self.name}, tier={self.subscription_tier})>"
+
+    @property
+    def is_deleted(self) -> bool:
+        """Check if firm has been soft-deleted."""
+        return self.deleted_at is not None
 
     @property
     def display_name(self) -> str:
@@ -201,7 +207,7 @@ class FirmSettings(Base):
     api_key_enabled = Column(Boolean, default=False)
 
     # Timestamps
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     def __repr__(self):
         return f"<FirmSettings(firm_id={self.firm_id})>"

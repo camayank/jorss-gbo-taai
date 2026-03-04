@@ -13,7 +13,7 @@ Access control is automatically applied based on UserContext.
 from fastapi import APIRouter, HTTPException, Depends, Query, status
 from typing import Optional, List
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import logging
 
 from .auth_routes import get_current_user
@@ -312,10 +312,18 @@ async def get_user_statistics(
 # ACCOUNT MANAGEMENT
 # =============================================================================
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=12)
+
+
+class VerifyTwoFactorRequest(BaseModel):
+    code: str = Field(min_length=6, max_length=6)
+
+
 @router.post("/me/change-password")
 async def change_password(
-    current_password: str,
-    new_password: str,
+    body: ChangePasswordRequest,
     context: UserContext = Depends(get_current_user)
 ):
     """
@@ -324,12 +332,6 @@ async def change_password(
     Requires the current password for verification.
     """
     # In production, this would verify current password and update
-    if len(new_password) < 8:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must be at least 8 characters"
-        )
-
     logger.info(f"Password changed for user: {context.user_id}")
 
     return {"success": True, "message": "Password changed successfully"}
@@ -344,22 +346,24 @@ async def enable_two_factor(
 
     Returns setup information for 2FA (TOTP).
     """
-    import secrets
+    import pyotp
 
-    # Generate a mock TOTP secret
-    secret = secrets.token_hex(16).upper()
+    # Generate a real TOTP secret
+    secret = pyotp.random_base32()
 
     return {
         "success": True,
         "secret": secret,
-        "qr_url": f"otpauth://totp/JorssGbo:{context.email}?secret={secret}&issuer=JorssGbo",
+        "qr_url": pyotp.totp.TOTP(secret).provisioning_uri(
+            name=context.email, issuer_name="JorssGbo"
+        ),
         "message": "Scan the QR code with your authenticator app"
     }
 
 
 @router.post("/me/verify-2fa")
 async def verify_two_factor(
-    code: str,
+    body: VerifyTwoFactorRequest,
     context: UserContext = Depends(get_current_user)
 ):
     """
@@ -367,8 +371,26 @@ async def verify_two_factor(
 
     Requires the TOTP code from authenticator app.
     """
-    # In production, this would verify the TOTP code
-    if len(code) != 6 or not code.isdigit():
+    import pyotp
+
+    if not body.code.isdigit():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid verification code - must be 6 digits"
+        )
+
+    # Retrieve the user's TOTP secret (stored during enable-2fa)
+    user_service = get_user_service()
+    user_secret = await user_service.get_totp_secret(context.user_id)
+
+    if not user_secret:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="2FA setup not initiated. Please call enable-2fa first."
+        )
+
+    totp = pyotp.TOTP(user_secret)
+    if not totp.verify(body.code, valid_window=1):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid verification code"

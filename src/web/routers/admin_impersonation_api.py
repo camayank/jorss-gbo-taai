@@ -17,7 +17,7 @@ Security considerations:
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 import logging
 
@@ -75,8 +75,8 @@ class ImpersonationSession:
         self.target_user_id = target_user_id
         self.target_user_email = target_user_email
         self.reason = reason
-        self.started_at = datetime.utcnow()
-        self.expires_at = datetime.utcnow() + timedelta(minutes=duration_minutes)
+        self.started_at = datetime.now(timezone.utc)
+        self.expires_at = datetime.now(timezone.utc) + timedelta(minutes=duration_minutes)
         self.ended_at: Optional[datetime] = None
         self.actions_performed: List[str] = []
 
@@ -85,7 +85,7 @@ class ImpersonationSession:
         """Check if session is still active."""
         if self.ended_at:
             return False
-        return datetime.utcnow() < self.expires_at
+        return datetime.now(timezone.utc) < self.expires_at
 
     def to_dict(self) -> dict:
         """Convert to dictionary for API responses and Redis storage."""
@@ -150,7 +150,7 @@ async def _store_session(session: ImpersonationSession) -> None:
             key = f"{_IMPERSONATION_PREFIX}{session.session_id}"
             # Keep in Redis for 90 days (audit history) or until expiry + 24h buffer
             ttl = max(
-                int((session.expires_at - datetime.utcnow()).total_seconds()) + 86400,
+                int((session.expires_at - datetime.now(timezone.utc)).total_seconds()) + 86400,
                 90 * 86400,
             )
             await redis.set(key, session.to_dict(), ttl=ttl)
@@ -338,7 +338,7 @@ async def end_impersonation(
             "ended_at": session.ended_at.isoformat(),
         }
 
-    session.ended_at = datetime.utcnow()
+    session.ended_at = datetime.now(timezone.utc)
     await _store_session(session)
 
     # Log for audit
@@ -398,7 +398,7 @@ async def get_impersonation_history(
     Super admins see all history.
     Other admins see only their own history.
     """
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     all_sessions = await _sync_all_sessions()
 
     if ctx.role == Role.SUPER_ADMIN:
@@ -479,7 +479,7 @@ async def log_impersonation_action(
         )
 
     action_entry = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "action": action,
     }
     session.actions_performed.append(action_entry)

@@ -4,7 +4,7 @@ Webhook Models
 Database models for webhook endpoint registration and delivery tracking.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional, List, Dict, Any
 from uuid import uuid4
@@ -85,8 +85,8 @@ class WebhookEndpoint(Base):
     rate_limit_per_minute = Column(Integer, default=60)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     last_triggered_at = Column(DateTime, nullable=True)
 
     # Statistics (denormalized for quick access)
@@ -172,7 +172,7 @@ class WebhookDelivery(Base):
     error_code = Column(String(50), nullable=True)
 
     # Timing
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     delivered_at = Column(DateTime, nullable=True)
     duration_ms = Column(Integer, nullable=True, comment="Request duration in milliseconds")
 

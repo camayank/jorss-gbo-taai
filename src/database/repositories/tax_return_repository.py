@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 
@@ -135,53 +135,43 @@ class TaxReturnRepository(ITaxReturnRepository):
         state_refund = calculation.get("state_refund_or_owed", 0) or 0
         combined_refund = federal_refund + state_refund
 
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
-        # Check if exists
-        exists = await self.exists(return_id)
-
-        if exists:
-            # Update
-            query = text("""
-                UPDATE tax_returns SET
-                    taxpayer_ssn_hash = :ssn_hash,
-                    taxpayer_name = :taxpayer_name,
-                    tax_year = :tax_year,
-                    filing_status = :filing_status,
-                    state_code = :state_code,
-                    gross_income = :gross_income,
-                    adjusted_gross_income = :agi,
-                    taxable_income = :taxable_income,
-                    federal_tax_liability = :federal_tax,
-                    state_tax_liability = :state_tax,
-                    combined_tax_liability = :combined_tax,
-                    federal_refund_or_owed = :federal_refund,
-                    state_refund_or_owed = :state_refund,
-                    combined_refund_or_owed = :combined_refund,
-                    status = :status,
-                    return_data = :return_data,
-                    updated_at = :updated_at
-                WHERE return_id = :return_id
-            """)
-        else:
-            # Insert
-            query = text("""
-                INSERT INTO tax_returns (
-                    return_id, session_id, taxpayer_ssn_hash, taxpayer_name,
-                    tax_year, filing_status, state_code, gross_income,
-                    adjusted_gross_income, taxable_income, federal_tax_liability,
-                    state_tax_liability, combined_tax_liability,
-                    federal_refund_or_owed, state_refund_or_owed, combined_refund_or_owed,
-                    status, return_data, created_at, updated_at
-                ) VALUES (
-                    :return_id, :session_id, :ssn_hash, :taxpayer_name,
-                    :tax_year, :filing_status, :state_code, :gross_income,
-                    :agi, :taxable_income, :federal_tax,
-                    :state_tax, :combined_tax,
-                    :federal_refund, :state_refund, :combined_refund,
-                    :status, :return_data, :created_at, :updated_at
-                )
-            """)
+        query = text("""
+            INSERT INTO tax_returns (
+                return_id, session_id, taxpayer_ssn_hash, taxpayer_name,
+                tax_year, filing_status, state_code, gross_income,
+                adjusted_gross_income, taxable_income, federal_tax_liability,
+                state_tax_liability, combined_tax_liability,
+                federal_refund_or_owed, state_refund_or_owed, combined_refund_or_owed,
+                status, return_data, created_at, updated_at
+            ) VALUES (
+                :return_id, :session_id, :ssn_hash, :taxpayer_name,
+                :tax_year, :filing_status, :state_code, :gross_income,
+                :agi, :taxable_income, :federal_tax,
+                :state_tax, :combined_tax,
+                :federal_refund, :state_refund, :combined_refund,
+                :status, :return_data, :created_at, :updated_at
+            )
+            ON CONFLICT (return_id) DO UPDATE SET
+                taxpayer_ssn_hash = EXCLUDED.taxpayer_ssn_hash,
+                taxpayer_name = EXCLUDED.taxpayer_name,
+                tax_year = EXCLUDED.tax_year,
+                filing_status = EXCLUDED.filing_status,
+                state_code = EXCLUDED.state_code,
+                gross_income = EXCLUDED.gross_income,
+                adjusted_gross_income = EXCLUDED.adjusted_gross_income,
+                taxable_income = EXCLUDED.taxable_income,
+                federal_tax_liability = EXCLUDED.federal_tax_liability,
+                state_tax_liability = EXCLUDED.state_tax_liability,
+                combined_tax_liability = EXCLUDED.combined_tax_liability,
+                federal_refund_or_owed = EXCLUDED.federal_refund_or_owed,
+                state_refund_or_owed = EXCLUDED.state_refund_or_owed,
+                combined_refund_or_owed = EXCLUDED.combined_refund_or_owed,
+                status = EXCLUDED.status,
+                return_data = EXCLUDED.return_data,
+                updated_at = EXCLUDED.updated_at
+        """)
 
         params = {
             "return_id": str(return_id),
@@ -209,20 +199,25 @@ class TaxReturnRepository(ITaxReturnRepository):
         await self._session.execute(query, params)
         logger.debug(f"Saved tax return: {return_id}")
 
-    async def delete(self, return_id: UUID) -> bool:
+    async def delete(self, return_id: UUID, firm_id: Optional[UUID] = None) -> bool:
         """
         Delete a tax return.
 
         Args:
             return_id: Tax return identifier.
+            firm_id: Firm identifier for tenant isolation (strongly recommended).
 
         Returns:
             True if deleted, False if not found.
         """
         from sqlalchemy import text
 
-        query = text("DELETE FROM tax_returns WHERE return_id = :return_id")
-        result = await self._session.execute(query, {"return_id": str(return_id)})
+        if firm_id:
+            query = text("DELETE FROM tax_returns WHERE return_id = :return_id AND (firm_id = :firm_id OR firm_id IS NULL)")
+            result = await self._session.execute(query, {"return_id": str(return_id), "firm_id": str(firm_id)})
+        else:
+            query = text("DELETE FROM tax_returns WHERE return_id = :return_id")
+            result = await self._session.execute(query, {"return_id": str(return_id)})
 
         deleted = result.rowcount > 0
         if deleted:

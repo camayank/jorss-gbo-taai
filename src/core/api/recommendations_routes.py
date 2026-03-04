@@ -12,7 +12,7 @@ Access control is automatically applied based on UserContext.
 
 from fastapi import APIRouter, HTTPException, Depends, Query, status
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pydantic import BaseModel
 from uuid import uuid4
@@ -295,7 +295,7 @@ def _row_to_recommendation(row) -> TaxRecommendation:
         action_items=action_items,
         deadline=_parse_datetime(row[14]),
         generated_by=row[15] or "system",
-        generated_at=_parse_datetime(row[16]) or datetime.utcnow(),
+        generated_at=_parse_datetime(row[16]) or datetime.now(timezone.utc),
         viewed_at=_parse_datetime(row[17]),
         implemented_at=_parse_datetime(row[18]),
         relevant_forms=relevant_forms,
@@ -472,7 +472,7 @@ async def list_recommendations(
             status=RecommendationStatus(row[4]) if row[4] else RecommendationStatus.NEW,
             estimated_savings_low=float(row[5] or 0),
             estimated_savings_high=float(row[6] or 0),
-            generated_at=_parse_datetime(row[7]) or datetime.utcnow()
+            generated_at=_parse_datetime(row[7]) or datetime.now(timezone.utc)
         ))
 
     return results
@@ -542,7 +542,7 @@ async def get_actionable_recommendations(
             status=RecommendationStatus(row[4]) if row[4] else RecommendationStatus.NEW,
             estimated_savings_low=float(row[5] or 0),
             estimated_savings_high=float(row[6] or 0),
-            generated_at=_parse_datetime(row[7]) or datetime.utcnow()
+            generated_at=_parse_datetime(row[7]) or datetime.now(timezone.utc)
         ))
 
     return results
@@ -576,7 +576,7 @@ async def get_recommendation(
 
     # Mark as viewed if first time viewing
     if rec.status == RecommendationStatus.NEW:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         update_query = text("""
             UPDATE recommendations
             SET status = 'viewed', viewed_at = :viewed_at, updated_at = :updated_at
@@ -615,7 +615,7 @@ async def create_recommendation(
 
     await _ensure_recommendations_table(session)
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     recommendation_id = str(uuid4())
 
     # Convert action item strings to ActionItem objects for storage
@@ -691,7 +691,7 @@ async def update_recommendation(
             detail="You cannot modify this recommendation"
         )
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     update_fields = ["updated_at = :updated_at"]
     update_params = {"recommendation_id": recommendation_id, "updated_at": now.isoformat()}
 
@@ -745,8 +745,8 @@ async def delete_recommendation(
             detail="Access denied"
         )
 
-    delete_query = text("DELETE FROM recommendations WHERE recommendation_id = :recommendation_id")
-    await session.execute(delete_query, {"recommendation_id": recommendation_id})
+    delete_query = text("DELETE FROM recommendations WHERE recommendation_id = :recommendation_id AND (firm_id = :firm_id OR firm_id IS NULL)")
+    await session.execute(delete_query, {"recommendation_id": recommendation_id, "firm_id": context.firm_id})
     await session.commit()
 
     logger.info(f"Recommendation deleted: {recommendation_id} by {context.user_id}")
@@ -782,7 +782,7 @@ async def complete_action_item(
         )
 
     # Find and update the action item
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     step_found = False
     updated_action_items = []
 
@@ -863,7 +863,7 @@ async def dismiss_recommendation(
             detail="Access denied"
         )
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     update_query = text("""
         UPDATE recommendations
         SET status = :status, updated_at = :updated_at
@@ -926,7 +926,7 @@ def _get_cached_analytics(cache_key: str) -> Optional[Dict[str, Any]]:
         return None
 
     cached = _analytics_cache[cache_key]
-    if datetime.utcnow() > cached["expires_at"]:
+    if datetime.now(timezone.utc) > cached["expires_at"]:
         del _analytics_cache[cache_key]
         return None
 
@@ -937,7 +937,7 @@ def _set_cached_analytics(cache_key: str, data: Dict[str, Any]) -> None:
     """Cache analytics data with TTL."""
     _analytics_cache[cache_key] = {
         "data": data,
-        "expires_at": datetime.utcnow() + timedelta(seconds=_ANALYTICS_CACHE_TTL_SECONDS)
+        "expires_at": datetime.now(timezone.utc) + timedelta(seconds=_ANALYTICS_CACHE_TTL_SECONDS)
     }
 
     # Cleanup old cache entries (simple LRU-ish behavior)

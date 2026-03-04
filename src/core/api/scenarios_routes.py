@@ -12,7 +12,7 @@ Access control is automatically applied based on UserContext.
 
 from fastapi import APIRouter, HTTPException, Depends, Query, status
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pydantic import BaseModel
 from uuid import uuid4
@@ -248,8 +248,8 @@ def _row_to_scenario(row) -> TaxScenario:
         projected=projected,
         savings=scenario_data.get("savings", 0.0),
         created_by=scenario_data.get("created_by", ""),
-        created_at=_parse_dt(row[7]) or datetime.utcnow(),
-        updated_at=_parse_dt(row[8]) or datetime.utcnow(),
+        created_at=_parse_dt(row[7]) or datetime.now(timezone.utc),
+        updated_at=_parse_dt(row[8]) or datetime.now(timezone.utc),
         notes=scenario_data.get("notes"),
     )
 
@@ -439,7 +439,7 @@ async def list_scenarios(
             status=_db_status_to_api(row[4]),
             tax_year=scenario_data.get("tax_year", 2025),
             savings=scenario_data.get("savings", 0.0),
-            updated_at=_parse_dt(row[8]) or datetime.utcnow()
+            updated_at=_parse_dt(row[8]) or datetime.now(timezone.utc)
         ))
 
     return results
@@ -528,7 +528,7 @@ async def create_scenario(
             )
         target_user_id = request.client_user_id
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     scenario_id = str(uuid4())
 
     scenario = TaxScenario(
@@ -623,7 +623,7 @@ async def update_scenario(
     if request.notes is not None:
         scenario.notes = request.notes
 
-    scenario.updated_at = datetime.utcnow()
+    scenario.updated_at = datetime.now(timezone.utc)
 
     # Update database
     update_query = text("""
@@ -751,7 +751,7 @@ async def add_variable(
     ))
 
     scenario.status = ScenarioStatus.DRAFT
-    scenario.updated_at = datetime.utcnow()
+    scenario.updated_at = datetime.now(timezone.utc)
 
     # Update database
     update_query = text("""
@@ -813,7 +813,7 @@ async def remove_variable(
 
     scenario.variables = [v for v in scenario.variables if v.name != variable_name]
     scenario.status = ScenarioStatus.DRAFT
-    scenario.updated_at = datetime.utcnow()
+    scenario.updated_at = datetime.now(timezone.utc)
 
     # Update database
     update_query = text("""
@@ -936,7 +936,7 @@ async def calculate_scenario(
     scenario.projected = _calculate_projection(scenario.variables, scenario.baseline)
     scenario.savings = float(money(scenario.baseline.total_tax - scenario.projected.total_tax))
     scenario.status = ScenarioStatus.CALCULATED
-    scenario.updated_at = datetime.utcnow()
+    scenario.updated_at = datetime.now(timezone.utc)
 
     # Update database
     update_query = text("""

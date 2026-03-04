@@ -11,7 +11,7 @@ across Consumer Portal, CPA Panel, and Admin Panel.
 """
 
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 from ..models.user import UnifiedUser, UserType, UserProfile, UserPreferences, UserContext
@@ -108,7 +108,7 @@ class CoreUserService:
         if avatar_url is not None:
             user.avatar_url = avatar_url
 
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(timezone.utc)
 
         logger.info(f"Profile updated: {user_id} by {context.user_id}")
 

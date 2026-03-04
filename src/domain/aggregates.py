@@ -6,7 +6,7 @@ for data changes. Each aggregate has a root entity that controls access to
 other entities within the boundary.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
@@ -98,7 +98,7 @@ class Scenario(BaseModel):
     )
 
     # Metadata
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     created_by: Optional[str] = Field(default=None)
     calculated_at: Optional[datetime] = Field(default=None)
     version: int = Field(default=1, description="Optimistic locking version")
@@ -134,7 +134,7 @@ class Scenario(BaseModel):
         """Set the calculation result."""
         self.result = result
         self.status = ScenarioStatus.CALCULATED
-        self.calculated_at = datetime.utcnow()
+        self.calculated_at = datetime.now(timezone.utc)
 
     def mark_as_recommended(self, reason: str) -> None:
         """Mark this scenario as the recommended option."""
@@ -265,7 +265,7 @@ class Recommendation(BaseModel):
     )
 
     # Metadata
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Config:
         """Pydantic configuration."""
@@ -274,7 +274,7 @@ class Recommendation(BaseModel):
     def update_status(self, new_status: RecommendationStatus, changed_by: str, reason: Optional[str] = None) -> None:
         """Update the recommendation status."""
         self.status = new_status
-        self.status_changed_at = datetime.utcnow()
+        self.status_changed_at = datetime.now(timezone.utc)
         self.status_changed_by = changed_by
         if new_status == RecommendationStatus.DECLINED:
             self.decline_reason = reason
@@ -341,8 +341,8 @@ class AdvisoryPlan(BaseModel):
     finalized_by: Optional[str] = Field(default=None)
 
     # Metadata
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = Field(default=1)
 
     class Config:
@@ -353,7 +353,7 @@ class AdvisoryPlan(BaseModel):
         """Add a recommendation to the plan."""
         self.recommendations.append(recommendation)
         self._recalculate_totals()
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def remove_recommendation(self, recommendation_id: UUID) -> bool:
         """Remove a recommendation from the plan."""
@@ -361,7 +361,7 @@ class AdvisoryPlan(BaseModel):
             if rec.recommendation_id == recommendation_id:
                 self.recommendations.pop(i)
                 self._recalculate_totals()
-                self.updated_at = datetime.utcnow()
+                self.updated_at = datetime.now(timezone.utc)
                 return True
         return False
 
@@ -398,9 +398,9 @@ class AdvisoryPlan(BaseModel):
     def finalize(self, finalized_by: str) -> None:
         """Finalize the plan for client delivery."""
         self.is_finalized = True
-        self.finalized_at = datetime.utcnow()
+        self.finalized_at = datetime.now(timezone.utc)
         self.finalized_by = finalized_by
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def get_summary(self) -> Dict[str, Any]:
         """Get a summary of the advisory plan."""
@@ -537,8 +537,8 @@ class ClientProfile(BaseModel):
     is_active: bool = Field(default=True)
 
     # Metadata
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = Field(default=1)
 
     class Config:
@@ -550,7 +550,7 @@ class ClientProfile(BaseModel):
         if return_id not in self.tax_return_ids:
             self.tax_return_ids.append(return_id)
         self.tax_return_years[tax_year] = return_id
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def get_return_for_year(self, tax_year: int) -> Optional[UUID]:
         """Get return ID for a specific year."""
@@ -563,12 +563,12 @@ class ClientProfile(BaseModel):
     def update_carryovers(self, carryovers: PriorYearCarryovers) -> None:
         """Update carryover balances."""
         self.prior_year_carryovers = carryovers
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def update_prior_year_summary(self, summary: PriorYearSummary) -> None:
         """Update prior year summary."""
         self.prior_year_summary = summary
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     @property
     def full_name(self) -> str:
@@ -655,31 +655,31 @@ class ClientSession(BaseModel):
     preparer_notes: Optional[str] = Field(default=None)
 
     # Timestamps
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
-    last_accessed_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_accessed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Config:
         json_encoders = {UUID: str, datetime: lambda v: v.isoformat()}
 
     def touch(self) -> None:
         """Update last accessed timestamp."""
-        self.last_accessed_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+        self.last_accessed_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(timezone.utc)
 
     def add_scenario(self, scenario_id: UUID) -> None:
         """Add a scenario to this session."""
         if scenario_id not in self.scenario_ids:
             self.scenario_ids.append(scenario_id)
             self.scenarios_analyzed += 1
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def add_document(self, document_id: UUID) -> None:
         """Add a document to this session."""
         if document_id not in self.document_ids:
             self.document_ids.append(document_id)
             self.documents_processed += 1
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def update_metrics(
         self,
@@ -697,7 +697,7 @@ class ClientSession(BaseModel):
             self.total_income = income
         if savings is not None:
             self.potential_savings = savings
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def to_list_item(self) -> Dict[str, Any]:
         """Convert to list item for dashboard display."""
@@ -770,8 +770,8 @@ class Preparer(BaseModel):
 
     # Metadata
     is_active: bool = Field(default=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_login_at: Optional[datetime] = Field(default=None)
 
     class Config:
@@ -798,13 +798,13 @@ class Preparer(BaseModel):
         """Add a client to this preparer."""
         if client_id not in self.client_ids:
             self.client_ids.append(client_id)
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def remove_client(self, client_id: UUID) -> bool:
         """Remove a client from this preparer."""
         if client_id in self.client_ids:
             self.client_ids.remove(client_id)
-            self.updated_at = datetime.utcnow()
+            self.updated_at = datetime.now(timezone.utc)
             return True
         return False
 
@@ -812,12 +812,12 @@ class Preparer(BaseModel):
         """Track an active session."""
         if session_id not in self.active_session_ids:
             self.active_session_ids.append(session_id)
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def record_login(self) -> None:
         """Record login timestamp."""
-        self.last_login_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+        self.last_login_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(timezone.utc)
 
     def to_profile_dict(self) -> Dict[str, Any]:
         """Convert to profile dictionary."""

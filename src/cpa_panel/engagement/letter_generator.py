@@ -14,7 +14,7 @@ Scope boundaries (enforced):
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 import hashlib
 import logging
 
@@ -55,7 +55,7 @@ class EngagementLetter:
     letter_content: str
 
     # Metadata
-    generated_at: datetime = field(default_factory=datetime.utcnow)
+    generated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     content_hash: str = ""
     esign_status: str = "pending"  # pending, sent, signed, declined
     esign_envelope_id: Optional[str] = None
@@ -327,7 +327,7 @@ Date: _____________
         )
 
         # Generate letter ID
-        letter_id = f"EL-{session_id[:8]}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        letter_id = f"EL-{session_id[:8]}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
 
         return EngagementLetter(
             letter_id=letter_id,

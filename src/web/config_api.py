@@ -14,7 +14,7 @@ Provides REST endpoints for accessing and managing tax configuration:
 
 import logging
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -127,7 +127,7 @@ async def get_tax_year_config(year: int):
             "success": True,
             "tax_year": year,
             "config": config,
-            "retrieved_at": datetime.utcnow().isoformat(),
+            "retrieved_at": datetime.now(timezone.utc).isoformat(),
         }
     except FileNotFoundError:
         raise HTTPException(

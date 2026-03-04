@@ -9,7 +9,7 @@ Provides:
 """
 
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
@@ -266,7 +266,7 @@ async def generate_compliance_report(
     and any compliance flags.
     """
     # Default to last 90 days
-    end_dt = datetime.fromisoformat(end_date) if end_date else datetime.utcnow()
+    end_dt = datetime.fromisoformat(end_date) if end_date else datetime.now(timezone.utc)
     start_dt = datetime.fromisoformat(start_date) if start_date else end_dt - timedelta(days=90)
 
     audit_service = AuditService(None)
@@ -292,7 +292,7 @@ async def get_compliance_status(
 
     return {
         "firm_id": user.firm_id,
-        "checked_at": datetime.utcnow().isoformat(),
+        "checked_at": datetime.now(timezone.utc).isoformat(),
         "retention_compliance": retention_check,
         "overall_status": "compliant" if retention_check["is_compliant"] else "review_needed",
     }
@@ -385,7 +385,7 @@ async def get_failed_login_attempts(
     """Get failed login attempts for security monitoring."""
     audit_service = AuditService(None)
 
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
     logs = await audit_service.get_audit_logs(
         firm_id=user.firm_id,
@@ -434,7 +434,7 @@ async def get_sensitive_actions(
     ]
 
     audit_service = AuditService(None)
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
     logs = await audit_service.get_audit_logs(
         firm_id=user.firm_id,

@@ -70,13 +70,14 @@ def _check_auth_rate_limit(identifier: str, limit: int) -> bool:
 
 
 def _get_client_ip(request: Request) -> str:
-    """Extract client IP from request."""
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    real_ip = request.headers.get("X-Real-IP")
-    if real_ip:
-        return real_ip
+    """Extract client IP from request.
+
+    SECURITY: Uses request.client.host (the actual TCP peer address) instead of
+    X-Forwarded-For / X-Real-IP headers which can be spoofed by attackers to
+    bypass rate limiting.  If the app is behind a trusted reverse proxy, the
+    proxy should set request.client to the real client IP via PROXY protocol
+    or equivalent middleware.
+    """
     return request.client.host if request.client else "unknown"
 
 # Include OAuth routes
@@ -416,7 +417,7 @@ async def verify_token(
 from pydantic import BaseModel
 import secrets
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # SECURITY: Token storage backend selection
 # In production, Redis is REQUIRED for persistence across workers and restarts.
@@ -537,7 +538,7 @@ async def forgot_password(
     if user:
         # Generate reset token
         reset_token = secrets.token_urlsafe(32)
-        expires_at = datetime.utcnow() + timedelta(minutes=15)
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
 
         # Store token using secure backend (Redis in production)
         _store_reset_token(reset_token, {
@@ -586,7 +587,7 @@ async def reset_password(
     expires_at = token_data["expires_at"]
     if isinstance(expires_at, str):
         expires_at = datetime.fromisoformat(expires_at)
-    if datetime.utcnow() > expires_at:
+    if datetime.now(timezone.utc) > expires_at:
         _delete_reset_token(request.token)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

@@ -16,7 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Dict, Optional
 
@@ -82,7 +82,7 @@ class AuditedTaxEngine:
         Returns:
             CalculationBreakdown with all computed values
         """
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         self._calculation_count += 1
 
         # Capture inputs (redacted for audit)
@@ -98,7 +98,7 @@ class AuditedTaxEngine:
             output_hash = self._compute_hash(outputs)
 
             # Calculate duration
-            end_time = datetime.utcnow()
+            end_time = datetime.now(timezone.utc)
             duration_ms = (end_time - start_time).total_seconds() * 1000
 
             # Log successful calculation
@@ -116,7 +116,7 @@ class AuditedTaxEngine:
 
         except Exception as e:
             # Log failed calculation
-            end_time = datetime.utcnow()
+            end_time = datetime.now(timezone.utc)
             duration_ms = (end_time - start_time).total_seconds() * 1000
 
             self._log_calculation(
@@ -146,7 +146,7 @@ class AuditedTaxEngine:
         Returns:
             Calculation breakdown
         """
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
 
         # Capture inputs
         inputs = self._capture_inputs(tax_return)
@@ -158,7 +158,7 @@ class AuditedTaxEngine:
             outputs = self._capture_outputs(result)
             output_hash = self._compute_hash(outputs)
 
-            end_time = datetime.utcnow()
+            end_time = datetime.now(timezone.utc)
             duration_ms = (end_time - start_time).total_seconds() * 1000
 
             # Log with scenario context

@@ -138,13 +138,15 @@ class EventTypeInfo(BaseModel):
 # =============================================================================
 
 def get_firm_id_from_request(request: Request) -> str:
-    """Extract firm_id from authenticated request."""
-    # In a real implementation, this would come from the JWT/session
+    """Extract firm_id from authenticated request.
+
+    SECURITY: Only trusts request.state.user set by auth middleware.
+    Never falls back to request headers which can be spoofed.
+    """
     user = getattr(request.state, "user", None)
-    if user and hasattr(user, "firm_id"):
+    if user and hasattr(user, "firm_id") and user.firm_id:
         return str(user.firm_id)
-    # For demo/testing
-    return request.headers.get("X-Firm-ID", "demo-firm")
+    raise HTTPException(status_code=403, detail="No firm context available")
 
 
 def get_user_id_from_request(request: Request) -> Optional[str]:
@@ -443,7 +445,7 @@ async def test_webhook_endpoint(
     """
     from webhooks.service import get_webhook_service
     from webhooks.models import WebhookEvent
-    from datetime import datetime
+    from datetime import datetime, timezone
     from uuid import uuid4
 
     firm_id = get_firm_id_from_request(request)
@@ -459,13 +461,13 @@ async def test_webhook_endpoint(
     test_payload = test_data.data if test_data and test_data.data else {
         "message": "This is a test webhook from the Tax Platform",
         "endpoint_id": endpoint_id,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
     event = WebhookEvent(
         event_id=str(uuid4()),
         event_type=event_type,
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         firm_id=firm_id,
         data=test_payload,
         metadata={"test": True},

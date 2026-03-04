@@ -10,7 +10,7 @@ Async version of the calculation pipeline that supports:
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 
 from .logging_config import get_logger, CalculationLogger
@@ -162,7 +162,7 @@ class AsyncPrepareStep(AsyncPipelineStep):
             self._apply_carryovers(context)
 
         # Set up metadata
-        context.metadata["preparation_completed_at"] = datetime.utcnow().isoformat()
+        context.metadata["preparation_completed_at"] = datetime.now(timezone.utc).isoformat()
 
         context.record_step_timing(self.name, int((time.time() - start) * 1000))
         return context

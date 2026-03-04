@@ -8,7 +8,7 @@ Complements the unified filing API with guided-specific endpoints.
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import uuid
 import logging
@@ -213,9 +213,9 @@ async def start_guided_filing(
             "current_step": "personal",
             "completed_steps": [],
             "form_data": GuidedFormData().dict(),
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat(),
-            "last_updated": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "last_updated": datetime.now(timezone.utc).isoformat(),
             "user_id": user_id,
             "is_anonymous": user_id is None,
             "tenant_id": tenant_id,
@@ -320,8 +320,8 @@ async def save_progress(
                 completed.append(step["id"])
 
         session_data["completed_steps"] = completed
-        session_data["last_updated"] = datetime.utcnow().isoformat()
-        session_data["updated_at"] = datetime.utcnow().isoformat()
+        session_data["last_updated"] = datetime.now(timezone.utc).isoformat()
+        session_data["updated_at"] = datetime.now(timezone.utc).isoformat()
 
         # Save updated session
         _save_guided_session_state(persistence, session_id, session_data)
@@ -383,11 +383,11 @@ async def submit_guided_return(
 
         # Mark as submitted
         session_data["status"] = "submitted"
-        session_data["submitted_at"] = datetime.utcnow().isoformat()
+        session_data["submitted_at"] = datetime.now(timezone.utc).isoformat()
         session_data["current_step"] = "complete"
         session_data["completed_steps"] = [s["id"] for s in GUIDED_STEPS]
-        session_data["last_updated"] = datetime.utcnow().isoformat()
-        session_data["updated_at"] = datetime.utcnow().isoformat()
+        session_data["last_updated"] = datetime.now(timezone.utc).isoformat()
+        session_data["updated_at"] = datetime.now(timezone.utc).isoformat()
         _save_guided_session_state(persistence, session_id, session_data)
 
         logger.info(f"[GUIDED] Submitted return for session {session_id}")

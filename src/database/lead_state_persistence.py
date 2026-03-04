@@ -16,7 +16,7 @@ SECURITY: PII fields (email, phone, ssn) are encrypted at rest.
 
 import sqlite3
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
@@ -286,7 +286,7 @@ class LeadStatePersistence:
         Returns:
             Saved LeadDbRecord (with original unencrypted metadata for caller)
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         original_metadata = metadata or {}
 
         # Encrypt PII before storage
@@ -591,7 +591,7 @@ class LeadStatePersistence:
         Returns:
             Saved SignalDbRecord
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         metadata = metadata or {}
 
         with sqlite3.connect(self.db_path) as conn:
@@ -687,7 +687,7 @@ class LeadStatePersistence:
         Returns:
             Saved TransitionDbRecord
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         metadata = metadata or {}
 
         with sqlite3.connect(self.db_path) as conn:

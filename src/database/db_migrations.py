@@ -14,7 +14,7 @@ Migration Version: 2025.01.001
 
 import sqlite3
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, List
 from dataclasses import dataclass
@@ -282,7 +282,7 @@ class MigrationRunner:
                 cursor.execute("""
                     INSERT INTO schema_migrations (version, description, applied_at)
                     VALUES (?, ?, ?)
-                """, (migration.version, migration.description, datetime.utcnow().isoformat()))
+                """, (migration.version, migration.description, datetime.now(timezone.utc).isoformat()))
 
                 conn.commit()
                 print(f"Applied migration {migration.version}: {migration.description}")

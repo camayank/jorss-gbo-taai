@@ -32,9 +32,9 @@
         }
 
         :root {
-            --primary-color: {{ cpa.primary_color or 'var(--color-navy, #0B1D3A)' }};
-            --secondary-color: {{ cpa.secondary_color or 'var(--color-navy-light, #132B50)' }};
-            --accent-color: {{ cpa.accent_color or 'var(--color-gold, #C9A84C)' }};
+            --primary-color: {{ cpa.primary_color or 'var(--color-navy)' }};
+            --secondary-color: {{ cpa.secondary_color or 'var(--color-navy-light)' }};
+            --accent-color: {{ cpa.accent_color or 'var(--color-gold)' }};
             --text-dark: var(--color-gray-800);
             --text-muted: var(--color-gray-500);
             --bg-light: var(--color-gray-50);
@@ -69,7 +69,7 @@
             flex-wrap: wrap;
             font-size: var(--text-xs-plus);
             color: var(--color-gray-600);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(11, 29, 58, 0.08);
         }
 
         .trust-item {
@@ -92,7 +92,7 @@
             background: var(--white);
             border-radius: var(--radius-2xl-plus);
             padding: 50px var(--space-10);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 20px 60px rgba(11, 29, 58, 0.15);
             text-align: center;
         }
 

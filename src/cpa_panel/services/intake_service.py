@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import logging
 
@@ -113,8 +113,8 @@ class IntakeService:
         session = {
             "session_id": session_id,
             "status": IntakeStatus.IN_PROGRESS.value,
-            "started_at": datetime.utcnow().isoformat(),
-            "last_activity": datetime.utcnow().isoformat(),
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "last_activity": datetime.now(timezone.utc).isoformat(),
             "cpa_id": cpa_id,
             "current_stage": self.INTAKE_STAGES[0],
             "stages_completed": [],
@@ -286,7 +286,7 @@ class IntakeService:
 
             # Store estimate
             session["estimates"].append({
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "estimate_type": estimate.estimate_type.value,
                 "estimated_amount": estimate.estimated_amount,
                 "confidence": estimate.confidence,
@@ -350,7 +350,7 @@ class IntakeService:
 
         # Update answers
         session["answers"].update(answers)
-        session["last_activity"] = datetime.utcnow().isoformat()
+        session["last_activity"] = datetime.now(timezone.utc).isoformat()
 
         # Process with interview flow if available
         next_questions = []

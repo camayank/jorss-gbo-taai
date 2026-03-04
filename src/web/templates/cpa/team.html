@@ -258,14 +258,15 @@
         </div>
         {% endif %}
 
-        <div class="invite-form" style="padding: var(--space-6);">
-            <input type="email" id="inviteEmail" placeholder="Enter email address to invite...">
-            <select style="padding: var(--space-2-5) var(--space-4); border: 1px solid var(--border-color); border-radius: var(--radius-lg);">
-                <option value="staff">Staff</option>
-                <option value="admin">Admin</option>
+        <form class="invite-form" style="padding: var(--space-6);" method="post" action="/cpa/team/invite">
+            <input type="email" id="inviteEmail" name="email" placeholder="Enter email address to invite..." required>
+            <select name="role" style="padding: var(--space-2-5) var(--space-4); border: 1px solid var(--border-color); border-radius: var(--radius-lg);">
+                <option value="preparer">Preparer</option>
+                <option value="reviewer">Reviewer</option>
+                <option value="partner">Partner</option>
             </select>
-            <button class="btn btn-primary">Send Invite</button>
-        </div>
+            <button type="submit" class="btn btn-primary">Send Invite</button>
+        </form>
     </div>
 </div>
 {% endblock %}

@@ -7,17 +7,18 @@ initiate, track, and complete client onboarding.
 Now with REAL database persistence - no mocks!
 """
 
-from fastapi import APIRouter, Request, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, Request, HTTPException, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from typing import Optional, List
 import logging
 import uuid
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .common import get_tenant_id, format_success_response, format_error_response, ErrorCode, log_and_raise_http_error
+from .auth_dependencies import require_internal_cpa_auth
 from ..security import (
     sanitize_filename,
     validate_session_id,
@@ -56,6 +57,8 @@ def ensure_tables_exist():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             client_id TEXT UNIQUE NOT NULL,
             session_id TEXT,
+            tenant_id TEXT DEFAULT 'default',
+            firm_id TEXT,
             first_name TEXT,
             last_name TEXT,
             email TEXT,
@@ -123,6 +126,7 @@ def ensure_tables_exist():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             cpa_id TEXT UNIQUE NOT NULL,
             cpa_slug TEXT UNIQUE NOT NULL,
+            firm_id TEXT,
             first_name TEXT NOT NULL,
             last_name TEXT NOT NULL,
             credentials TEXT,
@@ -172,6 +176,7 @@ def ensure_tables_exist():
             lead_id TEXT UNIQUE NOT NULL,
             session_id TEXT NOT NULL,
             cpa_id TEXT,
+            firm_id TEXT,
             first_name TEXT,
             email TEXT NOT NULL,
             phone TEXT,
@@ -236,7 +241,7 @@ ensure_tables_exist()
 # =============================================================================
 
 @intake_router.post("/clients/intake/start")
-async def start_intake(request: Request):
+async def start_intake(request: Request, user=Depends(require_internal_cpa_auth)):
     """
     Start a new client intake session with REAL database persistence.
 
@@ -256,7 +261,7 @@ async def start_intake(request: Request):
         body = {}
 
     tenant_id = get_tenant_id(request)
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     # Generate unique IDs
     session_id = body.get("session_id") or f"session-{uuid.uuid4().hex[:12]}"
@@ -320,7 +325,7 @@ async def start_intake(request: Request):
 
 
 @intake_router.post("/clients/{session_id}/info")
-async def save_client_info(session_id: str, request: Request):
+async def save_client_info(session_id: str, request: Request, user=Depends(require_internal_cpa_auth)):
     """
     Save or update client information.
 
@@ -332,14 +337,18 @@ async def save_client_info(session_id: str, request: Request):
         logger.debug(f"Failed to parse request body: {e}")
         body = {}
 
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
+    tenant_id = get_tenant_id(request)
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Check if client exists for this session
-        cursor.execute("SELECT client_id FROM clients WHERE session_id = ?", (session_id,))
+        # Check if client exists for this session (scoped by tenant)
+        if tenant_id and tenant_id != "default":
+            cursor.execute("SELECT client_id FROM clients WHERE session_id = ? AND tenant_id = ?", (session_id, tenant_id))
+        else:
+            cursor.execute("SELECT client_id FROM clients WHERE session_id = ?", (session_id,))
         row = cursor.fetchone()
 
         if row:
@@ -364,16 +373,18 @@ async def save_client_info(session_id: str, request: Request):
                 session_id
             ))
         else:
-            # Create new client
+            # Create new client with tenant/firm scoping
             client_id = f"client-{uuid.uuid4().hex[:12]}"
             cursor.execute("""
                 INSERT INTO clients (
-                    client_id, session_id, first_name, last_name, email, phone,
+                    client_id, session_id, tenant_id, firm_id, first_name, last_name, email, phone,
                     filing_status, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 client_id,
                 session_id,
+                tenant_id,
+                tenant_id,
                 body.get("first_name", ""),
                 body.get("last_name", ""),
                 body.get("email", ""),
@@ -409,7 +420,8 @@ async def save_client_info(session_id: str, request: Request):
 async def upload_document(
     session_id: str,
     request: Request,
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    user=Depends(require_internal_cpa_auth),
 ):
     """
     Upload a document for a client session.
@@ -422,7 +434,7 @@ async def upload_document(
     if not is_valid:
         raise HTTPException(status_code=400, detail=error_msg)
 
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     document_id = f"doc-{uuid.uuid4().hex[:12]}"
 
     try:
@@ -470,8 +482,9 @@ async def upload_document(
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Get client_id if exists
-        cursor.execute("SELECT client_id FROM clients WHERE session_id = ?", (session_id,))
+        # Get client_id if exists (scoped by tenant)
+        tenant_id = get_tenant_id(request)
+        cursor.execute("SELECT client_id FROM clients WHERE session_id = ? AND tenant_id = ?", (session_id, tenant_id))
         row = cursor.fetchone()
         client_id = row["client_id"] if row else None
 
@@ -518,7 +531,7 @@ async def upload_document(
 
 
 @intake_router.get("/clients/{session_id}/documents")
-async def list_documents(session_id: str, request: Request):
+async def list_documents(session_id: str, request: Request, user=Depends(require_internal_cpa_auth)):
     """
     List all documents for a session.
     """
@@ -548,13 +561,13 @@ async def list_documents(session_id: str, request: Request):
 
 
 @intake_router.post("/clients/{session_id}/submit")
-async def submit_for_review(session_id: str, request: Request):
+async def submit_for_review(session_id: str, request: Request, user=Depends(require_internal_cpa_auth)):
     """
     Submit the client intake for CPA review.
 
     Changes status from DRAFT to IN_REVIEW.
     """
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     try:
         conn = get_db_connection()
@@ -580,8 +593,9 @@ async def submit_for_review(session_id: str, request: Request):
 
         conn.commit()
 
-        # Get updated client info
-        cursor.execute("SELECT * FROM clients WHERE session_id = ?", (session_id,))
+        # Get updated client info (scoped by tenant)
+        tenant_id = get_tenant_id(request)
+        cursor.execute("SELECT * FROM clients WHERE session_id = ? AND tenant_id = ?", (session_id, tenant_id))
         client = dict(cursor.fetchone()) if cursor.fetchone() else {}
 
         conn.close()
@@ -598,7 +612,7 @@ async def submit_for_review(session_id: str, request: Request):
 
 
 @intake_router.get("/clients/{session_id}/intake/status")
-async def get_intake_status(session_id: str, request: Request):
+async def get_intake_status(session_id: str, request: Request, user=Depends(require_internal_cpa_auth)):
     """
     Get current intake status for a session from database.
 
@@ -622,13 +636,14 @@ async def get_intake_status(session_id: str, request: Request):
         """, (session_id,))
         session_row = cursor.fetchone()
 
-        # Get client info
+        # Get client info (scoped by tenant)
+        tenant_id = get_tenant_id(request)
         cursor.execute("""
             SELECT client_id, first_name, last_name, email, filing_status,
                    tax_year, status, consent_given
             FROM clients
-            WHERE session_id = ?
-        """, (session_id,))
+            WHERE session_id = ? AND tenant_id = ?
+        """, (session_id, tenant_id))
         client_row = cursor.fetchone()
 
         # Get document count
@@ -667,7 +682,7 @@ async def get_intake_status(session_id: str, request: Request):
 
 
 @intake_router.get("/clients/{session_id}/intake/progress")
-async def get_intake_progress(session_id: str, request: Request):
+async def get_intake_progress(session_id: str, request: Request, user=Depends(require_internal_cpa_auth)):
     """
     Get detailed progress for intake session from database.
     """
@@ -718,7 +733,7 @@ async def get_intake_progress(session_id: str, request: Request):
 
 
 @intake_router.get("/clients/{session_id}/intake/estimate")
-async def get_intake_estimate(session_id: str, request: Request):
+async def get_intake_estimate(session_id: str, request: Request, user=Depends(require_internal_cpa_auth)):
     """
     Get current benefit estimate based on intake answers.
     Reads from tax_returns table if available.
@@ -762,8 +777,9 @@ async def get_intake_estimate(session_id: str, request: Request):
                 "potential_savings": potential_savings,
             })
 
-        # Fallback: just return session exists
-        cursor.execute("SELECT * FROM clients WHERE session_id = ?", (session_id,))
+        # Fallback: just return session exists (scoped by tenant)
+        tenant_id = get_tenant_id(request)
+        cursor.execute("SELECT * FROM clients WHERE session_id = ? AND tenant_id = ?", (session_id, tenant_id))
         client = cursor.fetchone()
         conn.close()
 
@@ -786,7 +802,7 @@ async def get_intake_estimate(session_id: str, request: Request):
 
 
 @intake_router.post("/clients/{session_id}/intake/answers")
-async def submit_intake_answers(session_id: str, request: Request):
+async def submit_intake_answers(session_id: str, request: Request, user=Depends(require_internal_cpa_auth)):
     """
     Submit answers for an intake session.
     Persists to database.
@@ -798,7 +814,7 @@ async def submit_intake_answers(session_id: str, request: Request):
         body = {}
 
     answers = body.get("answers", {})
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     try:
         conn = get_db_connection()
@@ -846,7 +862,7 @@ async def submit_intake_answers(session_id: str, request: Request):
 # =============================================================================
 
 @intake_router.get("/clients/{session_id}/full")
-async def get_client_full(session_id: str, request: Request):
+async def get_client_full(session_id: str, request: Request, user=Depends(require_internal_cpa_auth)):
     """
     Get full client details including tax return, recommendations, and documents.
     """
@@ -854,8 +870,9 @@ async def get_client_full(session_id: str, request: Request):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Get client
-        cursor.execute("SELECT * FROM clients WHERE session_id = ?", (session_id,))
+        # Get client (scoped by tenant)
+        tenant_id = get_tenant_id(request)
+        cursor.execute("SELECT * FROM clients WHERE session_id = ? AND tenant_id = ?", (session_id, tenant_id))
         client_row = cursor.fetchone()
 
         if not client_row:
@@ -864,18 +881,21 @@ async def get_client_full(session_id: str, request: Request):
         client = dict(client_row)
         client_id = client.get("client_id")
 
-        # Get tax return
-        cursor.execute("SELECT * FROM tax_returns WHERE session_id = ? OR client_id = ?", (session_id, client_id))
+        # Get tax return (scoped by session AND tenant)
+        cursor.execute(
+            "SELECT * FROM tax_returns WHERE (session_id = ? OR client_id = ?) AND tenant_id = ?",
+            (session_id, client_id, tenant_id),
+        )
         tr_row = cursor.fetchone()
         if tr_row:
             client["tax_return"] = dict(tr_row)
 
-        # Get recommendations
+        # Get recommendations (scoped by tenant)
         cursor.execute("""
             SELECT * FROM recommendations
-            WHERE session_id = ? OR client_id = ?
+            WHERE (session_id = ? OR client_id = ?) AND tenant_id = ?
             ORDER BY estimated_savings DESC
-        """, (session_id, client_id))
+        """, (session_id, client_id, tenant_id))
         client["recommendations"] = [dict(r) for r in cursor.fetchall()]
 
         # Get documents
@@ -886,8 +906,8 @@ async def get_client_full(session_id: str, request: Request):
         """, (session_id,))
         client["documents"] = [dict(d) for d in cursor.fetchall()]
 
-        # Get intake session
-        cursor.execute("SELECT * FROM intake_sessions WHERE session_id = ?", (session_id,))
+        # Get intake session (scoped by tenant)
+        cursor.execute("SELECT * FROM intake_sessions WHERE session_id = ? AND tenant_id = ?", (session_id, tenant_id))
         intake_row = cursor.fetchone()
         if intake_row:
             client["intake_session"] = dict(intake_row)

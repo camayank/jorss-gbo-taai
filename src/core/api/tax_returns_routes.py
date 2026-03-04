@@ -16,7 +16,7 @@ import logging
 from uuid import uuid4
 from fastapi import APIRouter, HTTPException, Depends, Query, status
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from decimal import Decimal
 from pydantic import BaseModel, Field
@@ -300,13 +300,13 @@ async def list_tax_returns(
             id=str(row[0]),
             user_id=str(row[1]) if row[1] else "",
             user_name=row[2] or "Unknown",
-            tax_year=row[3] or datetime.utcnow().year,
+            tax_year=row[3] or datetime.now(timezone.utc).year,
             return_type=TaxReturnType(row[4]) if row[4] else TaxReturnType.INDIVIDUAL,
             status=TaxReturnStatus(status_val),
             gross_income=float(row[6] or 0),
             total_tax=float(row[7] or 0),
             completion_percentage=row[8] or 0,
-            updated_at=_parse_dt(row[9]) or datetime.utcnow(),
+            updated_at=_parse_dt(row[9]) or datetime.now(timezone.utc),
         ))
 
     return results
@@ -388,7 +388,7 @@ async def get_tax_return(
         user_id=str(row[1]) if row[1] else "",
         firm_id=str(row[2]) if row[2] else None,
         assigned_cpa_id=str(row[3]) if row[3] else None,
-        tax_year=row[4] or datetime.utcnow().year,
+        tax_year=row[4] or datetime.now(timezone.utc).year,
         return_type=TaxReturnType(row[5]) if row[5] else TaxReturnType.INDIVIDUAL,
         status=TaxReturnStatus(status_val),
         gross_income=float(row[7] or 0),
@@ -397,8 +397,8 @@ async def get_tax_return(
         total_tax=float(row[10] or 0),
         refund_amount=float(row[11] or 0),
         amount_due=float(row[12] or 0),
-        created_at=_parse_dt(row[13]) or datetime.utcnow(),
-        updated_at=_parse_dt(row[14]) or datetime.utcnow(),
+        created_at=_parse_dt(row[13]) or datetime.now(timezone.utc),
+        updated_at=_parse_dt(row[14]) or datetime.now(timezone.utc),
         submitted_at=_parse_dt(row[15]),
         filed_at=_parse_dt(row[16]),
         completion_percentage=row[17] or 0,
@@ -451,7 +451,7 @@ async def create_tax_return(
         )
 
     return_id = str(uuid4())
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     documents_required = 8 if request.return_type == TaxReturnType.INDIVIDUAL else 15
 
     insert_query = text("""
@@ -539,7 +539,7 @@ async def update_tax_return(
 
     # Build update query
     updates = []
-    params = {"return_id": return_id, "updated_at": datetime.utcnow().isoformat()}
+    params = {"return_id": return_id, "updated_at": datetime.now(timezone.utc).isoformat()}
 
     if request.status is not None:
         workflow_stage = _map_status_to_workflow(request.status.value)
@@ -632,7 +632,7 @@ async def submit_tax_return(
             detail=f"Cannot submit return with stage {current_stage}"
         )
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     update_query = text("""
         UPDATE returns SET
             workflow_stage = 'review',

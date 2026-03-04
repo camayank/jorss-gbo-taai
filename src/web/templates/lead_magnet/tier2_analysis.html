@@ -22,12 +22,12 @@
         }
 
         :root {
-            --primary-color: {{ cpa.primary_color or 'var(--color-navy, #0B1D3A)' }};
-            --secondary-color: {{ cpa.secondary_color or 'var(--color-navy-light, #132B50)' }};
-            --accent-color: {{ cpa.accent_color or 'var(--color-gold, #C9A84C)' }};
+            --primary-color: {{ cpa.primary_color or 'var(--color-navy)' }};
+            --secondary-color: {{ cpa.secondary_color or 'var(--color-navy-light)' }};
+            --accent-color: {{ cpa.accent_color or 'var(--color-gold)' }};
             --text-dark: var(--color-gray-800);
             --text-muted: var(--color-gray-500);
-            --bg-light: var(--color-cream, #FAF8F4);
+            --bg-light: var(--color-cream);
             --white: var(--white);
         }
 
@@ -36,7 +36,7 @@
             line-height: var(--leading-relaxed);
 
             color: var(--text-dark);
-            background: var(--color-cream, #FAF8F4);
+            background: var(--color-cream);
         }
 
         /* Header */
@@ -108,7 +108,7 @@
             border-radius: var(--radius-2xl);
             padding: 30px;
             margin-bottom: var(--space-5);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 20px rgba(11, 29, 58, 0.05);
         }
 
         .section-header {
@@ -162,11 +162,11 @@
         .savings-item-value {
             font-size: 2rem;
             font-weight: var(--font-bold);
-            color: var(--color-gold, #C9A84C);
+            color: var(--color-gold);
         }
 
         .savings-item-value.primary {
-            background: linear-gradient(135deg, var(--color-success-500, #10b981) 0%, var(--color-success-600) 100%);
+            background: linear-gradient(135deg, var(--color-success-500) 0%, var(--color-success-600) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -177,7 +177,7 @@
             border: 1px solid var(--color-gray-200);
             border-radius: var(--radius-xl);
             padding: var(--space-3-5);
-            background: var(--color-cream, #FAF8F4);
+            background: var(--color-cream);
         }
 
         .waterfall-title {
@@ -272,7 +272,7 @@
         }
 
         .insight-savings {
-            background: linear-gradient(135deg, var(--color-success-500, #10b981) 0%, var(--color-success-600) 100%);
+            background: linear-gradient(135deg, var(--color-success-500) 0%, var(--color-success-600) 100%);
             color: white;
             padding: var(--space-1-5) var(--space-3-5);
             border-radius: var(--radius-2xl-plus);
@@ -1039,7 +1039,7 @@
             {% if cpa.firm_name %} of {{ cpa.firm_name }}{% endif %}
         </p>
         <p>Report ID: {{ session_id }} | Generated: {{ now().strftime('%B %d, %Y at %I:%M %p') if now else 'Today' }}</p>
-        <p style="margin-top: var(--space-3); color: #9ca3af;">
+        <p style="margin-top: var(--space-3); color: var(--color-gray-500);">
             &copy; {{ current_year or 'current year' }} {{ cpa.firm_name or cpa.display_name }}. All rights reserved.
         </p>
     </footer>

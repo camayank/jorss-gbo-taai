@@ -12,7 +12,7 @@ Access control is automatically applied based on UserContext.
 
 from fastapi import APIRouter, HTTPException, Depends, Query, status
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pydantic import BaseModel
 from uuid import uuid4
@@ -257,7 +257,7 @@ def _row_to_conversation(row, messages_data: Optional[dict] = None) -> Conversat
                 content=last_msg_data.get("content", ""),
                 attachments=last_msg_data.get("attachments", []),
                 read_by=last_msg_data.get("read_by", []),
-                created_at=_parse_dt(last_msg_data.get("created_at")) or datetime.utcnow(),
+                created_at=_parse_dt(last_msg_data.get("created_at")) or datetime.now(timezone.utc),
                 edited_at=_parse_dt(last_msg_data.get("edited_at")),
             )
         except (KeyError, TypeError, ValueError) as e:
@@ -272,8 +272,8 @@ def _row_to_conversation(row, messages_data: Optional[dict] = None) -> Conversat
         firm_id=str(row[5]) if row[5] else None,
         last_message=last_message,
         unread_count=0,  # Calculated separately
-        created_at=_parse_dt(row[8]) or datetime.utcnow(),
-        updated_at=_parse_dt(row[9]) or datetime.utcnow(),
+        created_at=_parse_dt(row[8]) or datetime.now(timezone.utc),
+        updated_at=_parse_dt(row[9]) or datetime.now(timezone.utc),
     )
 
 
@@ -294,7 +294,7 @@ def _row_to_message(row) -> Message:
         content=row[6] or "",
         attachments=attachments,
         read_by=read_by,
-        created_at=_parse_dt(row[9]) or datetime.utcnow(),
+        created_at=_parse_dt(row[9]) or datetime.now(timezone.utc),
         edited_at=_parse_dt(row[10]),
     )
 
@@ -312,7 +312,7 @@ def _row_to_notification(row) -> Notification:
         body=row[4] or "",
         data=data,
         read=row[6] if row[6] is not None else False,
-        created_at=_parse_dt(row[7]) or datetime.utcnow(),
+        created_at=_parse_dt(row[7]) or datetime.now(timezone.utc),
         read_at=_parse_dt(row[8]),
     )
 
@@ -483,7 +483,7 @@ async def create_conversation(
     """
     await _ensure_messaging_tables(session)
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     conversation_id = str(uuid4())
 
     # Build participant list including the creator
@@ -494,15 +494,15 @@ async def create_conversation(
     # Lookup participant details from database
     for pid in request.participant_ids:
         if pid != context.user_id:
-            # Try to lookup user details
+            # Try to lookup user details (scoped by firm_id)
             user_query = text("""
-                SELECT first_name, last_name, role FROM users WHERE user_id = :user_id
+                SELECT first_name, last_name, role FROM users WHERE user_id = :user_id AND (firm_id = :firm_id OR firm_id IS NULL)
                 UNION ALL
-                SELECT first_name, last_name, 'client' FROM clients WHERE client_id = :user_id
+                SELECT first_name, last_name, 'client' FROM clients WHERE client_id = :user_id AND (firm_id = :firm_id OR firm_id IS NULL)
                 LIMIT 1
             """)
             try:
-                user_result = await session.execute(user_query, {"user_id": pid})
+                user_result = await session.execute(user_query, {"user_id": pid, "firm_id": context.firm_id})
                 user_row = user_result.fetchone()
                 if user_row:
                     name = f"{user_row[0] or ''} {user_row[1] or ''}".strip() or f"User {pid}"
@@ -693,7 +693,7 @@ async def send_message(
             detail="Access denied"
         )
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     message_id = str(uuid4())
 
     # Build attachments (in production, would validate document IDs)
@@ -955,7 +955,7 @@ async def mark_notification_read(
 
     await session.execute(update_query, {
         "notification_id": notification_id,
-        "read_at": datetime.utcnow().isoformat(),
+        "read_at": datetime.now(timezone.utc).isoformat(),
     })
     await session.commit()
 
@@ -970,7 +970,7 @@ async def mark_all_notifications_read(
     """Mark all notifications as read."""
     await _ensure_messaging_tables(session)
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     update_query = text("""
         UPDATE notifications SET
@@ -1043,7 +1043,7 @@ async def send_quick_message(
     """
     await _ensure_messaging_tables(session)
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     # Find existing direct conversation between these users
     find_conv_query = text("""
@@ -1067,15 +1067,15 @@ async def send_quick_message(
         # Create new conversation
         conversation_id = str(uuid4())
 
-        # Lookup recipient details
+        # Lookup recipient details (scoped by firm_id)
         user_query = text("""
-            SELECT first_name, last_name, role FROM users WHERE user_id = :user_id
+            SELECT first_name, last_name, role FROM users WHERE user_id = :user_id AND (firm_id = :firm_id OR firm_id IS NULL)
             UNION ALL
-            SELECT first_name, last_name, 'client' FROM clients WHERE client_id = :user_id
+            SELECT first_name, last_name, 'client' FROM clients WHERE client_id = :user_id AND (firm_id = :firm_id OR firm_id IS NULL)
             LIMIT 1
         """)
         try:
-            user_result = await session.execute(user_query, {"user_id": recipient_id})
+            user_result = await session.execute(user_query, {"user_id": recipient_id, "firm_id": context.firm_id})
             user_row = user_result.fetchone()
             if user_row:
                 recipient_name = f"{user_row[0] or ''} {user_row[1] or ''}".strip() or f"User {recipient_id}"

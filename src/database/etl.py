@@ -15,7 +15,7 @@ import csv
 import uuid
 import hashlib
 import logging
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Dict, List, Any, Optional, Tuple, TYPE_CHECKING
 from dataclasses import dataclass, field
@@ -92,7 +92,7 @@ class ExtractionResult:
     raw_data: Dict[str, Any]
     errors: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
-    extraction_timestamp: datetime = field(default_factory=datetime.utcnow)
+    extraction_timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 @dataclass
@@ -752,7 +752,7 @@ class DataTransformer:
             result['ssn_hash'] = hashlib.sha256(ssn.encode()).hexdigest()
 
         # Add metadata timestamps
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if 'created_at' not in result:
             result['created_at'] = now
         result['updated_at'] = now
@@ -972,7 +972,7 @@ class DataLoader:
             if field in data:
                 setattr(existing, field, data[field])
 
-        existing.updated_at = datetime.utcnow()
+        existing.updated_at = datetime.now(timezone.utc)
         existing.updated_by = user_id
 
         # Create audit log
@@ -1183,7 +1183,7 @@ class ETLPipeline:
     ) -> ETLResult:
         """Run complete ETL pipeline."""
         pipeline_id = str(uuid.uuid4())
-        started_at = datetime.utcnow()
+        started_at = datetime.now(timezone.utc)
 
         try:
             # Step 1: Extract
@@ -1257,7 +1257,7 @@ class ETLPipeline:
         started_at: datetime
     ) -> ETLResult:
         """Create pipeline result."""
-        completed_at = datetime.utcnow()
+        completed_at = datetime.now(timezone.utc)
         duration_ms = (completed_at - started_at).total_seconds() * 1000
 
         success = (

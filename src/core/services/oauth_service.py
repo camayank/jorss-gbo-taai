@@ -18,7 +18,7 @@ import json
 import os
 import secrets
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -238,7 +238,7 @@ class OAuthService:
         # Store state token in Redis (or in-memory fallback)
         await self._store_state_token(state, {
             "provider": provider,
-            "created_at": datetime.utcnow(),
+            "created_at": datetime.now(timezone.utc),
             "redirect_uri": redirect_uri,
         })
 
@@ -327,7 +327,7 @@ class OAuthService:
             raise ValueError("Invalid or expired state token")
 
         # Check state hasn't expired (10 minute max)
-        if datetime.utcnow() - state_data["created_at"] > timedelta(minutes=10):
+        if datetime.now(timezone.utc) - state_data["created_at"] > timedelta(minutes=10):
             raise ValueError("State token expired")
 
         # Exchange code for tokens

@@ -16,7 +16,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from .form_1040_parser import Parsed1040Data, FilingStatus
@@ -216,7 +216,7 @@ class LeadGenerationService:
             lead_id=str(uuid.uuid4()),
             source=source,
             status=LeadStatus.NEW,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
             filing_status=fs,
             estimated_agi=Decimal(str(estimated_income)),
             estimated_wages=Decimal(str(estimated_income)),
@@ -275,7 +275,7 @@ class LeadGenerationService:
             lead_id=str(uuid.uuid4()),
             source=LeadSource.DOCUMENT_UPLOAD,
             status=LeadStatus.NEW,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
             name=parsed.taxpayer_name,
             filing_status=parsed.filing_status,
             estimated_agi=parsed.adjusted_gross_income,
@@ -409,7 +409,7 @@ class LeadGenerationService:
 
         lead.status = LeadStatus.CONVERTED
         lead.converted_client_id = client_id
-        lead.converted_at = datetime.utcnow()
+        lead.converted_at = datetime.now(timezone.utc)
         lead.assigned_cpa_id = cpa_id
 
         logger.info(f"Converted lead {lead_id} to client {client_id}")
@@ -430,7 +430,7 @@ class LeadGenerationService:
 
         lead.status = status
         if note:
-            lead.notes.append(f"[{datetime.utcnow().isoformat()}] {note}")
+            lead.notes.append(f"[{datetime.now(timezone.utc).isoformat()}] {note}")
 
         return lead
 
@@ -648,7 +648,7 @@ class LeadGenerationService:
             session_id="analysis",
             cpa_id="lead_gen",
             status=OnboardingStatus.OCR_COMPLETE,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
             parsed_1040=parsed,
         )
 

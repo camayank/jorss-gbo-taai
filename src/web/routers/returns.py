@@ -18,13 +18,17 @@ Routes:
 - GET /api/returns/{session_id}/notes - Get notes
 """
 
-from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi import APIRouter, Depends, Request, HTTPException, Query
 from fastapi.responses import JSONResponse
 from typing import Optional, Dict, Any, List
 import uuid
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
+
+from rbac.dependencies import require_auth, require_role
+from rbac.context import AuthContext
+from rbac.roles import Role
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +69,7 @@ def _get_session_persistence():
 # =============================================================================
 
 @router.post("/save")
-async def save_return(request: Request):
+async def save_return(request: Request, ctx: AuthContext = Depends(require_auth)):
     """
     Save or update a tax return.
 
@@ -83,7 +87,7 @@ async def save_return(request: Request):
 
         # Add metadata
         tax_return_data["session_id"] = session_id
-        tax_return_data["updated_at"] = datetime.utcnow().isoformat()
+        tax_return_data["updated_at"] = datetime.now(timezone.utc).isoformat()
 
         # Save to database
         persistence = _get_persistence()
@@ -117,7 +121,7 @@ async def save_return(request: Request):
 
 
 @router.get("/{return_id}")
-async def get_return(return_id: str, request: Request):
+async def get_return(return_id: str, request: Request, ctx: AuthContext = Depends(require_auth)):
     """Get a tax return by ID."""
     try:
         persistence = _get_persistence()
@@ -148,6 +152,7 @@ async def list_returns(
     status: Optional[str] = Query(None),
     limit: int = Query(50, le=100),
     offset: int = Query(0, ge=0),
+    ctx: AuthContext = Depends(require_auth),
 ):
     """List tax returns with optional filters."""
     try:
@@ -177,7 +182,7 @@ async def list_returns(
 
 
 @router.delete("/{return_id}")
-async def delete_return(return_id: str, request: Request):
+async def delete_return(return_id: str, request: Request, ctx: AuthContext = Depends(require_auth)):
     """Delete a tax return."""
     try:
         persistence = _get_persistence()
@@ -211,7 +216,7 @@ async def delete_return(return_id: str, request: Request):
 # =============================================================================
 
 @router.get("/{session_id}/status")
-async def get_return_status(session_id: str, request: Request):
+async def get_return_status(session_id: str, request: Request, ctx: AuthContext = Depends(require_auth)):
     """Get the status of a return (DRAFT, IN_REVIEW, CPA_APPROVED)."""
     try:
         session_persistence = _get_session_persistence()
@@ -245,7 +250,7 @@ async def get_return_status(session_id: str, request: Request):
 
 
 @router.post("/{session_id}/submit-for-review")
-async def submit_for_review(session_id: str, request: Request):
+async def submit_for_review(session_id: str, request: Request, ctx: AuthContext = Depends(require_auth)):
     """Submit a return for CPA review."""
     try:
         session_persistence = _get_session_persistence()
@@ -283,7 +288,7 @@ async def submit_for_review(session_id: str, request: Request):
 
 
 @router.post("/{session_id}/approve")
-async def approve_return(session_id: str, request: Request):
+async def approve_return(session_id: str, request: Request, ctx: AuthContext = Depends(require_role({Role.PARTNER, Role.STAFF}))):
     """CPA approval of a return."""
     try:
         body = await request.json()
@@ -303,7 +308,7 @@ async def approve_return(session_id: str, request: Request):
 
         # Generate approval signature hash
         import hashlib
-        approval_data = f"{session_id}:{cpa_reviewer_id}:{datetime.utcnow().isoformat()}"
+        approval_data = f"{session_id}:{cpa_reviewer_id}:{datetime.now(timezone.utc).isoformat()}"
         approval_hash = hashlib.sha256(approval_data.encode()).hexdigest()
 
         # Update status to CPA_APPROVED
@@ -337,7 +342,7 @@ async def approve_return(session_id: str, request: Request):
 
 
 @router.post("/{session_id}/revert-to-draft")
-async def revert_to_draft(session_id: str, request: Request):
+async def revert_to_draft(session_id: str, request: Request, ctx: AuthContext = Depends(require_auth)):
     """Revert a return back to draft status."""
     try:
         body = await request.json() if request.headers.get("content-type") == "application/json" else {}
@@ -374,6 +379,7 @@ async def get_returns_by_status(
     request: Request,
     limit: int = Query(50, le=100),
     offset: int = Query(0, ge=0),
+    ctx: AuthContext = Depends(require_role({Role.PARTNER, Role.STAFF})),
 ):
     """Get returns by workflow status (for CPA queue)."""
     try:
@@ -414,7 +420,7 @@ async def get_returns_by_status(
 # =============================================================================
 
 @router.post("/{session_id}/notes")
-async def add_return_note(session_id: str, request: Request):
+async def add_return_note(session_id: str, request: Request, ctx: AuthContext = Depends(require_auth)):
     """Add a note to a return."""
     try:
         body = await request.json()
@@ -442,7 +448,7 @@ async def add_return_note(session_id: str, request: Request):
             "text": note_text,
             "type": note_type,
             "author": author,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
         }
         notes.append(new_note)
         session_data["notes"] = notes
@@ -473,7 +479,7 @@ async def add_return_note(session_id: str, request: Request):
 
 
 @router.get("/{session_id}/notes")
-async def get_return_notes(session_id: str, request: Request):
+async def get_return_notes(session_id: str, request: Request, ctx: AuthContext = Depends(require_auth)):
     """Get all notes for a return."""
     try:
         session_persistence = _get_session_persistence()

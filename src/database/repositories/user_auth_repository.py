@@ -15,7 +15,7 @@ import json
 import logging
 import hashlib
 import hmac
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 from uuid import UUID, uuid4
 
@@ -130,7 +130,7 @@ class UserAuthRepository:
         Returns:
             True if updated.
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         # Try firm users first
         query = text("""
@@ -213,7 +213,7 @@ class UserAuthRepository:
         """
         user_type = user_data.get("user_type", "consumer")
         user_id = str(uuid4())
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         if user_type == "platform_admin":
             query = text("""
@@ -258,19 +258,20 @@ class UserAuthRepository:
                 "created_at": now,
             }
         else:
-            # Consumer or CPA client - use clients table
+            # Consumer or CPA client - use clients table (include firm_id for tenant isolation)
             query = text("""
                 INSERT INTO clients (
-                    client_id, preparer_id, first_name, last_name, email, phone,
+                    client_id, preparer_id, firm_id, first_name, last_name, email, phone,
                     is_active, created_at
                 ) VALUES (
-                    :client_id, :preparer_id, :first_name, :last_name, :email, :phone,
+                    :client_id, :preparer_id, :firm_id, :first_name, :last_name, :email, :phone,
                     true, :created_at
                 )
             """)
             params = {
                 "client_id": user_id,
                 "preparer_id": user_data.get("assigned_cpa_id"),
+                "firm_id": user_data.get("firm_id"),
                 "first_name": user_data.get("first_name", ""),
                 "last_name": user_data.get("last_name", ""),
                 "email": user_data["email"].lower(),
@@ -297,7 +298,7 @@ class UserAuthRepository:
         Returns:
             True if updated.
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         # Try firm users
         query = text("""

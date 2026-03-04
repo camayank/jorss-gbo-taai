@@ -11,7 +11,7 @@ import hashlib
 import json
 from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -135,7 +135,7 @@ class ApprovalManager:
         Returns:
             Full SHA-256 signature hash (64 characters)
         """
-        timestamp = timestamp or datetime.utcnow()
+        timestamp = timestamp or datetime.now(timezone.utc)
 
         # Include return_data_hash in signature for data binding
         signature_components = [
@@ -232,7 +232,7 @@ class ApprovalManager:
                 "This ensures all critical items have been verified."
             )
 
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now(timezone.utc)
 
         # P0: Compute return data hash for signature binding
         return_data_hash = ""
@@ -411,7 +411,7 @@ class ApprovalCertificate:
             "certificate_type": "CPA_APPROVAL",
             "certificate_version": "2.0",  # Version with hash-based integrity
             "session_id": approval.session_id,
-            "issued_at": datetime.utcnow().isoformat(),
+            "issued_at": datetime.now(timezone.utc).isoformat(),
             "approval_details": {
                 "cpa_name": approval.cpa_reviewer_name,
                 "cpa_id": approval.cpa_reviewer_id,

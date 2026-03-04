@@ -7,7 +7,7 @@ Provides invoice management, payment links, and payment tracking.
 
 import os
 import logging
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from typing import Optional, List, Dict, Any, Tuple
 from uuid import UUID
 
@@ -204,7 +204,7 @@ class PaymentService:
         if due_date is not None:
             invoice.due_date = due_date
 
-        invoice.updated_at = datetime.utcnow()
+        invoice.updated_at = datetime.now(timezone.utc)
         return invoice
 
     def send_invoice(self, invoice_id: UUID) -> Optional[Invoice]:
@@ -258,7 +258,7 @@ class PaymentService:
             platform_fee=platform_fee,
             net_amount=amount - platform_fee,
             status=PaymentStatus.SUCCEEDED,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
         )
 
         self._payments[payment.id] = payment
@@ -268,7 +268,7 @@ class PaymentService:
         if invoice.is_paid:
             invoice.mark_paid(invoice.amount_paid, paid_date)
 
-        invoice.updated_at = datetime.utcnow()
+        invoice.updated_at = datetime.now(timezone.utc)
 
         return invoice, payment
 
@@ -327,7 +327,7 @@ class PaymentService:
             amount=amount,
             currency=currency,
             max_uses=max_uses,
-            expires_at=datetime.utcnow() + timedelta(days=expires_in_days) if expires_in_days else None,
+            expires_at=datetime.now(timezone.utc) + timedelta(days=expires_in_days) if expires_in_days else None,
             min_amount=min_amount,
             max_amount=max_amount,
         )
@@ -432,7 +432,7 @@ class PaymentService:
             net_amount=amount - platform_fee,
             stripe_payment_intent_id=stripe_payment_intent_id,
             status=PaymentStatus.SUCCEEDED,
-            completed_at=datetime.utcnow(),
+            completed_at=datetime.now(timezone.utc),
             metadata={"link_id": str(link.id), "link_code": link_code},
         )
 
@@ -531,9 +531,9 @@ class PaymentService:
         Returns aggregated payment statistics.
         """
         if not start_date:
-            start_date = datetime.utcnow() - timedelta(days=30)
+            start_date = datetime.now(timezone.utc) - timedelta(days=30)
         if not end_date:
-            end_date = datetime.utcnow()
+            end_date = datetime.now(timezone.utc)
 
         total_revenue = 0.0
         total_fees = 0.0

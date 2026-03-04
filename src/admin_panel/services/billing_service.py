@@ -10,7 +10,7 @@ Handles:
 """
 
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 from decimal import Decimal
 import logging
@@ -129,7 +129,7 @@ class BillingService:
         trial_days: int = 14,
     ) -> Dict[str, Any]:
         """Create a new subscription for a firm."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         subscription_id = str(uuid4())
 
         # Get plan
@@ -156,7 +156,7 @@ class BillingService:
 
         # Update firm subscription info
         firm_result = await self.db.execute(
-            select(Firm).where(Firm.firm_id == firm_id)
+            select(Firm).where(Firm.firm_id == firm_id, Firm.deleted_at.is_(None))
         )
         firm = firm_result.scalar_one_or_none()
         if firm:
@@ -208,11 +208,11 @@ class BillingService:
         if immediate:
             # Apply immediately with prorated billing
             subscription.plan_id = new_plan_id
-            subscription.updated_at = datetime.utcnow()
+            subscription.updated_at = datetime.now(timezone.utc)
 
             # Update firm limits
             firm_result = await self.db.execute(
-                select(Firm).where(Firm.firm_id == firm_id)
+                select(Firm).where(Firm.firm_id == firm_id, Firm.deleted_at.is_(None))
             )
             firm = firm_result.scalar_one_or_none()
             if firm:
@@ -232,7 +232,7 @@ class BillingService:
         else:
             # Schedule change at period end
             subscription.scheduled_plan_id = new_plan_id
-            subscription.updated_at = datetime.utcnow()
+            subscription.updated_at = datetime.now(timezone.utc)
 
             await self.db.commit()
 
@@ -267,7 +267,7 @@ class BillingService:
         if not subscription:
             return {"error": "No active subscription found"}
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         if immediate:
             subscription.status = SubscriptionStatus.CANCELED.value
@@ -276,7 +276,7 @@ class BillingService:
 
             # Update firm
             firm_result = await self.db.execute(
-                select(Firm).where(Firm.firm_id == firm_id)
+                select(Firm).where(Firm.firm_id == firm_id, Firm.deleted_at.is_(None))
             )
             firm = firm_result.scalar_one_or_none()
             if firm:
@@ -324,14 +324,14 @@ class BillingService:
         if subscription.status == SubscriptionStatus.CANCELED.value:
             # Reactivate with new period
             subscription.status = SubscriptionStatus.ACTIVE.value
-            subscription.current_period_start = datetime.utcnow()
-            subscription.current_period_end = datetime.utcnow() + timedelta(days=30)
+            subscription.current_period_start = datetime.now(timezone.utc)
+            subscription.current_period_end = datetime.now(timezone.utc) + timedelta(days=30)
 
-        subscription.updated_at = datetime.utcnow()
+        subscription.updated_at = datetime.now(timezone.utc)
 
         # Update firm
         firm_result = await self.db.execute(
-            select(Firm).where(Firm.firm_id == firm_id)
+            select(Firm).where(Firm.firm_id == firm_id, Firm.deleted_at.is_(None))
         )
         firm = firm_result.scalar_one_or_none()
         if firm:
@@ -427,7 +427,7 @@ class BillingService:
 
         # Create invoice
         invoice_id = str(uuid4())
-        invoice_number = f"INV-{datetime.utcnow().strftime('%Y%m')}-{invoice_id[:8].upper()}"
+        invoice_number = f"INV-{datetime.now(timezone.utc).strftime('%Y%m')}-{invoice_id[:8].upper()}"
 
         invoice = Invoice(
             invoice_id=invoice_id,
@@ -441,7 +441,7 @@ class BillingService:
             currency="USD",
             period_start=period_start,
             period_end=period_end,
-            due_date=datetime.utcnow() + timedelta(days=30),
+            due_date=datetime.now(timezone.utc) + timedelta(days=30),
             line_items=[
                 {
                     "description": f"{plan.name} - {subscription.billing_cycle}",
@@ -449,7 +449,7 @@ class BillingService:
                     "quantity": 1,
                 }
             ],
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         if usage_charges > 0:
@@ -481,7 +481,7 @@ class BillingService:
             return False
 
         invoice.status = InvoiceStatus.PAID.value
-        invoice.paid_at = datetime.utcnow()
+        invoice.paid_at = datetime.now(timezone.utc)
         invoice.payment_id = payment_id
 
         await self.db.commit()
@@ -499,13 +499,13 @@ class BillingService:
     ) -> Dict[str, Any]:
         """Get usage summary for billing period."""
         if not period_start:
-            period_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0)
+            period_start = datetime.now(timezone.utc).replace(day=1, hour=0, minute=0, second=0)
         if not period_end:
-            period_end = datetime.utcnow()
+            period_end = datetime.now(timezone.utc)
 
         # Get firm limits
         firm_result = await self.db.execute(
-            select(Firm).where(Firm.firm_id == firm_id)
+            select(Firm).where(Firm.firm_id == firm_id, Firm.deleted_at.is_(None))
         )
         firm = firm_result.scalar_one_or_none()
 

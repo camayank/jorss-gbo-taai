@@ -285,10 +285,16 @@ async def get_user_details(
         import json
         permission_overrides = json.loads(row[11]) if row[11] else None
 
-        # Get activity stats
-        cursor.execute("""
-            SELECT COUNT(*) FROM tax_returns WHERE user_id = ?
-        """, (user_id,))
+        # Get activity stats (scoped by tenant for isolation)
+        tenant_id = row[4]
+        if tenant_id:
+            await cursor.execute("""
+                SELECT COUNT(*) FROM tax_returns WHERE user_id = ? AND tenant_id = ?
+            """, (user_id, tenant_id))
+        else:
+            await cursor.execute("""
+                SELECT COUNT(*) FROM tax_returns WHERE user_id = ?
+            """, (user_id,))
         total_returns = (await cursor.fetchone())[0]
 
         # Get recent activity count (last 7 days)

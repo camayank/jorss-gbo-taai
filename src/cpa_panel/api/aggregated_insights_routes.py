@@ -12,7 +12,7 @@ Key difference from /api/smart-insights:
 from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 from .auth_dependencies import require_internal_cpa_auth
@@ -176,7 +176,7 @@ async def get_aggregated_insights(
             "insights": top_insights,
             "category_breakdown": category_breakdown,
             "clients_by_savings": client_summaries[:20],  # Top 20 clients
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "has_rules_engine": has_rules_recommender,
         })
 

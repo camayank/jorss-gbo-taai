@@ -16,7 +16,7 @@ Usage:
 import sqlite3
 import json
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
 from dataclasses import dataclass
@@ -120,7 +120,7 @@ class IdempotencyStore:
 
             # Check if expired
             expires_at = datetime.fromisoformat(row[6])
-            if datetime.utcnow() > expires_at:
+            if datetime.now(timezone.utc) > expires_at:
                 self.delete(idempotency_key)
                 return None
 
@@ -152,7 +152,7 @@ class IdempotencyStore:
             response_body: Response body.
             response_headers: Response headers to cache.
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         expires_at = now + timedelta(hours=self.ttl_hours)
         response_headers = response_headers or {}
 
@@ -189,7 +189,7 @@ class IdempotencyStore:
 
     def cleanup_expired(self) -> int:
         """Remove all expired idempotency records."""
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()

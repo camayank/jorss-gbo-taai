@@ -14,7 +14,7 @@ import json
 import secrets
 import logging
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -205,7 +205,7 @@ async def list_team_members(
 
     # Get firm's max team members from subscription
     max_query = text("""
-        SELECT f.max_team_members FROM firms f WHERE f.firm_id = :firm_id
+        SELECT f.max_team_members FROM firms f WHERE f.firm_id = :firm_id AND f.deleted_at IS NULL
     """)
     max_result = await session.execute(max_query, {"firm_id": firm_id})
     max_row = max_result.fetchone()
@@ -237,9 +237,9 @@ async def add_team_member(
     """
     email_lower = member.email.lower()
 
-    # Check if email already exists
-    check_query = text("SELECT 1 FROM users WHERE email = :email LIMIT 1")
-    exists = await session.execute(check_query, {"email": email_lower})
+    # Check if email already exists in this firm
+    check_query = text("SELECT 1 FROM users WHERE email = :email AND firm_id = :firm_id LIMIT 1")
+    exists = await session.execute(check_query, {"email": email_lower, "firm_id": firm_id})
     if exists.fetchone():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -265,7 +265,7 @@ async def add_team_member(
 
     # Create user record
     new_user_id = str(uuid4())
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     # Generate temporary password if not sending invitation
     temp_password = secrets.token_urlsafe(16)
@@ -304,7 +304,7 @@ async def add_team_member(
     if member.send_invitation:
         inv_id = str(uuid4())
         inv_token = secrets.token_urlsafe(32)
-        expires = (datetime.utcnow() + timedelta(days=7)).isoformat()
+        expires = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
 
         inv_query = text("""
             INSERT INTO invitations (
@@ -354,6 +354,7 @@ async def add_team_member(
 
 
 @router.get("/{user_id}", response_model=TeamMemberResponse)
+@require_permission(UserPermission.VIEW_TEAM_PERFORMANCE)
 async def get_team_member(
     user_id: str,
     user: TenantContext = Depends(get_current_user),
@@ -466,7 +467,8 @@ async def update_team_member(
             col = clause.split("=")[0].strip()
             if col not in _USER_UPDATABLE_COLUMNS:
                 raise HTTPException(status_code=400, detail=f"Invalid field: {col}")
-        update_query = text(f"UPDATE users SET {', '.join(updates)} WHERE user_id = :user_id")
+        update_query = text(f"UPDATE users SET {', '.join(updates)} WHERE user_id = :user_id AND firm_id = :firm_id")
+        params["firm_id"] = firm_id
         await session.execute(update_query, params)
         await session.commit()
 
@@ -550,9 +552,9 @@ async def deactivate_team_member(
     # Deactivate user
     deactivate_query = text("""
         UPDATE users SET is_active = false, updated_at = NOW()
-        WHERE user_id = :user_id
+        WHERE user_id = :user_id AND firm_id = :firm_id
     """)
-    await session.execute(deactivate_query, {"user_id": user_id})
+    await session.execute(deactivate_query, {"user_id": user_id, "firm_id": firm_id})
     await session.commit()
 
     logger.info(f"Team member deactivated: {user_id} by {user.email}")
@@ -579,9 +581,9 @@ async def send_invitation(
     """
     email_lower = invitation.email.lower()
 
-    # Check if email is already a team member
-    user_check = text("SELECT 1 FROM users WHERE email = :email LIMIT 1")
-    user_exists = await session.execute(user_check, {"email": email_lower})
+    # Check if email is already a team member in this firm
+    user_check = text("SELECT 1 FROM users WHERE email = :email AND firm_id = :firm_id LIMIT 1")
+    user_exists = await session.execute(user_check, {"email": email_lower, "firm_id": firm_id})
     if user_exists.fetchone():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -622,7 +624,7 @@ async def send_invitation(
     # Create invitation
     inv_id = str(uuid4())
     inv_token = secrets.token_urlsafe(32)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     expires = now + timedelta(days=7)
 
     insert_query = text("""
@@ -649,7 +651,7 @@ async def send_invitation(
 
     # FREEZE & FINISH: Email service deferred to Phase 2
     # Invitation link returned in response for manual sharing
-    logger.info(f"Invitation sent to {email_lower} by {user.email}: /invite?token={inv_token}")
+    logger.info(f"Invitation sent to {email_lower} by {user.email}: token={inv_token[:8]}...")
 
     # Get inviter name
     inviter_name = f"{user.first_name} {user.last_name}" if hasattr(user, 'first_name') else user.email
@@ -797,7 +799,7 @@ async def resend_invitation(
 
     # Generate new token and extend expiration
     new_token = secrets.token_urlsafe(32)
-    new_expires = (datetime.utcnow() + timedelta(days=7)).isoformat()
+    new_expires = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
 
     update_query = text("""
         UPDATE invitations SET
@@ -817,7 +819,7 @@ async def resend_invitation(
 
     # FREEZE & FINISH: Email service deferred to Phase 2
     # Share the link manually with the invitee
-    logger.info(f"Invitation resent to {row[1]} by {user.email}: /invite?token={new_token}")
+    logger.info(f"Invitation resent to {row[1]} by {user.email}: token={new_token[:8]}...")
 
     return {
         "status": "success",

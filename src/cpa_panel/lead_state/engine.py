@@ -8,7 +8,7 @@ Supports optional database persistence via LeadStatePersistence.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Optional, Set, Any, TYPE_CHECKING
 import logging
 
@@ -39,7 +39,7 @@ class StateTransition:
     from_state: LeadState
     to_state: LeadState
     trigger_signal: LeadSignal
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -65,8 +65,8 @@ class LeadRecord:
     current_state: LeadState = LeadState.BROWSING
     signals_received: List[str] = field(default_factory=list)
     transitions: List[StateTransition] = field(default_factory=list)
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -314,7 +314,7 @@ class LeadStateEngine:
 
         # Record signal
         lead.signals_received.append(signal_id)
-        lead.updated_at = datetime.utcnow()
+        lead.updated_at = datetime.now(timezone.utc)
 
         # Persist signal
         if self._persistence:
@@ -424,7 +424,7 @@ class LeadStateEngine:
 
         lead.transitions.append(transition)
         lead.current_state = new_state
-        lead.updated_at = datetime.utcnow()
+        lead.updated_at = datetime.now(timezone.utc)
 
         # Persist transition and updated lead state
         if self._persistence:

@@ -17,7 +17,7 @@ import os
 import secrets
 import hashlib
 import hmac
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, Tuple
 from uuid import uuid4
 import logging
@@ -147,8 +147,8 @@ class MagicLinkRequest(BaseModel):
 
 class RegisterRequest(BaseModel):
     """User registration request."""
-    email: str
-    password: str
+    email: EmailStr
+    password: str = Field(..., min_length=12)
     first_name: str = ""
     last_name: str = ""
     phone: Optional[str] = None
@@ -482,7 +482,7 @@ class CoreAuthService:
 
     def _generate_access_token(self, user: UnifiedUser) -> str:
         """Generate a properly signed JWT access token."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         payload = {
             "sub": user.id,
             "email": user.email,
@@ -500,7 +500,7 @@ class CoreAuthService:
         """Generate refresh token and store in Redis (or in-memory fallback)."""
         token = f"refresh_{secrets.token_urlsafe(32)}"
         ttl_seconds = self.config.REFRESH_TOKEN_EXPIRE_DAYS * 86400
-        expires_at = datetime.utcnow() + timedelta(days=self.config.REFRESH_TOKEN_EXPIRE_DAYS)
+        expires_at = datetime.now(timezone.utc) + timedelta(days=self.config.REFRESH_TOKEN_EXPIRE_DAYS)
 
         await self._store_refresh_token_redis(
             token,
@@ -514,7 +514,7 @@ class CoreAuthService:
         """Generate magic link token and store in Redis (or in-memory fallback)."""
         token = f"magic_{secrets.token_urlsafe(32)}"
         ttl_seconds = self.config.MAGIC_LINK_EXPIRE_MINUTES * 60
-        expires_at = datetime.utcnow() + timedelta(minutes=self.config.MAGIC_LINK_EXPIRE_MINUTES)
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=self.config.MAGIC_LINK_EXPIRE_MINUTES)
 
         await self._store_magic_link_redis(
             token,
@@ -530,7 +530,7 @@ class CoreAuthService:
 
     def _generate_mfa_token(self, user: UnifiedUser, remember_me: bool = False) -> str:
         """Generate a short-lived token proving password was verified, for MFA step."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         payload = {
             "sub": user.id,
             "purpose": "mfa_verification",
@@ -592,7 +592,7 @@ class CoreAuthService:
         )
 
         # Update last login
-        user.last_login_at = datetime.utcnow()
+        user.last_login_at = datetime.now(timezone.utc)
 
         logger.info(f"MFA login completed: {user.email} ({user.user_type})")
 
@@ -702,7 +702,7 @@ class CoreAuthService:
         refresh_token = (await self._generate_refresh_token(user)) if request.remember_me else None
 
         # Update last login
-        user.last_login_at = datetime.utcnow()
+        user.last_login_at = datetime.now(timezone.utc)
 
         logger.info(f"Login successful: {user.email} ({user.user_type})")
 
@@ -778,7 +778,7 @@ class CoreAuthService:
         expires_at = link_data["expires_at"]
         if isinstance(expires_at, str):
             expires_at = datetime.fromisoformat(expires_at)
-        if datetime.utcnow() > expires_at:
+        if datetime.now(timezone.utc) > expires_at:
             await self._delete_magic_link_redis(token)
             return AuthResponse(
                 success=False,
@@ -801,7 +801,7 @@ class CoreAuthService:
         await self._delete_magic_link_redis(token)
 
         # Update last login
-        user.last_login_at = datetime.utcnow()
+        user.last_login_at = datetime.now(timezone.utc)
 
         return AuthResponse(
             success=True,
@@ -831,7 +831,7 @@ class CoreAuthService:
         expires_at = token_data["expires_at"]
         if isinstance(expires_at, str):
             expires_at = datetime.fromisoformat(expires_at)
-        if datetime.utcnow() > expires_at:
+        if datetime.now(timezone.utc) > expires_at:
             await self._delete_refresh_token_redis(refresh_token)
             return AuthResponse(
                 success=False,

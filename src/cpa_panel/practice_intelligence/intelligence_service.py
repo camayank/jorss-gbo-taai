@@ -20,7 +20,7 @@ This is an ANALYTICS module, not a MANAGEMENT module.
 
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import logging
 from decimal import Decimal, ROUND_HALF_UP
@@ -461,7 +461,7 @@ class PracticeIntelligenceService:
 
         return PortfolioMetrics(
             tenant_id=tenant_id,
-            as_of=datetime.utcnow(),
+            as_of=datetime.now(timezone.utc),
             advisory_mix=advisory_mix,
             complexity_distribution=complexity_dist,
             yoy_surface=yoy_surface,

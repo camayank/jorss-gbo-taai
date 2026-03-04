@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from uuid import UUID, uuid4
 
@@ -75,7 +75,7 @@ class EventStore(IEventStore):
             "aggregate_id": aggregate_id,
             "event_data": json.dumps(event.to_dict()),
             "occurred_at": event.occurred_at.isoformat(),
-            "stored_at": datetime.utcnow().isoformat(),
+            "stored_at": datetime.now(timezone.utc).isoformat(),
         }
 
         await self._session.execute(query, params)
@@ -112,7 +112,7 @@ class EventStore(IEventStore):
             )
         """)
 
-        stored_at = datetime.utcnow().isoformat()
+        stored_at = datetime.now(timezone.utc).isoformat()
 
         for i, event in enumerate(events):
             version = base_version + i + 1
@@ -135,7 +135,9 @@ class EventStore(IEventStore):
         self,
         stream_id: str,
         from_version: int = 0,
-        to_version: Optional[int] = None
+        to_version: Optional[int] = None,
+        limit: int = 1000,
+        offset: int = 0
     ) -> List[DomainEvent]:
         """
         Get events from a stream.
@@ -144,6 +146,8 @@ class EventStore(IEventStore):
             stream_id: Stream identifier.
             from_version: Start version (inclusive).
             to_version: End version (inclusive), None for all.
+            limit: Maximum number of events to return.
+            offset: Number of events to skip.
 
         Returns:
             List of events in order.
@@ -158,11 +162,14 @@ class EventStore(IEventStore):
                   AND event_version >= :from_version
                   AND event_version <= :to_version
                 ORDER BY event_version ASC
+                LIMIT :limit OFFSET :offset
             """)
             params = {
                 "stream_id": stream_id,
                 "from_version": from_version,
                 "to_version": to_version,
+                "limit": limit,
+                "offset": offset,
             }
         else:
             query = text("""
@@ -173,10 +180,13 @@ class EventStore(IEventStore):
                 WHERE stream_id = :stream_id
                   AND event_version >= :from_version
                 ORDER BY event_version ASC
+                LIMIT :limit OFFSET :offset
             """)
             params = {
                 "stream_id": stream_id,
                 "from_version": from_version,
+                "limit": limit,
+                "offset": offset,
             }
 
         result = await self._session.execute(query, params)
@@ -237,7 +247,9 @@ class EventStore(IEventStore):
         self,
         aggregate_type: str,
         aggregate_id: UUID,
-        since: Optional[datetime] = None
+        since: Optional[datetime] = None,
+        limit: int = 1000,
+        offset: int = 0
     ) -> List[DomainEvent]:
         """
         Get all events for an aggregate.
@@ -246,6 +258,8 @@ class EventStore(IEventStore):
             aggregate_type: Type of aggregate.
             aggregate_id: Aggregate identifier.
             since: Only events after this time.
+            limit: Maximum number of events to return.
+            offset: Number of events to skip.
 
         Returns:
             List of events for the aggregate.
@@ -260,11 +274,14 @@ class EventStore(IEventStore):
                   AND aggregate_id = :aggregate_id
                   AND occurred_at > :since
                 ORDER BY event_version ASC
+                LIMIT :limit OFFSET :offset
             """)
             params = {
                 "aggregate_type": aggregate_type,
                 "aggregate_id": str(aggregate_id),
                 "since": since.isoformat(),
+                "limit": limit,
+                "offset": offset,
             }
         else:
             query = text("""
@@ -275,10 +292,13 @@ class EventStore(IEventStore):
                 WHERE aggregate_type = :aggregate_type
                   AND aggregate_id = :aggregate_id
                 ORDER BY event_version ASC
+                LIMIT :limit OFFSET :offset
             """)
             params = {
                 "aggregate_type": aggregate_type,
                 "aggregate_id": str(aggregate_id),
+                "limit": limit,
+                "offset": offset,
             }
 
         result = await self._session.execute(query, params)
@@ -303,9 +323,13 @@ class EventStore(IEventStore):
         row = result.fetchone()
         return row[0] if row else 0
 
-    async def get_all_streams(self) -> List[str]:
+    async def get_all_streams(self, limit: int = 1000, offset: int = 0) -> List[str]:
         """
         Get all stream IDs.
+
+        Args:
+            limit: Maximum number of streams to return.
+            offset: Number of streams to skip.
 
         Returns:
             List of stream identifiers.
@@ -314,8 +338,9 @@ class EventStore(IEventStore):
             SELECT DISTINCT stream_id
             FROM domain_events
             ORDER BY stream_id
+            LIMIT :limit OFFSET :offset
         """)
-        result = await self._session.execute(query)
+        result = await self._session.execute(query, {"limit": limit, "offset": offset})
         return [row[0] for row in result.fetchall()]
 
     def _row_to_event(self, row) -> DomainEvent:

@@ -11,7 +11,7 @@ All erasure operations are themselves audit-logged (without PII).
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from typing import Optional, Dict
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import os
 import glob as glob_module
@@ -135,7 +135,7 @@ async def request_data_erasure(
             status="completed",
             erasure_id=erasure_id,
             records_deleted=deleted_counts,
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
         )
 
     except Exception as e:

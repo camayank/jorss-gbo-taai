@@ -11,7 +11,7 @@ import json
 import uuid
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import logging
 
@@ -63,7 +63,7 @@ class CPANote:
             category=NoteCategory(data.get("category", "general")),
             cpa_id=data.get("cpa_id", ""),
             cpa_name=data.get("cpa_name", ""),
-            timestamp=datetime.fromisoformat(data["timestamp"]) if data.get("timestamp") else datetime.utcnow(),
+            timestamp=datetime.fromisoformat(data["timestamp"]) if data.get("timestamp") else datetime.now(timezone.utc),
             is_internal=data.get("is_internal", False),
             parent_note_id=data.get("parent_note_id"),
         )
@@ -117,7 +117,7 @@ class NotesManager:
                     category=NoteCategory.GENERAL,
                     cpa_id="",
                     cpa_name="",
-                    timestamp=datetime.utcnow(),
+                    timestamp=datetime.now(timezone.utc),
                 )]
         except (json.JSONDecodeError, KeyError) as e:
             logger.warning(f"Failed to parse notes: {e}")
@@ -167,7 +167,7 @@ class NotesManager:
             category=category,
             cpa_id=cpa_id,
             cpa_name=cpa_name,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             is_internal=is_internal,
             parent_note_id=parent_note_id,
         )

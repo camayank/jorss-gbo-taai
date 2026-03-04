@@ -12,7 +12,7 @@ All endpoints require client authentication via JWT token.
 """
 
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 import json
 import jwt as pyjwt
@@ -84,7 +84,7 @@ async def client_login(
 
     # Check if client exists in database
     query = text("""
-        SELECT c.client_id, c.first_name, c.last_name, c.email, c.preparer_id, c.is_active
+        SELECT c.client_id, c.first_name, c.last_name, c.email, c.preparer_id, c.is_active, c.firm_id
         FROM clients c
         WHERE LOWER(c.email) = :email
         LIMIT 1
@@ -113,8 +113,8 @@ async def client_login(
         )
 
     # Generate signed JWT token for client portal session.
-    expires_at = datetime.utcnow() + timedelta(hours=24)
-    issued_at = datetime.utcnow()
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+    issued_at = datetime.now(timezone.utc)
     payload = {
         "sub": str(client_row[0]),
         "client_id": str(client_row[0]),
@@ -124,6 +124,7 @@ async def client_login(
         "role": "firm_client",
         "type": "client_portal",
         "preparer_id": str(client_row[4]) if client_row[4] else None,
+        "firm_id": str(client_row[6]) if client_row[6] else None,
         "iat": issued_at,
         "exp": expires_at,
     }
@@ -219,12 +220,11 @@ async def get_current_client(
             detail="Invalid or expired token"
         )
 
-    # Get full client info from database
+    # Get full client info from database — read firm_id directly from clients table
     query = text("""
         SELECT c.client_id, c.first_name, c.last_name, c.email,
-               c.preparer_id, u.firm_id
+               c.preparer_id, c.firm_id
         FROM clients c
-        LEFT JOIN users u ON c.preparer_id = u.user_id
         WHERE c.client_id = :client_id
     """)
     result = await session.execute(query, {"client_id": client_id})
@@ -236,11 +236,20 @@ async def get_current_client(
             detail="Client not found"
         )
 
+    # Use DB firm_id only — never trust JWT firm_id as it could be spoofed
+    db_firm_id = str(row[5]) if row[5] else None
+
+    if not db_firm_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Client has no firm association"
+        )
+
     return ClientContext(
         client_id=str(row[0]),
         name=f"{row[1]} {row[2]}",
         email=row[3],
-        firm_id=str(row[5]) if row[5] else None,
+        firm_id=db_firm_id,
         cpa_id=str(row[4]) if row[4] else None
     )
 
@@ -307,6 +316,23 @@ class Invoice(BaseModel):
     status: str  # 'pending' or 'paid'
 
 
+class TaxHealthItem(BaseModel):
+    """A tax health insight or recommendation."""
+    category: str
+    title: str
+    description: str
+    estimated_savings: Optional[float] = None
+    priority: str = "medium"  # low, medium, high
+
+
+class TaxHealthSummary(BaseModel):
+    """Client tax health dashboard data."""
+    score: int = 0  # 0-100
+    score_label: str = "Not assessed"
+    insights: List[TaxHealthItem] = []
+    total_potential_savings: float = 0.0
+
+
 class DashboardResponse(BaseModel):
     """Full dashboard data response."""
     client_id: str
@@ -320,6 +346,7 @@ class DashboardResponse(BaseModel):
     invoices: List[Invoice]
     balance: float
     unread_messages: int
+    tax_health: Optional[TaxHealthSummary] = None
 
 
 # =============================================================================
@@ -396,7 +423,7 @@ async def get_client_dashboard(
             "status": row[3] or "draft",
             "status_label": status_labels.get(row[3], "Draft"),
             "refund_amount": refund,
-            "updated_at": row[6].isoformat() if row[6] else datetime.utcnow().isoformat()
+            "updated_at": row[6].isoformat() if row[6] else datetime.now(timezone.utc).isoformat()
         }
         returns.append(return_info)
         if current_return is None and row[3] not in ["filed", "accepted"]:
@@ -431,7 +458,7 @@ async def get_client_dashboard(
             "id": str(row[0]),
             "filename": row[2] or "Unknown",
             "size": 0,
-            "uploaded_at": row[4].isoformat() if row[4] else datetime.utcnow().isoformat(),
+            "uploaded_at": row[4].isoformat() if row[4] else datetime.now(timezone.utc).isoformat(),
             "status": row[3] or "uploaded",
             "status_label": {"uploaded": "Received", "processing": "Processing", "verified": "Verified"}.get(row[3], "Received")
         })
@@ -445,12 +472,14 @@ async def get_client_dashboard(
         FROM messages m
         JOIN conversations c ON m.conversation_id = c.conversation_id
         WHERE c.participants @> :participant::jsonb
+        AND (:firm_id IS NULL OR c.firm_id = :firm_id)
         ORDER BY m.created_at DESC
         LIMIT 20
     """)
     try:
         messages_result = await session.execute(messages_query, {
             "client_id": client.client_id,
+            "firm_id": client.firm_id,
             "participant": json.dumps({"id": client.client_id})
         })
         messages_rows = messages_result.fetchall()
@@ -462,7 +491,7 @@ async def get_client_dashboard(
                 "id": str(row[0]),
                 "content": row[1],
                 "sender_type": row[5],
-                "created_at": row[3].isoformat() if row[3] else datetime.utcnow().isoformat(),
+                "created_at": row[3].isoformat() if row[3] else datetime.now(timezone.utc).isoformat(),
                 "read": is_read
             })
     except Exception as e:
@@ -476,12 +505,17 @@ async def get_client_dashboard(
         SELECT i.invoice_id, i.created_at, i.due_date, i.line_items, i.amount_due, i.status
         FROM invoices i
         WHERE i.firm_id = :firm_id
+        AND (i.line_items::text LIKE :client_pattern OR i.notes LIKE :client_pattern OR i.client_id = :client_id)
         ORDER BY i.created_at DESC
         LIMIT 10
     """)
     try:
         if client.firm_id:
-            invoices_result = await session.execute(invoices_query, {"firm_id": client.firm_id})
+            invoices_result = await session.execute(invoices_query, {
+                "firm_id": client.firm_id,
+                "client_id": client.client_id,
+                "client_pattern": f"%{client.client_id}%",
+            })
             invoices_rows = invoices_result.fetchall()
             for row in invoices_rows:
                 line_items = row[3] if row[3] else []
@@ -494,8 +528,8 @@ async def get_client_dashboard(
                     balance += amount
                 invoices.append({
                     "id": str(row[0]),
-                    "date": row[1].isoformat() if row[1] else datetime.utcnow().isoformat(),
-                    "due_date": row[2].isoformat() if row[2] else (datetime.utcnow() + timedelta(days=30)).isoformat(),
+                    "date": row[1].isoformat() if row[1] else datetime.now(timezone.utc).isoformat(),
+                    "due_date": row[2].isoformat() if row[2] else (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
                     "description": description,
                     "amount": amount,
                     "status": "paid" if inv_status == "paid" else "pending"
@@ -503,6 +537,55 @@ async def get_client_dashboard(
     except Exception as e:
         # Invoices table might not exist - log but don't fail
         logger.debug(f"Could not fetch invoices for client {client.client_id}: {e}")
+
+    # Build tax health summary from client's latest return recommendations
+    tax_health = None
+    try:
+        from web.recommendation.orchestrator import get_recommendations
+        from database.session_persistence import SessionPersistence
+
+        # Load latest session profile for this client
+        profile_query = text("""
+            SELECT cs.session_id FROM client_sessions cs
+            WHERE cs.client_id = :client_id
+            AND (:firm_id IS NULL OR cs.firm_id = :firm_id)
+            ORDER BY cs.created_at DESC LIMIT 1
+        """)
+        profile_result = await session.execute(profile_query, {"client_id": client.client_id, "firm_id": client.firm_id})
+        profile_row = profile_result.fetchone()
+
+        if profile_row:
+            persistence = SessionPersistence()
+            state = persistence.load_session(str(profile_row[0]))
+            profile_data = state.get("profile", {}) if state else {}
+
+            if profile_data:
+                recs = get_recommendations(profile_data)
+                insights = []
+                total_savings = 0.0
+
+                for r in (recs or [])[:5]:
+                    savings = float(getattr(r, "estimated_savings", 0) or 0)
+                    total_savings += savings
+                    insights.append({
+                        "category": getattr(r, "category", "general"),
+                        "title": getattr(r, "title", "Tax Opportunity"),
+                        "description": getattr(r, "description", ""),
+                        "estimated_savings": savings if savings > 0 else None,
+                        "priority": "high" if savings > 1000 else "medium",
+                    })
+
+                score = min(100, 40 + len([i for i in insights if i.get("estimated_savings")]) * 12)
+                score_label = "Excellent" if score >= 80 else "Good" if score >= 60 else "Needs Attention"
+
+                tax_health = {
+                    "score": score,
+                    "score_label": score_label,
+                    "insights": insights,
+                    "total_potential_savings": total_savings,
+                }
+    except Exception as e:
+        logger.debug(f"Tax health calculation skipped: {e}")
 
     return {
         "client_id": client.client_id,
@@ -515,7 +598,8 @@ async def get_client_dashboard(
         "messages": messages,
         "invoices": invoices,
         "balance": balance,
-        "unread_messages": unread_count
+        "unread_messages": unread_count,
+        "tax_health": tax_health,
     }
 
 
@@ -561,7 +645,7 @@ async def get_client_returns(
             "status": row[3] or "draft",
             "status_label": status_labels.get(row[3], "Draft"),
             "refund_amount": refund,
-            "updated_at": row[6].isoformat() if row[6] else datetime.utcnow().isoformat()
+            "updated_at": row[6].isoformat() if row[6] else datetime.now(timezone.utc).isoformat()
         })
 
     return returns
@@ -621,7 +705,7 @@ async def get_return_details(
         "status": current_status,
         "status_label": status_labels.get(current_status, "Draft"),
         "refund_amount": refund,
-        "updated_at": row[6].isoformat() if row[6] else datetime.utcnow().isoformat(),
+        "updated_at": row[6].isoformat() if row[6] else datetime.now(timezone.utc).isoformat(),
         "timeline": timeline
     }
 
@@ -658,7 +742,7 @@ async def download_return(
     return {
         "download_url": f"/api/cpa/client/returns/{return_id}/file",
         "filename": f"TaxReturn_{return_id}.pdf",
-        "expires_at": (datetime.utcnow() + timedelta(hours=1)).isoformat()
+        "expires_at": (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
     }
 
 
@@ -695,7 +779,7 @@ async def get_document_requests(
                 "description": row[2] or "",
                 "urgent": row[3] or False,
                 "fulfilled": row[4] or False,
-                "requested_at": row[5].isoformat() if row[5] else datetime.utcnow().isoformat()
+                "requested_at": row[5].isoformat() if row[5] else datetime.now(timezone.utc).isoformat()
             })
         return requests
     except Exception as e:
@@ -740,7 +824,7 @@ async def get_uploaded_documents(
             "id": str(row[0]),
             "filename": row[1] or "Unknown",
             "size": row[2] or 0,
-            "uploaded_at": row[4].isoformat() if row[4] else datetime.utcnow().isoformat(),
+            "uploaded_at": row[4].isoformat() if row[4] else datetime.now(timezone.utc).isoformat(),
             "status": row[3] or "uploaded",
             "status_label": status_labels.get(row[3], "Received")
         })
@@ -794,23 +878,24 @@ async def upload_document(
     taxpayer_row = taxpayer_result.fetchone()
 
     doc_id = str(uuid4())
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
-    # Insert document record
+    # Insert document record (include firm_id for tenant isolation)
     insert_query = text("""
         INSERT INTO documents (
-            document_id, taxpayer_id, document_type, tax_year, status,
+            document_id, taxpayer_id, firm_id, document_type, tax_year, status,
             original_filename, file_size_bytes, mime_type, uploaded_by, created_at
         ) VALUES (
-            :doc_id, :taxpayer_id, :doc_type, :tax_year, 'uploaded',
+            :doc_id, :taxpayer_id, :firm_id, :doc_type, :tax_year, 'uploaded',
             :filename, :file_size, :mime_type, :uploaded_by, :created_at
         )
     """)
     await session.execute(insert_query, {
         "doc_id": doc_id,
         "taxpayer_id": str(taxpayer_row[0]) if taxpayer_row else None,
+        "firm_id": client.firm_id,
         "doc_type": doc_type or "unknown",
-        "tax_year": datetime.utcnow().year,
+        "tax_year": datetime.now(timezone.utc).year,
         "filename": file.filename,
         "file_size": len(contents),
         "mime_type": file.content_type,
@@ -866,12 +951,14 @@ async def get_messages(
         FROM messages m
         JOIN conversations c ON m.conversation_id = c.conversation_id
         WHERE c.participants @> :participant::jsonb
+        AND (:firm_id IS NULL OR c.firm_id = :firm_id)
         ORDER BY m.created_at DESC
         LIMIT :limit OFFSET :offset
     """)
     try:
         result = await session.execute(query, {
             "participant": json.dumps({"id": client.client_id}),
+            "firm_id": client.firm_id,
             "limit": limit,
             "offset": offset
         })
@@ -884,7 +971,7 @@ async def get_messages(
                 "id": str(row[0]),
                 "content": row[1],
                 "sender_type": sender_type,
-                "created_at": row[3].isoformat() if row[3] else datetime.utcnow().isoformat(),
+                "created_at": row[3].isoformat() if row[3] else datetime.now(timezone.utc).isoformat(),
                 "read": row[4] is not None
             })
         return messages
@@ -907,7 +994,7 @@ async def send_message(
 ):
     """Send a message to the CPA."""
     msg_id = str(uuid4())
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     # Find or create conversation with CPA
     find_conv_query = text("""
@@ -980,7 +1067,7 @@ async def mark_messages_read(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Mark all messages as read."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     try:
         update_query = text("""
             UPDATE messages m
@@ -1023,15 +1110,19 @@ async def get_billing(
     balance = 0.0
 
     if client.firm_id:
+        # Only show invoices that reference this client (via line_items metadata or client_id)
+        # Firm-level subscription invoices should NOT be visible to individual clients
         query = text("""
             SELECT i.invoice_id, i.created_at, i.due_date, i.line_items, i.amount_due, i.status
             FROM invoices i
             WHERE i.firm_id = :firm_id
+              AND (i.line_items::text LIKE :client_pattern OR i.notes LIKE :client_pattern)
             ORDER BY i.created_at DESC
             LIMIT 20
         """)
         try:
-            result = await session.execute(query, {"firm_id": client.firm_id})
+            client_pattern = f"%{client.client_id}%"
+            result = await session.execute(query, {"firm_id": client.firm_id, "client_pattern": client_pattern})
             rows = result.fetchall()
 
             for row in rows:
@@ -1047,8 +1138,8 @@ async def get_billing(
 
                 invoices.append({
                     "id": str(row[0]),
-                    "date": row[1].isoformat() if row[1] else datetime.utcnow().isoformat(),
-                    "due_date": row[2].isoformat() if row[2] else (datetime.utcnow() + timedelta(days=30)).isoformat(),
+                    "date": row[1].isoformat() if row[1] else datetime.now(timezone.utc).isoformat(),
+                    "due_date": row[2].isoformat() if row[2] else (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
                     "description": description,
                     "amount": amount,
                     "status": "paid" if inv_status == "paid" else "pending"
@@ -1065,14 +1156,16 @@ async def get_invoice_details(
     client: ClientContext = Depends(get_current_client),
     session: AsyncSession = Depends(get_async_session)
 ):
-    """Get detailed invoice information."""
+    """Get detailed invoice information (scoped to this client)."""
     query = text("""
         SELECT i.invoice_id, i.created_at, i.due_date, i.line_items, i.amount_due, i.status,
                i.subtotal, i.tax, i.discount
         FROM invoices i
         WHERE i.invoice_id = :invoice_id AND i.firm_id = :firm_id
+          AND (i.line_items::text LIKE :client_pattern OR i.notes LIKE :client_pattern)
     """)
-    result = await session.execute(query, {"invoice_id": invoice_id, "firm_id": client.firm_id})
+    client_pattern = f"%{client.client_id}%"
+    result = await session.execute(query, {"invoice_id": invoice_id, "firm_id": client.firm_id, "client_pattern": client_pattern})
     row = result.fetchone()
 
     if not row:
@@ -1089,8 +1182,8 @@ async def get_invoice_details(
 
     return {
         "id": str(row[0]),
-        "date": row[1].isoformat() if row[1] else datetime.utcnow().isoformat(),
-        "due_date": row[2].isoformat() if row[2] else (datetime.utcnow() + timedelta(days=30)).isoformat(),
+        "date": row[1].isoformat() if row[1] else datetime.now(timezone.utc).isoformat(),
+        "due_date": row[2].isoformat() if row[2] else (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
         "description": description,
         "amount": float(row[4]) if row[4] else 0.0,
         "status": "paid" if row[5] == "paid" else "pending",
@@ -1109,13 +1202,15 @@ async def pay_invoice(
 
     Returns a payment URL to redirect the client to.
     """
-    # Verify invoice exists and is payable
+    # Verify invoice exists, is payable, and belongs to this client
     query = text("""
         SELECT i.invoice_id, i.status, i.hosted_invoice_url
         FROM invoices i
         WHERE i.invoice_id = :invoice_id AND i.firm_id = :firm_id
+          AND (i.line_items::text LIKE :client_pattern OR i.notes LIKE :client_pattern)
     """)
-    result = await session.execute(query, {"invoice_id": invoice_id, "firm_id": client.firm_id})
+    client_pattern = f"%{client.client_id}%"
+    result = await session.execute(query, {"invoice_id": invoice_id, "firm_id": client.firm_id, "client_pattern": client_pattern})
     row = result.fetchone()
 
     if not row:
@@ -1130,7 +1225,7 @@ async def pay_invoice(
     return {
         "payment_url": payment_url,
         "payment_id": str(uuid4()),
-        "expires_at": (datetime.utcnow() + timedelta(hours=24)).isoformat()
+        "expires_at": (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
     }
 
 
@@ -1141,13 +1236,15 @@ async def get_receipt(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Get download URL for a payment receipt."""
-    # Verify invoice exists and is paid
+    # Verify invoice exists, is paid, and belongs to this client
     query = text("""
         SELECT i.invoice_id, i.status, i.invoice_pdf_url
         FROM invoices i
         WHERE i.invoice_id = :invoice_id AND i.firm_id = :firm_id
+          AND (i.line_items::text LIKE :client_pattern OR i.notes LIKE :client_pattern)
     """)
-    result = await session.execute(query, {"invoice_id": invoice_id, "firm_id": client.firm_id})
+    client_pattern = f"%{client.client_id}%"
+    result = await session.execute(query, {"invoice_id": invoice_id, "firm_id": client.firm_id, "client_pattern": client_pattern})
     row = result.fetchone()
 
     if not row:
@@ -1161,7 +1258,7 @@ async def get_receipt(
     return {
         "download_url": download_url,
         "filename": f"Receipt_{invoice_id}.pdf",
-        "expires_at": (datetime.utcnow() + timedelta(hours=1)).isoformat()
+        "expires_at": (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
     }
 
 
@@ -1254,8 +1351,8 @@ async def update_client_profile(
     fields_updated = []
     if request.phone is not None:
         await session.execute(
-            text("UPDATE clients SET phone = :phone WHERE client_id = :client_id"),
-            {"phone": request.phone, "client_id": client.client_id}
+            text("UPDATE clients SET phone = :phone WHERE client_id = :client_id AND (:firm_id IS NULL OR firm_id = :firm_id)"),
+            {"phone": request.phone, "client_id": client.client_id, "firm_id": client.firm_id}
         )
         fields_updated.append("phone")
 
@@ -1276,8 +1373,8 @@ async def update_client_profile(
     if address:
         profile_data["address"] = address
         await session.execute(
-            text("UPDATE clients SET profile_data = :profile_data WHERE client_id = :client_id"),
-            {"profile_data": json.dumps(profile_data), "client_id": client.client_id}
+            text("UPDATE clients SET profile_data = :profile_data WHERE client_id = :client_id AND (:firm_id IS NULL OR firm_id = :firm_id)"),
+            {"profile_data": json.dumps(profile_data), "client_id": client.client_id, "firm_id": client.firm_id}
         )
 
     await session.commit()
@@ -1300,12 +1397,13 @@ async def get_notifications(
         SELECT notification_id, notification_type, title, content, is_read, created_at
         FROM notifications
         WHERE user_id = :client_id
+        AND (:firm_id IS NULL OR firm_id = :firm_id)
         """ + ("AND is_read = false" if unread_only else "") + """
         ORDER BY created_at DESC
         LIMIT 50
     """)
     try:
-        result = await session.execute(query, {"client_id": client.client_id})
+        result = await session.execute(query, {"client_id": client.client_id, "firm_id": client.firm_id})
         rows = result.fetchall()
 
         notifications = []
@@ -1320,7 +1418,7 @@ async def get_notifications(
                 "title": row[2] or "",
                 "content": row[3] or "",
                 "read": is_read,
-                "created_at": row[5].isoformat() if row[5] else datetime.utcnow().isoformat()
+                "created_at": row[5].isoformat() if row[5] else datetime.now(timezone.utc).isoformat()
             })
 
         return {"notifications": notifications, "unread_count": unread_count}
@@ -1345,10 +1443,76 @@ async def mark_notification_read(
         await session.execute(query, {
             "notification_id": notification_id,
             "client_id": client.client_id,
-            "now": datetime.utcnow()
+            "now": datetime.now(timezone.utc)
         })
         await session.commit()
     except Exception as e:
         logger.debug(f"Could not mark notification {notification_id} as read: {e}")
 
     return {"marked_read": True}
+
+
+# =============================================================================
+# SCENARIO VIEWING
+# =============================================================================
+
+@router.get("/returns/{return_id}/scenarios")
+async def get_client_scenarios(
+    return_id: str,
+    client: ClientContext = Depends(get_current_client),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """
+    Get what-if scenarios for a client's return.
+
+    Returns scenarios that were created by the CPA for this return,
+    letting the client see side-by-side comparisons.
+    """
+    # Verify client owns this return AND it belongs to the same firm
+    verify_query = text("""
+        SELECT tr.return_id FROM tax_returns tr
+        JOIN taxpayers tp ON tr.return_id = tp.return_id
+        JOIN clients c ON tp.email = c.email
+        WHERE tr.return_id = :return_id
+          AND c.client_id = :client_id
+          AND (tr.firm_id = :firm_id OR :firm_id IS NULL)
+        LIMIT 1
+    """)
+    verify_result = await session.execute(verify_query, {
+        "return_id": return_id,
+        "client_id": client.client_id,
+        "firm_id": client.firm_id,
+    })
+    if not verify_result.fetchone():
+        raise HTTPException(status_code=404, detail="Return not found")
+
+    # Load scenarios from scenario persistence
+    scenarios = []
+    try:
+        from database.scenario_persistence import get_scenario_persistence
+        sp = get_scenario_persistence()
+        raw_scenarios = sp.list_scenarios(return_id)
+
+        for s in raw_scenarios:
+            s_dict = s.to_dict() if hasattr(s, "to_dict") else s.__dict__
+            scenarios.append({
+                "scenario_id": str(s_dict.get("scenario_id", "")),
+                "name": s_dict.get("name", "Unnamed Scenario"),
+                "scenario_type": s_dict.get("scenario_type", "custom"),
+                "status": s_dict.get("status", "draft"),
+                "description": s_dict.get("description", ""),
+                "result_summary": {
+                    "total_tax": s_dict.get("total_tax"),
+                    "effective_rate": s_dict.get("effective_rate"),
+                    "tax_difference": s_dict.get("tax_difference"),
+                } if s_dict.get("total_tax") is not None else None,
+                "created_at": str(s_dict.get("created_at", "")),
+            })
+    except Exception as e:
+        logger.debug(f"Could not load scenarios for return {return_id}: {e}")
+
+    return {
+        "return_id": return_id,
+        "scenarios": scenarios,
+        "count": len(scenarios),
+    }

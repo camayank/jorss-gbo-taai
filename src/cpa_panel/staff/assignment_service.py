@@ -19,7 +19,7 @@ NOT IN SCOPE:
 
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -139,7 +139,7 @@ class StaffAssignmentService:
             tenant_id=tenant_id,
             assigned_to=assign_to,
             assigned_by=assigned_by,
-            assigned_at=datetime.utcnow(),
+            assigned_at=datetime.now(timezone.utc),
             previous_assignee=previous_assignee,
         )
 
@@ -150,18 +150,24 @@ class StaffAssignmentService:
 
         return assignment
 
-    def unassign(self, session_id: str, unassigned_by: str) -> bool:
+    def unassign(self, session_id: str, unassigned_by: str, tenant_id: str = None) -> bool:
         """
         Remove assignment from a return.
 
         Args:
             session_id: Tax return session ID
             unassigned_by: Staff ID of person removing assignment
+            tenant_id: Tenant ID for scoping validation
 
         Returns:
             True if was assigned and now unassigned
         """
         if session_id in self._assignments:
+            existing = self._assignments[session_id]
+            # Verify tenant matches if provided (prevent cross-firm unassignment)
+            if tenant_id and hasattr(existing, "tenant_id") and existing.tenant_id != tenant_id:
+                logger.warning(f"Tenant mismatch on unassign: {tenant_id} vs {existing.tenant_id}")
+                return False
             del self._assignments[session_id]
             logger.info(f"Return {session_id} unassigned by {unassigned_by}")
             return True

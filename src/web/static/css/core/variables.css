@@ -434,15 +434,28 @@
   --gradient-primary: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700));
   --gradient-primary-hover: linear-gradient(135deg, var(--color-primary-400), var(--color-primary-600));
 
-  /* Named premium tokens */
+  /* Named premium tokens (match BRAND system in JSX design files) */
   --color-navy: #0B1D3A;
   --color-navy-light: #132B50;
   --color-navy-mid: #1A3560;
   --color-gold: #C9A84C;
   --color-gold-light: #E0C778;
+  --color-gold-dark: #A8883A;
+  --color-gold-muted: rgba(201,168,76,0.15);
+  --color-gold-bg: rgba(201,168,76,0.08);
   --color-cream: #FAF8F4;
   --color-cream-dark: #F0EDE6;
+  --color-slate: #64748B;
+  --color-slate-light: #94A3B8;
   --gradient-navy: linear-gradient(135deg, #0B1D3A, #132B50);
+  --gradient-navy-hero: linear-gradient(170deg, #0B1D3A 0%, #0E2445 55%, #1A3560 100%);
+
+  /* Navy-tinted shadows (brand-consistent, from design system) */
+  --shadow-brand-sm: 0 1px 3px rgba(11,29,58,0.08), 0 4px 12px rgba(11,29,58,0.04);
+  --shadow-brand-md: 0 4px 16px rgba(11,29,58,0.08), 0 8px 32px rgba(11,29,58,0.06);
+  --shadow-brand-lg: 0 8px 32px rgba(11,29,58,0.12), 0 16px 48px rgba(11,29,58,0.08);
+  --shadow-gold-glow: 0 2px 12px rgba(201,168,76,0.25);
+  --shadow-gold-glow-hover: 0 4px 20px rgba(201,168,76,0.4);
 
   /* Colored shadows for specific contexts */
   --shadow-accent: 0 4px 14px 0 rgb(20 184 166 / 0.39);

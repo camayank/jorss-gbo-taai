@@ -13,7 +13,7 @@ import uuid
 import json
 import logging
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 import sqlite3
 
@@ -1191,7 +1191,7 @@ class ReportTemplateService:
             cpa_firm=cpa_profile.firm_name or "",
             cpa_first_name=cpa_profile.first_name,
             client_name=lead.first_name,
-            report_date=datetime.utcnow().strftime("%B %d, %Y"),
+            report_date=datetime.now(timezone.utc).strftime("%B %d, %Y"),
             filing_status_short=filing_status_short,
             complexity=lead.complexity.value.title(),
             total_insights=len(insights),

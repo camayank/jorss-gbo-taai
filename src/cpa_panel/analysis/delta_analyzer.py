@@ -9,7 +9,7 @@ the tax implications of adjustments.
 
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import logging
 from decimal import Decimal, ROUND_HALF_UP
@@ -114,7 +114,7 @@ class DeltaResult:
     delta: DeltaMetrics
     percentage_changes: PercentageChanges
     marginal_rate_used: float
-    analysis_timestamp: datetime = field(default_factory=datetime.utcnow)
+    analysis_timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     insights: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -486,7 +486,7 @@ class DeltaAnalyzer:
             "significant_variances": significant_variances,
             "audit_risk_indicators": audit_flags,
             "cpa_review_required": len(significant_variances) > 0 or len(audit_flags) > 0,
-            "analysis_timestamp": datetime.utcnow().isoformat(),
+            "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
             "visualization": {
                 "type": "yoy_bar_comparison",
                 "metrics": ["tax_liability", "adjusted_gross_income", "refund_or_owed"],

@@ -9,7 +9,8 @@ Security Features:
 """
 
 import os
-from datetime import datetime, timedelta
+import secrets
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 from enum import Enum
 from dataclasses import dataclass
@@ -39,7 +40,15 @@ def _get_jwt_secret() -> str:
             "JWT_SECRET not set - using insecure development default. "
             "Set JWT_SECRET environment variable for production."
         )
-        return "development-only-insecure-secret-key-32ch"
+        # Use the same development secret as the RBAC module for cross-system compatibility
+        try:
+            from rbac.jwt import JWT_SECRET as _rbac_secret
+            return _rbac_secret
+        except ImportError:
+            pass
+        _fallback = secrets.token_hex(32)
+        logger.warning("JWT_SECRET not set — using random ephemeral secret (sessions will not survive restart)")
+        return _fallback
 
     if len(secret) < 32:
         raise ValueError("JWT_SECRET must be at least 32 characters for security")
@@ -120,7 +129,7 @@ def create_access_token(
     if expires_delta is None:
         expires_delta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     expire = now + expires_delta
 
     payload = TokenPayload(
@@ -148,6 +157,7 @@ def create_refresh_token(
     email: str,
     is_platform_admin: bool = False,
     expires_delta: Optional[timedelta] = None,
+    firm_id: Optional[str] = None,
 ) -> str:
     """
     Create a new refresh token.
@@ -157,6 +167,7 @@ def create_refresh_token(
         email: User email
         is_platform_admin: True if platform admin
         expires_delta: Custom expiration time
+        firm_id: Firm ID to preserve across token refresh
 
     Returns:
         JWT refresh token string
@@ -166,7 +177,7 @@ def create_refresh_token(
     if expires_delta is None:
         expires_delta = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     expire = now + expires_delta
 
     token_data = {
@@ -174,6 +185,7 @@ def create_refresh_token(
         "email": email,
         "type": TokenType.REFRESH.value,
         "is_platform_admin": is_platform_admin,
+        "firm_id": str(firm_id) if firm_id else None,
         "exp": expire,
         "iat": now,
         "jti": str(uuid.uuid4()),
@@ -274,4 +286,4 @@ def is_token_expired(token: str) -> bool:
     expiry = get_token_expiry(token)
     if expiry is None:
         return True
-    return datetime.utcnow() > expiry
+    return datetime.now(timezone.utc) > expiry

@@ -13,7 +13,7 @@ All routes use database-backed queries.
 import json
 import logging
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from uuid import uuid4
 
@@ -195,7 +195,7 @@ async def list_clients(
             assigned_name=row[7],
             returns_count=row[8] or 0,
             last_activity=parse_dt(row[9]),
-            created_at=parse_dt(row[10]) or datetime.utcnow(),
+            created_at=parse_dt(row[10]) or datetime.now(timezone.utc),
         ))
 
     return clients
@@ -261,7 +261,7 @@ async def get_client(
         returns_count=row[16] or 0,
         total_revenue=float(row[17]) if row[17] else 0.0,
         last_activity=parse_dt(row[15]),
-        created_at=parse_dt(row[14]) or datetime.utcnow(),
+        created_at=parse_dt(row[14]) or datetime.now(timezone.utc),
     )
 
 
@@ -306,7 +306,7 @@ async def get_unassigned_clients(
             "email": row[3],
             "status": row[4] or "prospect",
             "priority": row[5] or "medium",
-            "created_at": created_at.isoformat() if created_at else datetime.utcnow().isoformat(),
+            "created_at": created_at.isoformat() if created_at else datetime.now(timezone.utc).isoformat(),
         })
 
     # Get total count
@@ -355,7 +355,7 @@ async def assign_clients(
         )
 
     # Update clients
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     assigned_count = 0
 
     for client_id in request.client_ids:
@@ -364,10 +364,11 @@ async def assign_clients(
                 preparer_id = :preparer_id,
                 assigned_at = :assigned_at,
                 updated_at = :updated_at
-            WHERE client_id = :client_id
+            WHERE client_id = :client_id AND (firm_id = :firm_id OR firm_id IS NULL)
         """)
         result = await session.execute(update_query, {
             "client_id": client_id,
+            "firm_id": firm_id,
             "preparer_id": request.user_id,
             "assigned_at": now,
             "updated_at": now,
@@ -441,16 +442,17 @@ async def reassign_client(
         )
 
     # Update assignment
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     update_query = text("""
         UPDATE clients SET
             preparer_id = :new_preparer_id,
             assigned_at = :assigned_at,
             updated_at = :updated_at
-        WHERE client_id = :client_id
+        WHERE client_id = :client_id AND (firm_id = :firm_id OR firm_id IS NULL)
     """)
     await session.execute(update_query, {
         "client_id": client_id,
+        "firm_id": firm_id,
         "new_preparer_id": new_user_id,
         "assigned_at": now,
         "updated_at": now,
@@ -587,15 +589,16 @@ async def update_client_status(
             detail="Client not found",
         )
 
-    # Update status
+    # Update status (defense-in-depth: also filter by firm_id)
     update_query = text("""
         UPDATE clients SET status = :status, updated_at = :updated_at
-        WHERE client_id = :client_id
+        WHERE client_id = :client_id AND (firm_id = :firm_id OR firm_id IS NULL)
     """)
     await session.execute(update_query, {
         "client_id": client_id,
+        "firm_id": firm_id,
         "status": new_status,
-        "updated_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     })
     await session.commit()
 
@@ -626,7 +629,7 @@ async def bulk_update_status(
             detail=f"Invalid status. Must be one of: {[s.value for s in ClientStatus]}",
         )
 
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     updated_count = 0
 
     for client_id in request.client_ids:
@@ -693,15 +696,16 @@ async def update_client_priority(
             detail="Client not found",
         )
 
-    # Update priority
+    # Update priority (defense-in-depth: also filter by firm_id)
     update_query = text("""
         UPDATE clients SET priority = :priority, updated_at = :updated_at
-        WHERE client_id = :client_id
+        WHERE client_id = :client_id AND (firm_id = :firm_id OR firm_id IS NULL)
     """)
     await session.execute(update_query, {
         "client_id": client_id,
+        "firm_id": firm_id,
         "priority": priority,
-        "updated_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     })
     await session.commit()
 
@@ -1004,7 +1008,7 @@ async def export_clients(
             "include_sensitive": include_sensitive,
             "client_count": client_count,
         }),
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     })
     await session.commit()
 
@@ -1111,15 +1115,16 @@ async def update_client_tags(
             detail="Client not found",
         )
 
-    # Update tags
+    # Update tags (defense-in-depth: also filter by firm_id)
     update_query = text("""
         UPDATE clients SET tags = :tags, updated_at = :updated_at
-        WHERE client_id = :client_id
+        WHERE client_id = :client_id AND (firm_id = :firm_id OR firm_id IS NULL)
     """)
     await session.execute(update_query, {
         "client_id": client_id,
+        "firm_id": firm_id,
         "tags": json.dumps(tags),
-        "updated_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     })
     await session.commit()
 

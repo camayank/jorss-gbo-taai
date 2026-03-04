@@ -10,7 +10,7 @@ import sqlite3
 import json
 import uuid
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
@@ -124,7 +124,7 @@ class TaxReturnPersistence:
         Returns:
             return_id of saved return
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         # Generate or use provided return_id
         if not return_id:
@@ -527,7 +527,7 @@ class DocumentPersistence:
         document_id: Optional[str] = None,
     ) -> str:
         """Save a document record."""
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         document_id = document_id or str(uuid.uuid4())
 
         with sqlite3.connect(self.db_path) as conn:
@@ -555,7 +555,7 @@ class DocumentPersistence:
         confidence_score: Optional[float] = None,
     ) -> bool:
         """Update a document record."""
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -718,7 +718,7 @@ class IntakePersistence:
         intake_id: Optional[str] = None,
     ) -> str:
         """Create a new intake session."""
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         intake_id = intake_id or str(uuid.uuid4())
 
         with sqlite3.connect(self.db_path) as conn:
@@ -748,7 +748,7 @@ class IntakePersistence:
         benefit_estimate: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """Update an intake session."""
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()

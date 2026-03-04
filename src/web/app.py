@@ -25,7 +25,7 @@ import secrets
 import traceback
 import threading
 from typing import Dict, Optional, List, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from fastapi import FastAPI, Request, Response, UploadFile, File, Form, HTTPException, Query
@@ -106,6 +106,15 @@ def _configure_logging():
         ))
 
     root.addHandler(handler)
+
+    # Add PII sanitizing log filter to prevent sensitive data in logs
+    try:
+        from security.secure_logger import SanitizingLogFilter
+        if not any(isinstance(f, SanitizingLogFilter) for f in root.filters):
+            root.addFilter(SanitizingLogFilter())
+    except ImportError:
+        pass  # secure_logger not available in minimal installs
+
     # Quiet noisy third-party loggers
     for noisy in ("uvicorn.access", "httpcore", "httpx", "openai"):
         logging.getLogger(noisy).setLevel(max(_log_level, logging.WARNING))
@@ -747,7 +756,7 @@ def create_error_response(
             "code": code.value,
             "message": user_message or message,
             "details": details or {},
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     )
 
@@ -1274,7 +1283,7 @@ def _get_engine_version_hash() -> Dict[str, str]:
         "version": version,
         "tax_year": tax_year,
         "engine_hash": hasher.hexdigest()[:12],  # Short hash for display
-        "calculated_at": datetime.utcnow().isoformat(),
+        "calculated_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -4346,8 +4355,10 @@ async def create_lead(request: Request):
                 captcha_result = resp.json()
                 if not captcha_result.get("success", False):
                     raise HTTPException(status_code=400, detail="CAPTCHA verification failed")
-        except httpx.HTTPError:
-            logger.warning("CAPTCHA verification service unavailable — allowing request")
+        except httpx.HTTPError as captcha_err:
+            if os.environ.get("APP_ENVIRONMENT", "").lower() in ("production", "prod"):
+                raise HTTPException(status_code=503, detail="CAPTCHA verification service unavailable")
+            logger.warning(f"CAPTCHA verification failed: {captcha_err}")
     elif os.environ.get("APP_ENVIRONMENT", "").lower() in ("production", "prod"):
         logger.warning("CAPTCHA_SECRET_KEY not set in production — lead endpoint unprotected")
 
@@ -5395,7 +5406,7 @@ async def approve_return_cpa_signoff(session_id: str, request: Request):
         raise HTTPException(status_code=400, detail="Return is already approved")
 
     # Create signature hash for audit trail
-    signature_data = f"{session_id}:{cpa_reviewer_id}:{datetime.utcnow().isoformat()}"
+    signature_data = f"{session_id}:{cpa_reviewer_id}:{datetime.now(timezone.utc).isoformat()}"
     if signature:
         signature_data += f":{signature}"
     approval_hash = hashlib.sha256(signature_data.encode()).hexdigest()[:16]
@@ -5753,7 +5764,7 @@ async def add_cpa_note(session_id: str, request: Request):
         "is_internal": is_internal,
         "cpa_id": cpa_id,
         "cpa_name": cpa_name,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
     existing_notes.append(new_note)
 
@@ -6222,7 +6233,7 @@ async def get_audit_report(session_id: str, request: Request):
         "success": True,
         "session_id": session_id,
         "report": report,
-        "generated_at": datetime.utcnow().isoformat()
+        "generated_at": datetime.now(timezone.utc).isoformat()
     })
 
 

@@ -9,7 +9,7 @@ Usage:
 
 import sqlite3
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from .roles import Role, ROLES
@@ -89,7 +89,7 @@ def create_rbac_tables(conn: sqlite3.Connection):
 def seed_roles(conn: sqlite3.Connection):
     """Seed all 8 roles into the database."""
     cursor = conn.cursor()
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     for role, info in ROLES.items():
         role_id = str(uuid4())
@@ -154,7 +154,7 @@ def seed_roles(conn: sqlite3.Connection):
 def seed_permissions(conn: sqlite3.Connection):
     """Seed all permissions into the database."""
     cursor = conn.cursor()
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     for perm, info in PERMISSIONS.items():
         perm_id = str(uuid4())
@@ -204,7 +204,7 @@ def seed_permissions(conn: sqlite3.Connection):
 def seed_role_permissions(conn: sqlite3.Connection):
     """Seed role-permission mappings."""
     cursor = conn.cursor()
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     # Clear existing mappings
     cursor.execute("DELETE FROM rbac_role_permissions")

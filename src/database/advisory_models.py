@@ -9,7 +9,7 @@ Tables:
 from sqlalchemy import Column, Integer, String, DateTime, JSON, ForeignKey, Text, Float, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 
 Base = declarative_base()
@@ -52,8 +52,8 @@ class AdvisoryReport(Base):
     error_message = Column(Text, nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
     generated_at = Column(DateTime, nullable=True)
 
     # Version for updates
@@ -102,7 +102,7 @@ class ReportSection(Base):
     content_data = Column(JSON, nullable=False)
 
     # Timestamps
-    generated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    generated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationship
     report = relationship("AdvisoryReport", back_populates="sections")
@@ -217,7 +217,7 @@ def update_report_pdf_path(report_id: str, pdf_path: str, session):
     if report:
         report.pdf_path = pdf_path
         report.pdf_generated = True
-        report.updated_at = datetime.utcnow()
+        report.updated_at = datetime.now(timezone.utc)
         session.commit()
 
 

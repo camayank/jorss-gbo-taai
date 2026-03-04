@@ -5,7 +5,7 @@ Defines event types and structures for WebSocket communication.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 from enum import Enum
 from uuid import UUID, uuid4
@@ -92,7 +92,7 @@ class RealtimeEvent:
     broadcast: bool = False  # Send to all connected clients
 
     # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     source: str = "system"
 
     def to_dict(self) -> Dict[str, Any]:

@@ -5,7 +5,7 @@ Business logic for support ticket management.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 from collections import defaultdict
@@ -75,7 +75,7 @@ class TicketService:
             Created Ticket object
         """
         self._ticket_counter += 1
-        ticket_number = f"TKT-{datetime.utcnow().year}-{self._ticket_counter:04d}"
+        ticket_number = f"TKT-{datetime.now(timezone.utc).year}-{self._ticket_counter:04d}"
 
         ticket = Ticket(
             ticket_number=ticket_number,
@@ -139,7 +139,7 @@ class TicketService:
         if tags is not None:
             ticket.tags = tags
 
-        ticket.updated_at = datetime.utcnow()
+        ticket.updated_at = datetime.now(timezone.utc)
         logger.info(f"Updated ticket: {ticket.ticket_number}")
 
         return ticket
@@ -188,7 +188,7 @@ class TicketService:
         old_assignee = ticket.assigned_to_name or str(ticket.assigned_to)
         ticket.assigned_to = None
         ticket.assigned_to_name = None
-        ticket.updated_at = datetime.utcnow()
+        ticket.updated_at = datetime.now(timezone.utc)
 
         ticket.add_message(
             content=f"Ticket unassigned from {old_assignee}",
@@ -242,7 +242,7 @@ class TicketService:
 
         old_status = ticket.status
         ticket.status = new_status
-        ticket.updated_at = datetime.utcnow()
+        ticket.updated_at = datetime.now(timezone.utc)
 
         ticket.add_message(
             content=f"Status changed from {old_status.value} to {new_status.value}",

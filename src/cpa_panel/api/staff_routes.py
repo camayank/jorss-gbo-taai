@@ -161,9 +161,11 @@ async def unassign_return(
     unassigned_by: str,
     user: UserContext = Depends(get_current_user),
 ) -> Dict[str, Any]:
-    """Remove assignment from a return. Requires authentication."""
+    """Remove assignment from a return. Requires authentication and tenant scoping."""
+    from .common import get_tenant_id
+    tenant_id = get_tenant_id(request)
     service = get_assignment_service()
-    removed = service.unassign(session_id, unassigned_by)
+    removed = service.unassign(session_id, unassigned_by, tenant_id=tenant_id)
 
     if not removed:
         raise HTTPException(

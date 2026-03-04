@@ -18,6 +18,7 @@ Domain Routers:
 All endpoints are prefixed with /api/cpa when included in the main app.
 """
 
+import os
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -55,30 +56,40 @@ try:
     from .staff_routes import router as staff_router
     _include_internal_router(staff_router, "Staff")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Staff routes not available: {e}")
 
 try:
     from .engagement_routes import router as engagement_router
     _include_internal_router(engagement_router, "Engagement")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Engagement routes not available: {e}")
 
 try:
     from .client_visibility_routes import router as client_visibility_router
     _include_internal_router(client_visibility_router, "Client visibility")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Client visibility routes not available: {e}")
 
 try:
     from .practice_intelligence_routes import router as intelligence_router
     _include_internal_router(intelligence_router, "Practice intelligence")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Practice intelligence routes not available: {e}")
 
 try:
     from .aggregated_insights_routes import router as aggregated_insights_router
     _include_internal_router(aggregated_insights_router, "Aggregated insights")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Aggregated insights routes not available: {e}")
 
 # NEW: Optimizer routes - Credit, deduction, filing status, entity, strategy
@@ -86,6 +97,8 @@ try:
     from .optimizer_routes import optimizer_router
     _include_internal_router(optimizer_router, "Optimizer")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Optimizer routes not available: {e}")
 
 # NEW: Scenario analysis routes - What-if analysis
@@ -93,6 +106,8 @@ try:
     from .scenario_routes import scenario_router
     _include_internal_router(scenario_router, "Scenario")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Scenario routes not available: {e}")
 
 # NEW: Pipeline routes - Lead pipeline and metrics
@@ -100,6 +115,8 @@ try:
     from .pipeline_routes import pipeline_router
     _include_internal_router(pipeline_router, "Pipeline")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Pipeline routes not available: {e}")
 
 # NEW: Document routes - Upload and OCR
@@ -107,6 +124,8 @@ try:
     from .document_routes import document_router
     _include_internal_router(document_router, "Document")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Document routes not available: {e}")
 
 # NEW: Pricing routes - Complexity pricing
@@ -114,6 +133,8 @@ try:
     from .pricing_routes import pricing_router
     _include_internal_router(pricing_router, "Pricing")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Pricing routes not available: {e}")
 
 # NEW: Intake routes - Client onboarding
@@ -121,6 +142,8 @@ try:
     from .intake_routes import intake_router
     _include_internal_router(intake_router, "Intake")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Intake routes not available: {e}")
 
 # NEW: Report routes - Advisory reports
@@ -128,6 +151,8 @@ try:
     from .report_routes import report_router
     _include_internal_router(report_router, "Report")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Report routes not available: {e}")
 
 # NEW: Data routes - Database access for clients, tax returns, recommendations
@@ -135,6 +160,8 @@ try:
     from .data_routes import router as data_router
     _include_internal_router(data_router, "Data")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Data routes not available: {e}")
 
 # NEW: Smart Onboarding routes - 60-second client onboarding
@@ -142,6 +169,8 @@ try:
     from .smart_onboarding_routes import smart_onboarding_router
     _include_internal_router(smart_onboarding_router, "Smart onboarding")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Smart onboarding routes not available: {e}")
 
 # NEW: Lead Generation routes - Prospect lead capture and conversion
@@ -149,6 +178,8 @@ try:
     from .lead_generation_routes import lead_generation_router
     _include_public_router(lead_generation_router, "Lead generation")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Lead generation routes not available: {e}")
 
 # NEW: Lead Magnet routes - Smart tax advisory lead magnet flow
@@ -156,6 +187,8 @@ try:
     from .lead_magnet_routes import lead_magnet_router
     _include_public_router(lead_magnet_router, "Lead magnet")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Lead magnet routes not available: {e}")
 
 # NEW: Client Portal routes - B2C client dashboard
@@ -163,6 +196,8 @@ try:
     from .client_portal_routes import router as client_portal_router
     _include_public_router(client_portal_router, "Client portal")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Client portal routes not available: {e}")
 
 # NEW: Notification routes - In-app notifications and reminders
@@ -170,6 +205,8 @@ try:
     from .notification_routes import notification_router
     _include_internal_router(notification_router, "Notification")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Notification routes not available: {e}")
 
 # NEW: Payment Settings routes - Stripe Connect integration for CPAs
@@ -177,6 +214,8 @@ try:
     from .payment_settings_routes import router as payment_settings_router
     _include_internal_router(payment_settings_router, "Payment settings")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Payment settings routes not available: {e}")
 
 # NEW: Deadline Management routes - Tax deadline tracking
@@ -184,6 +223,8 @@ try:
     from .deadline_routes import deadline_router
     _include_internal_router(deadline_router, "Deadline")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Deadline routes not available: {e}")
 
 # NEW: Task Management routes - Task tracking and workflow
@@ -191,6 +232,8 @@ try:
     from .task_routes import task_router
     _include_internal_router(task_router, "Task")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Task routes not available: {e}")
 
 # NEW: Appointment Scheduling routes - Client appointment booking
@@ -198,6 +241,8 @@ try:
     from .appointment_routes import appointment_router
     _include_internal_router(appointment_router, "Appointment")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Appointment routes not available: {e}")
 
 # NEW: Invoice and Payment routes - Client billing and payment collection
@@ -207,6 +252,8 @@ try:
     _include_internal_router(payment_link_router, "Payment links")
     _include_internal_router(payments_router, "Payments")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Invoice routes not available: {e}")
 
 # NEW: Funnel orchestration routes - internal operational automation
@@ -214,6 +261,8 @@ try:
     from .funnel_routes import funnel_router
     _include_internal_router(funnel_router, "Funnel")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Funnel routes not available: {e}")
 
 # NEW: Data Export routes - CSV export for clients, leads, activity
@@ -221,6 +270,8 @@ try:
     from .export_routes import export_router
     _include_internal_router(export_router, "Export")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Export routes not available: {e}")
 
 # NEW: Integration Status routes - Third-party integration management
@@ -228,7 +279,18 @@ try:
     from .integration_routes import integration_router
     _include_internal_router(integration_router, "Integration")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Integration routes not available: {e}")
+
+# NEW: AI Review Queue routes - CPA approval gate for AI responses
+try:
+    from .ai_review_routes import ai_review_router
+    _include_internal_router(ai_review_router, "AI Review")
+except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
+    logger.warning(f"AI Review routes not available: {e}")
 
 # Include core domain routers
 _include_internal_router(workflow_router, "Workflow")

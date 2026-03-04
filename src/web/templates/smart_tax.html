@@ -1690,7 +1690,7 @@
                     <strong>${escapeHtml(credit.name)}</strong>
                     <p style="margin: var(--space-1) 0 0; color: var(--color-gray-600);">${escapeHtml(credit.description)}</p>
                   </div>
-                  <span style="font-size: 1.25em; font-weight: var(--font-semibold); color: #22c55e;">+$${credit.estimated_amount?.toLocaleString() || '0'}</span>
+                  <span style="font-size: 1.25em; font-weight: var(--font-semibold); color: var(--color-success-500);">+$${credit.estimated_amount?.toLocaleString() || '0'}</span>
                 </div>
               `).join('')}
             </div>

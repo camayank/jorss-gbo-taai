@@ -15,7 +15,7 @@ import logging
 import os
 from decimal import Decimal
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -153,7 +153,7 @@ async def _get_or_create_stripe_customer(
             {
                 "subscription_id": subscription_id,
                 "customer_id": customer_id,
-                "updated_at": datetime.utcnow().isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
             },
         )
 
@@ -423,8 +423,8 @@ async def get_current_subscription(
         ),
         status=row[1],
         billing_cycle=row[2],
-        current_period_start=parse_dt(row[3]) or datetime.utcnow(),
-        current_period_end=parse_dt(row[4]) or datetime.utcnow(),
+        current_period_start=parse_dt(row[3]) or datetime.now(timezone.utc),
+        current_period_end=parse_dt(row[4]) or datetime.now(timezone.utc),
         next_billing_date=parse_dt(row[5]),
         trial_end=parse_dt(row[6]),
         payment_method=payment_method,
@@ -467,7 +467,7 @@ async def get_usage_metrics(
     # Parse dates
     def parse_dt(val):
         if val is None:
-            return datetime.utcnow()
+            return datetime.now(timezone.utc)
         if isinstance(val, datetime):
             return val
         return datetime.fromisoformat(val.replace('Z', '+00:00'))
@@ -923,7 +923,7 @@ async def preview_upgrade(
     period_end = current_row[1]
     if isinstance(period_end, str):
         period_end = datetime.fromisoformat(period_end.replace('Z', '+00:00'))
-    days_remaining = max(0, (period_end - datetime.utcnow()).days) if period_end else 0
+    days_remaining = max(0, (period_end - datetime.now(timezone.utc)).days) if period_end else 0
     prorated_amount = (price_difference / 30) * days_remaining if price_difference > 0 else 0
 
     # Determine features gained/lost
@@ -965,7 +965,7 @@ async def preview_upgrade(
         target_plan=target_plan,
         price_difference=float(money(price_difference)),
         prorated_amount=float(money(prorated_amount)),
-        effective_date=datetime.utcnow() if price_difference > 0 else period_end or datetime.utcnow(),
+        effective_date=datetime.now(timezone.utc) if price_difference > 0 else period_end or datetime.now(timezone.utc),
         features_gained=features_gained,
         features_lost=features_lost,
         recommendations=recommendations,
@@ -1034,7 +1034,7 @@ async def upgrade_plan(
     period_end = current_row[2]
     if isinstance(period_end, str):
         period_end = datetime.fromisoformat(period_end.replace('Z', '+00:00'))
-    days_remaining = max(0, (period_end - datetime.utcnow()).days) if period_end else 0
+    days_remaining = max(0, (period_end - datetime.now(timezone.utc)).days) if period_end else 0
     prorated_charge = float(money(((target_price - current_price) / 30) * days_remaining))
 
     # Collect proration charge before changing local plan state
@@ -1063,16 +1063,17 @@ async def upgrade_plan(
             )
 
     # Update subscription
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     update_query = text("""
         UPDATE subscriptions SET
             plan_id = :plan_id,
             billing_cycle = :billing_cycle,
             updated_at = :updated_at
-        WHERE subscription_id = :subscription_id
+        WHERE subscription_id = :subscription_id AND firm_id = :firm_id
     """)
     await session.execute(update_query, {
         "subscription_id": current_row[0],
+        "firm_id": firm_id,
         "plan_id": target_row[0],
         "billing_cycle": billing_cycle,
         "updated_at": now.isoformat(),
@@ -1229,8 +1230,8 @@ async def downgrade_plan(
     await session.execute(update_query, {
         "subscription_id": current_row[0],
         "pending_plan_id": target_row[0],
-        "downgrade_date": effective_date.isoformat() if effective_date else datetime.utcnow().isoformat(),
-        "updated_at": datetime.utcnow().isoformat(),
+        "downgrade_date": effective_date.isoformat() if effective_date else datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     })
 
     # Log the downgrade event
@@ -1254,7 +1255,7 @@ async def downgrade_plan(
             "to_plan": target_plan_code,
             "effective_date": effective_date.isoformat() if effective_date else None,
         }),
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     })
 
     await session.commit()
@@ -1325,8 +1326,8 @@ async def list_invoices(
             amount_paid=float(row[3]) if row[3] else 0.0,
             currency=row[4] or "USD",
             status=row[5],
-            period_start=parse_dt(row[6]) or datetime.utcnow(),
-            period_end=parse_dt(row[7]) or datetime.utcnow(),
+            period_start=parse_dt(row[6]) or datetime.now(timezone.utc),
+            period_end=parse_dt(row[7]) or datetime.now(timezone.utc),
             due_date=parse_dt(row[8]),
             paid_at=parse_dt(row[9]),
             pdf_url=row[10],
@@ -1379,8 +1380,8 @@ async def get_invoice(
         amount_paid=float(row[3]) if row[3] else 0.0,
         currency=row[4] or "USD",
         status=row[5],
-        period_start=parse_dt(row[6]) or datetime.utcnow(),
-        period_end=parse_dt(row[7]) or datetime.utcnow(),
+        period_start=parse_dt(row[6]) or datetime.now(timezone.utc),
+        period_end=parse_dt(row[7]) or datetime.now(timezone.utc),
         due_date=parse_dt(row[8]),
         paid_at=parse_dt(row[9]),
         pdf_url=row[10],
@@ -1473,7 +1474,7 @@ async def update_payment_method(
         "payment_method_type": pm_type,
         "payment_method_last4": pm_last4,
         "payment_method_brand": pm_brand,
-        "updated_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     })
 
     # Log the event
@@ -1499,7 +1500,7 @@ async def update_payment_method(
             "payment_method_last4": pm_last4,
             "stripe_enabled": _stripe_enabled(),
         }),
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     })
 
     await session.commit()
@@ -1509,3 +1510,179 @@ async def update_payment_method(
         "status": "success",
         "message": "Payment method updated",
     }
+
+
+# =============================================================================
+# STRIPE WEBHOOK
+# =============================================================================
+
+@router.post("/webhook/stripe")
+async def stripe_webhook(
+    request: "Request",
+    session: AsyncSession = Depends(get_async_session),
+):
+    """
+    Inbound Stripe webhook endpoint.
+
+    Handles subscription lifecycle events:
+    - checkout.session.completed -> activate subscription
+    - invoice.paid -> record payment
+    - invoice.payment_failed -> flag subscription
+    - customer.subscription.updated -> sync plan changes
+    - customer.subscription.deleted -> deactivate subscription
+    """
+    from fastapi import Request as _Req  # noqa: already imported via router
+
+    webhook_secret = os.environ.get("STRIPE_WEBHOOK_SECRET")
+    body = await request.body()
+    sig_header = request.headers.get("stripe-signature", "")
+
+    # Fail-closed: require all components for secure webhook verification
+    if not webhook_secret:
+        raise HTTPException(status_code=500, detail="Webhook secret not configured")
+    if not sig_header:
+        raise HTTPException(status_code=400, detail="Missing Stripe-Signature header")
+
+    try:
+        import stripe
+    except ImportError:
+        raise HTTPException(status_code=500, detail="Stripe SDK required for webhook verification")
+
+    try:
+        event = stripe.Webhook.construct_event(body, sig_header, webhook_secret)
+    except Exception as e:
+        logger.error(f"Stripe webhook signature verification failed: {e}")
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    event_type = event.get("type", "")
+    data_obj = event.get("data", {}).get("object", {})
+    firm_id = (data_obj.get("metadata") or {}).get("firm_id")
+
+    logger.info(f"Stripe webhook received: {event_type} (firm={firm_id})")
+
+    # Validate firm_id exists and is not deleted before processing
+    if firm_id:
+        firm_check = await session.execute(
+            text("SELECT 1 FROM firms WHERE firm_id = :firm_id AND deleted_at IS NULL LIMIT 1"),
+            {"firm_id": firm_id},
+        )
+        if not firm_check.fetchone():
+            logger.warning(f"Stripe webhook: firm_id={firm_id} not found or deleted, ignoring")
+            return {"status": "ignored", "reason": "firm_not_found"}
+
+    now = datetime.now(timezone.utc).isoformat()
+    event_id = str(uuid4())
+
+    if event_type == "checkout.session.completed":
+        # Activate subscription after successful checkout
+        stripe_sub_id = data_obj.get("subscription")
+        stripe_customer_id = data_obj.get("customer")
+        plan_code = (data_obj.get("metadata") or {}).get("plan_code")
+
+        if firm_id and stripe_sub_id:
+            # Update only the most recent subscription for this firm (not all historical records)
+            await session.execute(
+                text("""
+                    UPDATE subscriptions SET
+                        status = 'active',
+                        stripe_subscription_id = :stripe_sub_id,
+                        stripe_customer_id = :customer_id,
+                        updated_at = :now
+                    WHERE firm_id = :firm_id
+                      AND subscription_id = (
+                          SELECT subscription_id FROM subscriptions
+                          WHERE firm_id = :firm_id
+                          ORDER BY created_at DESC LIMIT 1
+                      )
+                """),
+                {
+                    "stripe_sub_id": stripe_sub_id,
+                    "customer_id": stripe_customer_id,
+                    "firm_id": firm_id,
+                    "now": now,
+                },
+            )
+            # Also sync subscription_status on the firms table
+            await session.execute(
+                text("UPDATE firms SET subscription_status = 'active', updated_at = :now WHERE firm_id = :firm_id"),
+                {"firm_id": firm_id, "now": now},
+            )
+            await session.commit()
+            logger.info(f"Subscription activated for firm {firm_id}")
+
+    elif event_type == "invoice.paid":
+        # Record successful payment
+        amount = data_obj.get("amount_paid", 0) / 100.0
+        customer_id = data_obj.get("customer")
+        if customer_id:
+            await session.execute(
+                text("""
+                    INSERT INTO billing_events (event_id, firm_id, event_type, details, created_at)
+                    SELECT :event_id, s.firm_id, 'payment_received',
+                           :details, :now
+                    FROM subscriptions s
+                    WHERE s.stripe_customer_id = :customer_id
+                    LIMIT 1
+                """),
+                {
+                    "event_id": event_id,
+                    "customer_id": customer_id,
+                    "details": json.dumps({
+                        "amount": amount,
+                        "invoice_id": data_obj.get("id"),
+                        "status": "paid",
+                    }),
+                    "now": now,
+                },
+            )
+            await session.commit()
+
+    elif event_type == "invoice.payment_failed":
+        # Flag subscription as past_due
+        customer_id = data_obj.get("customer")
+        if customer_id:
+            await session.execute(
+                text("""
+                    UPDATE subscriptions SET status = 'past_due', updated_at = :now
+                    WHERE stripe_customer_id = :customer_id
+                """),
+                {"customer_id": customer_id, "now": now},
+            )
+            await session.commit()
+            logger.warning(f"Payment failed for customer {customer_id}")
+
+    elif event_type == "customer.subscription.updated":
+        # Sync plan changes from Stripe
+        stripe_sub_id = data_obj.get("id")
+        sub_status = data_obj.get("status")
+        if stripe_sub_id:
+            await session.execute(
+                text("""
+                    UPDATE subscriptions SET status = :status, updated_at = :now
+                    WHERE stripe_subscription_id = :sub_id
+                """),
+                {"sub_id": stripe_sub_id, "status": sub_status or "active", "now": now},
+            )
+            await session.commit()
+
+    elif event_type == "customer.subscription.deleted":
+        # Deactivate subscription and sync firm status
+        stripe_sub_id = data_obj.get("id")
+        if stripe_sub_id:
+            await session.execute(
+                text("""
+                    UPDATE subscriptions SET status = 'cancelled', updated_at = :now
+                    WHERE stripe_subscription_id = :sub_id
+                """),
+                {"sub_id": stripe_sub_id, "now": now},
+            )
+            # Also update the firm's subscription_status
+            if firm_id:
+                await session.execute(
+                    text("UPDATE firms SET subscription_status = 'cancelled', updated_at = :now WHERE firm_id = :firm_id"),
+                    {"firm_id": firm_id, "now": now},
+                )
+            await session.commit()
+            logger.info(f"Subscription cancelled: {stripe_sub_id}")
+
+    return {"status": "received", "type": event_type}

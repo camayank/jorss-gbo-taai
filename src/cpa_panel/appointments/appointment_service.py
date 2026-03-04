@@ -5,7 +5,7 @@ Business logic for appointment scheduling.
 """
 
 import logging
-from datetime import datetime, date, time, timedelta
+from datetime import datetime, date, time, timedelta, timezone
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 from collections import defaultdict
@@ -108,7 +108,7 @@ class AppointmentService:
 
         if blocked_date not in availability.blocked_dates:
             availability.blocked_dates.append(blocked_date)
-            availability.updated_at = datetime.utcnow()
+            availability.updated_at = datetime.now(timezone.utc)
 
         return True
 
@@ -120,7 +120,7 @@ class AppointmentService:
 
         if blocked_date in availability.blocked_dates:
             availability.blocked_dates.remove(blocked_date)
-            availability.updated_at = datetime.utcnow()
+            availability.updated_at = datetime.now(timezone.utc)
 
         return True
 
@@ -165,7 +165,7 @@ class AppointmentService:
         )
 
         # Minimum booking time
-        min_booking_time = datetime.utcnow() + timedelta(hours=availability.min_advance_booking_hours)
+        min_booking_time = datetime.now(timezone.utc) + timedelta(hours=availability.min_advance_booking_hours)
 
         current_date = start_date
         while current_date <= end_date:
@@ -344,7 +344,7 @@ class AppointmentService:
         if client_phone is not None:
             appointment.client_phone = client_phone
 
-        appointment.updated_at = datetime.utcnow()
+        appointment.updated_at = datetime.now(timezone.utc)
         return appointment
 
     def cancel_appointment(
@@ -518,7 +518,7 @@ class AppointmentService:
         hours_ahead: int = 24,
     ) -> List[Appointment]:
         """Get upcoming appointments within the next N hours."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         cutoff = now + timedelta(hours=hours_ahead)
 
         appointments = []

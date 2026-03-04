@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -212,7 +212,7 @@ class TaxConfigLoader:
             parameter=parameter,
             old_value=old_value,
             new_value=new_value,
-            changed_at=datetime.utcnow().isoformat(),
+            changed_at=datetime.now(timezone.utc).isoformat(),
             changed_by=changed_by,
             reason=reason,
             irs_reference=irs_reference

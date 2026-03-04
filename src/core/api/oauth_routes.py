@@ -16,6 +16,7 @@ import os
 from urllib.parse import urlparse
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse, JSONResponse
+from pydantic import BaseModel
 import logging
 from typing import Optional
 
@@ -32,6 +33,12 @@ from ..services.oauth_service import (
 from ..services.auth_service import AuthResponse
 
 logger = logging.getLogger(__name__)
+
+
+class OAuthTokenExchange(BaseModel):
+    code: str
+    state: str
+    redirect_uri: Optional[str] = None
 
 # Allowed callback path suffixes for redirect_uri validation
 _OAUTH_CALLBACK_PATHS = {
@@ -200,9 +207,7 @@ async def google_oauth_callback(
 
 @router.post("/google/token", response_model=AuthResponse)
 async def google_oauth_token(
-    code: str,
-    state: str,
-    redirect_uri: Optional[str] = None,
+    body: OAuthTokenExchange,
 ):
     """
     Exchange Google OAuth code for tokens (API-based flow).
@@ -214,7 +219,7 @@ async def google_oauth_token(
 
     try:
         # Exchange code for user info
-        user_info = await oauth_service.handle_callback("google", code, state, redirect_uri)
+        user_info = await oauth_service.handle_callback("google", body.code, body.state, body.redirect_uri)
 
         # Create or link user account
         result = await oauth_service.create_or_link_user(user_info)
@@ -334,9 +339,7 @@ async def microsoft_oauth_callback(
 
 @router.post("/microsoft/token", response_model=AuthResponse)
 async def microsoft_oauth_token(
-    code: str,
-    state: str,
-    redirect_uri: Optional[str] = None,
+    body: OAuthTokenExchange,
 ):
     """
     Exchange Microsoft OAuth code for tokens (API-based flow).
@@ -348,7 +351,7 @@ async def microsoft_oauth_token(
 
     try:
         # Exchange code for user info
-        user_info = await oauth_service.handle_callback("microsoft", code, state, redirect_uri)
+        user_info = await oauth_service.handle_callback("microsoft", body.code, body.state, body.redirect_uri)
 
         # Create or link user account
         result = await oauth_service.create_or_link_user(user_info)

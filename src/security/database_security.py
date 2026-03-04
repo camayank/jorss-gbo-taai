@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 import re
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar, Union
 from uuid import UUID
 
@@ -410,7 +410,7 @@ class AuditedSession:
                 "user_id": str(self.user_id) if self.user_id else None,
                 "tenant_id": str(self.tenant_id) if self.tenant_id else None,
                 "reason": reason,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
             if changes:

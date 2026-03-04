@@ -9,8 +9,11 @@ Route Structure:
 - /api/v1/superadmin/      - Platform admin routes
 """
 
-from fastapi import APIRouter
+import os
+from fastapi import APIRouter, Depends
 import logging
+
+from ..auth.rbac import get_current_user, TenantContext
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +26,8 @@ try:
     admin_router.include_router(dashboard_router, prefix="/admin")
     logger.info("Admin dashboard routes enabled")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Dashboard routes not available: {e}")
 
 try:
@@ -30,6 +35,8 @@ try:
     admin_router.include_router(team_router, prefix="/admin")
     logger.info("Team management routes enabled")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Team routes not available: {e}")
 
 try:
@@ -37,6 +44,8 @@ try:
     admin_router.include_router(billing_router, prefix="/admin")
     logger.info("Billing routes enabled")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Billing routes not available: {e}")
 
 try:
@@ -44,6 +53,8 @@ try:
     admin_router.include_router(settings_router, prefix="/admin")
     logger.info("Settings routes enabled")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Settings routes not available: {e}")
 
 try:
@@ -51,6 +62,8 @@ try:
     admin_router.include_router(auth_router, prefix="/admin")
     logger.info("Auth routes enabled")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Auth routes not available: {e}")
 
 try:
@@ -58,6 +71,8 @@ try:
     admin_router.include_router(compliance_router, prefix="/admin")
     logger.info("Compliance & audit routes enabled")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Compliance routes not available: {e}")
 
 try:
@@ -65,6 +80,8 @@ try:
     admin_router.include_router(client_router, prefix="/admin")
     logger.info("Client management routes enabled")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Client routes not available: {e}")
 
 try:
@@ -72,6 +89,8 @@ try:
     admin_router.include_router(workflow_router, prefix="/admin")
     logger.info("Workflow management routes enabled")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Workflow routes not available: {e}")
 
 try:
@@ -79,6 +98,8 @@ try:
     admin_router.include_router(alert_router, prefix="/admin")
     logger.info("Alert routes enabled")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Alert routes not available: {e}")
 
 try:
@@ -86,6 +107,8 @@ try:
     admin_router.include_router(superadmin_router, prefix="/superadmin")
     logger.info("Superadmin routes enabled")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Superadmin routes not available: {e}")
 
 try:
@@ -100,6 +123,8 @@ try:
     )
     logger.info("RBAC management routes enabled (canonical + legacy alias)")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"RBAC routes not available: {e}")
 
 try:
@@ -107,6 +132,8 @@ try:
     admin_router.include_router(platform_billing_router, prefix="/superadmin")
     logger.info("Platform billing routes enabled")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Platform billing routes not available: {e}")
 
 # NEW: Support Ticket routes - Customer support management
@@ -115,6 +142,8 @@ try:
     admin_router.include_router(ticket_router, prefix="/admin")
     logger.info("Support ticket routes enabled")
 except ImportError as e:
+    if os.environ.get("ENVIRONMENT", "").lower() == "production":
+        raise
     logger.warning(f"Ticket routes not available: {e}")
 
 
@@ -150,7 +179,7 @@ async def admin_health_check():
 # API DOCUMENTATION
 # =============================================================================
 
-@admin_router.get("/admin/docs/routes")
+@admin_router.get("/admin/docs/routes", dependencies=[Depends(get_current_user)])
 async def get_admin_route_documentation():
     """Get documentation of all admin panel routes."""
     return {

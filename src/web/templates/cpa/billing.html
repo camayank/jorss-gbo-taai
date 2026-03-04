@@ -303,7 +303,7 @@
                 <li><span class="check">{{ icon('check') }}</span> Analytics dashboard</li>
                 <li><span class="check">{{ icon('check') }}</span> Email notifications</li>
             </ul>
-            <button class="btn btn-secondary" style="width: 100%;">Change Plan</button>
+            <button class="btn btn-secondary" style="width: 100%;" onclick="document.getElementById('planModal').style.display='flex'">Change Plan</button>
         </div>
     </div>
 
@@ -378,6 +378,40 @@
             <p>No billing history yet. Invoices will appear here as payments are processed.</p>
         </div>
         {% endif %}
+    </div>
+</div>
+
+<!-- Plan Selection Modal -->
+<div id="planModal" style="display:none; position:fixed; inset:0; background:rgba(11,29,58,0.4); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:var(--bg-primary); border-radius:var(--radius-xl); padding:var(--space-8); max-width:700px; width:90%; max-height:80vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-6);">
+            <h2 style="margin:0;">Choose Your Plan</h2>
+            <button onclick="document.getElementById('planModal').style.display='none'" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-muted);">&times;</button>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:var(--space-4);">
+            {% for plan in plans %}
+            <div style="border:2px solid {% if plan.name == billing.plan %}var(--color-primary-500){% else %}var(--border-color){% endif %}; border-radius:var(--radius-lg); padding:var(--space-5); text-align:center;">
+                <h3 style="margin:0 0 var(--space-2);">{{ plan.name }}</h3>
+                <div style="font-size:1.75rem; font-weight:700; color:var(--color-primary-600);">${{ plan.price }}</div>
+                <div style="color:var(--text-muted); margin-bottom:var(--space-4);">/month</div>
+                <ul style="text-align:left; list-style:none; padding:0; margin:0 0 var(--space-4);">
+                    <li style="padding:var(--space-1) 0;">{{ icon('check') }} {{ plan.leads_limit }} leads/month</li>
+                    <li style="padding:var(--space-1) 0;">{{ icon('check') }} {{ plan.team_limit }} team members</li>
+                    {% for feature in plan.features %}
+                    <li style="padding:var(--space-1) 0;">{{ icon('check') }} {{ feature }}</li>
+                    {% endfor %}
+                </ul>
+                {% if plan.name == billing.plan %}
+                <button class="btn btn-secondary" style="width:100%;" disabled>Current Plan</button>
+                {% else %}
+                <a href="mailto:support@jorss-gbo.com?subject=Plan Change Request — {{ plan.name }}&body=I would like to switch to the {{ plan.name }} plan." class="btn btn-primary" style="width:100%; display:block; text-align:center; text-decoration:none;">Select</a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <p style="text-align:center; color:var(--text-muted); margin-top:var(--space-4); font-size:0.875rem;">
+            Plan changes take effect on your next billing cycle. Contact support for custom plans.
+        </p>
     </div>
 </div>
 {% endblock %}

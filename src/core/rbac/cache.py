@@ -5,7 +5,7 @@ Simple permission cache for RBAC.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional, Set
 from uuid import UUID
 
@@ -16,7 +16,7 @@ class _CacheEntry:
     expires_at: datetime
 
     def is_valid(self) -> bool:
-        return datetime.utcnow() < self.expires_at
+        return datetime.now(timezone.utc) < self.expires_at
 
 
 @dataclass
@@ -40,7 +40,7 @@ class PermissionCache:
         key = str(user_id)
         self._user_cache[key] = _CacheEntry(
             permissions=set(permissions),
-            expires_at=datetime.utcnow() + timedelta(seconds=self.ttl_seconds),
+            expires_at=datetime.now(timezone.utc) + timedelta(seconds=self.ttl_seconds),
         )
 
     def invalidate_user(self, user_id: UUID) -> None:

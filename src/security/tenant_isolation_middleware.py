@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Set, TypeVar, Generic
 from uuid import UUID
 
@@ -58,7 +58,7 @@ class TenantContext:
         self.is_platform_admin = is_platform_admin
         self.allowed_tenant_ids = allowed_tenant_ids or set()
         self._accessed_tenants: Set[UUID] = set()
-        self._created_at = datetime.utcnow()
+        self._created_at = datetime.now(timezone.utc)
 
     def can_access_tenant(self, target_tenant_id: UUID) -> bool:
         """

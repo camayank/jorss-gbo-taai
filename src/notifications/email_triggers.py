@@ -16,7 +16,7 @@ Trigger Categories:
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
 from uuid import UUID
 from enum import Enum
@@ -108,7 +108,7 @@ class EmailNotification:
     message_id: Optional[str] = None
 
     # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -927,10 +927,10 @@ Thank you,
             )
 
             if result.success:
-                notification.sent_at = datetime.utcnow()
+                notification.sent_at = datetime.now(timezone.utc)
                 notification.message_id = result.message_id
             else:
-                notification.failed_at = datetime.utcnow()
+                notification.failed_at = datetime.now(timezone.utc)
                 notification.error_message = result.error_message
 
             self._notifications.append(notification)
@@ -948,7 +948,7 @@ Thank you,
 
         except Exception as e:
             logger.exception(f"[EMAIL] Error sending {trigger_type.value}: {e}")
-            notification.failed_at = datetime.utcnow()
+            notification.failed_at = datetime.now(timezone.utc)
             notification.error_message = str(e)
             self._notifications.append(notification)
 

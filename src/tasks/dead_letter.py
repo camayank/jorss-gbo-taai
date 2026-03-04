@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field, asdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, List, Optional
 from uuid import uuid4
 
@@ -117,7 +117,7 @@ class DeadLetterHandler:
             kwargs=dict(kwargs) if kwargs else {},
             exception=exception,
             traceback=traceback,
-            failed_at=datetime.utcnow().isoformat(),
+            failed_at=datetime.now(timezone.utc).isoformat(),
             metadata=metadata or {},
         )
 
@@ -280,7 +280,7 @@ class DeadLetterHandler:
 
             # Update retry info
             task.retry_count += 1
-            task.last_retry_at = datetime.utcnow().isoformat()
+            task.last_retry_at = datetime.now(timezone.utc).isoformat()
 
             from cache.redis_client import RedisClient
 
@@ -360,7 +360,7 @@ class DeadLetterHandler:
                     return 0
 
                 cutoff = (
-                    datetime.utcnow() - timedelta(days=self.max_retention_days)
+                    datetime.now(timezone.utc) - timedelta(days=self.max_retention_days)
                 ).isoformat()
 
                 deleted = 0

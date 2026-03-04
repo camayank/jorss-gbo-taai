@@ -11,7 +11,7 @@ These packages are designed for CPAs to import into their preferred e-filing sof
 from fastapi import APIRouter, HTTPException, Depends, Response
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import json
 import logging
@@ -116,7 +116,7 @@ class FilingPackageGenerator:
             "metadata": {
                 "format_version": "1.0",
                 "platform": "CA4CPA",
-                "generated_at": datetime.utcnow().isoformat(),
+                "generated_at": datetime.now(timezone.utc).isoformat(),
                 "tax_year": self.tax_year,
                 "package_type": "filing_package",
                 "note": "This package is for import into external e-filing software. "
@@ -145,7 +145,7 @@ class FilingPackageGenerator:
         xml_lines.append(f'<TaxReturn xmlns="urn:ca4cpa:filing-package:v1" taxYear="{self.tax_year}">')
 
         xml_lines.append('  <Metadata>')
-        xml_lines.append(f'    <GeneratedAt>{datetime.utcnow().isoformat()}</GeneratedAt>')
+        xml_lines.append(f'    <GeneratedAt>{datetime.now(timezone.utc).isoformat()}</GeneratedAt>')
         xml_lines.append(f'    <Platform>CA4CPA</Platform>')
         xml_lines.append(f'    <FormatVersion>1.0</FormatVersion>')
         xml_lines.append('  </Metadata>')

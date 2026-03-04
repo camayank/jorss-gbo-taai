@@ -5,7 +5,7 @@ Defines the core data structures for audit logging including
 audit entries, action types, and data sources.
 """
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
 import uuid
@@ -54,7 +54,7 @@ class AuditEntry:
     # Core identification
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     session_id: str = ""
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Action details
     action: AuditAction = AuditAction.UPDATE
@@ -112,7 +112,7 @@ class AuditEntry:
         return cls(
             id=data.get("id", str(uuid.uuid4())),
             session_id=data.get("session_id", ""),
-            timestamp=datetime.fromisoformat(data["timestamp"]) if isinstance(data.get("timestamp"), str) else data.get("timestamp", datetime.utcnow()),
+            timestamp=datetime.fromisoformat(data["timestamp"]) if isinstance(data.get("timestamp"), str) else data.get("timestamp", datetime.now(timezone.utc)),
             action=AuditAction(data["action"]) if isinstance(data.get("action"), str) else data.get("action", AuditAction.UPDATE),
             entity_type=data.get("entity_type", ""),
             entity_id=data.get("entity_id"),
@@ -181,7 +181,7 @@ class AIResponseAuditEvent:
     """
     # Core identification
     session_id: str
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     user_id: Optional[str] = None
 
     # AI tracking

@@ -14,7 +14,7 @@ All compliance operations are themselves audited.
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 import logging
 
@@ -69,7 +69,7 @@ class ComplianceReport:
         self.status = status  # pending, running, completed, failed
         self.firm_id = firm_id
         self.triggered_by = triggered_by
-        self.created_at = datetime.utcnow()
+        self.created_at = datetime.now(timezone.utc)
         self.completed_at: Optional[datetime] = None
         self.findings_count = findings_count
         self.findings: List[dict] = []
@@ -104,7 +104,7 @@ class ComplianceAlert:
         self.title = title
         self.description = description
         self.firm_id = firm_id
-        self.created_at = datetime.utcnow()
+        self.created_at = datetime.now(timezone.utc)
         self.acknowledged_at: Optional[datetime] = None
         self.acknowledged_by: Optional[str] = None
         self.notes: Optional[str] = None
@@ -295,7 +295,7 @@ async def acknowledge_alert(
             "acknowledged_at": alert.acknowledged_at.isoformat(),
         }
 
-    alert.acknowledged_at = datetime.utcnow()
+    alert.acknowledged_at = datetime.now(timezone.utc)
     alert.acknowledged_by = str(ctx.user_id)
     alert.notes = data.notes
 
@@ -333,7 +333,7 @@ async def get_audit_logs(
     try:
         from audit.audit_logger import get_audit_logger
         audit_logger = get_audit_logger()
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
         logs = audit_logger.query(
             user_id=user_id,
             start_date=start_date,
@@ -346,8 +346,8 @@ async def get_audit_logs(
         "logs": logs,
         "total": len(logs),
         "date_range": {
-            "from": (datetime.utcnow() - timedelta(days=days)).isoformat(),
-            "to": datetime.utcnow().isoformat(),
+            "from": (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(),
+            "to": datetime.now(timezone.utc).isoformat(),
         },
     }
 
@@ -374,7 +374,7 @@ async def get_data_access_report(
     try:
         from audit.audit_logger import get_audit_logger
         audit_logger = get_audit_logger()
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
         logs = audit_logger.query(start_date=start_date, limit=5000)
 
         users = set()
@@ -402,8 +402,8 @@ async def get_data_access_report(
         logger.warning(f"Could not query data access patterns: {e}")
 
     access_data["date_range"] = {
-        "from": (datetime.utcnow() - timedelta(days=days)).isoformat(),
-        "to": datetime.utcnow().isoformat(),
+        "from": (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(),
+        "to": datetime.now(timezone.utc).isoformat(),
     }
     return access_data
 
@@ -424,7 +424,7 @@ async def get_regulatory_status(
     """
     return {
         "overall_status": "compliant",
-        "last_assessment": datetime.utcnow().isoformat(),
+        "last_assessment": datetime.now(timezone.utc).isoformat(),
         "regulations": [
             {
                 "name": "SOC 2 Type II",
@@ -517,5 +517,5 @@ async def run_compliance_checks(
             "failed": failed,
         },
         "overall_status": "compliant" if failed == 0 else "non-compliant",
-        "checked_at": datetime.utcnow().isoformat(),
+        "checked_at": datetime.now(timezone.utc).isoformat(),
     }

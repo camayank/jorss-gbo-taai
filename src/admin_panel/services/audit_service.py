@@ -9,7 +9,7 @@ Handles:
 """
 
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 from enum import Enum
 import logging
@@ -103,7 +103,7 @@ class AuditService:
         Returns the audit log ID for reference.
         """
         log_id = str(uuid4())
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # Create hash for integrity verification
         log_data = {
@@ -192,7 +192,7 @@ class AuditService:
         days: int = 30,
     ) -> Dict[str, Any]:
         """Get activity summary for a user."""
-        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
         logs = [
             log for log in self._audit_logs
             if log["firm_id"] == firm_id
@@ -225,7 +225,7 @@ class AuditService:
         days: int = 7,
     ) -> Dict[str, Any]:
         """Get activity summary for entire firm."""
-        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
         logs = [
             log for log in self._audit_logs
             if log["firm_id"] == firm_id
@@ -343,7 +343,7 @@ class AuditService:
                 "start": start_date.isoformat(),
                 "end": end_date.isoformat(),
             },
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "summary": {
                 "total_events": len(logs),
                 "security_events": len(security_events),
@@ -418,7 +418,7 @@ class AuditService:
                 {"policy": "client_data_retention", "status": "compliant"},
                 {"policy": "document_retention", "status": "compliant"},
             ],
-            "next_review_date": (datetime.utcnow() + timedelta(days=90)).isoformat(),
+            "next_review_date": (datetime.now(timezone.utc) + timedelta(days=90)).isoformat(),
         }
 
     # =========================================================================

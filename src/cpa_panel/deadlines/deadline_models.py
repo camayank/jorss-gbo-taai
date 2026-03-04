@@ -5,7 +5,7 @@ Data models for deadline management system.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import Optional, List, Dict, Any
 from enum import Enum
 from uuid import UUID, uuid4
@@ -55,7 +55,7 @@ class DeadlineReminder:
     message_template: Optional[str] = None
     is_sent: bool = False
     sent_at: Optional[datetime] = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -81,7 +81,7 @@ class DeadlineAlert:
     message: str = ""
     is_read: bool = False
     is_dismissed: bool = False
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     read_at: Optional[datetime] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -141,8 +141,8 @@ class Deadline:
     notes: Optional[str] = None
 
     # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     created_by: Optional[UUID] = None
 
     def __post_init__(self):
@@ -229,17 +229,17 @@ class Deadline:
     def mark_completed(self, completed_by: UUID = None):
         """Mark deadline as completed."""
         self.status = DeadlineStatus.COMPLETED
-        self.completed_at = datetime.utcnow()
+        self.completed_at = datetime.now(timezone.utc)
         self.completed_by = completed_by
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def file_extension(self, extended_date: date, filed_by: UUID = None):
         """File an extension for this deadline."""
         self.extension_filed = True
-        self.extension_filed_at = datetime.utcnow()
+        self.extension_filed_at = datetime.now(timezone.utc)
         self.extended_due_date = extended_date
         self.status = DeadlineStatus.EXTENDED
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def add_reminder(self, days_before: int, reminder_type: ReminderType = ReminderType.EMAIL,
                      recipient_type: str = "cpa") -> DeadlineReminder:

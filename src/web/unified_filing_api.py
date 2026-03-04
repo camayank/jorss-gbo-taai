@@ -10,7 +10,7 @@ ALL filing workflows use these endpoints, reducing code duplication by ~70%.
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Query
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import uuid
 import logging
@@ -163,8 +163,8 @@ async def create_filing_session(
         "tax_year": request.tax_year,
         "user_id": user_id,
         "is_anonymous": user_id is None,
-        "created_at": datetime.utcnow().isoformat(),
-        "updated_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
         "completeness_score": 0.0,
         "confidence_score": 0.0,
         "documents": [],
@@ -289,7 +289,7 @@ async def upload_document(
             "document_type": result.document_type,
             "extracted_fields": result.extracted_fields,
             "confidence": result.confidence_score,
-            "uploaded_at": datetime.utcnow().isoformat()
+            "uploaded_at": datetime.now(timezone.utc).isoformat()
         })
 
         extracted_data = session_data.get("extracted_data", {})
@@ -298,7 +298,7 @@ async def upload_document(
         session_data["documents"] = documents
         session_data["extracted_data"] = extracted_data
         session_data["state"] = FilingState.EXTRACT.value
-        session_data["updated_at"] = datetime.utcnow().isoformat()
+        session_data["updated_at"] = datetime.now(timezone.utc).isoformat()
         session_data["confidence_score"] = result.confidence_score
 
         # Save updated session
@@ -394,10 +394,10 @@ async def calculate_taxes(
             "refund": float(result.refund) if result.refund else None,
             "tax_owed": float(result.tax_owed) if result.tax_owed else None,
             "effective_rate": float(result.effective_rate),
-            "calculated_at": datetime.utcnow().isoformat()
+            "calculated_at": datetime.now(timezone.utc).isoformat()
         }
         session_data["state"] = FilingState.REVIEW.value
-        session_data["updated_at"] = datetime.utcnow().isoformat()
+        session_data["updated_at"] = datetime.now(timezone.utc).isoformat()
 
         persistence.save_session_state(session_id, session_data)
 
@@ -485,7 +485,7 @@ async def submit_return(
             "calculation_result": session_data.get("calculation_result", {}),
             "consent_signature": request.consent_signature,
             "consent_date": request.consent_date,
-            "submitted_at": datetime.utcnow().isoformat()
+            "submitted_at": datetime.now(timezone.utc).isoformat()
         }
 
         # Save return (simplified - would use proper database model)
@@ -499,7 +499,7 @@ async def submit_return(
         # Update session
         session_data["return_id"] = return_id
         session_data["state"] = FilingState.COMPLETE.value
-        session_data["updated_at"] = datetime.utcnow().isoformat()
+        session_data["updated_at"] = datetime.now(timezone.utc).isoformat()
         persistence.save_session_state(session_id, session_data)
 
         # Audit log
@@ -515,7 +515,7 @@ async def submit_return(
             success=True,
             return_id=return_id,
             status="submitted",
-            submitted_at=datetime.utcnow().isoformat(),
+            submitted_at=datetime.now(timezone.utc).isoformat(),
             next_steps=[
                 "Your return has been submitted",
                 "You will receive confirmation within 24 hours",

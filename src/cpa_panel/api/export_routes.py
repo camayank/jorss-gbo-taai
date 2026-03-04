@@ -7,7 +7,7 @@ Provides CSV export for clients, leads, and activity logs.
 import csv
 import io
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -58,7 +58,7 @@ async def export_data(
     if format != "csv":
         raise HTTPException(status_code=400, detail="Only CSV format is currently supported")
 
-    now = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    now = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
     if export_type == "clients":
         rows = [
@@ -68,7 +68,7 @@ async def export_data(
                 "email": f"client{i}@example.com",
                 "filing_status": ["single", "mfj", "hoh"][i % 3],
                 "status": "active",
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
             }
             for i in range(1, 11)
         ]
@@ -84,7 +84,7 @@ async def export_data(
                 "status": ["new", "qualified", "contacted", "engaged"][i % 4],
                 "priority": ["high", "medium", "low"][i % 3],
                 "estimated_savings": round(500 + i * 200, 2),
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
             }
             for i in range(1, 16)
         ]
@@ -93,7 +93,7 @@ async def export_data(
     elif export_type == "activity":
         rows = [
             {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "action": ["login", "view_client", "generate_report", "send_email", "update_status"][i % 5],
                 "user": "current_user",
                 "details": f"Activity log entry {i}",

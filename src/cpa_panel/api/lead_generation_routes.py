@@ -572,7 +572,12 @@ async def archive_lead(lead_id: str, request: ArchiveLeadRequest = ArchiveLeadRe
     description="Convert a qualified lead into a client",
     dependencies=[Depends(require_internal_cpa_auth)],
 )
-async def convert_lead(lead_id: str, cpa_id: str = Query(..., description="CPA ID")):
+async def convert_lead(
+    lead_id: str,
+    cpa_id: str = Query(..., description="CPA ID"),
+    firm_id: str = Query(None, description="Firm ID for tenant scoping"),
+    auth_ctx: Any = Depends(require_internal_cpa_auth),
+):
     """
     Convert a lead to a client.
 
@@ -582,8 +587,10 @@ async def convert_lead(lead_id: str, cpa_id: str = Query(..., description="CPA I
     3. Marking the lead as converted
     """
     try:
+        # Resolve firm_id: explicit param > auth context > None
+        resolved_firm_id = firm_id or str(getattr(auth_ctx, "firm_id", None) or "") or None
         service = get_lead_generation_service()
-        lead, client_id = service.convert_lead_to_client(lead_id, cpa_id)
+        lead, client_id = service.convert_lead_to_client(lead_id, cpa_id, firm_id=resolved_firm_id)
 
         return {
             "lead_id": lead.lead_id,

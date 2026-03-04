@@ -5,7 +5,7 @@ Value objects are immutable objects that describe characteristics of a thing,
 but have no conceptual identity. They are defined by their attributes.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 from enum import Enum
@@ -329,7 +329,7 @@ class ScenarioResult(BaseModel):
     )
 
     # Computation metadata
-    computed_at: datetime = Field(default_factory=datetime.utcnow)
+    computed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     computation_time_ms: Optional[int] = Field(default=None)
 
     def to_dict(self) -> Dict[str, Any]:

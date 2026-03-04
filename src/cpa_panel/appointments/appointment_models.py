@@ -5,7 +5,7 @@ Data models for appointment scheduling system.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, date, time, timedelta
+from datetime import datetime, date, time, timedelta, timezone
 from typing import Optional, List, Dict, Any
 from enum import Enum
 from uuid import UUID, uuid4
@@ -136,8 +136,8 @@ class CPAAvailability:
     # Timezone
     timezone: str = "America/New_York"
 
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def __post_init__(self):
         """Set default availability if not provided."""
@@ -258,8 +258,8 @@ class Appointment:
     notes: Optional[str] = None  # CPA notes after meeting
 
     # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     created_by: Optional[str] = None  # "cpa" or "client"
 
     def __post_init__(self):
@@ -281,19 +281,19 @@ class Appointment:
     @property
     def is_upcoming(self) -> bool:
         """Check if appointment is in the future."""
-        return self.start_time > datetime.utcnow() if self.start_time else False
+        return self.start_time > datetime.now(timezone.utc) if self.start_time else False
 
     @property
     def is_past(self) -> bool:
         """Check if appointment is in the past."""
-        return self.end_time < datetime.utcnow() if self.end_time else False
+        return self.end_time < datetime.now(timezone.utc) if self.end_time else False
 
     @property
     def hours_until(self) -> Optional[float]:
         """Get hours until appointment."""
         if not self.start_time:
             return None
-        delta = self.start_time - datetime.utcnow()
+        delta = self.start_time - datetime.now(timezone.utc)
         return delta.total_seconds() / 3600
 
     @property
@@ -315,16 +315,16 @@ class Appointment:
     def confirm(self):
         """Confirm the appointment."""
         self.status = AppointmentStatus.CONFIRMED
-        self.confirmed_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+        self.confirmed_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(timezone.utc)
 
     def cancel(self, cancelled_by: str = "client", reason: str = ""):
         """Cancel the appointment."""
         self.status = AppointmentStatus.CANCELLED
-        self.cancelled_at = datetime.utcnow()
+        self.cancelled_at = datetime.now(timezone.utc)
         self.cancelled_by = cancelled_by
         self.cancellation_reason = reason
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def reschedule(self, new_start_time: datetime, new_end_time: datetime, rescheduled_by: str = "client"):
         """Reschedule the appointment."""
@@ -336,19 +336,19 @@ class Appointment:
         self.status = AppointmentStatus.RESCHEDULED
         self.reschedule_count += 1
         self.rescheduled_by = rescheduled_by
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def complete(self, notes: str = ""):
         """Mark appointment as completed."""
         self.status = AppointmentStatus.COMPLETED
-        self.completed_at = datetime.utcnow()
+        self.completed_at = datetime.now(timezone.utc)
         self.notes = notes
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def mark_no_show(self):
         """Mark as no-show."""
         self.status = AppointmentStatus.NO_SHOW
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API response."""

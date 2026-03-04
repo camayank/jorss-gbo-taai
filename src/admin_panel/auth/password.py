@@ -216,6 +216,6 @@ def is_password_expired(
     if password_changed_at is None:
         return True
 
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
     expiry_date = password_changed_at + timedelta(days=expiry_days)
-    return datetime.utcnow() > expiry_date
+    return datetime.now(timezone.utc) > expiry_date

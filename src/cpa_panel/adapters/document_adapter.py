@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any, TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 import logging
@@ -133,7 +133,7 @@ class DocumentAdapter:
                 filename=filename,
                 document_type=result.document_type,
                 status=result.status,
-                upload_time=datetime.utcnow().isoformat(),
+                upload_time=datetime.now(timezone.utc).isoformat(),
                 processing_result=result.to_dict(),
             )
 

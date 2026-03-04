@@ -131,6 +131,7 @@ def create_refresh_token(
     user_id: UUID,
     user_type: str,
     expires_delta: Optional[timedelta] = None,
+    firm_id: Optional[UUID] = None,
 ) -> str:
     """
     Create a JWT refresh token.
@@ -148,6 +149,7 @@ def create_refresh_token(
         "jti": str(uuid4()),
         "exp": expire,
         "type": "refresh",
+        "firm_id": str(firm_id) if firm_id else None,
     }
 
     return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)

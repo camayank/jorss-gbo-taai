@@ -14,7 +14,7 @@ import hmac
 import json
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional, List
 from uuid import uuid4
 
@@ -372,7 +372,7 @@ class WebhookService:
                 if field in allowed_fields:
                     setattr(endpoint, field, value)
 
-            endpoint.updated_at = datetime.utcnow()
+            endpoint.updated_at = datetime.now(timezone.utc)
             session.commit()
 
             logger.info(f"[WEBHOOK] Endpoint updated | endpoint={endpoint_id}")
@@ -503,7 +503,7 @@ class WebhookService:
 
             new_secret = secrets.token_hex(32)
             endpoint.secret = new_secret
-            endpoint.updated_at = datetime.utcnow()
+            endpoint.updated_at = datetime.now(timezone.utc)
             session.commit()
 
             logger.info(f"[WEBHOOK] Secret rotated | endpoint={endpoint_id}")
@@ -660,12 +660,12 @@ class WebhookService:
             # Check success (2xx status codes)
             if 200 <= response_status < 300:
                 delivery.status = DeliveryStatus.DELIVERED.value
-                delivery.delivered_at = datetime.utcnow()
+                delivery.delivered_at = datetime.now(timezone.utc)
 
                 # Update endpoint stats
                 endpoint.total_deliveries += 1
                 endpoint.successful_deliveries += 1
-                endpoint.last_triggered_at = datetime.utcnow()
+                endpoint.last_triggered_at = datetime.now(timezone.utc)
 
                 logger.info(
                     f"[WEBHOOK] Delivered | endpoint={endpoint.endpoint_id} | "
@@ -757,7 +757,7 @@ class WebhookService:
 
         # Exponential backoff: 60s, 120s, 240s, 480s, 960s
         backoff_seconds = endpoint.retry_interval_seconds * (2 ** (attempt - 1))
-        next_retry = datetime.utcnow() + timedelta(seconds=backoff_seconds)
+        next_retry = datetime.now(timezone.utc) + timedelta(seconds=backoff_seconds)
 
         delivery.status = DeliveryStatus.RETRYING.value
         delivery.next_retry_at = next_retry
@@ -1000,7 +1000,7 @@ class WebhookService:
             # Find deliveries ready for retry
             pending_retries = session.query(WebhookDelivery).filter(
                 WebhookDelivery.status == DeliveryStatus.RETRYING.value,
-                WebhookDelivery.next_retry_at <= datetime.utcnow(),
+                WebhookDelivery.next_retry_at <= datetime.now(timezone.utc),
             ).limit(10).all()
 
             for delivery in pending_retries:

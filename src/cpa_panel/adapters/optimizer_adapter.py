@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 from typing import Dict, List, Optional, Any, TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 if TYPE_CHECKING:
@@ -142,7 +142,7 @@ class OptimizerAdapter:
                 success=True,
                 session_id=session_id,
                 analysis_type="credit_analysis",
-                timestamp=datetime.utcnow().isoformat(),
+                timestamp=datetime.now(timezone.utc).isoformat(),
                 data={
                     "filing_status": recommendation.analysis.filing_status,
                     "adjusted_gross_income": recommendation.analysis.adjusted_gross_income,
@@ -203,7 +203,7 @@ class OptimizerAdapter:
                 success=True,
                 session_id=session_id,
                 analysis_type="deduction_analysis",
-                timestamp=datetime.utcnow().isoformat(),
+                timestamp=datetime.now(timezone.utc).isoformat(),
                 data={
                     "filing_status": analysis.filing_status,
                     "adjusted_gross_income": analysis.adjusted_gross_income,
@@ -267,7 +267,7 @@ class OptimizerAdapter:
                 success=True,
                 session_id=session_id,
                 analysis_type="filing_status_comparison",
-                timestamp=datetime.utcnow().isoformat(),
+                timestamp=datetime.now(timezone.utc).isoformat(),
                 data={
                     "recommended_status": recommendation.recommended_status,
                     "current_status": recommendation.current_status,
@@ -320,7 +320,7 @@ class OptimizerAdapter:
                     success=True,
                     session_id=session_id,
                     analysis_type="entity_comparison",
-                    timestamp=datetime.utcnow().isoformat(),
+                    timestamp=datetime.now(timezone.utc).isoformat(),
                     data={"message": "No self-employment income found"},
                     summary="Entity comparison requires self-employment income.",
                     total_potential_savings=0,
@@ -387,7 +387,7 @@ class OptimizerAdapter:
                 success=True,
                 session_id=session_id,
                 analysis_type="entity_comparison",
-                timestamp=datetime.utcnow().isoformat(),
+                timestamp=datetime.now(timezone.utc).isoformat(),
                 data={
                     "analyses": analyses_data,
                     "recommended_entity": comparison.recommended_entity.value,
@@ -472,7 +472,7 @@ class OptimizerAdapter:
                 success=True,
                 session_id=session_id,
                 analysis_type="full_strategy",
-                timestamp=datetime.utcnow().isoformat(),
+                timestamp=datetime.now(timezone.utc).isoformat(),
                 data={
                     "filing_status": report.filing_status,
                     "tax_year": report.tax_year,
@@ -520,7 +520,7 @@ class OptimizerAdapter:
             success=False,
             session_id=session_id,
             analysis_type=analysis_type,
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
             data={"error": error},
             summary=f"Analysis failed: {error}",
             total_potential_savings=0,

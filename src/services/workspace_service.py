@@ -10,7 +10,8 @@ This service provides:
 Phase 1-2 Implementation: Single preparer, many clients, no teams.
 """
 
-from datetime import datetime
+import os
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 from uuid import UUID, uuid4
 from enum import Enum
@@ -56,13 +57,15 @@ class WorkspaceService:
     Enables dashboard display, search, and session resumption.
     """
 
-    def __init__(self, db_url: str = "sqlite:///tax_returns.db"):
+    def __init__(self, db_url: str = None):
         """
         Initialize the workspace service.
 
         Args:
-            db_url: Database connection URL
+            db_url: Database connection URL (reads DATABASE_URL env var if not provided)
         """
+        if db_url is None:
+            db_url = os.environ.get("DATABASE_URL", "sqlite:///tax_returns.db")
         self._engine = create_engine(db_url, echo=False)
         self._Session = sessionmaker(bind=self._engine)
         self._logger = get_logger(__name__)
@@ -184,7 +187,7 @@ class WorkspaceService:
                 PreparerRecord.preparer_id == preparer_id
             ).first()
             if preparer:
-                preparer.last_login_at = datetime.utcnow()
+                preparer.last_login_at = datetime.now(timezone.utc)
                 session.commit()
 
     # =========================================================================
@@ -441,7 +444,7 @@ class WorkspaceService:
             ).first()
             if existing:
                 # Return existing session
-                existing.last_accessed_at = datetime.utcnow()
+                existing.last_accessed_at = datetime.now(timezone.utc)
                 session.commit()
                 return self._session_to_dict(existing)
 
@@ -476,7 +479,7 @@ class WorkspaceService:
             ).first()
             if sess:
                 # Update last accessed
-                sess.last_accessed_at = datetime.utcnow()
+                sess.last_accessed_at = datetime.now(timezone.utc)
                 session.commit()
                 return self._session_to_dict(sess)
             return None
@@ -493,7 +496,7 @@ class WorkspaceService:
                 ClientSessionRecord.tax_year == tax_year
             ).first()
             if sess:
-                sess.last_accessed_at = datetime.utcnow()
+                sess.last_accessed_at = datetime.now(timezone.utc)
                 session.commit()
                 return self._session_to_dict(sess)
             return None
@@ -512,7 +515,7 @@ class WorkspaceService:
                 raise ValueError(f"Session not found: {session_id}")
 
             sess.status = ClientStatusDB(status)
-            sess.updated_at = datetime.utcnow()
+            sess.updated_at = datetime.now(timezone.utc)
             session.commit()
             return self._session_to_dict(sess)
 
@@ -541,7 +544,7 @@ class WorkspaceService:
             if potential_savings is not None:
                 sess.potential_savings = potential_savings
 
-            sess.updated_at = datetime.utcnow()
+            sess.updated_at = datetime.now(timezone.utc)
             session.commit()
             return self._session_to_dict(sess)
 
@@ -560,7 +563,7 @@ class WorkspaceService:
 
             sess.return_id = return_id
             sess.calculations_run += 1
-            sess.updated_at = datetime.utcnow()
+            sess.updated_at = datetime.now(timezone.utc)
             session.commit()
             return self._session_to_dict(sess)
 
@@ -583,7 +586,7 @@ class WorkspaceService:
                 sess.scenario_ids = scenario_ids
                 sess.scenarios_analyzed += 1
 
-            sess.updated_at = datetime.utcnow()
+            sess.updated_at = datetime.now(timezone.utc)
             session.commit()
             return self._session_to_dict(sess)
 
@@ -606,7 +609,7 @@ class WorkspaceService:
                 sess.document_ids = document_ids
                 sess.documents_processed += 1
 
-            sess.updated_at = datetime.utcnow()
+            sess.updated_at = datetime.now(timezone.utc)
             session.commit()
             return self._session_to_dict(sess)
 
@@ -726,7 +729,7 @@ class WorkspaceService:
 
             # Recent activity (last 7 days)
             from datetime import timedelta
-            week_ago = datetime.utcnow() - timedelta(days=7)
+            week_ago = datetime.now(timezone.utc) - timedelta(days=7)
             recent_activity = sum(
                 1 for s in sessions if s.last_accessed_at and s.last_accessed_at > week_ago
             )
@@ -824,7 +827,7 @@ class WorkspaceService:
 _workspace_service: Optional[WorkspaceService] = None
 
 
-def get_workspace_service(db_url: str = "sqlite:///tax_returns.db") -> WorkspaceService:
+def get_workspace_service(db_url: str = None) -> WorkspaceService:
     """Get or create the workspace service instance."""
     global _workspace_service
     if _workspace_service is None:

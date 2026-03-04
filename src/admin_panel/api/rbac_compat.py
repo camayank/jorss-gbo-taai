@@ -9,7 +9,7 @@ fallback implementation for RBAC admin APIs.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, List, Optional
 from uuid import UUID, uuid4, uuid5
@@ -407,7 +407,7 @@ class PermissionService:
                 "expires_at": expires_at,
                 "reason": reason,
                 "created_by": created_by,
-                "created_at": datetime.utcnow(),
+                "created_at": datetime.now(timezone.utc),
             }
         )
 
@@ -491,7 +491,7 @@ class RoleService:
             is_assignable=True,
             display_order=100,
             role_permissions=role_permissions,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
         _CUSTOM_ROLES[role_id] = role
 
@@ -637,7 +637,7 @@ class RoleService:
                 role_id=role_id,
                 role=role,
                 is_primary=is_primary,
-                assigned_at=datetime.utcnow(),
+                assigned_at=datetime.now(timezone.utc),
                 expires_at=expires_at,
             )
         )

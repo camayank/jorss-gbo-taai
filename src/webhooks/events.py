@@ -7,7 +7,7 @@ for triggering webhooks from application code.
 
 from enum import Enum
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 import logging
 
@@ -175,7 +175,7 @@ def emit_webhook_event(
     from webhooks.models import WebhookEvent
 
     event_id = str(uuid4())
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(timezone.utc)
 
     event = WebhookEvent(
         event_id=event_id,

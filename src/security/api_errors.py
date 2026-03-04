@@ -26,7 +26,7 @@ from __future__ import annotations
 import logging
 import traceback
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
@@ -261,7 +261,7 @@ class APIError(Exception):
             code=self.code.value,
             message=self.message,
             status_code=self.status_code,
-            timestamp=datetime.utcnow().isoformat() + "Z",
+            timestamp=datetime.now(timezone.utc).isoformat() + "Z",
             request_id=request_id,
             path=path,
             details=self.details,
@@ -378,7 +378,7 @@ def register_exception_handlers(app: FastAPI) -> None:
             code=ErrorCode.VALIDATION_ERROR.value,
             message="Request validation failed",
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            timestamp=datetime.utcnow().isoformat() + "Z",
+            timestamp=datetime.now(timezone.utc).isoformat() + "Z",
             request_id=request_id,
             path=request.url.path,
             field_errors=[
@@ -429,7 +429,7 @@ def register_exception_handlers(app: FastAPI) -> None:
             code=error_code.value,
             message=str(exc.detail) if exc.detail else "An error occurred",
             status_code=exc.status_code,
-            timestamp=datetime.utcnow().isoformat() + "Z",
+            timestamp=datetime.now(timezone.utc).isoformat() + "Z",
             request_id=request_id,
             path=request.url.path,
         )
@@ -468,7 +468,7 @@ def register_exception_handlers(app: FastAPI) -> None:
             code=ErrorCode.SERVER_INTERNAL_ERROR.value,
             message="An unexpected error occurred. Please try again later.",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            timestamp=datetime.utcnow().isoformat() + "Z",
+            timestamp=datetime.now(timezone.utc).isoformat() + "Z",
             request_id=request_id,
             path=request.url.path,
             details={"support": f"Reference ID: {request_id}"},

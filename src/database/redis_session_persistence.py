@@ -25,7 +25,7 @@ import io
 import json
 import logging
 import pickle
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Set, FrozenSet
 from dataclasses import dataclass, asdict
@@ -194,7 +194,7 @@ class RedisSessionPersistence:
             True if saved successfully
         """
         try:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             ttl = ttl_seconds or self._ttl
 
             # Check if session exists to preserve created_at
@@ -265,7 +265,7 @@ class RedisSessionPersistence:
 
             # Update last activity
             if isinstance(data, dict):
-                data["last_activity"] = datetime.utcnow().isoformat()
+                data["last_activity"] = datetime.now(timezone.utc).isoformat()
 
             return data
 
@@ -493,7 +493,7 @@ class RedisSessionPersistence:
             True if saved successfully
         """
         try:
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
             key = self._status_key(session_id)
 
             status_data = {

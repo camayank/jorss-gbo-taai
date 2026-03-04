@@ -5,7 +5,7 @@ Shared helpers, dependency injection, error formatting, and database utilities.
 """
 
 from typing import Dict, Any, Optional, Callable, TypeVar
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from contextlib import contextmanager
 from functools import wraps
@@ -57,7 +57,7 @@ def format_error_response(
         "error": True,
         "code": code,
         "message": message,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
     if details:
         response["details"] = details
@@ -70,7 +70,7 @@ def format_success_response(data: Dict[str, Any], request_id: Optional[str] = No
     """Format a standard success response."""
     response = {
         "success": True,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         **data,
     }
     if request_id:
@@ -408,7 +408,7 @@ def log_api_event(
     """
     log_data = {
         "event_type": event_type,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
     if request_id:
         log_data["request_id"] = request_id
@@ -646,7 +646,7 @@ def format_api_error(
             "message": message,
             "status": status,
         },
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
         "api_version": "1.0",
     }
 
@@ -679,7 +679,7 @@ def format_api_success(
     response = {
         "success": True,
         "data": data,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
         "api_version": "1.0",
     }
 
@@ -755,14 +755,24 @@ def get_tenant_id(request) -> str:
     """
     Extract tenant ID from request.
 
-    Checks headers, query params, or defaults to 'default'.
+    Priority:
+    1. Authenticated user's firm_id (trusted, from JWT/session)
+    2. X-Tenant-ID header (only if it matches the auth context or no auth)
+    3. Query param tenant_id (only if no auth context)
+    4. Default fallback
     """
-    # Check header first
+    # Try to get firm_id from authenticated user (trusted source)
+    user = getattr(request.state, "user", None)
+    if user:
+        auth_firm_id = getattr(user, "firm_id", None) or (user.get("firm_id") if isinstance(user, dict) else None)
+        if auth_firm_id:
+            return str(auth_firm_id)
+
+    # Fallback: check header and query params (for unauthenticated flows like lead magnet)
     tenant_id = request.headers.get("X-Tenant-ID")
     if tenant_id:
         return tenant_id
 
-    # Check query params
     tenant_id = request.query_params.get("tenant_id")
     if tenant_id:
         return tenant_id

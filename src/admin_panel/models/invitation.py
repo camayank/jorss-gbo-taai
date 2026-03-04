@@ -4,7 +4,7 @@ Invitation Model - Team member invitation management.
 Handles email-based invitation flow for adding team members to a firm.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import uuid4
 from enum import Enum as PyEnum
@@ -100,8 +100,8 @@ class Invitation(Base):
     link_clicked_at = Column(DateTime, nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     firm = relationship("Firm", back_populates="invitations")
@@ -121,7 +121,7 @@ class Invitation(Base):
     def __init__(self, **kwargs):
         """Initialize invitation with default expiration."""
         if "expires_at" not in kwargs:
-            kwargs["expires_at"] = datetime.utcnow() + timedelta(days=7)
+            kwargs["expires_at"] = datetime.now(timezone.utc) + timedelta(days=7)
         super().__init__(**kwargs)
 
     def __repr__(self):
@@ -138,7 +138,7 @@ class Invitation(Base):
         if self.status == InvitationStatus.EXPIRED:
             return True
         if self.status == InvitationStatus.PENDING:
-            return datetime.utcnow() > self.expires_at
+            return datetime.now(timezone.utc) > self.expires_at
         return False
 
     @property
@@ -149,13 +149,13 @@ class Invitation(Base):
     def accept(self, user_id) -> None:
         """Mark invitation as accepted."""
         self.status = InvitationStatus.ACCEPTED
-        self.accepted_at = datetime.utcnow()
+        self.accepted_at = datetime.now(timezone.utc)
         self.accepted_by_user_id = user_id
 
     def revoke(self, revoked_by_user_id) -> None:
         """Revoke the invitation."""
         self.status = InvitationStatus.REVOKED
-        self.revoked_at = datetime.utcnow()
+        self.revoked_at = datetime.now(timezone.utc)
         self.revoked_by = revoked_by_user_id
 
     def mark_expired(self) -> None:
@@ -165,6 +165,6 @@ class Invitation(Base):
     def regenerate_token(self, extend_days: int = 7) -> str:
         """Regenerate token and extend expiration."""
         self.token = generate_invitation_token()
-        self.expires_at = datetime.utcnow() + timedelta(days=extend_days)
+        self.expires_at = datetime.now(timezone.utc) + timedelta(days=extend_days)
         self.status = InvitationStatus.PENDING
         return self.token

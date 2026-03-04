@@ -161,6 +161,11 @@ def get_cpa_id_from_user(user: dict) -> str:
     return user.get("cpa_id") or user.get("id") or "default"
 
 
+def get_tenant_id_from_user(user: dict) -> str:
+    """Extract tenant/firm ID from user object for data scoping."""
+    return user.get("tenant_id") or user.get("firm_id") or user.get("cpa_id") or user.get("id") or "default"
+
+
 # =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
@@ -878,8 +883,26 @@ async def cpa_team_page(
     cpa_profile = await get_cpa_profile_from_context(request)
     stats = await get_dashboard_stats(get_cpa_id_from_user(current_user))
 
-    # Team members loaded from auth context — empty until team management is configured
+    # Load real team members from staff assignment service
     team_members = []
+    cpa_id = get_cpa_id_from_user(current_user)
+    try:
+        from cpa_panel.staff.assignment_service import get_assignment_service
+        service = get_assignment_service()
+        members = service.get_staff(cpa_id)
+        counts = service.get_assignment_counts(cpa_id)
+        for m in members:
+            d = m.to_dict()
+            team_members.append({
+                "name": d.get("name", ""),
+                "email": d.get("email", ""),
+                "role": d.get("role", "preparer"),
+                "status": "active" if d.get("is_active", True) else "inactive",
+                "staff_id": d.get("staff_id", ""),
+                "assignments": counts.get(d.get("staff_id"), 0),
+            })
+    except Exception as e:
+        logger.warning(f"Failed to load team members: {e}")
 
     return templates.TemplateResponse(
         "cpa/team.html",
@@ -890,8 +913,42 @@ async def cpa_team_page(
             "team_members": team_members,
             "current_user": current_user,
             "active_page": "team",
+            "cpa_id": cpa_id,
         }
     )
+
+
+@cpa_dashboard_router.post("/team/invite", response_class=HTMLResponse)
+async def cpa_team_invite(
+    request: Request,
+    current_user: dict = Depends(require_cpa_auth)
+):
+    """Handle team member invite form submission."""
+    from fastapi.responses import RedirectResponse
+    form = await request.form()
+    email = form.get("email", "").strip()
+    role = form.get("role", "staff").strip()
+
+    if email:
+        try:
+            from cpa_panel.staff.assignment_service import get_assignment_service
+            import uuid
+            cpa_id = get_cpa_id_from_user(current_user)
+            service = get_assignment_service()
+            staff_id = str(uuid.uuid4())[:8]
+            name = email.split("@")[0].replace(".", " ").title()
+            service.register_staff(
+                tenant_id=cpa_id,
+                staff_id=staff_id,
+                name=name,
+                email=email,
+                role=role if role in ("preparer", "reviewer", "partner") else "preparer",
+            )
+            logger.info(f"Team invite sent: {email} as {role} for {cpa_id}")
+        except Exception as e:
+            logger.error(f"Team invite failed: {e}")
+
+    return RedirectResponse(url="/cpa/team", status_code=303)
 
 
 @cpa_dashboard_router.get("/clients", response_class=HTMLResponse)
@@ -944,15 +1001,51 @@ async def cpa_billing_page(
     cpa_profile = await get_cpa_profile_from_context(request)
     stats = await get_dashboard_stats(get_cpa_id_from_user(current_user))
 
-    # Plan info — billing handled through Mercury wallet
+    # Plan info — defaults that match subscription_plans model
     billing = {
         "plan": "Professional",
         "status": "active",
         "next_billing": "Contact support",
-        "amount": 99.00,
+        "amount": 499.00,
         "leads_this_month": stats.get("total_leads", 0),
-        "leads_limit": 100,
+        "leads_limit": 500,
     }
+
+    # Available plans — aligned with subscription_plans table
+    # ($199/$499/$999 per admin_panel/models/subscription.py)
+    plans = []
+    try:
+        from database.async_engine import get_async_session as _get_async_session
+        from sqlalchemy import text
+        async for db in _get_async_session():
+            rows = (await db.execute(text(
+                "SELECT name, monthly_price, max_clients, max_team_members, features "
+                "FROM subscription_plans WHERE is_active = true ORDER BY monthly_price ASC"
+            ))).fetchall()
+            for row in rows:
+                import json
+                feats = json.loads(row[4]) if isinstance(row[4], str) else (row[4] or {})
+                plans.append({
+                    "name": row[0],
+                    "price": float(row[1]) if row[1] else 0,
+                    "leads_limit": row[2] or "Unlimited",
+                    "team_limit": row[3] or "Unlimited",
+                    "features": [k.replace("_", " ").title() for k, v in feats.items() if v],
+                })
+            break
+    except Exception as e:
+        logger.debug(f"Could not load plans from DB: {e}")
+
+    if not plans:
+        # Fallback: hardcoded plans matching subscription model
+        plans = [
+            {"name": "Starter", "price": 199, "leads_limit": 100, "team_limit": 3,
+             "features": ["Lead scoring", "Basic analytics"]},
+            {"name": "Professional", "price": 499, "leads_limit": 500, "team_limit": 10,
+             "features": ["Lead scoring", "Custom branding", "Analytics dashboard", "Email notifications"]},
+            {"name": "Enterprise", "price": 999, "leads_limit": "Unlimited", "team_limit": "Unlimited",
+             "features": ["All Professional features", "White-label", "API access", "Priority support", "Custom domain"]},
+        ]
 
     return templates.TemplateResponse(
         "cpa/billing.html",
@@ -961,9 +1054,33 @@ async def cpa_billing_page(
             "cpa": cpa_profile,
             "stats": stats,
             "billing": billing,
+            "plans": plans,
             "invoices": [],
             "current_user": current_user,
             "active_page": "billing",
+        }
+    )
+
+
+@cpa_dashboard_router.get("/messaging", response_class=HTMLResponse)
+async def cpa_messaging_page(
+    request: Request,
+    current_user: dict = Depends(require_cpa_auth)
+):
+    """CPA Messaging - Client message inbox. Requires authentication."""
+    cpa_profile = await get_cpa_profile_from_context(request)
+    cpa_id = get_cpa_id_from_user(current_user)
+    stats = await get_dashboard_stats(cpa_id)
+
+    return templates.TemplateResponse(
+        "cpa/messaging.html",
+        {
+            "request": request,
+            "cpa": cpa_profile,
+            "stats": stats,
+            "current_user": current_user,
+            "active_page": "messaging",
+            "cpa_id": cpa_id,
         }
     )
 
@@ -1069,8 +1186,9 @@ async def cpa_return_queue_page(
     try:
         from database.session_persistence import get_session_persistence
         persistence = get_session_persistence()
-        # Query real returns from the database
-        all_sessions = persistence.list_sessions("default")
+        # Query returns scoped to this CPA's firm/tenant
+        tenant_id = get_tenant_id_from_user(current_user)
+        all_sessions = persistence.list_sessions(tenant_id)
         for s in all_sessions:
             if s.session_type == "intelligent_advisor" and s.data:
                 data = s.data
@@ -1132,7 +1250,8 @@ async def cpa_return_review_page(
         from database.session_persistence import SessionPersistence
         persistence = SessionPersistence()
 
-        session = persistence.load_unified_session(session_id)
+        tenant_id = get_tenant_id_from_user(current_user)
+        session = persistence.load_unified_session(session_id, tenant_id=tenant_id)
         if session:
             # Extract tax return data
             tax_return = None

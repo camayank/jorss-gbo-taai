@@ -13,7 +13,7 @@ All routes use database-backed authentication when available.
 import secrets
 import logging
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pyotp
 from fastapi import APIRouter, Depends, HTTPException, status, Request
@@ -37,8 +37,56 @@ logger = logging.getLogger(__name__)
 # Token blacklist for logout (in production, use Redis)
 _token_blacklist: set = set()
 
-# Password reset tokens (in production, store in database)
-_reset_tokens: dict = {}
+# Password reset tokens — Redis-backed with in-memory fallback
+_reset_tokens: dict = {}  # In-memory fallback for dev
+_reset_token_redis = None
+
+
+def _get_token_backend():
+    """Get Redis client for token storage. Falls back to in-memory in dev."""
+    global _reset_token_redis
+    if _reset_token_redis is not None:
+        return _reset_token_redis
+    try:
+        import os
+        import redis as _sync_redis
+        redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+        client = _sync_redis.from_url(redis_url, decode_responses=True)
+        client.ping()
+        _reset_token_redis = client
+        return _reset_token_redis
+    except Exception:
+        logger.debug("Redis unavailable for admin reset tokens, using in-memory")
+        return None
+
+
+def _store_token(token: str, data: dict, ttl_seconds: int = 3600):
+    """Store a token with optional expiration."""
+    import json as _json
+    backend = _get_token_backend()
+    if backend:
+        backend.setex(f"admin_reset:{token}", ttl_seconds, _json.dumps(data, default=str))
+    else:
+        _reset_tokens[token] = data
+
+
+def _get_token(token: str) -> Optional[dict]:
+    """Retrieve a stored token."""
+    import json as _json
+    backend = _get_token_backend()
+    if backend:
+        data = backend.get(f"admin_reset:{token}")
+        return _json.loads(data) if data else None
+    return _reset_tokens.get(token)
+
+
+def _delete_token(token: str):
+    """Delete a token after use."""
+    backend = _get_token_backend()
+    if backend:
+        backend.delete(f"admin_reset:{token}")
+    elif token in _reset_tokens:
+        del _reset_tokens[token]
 
 
 # =============================================================================
@@ -128,7 +176,7 @@ async def login(
         lock_time = user["locked_until"]
         if isinstance(lock_time, str):
             lock_time = datetime.fromisoformat(lock_time)
-        if datetime.utcnow() < lock_time:
+        if datetime.now(timezone.utc) < lock_time:
             logger.warning(f"Login failed: account locked - user_id={user['id']}")
             raise HTTPException(
                 status_code=status.HTTP_423_LOCKED,
@@ -163,11 +211,21 @@ async def login(
     # Update last login and reset failed attempts
     await _update_login_success(session, user, client_ip)
 
+    # Validate firm_id for non-platform roles (firm users MUST have a firm)
+    user_role = user.get("role", "user").lower()
+    user_firm_id = user.get("firm_id")
+    if user_role not in {"platform_admin", "super_admin", "support"} and not user_firm_id:
+        logger.error(f"Firm user {user['id']} has no firm_id — blocking login")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account configuration error. Please contact support."
+        )
+
     # Create tokens
     access_token = create_access_token(
         user_id=user["id"],
         email=user["email"],
-        firm_id=user.get("firm_id"),
+        firm_id=user_firm_id,
         role=user.get("role", "user"),
         permissions=user.get("permissions", []),
     )
@@ -176,6 +234,7 @@ async def login(
     refresh_token = create_refresh_token(
         user_id=user["id"],
         email=user["email"],
+        firm_id=user_firm_id,
         expires_delta=refresh_expires,
     )
 
@@ -259,34 +318,58 @@ def _get_role_permissions(role: str) -> list:
 
 
 async def _increment_failed_login(session: AsyncSession, user: dict) -> None:
-    """Increment failed login attempts and lock if needed."""
-    if user.get("user_type") == "platform_admin":
-        return  # Platform admins don't have lockout
+    """Increment failed login attempts and lock if needed.
 
+    NOTE: Platform admins are no longer exempt from lockout tracking.
+    All user types are subject to the same brute-force protection.
+    """
     failed = user.get("failed_login_attempts", 0) + 1
     locked_until = None
 
     # Lock after 5 failed attempts
     if failed >= 5:
-        locked_until = datetime.utcnow() + timedelta(minutes=15)
+        locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
+        logger.warning(
+            f"Account locked due to {failed} failed attempts: user_id={user['id']}, "
+            f"user_type={user.get('user_type')}"
+        )
 
-    query = text("""
-        UPDATE users SET
-            failed_login_attempts = :failed,
-            locked_until = :locked_until
-        WHERE user_id = :user_id
-    """)
-    await session.execute(query, {
-        "user_id": user["id"],
-        "failed": failed,
-        "locked_until": locked_until.isoformat() if locked_until else None,
-    })
-    await session.commit()
+    if user.get("user_type") == "platform_admin":
+        # Platform admins table - track failed attempts there too
+        try:
+            query = text("""
+                UPDATE platform_admins SET
+                    failed_login_attempts = :failed,
+                    locked_until = :locked_until
+                WHERE admin_id = :user_id
+            """)
+            await session.execute(query, {
+                "user_id": user["id"],
+                "failed": failed,
+                "locked_until": locked_until.isoformat() if locked_until else None,
+            })
+            await session.commit()
+        except Exception as e:
+            logger.warning(f"Could not track failed login for platform_admin: {e}")
+            await session.rollback()
+    else:
+        query = text("""
+            UPDATE users SET
+                failed_login_attempts = :failed,
+                locked_until = :locked_until
+            WHERE user_id = :user_id
+        """)
+        await session.execute(query, {
+            "user_id": user["id"],
+            "failed": failed,
+            "locked_until": locked_until.isoformat() if locked_until else None,
+        })
+        await session.commit()
 
 
 async def _update_login_success(session: AsyncSession, user: dict, ip_address: str) -> None:
     """Update user record on successful login."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     if user.get("user_type") == "platform_admin":
         query = text("""
@@ -363,6 +446,20 @@ async def refresh_token(
     try:
         payload = decode_token(request.refresh_token, verify_type=TokenType.REFRESH)
 
+        # Check if the token has been revoked (blacklisted via logout)
+        if getattr(payload, "jti", None) and payload.jti in _token_blacklist:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked",
+            )
+
+        # Also check if the raw token itself is blacklisted
+        if request.refresh_token in _token_blacklist:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked",
+            )
+
         # Create new access token
         # In production, also fetch fresh permissions from database
         access_token = create_access_token(
@@ -421,7 +518,7 @@ async def change_password(
 
     # Hash new password
     new_hash = hash_password(request.new_password)
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     # Update password in database
     if user_data.get("user_type") == "platform_admin":
@@ -472,15 +569,15 @@ async def request_password_reset(
     if user:
         # Generate reset token
         token = secrets.token_urlsafe(32)
-        expires_at = datetime.utcnow() + timedelta(hours=1)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
 
-        # Store reset token (in production, store in database)
-        _reset_tokens[token] = {
+        # Store reset token (Redis-backed with in-memory fallback)
+        _store_token(token, {
             "user_id": user["id"],
             "email": user["email"],
             "user_type": user.get("user_type"),
-            "expires_at": expires_at,
-        }
+            "expires_at": expires_at.isoformat(),
+        })
 
         # Generate reset link
         reset_link = f"/auth/reset-password?token={token}"
@@ -527,7 +624,7 @@ async def confirm_password_reset(
         )
 
     # Verify reset token
-    token_data = _reset_tokens.get(reset_confirm.token)
+    token_data = _get_token(reset_confirm.token)
     if not token_data:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -535,8 +632,11 @@ async def confirm_password_reset(
         )
 
     # Check expiration
-    if datetime.utcnow() > token_data["expires_at"]:
-        del _reset_tokens[reset_confirm.token]
+    expires_at = token_data["expires_at"]
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at)
+    if datetime.now(timezone.utc) > expires_at:
+        _delete_token(reset_confirm.token)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Reset token has expired",
@@ -544,7 +644,7 @@ async def confirm_password_reset(
 
     # Hash new password
     new_hash = hash_password(reset_confirm.new_password)
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
 
     # Update password in database
     if token_data.get("user_type") == "platform_admin":
@@ -571,7 +671,7 @@ async def confirm_password_reset(
     await session.commit()
 
     # Invalidate reset token
-    del _reset_tokens[reset_confirm.token]
+    _delete_token(reset_confirm.token)
 
     logger.info(f"Password reset completed for user_id={token_data.get('user_id', 'unknown')}")
 
@@ -649,12 +749,11 @@ async def setup_mfa(
     backup_codes = [secrets.token_hex(4).upper() for _ in range(10)]
 
     # Store secret temporarily (user must verify before it's activated)
-    # In production, store in a pending_mfa table
-    _reset_tokens[f"mfa_setup_{user.user_id}"] = {
+    _store_token(f"mfa_setup_{user.user_id}", {
         "secret": mfa_secret,
         "backup_codes": backup_codes,
-        "expires_at": datetime.utcnow() + timedelta(minutes=10),
-    }
+        "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat(),
+    }, ttl_seconds=600)
 
     # Generate QR code URL (otpauth format)
     issuer = "TaxPlatform"
@@ -682,7 +781,7 @@ async def confirm_mfa_setup(
     """
     # Get pending setup data
     setup_key = f"mfa_setup_{user.user_id}"
-    setup_data = _reset_tokens.get(setup_key)
+    setup_data = _get_token(setup_key)
 
     if not setup_data:
         raise HTTPException(
@@ -690,8 +789,11 @@ async def confirm_mfa_setup(
             detail="No pending MFA setup. Please start the setup process again.",
         )
 
-    if datetime.utcnow() > setup_data["expires_at"]:
-        del _reset_tokens[setup_key]
+    expires_at = setup_data["expires_at"]
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at)
+    if datetime.now(timezone.utc) > expires_at:
+        _delete_token(setup_key)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="MFA setup has expired. Please start again.",
@@ -736,7 +838,7 @@ async def confirm_mfa_setup(
     await session.commit()
 
     # Clean up setup data
-    del _reset_tokens[setup_key]
+    _delete_token(setup_key)
 
     logger.info(f"MFA enabled for user_id={user.user_id}")
 

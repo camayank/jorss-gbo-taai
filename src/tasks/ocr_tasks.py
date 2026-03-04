@@ -15,7 +15,7 @@ import json
 import logging
 import os
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 from uuid import uuid4
 
@@ -87,7 +87,7 @@ def _store_document_status(
                     "document_id": document_id,
                     "status": status,
                     "task_id": task_id,
-                    "updated_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
                 }
                 if result:
                     status_data["result"] = result

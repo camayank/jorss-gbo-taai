@@ -13,7 +13,7 @@ All refund operations are logged for compliance.
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 from dataclasses import dataclass, asdict
 import logging
@@ -201,7 +201,7 @@ async def create_refund(
         reason=data.reason,
         status="pending",
         requested_by=str(ctx.user_id),
-        requested_at=datetime.utcnow(),
+        requested_at=datetime.now(timezone.utc),
     )
 
     _refunds[refund.refund_id] = refund
@@ -286,7 +286,7 @@ async def decide_refund(
 
     refund.status = data.status
     refund.decided_by = str(ctx.user_id)
-    refund.decided_at = datetime.utcnow()
+    refund.decided_at = datetime.now(timezone.utc)
     refund.decision_notes = data.notes
 
     logger.info(
@@ -329,7 +329,7 @@ async def process_refund(
     # In production, call payment processor here
     # For now, simulate processing
     refund.status = "processed"
-    refund.processed_at = datetime.utcnow()
+    refund.processed_at = datetime.now(timezone.utc)
     refund.transaction_id = f"txn_{uuid4().hex[:12]}"
 
     logger.info(

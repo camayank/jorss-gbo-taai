@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="/static/css/core/reset.css">
     <link rel="stylesheet" href="/static/css/core/typography.css">
     <link rel="stylesheet" href="/static/css/unified-theme.css">
+    <link rel="stylesheet" href="/static/css/components/auth.css">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
     <style>
         * {
@@ -21,12 +22,12 @@
         }
 
         :root {
-            --primary-color: {{ cpa.primary_color or 'var(--color-navy, #0B1D3A)' }};
-            --secondary-color: {{ cpa.secondary_color or 'var(--color-navy-light, #132B50)' }};
-            --accent-color: {{ cpa.accent_color or 'var(--color-gold, #C9A84C)' }};
+            --primary-color: {{ cpa.primary_color or 'var(--color-navy)' }};
+            --secondary-color: {{ cpa.secondary_color or 'var(--color-navy-light)' }};
+            --accent-color: {{ cpa.accent_color or 'var(--color-gold)' }};
             --text-dark: var(--color-gray-800);
             --text-muted: var(--color-gray-500);
-            --bg-light: var(--color-cream, #FAF8F4);
+            --bg-light: var(--color-cream);
             --white: var(--white);
             --error: var(--color-error-600);
         }
@@ -52,7 +53,7 @@
             border-radius: var(--radius-3xl);
 
             padding: var(--space-10);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            box-shadow: var(--shadow-xl);
         }
 
         .cpa-header {
@@ -122,7 +123,7 @@
 
         .urgency-chip.moderate {
             background: var(--color-info-100);
-            color: var(--color-navy, #0B1D3A);
+            color: var(--color-navy);
         }
 
         .urgency-chip.planning {
@@ -143,13 +144,13 @@
             text-transform: uppercase;
             letter-spacing: var(--tracking-wider);
 
-            color: var(--color-navy, #0B1D3A);
+            color: var(--color-navy);
             margin-bottom: var(--space-1-5);
         }
 
         .context-line {
             font-size: 0.88rem;
-            color: var(--color-navy-light, #132B50);
+            color: var(--color-navy-light);
             margin-bottom: var(--space-1);
         }
 
@@ -277,7 +278,7 @@
 
         /* Consent Checkbox */
         .consent-group {
-            background: var(--color-cream, #FAF8F4);
+            background: var(--color-cream);
             border-radius: var(--radius-lg-plus);
             padding: var(--space-4);
             margin-bottom: var(--space-6);
@@ -313,8 +314,8 @@
         /* Submit Button */
         .submit-button {
             width: 100%;
-            background: var(--color-gold, #C9A84C);
-            color: var(--color-navy, #0B1D3A);
+            background: var(--color-gold);
+            color: var(--color-navy);
             padding: var(--space-4) var(--space-6);
             border-radius: var(--radius-xl);
             font-size: 1.1rem;
@@ -326,7 +327,7 @@
         }
 
         .submit-button:hover:not(:disabled) {
-            background: var(--color-gold-light, #E0C778);
+            background: var(--color-gold-light);
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(201, 168, 76, 0.4);
         }
@@ -385,7 +386,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(11, 29, 58, 0.4);
             z-index: 100;
             align-items: center;
             justify-content: center;
@@ -423,7 +424,7 @@
 
         .loading-message {
             font-weight: var(--font-semibold);
-            color: var(--color-navy, #0B1D3A);
+            color: var(--color-navy);
             margin-bottom: var(--space-2);
         }
 

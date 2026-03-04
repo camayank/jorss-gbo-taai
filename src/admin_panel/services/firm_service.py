@@ -9,7 +9,7 @@ Handles:
 """
 
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 import logging
 
@@ -49,7 +49,7 @@ class FirmService:
         """
         firm_id = str(uuid4())
         user_id = str(uuid4())
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # Create firm
         firm = Firm(
@@ -88,6 +88,29 @@ class FirmService:
         )
         self.db.add(admin)
 
+        # Create initial subscription record (so billing UI works from day one)
+        try:
+            from ..models.subscription import Subscription, SubscriptionPlan, SubscriptionStatus
+            plan_result = await self.db.execute(
+                select(SubscriptionPlan).where(SubscriptionPlan.code == subscription_tier).limit(1)
+            )
+            plan = plan_result.scalar_one_or_none()
+            if plan:
+                subscription = Subscription(
+                    firm_id=firm_id,
+                    plan_id=plan.plan_id,
+                    status=SubscriptionStatus.TRIALING,
+                    trial_end=now + timedelta(days=14),
+                    current_period_start=now,
+                    current_period_end=now + timedelta(days=14),
+                )
+                self.db.add(subscription)
+                logger.info(f"Created trial subscription for firm {firm_id}")
+            else:
+                logger.warning(f"No subscription plan found for tier '{subscription_tier}' — skipping subscription creation")
+        except Exception as sub_err:
+            logger.warning(f"Failed to create subscription for firm {firm_id}: {sub_err}")
+
         await self.db.commit()
 
         logger.info(f"Created firm {firm_id} with admin {user_id}")
@@ -104,7 +127,7 @@ class FirmService:
     async def get_firm(self, firm_id: str) -> Optional[Dict[str, Any]]:
         """Get firm details by ID."""
         result = await self.db.execute(
-            select(Firm).where(Firm.firm_id == firm_id)
+            select(Firm).where(Firm.firm_id == firm_id, Firm.deleted_at.is_(None))
         )
         firm = result.scalar_one_or_none()
 
@@ -120,7 +143,7 @@ class FirmService:
     ) -> Optional[Dict[str, Any]]:
         """Update firm details."""
         result = await self.db.execute(
-            select(Firm).where(Firm.firm_id == firm_id)
+            select(Firm).where(Firm.firm_id == firm_id, Firm.deleted_at.is_(None))
         )
         firm = result.scalar_one_or_none()
 
@@ -136,7 +159,7 @@ class FirmService:
             if field in allowed_fields and hasattr(firm, field):
                 setattr(firm, field, value)
 
-        firm.updated_at = datetime.utcnow()
+        firm.updated_at = datetime.now(timezone.utc)
         await self.db.commit()
 
         return self._firm_to_dict(firm)
@@ -156,8 +179,8 @@ class FirmService:
             return False
 
         firm.subscription_status = "deleted"
-        firm.deleted_at = datetime.utcnow()
-        firm.updated_at = datetime.utcnow()
+        firm.deleted_at = datetime.now(timezone.utc)
+        firm.updated_at = datetime.now(timezone.utc)
 
         await self.db.commit()
         logger.info(f"Soft deleted firm {firm_id}")
@@ -240,7 +263,7 @@ class FirmService:
         if "integrations" in updates:
             settings.integrations = updates["integrations"]
 
-        settings.updated_at = datetime.utcnow()
+        settings.updated_at = datetime.now(timezone.utc)
         await self.db.commit()
 
         return await self.get_settings(firm_id)
@@ -252,7 +275,7 @@ class FirmService:
     async def get_usage_summary(self, firm_id: str) -> Dict[str, Any]:
         """Get firm usage summary against limits."""
         result = await self.db.execute(
-            select(Firm).where(Firm.firm_id == firm_id)
+            select(Firm).where(Firm.firm_id == firm_id, Firm.deleted_at.is_(None))
         )
         firm = result.scalar_one_or_none()
 
@@ -320,7 +343,7 @@ class FirmService:
     async def get_onboarding_status(self, firm_id: str) -> Dict[str, Any]:
         """Get onboarding checklist status."""
         result = await self.db.execute(
-            select(Firm).where(Firm.firm_id == firm_id)
+            select(Firm).where(Firm.firm_id == firm_id, Firm.deleted_at.is_(None))
         )
         firm = result.scalar_one_or_none()
 
@@ -360,15 +383,15 @@ class FirmService:
     async def complete_onboarding(self, firm_id: str) -> bool:
         """Mark firm onboarding as complete."""
         result = await self.db.execute(
-            select(Firm).where(Firm.firm_id == firm_id)
+            select(Firm).where(Firm.firm_id == firm_id, Firm.deleted_at.is_(None))
         )
         firm = result.scalar_one_or_none()
 
         if not firm:
             return False
 
-        firm.onboarded_at = datetime.utcnow()
-        firm.updated_at = datetime.utcnow()
+        firm.onboarded_at = datetime.now(timezone.utc)
+        firm.updated_at = datetime.now(timezone.utc)
         await self.db.commit()
 
         return True

@@ -25,7 +25,7 @@ Usage in FastAPI:
 import asyncio
 import logging
 from typing import Dict, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
 
 from database.unified_session import UnifiedFilingSession
@@ -89,7 +89,7 @@ class AutoSaveManager:
         """
         self._pending[session.session_id] = PendingSave(
             session=session,
-            marked_at=datetime.utcnow()
+            marked_at=datetime.now(timezone.utc)
         )
 
         logger.debug(f"Session {session.session_id} marked for auto-save ({len(self._pending)} pending)")

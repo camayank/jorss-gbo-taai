@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any, TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 if TYPE_CHECKING:
@@ -148,7 +148,7 @@ class AIAdvisoryAdapter:
                 "immediate_action_savings": recommendation.immediate_action_savings,
                 "enhanced_opportunities": enhanced_opportunities,
                 "opportunity_count": len(recommendation.all_opportunities),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
@@ -222,7 +222,7 @@ class AIAdvisoryAdapter:
                 "education_level": education_level,
                 "action_required": opportunity.action_required,
                 "irs_reference": opportunity.irs_reference,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:
@@ -304,7 +304,7 @@ class AIAdvisoryAdapter:
                 "client_name": f"{tax_return.taxpayer.first_name} {tax_return.taxpayer.last_name}".strip() if tax_return.taxpayer else "Client",
                 "total_savings": recommendation.total_potential_savings,
                 "sections": sections,
-                "generated_at": datetime.utcnow().isoformat(),
+                "generated_at": datetime.now(timezone.utc).isoformat(),
             }
 
         except Exception as e:

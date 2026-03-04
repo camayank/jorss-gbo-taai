@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any, FrozenSet, TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from uuid import UUID
 import logging
@@ -462,7 +462,7 @@ class PremiumReportGenerator:
         import uuid
 
         report_id = str(uuid.uuid4())[:8]
-        generated_at = datetime.utcnow().isoformat()
+        generated_at = datetime.now(timezone.utc).isoformat()
 
         # Get tax return
         tax_return = self._get_tax_return(session_id)
@@ -1672,7 +1672,7 @@ class PremiumReportGenerator:
             session_id=session_id,
             tier=tier,
             format=format,
-            generated_at=datetime.utcnow().isoformat(),
+            generated_at=datetime.now(timezone.utc).isoformat(),
             taxpayer_name="Error",
             tax_year=2025,
             sections=[],

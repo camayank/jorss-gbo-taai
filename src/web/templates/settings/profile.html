@@ -39,7 +39,7 @@
                     <div>
                         <label style="display: block; font-size: 0.85rem; font-weight: var(--font-medium); margin-bottom: var(--space-1-5); color: var(--text-dark, #374151);">Role</label>
                         <input type="text" :value="profile.role" disabled
-                               style="width: 100%; padding: var(--space-2-5) var(--space-3-5); border: 1px solid var(--border-color, #e2e8f0); border-radius: var(--radius-lg); font-size: 0.9rem; background: var(--color-gray-50); color: #6b7280;">
+                               style="width: 100%; padding: var(--space-2-5) var(--space-3-5); border: 1px solid var(--border-color, #e2e8f0); border-radius: var(--radius-lg); font-size: 0.9rem; background: var(--color-gray-50); color: var(--color-gray-500);">
                     </div>
                 </div>
                 <div style="margin-top: var(--space-5); display: flex; justify-content: flex-end;">
@@ -51,7 +51,7 @@
                     </button>
                 </div>
                 <div x-show="saveMessage" x-transition
-                     :style="saveError ? 'color: #c53030; margin-top: 12px; font-size: 0.85rem;' : 'color: #276749; margin-top: 12px; font-size: 0.85rem;'"
+                     :style="saveError ? 'color: var(--color-error-600); margin-top: 12px; font-size: 0.85rem;' : 'color: var(--color-success-800); margin-top: 12px; font-size: 0.85rem;'"
                      x-text="saveMessage"></div>
             </div>
         </div>
@@ -66,7 +66,7 @@
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) 0; border-bottom: 1px solid var(--color-gray-100);">
                     <div>
                         <h3 style="font-size: 0.95rem; font-weight: var(--font-medium);">Password</h3>
-                        <p style="color: #6b7280; font-size: 0.85rem; margin-top: var(--space-0-5);">Change your account password</p>
+                        <p style="color: var(--color-gray-500); font-size: 0.85rem; margin-top: var(--space-0-5);">Change your account password</p>
                     </div>
                     <a href="/forgot-password" style="padding: var(--space-2) var(--space-4); background: var(--color-gray-100); color: var(--color-gray-700); border-radius: var(--radius-lg); font-size: 0.85rem; text-decoration: none; font-weight: var(--font-medium);">Change Password</a>
                 </div>
@@ -75,14 +75,14 @@
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) 0;">
                     <div>
                         <h3 style="font-size: 0.95rem; font-weight: var(--font-medium);">Two-Factor Authentication</h3>
-                        <p style="color: #6b7280; font-size: 0.85rem; margin-top: var(--space-0-5);">
-                            <span x-show="mfaEnabled" style="color: #276749;">Enabled - Your account is protected with 2FA</span>
-                            <span x-show="!mfaEnabled" style="color: #c53030;">Not enabled - Add an extra layer of security</span>
+                        <p style="color: var(--color-gray-500); font-size: 0.85rem; margin-top: var(--space-0-5);">
+                            <span x-show="mfaEnabled" style="color: var(--color-success-800);">Enabled - Your account is protected with 2FA</span>
+                            <span x-show="!mfaEnabled" style="color: var(--color-error-600);">Not enabled - Add an extra layer of security</span>
                         </p>
                     </div>
                     <a x-show="!mfaEnabled" href="/auth/mfa-setup" style="padding: var(--space-2) var(--space-4); background: var(--color-primary-500); color: white; border-radius: var(--radius-lg); font-size: 0.85rem; text-decoration: none; font-weight: var(--font-medium);">Enable 2FA</a>
                     <button x-show="mfaEnabled" @click="disableMfa()"
-                            style="padding: var(--space-2) var(--space-4); background: var(--color-error-100); color: #c53030; border: none; border-radius: var(--radius-lg); font-size: 0.85rem; cursor: pointer; font-weight: var(--font-medium);">Disable 2FA</button>
+                            style="padding: var(--space-2) var(--space-4); background: var(--color-error-100); color: var(--color-error-600); border: none; border-radius: var(--radius-lg); font-size: 0.85rem; cursor: pointer; font-weight: var(--font-medium);">Disable 2FA</button>
                 </div>
             </div>
         </div>
@@ -117,9 +117,9 @@
 
         <!-- Danger Zone -->
         <div style="margin-top: var(--space-8); padding: var(--space-5) var(--space-6); border: 1px solid var(--color-error-200); border-radius: var(--radius-xl); background: var(--color-error-50);">
-            <h3 style="color: #991b1b; font-size: 0.95rem; font-weight: var(--font-semibold); margin-bottom: var(--space-2);">Danger Zone</h3>
-            <p style="color: #7f1d1d; font-size: 0.85rem; margin-bottom: var(--space-4);">Once you delete your account, there is no going back.</p>
-            <button style="padding: var(--space-2) var(--space-4); background: white; color: #c53030; border: 1px solid var(--color-error-200); border-radius: var(--radius-lg); font-size: 0.85rem; cursor: pointer; font-weight: var(--font-medium);"
+            <h3 style="color: var(--color-error-800); font-size: 0.95rem; font-weight: var(--font-semibold); margin-bottom: var(--space-2);">Danger Zone</h3>
+            <p style="color: var(--color-error-900); font-size: 0.85rem; margin-bottom: var(--space-4);">Once you delete your account, there is no going back.</p>
+            <button style="padding: var(--space-2) var(--space-4); background: white; color: var(--color-error-600); border: 1px solid var(--color-error-200); border-radius: var(--radius-lg); font-size: 0.85rem; cursor: pointer; font-weight: var(--font-medium);"
                     onclick="if(confirm('Are you sure you want to delete your account? This cannot be undone.')) { showToast('Account deletion not yet implemented. Contact support.', 'info'); }">
                 Delete Account
             </button>

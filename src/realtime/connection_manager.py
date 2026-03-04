@@ -7,7 +7,7 @@ Handles subscriptions, authentication, and event routing.
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Set, Optional, Any
 from uuid import UUID
 from dataclasses import dataclass, field
@@ -27,8 +27,8 @@ class ConnectionInfo:
     firm_id: UUID
     user_email: str
     user_role: str
-    connected_at: datetime = field(default_factory=datetime.utcnow)
-    last_activity: datetime = field(default_factory=datetime.utcnow)
+    connected_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    last_activity: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Subscriptions
     subscribed_sessions: Set[str] = field(default_factory=set)
@@ -280,7 +280,7 @@ class ConnectionManager:
         try:
             await connection.websocket.send_json(event.to_dict())
             connection.messages_sent += 1
-            connection.last_activity = datetime.utcnow()
+            connection.last_activity = datetime.now(timezone.utc)
         except Exception as e:
             logger.warning(f"[WS] Failed to send to {connection.user_email}: {e}")
             # Don't remove here - let the disconnect handler clean up
@@ -311,13 +311,13 @@ class ConnectionManager:
             async with self._lock:
                 if user_id in self._connections:
                     connection = self._connections[user_id]
-                    connection.last_activity = datetime.utcnow()
+                    connection.last_activity = datetime.now(timezone.utc)
                     connection.messages_received += 1
 
                     await self._send_to_connection(connection, RealtimeEvent(
                         event_type=EventType.HEARTBEAT,
                         user_id=user_id,
-                        data={"timestamp": datetime.utcnow().isoformat()},
+                        data={"timestamp": datetime.now(timezone.utc).isoformat()},
                     ))
 
     def get_connection_info(self, user_id: UUID) -> Optional[ConnectionInfo]:
@@ -355,7 +355,7 @@ class ConnectionManager:
 
         Connections with no activity for max_idle_seconds are closed.
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         stale_user_ids = []
 
         async with self._lock:

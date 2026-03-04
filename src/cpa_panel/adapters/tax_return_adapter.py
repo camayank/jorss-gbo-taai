@@ -9,7 +9,7 @@ Now supports reading from the new database tables as a fallback.
 
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import sqlite3
 import json
@@ -66,7 +66,7 @@ class TaxReturnSummary:
     state_tax: float = 0
 
     # Metadata
-    last_updated: datetime = field(default_factory=datetime.utcnow)
+    last_updated: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     has_schedule_c: bool = False
     has_schedule_e: bool = False
     has_schedule_d: bool = False

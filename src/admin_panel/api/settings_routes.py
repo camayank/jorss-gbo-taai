@@ -15,7 +15,7 @@ import logging
 import secrets
 import hashlib
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 from pathlib import Path
 
@@ -209,7 +209,7 @@ async def get_all_settings(
         FROM firms f
         LEFT JOIN subscriptions s ON f.firm_id = s.firm_id AND s.status = 'active'
         LEFT JOIN subscription_plans sp ON s.plan_id = sp.plan_id
-        WHERE f.firm_id = :firm_id
+        WHERE f.firm_id = :firm_id AND f.deleted_at IS NULL
     """)
     result = await session.execute(query, {"firm_id": firm_id})
     row = result.fetchone()
@@ -273,7 +273,7 @@ async def get_onboarding_status(
         text("""
             SELECT name, email, phone, branding, integrations
             FROM firms
-            WHERE firm_id = :firm_id
+            WHERE firm_id = :firm_id AND deleted_at IS NULL
             LIMIT 1
         """),
         {"firm_id": firm_id},
@@ -332,7 +332,7 @@ async def get_firm_profile(
     query = text("""
         SELECT name, legal_name, ein, email, phone, website,
                address_line1, address_line2, city, state, zip_code
-        FROM firms WHERE firm_id = :firm_id
+        FROM firms WHERE firm_id = :firm_id AND deleted_at IS NULL
     """)
     result = await session.execute(query, {"firm_id": firm_id})
     row = result.fetchone()
@@ -366,7 +366,7 @@ async def update_firm_profile(
     """Update firm profile information."""
     # Build update fields
     updates = []
-    params = {"firm_id": firm_id, "updated_at": datetime.utcnow().isoformat()}
+    params = {"firm_id": firm_id, "updated_at": datetime.now(timezone.utc).isoformat()}
 
     if update.name is not None:
         updates.append("name = :name")
@@ -429,7 +429,7 @@ async def update_integrations(
 ):
     """Update integration settings used for lead routing and onboarding."""
     current_result = await session.execute(
-        text("SELECT integrations FROM firms WHERE firm_id = :firm_id"),
+        text("SELECT integrations FROM firms WHERE firm_id = :firm_id AND deleted_at IS NULL"),
         {"firm_id": firm_id},
     )
     row = current_result.fetchone()
@@ -449,7 +449,7 @@ async def update_integrations(
         {
             "firm_id": firm_id,
             "integrations": json.dumps(integrations),
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         },
     )
 
@@ -463,7 +463,7 @@ async def update_integrations(
             "firm_id": firm_id,
             "user_id": user.user_id,
             "details": json.dumps({"updated_keys": sorted((update.settings or {}).keys())}),
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
         },
     )
 
@@ -479,7 +479,7 @@ async def get_branding_settings(
     session: AsyncSession = Depends(get_async_session),
 ):
     """Get firm branding settings."""
-    query = text("SELECT branding FROM firms WHERE firm_id = :firm_id")
+    query = text("SELECT branding FROM firms WHERE firm_id = :firm_id AND deleted_at IS NULL")
     result = await session.execute(query, {"firm_id": firm_id})
     row = result.fetchone()
 
@@ -509,7 +509,7 @@ async def update_branding_settings(
 ):
     """Update firm branding settings."""
     # Get current branding
-    query = text("SELECT branding FROM firms WHERE firm_id = :firm_id")
+    query = text("SELECT branding FROM firms WHERE firm_id = :firm_id AND deleted_at IS NULL")
     result = await session.execute(query, {"firm_id": firm_id})
     row = result.fetchone()
 
@@ -538,7 +538,7 @@ async def update_branding_settings(
     await session.execute(update_query, {
         "firm_id": firm_id,
         "branding": json.dumps(branding),
-        "updated_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     })
     await session.commit()
     logger.info(f"Firm {firm_id} branding updated by {user.email}")
@@ -607,7 +607,7 @@ async def upload_logo(
     logo_url = f"/static/logos/{firm_id}/{logo_filename}"
 
     # Update firm branding with new logo URL
-    query = text("SELECT branding FROM firms WHERE firm_id = :firm_id")
+    query = text("SELECT branding FROM firms WHERE firm_id = :firm_id AND deleted_at IS NULL")
     result = await session.execute(query, {"firm_id": firm_id})
     row = result.fetchone()
 
@@ -621,7 +621,7 @@ async def upload_logo(
     await session.execute(update_query, {
         "firm_id": firm_id,
         "branding": json.dumps(branding),
-        "updated_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     })
     await session.commit()
 
@@ -641,7 +641,7 @@ async def get_security_settings(
     session: AsyncSession = Depends(get_async_session),
 ):
     """Get firm security settings."""
-    query = text("SELECT security_settings FROM firms WHERE firm_id = :firm_id")
+    query = text("SELECT security_settings FROM firms WHERE firm_id = :firm_id AND deleted_at IS NULL")
     result = await session.execute(query, {"firm_id": firm_id})
     row = result.fetchone()
 
@@ -688,7 +688,7 @@ async def update_security_settings(
             )
 
     # Get current security settings
-    query = text("SELECT security_settings FROM firms WHERE firm_id = :firm_id")
+    query = text("SELECT security_settings FROM firms WHERE firm_id = :firm_id AND deleted_at IS NULL")
     result = await session.execute(query, {"firm_id": firm_id})
     row = result.fetchone()
 
@@ -719,7 +719,7 @@ async def update_security_settings(
     await session.execute(update_query, {
         "firm_id": firm_id,
         "security": json.dumps(security),
-        "updated_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     })
     await session.commit()
 
@@ -733,7 +733,7 @@ async def update_security_settings(
         "firm_id": firm_id,
         "user_id": user.user_id,
         "details": json.dumps({"updated_fields": list(update.model_dump(exclude_unset=True).keys())}),
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     })
     await session.commit()
 
@@ -808,7 +808,7 @@ async def list_api_keys(
             key_id=str(row[0]),
             name=row[1] or "",
             prefix=row[2] or "",
-            created_at=parse_dt(row[3]) or datetime.utcnow(),
+            created_at=parse_dt(row[3]) or datetime.now(timezone.utc),
             last_used_at=parse_dt(row[4]),
             expires_at=parse_dt(row[5]),
             is_active=row[6] if row[6] is not None else True,
@@ -847,7 +847,7 @@ async def create_api_key(
     # Hash the key for storage (we never store the full key)
     key_hash = hashlib.sha256(api_key.encode()).hexdigest()
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     expires_at = None
     if request.expires_in_days:
         expires_at = now + timedelta(days=request.expires_in_days)
@@ -916,7 +916,7 @@ async def revoke_api_key(
         )
 
     # Revoke the key (soft delete)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     query = text("""
         UPDATE api_keys SET is_active = false, revoked_at = :revoked_at, revoked_by = :revoked_by
         WHERE key_id = :key_id AND firm_id = :firm_id

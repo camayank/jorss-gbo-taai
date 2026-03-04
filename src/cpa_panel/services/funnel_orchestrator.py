@@ -16,7 +16,7 @@ from __future__ import annotations
 import os
 import uuid
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass, field
 from decimal import Decimal
@@ -156,7 +156,7 @@ class LeadAutoAssigner:
             cpa.leads_today += 1
             cpa.leads_this_week += 1
             cpa.active_leads += 1
-            cpa.last_assigned_at = datetime.utcnow()
+            cpa.last_assigned_at = datetime.now(timezone.utc)
 
             logger.info(f"Auto-assigned lead {lead_id} to CPA {cpa.cpa_name} ({cpa.cpa_id})")
             return cpa.cpa_id
@@ -586,7 +586,7 @@ class FunnelOrchestrator:
                 )
 
             # Generate PDF to temp file
-            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             safe_name = "".join(c for c in lead_name if c.isalnum() or c in " _-").strip()
             filename = f"advisory_report_{safe_name}_{timestamp}.pdf"
 

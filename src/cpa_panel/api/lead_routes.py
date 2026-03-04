@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 import logging
 
 from .common import get_tenant_id, get_lead_state_engine, log_and_raise_http_error
+from .auth_dependencies import require_internal_cpa_auth
 from security.tenant_isolation import (
     verify_lead_access,
     verify_tenant_access,
@@ -271,7 +272,7 @@ async def process_signals_batch(lead_id: str, request: Request):
 # =============================================================================
 
 @lead_router.get("/leads/queue/summary")
-async def get_queue_summary(request: Request):
+async def get_queue_summary(request: Request, user=Depends(require_internal_cpa_auth)):
     """
     Get lead queue summary for CPA dashboard.
 
@@ -293,7 +294,7 @@ async def get_queue_summary(request: Request):
 
 
 @lead_router.get("/leads/queue/visible")
-async def get_visible_leads(request: Request, limit: int = 50, offset: int = 0):
+async def get_visible_leads(request: Request, limit: int = 50, offset: int = 0, user=Depends(require_internal_cpa_auth)):
     """
     Get leads visible to CPA (EVALUATING and above).
 
@@ -321,7 +322,7 @@ async def get_visible_leads(request: Request, limit: int = 50, offset: int = 0):
 
 
 @lead_router.get("/leads/queue/monetizable")
-async def get_monetizable_leads(request: Request, limit: int = 50, offset: int = 0):
+async def get_monetizable_leads(request: Request, limit: int = 50, offset: int = 0, user=Depends(require_internal_cpa_auth)):
     """
     Get monetizable leads (ADVISORY_READY and above).
 
@@ -348,7 +349,7 @@ async def get_monetizable_leads(request: Request, limit: int = 50, offset: int =
 
 
 @lead_router.get("/leads/queue/priority")
-async def get_priority_leads(request: Request):
+async def get_priority_leads(request: Request, user=Depends(require_internal_cpa_auth)):
     """
     Get priority leads (HIGH_LEVERAGE only).
 
@@ -371,7 +372,7 @@ async def get_priority_leads(request: Request):
 
 
 @lead_router.get("/leads/queue/state/{state}")
-async def get_leads_by_state(state: str, request: Request, limit: int = 50, offset: int = 0):
+async def get_leads_by_state(state: str, request: Request, limit: int = 50, offset: int = 0, user=Depends(require_internal_cpa_auth)):
     """
     Get leads by specific state.
 
@@ -414,7 +415,7 @@ async def get_leads_by_state(state: str, request: Request, limit: int = 50, offs
 # =============================================================================
 
 @lead_router.get("/signals/catalog")
-async def get_signal_catalog(request: Request):
+async def get_signal_catalog(request: Request, user=Depends(require_internal_cpa_auth)):
     """
     Get the complete signal catalog.
 
@@ -449,7 +450,7 @@ async def get_signal_catalog(request: Request):
 # =============================================================================
 
 @lead_router.get("/states/info")
-async def get_states_info(request: Request):
+async def get_states_info(request: Request, user=Depends(require_internal_cpa_auth)):
     """
     Get information about all lead states.
 

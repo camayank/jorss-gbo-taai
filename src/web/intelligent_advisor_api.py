@@ -19,7 +19,7 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Background
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import asyncio
 import logging
@@ -281,7 +281,7 @@ def store_acknowledgment(session_id: str, ip_address: str = None, user_agent: st
     ack = ProfessionalAcknowledgment(
         session_id=session_id,
         acknowledged=True,
-        acknowledged_at=datetime.utcnow(),
+        acknowledged_at=datetime.now(timezone.utc),
         ip_address=ip_address,
         user_agent=user_agent
     )
@@ -332,6 +332,56 @@ try:
 except ImportError:
     CPA_BRANDING_HELPER_AVAILABLE = False
     logger.warning("CPA branding helper not available")
+
+# CPA AI Review Gate — queue AI responses for CPA approval before delivery
+try:
+    from cpa_panel.services.ai_review_service import ai_review_service
+    AI_REVIEW_AVAILABLE = True
+except ImportError:
+    AI_REVIEW_AVAILABLE = False
+    logger.warning("AI review service not available")
+
+
+def _maybe_queue_for_review(
+    session: dict,
+    session_id: str,
+    client_question: str,
+    ai_response: str,
+    complexity: str = "medium",
+    estimated_savings: float = None,
+) -> Optional[dict]:
+    """Queue AI response for CPA review if the session's firm has review mode enabled.
+
+    Returns a queued-notice dict if queued, or None if the response should go directly.
+    """
+    if not AI_REVIEW_AVAILABLE:
+        return None
+
+    firm_id = session.get("firm_id") or session.get("tenant_id")
+    review_mode = session.get("review_mode", False)
+
+    if not firm_id or not review_mode:
+        return None
+
+    draft = ai_review_service.queue_for_review(
+        session_id=session_id,
+        firm_id=firm_id,
+        client_question=client_question,
+        ai_response=ai_response,
+        client_name=session.get("profile", {}).get("full_name"),
+        client_email=session.get("profile", {}).get("email"),
+        complexity=complexity,
+        estimated_savings=estimated_savings,
+    )
+    return {
+        "queued": True,
+        "draft_id": draft.draft_id,
+        "message": (
+            "Your question has been received and is being reviewed by your "
+            "tax advisor. You'll receive the response shortly."
+        ),
+    }
+
 
 # Import session persistence for database-backed storage
 try:
@@ -818,10 +868,16 @@ class IntelligentChatEngine:
                 session["created_at"] = datetime.now()
         return session
 
+    @staticmethod
+    def _get_session_tenant_id(session: Dict[str, Any]) -> str:
+        """Extract tenant_id from session for multi-tenant persistence scoping."""
+        return session.get("tenant_id") or session.get("firm_id") or session.get("cpa_id") or "default"
+
     async def _save_session_to_db(self, session_id: str, session: Dict[str, Any]) -> None:
         """Save session to Redis (primary) or SQLite (fallback)."""
         await self._ensure_redis()
         serialized = self._serialize_session_for_db(session)
+        tenant_id = self._get_session_tenant_id(session)
         metadata = {
             "lead_score": session.get("lead_score", 0),
             "state": session.get("state", "greeting"),
@@ -833,12 +889,12 @@ class IntelligentChatEngine:
             try:
                 await self._redis_persistence.save_session(
                     session_id=session_id,
-                    tenant_id="default",
+                    tenant_id=tenant_id,
                     session_type="intelligent_advisor",
                     data=serialized,
                     metadata=metadata,
                 )
-                logger.debug(f"Session {session_id} saved to Redis")
+                logger.debug(f"Session {session_id} saved to Redis (tenant={tenant_id})")
                 return
             except Exception as e:
                 logger.warning(f"Redis save failed for {session_id}, falling back to SQLite: {e}")
@@ -848,32 +904,34 @@ class IntelligentChatEngine:
             try:
                 self._sqlite_persistence.save_session(
                     session_id=session_id,
-                    tenant_id="default",
+                    tenant_id=tenant_id,
                     session_type="intelligent_advisor",
                     data=serialized,
                     metadata=metadata,
                 )
-                logger.debug(f"Session {session_id} saved to SQLite")
+                logger.debug(f"Session {session_id} saved to SQLite (tenant={tenant_id})")
             except Exception as e:
                 logger.warning(f"Failed to save session {session_id} to SQLite: {e}")
 
-    async def _load_session_from_db(self, session_id: str) -> Optional[Dict[str, Any]]:
+    async def _load_session_from_db(self, session_id: str, tenant_id: str = None) -> Optional[Dict[str, Any]]:
         """Load session from Redis (primary) or SQLite (fallback)."""
         await self._ensure_redis()
 
-        # Try Redis first
+        # Try Redis first — check tenant-scoped key, then "default" for backward compat
         if self._redis_persistence:
             try:
-                data = await self._redis_persistence.load_session(
-                    session_id=session_id,
-                    tenant_id="default",
-                )
-                if data:
-                    # Redis returns dict directly (may have wrapper fields)
-                    session_data = data.get("data", data) if isinstance(data, dict) and "data" in data else data
-                    session = self._deserialize_session_from_db(session_data)
-                    logger.info(f"Session {session_id} loaded from Redis")
-                    return session
+                tenant_ids_to_try = [tenant_id] if tenant_id else []
+                tenant_ids_to_try.append("default")  # backward compat fallback
+                for tid in tenant_ids_to_try:
+                    data = await self._redis_persistence.load_session(
+                        session_id=session_id,
+                        tenant_id=tid,
+                    )
+                    if data:
+                        session_data = data.get("data", data) if isinstance(data, dict) and "data" in data else data
+                        session = self._deserialize_session_from_db(session_data)
+                        logger.info(f"Session {session_id} loaded from Redis (tenant={tid})")
+                        return session
             except Exception as e:
                 logger.warning(f"Redis load failed for {session_id}, trying SQLite: {e}")
 
@@ -890,7 +948,7 @@ class IntelligentChatEngine:
 
         return None
 
-    async def get_or_create_session(self, session_id: str) -> Dict[str, Any]:
+    async def get_or_create_session(self, session_id: str, tenant_id: str = None) -> Dict[str, Any]:
         """
         Get existing session or create new one.
 
@@ -898,6 +956,9 @@ class IntelligentChatEngine:
         2. Try loading from database if not in memory
         3. Create new session if not found anywhere
         4. Save new sessions to database
+
+        Args:
+            tenant_id: Optional tenant hint for scoped DB lookups.
         """
         async with self._lock:
             # Periodically clean up stale in-memory sessions
@@ -909,7 +970,7 @@ class IntelligentChatEngine:
                 return self.sessions[session_id]
 
             # Try loading from database (Redis first, then SQLite)
-            loaded_session = await self._load_session_from_db(session_id)
+            loaded_session = await self._load_session_from_db(session_id, tenant_id=tenant_id)
             if loaded_session:
                 self.sessions[session_id] = loaded_session
                 self._session_access_times[session_id] = datetime.now()
@@ -927,6 +988,11 @@ class IntelligentChatEngine:
                 "strategies": [],
                 "lead_score": 0,
                 SESSION_TOKEN_KEY: generate_session_token(),
+                # Firm/CPA context for multi-tenant isolation
+                "firm_id": None,       # Set when CPA context is known
+                "cpa_id": None,        # CPA slug or ID for branding
+                "tenant_id": None,     # Resolved firm_id used for persistence
+                "review_mode": False,  # Whether AI responses need CPA approval
                 # Enhanced checkpoint system for multi-turn undo
                 # Each checkpoint stores FULL state at that point
                 "checkpoints": [],  # List of full checkpoint objects (see below)
@@ -985,11 +1051,11 @@ class IntelligentChatEngine:
             # Also save tax return data for PDF generation compatibility
             profile = session.get("profile", {})
             if profile.get("filing_status") and profile.get("total_income"):
-                self._save_tax_return_for_advisory(session_id, profile)
+                self._save_tax_return_for_advisory(session_id, profile, self._get_session_tenant_id(session))
 
         return session
 
-    def _save_tax_return_for_advisory(self, session_id: str, profile: Dict[str, Any]) -> None:
+    def _save_tax_return_for_advisory(self, session_id: str, profile: Dict[str, Any], tenant_id: str = "default") -> None:
         """
         Save tax return data in the format expected by the advisory API.
 
@@ -998,6 +1064,7 @@ class IntelligentChatEngine:
         Args:
             session_id: Session identifier
             profile: Chatbot profile data
+            tenant_id: Firm tenant identifier for scoping
         """
         if not self._sqlite_persistence:
             return
@@ -1009,7 +1076,7 @@ class IntelligentChatEngine:
             # Save to session_tax_returns table (SQLite — used by PDF generator)
             self._sqlite_persistence.save_session_tax_return(
                 session_id=session_id,
-                tenant_id="default",
+                tenant_id=tenant_id,
                 tax_year=2025,
                 return_data=return_data,
                 calculated_results=None  # Will be calculated when report is generated
@@ -1029,13 +1096,15 @@ class IntelligentChatEngine:
             True if session was deleted
         """
         async with self._lock:
-            # Remove from memory
-            removed = self.sessions.pop(session_id, None) is not None
+            # Remove from memory — get tenant_id before popping
+            old_session = self.sessions.pop(session_id, None)
+            removed = old_session is not None
+            tenant_id = self._get_session_tenant_id(old_session) if old_session else "default"
 
             # Remove from Redis
             if self._redis_persistence:
                 try:
-                    await self._redis_persistence.delete_session(session_id, tenant_id="default")
+                    await self._redis_persistence.delete_session(session_id, tenant_id=tenant_id)
                 except Exception as e:
                     logger.warning(f"Failed to delete session {session_id} from Redis: {e}")
 
@@ -3714,6 +3783,31 @@ async def intelligent_chat(request: ChatRequest, _session: str = Depends(verify_
         # Get or create session
         session = await chat_engine.get_or_create_session(session_id)
         profile = session["profile"]
+
+        # Populate CPA/firm context from request if not already set.
+        # Only cpa_id/cpa_slug are trusted from client context (used for branding).
+        # firm_id is derived server-side from the CPA profile, never from raw client input.
+        ctx = request.context or {}
+        if not session.get("cpa_id"):
+            cpa_id_from_ctx = ctx.get("cpa_id") or ctx.get("cpa_slug")
+            if cpa_id_from_ctx:
+                # Validate the CPA exists by checking the lead magnet service
+                try:
+                    from cpa_panel.services.lead_magnet_service import get_lead_magnet_service
+                    lm_svc = get_lead_magnet_service()
+                    cpa_profile = lm_svc.get_cpa_profile(cpa_id_from_ctx)
+                    if cpa_profile:
+                        session["cpa_id"] = cpa_profile.cpa_id
+                    else:
+                        logger.warning(f"Unknown cpa_id in context: {cpa_id_from_ctx}")
+                except Exception:
+                    # If validation fails, still set it (graceful degradation)
+                    session["cpa_id"] = cpa_id_from_ctx
+        # Derive tenant_id from validated cpa_id (not from client-supplied firm_id)
+        if not session.get("tenant_id") and session.get("cpa_id"):
+            session["tenant_id"] = session.get("cpa_id")
+        if ctx.get("review_mode") is not None:
+            session["review_mode"] = bool(ctx["review_mode"])
     except Exception as e:
         logger.error(f"Session initialization error: {e}")
         return ChatResponse(
@@ -3999,6 +4093,27 @@ To get started, what's your filing status?"""
                 conversation.append({"role": "assistant", "content": ai_text, "timestamp": datetime.now().isoformat()})
                 session["conversation"] = chat_engine._prune_conversation(conversation)
 
+                # CPA Review Gate: queue for approval if firm has review mode
+                review_result = _maybe_queue_for_review(
+                    session, request.session_id, msg_original, ai_text,
+                    complexity=chat_engine.determine_complexity(profile),
+                )
+                if review_result:
+                    return ChatResponse(
+                        session_id=request.session_id,
+                        response=review_result["message"],
+                        response_type="queued_for_review",
+                        disclaimer=STANDARD_DISCLAIMER,
+                        profile_completeness=chat_engine.calculate_profile_completeness(profile),
+                        lead_score=chat_engine.calculate_lead_score(profile),
+                        complexity=chat_engine.determine_complexity(profile),
+                        quick_actions=[
+                            {"label": "Ask Another Question", "value": "ask_question"},
+                            {"label": "Continue Profile", "value": "continue_profile"},
+                        ],
+                        response_confidence="high",
+                    )
+
                 return ChatResponse(
                     session_id=request.session_id,
                     response=ai_text,
@@ -4026,6 +4141,27 @@ To get started, what's your filing status?"""
                 conversation.append({"role": "user", "content": msg_original, "timestamp": datetime.now().isoformat()})
                 conversation.append({"role": "assistant", "content": ai_answer, "timestamp": datetime.now().isoformat()})
                 session["conversation"] = chat_engine._prune_conversation(conversation)
+
+                # CPA Review Gate: queue for approval if firm has review mode
+                review_result = _maybe_queue_for_review(
+                    session, request.session_id, msg_original, ai_answer,
+                    complexity=chat_engine.determine_complexity(profile),
+                )
+                if review_result:
+                    return ChatResponse(
+                        session_id=request.session_id,
+                        response=review_result["message"],
+                        response_type="queued_for_review",
+                        disclaimer=STANDARD_DISCLAIMER,
+                        profile_completeness=chat_engine.calculate_profile_completeness(profile),
+                        lead_score=chat_engine.calculate_lead_score(profile),
+                        complexity=chat_engine.determine_complexity(profile),
+                        quick_actions=[
+                            {"label": "Ask Another Question", "value": "ask_question"},
+                            {"label": "Continue Profile", "value": "continue_profile"},
+                        ],
+                        response_confidence="medium",
+                    )
 
                 return ChatResponse(
                     session_id=request.session_id,
@@ -4716,7 +4852,7 @@ To get started, what's your filing status?"""
                 persistence = get_session_persistence()
                 persistence.save_session_tax_return(
                     session_id=request.session_id,
-                    tenant_id="default",
+                    tenant_id=chat_engine._get_session_tenant_id(tier_session),
                     tax_year=2025,
                     return_data=return_data,
                     calculated_results=calc_dict,
@@ -5378,11 +5514,21 @@ async def get_session_report(request: SessionReportRequest, _session: str = Depe
                 detail="No tax calculation available. Please complete the tax analysis first."
             )
 
+        # Include CPA branding if session has CPA context
+        cpa_branding = None
+        try:
+            session_cpa_id = session.get("cpa_id")
+            if session_cpa_id and CPA_BRANDING_HELPER_AVAILABLE:
+                cpa_branding = get_cpa_branding_for_report(session_cpa_id)
+        except Exception:
+            pass
+
         return {
             "session_id": request.session_id,
             "tax_calculation": calculation.dict() if hasattr(calculation, 'dict') else calculation,
             "strategies": [s.dict() if hasattr(s, 'dict') else s for s in strategies],
-            "profile": profile
+            "profile": profile,
+            "cpa_branding": cpa_branding,
         }
     except HTTPException:
         raise
@@ -5506,6 +5652,15 @@ async def generate_report(request: FullAnalysisRequest, _session: str = Depends(
             except Exception as e:
                 logger.warning(f"Email summary generation failed: {e}")
 
+        # Resolve CPA branding from session context
+        cpa_branding = None
+        try:
+            session_cpa_id = sess.get("cpa_id") if sess else None
+            if session_cpa_id and CPA_BRANDING_HELPER_AVAILABLE:
+                cpa_branding = get_cpa_branding_for_report(session_cpa_id)
+        except Exception as brand_err:
+            logger.debug(f"CPA branding lookup failed (non-blocking): {brand_err}")
+
         return {
             "session_id": request.session_id,
             "report": {
@@ -5521,6 +5676,7 @@ async def generate_report(request: FullAnalysisRequest, _session: str = Depends(
                 "email_summary_client": email_summary_client,
                 "email_summary_internal": email_summary_internal,
                 "safety_checks": safety_checks,
+                "cpa_branding": cpa_branding,
                 "disclaimer": """This report is for informational purposes only and does not constitute professional tax advice.
 Please consult with a licensed CPA or tax professional before making any tax-related decisions.
 Tax laws are subject to change, and individual circumstances may vary."""

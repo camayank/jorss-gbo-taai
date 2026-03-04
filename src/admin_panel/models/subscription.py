@@ -5,7 +5,7 @@ Supports tiered pricing (Starter, Professional, Enterprise) with
 monthly/annual billing cycles.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 from uuid import uuid4
 from decimal import Decimal
@@ -102,8 +102,8 @@ class SubscriptionPlan(Base):
     stripe_product_id = Column(String(255), nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     subscriptions = relationship("Subscription", back_populates="plan")
@@ -203,8 +203,8 @@ class Subscription(Base):
     extra_data = Column(JSONB, default=dict)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     firm = relationship("Firm", back_populates="subscriptions")
@@ -237,7 +237,7 @@ class Subscription(Base):
         """Calculate days until next billing."""
         if self.next_billing_date is None:
             return None
-        delta = self.next_billing_date - datetime.utcnow()
+        delta = self.next_billing_date - datetime.now(timezone.utc)
         return max(0, delta.days)
 
 
@@ -313,8 +313,8 @@ class Invoice(Base):
     internal_notes = Column(Text, nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     firm = relationship("Firm")
@@ -349,4 +349,4 @@ class Invoice(Base):
             return False
         if self.due_date is None:
             return False
-        return datetime.utcnow() > self.due_date
+        return datetime.now(timezone.utc) > self.due_date

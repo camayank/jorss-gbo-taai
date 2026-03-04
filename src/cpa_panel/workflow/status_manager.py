@@ -15,7 +15,7 @@ CPA Compliance:
 from enum import Enum
 from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -58,9 +58,9 @@ class StatusRecord:
     session_id: str
     status: ReturnStatus
     tenant_id: str = "default"
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
-    last_status_change: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    last_status_change: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     cpa_reviewer_id: Optional[str] = None
     cpa_reviewer_name: Optional[str] = None
     review_notes: Optional[str] = None
@@ -197,9 +197,9 @@ class CPAWorkflowManager:
             session_id=session_id,
             status=ReturnStatus.from_string(record["status"]),
             tenant_id=record.get("tenant_id", "default"),
-            created_at=datetime.fromisoformat(record["created_at"]) if record.get("created_at") else datetime.utcnow(),
-            updated_at=datetime.fromisoformat(record["updated_at"]) if record.get("updated_at") else datetime.utcnow(),
-            last_status_change=datetime.fromisoformat(record["last_status_change"]) if record.get("last_status_change") else datetime.utcnow(),
+            created_at=datetime.fromisoformat(record["created_at"]) if record.get("created_at") else datetime.now(timezone.utc),
+            updated_at=datetime.fromisoformat(record["updated_at"]) if record.get("updated_at") else datetime.now(timezone.utc),
+            last_status_change=datetime.fromisoformat(record["last_status_change"]) if record.get("last_status_change") else datetime.now(timezone.utc),
             cpa_reviewer_id=record.get("cpa_reviewer_id"),
             cpa_reviewer_name=record.get("cpa_reviewer_name"),
             review_notes=record.get("review_notes"),
@@ -431,9 +431,9 @@ class CPAWorkflowManager:
             StatusRecord(
                 session_id=r["session_id"],
                 status=ReturnStatus.from_string(r["status"]),
-                created_at=datetime.fromisoformat(r["created_at"]) if r.get("created_at") else datetime.utcnow(),
-                updated_at=datetime.fromisoformat(r["updated_at"]) if r.get("updated_at") else datetime.utcnow(),
-                last_status_change=datetime.fromisoformat(r["last_status_change"]) if r.get("last_status_change") else datetime.utcnow(),
+                created_at=datetime.fromisoformat(r["created_at"]) if r.get("created_at") else datetime.now(timezone.utc),
+                updated_at=datetime.fromisoformat(r["updated_at"]) if r.get("updated_at") else datetime.now(timezone.utc),
+                last_status_change=datetime.fromisoformat(r["last_status_change"]) if r.get("last_status_change") else datetime.now(timezone.utc),
                 cpa_reviewer_name=r.get("cpa_reviewer_name"),
             )
             for r in records

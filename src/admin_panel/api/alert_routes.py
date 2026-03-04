@@ -9,7 +9,7 @@ Provides:
 """
 
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
@@ -216,7 +216,7 @@ async def snooze_alert(
     """Snooze an alert for a specified duration."""
     alert_service = AlertService(None)
 
-    snooze_until = datetime.utcnow() + timedelta(hours=hours)
+    snooze_until = datetime.now(timezone.utc) + timedelta(hours=hours)
 
     success = await alert_service.snooze_alert(
         firm_id=user.firm_id,

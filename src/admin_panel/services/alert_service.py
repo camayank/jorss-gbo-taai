@@ -9,7 +9,7 @@ Handles:
 """
 
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 from enum import Enum
 import logging
@@ -78,7 +78,7 @@ class AlertService:
     ) -> Dict[str, Any]:
         """Create a new alert."""
         alert_id = str(uuid4())
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         alert = {
             "alert_id": alert_id,
@@ -169,8 +169,8 @@ class AlertService:
             if alert["alert_id"] == alert_id:
                 alert["status"] = AlertStatus.ACKNOWLEDGED.value
                 alert["acknowledged_by"] = user_id
-                alert["acknowledged_at"] = datetime.utcnow().isoformat()
-                alert["updated_at"] = datetime.utcnow().isoformat()
+                alert["acknowledged_at"] = datetime.now(timezone.utc).isoformat()
+                alert["updated_at"] = datetime.now(timezone.utc).isoformat()
                 return True
         return False
 
@@ -187,9 +187,9 @@ class AlertService:
             if alert["alert_id"] == alert_id:
                 alert["status"] = AlertStatus.RESOLVED.value
                 alert["resolved_by"] = user_id
-                alert["resolved_at"] = datetime.utcnow().isoformat()
+                alert["resolved_at"] = datetime.now(timezone.utc).isoformat()
                 alert["resolution_note"] = resolution_note
-                alert["updated_at"] = datetime.utcnow().isoformat()
+                alert["updated_at"] = datetime.now(timezone.utc).isoformat()
                 return True
         return False
 
@@ -205,8 +205,8 @@ class AlertService:
             if alert["alert_id"] == alert_id:
                 alert["status"] = AlertStatus.DISMISSED.value
                 alert["dismissed_by"] = user_id
-                alert["dismissed_at"] = datetime.utcnow().isoformat()
-                alert["updated_at"] = datetime.utcnow().isoformat()
+                alert["dismissed_at"] = datetime.now(timezone.utc).isoformat()
+                alert["updated_at"] = datetime.now(timezone.utc).isoformat()
                 return True
         return False
 
@@ -224,7 +224,7 @@ class AlertService:
                 alert["status"] = AlertStatus.SNOOZED.value
                 alert["snoozed_by"] = user_id
                 alert["snoozed_until"] = snooze_until.isoformat()
-                alert["updated_at"] = datetime.utcnow().isoformat()
+                alert["updated_at"] = datetime.now(timezone.utc).isoformat()
                 return True
         return False
 
@@ -235,7 +235,7 @@ class AlertService:
     async def generate_deadline_alerts(self, firm_id: str) -> List[Dict[str, Any]]:
         """Generate alerts for upcoming deadlines."""
         created = []
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # Example deadline alerts (would query actual data)
         upcoming_deadlines = [
@@ -415,7 +415,7 @@ class AlertService:
     ) -> Dict[str, Any]:
         """Get alert trends over time."""
         alerts = self._alerts_cache.get(firm_id, [])
-        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
         recent_alerts = [a for a in alerts if a["created_at"] >= cutoff]
 
@@ -458,7 +458,7 @@ class AlertService:
 
         return {
             "firm_id": firm_id,
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "summary": {
                 "total": len(alerts),
                 "critical": len(critical),

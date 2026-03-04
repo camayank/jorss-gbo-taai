@@ -113,10 +113,10 @@ async def list_clients(
             query = "SELECT * FROM clients WHERE 1=1"
             params = []
 
-            # Add tenant filter if not default (platform admin can see all with default)
+            # Add tenant filter — firm_id takes precedence, then tenant_id
             if tenant_id and tenant_id != "default":
-                query += " AND (tenant_id = ? OR tenant_id IS NULL)"
-                params.append(tenant_id)
+                query += " AND (tenant_id = ? OR firm_id = ? )"
+                params.extend([tenant_id, tenant_id])
 
             if complexity:
                 query += " AND complexity = ?"
@@ -189,13 +189,13 @@ async def get_client(request: Request, client_id: str) -> Dict[str, Any]:
             cursor = conn.cursor()
 
             # Try to find by client_id or session_id with tenant isolation
-            # SECURITY: Include tenant_id check to prevent cross-tenant data access
+            # SECURITY: Include tenant_id/firm_id check to prevent cross-tenant data access
             if tenant_id and tenant_id != "default":
                 cursor.execute(
                     """SELECT * FROM clients
                        WHERE (client_id = ? OR session_id = ?)
-                       AND (tenant_id = ? OR tenant_id IS NULL)""",
-                    (client_id, client_id, tenant_id)
+                       AND (tenant_id = ? OR firm_id = ? )""",
+                    (client_id, client_id, tenant_id, tenant_id)
                 )
             else:
                 cursor.execute(
@@ -219,8 +219,11 @@ async def get_client(request: Request, client_id: str) -> Dict[str, Any]:
             client["spouse"] = safe_json_parse(client.get("spouse_json"))
             client["dependents"] = safe_json_parse(client.get("dependents_json"))
 
-            # Get associated tax return
-            cursor.execute("SELECT * FROM tax_returns WHERE client_id = ?", (actual_client_id,))
+            # Get associated tax return (scoped by tenant)
+            if tenant_id and tenant_id != "default":
+                cursor.execute("SELECT * FROM tax_returns WHERE client_id = ? AND (tenant_id = ? OR firm_id = ?)", (actual_client_id, tenant_id, tenant_id))
+            else:
+                cursor.execute("SELECT * FROM tax_returns WHERE client_id = ?", (actual_client_id,))
             tax_return_row = cursor.fetchone()
             if tax_return_row:
                 tr = row_to_dict(tax_return_row)
@@ -264,12 +267,19 @@ async def list_tax_returns(
     """
     List all tax returns with optional filtering.
     """
+    tenant_id = get_tenant_id(request)
+
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
             query = "SELECT * FROM tax_returns WHERE 1=1"
             params = []
+
+            # SECURITY: Scope by tenant/firm
+            if tenant_id and tenant_id != "default":
+                query += " AND (tenant_id = ? OR firm_id = ?)"
+                params.extend([tenant_id, tenant_id])
 
             if complexity:
                 query += " AND complexity_tier = ?"
@@ -317,11 +327,17 @@ async def list_tax_returns(
 @router.get("/data/tax-returns/{session_id}")
 async def get_tax_return(request: Request, session_id: str) -> Dict[str, Any]:
     """Get a single tax return by session ID."""
+    tenant_id = get_tenant_id(request)
+
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
-            cursor.execute("SELECT * FROM tax_returns WHERE session_id = ?", (session_id,))
+            # SECURITY: Scope by tenant/firm
+            if tenant_id and tenant_id != "default":
+                cursor.execute("SELECT * FROM tax_returns WHERE session_id = ? AND (tenant_id = ? OR firm_id = ?)", (session_id, tenant_id, tenant_id))
+            else:
+                cursor.execute("SELECT * FROM tax_returns WHERE session_id = ?", (session_id,))
             row = cursor.fetchone()
 
             if not row:
@@ -356,14 +372,20 @@ async def list_recommendations(
     client_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    List recommendations with optional filtering.
+    List recommendations with optional filtering. Scoped by tenant.
     """
+    tenant_id = get_tenant_id(request)
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
             query = "SELECT r.*, c.first_name, c.last_name FROM recommendations r LEFT JOIN clients c ON r.client_id = c.client_id WHERE 1=1"
             params = []
+
+            # Tenant scoping
+            if tenant_id and tenant_id != "default":
+                query += " AND (c.tenant_id = ? OR c.firm_id = ? )"
+                params.extend([tenant_id, tenant_id])
 
             if category:
                 query += " AND r.category = ?"
@@ -394,9 +416,12 @@ async def list_recommendations(
             cursor.execute(query, params)
             recommendations = [row_to_dict(r) for r in cursor.fetchall()]
 
-            # Get category counts
+            # Get category counts (scoped by tenant)
+            cat_filter = "WHERE (c.tenant_id = ? OR c.firm_id = ? )" if tenant_id and tenant_id != "default" else ""
+            cat_params = (tenant_id, tenant_id) if tenant_id and tenant_id != "default" else ()
             cursor.execute(
-                "SELECT category, COUNT(*) as count, SUM(estimated_savings) as savings FROM recommendations GROUP BY category ORDER BY savings DESC"
+                f"SELECT r.category, COUNT(*) as count, SUM(r.estimated_savings) as savings FROM recommendations r JOIN clients c ON r.client_id = c.client_id {cat_filter} GROUP BY r.category ORDER BY savings DESC",
+                cat_params,
             )
             categories = [row_to_dict(r) for r in cursor.fetchall()]
 
@@ -426,14 +451,20 @@ async def list_engagements(
     status: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    List engagement letters with optional filtering.
+    List engagement letters with optional filtering. Scoped by tenant.
     """
+    tenant_id = get_tenant_id(request)
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
             query = "SELECT * FROM engagement_letters WHERE 1=1"
             params = []
+
+            # Tenant scoping
+            if tenant_id and tenant_id != "default":
+                query += " AND (tenant_id = ? OR firm_id = ? )"
+                params.extend([tenant_id, tenant_id])
 
             if status:
                 query += " AND status = ?"
@@ -449,9 +480,12 @@ async def list_engagements(
             cursor.execute(fees_query, params)
             total_fees = cursor.fetchone()[0] or 0
 
-            # Get status counts
+            # Get status counts (scoped by tenant)
+            status_filter = "WHERE (tenant_id = ? OR firm_id = ? )" if tenant_id and tenant_id != "default" else ""
+            status_params = (tenant_id, tenant_id) if tenant_id and tenant_id != "default" else ()
             cursor.execute(
-                "SELECT status, COUNT(*) as count, SUM(total_fee) as fees FROM engagement_letters GROUP BY status"
+                f"SELECT status, COUNT(*) as count, SUM(total_fee) as fees FROM engagement_letters {status_filter} GROUP BY status",
+                status_params,
             )
             status_summary = {r["status"]: {"count": r["count"], "fees": r["fees"]} for r in cursor.fetchall()}
 
@@ -489,29 +523,36 @@ async def list_engagements(
 async def get_dashboard_summary(request: Request) -> Dict[str, Any]:
     """
     Get comprehensive dashboard summary with all key metrics.
+    Scoped by tenant_id to prevent cross-firm data leakage.
     """
+    tenant_id = get_tenant_id(request)
+    tenant_filter = "AND (tenant_id = ? OR firm_id = ? )" if tenant_id and tenant_id != "default" else ""
+    tenant_params = (tenant_id, tenant_id) if tenant_id and tenant_id != "default" else ()
+
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
             summary = {}
 
-            # Client stats
-            cursor.execute("SELECT COUNT(*) FROM clients")
+            # Client stats (scoped by tenant)
+            cursor.execute(f"SELECT COUNT(*) FROM clients WHERE 1=1 {tenant_filter}", tenant_params)
             summary["total_clients"] = cursor.fetchone()[0]
 
             cursor.execute(
-                "SELECT complexity, COUNT(*) as count FROM clients GROUP BY complexity ORDER BY count DESC"
+                f"SELECT complexity, COUNT(*) as count FROM clients WHERE 1=1 {tenant_filter} GROUP BY complexity ORDER BY count DESC",
+                tenant_params,
             )
             summary["clients_by_complexity"] = {r["complexity"]: r["count"] for r in cursor.fetchall()}
 
             cursor.execute(
-                "SELECT filing_status, COUNT(*) as count FROM clients GROUP BY filing_status ORDER BY count DESC"
+                f"SELECT filing_status, COUNT(*) as count FROM clients WHERE 1=1 {tenant_filter} GROUP BY filing_status ORDER BY count DESC",
+                tenant_params,
             )
             summary["clients_by_filing_status"] = {r["filing_status"]: r["count"] for r in cursor.fetchall()}
 
-            # Tax return stats
-            cursor.execute("SELECT COUNT(*), SUM(agi), AVG(agi), SUM(total_tax) FROM tax_returns")
+            # Tax return stats (scoped by tenant)
+            cursor.execute(f"SELECT COUNT(*), SUM(agi), AVG(agi), SUM(total_tax) FROM tax_returns WHERE 1=1 {tenant_filter}", tenant_params)
             row = cursor.fetchone()
             summary["tax_returns"] = {
                 "total": row[0] or 0,
@@ -520,17 +561,18 @@ async def get_dashboard_summary(request: Request) -> Dict[str, Any]:
                 "total_tax": row[3] or 0,
             }
 
-            cursor.execute("SELECT SUM(refund_amount), COUNT(*) FROM tax_returns WHERE refund_amount > 0")
+            cursor.execute(f"SELECT SUM(refund_amount), COUNT(*) FROM tax_returns WHERE refund_amount > 0 {tenant_filter}", tenant_params)
             row = cursor.fetchone()
             summary["refunds"] = {"total": row[0] or 0, "count": row[1] or 0}
 
-            cursor.execute("SELECT SUM(balance_due), COUNT(*) FROM tax_returns WHERE balance_due > 0")
+            cursor.execute(f"SELECT SUM(balance_due), COUNT(*) FROM tax_returns WHERE balance_due > 0 {tenant_filter}", tenant_params)
             row = cursor.fetchone()
             summary["balance_due"] = {"total": row[0] or 0, "count": row[1] or 0}
 
-            # Recommendation stats
+            # Recommendation stats (scoped by tenant via client join)
             cursor.execute(
-                "SELECT COUNT(*), SUM(estimated_savings) FROM recommendations"
+                f"SELECT COUNT(*), SUM(r.estimated_savings) FROM recommendations r JOIN clients c ON r.client_id = c.client_id WHERE 1=1 {tenant_filter.replace('tenant_id', 'c.tenant_id').replace('firm_id', 'c.firm_id')}",
+                tenant_params,
             )
             row = cursor.fetchone()
             summary["recommendations"] = {
@@ -539,7 +581,8 @@ async def get_dashboard_summary(request: Request) -> Dict[str, Any]:
             }
 
             cursor.execute(
-                "SELECT category, COUNT(*) as count, SUM(estimated_savings) as savings FROM recommendations GROUP BY category ORDER BY savings DESC"
+                f"SELECT r.category, COUNT(*) as count, SUM(r.estimated_savings) as savings FROM recommendations r JOIN clients c ON r.client_id = c.client_id WHERE 1=1 {tenant_filter.replace('tenant_id', 'c.tenant_id').replace('firm_id', 'c.firm_id')} GROUP BY r.category ORDER BY savings DESC",
+                tenant_params,
             )
             summary["recommendations_by_category"] = [
                 {"category": r["category"], "count": r["count"], "savings": r["savings"]}
@@ -547,12 +590,13 @@ async def get_dashboard_summary(request: Request) -> Dict[str, Any]:
             ]
 
             cursor.execute(
-                "SELECT status, COUNT(*) as count FROM recommendations GROUP BY status"
+                f"SELECT r.status, COUNT(*) as count FROM recommendations r JOIN clients c ON r.client_id = c.client_id WHERE 1=1 {tenant_filter.replace('tenant_id', 'c.tenant_id').replace('firm_id', 'c.firm_id')} GROUP BY r.status",
+                tenant_params,
             )
             summary["recommendations_by_status"] = {r["status"]: r["count"] for r in cursor.fetchall()}
 
-            # Engagement stats
-            cursor.execute("SELECT COUNT(*), SUM(total_fee) FROM engagement_letters")
+            # Engagement stats (scoped by tenant)
+            cursor.execute(f"SELECT COUNT(*), SUM(total_fee) FROM engagement_letters WHERE 1=1 {tenant_filter}", tenant_params)
             row = cursor.fetchone()
             summary["engagements"] = {
                 "total": row[0] or 0,
@@ -560,24 +604,26 @@ async def get_dashboard_summary(request: Request) -> Dict[str, Any]:
             }
 
             cursor.execute(
-                "SELECT status, COUNT(*) as count, SUM(total_fee) as fees FROM engagement_letters GROUP BY status"
+                f"SELECT status, COUNT(*) as count, SUM(total_fee) as fees FROM engagement_letters WHERE 1=1 {tenant_filter} GROUP BY status",
+                tenant_params,
             )
             summary["engagements_by_status"] = {
                 r["status"]: {"count": r["count"], "fees": r["fees"]}
                 for r in cursor.fetchall()
             }
 
-            # Top clients by savings potential
-            cursor.execute("""
+            # Top clients by savings potential (scoped by tenant)
+            cursor.execute(f"""
                 SELECT c.client_id, c.first_name, c.last_name, c.complexity,
                        SUM(r.estimated_savings) as total_savings,
                        COUNT(r.rec_id) as rec_count
                 FROM clients c
                 JOIN recommendations r ON c.client_id = r.client_id
+                WHERE 1=1 {tenant_filter.replace('tenant_id', 'c.tenant_id').replace('firm_id', 'c.firm_id')}
                 GROUP BY c.client_id
                 ORDER BY total_savings DESC
                 LIMIT 10
-            """)
+            """, tenant_params)
             summary["top_clients_by_savings"] = [
                 {
                     "client_id": r["client_id"],
@@ -589,15 +635,15 @@ async def get_dashboard_summary(request: Request) -> Dict[str, Any]:
                 for r in cursor.fetchall()
             ]
 
-            # High-value opportunities (individual recs > $5000)
-            cursor.execute("""
+            # High-value opportunities (scoped by tenant)
+            cursor.execute(f"""
                 SELECT r.*, c.first_name, c.last_name
                 FROM recommendations r
                 JOIN clients c ON r.client_id = c.client_id
-                WHERE r.estimated_savings > 5000
+                WHERE r.estimated_savings > 5000 {tenant_filter.replace('tenant_id', 'c.tenant_id').replace('firm_id', 'c.firm_id')}
                 ORDER BY r.estimated_savings DESC
                 LIMIT 20
-            """)
+            """, tenant_params)
             summary["high_value_opportunities"] = [
                 {
                     "rec_id": r["rec_id"],
@@ -625,16 +671,21 @@ async def get_clients_for_select(request: Request) -> Dict[str, Any]:
     request_id = generate_request_id()
     start_time = time.time()
 
+    tenant_id = get_tenant_id(request)
+    tenant_filter = "WHERE (tenant_id = ? OR firm_id = ? )" if tenant_id and tenant_id != "default" else ""
+    tenant_params = (tenant_id, tenant_id) if tenant_id and tenant_id != "default" else ()
+
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT client_id, session_id, first_name, last_name, complexity,
                        (SELECT SUM(estimated_savings) FROM recommendations WHERE client_id = c.client_id) as savings_potential
                 FROM clients c
+                {tenant_filter}
                 ORDER BY last_name, first_name
-            """)
+            """, tenant_params)
 
             clients = [
                 {

@@ -18,7 +18,7 @@ import logging
 import sqlite3
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 
@@ -82,7 +82,7 @@ class Activity:
     actor_name: Optional[str] = None
     description: str = ""
     metadata: Dict[str, Any] = field(default_factory=dict)
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -433,7 +433,7 @@ class ActivityService:
                     actor_name=row["actor_name"],
                     description=row["description"],
                     metadata=json.loads(row["metadata_json"]) if row["metadata_json"] else {},
-                    created_at=datetime.fromisoformat(row["created_at"]) if row["created_at"] else datetime.utcnow(),
+                    created_at=datetime.fromisoformat(row["created_at"]) if row["created_at"] else datetime.now(timezone.utc),
                 ))
 
             return activities

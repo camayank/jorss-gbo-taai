@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import inspect
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Iterable, Optional
 from uuid import UUID
 
@@ -212,7 +212,7 @@ class PermissionService:
             permission.tier_restriction = _tier_restriction_for_category(info.category)
             permission.is_enabled = True
             permission.is_system = True
-            permission.updated_at = datetime.utcnow()
+            permission.updated_at = datetime.now(timezone.utc)
             created_or_updated += 1
 
         await _commit(self.db)
@@ -261,7 +261,7 @@ class PermissionService:
         override.expires_at = expires_at
         override.reason = reason
         override.created_by = created_by
-        override.created_at = datetime.utcnow()
+        override.created_at = datetime.now(timezone.utc)
 
         await _commit(self.db)
         return ServiceResult(
@@ -396,8 +396,8 @@ class RoleService:
             is_assignable=True,
             display_order=100,
             created_by=created_by,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
         )
         self.db.add(role)
         await _maybe_await(self.db.flush())
@@ -408,7 +408,7 @@ class RoleService:
                     role_id=role.role_id,
                     permission_id=permission.permission_id,
                     granted_by=created_by,
-                    granted_at=datetime.utcnow(),
+                    granted_at=datetime.now(timezone.utc),
                 )
             )
 
@@ -492,10 +492,10 @@ class RoleService:
                     role_id=role_id,
                     permission_id=permission.permission_id,
                     granted_by=updated_by,
-                    granted_at=datetime.utcnow(),
+                    granted_at=datetime.now(timezone.utc),
                 )
             )
-        role.updated_at = datetime.utcnow()
+        role.updated_at = datetime.now(timezone.utc)
         await _commit(self.db)
         return ServiceResult(success=True, message="Role permissions updated")
 
@@ -610,7 +610,7 @@ class RoleService:
 
         assignment.is_primary = is_primary
         assignment.assigned_by = assigned_by
-        assignment.assigned_at = datetime.utcnow()
+        assignment.assigned_at = datetime.now(timezone.utc)
         assignment.expires_at = expires_at
         assignment.notes = notes
 
@@ -668,8 +668,8 @@ class RoleService:
                     is_active=True,
                     is_assignable=role_enum not in PLATFORM_ROLES,
                     display_order=10 + role_info.level.value,
-                    created_at=datetime.utcnow(),
-                    updated_at=datetime.utcnow(),
+                    created_at=datetime.now(timezone.utc),
+                    updated_at=datetime.now(timezone.utc),
                 )
                 self.db.add(role)
                 await _maybe_await(self.db.flush())
@@ -679,7 +679,7 @@ class RoleService:
                 role.hierarchy_level = role_info.level.value
                 role.is_active = True
                 role.is_assignable = role_enum not in PLATFORM_ROLES
-                role.updated_at = datetime.utcnow()
+                role.updated_at = datetime.now(timezone.utc)
 
             await _exec(self.db, delete(RolePermission).where(RolePermission.role_id == role.role_id))
             for permission_enum in ROLE_PERMISSIONS.get(role_enum, frozenset()):
@@ -690,7 +690,7 @@ class RoleService:
                     RolePermission(
                         role_id=role.role_id,
                         permission_id=permission.permission_id,
-                        granted_at=datetime.utcnow(),
+                        granted_at=datetime.now(timezone.utc),
                     )
                 )
 

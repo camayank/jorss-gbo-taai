@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from uuid import UUID, uuid4
 
@@ -71,44 +71,38 @@ class ClientRepository(IClientRepository):
         Args:
             entity: ClientProfile to save.
         """
-        exists = await self.exists(entity.client_id)
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         # Serialize the profile data to JSON (preferences, carryovers, etc.)
         profile_data = entity.model_dump_json()
 
-        if exists:
-            query = text("""
-                UPDATE clients SET
-                    external_id = :external_id,
-                    ssn_hash = :ssn_hash,
-                    first_name = :first_name,
-                    last_name = :last_name,
-                    email = :email,
-                    phone = :phone,
-                    street_address = :street_address,
-                    city = :city,
-                    state = :state,
-                    zip_code = :zip_code,
-                    is_active = :is_active,
-                    profile_data = :profile_data,
-                    updated_at = :updated_at
-                WHERE client_id = :client_id
-            """)
-        else:
-            query = text("""
-                INSERT INTO clients (
-                    client_id, preparer_id, external_id, ssn_hash,
-                    first_name, last_name, email, phone,
-                    street_address, city, state, zip_code,
-                    is_active, profile_data, created_at, updated_at
-                ) VALUES (
-                    :client_id, :preparer_id, :external_id, :ssn_hash,
-                    :first_name, :last_name, :email, :phone,
-                    :street_address, :city, :state, :zip_code,
-                    :is_active, :profile_data, :created_at, :updated_at
-                )
-            """)
+        query = text("""
+            INSERT INTO clients (
+                client_id, preparer_id, external_id, ssn_hash,
+                first_name, last_name, email, phone,
+                street_address, city, state, zip_code,
+                is_active, profile_data, created_at, updated_at
+            ) VALUES (
+                :client_id, :preparer_id, :external_id, :ssn_hash,
+                :first_name, :last_name, :email, :phone,
+                :street_address, :city, :state, :zip_code,
+                :is_active, :profile_data, :created_at, :updated_at
+            )
+            ON CONFLICT (client_id) DO UPDATE SET
+                external_id = EXCLUDED.external_id,
+                ssn_hash = EXCLUDED.ssn_hash,
+                first_name = EXCLUDED.first_name,
+                last_name = EXCLUDED.last_name,
+                email = EXCLUDED.email,
+                phone = EXCLUDED.phone,
+                street_address = EXCLUDED.street_address,
+                city = EXCLUDED.city,
+                state = EXCLUDED.state,
+                zip_code = EXCLUDED.zip_code,
+                is_active = EXCLUDED.is_active,
+                profile_data = EXCLUDED.profile_data,
+                updated_at = EXCLUDED.updated_at
+        """)
 
         # Note: preparer_id would need to be provided in the entity or via context
         params = {
@@ -133,18 +127,23 @@ class ClientRepository(IClientRepository):
         await self._session.execute(query, params)
         logger.debug(f"Saved client profile: {entity.client_id}")
 
-    async def delete(self, id: UUID) -> bool:
+    async def delete(self, id: UUID, firm_id: Optional[UUID] = None) -> bool:
         """
         Delete a client profile.
 
         Args:
             id: Client identifier.
+            firm_id: Firm identifier for tenant isolation (strongly recommended).
 
         Returns:
             True if deleted, False if not found.
         """
-        query = text("DELETE FROM clients WHERE client_id = :client_id")
-        result = await self._session.execute(query, {"client_id": str(id)})
+        if firm_id:
+            query = text("DELETE FROM clients WHERE client_id = :client_id AND (firm_id = :firm_id OR firm_id IS NULL)")
+            result = await self._session.execute(query, {"client_id": str(id), "firm_id": str(firm_id)})
+        else:
+            query = text("DELETE FROM clients WHERE client_id = :client_id")
+            result = await self._session.execute(query, {"client_id": str(id)})
 
         deleted = result.rowcount > 0
         if deleted:
@@ -232,10 +231,10 @@ class ClientRepository(IClientRepository):
                    is_active, profile_data, created_at, updated_at
             FROM clients
             WHERE (
-                first_name ILIKE :pattern
-                OR last_name ILIKE :pattern
-                OR external_id ILIKE :pattern
-                OR email ILIKE :pattern
+                LOWER(first_name) LIKE LOWER(:pattern)
+                OR LOWER(last_name) LIKE LOWER(:pattern)
+                OR LOWER(external_id) LIKE LOWER(:pattern)
+                OR LOWER(email) LIKE LOWER(:pattern)
             )
             AND is_active = true
             ORDER BY last_name, first_name

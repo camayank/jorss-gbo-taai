@@ -20,7 +20,7 @@ Pricing:
 
 import logging
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Any
 from enum import Enum
 from uuid import uuid4
@@ -470,7 +470,7 @@ def _get_firm_report_pricing(firm_id: Optional[str]) -> Optional[dict]:
                 firms_columns = _table_columns(conn, "firms")
                 if {"firm_id", "settings"}.issubset(firms_columns):
                     cursor.execute(
-                        "SELECT settings FROM firms WHERE firm_id = ? LIMIT 1",
+                        "SELECT settings FROM firms WHERE firm_id = ? AND deleted_at IS NULL LIMIT 1",
                         (firm_id,),
                     )
                     row = cursor.fetchone()

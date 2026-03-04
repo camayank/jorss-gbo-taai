@@ -5,7 +5,7 @@ Data models for task management system.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import Optional, List, Dict, Any
 from enum import Enum
 from uuid import UUID, uuid4
@@ -53,7 +53,7 @@ class TaskComment:
     author_name: str = ""
     content: str = ""
     is_internal: bool = True  # Internal = not visible to client
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: Optional[datetime] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -125,8 +125,8 @@ class Task:
     tags: List[str] = field(default_factory=list)
 
     # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def days_until_due(self) -> Optional[int]:
@@ -173,7 +173,7 @@ class Task:
             is_internal=is_internal,
         )
         self.comments.append(comment)
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
         return comment
 
     def add_checklist_item(self, text: str) -> Dict[str, Any]:
@@ -182,10 +182,10 @@ class Task:
             "id": str(uuid4()),
             "text": text,
             "completed": False,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
         }
         self.checklist.append(item)
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
         return item
 
     def toggle_checklist_item(self, item_id: str) -> bool:
@@ -193,7 +193,7 @@ class Task:
         for item in self.checklist:
             if item.get("id") == item_id:
                 item["completed"] = not item.get("completed", False)
-                self.updated_at = datetime.utcnow()
+                self.updated_at = datetime.now(timezone.utc)
                 return True
         return False
 
@@ -202,14 +202,14 @@ class Task:
         self.status = TaskStatus.IN_PROGRESS
         if not self.start_date:
             self.start_date = date.today()
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def mark_completed(self, user_id: UUID = None):
         """Mark task as completed."""
         self.status = TaskStatus.COMPLETED
-        self.completed_at = datetime.utcnow()
+        self.completed_at = datetime.now(timezone.utc)
         self.completed_by = user_id
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API response."""
@@ -264,7 +264,7 @@ class TaskTemplate:
     checklist_template: List[str] = field(default_factory=list)
     tags: List[str] = field(default_factory=list)
     is_active: bool = True
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def create_task(
         self,

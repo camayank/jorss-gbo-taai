@@ -11,9 +11,10 @@ and persisted to the database. No sensitive data is stored in-memory only.
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 import logging
+import os
 import secrets
 import base64
 import hmac
@@ -258,9 +259,10 @@ def generate_backup_codes(count: int = 10) -> List[str]:
 
 
 def hash_backup_code(code: str) -> str:
-    """Hash a backup code for storage"""
+    """Hash a backup code for secure storage using HMAC-SHA256"""
+    secret_key = os.environ.get("MFA_BACKUP_SECRET", "").encode() or secrets.token_bytes(32)
     normalized = code.upper().replace('-', '')
-    return hashlib.sha256(normalized.encode()).hexdigest()
+    return hmac.new(secret_key, normalized.encode(), hashlib.sha256).hexdigest()
 
 
 # =============================================================================
@@ -310,7 +312,7 @@ class MFAPersistenceService:
             self._fallback_pending[user_id] = {
                 "secret": secret,
                 "backup_codes": backup_codes_hashed,
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
             }
             return True
 
@@ -336,7 +338,7 @@ class MFAPersistenceService:
                     tenant_id=tenant_id,
                     secret_encrypted=secret_encrypted,
                     backup_codes_encrypted=codes_encrypted,
-                    expires_at=datetime.utcnow() + timedelta(minutes=expires_minutes),
+                    expires_at=datetime.now(timezone.utc) + timedelta(minutes=expires_minutes),
                 )
                 session.add(pending)
                 session.commit()
@@ -350,7 +352,7 @@ class MFAPersistenceService:
             self._fallback_pending[user_id] = {
                 "secret": secret,
                 "backup_codes": backup_codes_hashed,
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
             }
             return True
 
@@ -366,7 +368,7 @@ class MFAPersistenceService:
                 result = session.execute(
                     select(MFAPendingSetup).where(
                         MFAPendingSetup.user_id == user_id,
-                        MFAPendingSetup.expires_at > datetime.utcnow()
+                        MFAPendingSetup.expires_at > datetime.now(timezone.utc)
                     )
                 ).scalar_one_or_none()
 
@@ -446,7 +448,7 @@ class MFAPersistenceService:
 
                 if existing:
                     existing.backup_codes_encrypted = codes_encrypted
-                    existing.updated_at = datetime.utcnow()
+                    existing.updated_at = datetime.now(timezone.utc)
                 else:
                     credential = MFACredential(
                         user_id=user_id,
@@ -454,7 +456,7 @@ class MFAPersistenceService:
                         mfa_type=MFAType.BACKUP_CODES,
                         backup_codes_encrypted=codes_encrypted,
                         is_verified=True,
-                        verified_at=datetime.utcnow(),
+                        verified_at=datetime.now(timezone.utc),
                     )
                     session.add(credential)
 
@@ -835,9 +837,13 @@ async def disable_mfa(
         if not user.mfa_enabled:
             raise HTTPException(400, "MFA is not enabled")
 
-        # Verify password (in production, use proper password verification)
+        # SECURITY: Verify the user's current password before allowing MFA disable
         if not user.password_hash:
             raise HTTPException(400, "Password verification required")
+
+        import bcrypt
+        if not bcrypt.checkpw(request.password.encode(), user.password_hash.encode()):
+            raise HTTPException(status_code=403, detail="Invalid password - cannot disable MFA")
 
         # Verify TOTP code
         if not TOTPGenerator.verify_totp(user.mfa_secret, request.code):

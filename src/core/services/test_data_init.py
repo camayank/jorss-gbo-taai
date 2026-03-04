@@ -9,7 +9,7 @@ Usage:
     init_all_test_data()
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Any
 from uuid import uuid4
 import hashlib
@@ -913,8 +913,8 @@ def init_test_tax_returns(tax_returns_db: dict) -> Dict[str, Any]:
                 amount_due=return_data["amount_due"],
                 completion_percentage=return_data["completion_percentage"],
                 assigned_cpa_id=return_data.get("assigned_cpa_id"),
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
             )
             tax_returns_db[tax_return.id] = tax_return
             results["created"] += 1
@@ -951,7 +951,7 @@ def init_test_documents(documents_db: dict) -> Dict[str, Any]:
                 status=DocumentStatus(doc_data["status"]),
                 description=doc_data.get("description"),
                 uploaded_by=doc_data["uploaded_by"],
-                uploaded_at=datetime.utcnow(),
+                uploaded_at=datetime.now(timezone.utc),
                 storage_path=doc_data["storage_path"],
             )
             documents_db[document.id] = document

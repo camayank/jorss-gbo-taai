@@ -14,7 +14,7 @@ import os
 import sqlite3
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict
 
@@ -57,7 +57,7 @@ def purge_expired_sessions() -> Dict[str, int]:
     try:
         from database.session_persistence import get_session_persistence
         persistence = get_session_persistence()
-        cutoff = datetime.utcnow().isoformat()
+        cutoff = datetime.now(timezone.utc).isoformat()
 
         with sqlite3.connect(persistence.db_path) as conn:
             cursor = conn.cursor()
@@ -99,7 +99,7 @@ def cleanup_orphaned_uploads() -> Dict[str, int]:
     Runs daily. Only deletes files older than ORPHAN_UPLOAD_RETENTION_DAYS.
     """
     counts = {"files_checked": 0, "files_deleted": 0, "bytes_freed": 0}
-    cutoff = datetime.utcnow() - timedelta(days=ORPHAN_UPLOAD_RETENTION_DAYS)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=ORPHAN_UPLOAD_RETENTION_DAYS)
 
     upload_dirs = ["./data/uploads", "./uploads"]
 
@@ -153,7 +153,7 @@ def trim_audit_logs() -> Dict[str, int]:
     Runs weekly. Default retention is 7 years (regulatory requirement).
     """
     counts = {"logs_deleted": 0}
-    cutoff = (datetime.utcnow() - timedelta(days=AUDIT_LOG_RETENTION_DAYS)).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=AUDIT_LOG_RETENTION_DAYS)).isoformat()
 
     try:
         from audit.audit_logger import AuditLogger

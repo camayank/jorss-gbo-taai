@@ -503,10 +503,20 @@ async def get_user_roles(
 
     Requires view_team_performance permission.
     """
-    # Verify user is in same firm (unless platform admin)
+    # SECURITY: Verify target user belongs to the same firm before exposing roles
     if not ctx.is_platform_admin:
-        # Would need to verify user belongs to ctx.firm_id
-        pass
+        async with get_async_session() as check_db:
+            from sqlalchemy import text as _text
+            _check = await check_db.execute(
+                _text("SELECT firm_id FROM users WHERE user_id = :uid LIMIT 1"),
+                {"uid": str(user_id)},
+            )
+            _row = _check.fetchone()
+            if not _row or str(_row[0]) != str(ctx.firm_id):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Cannot view roles for users outside your firm",
+                )
 
     async with get_async_session() as db:
         role_service = get_role_service(db)

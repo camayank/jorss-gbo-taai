@@ -13,7 +13,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -69,7 +69,7 @@ class DeliveryResult:
     provider: Optional[str] = None
     error_message: Optional[str] = None
     error_code: Optional[str] = None
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     raw_response: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -176,7 +176,7 @@ class NullEmailProvider(EmailProvider):
         return DeliveryResult(
             success=True,
             status=DeliveryStatus.SENT,
-            message_id=f"null-{datetime.utcnow().timestamp()}",
+            message_id=f"null-{datetime.now(timezone.utc).timestamp()}",
             provider=self.provider_name,
         )
 
@@ -520,7 +520,7 @@ async def _send_smtp_with_attachment(
         return DeliveryResult(
             success=True,
             status=DeliveryStatus.SENT,
-            message_id=f"smtp-{datetime.utcnow().timestamp()}",
+            message_id=f"smtp-{datetime.now(timezone.utc).timestamp()}",
             provider="smtp",
         )
 

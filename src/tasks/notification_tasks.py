@@ -10,7 +10,7 @@ Tasks:
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from celery import shared_task
 
@@ -43,7 +43,7 @@ def process_deadline_reminders():
                 if not deadline:
                     continue
 
-                days_remaining = (deadline.due_date - datetime.utcnow()).days
+                days_remaining = (deadline.due_date - datetime.now(timezone.utc)).days
                 recipient_email = reminder.get("recipient_email", "")
                 if not recipient_email:
                     continue

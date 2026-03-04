@@ -10,7 +10,7 @@ Provides:
 
 import logging
 from typing import Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
@@ -369,7 +369,7 @@ async def record_manual_payment(
         )
 
     # Update invoice
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     update_query = text("""
         UPDATE invoices
         SET status = 'paid',

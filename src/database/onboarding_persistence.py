@@ -11,7 +11,7 @@ Prompt 1: Persistence Safety - Replace in-memory state with database-backed mode
 import sqlite3
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, asdict
@@ -164,7 +164,7 @@ class OnboardingPersistence:
             progress_percentage: Progress percentage (0-100)
             questionnaire_state: Internal questionnaire engine state
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -327,7 +327,7 @@ class OnboardingPersistence:
             extraction_warnings: Any extraction warnings
             raw_text: Raw OCR text
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         fields = fields or {}
         fields_needing_review = fields_needing_review or []
         extraction_warnings = extraction_warnings or []

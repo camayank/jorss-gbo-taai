@@ -18,7 +18,7 @@ import logging
 import sqlite3
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
 
@@ -74,7 +74,7 @@ class LeadNurtureEnrollment:
     sequence_type: NurtureSequenceType
     current_step: int = 1
     status: str = "active"  # active, paused, completed, converted, unsubscribed
-    started_at: datetime = field(default_factory=datetime.utcnow)
+    started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     last_email_at: Optional[datetime] = None
     next_email_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
@@ -454,7 +454,7 @@ class NurtureService:
             Created enrollment
         """
         enrollment_id = f"nurture-{uuid.uuid4().hex[:12]}"
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # Get first email in sequence
         sequence = NURTURE_SEQUENCES.get(sequence_type, [])
@@ -521,7 +521,7 @@ class NurtureService:
                 UPDATE nurture_enrollments
                 SET status = ?, completed_at = ?
                 WHERE enrollment_id = ?
-            """, (reason, datetime.utcnow().isoformat(), enrollment_id))
+            """, (reason, datetime.now(timezone.utc).isoformat(), enrollment_id))
             conn.commit()
             conn.close()
             return True
@@ -554,7 +554,7 @@ class NurtureService:
 
         Returns list of emails with lead and enrollment data.
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         try:
             conn = self._get_db_connection()
@@ -628,7 +628,7 @@ class NurtureService:
 
             # Record email send
             send_id = f"send-{uuid.uuid4().hex[:12]}"
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
 
             cursor.execute("""
                 INSERT INTO nurture_emails_sent (

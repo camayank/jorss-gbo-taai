@@ -5,7 +5,7 @@ Business logic for deadline management.
 """
 
 import logging
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from typing import Optional, List, Dict, Any
 from uuid import UUID, uuid4
 from collections import defaultdict
@@ -161,7 +161,7 @@ class DeadlineService:
         if notes is not None:
             deadline.notes = notes
 
-        deadline.updated_at = datetime.utcnow()
+        deadline.updated_at = datetime.now(timezone.utc)
         deadline.update_status()
 
         logger.info(f"Updated deadline: {deadline_id}")
@@ -519,7 +519,7 @@ class DeadlineService:
         for reminder in deadline.reminders:
             if reminder.id == reminder_id:
                 reminder.is_sent = True
-                reminder.sent_at = datetime.utcnow()
+                reminder.sent_at = datetime.now(timezone.utc)
                 return True
 
         return False
@@ -607,7 +607,7 @@ class DeadlineService:
         alert = self._alerts.get(alert_id)
         if alert:
             alert.is_read = True
-            alert.read_at = datetime.utcnow()
+            alert.read_at = datetime.now(timezone.utc)
             return True
         return False
 

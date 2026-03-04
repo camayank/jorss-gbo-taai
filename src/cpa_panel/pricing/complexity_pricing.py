@@ -14,7 +14,7 @@ for CPAs. It is NOT an e-filing service. The CPA is responsible for:
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -314,7 +314,7 @@ class EngagementPricingEngine:
                 "complexity assessment. Final pricing is at the CPA's discretion "
                 "based on their practice, location, and client relationship."
             ),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     def _detect_complexity_factors(

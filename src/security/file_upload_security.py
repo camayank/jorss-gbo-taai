@@ -261,7 +261,7 @@ def detect_malicious_content(content: bytes) -> Optional[str]:
     """
     # Check for malicious patterns
     for pattern in MALICIOUS_PATTERNS:
-        match = pattern.search(content[:10000])  # Only scan first 10KB
+        match = pattern.search(content[:1_048_576])  # Scan first 1MB instead of 10KB
         if match:
             return f"Suspicious pattern detected: {match.group(0)[:50]}"
 

@@ -19,7 +19,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Optional, Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timezone
 from abc import ABC, abstractmethod
 
 from pydantic import BaseModel, EmailStr
@@ -133,7 +133,7 @@ class MockEmailBackend(EmailBackend):
     async def send(self, message: EmailMessage) -> EmailResult:
         """Log email instead of sending."""
         self.sent_emails.append(message)
-        message_id = f"mock-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        message_id = f"mock-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
 
         logger.info(f"[MOCK EMAIL] To: {message.to}")
         logger.info(f"[MOCK EMAIL] Subject: {message.subject}")
@@ -191,7 +191,7 @@ class SMTPEmailBackend(EmailBackend):
                     msg.as_string()
                 )
 
-            message_id = f"smtp-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+            message_id = f"smtp-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
             logger.info(f"Email sent to {message.to}: {message.subject}")
 
             return EmailResult(

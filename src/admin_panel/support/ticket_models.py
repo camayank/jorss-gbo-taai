@@ -5,7 +5,7 @@ Data models for support ticket system.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict, Any
 from enum import Enum
 from uuid import UUID, uuid4
@@ -81,7 +81,7 @@ class TicketAttachment:
     file_size: int = 0
     storage_path: str = ""
     uploaded_by: Optional[UUID] = None
-    uploaded_at: datetime = field(default_factory=datetime.utcnow)
+    uploaded_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -108,7 +108,7 @@ class TicketMessage:
     content: str = ""
     is_internal: bool = False  # Internal notes not visible to customer
     attachments: List[TicketAttachment] = field(default_factory=list)
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -175,8 +175,8 @@ class Ticket:
 
     # Metadata
     source: str = "web"  # web, email, api, phone
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     closed_at: Optional[datetime] = None
 
     def __post_init__(self):
@@ -190,7 +190,7 @@ class Ticket:
 
     def _generate_ticket_number(self) -> str:
         """Generate a human-readable ticket number."""
-        year = datetime.utcnow().year
+        year = datetime.now(timezone.utc).year
         import secrets
         seq = secrets.randbelow(9000) + 1000  # 1000-9999, cryptographically random
         return f"TKT-{year}-{seq}"
@@ -208,7 +208,7 @@ class Ticket:
         """Check if SLA response is at risk (within 1 hour of breach)."""
         if self.first_response_at or not self.sla_response_due:
             return False
-        remaining = (self.sla_response_due - datetime.utcnow()).total_seconds()
+        remaining = (self.sla_response_due - datetime.now(timezone.utc)).total_seconds()
         return 0 < remaining < 3600
 
     @property
@@ -216,7 +216,7 @@ class Ticket:
         """Check if SLA resolution is at risk (within 4 hours of breach)."""
         if self.status == TicketStatus.RESOLVED or not self.sla_resolution_due:
             return False
-        remaining = (self.sla_resolution_due - datetime.utcnow()).total_seconds()
+        remaining = (self.sla_resolution_due - datetime.now(timezone.utc)).total_seconds()
         return 0 < remaining < 14400
 
     @property
@@ -255,11 +255,11 @@ class Ticket:
             is_internal=is_internal,
         )
         self.messages.append(message)
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
         # Track first response
         if message_type == MessageType.AGENT and not self.first_response_at:
-            self.first_response_at = datetime.utcnow()
+            self.first_response_at = datetime.now(timezone.utc)
             # Check if SLA was breached
             if self.sla_response_due and self.first_response_at > self.sla_response_due:
                 self.sla_response_breached = True
@@ -278,18 +278,18 @@ class Ticket:
         """Assign ticket to an agent."""
         self.assigned_to = agent_id
         self.assigned_to_name = agent_name
-        self.assigned_at = datetime.utcnow()
+        self.assigned_at = datetime.now(timezone.utc)
         if self.status == TicketStatus.NEW:
             self.status = TicketStatus.OPEN
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def resolve(self, resolved_by: UUID = None, resolution_notes: str = ""):
         """Mark ticket as resolved."""
         self.status = TicketStatus.RESOLVED
-        self.resolved_at = datetime.utcnow()
+        self.resolved_at = datetime.now(timezone.utc)
         self.resolved_by = resolved_by
         self.resolution_notes = resolution_notes
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
         # Check if resolution SLA was breached
         if self.sla_resolution_due and self.resolved_at > self.sla_resolution_due:
@@ -298,22 +298,22 @@ class Ticket:
     def close(self):
         """Close the ticket."""
         self.status = TicketStatus.CLOSED
-        self.closed_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+        self.closed_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(timezone.utc)
 
     def reopen(self):
         """Reopen a closed ticket."""
         self.status = TicketStatus.OPEN
         self.closed_at = None
         self.resolved_at = None
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def rate_satisfaction(self, rating: int, feedback: str = ""):
         """Rate customer satisfaction."""
         if 1 <= rating <= 5:
             self.satisfaction_rating = rating
             self.satisfaction_feedback = feedback
-            self.updated_at = datetime.utcnow()
+            self.updated_at = datetime.now(timezone.utc)
 
     def to_dict(self, include_messages: bool = True) -> Dict[str, Any]:
         """Convert to dictionary for API response."""

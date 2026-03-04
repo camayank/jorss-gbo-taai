@@ -12,12 +12,13 @@ Features:
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 import hashlib
 import hmac
 import json
 import os
+import secrets
 import uuid
 
 from .event_types import AuditEventType, AuditSeverity, AuditSource
@@ -43,11 +44,18 @@ def _get_hmac_key() -> bytes:
 
     import warnings
     warnings.warn(
-        "AUDIT_HMAC_KEY not set - using insecure development default. "
+        "AUDIT_HMAC_KEY not set - using ephemeral random key. "
         "Set AUDIT_HMAC_KEY for production.",
         UserWarning
     )
-    return b"audit-trail-dev-only-insecure-key"
+    # Development fallback - use ephemeral random key per process
+    # (not persisted, so audit signatures won't survive restarts)
+    global _dev_hmac_key
+    try:
+        return _dev_hmac_key
+    except NameError:
+        _dev_hmac_key = secrets.token_bytes(32)
+        return _dev_hmac_key
 
 
 @dataclass
@@ -119,7 +127,7 @@ class UnifiedAuditEntry:
 
     # Core identification
     entry_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Event classification
     event_type: AuditEventType = AuditEventType.TAX_DATA_FIELD_CHANGE
@@ -262,7 +270,7 @@ class UnifiedAuditEntry:
 
         return cls(
             entry_id=data.get("entry_id", str(uuid.uuid4())),
-            timestamp=datetime.fromisoformat(data["timestamp"]) if isinstance(data.get("timestamp"), str) else data.get("timestamp", datetime.utcnow()),
+            timestamp=datetime.fromisoformat(data["timestamp"]) if isinstance(data.get("timestamp"), str) else data.get("timestamp", datetime.now(timezone.utc)),
             event_type=AuditEventType(data["event_type"]) if isinstance(data.get("event_type"), str) else data.get("event_type", AuditEventType.TAX_DATA_FIELD_CHANGE),
             severity=AuditSeverity(data["severity"]) if isinstance(data.get("severity"), str) else data.get("severity", AuditSeverity.INFO),
             session_id=data.get("session_id"),

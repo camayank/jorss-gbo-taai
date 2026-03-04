@@ -8,7 +8,7 @@ succeeds even if webhook delivery fails.
 
 import logging
 from typing import Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ def trigger_client_created(
             "name": name,
             "email": email,
             "phone": phone,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
         },
         metadata={"created_by": created_by},
     )
@@ -89,7 +89,7 @@ def trigger_client_updated(
         data={
             "client_id": client_id,
             "changes": changes,
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         },
         metadata={"updated_by": updated_by},
     )
@@ -106,7 +106,7 @@ def trigger_client_archived(
         firm_id=firm_id,
         data={
             "client_id": client_id,
-            "archived_at": datetime.utcnow().isoformat(),
+            "archived_at": datetime.now(timezone.utc).isoformat(),
         },
         metadata={"archived_by": archived_by},
     )
@@ -135,7 +135,7 @@ def trigger_return_created(
             "tax_year": tax_year,
             "filing_status": filing_status,
             "status": status,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
         },
         metadata={"created_by": created_by},
     )
@@ -157,7 +157,7 @@ def trigger_return_status_changed(
             "return_id": return_id,
             "previous_status": previous_status,
             "new_status": new_status,
-            "changed_at": datetime.utcnow().isoformat(),
+            "changed_at": datetime.now(timezone.utc).isoformat(),
             "notes": notes,
         },
         metadata={"changed_by": changed_by},
@@ -179,7 +179,7 @@ def trigger_return_submitted(
             "return_id": return_id,
             "tax_year": tax_year,
             "filing_method": filing_method,
-            "submitted_at": datetime.utcnow().isoformat(),
+            "submitted_at": datetime.now(timezone.utc).isoformat(),
         },
         metadata={"submitted_by": submitted_by},
     )
@@ -198,7 +198,7 @@ def trigger_return_accepted(
         data={
             "return_id": return_id,
             "confirmation_number": confirmation_number,
-            "accepted_at": (accepted_at or datetime.utcnow()).isoformat(),
+            "accepted_at": (accepted_at or datetime.now(timezone.utc)).isoformat(),
         },
     )
 
@@ -217,7 +217,7 @@ def trigger_return_rejected(
             "return_id": return_id,
             "rejection_code": rejection_code,
             "rejection_reason": rejection_reason,
-            "rejected_at": datetime.utcnow().isoformat(),
+            "rejected_at": datetime.now(timezone.utc).isoformat(),
         },
     )
 
@@ -247,7 +247,7 @@ def trigger_document_uploaded(
             "filename": filename,
             "file_type": file_type,
             "file_size": file_size,
-            "uploaded_at": datetime.utcnow().isoformat(),
+            "uploaded_at": datetime.now(timezone.utc).isoformat(),
         },
         metadata={"uploaded_by": uploaded_by},
     )
@@ -267,7 +267,7 @@ def trigger_document_processed(
             "document_id": document_id,
             "processing_result": processing_result,
             "extracted_fields": list(extracted_data.keys()) if extracted_data else [],
-            "processed_at": datetime.utcnow().isoformat(),
+            "processed_at": datetime.now(timezone.utc).isoformat(),
         },
     )
 
@@ -291,7 +291,7 @@ def trigger_engagement_signed(
             "engagement_id": engagement_id,
             "client_id": client_id,
             "signed_by": signed_by,
-            "signed_at": datetime.utcnow().isoformat(),
+            "signed_at": datetime.now(timezone.utc).isoformat(),
             "ip_address": ip_address,
         },
     )
@@ -316,7 +316,7 @@ def trigger_scenario_created(
             "scenario_id": scenario_id,
             "return_id": return_id,
             "scenario_name": scenario_name,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
         },
         metadata={"created_by": created_by},
     )
@@ -338,7 +338,7 @@ def trigger_scenario_completed(
             "return_id": return_id,
             "estimated_tax": estimated_tax,
             "estimated_refund": estimated_refund,
-            "completed_at": datetime.utcnow().isoformat(),
+            "completed_at": datetime.now(timezone.utc).isoformat(),
         },
     )
 
@@ -363,7 +363,7 @@ def trigger_recommendation_generated(
             "recommendation_count": recommendation_count,
             "total_potential_savings": total_potential_savings,
             "categories": categories,
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
         },
     )
 
@@ -386,6 +386,6 @@ def trigger_report_generated(
             "return_id": return_id,
             "client_id": client_id,
             "format": format,
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
         },
     )

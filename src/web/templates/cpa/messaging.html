@@ -1,0 +1,279 @@
+{% extends "cpa/base.html" %}
+{% from 'macros/icons.html' import icon %}
+
+{% block title %}Messages{% endblock %}
+{% block page_title %}Client Messages{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .messaging-layout {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 0;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        height: calc(100vh - 200px);
+        min-height: 500px;
+        background: var(--bg-primary);
+    }
+    .conversation-list {
+        border-right: 1px solid var(--border-color);
+        overflow-y: auto;
+    }
+    .conv-header {
+        padding: var(--space-4) var(--space-5);
+        border-bottom: 1px solid var(--border-color);
+        font-weight: var(--font-semibold);
+        font-size: 0.95rem;
+        background: var(--bg-secondary);
+    }
+    .conv-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-4) var(--space-5);
+        cursor: pointer;
+        border-bottom: 1px solid var(--border-color-light, #f0f0f0);
+        transition: background 0.15s;
+    }
+    .conv-item:hover, .conv-item.active { background: var(--color-primary-50); }
+    .conv-avatar {
+        width: 40px; height: 40px;
+        border-radius: 50%;
+        background: var(--color-primary-100);
+        color: var(--color-primary-700);
+        display: flex; align-items: center; justify-content: center;
+        font-weight: var(--font-semibold);
+        flex-shrink: 0;
+    }
+    .conv-info { flex: 1; min-width: 0; }
+    .conv-name { font-weight: var(--font-medium); font-size: 0.9rem; }
+    .conv-preview {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .conv-time { font-size: 0.75rem; color: var(--text-muted); flex-shrink: 0; }
+    .conv-unread {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: var(--color-primary-500);
+        flex-shrink: 0;
+    }
+
+    .chat-area { display: flex; flex-direction: column; }
+    .chat-header {
+        padding: var(--space-4) var(--space-5);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        background: var(--bg-secondary);
+    }
+    .chat-header-name { font-weight: var(--font-semibold); }
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: var(--space-5);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+    .msg { max-width: 70%; padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); font-size: 0.9rem; line-height: 1.5; }
+    .msg.sent {
+        align-self: flex-end;
+        background: var(--color-primary-500);
+        color: white;
+        border-bottom-right-radius: var(--radius-sm);
+    }
+    .msg.received {
+        align-self: flex-start;
+        background: var(--bg-secondary);
+        border-bottom-left-radius: var(--radius-sm);
+    }
+    .msg-time { font-size: 0.7rem; opacity: 0.7; margin-top: var(--space-1); }
+    .chat-input-area {
+        padding: var(--space-4) var(--space-5);
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        gap: var(--space-3);
+    }
+    .chat-input-area input {
+        flex: 1;
+        padding: var(--space-3) var(--space-4);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        font-size: 0.9rem;
+    }
+    .chat-empty {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        text-align: center;
+        padding: var(--space-8);
+    }
+
+    @media (max-width: 768px) {
+        .messaging-layout { grid-template-columns: 1fr; height: auto; }
+        .conversation-list { max-height: 300px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="messaging-layout" x-data="messagingApp()">
+    <!-- Conversation List -->
+    <div class="conversation-list">
+        <div class="conv-header">Conversations</div>
+        <template x-for="conv in conversations" :key="conv.id">
+            <div class="conv-item" :class="{ 'active': selectedId === conv.id }" @click="selectConversation(conv)">
+                <div class="conv-avatar" x-text="conv.client_name ? conv.client_name[0] : 'C'"></div>
+                <div class="conv-info">
+                    <div class="conv-name" x-text="conv.client_name || 'Client'"></div>
+                    <div class="conv-preview" x-text="conv.last_message || 'No messages yet'"></div>
+                </div>
+                <div class="conv-time" x-text="conv.updated_at || ''"></div>
+                <template x-if="conv.unread > 0">
+                    <div class="conv-unread"></div>
+                </template>
+            </div>
+        </template>
+        <template x-if="conversations.length === 0">
+            <div style="padding: var(--space-8); text-align: center; color: var(--text-muted);">
+                <p>No conversations yet.</p>
+                <p style="font-size: 0.85rem;">Messages from clients will appear here.</p>
+            </div>
+        </template>
+    </div>
+
+    <!-- Chat Area -->
+    <div class="chat-area" x-show="selectedId">
+        <div class="chat-header">
+            <div class="conv-avatar" x-text="selectedConv?.client_name ? selectedConv.client_name[0] : 'C'"></div>
+            <div>
+                <div class="chat-header-name" x-text="selectedConv?.client_name || 'Client'"></div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);" x-text="selectedConv?.client_email || ''"></div>
+            </div>
+        </div>
+        <div class="chat-messages" x-ref="chatMessages">
+            <template x-for="msg in messages" :key="msg.id">
+                <div class="msg" :class="msg.sender_type === 'cpa' ? 'sent' : 'received'">
+                    <div x-text="msg.content"></div>
+                    <div class="msg-time" x-text="msg.created_at"></div>
+                </div>
+            </template>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" x-model="newMessage" placeholder="Type a message..." @keydown.enter="sendMessage()">
+            <button class="btn btn-primary" @click="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <template x-if="!selectedId">
+        <div class="chat-empty">
+            <div>
+                <div style="font-size: 2rem; margin-bottom: var(--space-3);">{{ icon('mail') }}</div>
+                <h3>Select a conversation</h3>
+                <p>Choose a client conversation from the left to start messaging.</p>
+            </div>
+        </div>
+    </template>
+</div>
+
+<script>
+function messagingApp() {
+    return {
+        conversations: [],
+        messages: [],
+        selectedId: null,
+        selectedConv: null,
+        newMessage: '',
+        cpaId: '{{ cpa_id|default("default") }}',
+
+        async init() {
+            await this.loadConversations();
+        },
+
+        async loadConversations() {
+            try {
+                const resp = await fetch('/api/v1/messages/conversations', {
+                    headers: { 'X-Tenant-Id': this.cpaId }
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    this.conversations = data.conversations || data || [];
+                }
+            } catch (e) {
+                console.warn('Could not load conversations:', e);
+                // Show empty state gracefully
+            }
+        },
+
+        async selectConversation(conv) {
+            this.selectedId = conv.id;
+            this.selectedConv = conv;
+            try {
+                const resp = await fetch(`/api/v1/messages/conversations/${conv.id}/messages`, {
+                    headers: { 'X-Tenant-Id': this.cpaId }
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    this.messages = data.messages || data || [];
+                }
+                // Mark as read
+                await fetch(`/api/v1/messages/conversations/${conv.id}/read`, {
+                    method: 'POST',
+                    headers: { 'X-Tenant-Id': this.cpaId }
+                });
+                this.$nextTick(() => {
+                    if (this.$refs.chatMessages) {
+                        this.$refs.chatMessages.scrollTop = this.$refs.chatMessages.scrollHeight;
+                    }
+                });
+            } catch (e) {
+                console.warn('Could not load messages:', e);
+            }
+        },
+
+        async sendMessage() {
+            if (!this.newMessage.trim() || !this.selectedId) return;
+            const content = this.newMessage.trim();
+            this.newMessage = '';
+
+            // Optimistic update
+            this.messages.push({
+                id: Date.now().toString(),
+                content: content,
+                sender_type: 'cpa',
+                created_at: new Date().toLocaleTimeString(),
+                read: false,
+            });
+
+            this.$nextTick(() => {
+                if (this.$refs.chatMessages) {
+                    this.$refs.chatMessages.scrollTop = this.$refs.chatMessages.scrollHeight;
+                }
+            });
+
+            try {
+                await fetch(`/api/v1/messages/conversations/${this.selectedId}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Tenant-Id': this.cpaId,
+                    },
+                    body: JSON.stringify({ content: content, message_type: 'text' }),
+                });
+            } catch (e) {
+                console.warn('Could not send message:', e);
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

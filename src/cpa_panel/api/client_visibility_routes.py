@@ -15,7 +15,7 @@ SCOPE BOUNDARIES (ENFORCED - DO NOT EXPAND):
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Depends
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import uuid
 import json
@@ -264,15 +264,21 @@ async def upload_document(
         raise HTTPException(status_code=400, detail="File too large (max 10MB)")
 
     document_id = str(uuid.uuid4())
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
-    # Insert document record into database
+    # Get firm_id from the tax return for tenant isolation
+    firm_query = text("SELECT firm_id FROM tax_returns WHERE return_id = :return_id LIMIT 1")
+    firm_result = await session.execute(firm_query, {"return_id": session_id})
+    firm_row = firm_result.fetchone()
+    doc_firm_id = str(firm_row[0]) if firm_row and firm_row[0] else None
+
+    # Insert document record into database (include firm_id for tenant isolation)
     query = text("""
         INSERT INTO documents (
-            document_id, return_id, document_type, file_name, file_size,
+            document_id, return_id, firm_id, document_type, file_name, file_size,
             status, uploaded_at, uploaded_by
         ) VALUES (
-            :document_id, :return_id, :document_type, :file_name, :file_size,
+            :document_id, :return_id, :firm_id, :document_type, :file_name, :file_size,
             'received', :uploaded_at, :uploaded_by
         )
     """)
@@ -280,6 +286,7 @@ async def upload_document(
         await session.execute(query, {
             "document_id": document_id,
             "return_id": session_id,
+            "firm_id": doc_firm_id,
             "document_type": document_type or "other",
             "file_name": file.filename,
             "file_size": len(contents),
@@ -364,7 +371,7 @@ async def setup_client_visibility(
     - cpa_info: CPA contact information
     - requested_documents: List of documents to request
     """
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     # Update tax_return with visibility settings in return_data
     return_data = {
@@ -443,7 +450,7 @@ async def update_client_status(
     if not new_status:
         raise HTTPException(status_code=400, detail="status is required")
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     query = text("""
         UPDATE tax_returns

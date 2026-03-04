@@ -8,7 +8,7 @@ Supports:
 - Per-firm overrides (beta access, blocked)
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from uuid import uuid4
 
@@ -79,8 +79,8 @@ class FeatureFlag(Base):
     documentation_url = Column(String(500), nullable=True)
 
     # Lifecycle
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     deprecated_at = Column(DateTime, nullable=True)
     removal_date = Column(DateTime, nullable=True, comment="Planned removal date")
 
@@ -179,7 +179,7 @@ class FeatureUsage(Base):
     )
 
     # Usage Details
-    used_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    used_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
     context = Column(JSONB, nullable=True, comment="Additional context about usage")
     # Example context:
     # {"client_id": "...", "action": "generate_report", "duration_ms": 1234}

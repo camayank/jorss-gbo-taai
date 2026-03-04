@@ -17,7 +17,7 @@ import logging
 import sqlite3
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
 
@@ -85,7 +85,7 @@ class Notification:
     status: NotificationStatus = NotificationStatus.PENDING
     scheduled_for: Optional[datetime] = None
     sent_at: Optional[datetime] = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -115,7 +115,7 @@ class FollowUpReminder:
     reminder_type: str  # "first_contact", "second_contact", "proposal"
     completed: bool = False
     completed_at: Optional[datetime] = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 # =============================================================================
@@ -521,7 +521,7 @@ Best regards,
         cpa_email: str,
     ):
         """Schedule follow-up reminders for a new lead."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         reminders = [
             ("first_contact", now + timedelta(hours=24)),
@@ -549,7 +549,7 @@ Best regards,
 
     def get_due_reminders(self, cpa_email: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get reminders that are due."""
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         try:
             conn = self._get_db_connection()
@@ -585,7 +585,7 @@ Best regards,
                 UPDATE follow_up_reminders
                 SET completed = 1, completed_at = ?
                 WHERE reminder_id = ?
-            """, (datetime.utcnow().isoformat(), reminder_id))
+            """, (datetime.now(timezone.utc).isoformat(), reminder_id))
             conn.commit()
             conn.close()
             return True
@@ -705,7 +705,7 @@ Best regards,
 
             # Update status
             notification.status = NotificationStatus.SENT if sent else NotificationStatus.FAILED
-            notification.sent_at = datetime.utcnow() if sent else None
+            notification.sent_at = datetime.now(timezone.utc) if sent else None
 
             # Persist to database
             try:
@@ -851,7 +851,7 @@ Best regards,
             """, (cpa_email,))
             exists = cursor.fetchone() is not None
 
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
 
             if exists:
                 cursor.execute("""

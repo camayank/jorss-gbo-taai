@@ -10,7 +10,7 @@ from __future__ import annotations
 import io
 import logging
 from typing import Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 try:
@@ -181,7 +181,7 @@ class EngagementLetterPDFGenerator:
         story.append(Spacer(1, 0.25 * inch))
 
         # Date
-        gen_date = letter_content.get("generated_at", datetime.utcnow().strftime("%B %d, %Y"))
+        gen_date = letter_content.get("generated_at", datetime.now(timezone.utc).strftime("%B %d, %Y"))
         if isinstance(gen_date, str) and "T" in gen_date:
             gen_date = datetime.fromisoformat(gen_date.replace("Z", "")).strftime("%B %d, %Y")
         story.append(Paragraph(str(gen_date), self._styles['BodyText']))

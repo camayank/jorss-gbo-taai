@@ -17,7 +17,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any, Tuple, BinaryIO, TYPE_CHECKING
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import json
 
@@ -217,7 +217,7 @@ class SmartOnboardingService:
             session_id=str(uuid.uuid4()),
             cpa_id=cpa_id,
             status=OnboardingStatus.INITIATED,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
         self._sessions[session.session_id] = session
         logger.info(f"Started onboarding session {session.session_id} for CPA {cpa_id}")
@@ -665,7 +665,7 @@ class SmartOnboardingService:
 
         # Generate client ID
         client_id = str(uuid.uuid4())
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # Persist to database if session provided
         if db_session:
@@ -682,27 +682,29 @@ class SmartOnboardingService:
                     profile_data["filing_status"] = session.parsed_1040.filing_status.value if session.parsed_1040.filing_status else None
                     profile_data["agi"] = float(session.parsed_1040.adjusted_gross_income or 0)
 
-                # Get preparer_id from CPA
+                # Get preparer_id and firm_id from CPA
                 preparer_query = text("""
-                    SELECT user_id FROM users WHERE user_id = :cpa_id LIMIT 1
+                    SELECT user_id, firm_id FROM users WHERE user_id = :cpa_id LIMIT 1
                 """)
                 preparer_result = await db_session.execute(preparer_query, {"cpa_id": session.cpa_id})
                 preparer_row = preparer_result.fetchone()
                 preparer_id = str(preparer_row[0]) if preparer_row else None
+                cpa_firm_id = str(preparer_row[1]) if preparer_row and preparer_row[1] else None
 
-                # Insert client record
+                # Insert client record (include firm_id for tenant isolation)
                 query = text("""
                     INSERT INTO clients (
-                        client_id, preparer_id, first_name, last_name,
+                        client_id, preparer_id, firm_id, first_name, last_name,
                         is_active, created_at, profile_data
                     ) VALUES (
-                        :client_id, :preparer_id, :first_name, :last_name,
+                        :client_id, :preparer_id, :firm_id, :first_name, :last_name,
                         true, :created_at, :profile_data
                     )
                 """)
                 await db_session.execute(query, {
                     "client_id": client_id,
                     "preparer_id": preparer_id,
+                    "firm_id": cpa_firm_id,
                     "first_name": first_name,
                     "last_name": last_name,
                     "created_at": now,

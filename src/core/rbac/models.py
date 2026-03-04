@@ -6,7 +6,7 @@ These models back platform-level RBAC management for admin APIs.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from uuid import uuid4
 
@@ -69,8 +69,8 @@ class Permission(Base):
     tier_restriction = Column(JSONB, default=list)
     is_enabled = Column(Boolean, default=True, index=True)
     is_system = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     role_permissions = relationship(
         "RolePermission",
@@ -104,8 +104,8 @@ class RoleTemplate(Base):
     is_active = Column(Boolean, default=True, index=True)
     is_assignable = Column(Boolean, default=True)
     display_order = Column(Integer, default=100)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     created_by = Column(UUID(as_uuid=True), nullable=True)
 
     role_permissions = relationship(
@@ -143,7 +143,7 @@ class RolePermission(Base):
         ForeignKey("permissions.permission_id", ondelete="CASCADE"),
         primary_key=True,
     )
-    granted_at = Column(DateTime, default=datetime.utcnow)
+    granted_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     granted_by = Column(UUID(as_uuid=True), nullable=True)
 
     role = relationship("RoleTemplate", back_populates="role_permissions")
@@ -171,7 +171,7 @@ class UserRoleAssignment(Base):
         primary_key=True,
     )
     is_primary = Column(Boolean, default=False, index=True)
-    assigned_at = Column(DateTime, default=datetime.utcnow)
+    assigned_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     assigned_by = Column(UUID(as_uuid=True), nullable=True)
     expires_at = Column(DateTime, nullable=True)
     notes = Column(Text, nullable=True)
@@ -208,7 +208,7 @@ class UserPermissionOverride(Base):
     resource_id = Column(UUID(as_uuid=True), nullable=True)
     expires_at = Column(DateTime, nullable=True)
     reason = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     created_by = Column(UUID(as_uuid=True), nullable=True)
 
     permission = relationship("Permission")
@@ -233,7 +233,7 @@ class RBACAuditLog(Base):
     __tablename__ = "rbac_audit_log"
 
     log_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
     action = Column(String(50), nullable=False, index=True)
     actor_id = Column(UUID(as_uuid=True), nullable=True, index=True)
     actor_type = Column(String(50), default="user")
@@ -266,7 +266,7 @@ class PermissionCacheVersion(Base):
     version_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     scope = Column(String(50), nullable=False, unique=True, index=True)
     version = Column(Integer, nullable=False, default=1)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_by = Column(UUID(as_uuid=True), nullable=True)
     update_reason = Column(String(200), nullable=True)
 
@@ -295,8 +295,8 @@ class Partner(Base):
     contract_start_date = Column(DateTime, nullable=True)
     contract_end_date = Column(DateTime, nullable=True)
     billing_email = Column(String(255), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     created_by = Column(UUID(as_uuid=True), nullable=True)
     settings = Column(JSONB, default=dict)
 
@@ -323,7 +323,7 @@ class PartnerFirm(Base):
         ForeignKey("firms.firm_id", ondelete="CASCADE"),
         primary_key=True,
     )
-    joined_at = Column(DateTime, default=datetime.utcnow)
+    joined_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     status = Column(String(20), default="active")
     revenue_share_percent = Column(Integer, default=0)
     notes = Column(Text, nullable=True)
@@ -358,8 +358,8 @@ class PartnerAdmin(Base):
     mfa_secret = Column(String(100), nullable=True)
     last_login_at = Column(DateTime, nullable=True)
     last_login_ip = Column(String(45), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     partner = relationship("Partner", back_populates="partner_admins")
 
@@ -382,7 +382,7 @@ class ClientAccessGrant(Base):
     )
     client_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     access_level = Column(String(20), default="read")
-    granted_at = Column(DateTime, default=datetime.utcnow)
+    granted_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     granted_by = Column(UUID(as_uuid=True), nullable=True)
 
 

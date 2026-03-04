@@ -10,7 +10,7 @@ NOT an e-filing platform. CPAs file through their own channels.
 """
 
 from typing import Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class PlatformDisclaimers:
@@ -116,7 +116,7 @@ class PlatformDisclaimers:
             "limitation_of_liability": cls.LIMITATION_OF_LIABILITY,
             "data_accuracy": cls.DATA_ACCURACY,
             "tax_year_notice": cls.get_tax_year_disclaimer(tax_year),
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
         }
 
     @classmethod
@@ -128,7 +128,7 @@ class PlatformDisclaimers:
             f"{'='*60}\n\n"
             f"{cls.ADVISORY_PLATFORM_DISCLAIMER}\n\n"
             f"{cls.CIRCULAR_230_DISCLAIMER}\n\n"
-            f"Tax Year: {tax_year} | Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}\n"
+            f"Tax Year: {tax_year} | Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}\n"
         )
 
 

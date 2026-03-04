@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="/static/css/core/reset.css">
     <link rel="stylesheet" href="/static/css/core/typography.css">
     <link rel="stylesheet" href="/static/css/unified-theme.css">
+    <link rel="stylesheet" href="/static/css/components/auth.css">
     <script defer src="/static/js/vendor/alpine.min.js"></script>
     <style>
         * {
@@ -25,7 +26,7 @@
 
         body {
             font-family: var(--font-sans, 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
-            background: linear-gradient(135deg, var(--color-navy, #0B1D3A) 0%, var(--color-navy-mid, #1A3560) 100%);
+            background: linear-gradient(135deg, var(--color-primary-800) 0%, var(--color-primary-500) 100%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -103,7 +104,7 @@
         .auth-card {
             background: var(--white);
             border-radius: var(--radius-2xl-plus);
-            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+            box-shadow: var(--shadow-xl);
             overflow: hidden;
         }
 
@@ -116,7 +117,7 @@
         .auth-icon {
             width: 64px;
             height: 64px;
-            background: linear-gradient(135deg, var(--color-navy, #0B1D3A) 0%, var(--color-navy-mid, #1A3560) 100%);
+            background: linear-gradient(135deg, var(--color-navy) 0%, var(--color-primary-500) 100%);
             border-radius: var(--radius-2xl);
 
             display: flex;
@@ -131,7 +132,7 @@
 
             height: var(--space-8);
 
-            color: var(--color-gold, #C9A84C);
+            color: var(--color-gold);
         }
 
         .auth-title {
@@ -211,7 +212,7 @@
             outline: none;
             background: var(--white);
             transition: border-color 0.2s, box-shadow 0.2s;
-            caret-color: var(--color-gold, #C9A84C);
+            caret-color: var(--color-gold);
             -moz-appearance: textfield;
         }
 
@@ -222,12 +223,12 @@
         }
 
         .otp-input:focus {
-            border-color: var(--color-gold, #C9A84C);
+            border-color: var(--color-gold);
             box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.15);
         }
 
         .otp-input.filled {
-            border-color: var(--color-navy-mid, #1A3560);
+            border-color: var(--color-primary-500);
             background: var(--color-primary-50, #F0F3F8);
         }
 
@@ -267,7 +268,7 @@
         }
 
         .backup-input:focus {
-            border-color: var(--color-gold, #C9A84C);
+            border-color: var(--color-gold);
             box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.15);
         }
 
@@ -286,7 +287,7 @@
             margin-bottom: var(--space-6);
 
             font-size: 0.9rem;
-            color: var(--color-gold, #C9A84C);
+            color: var(--color-gold);
             text-decoration: none;
             font-weight: var(--font-medium);
 
@@ -295,7 +296,7 @@
         }
 
         .toggle-link:hover {
-            color: var(--color-gold-light, #E0C778);
+            color: var(--color-gold-light);
             text-decoration: underline;
         }
 
@@ -309,8 +310,8 @@
             font-size: 1rem;
             font-weight: var(--font-semibold);
 
-            color: var(--color-navy, #0B1D3A);
-            background: var(--color-gold, #C9A84C);
+            color: var(--color-navy);
+            background: var(--color-gold);
             border: none;
             border-radius: var(--radius-lg-plus);
             cursor: pointer;
@@ -326,7 +327,7 @@
 
         .btn-submit:hover:not(:disabled) {
             transform: translateY(-2px);
-            background: var(--color-gold-light, #E0C778);
+            background: var(--color-gold-light);
             box-shadow: 0 6px 20px rgba(201, 168, 76, 0.4);
         }
 
@@ -346,7 +347,7 @@
             height: var(--space-5);
 
             border: 2px solid rgba(11,29,58,0.3);
-            border-top-color: var(--color-navy, #0B1D3A);
+            border-top-color: var(--color-navy);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
@@ -374,7 +375,7 @@
         }
 
         .auth-footer a {
-            color: var(--color-gold, #C9A84C);
+            color: var(--color-gold);
             text-decoration: none;
             font-weight: var(--font-semibold);
 

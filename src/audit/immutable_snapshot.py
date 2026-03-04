@@ -20,7 +20,7 @@ import hashlib
 import json
 import hmac
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass, field
@@ -360,7 +360,7 @@ class ImmutableSnapshotStore:
 
         # Create snapshot data
         snapshot_id = str(uuid4())
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         result_json = json.dumps(result_data, sort_keys=True, default=str)
 
         # Compute integrity hash

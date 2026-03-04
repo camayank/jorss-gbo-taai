@@ -2832,7 +2832,7 @@
         background: ${color.bg};
         color: white;
         border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 12px rgba(11,29,58,0.12);
         z-index: 1001;
         animation: slideIn 0.3s ease-out;
       `;
@@ -3874,7 +3874,7 @@
                 <div id="preview-logo" style="width: 40px; height: 40px; background: white; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; overflow: hidden;">
                   ${branding.logo_url
                     ? `<img src="${escapeHtml(branding.logo_url)}" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="Logo">`
-                    : `<span style="color: #999; font-size: 10px;">Logo</span>`
+                    : `<span style="color: var(--color-gray-400); font-size: 10px;">Logo</span>`
                   }
                 </div>
                 <span style="color: white; font-weight: var(--font-semibold); font-size: var(--text-base);">${escapeHtml(firm.name || 'Firm Name')}</span>

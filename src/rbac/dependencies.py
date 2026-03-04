@@ -136,6 +136,58 @@ async def get_auth_context(
         return AuthContext.anonymous()
 
 
+async def _check_firm_subscription(ctx: AuthContext) -> None:
+    """
+    Verify the user's firm has an active subscription.
+
+    Raises 403 if the firm's subscription is cancelled or suspended.
+    Platform admins are exempt from this check.
+    """
+    if ctx.user_type == UserType.PLATFORM_ADMIN or not ctx.firm_id:
+        return
+
+    try:
+        from sqlalchemy import text as sa_text
+        from database.async_engine import get_async_session_factory
+
+        session_factory = get_async_session_factory()
+        if session_factory is None:
+            return  # No DB configured — skip check (dev/test)
+
+        async with session_factory() as session:
+            result = await session.execute(
+                sa_text("SELECT subscription_status, deleted_at FROM firms WHERE firm_id = :firm_id"),
+                {"firm_id": str(ctx.firm_id)},
+            )
+            row = result.fetchone()
+
+        if not row:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Firm not found",
+            )
+
+        sub_status = row[0] or "trial"
+        deleted_at = row[1]
+
+        if deleted_at is not None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This firm account has been deactivated",
+            )
+
+        if sub_status in ("cancelled", "suspended"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Firm subscription is {sub_status}. Please contact support.",
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Don't block auth if DB check fails (graceful degradation)
+        logger.debug(f"Subscription check skipped: {e}")
+
+
 async def require_auth(
     ctx: AuthContext = Depends(get_auth_context),
 ) -> AuthContext:
@@ -143,6 +195,7 @@ async def require_auth(
     Require authentication.
 
     Raises 401 if not authenticated.
+    Raises 403 if firm subscription is cancelled/suspended.
 
     Usage:
         @router.get("/profile")
@@ -155,6 +208,10 @@ async def require_auth(
             detail="Authentication required",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # Check firm subscription status for firm users and clients
+    await _check_firm_subscription(ctx)
+
     return ctx
 
 

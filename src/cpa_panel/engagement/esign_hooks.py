@@ -18,7 +18,7 @@ NOT in scope:
 from enum import Enum
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, Callable
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 import hmac
 import logging
@@ -89,7 +89,7 @@ class ESignWebhookHandler:
         self._letter_store[envelope_id] = {
             "letter_id": letter_id,
             "session_id": session_id,
-            "registered_at": datetime.utcnow().isoformat(),
+            "registered_at": datetime.now(timezone.utc).isoformat(),
         }
 
     def process_webhook(
@@ -300,7 +300,7 @@ class ESignWebhookHandler:
             letter_id=letter_data.get("letter_id"),
             status=status,
             signer_email=data.get("recipients", [{}])[0].get("email"),
-            signed_at=datetime.utcnow() if status == ESignStatus.SIGNED else None,
+            signed_at=datetime.now(timezone.utc) if status == ESignStatus.SIGNED else None,
             raw_payload=payload,
         )
 

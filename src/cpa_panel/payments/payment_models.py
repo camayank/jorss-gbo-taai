@@ -5,7 +5,7 @@ Data models for CPA-to-Client payment processing via Stripe Connect.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import Optional, List, Dict, Any
 from enum import Enum
 from uuid import UUID, uuid4
@@ -126,8 +126,8 @@ class Invoice:
     stripe_invoice_id: Optional[str] = None
 
     # Metadata
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     sent_at: Optional[datetime] = None
 
     def __post_init__(self):
@@ -193,20 +193,20 @@ class Invoice:
     def mark_sent(self):
         """Mark invoice as sent."""
         self.status = InvoiceStatus.SENT
-        self.sent_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+        self.sent_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(timezone.utc)
 
     def mark_paid(self, amount: float = None, paid_date: date = None):
         """Mark invoice as paid."""
         self.amount_paid = amount or self.total_amount
         self.paid_date = paid_date or date.today()
         self.status = InvoiceStatus.PAID
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def void(self):
         """Void the invoice."""
         self.status = InvoiceStatus.VOID
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -289,8 +289,8 @@ class Payment:
     refund_reason: Optional[str] = None
 
     # Timestamps
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: Optional[datetime] = None
 
     # Metadata
@@ -304,8 +304,8 @@ class Payment:
     def mark_succeeded(self, charge_id: str = None, receipt_url: str = None):
         """Mark payment as succeeded."""
         self.status = PaymentStatus.SUCCEEDED
-        self.completed_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+        self.completed_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(timezone.utc)
         if charge_id:
             self.stripe_charge_id = charge_id
         if receipt_url:
@@ -314,7 +314,7 @@ class Payment:
     def mark_failed(self, reason: str = None):
         """Mark payment as failed."""
         self.status = PaymentStatus.FAILED
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
         if reason:
             self.metadata["failure_reason"] = reason
 
@@ -323,7 +323,7 @@ class Payment:
         refund_amount = amount or self.amount
         self.refunded_amount = refund_amount
         self.refund_reason = reason
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
         if refund_amount >= self.amount:
             self.status = PaymentStatus.REFUNDED
@@ -391,7 +391,7 @@ class PaymentLink:
     stripe_payment_link_id: Optional[str] = None
 
     # Timestamps
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def __post_init__(self):
         """Generate link code if not provided."""
@@ -409,7 +409,7 @@ class PaymentLink:
     def is_expired(self) -> bool:
         """Check if link has expired."""
         if self.expires_at:
-            return datetime.utcnow() > self.expires_at
+            return datetime.now(timezone.utc) > self.expires_at
         return False
 
     @property

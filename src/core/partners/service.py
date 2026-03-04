@@ -9,7 +9,7 @@ Provides:
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from uuid import UUID, uuid4
 import hashlib
@@ -243,7 +243,7 @@ class PartnerService:
         if login_page_url is not None:
             partner.login_page_url = login_page_url
 
-        partner.updated_at = datetime.utcnow()
+        partner.updated_at = datetime.now(timezone.utc)
         self.db.commit()
 
         return PartnerCreateResult(
@@ -270,7 +270,7 @@ class PartnerService:
         # Generate new API key
         api_key = secrets.token_urlsafe(32)
         partner.api_key_hash = hashlib.sha256(api_key.encode()).hexdigest()
-        partner.updated_at = datetime.utcnow()
+        partner.updated_at = datetime.now(timezone.utc)
         self.db.commit()
 
         logger.info(f"Regenerated API key for partner: {partner.code}")
@@ -353,7 +353,7 @@ class PartnerService:
         # Update firm's partner_id
         from admin_panel.models.firm import Firm
         firm = self.db.execute(
-            select(Firm).where(Firm.firm_id == firm_id)
+            select(Firm).where(Firm.firm_id == firm_id, Firm.deleted_at.is_(None))
         ).scalar_one_or_none()
 
         if firm:
@@ -394,7 +394,7 @@ class PartnerService:
         # Update firm's partner_id
         from admin_panel.models.firm import Firm
         firm = self.db.execute(
-            select(Firm).where(Firm.firm_id == firm_id)
+            select(Firm).where(Firm.firm_id == firm_id, Firm.deleted_at.is_(None))
         ).scalar_one_or_none()
 
         if firm:

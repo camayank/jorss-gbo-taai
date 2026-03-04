@@ -14,7 +14,7 @@ These endpoints support the "resume banner" and session recovery features.
 from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 from database.unified_session import FilingState, WorkflowType
@@ -343,7 +343,7 @@ async def cleanup_expired_sessions(ctx: AuthContext = Depends(require_platform_a
         return {
             "success": True,
             "deleted_count": deleted_count,
-            "cleaned_at": datetime.utcnow().isoformat()
+            "cleaned_at": datetime.now(timezone.utc).isoformat()
         }
 
     except Exception as e:

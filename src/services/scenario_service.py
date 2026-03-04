@@ -13,7 +13,7 @@ but contains no business logic itself.
 
 import copy
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List, Tuple
 from uuid import UUID, uuid4
 
@@ -433,7 +433,7 @@ class ScenarioService:
                 "savings": winner.result.savings if winner.result else 0,
             },
             "max_savings": max_savings,
-            "compared_at": datetime.utcnow().isoformat(),
+            "compared_at": datetime.now(timezone.utc).isoformat(),
         }
 
         # Publish event

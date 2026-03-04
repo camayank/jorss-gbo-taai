@@ -45,8 +45,97 @@ ESIGN_WEBHOOK_SECRETS = {
     "pandadoc": os.environ.get("PANDADOC_WEBHOOK_SECRET"),
 }
 
-# In-memory storage for letters (replace with DB in production)
-_letters: Dict[str, EngagementLetter] = {}
+# Persistent storage for engagement letters (SQLite-backed with in-memory fallback)
+import json
+import sqlite3
+
+_DB_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "engagement_letters.db")
+
+
+def _get_letter_db():
+    """Get or create the engagement letters SQLite database."""
+    os.makedirs(os.path.dirname(_DB_PATH), exist_ok=True)
+    conn = sqlite3.connect(_DB_PATH)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS engagement_letters (
+            letter_id TEXT PRIMARY KEY,
+            tenant_id TEXT NOT NULL,
+            session_id TEXT NOT NULL,
+            data TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_el_tenant ON engagement_letters(tenant_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_el_session ON engagement_letters(session_id)")
+    conn.commit()
+    return conn
+
+
+def _store_letter(letter: EngagementLetter):
+    """Persist an engagement letter."""
+    try:
+        conn = _get_letter_db()
+        conn.execute(
+            "INSERT OR REPLACE INTO engagement_letters (letter_id, tenant_id, session_id, data) VALUES (?, ?, ?, ?)",
+            (letter.letter_id, letter.tenant_id, letter.session_id, json.dumps(letter.to_dict())),
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.warning(f"Failed to persist letter {letter.letter_id}: {e}")
+        _letters_fallback[letter.letter_id] = letter
+
+
+def _load_letter(letter_id: str, tenant_id: Optional[str] = None) -> Optional[EngagementLetter]:
+    """Load an engagement letter by ID, optionally scoped by tenant."""
+    try:
+        conn = _get_letter_db()
+        if tenant_id:
+            row = conn.execute(
+                "SELECT data FROM engagement_letters WHERE letter_id = ? AND tenant_id = ?",
+                (letter_id, tenant_id),
+            ).fetchone()
+        else:
+            row = conn.execute("SELECT data FROM engagement_letters WHERE letter_id = ?", (letter_id,)).fetchone()
+        conn.close()
+        if row:
+            data = json.loads(row[0])
+            return _dict_to_letter(data)
+    except Exception as e:
+        logger.warning(f"DB load failed for letter {letter_id}: {e}")
+    fallback = _letters_fallback.get(letter_id)
+    if fallback and tenant_id and getattr(fallback, 'tenant_id', None) != tenant_id:
+        return None
+    return fallback
+
+
+def _load_letters_for_session(session_id: str, tenant_id: str) -> list:
+    """Load all engagement letters for a session."""
+    try:
+        conn = _get_letter_db()
+        rows = conn.execute(
+            "SELECT data FROM engagement_letters WHERE session_id = ? AND tenant_id = ?",
+            (session_id, tenant_id),
+        ).fetchall()
+        conn.close()
+        return [json.loads(r[0]) for r in rows]
+    except Exception as e:
+        logger.warning(f"DB load failed for session {session_id}: {e}")
+    return [
+        l.to_dict() for l in _letters_fallback.values()
+        if l.session_id == session_id and l.tenant_id == tenant_id
+    ]
+
+
+def _dict_to_letter(data: dict) -> EngagementLetter:
+    """Reconstruct an EngagementLetter from a dict (best-effort)."""
+    letter = EngagementLetter.__new__(EngagementLetter)
+    for k, v in data.items():
+        setattr(letter, k, v)
+    return letter
+
+
+_letters_fallback: Dict[str, EngagementLetter] = {}
 _generator = EngagementLetterGenerator()
 
 
@@ -123,8 +212,8 @@ async def generate_engagement_letter(
         fee_description=body.get("fee_description", ""),
     )
 
-    # Store letter
-    _letters[letter.letter_id] = letter
+    # Store letter (persisted to SQLite)
+    _store_letter(letter)
 
     logger.info(f"Generated engagement letter {letter.letter_id} for session {body['session_id']}")
 
@@ -142,16 +231,15 @@ async def get_engagement_letter(
     """Get an engagement letter by ID."""
     tenant_id = get_tenant_id(request)
 
-    letter = _letters.get(letter_id)
+    letter = _load_letter(letter_id, tenant_id=tenant_id)
     if not letter:
         raise HTTPException(status_code=404, detail="Letter not found")
 
-    if letter.tenant_id != tenant_id:
-        raise HTTPException(status_code=404, detail="Letter not found")
+    letter_dict = letter.to_dict() if hasattr(letter, 'to_dict') else letter.__dict__
 
     return format_success_response({
-        "letter": letter.to_dict(),
-        "content": letter.letter_content,
+        "letter": letter_dict,
+        "content": letter_dict.get("letter_content", ""),
     })
 
 
@@ -163,11 +251,7 @@ async def get_letters_for_session(
     """Get all engagement letters for a session."""
     tenant_id = get_tenant_id(request)
 
-    letters = [
-        letter.to_dict()
-        for letter in _letters.values()
-        if letter.session_id == session_id and letter.tenant_id == tenant_id
-    ]
+    letters = _load_letters_for_session(session_id, tenant_id)
 
     return format_success_response({
         "session_id": session_id,
@@ -193,11 +277,8 @@ async def send_for_signature(
     """
     tenant_id = get_tenant_id(request)
 
-    letter = _letters.get(letter_id)
+    letter = _load_letter(letter_id, tenant_id=tenant_id)
     if not letter:
-        raise HTTPException(status_code=404, detail="Letter not found")
-
-    if letter.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Letter not found")
 
     envelope_id = body.get("envelope_id")
@@ -302,13 +383,14 @@ async def esign_webhook(
         return {"status": "ignored"}
 
     # Update letter if we found it
-    if event.letter_id and event.letter_id in _letters:
-        letter = _letters[event.letter_id]
-        letter.esign_status = event.status.value
-        if event.signed_at:
-            letter.signed_at = event.signed_at
-
-        logger.info(f"Letter {event.letter_id} status updated to {event.status.value}")
+    if event.letter_id:
+        letter = _load_letter(event.letter_id)
+        if letter:
+            letter.esign_status = event.status.value
+            if event.signed_at:
+                letter.signed_at = event.signed_at
+            _store_letter(letter)
+            logger.info(f"Letter {event.letter_id} status updated to {event.status.value}")
 
     return {"status": "received", "event_type": event.event_type}
 
@@ -351,11 +433,8 @@ async def download_letter_pdf(
 
     tenant_id = get_tenant_id(request)
 
-    letter = _letters.get(letter_id)
+    letter = _load_letter(letter_id, tenant_id=tenant_id)
     if not letter:
-        raise HTTPException(status_code=404, detail="Letter not found")
-
-    if letter.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Letter not found")
 
     try:

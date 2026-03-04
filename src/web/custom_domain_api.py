@@ -8,7 +8,7 @@ Supports CNAME and TXT record verification methods.
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field, validator
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 import logging
 import sqlite3
@@ -336,7 +336,7 @@ async def setup_custom_domain(
             ]
 
         # Calculate expiration (7 days from now)
-        expires_at = datetime.utcnow() + timedelta(days=7)
+        expires_at = datetime.now(timezone.utc) + timedelta(days=7)
 
         # Save pending verification
         verification_data = {
@@ -344,7 +344,7 @@ async def setup_custom_domain(
             "method": method.value,
             "token": token,
             "status": VerificationStatus.PENDING.value,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "expires_at": expires_at.isoformat(),
             "attempts": 0,
         }
@@ -415,7 +415,7 @@ async def verify_custom_domain(
 
         # Check expiration
         expires_at = datetime.fromisoformat(pending["expires_at"])
-        if datetime.utcnow() > expires_at:
+        if datetime.now(timezone.utc) > expires_at:
             pending["status"] = VerificationStatus.EXPIRED.value
             save_pending_verification(str(ctx.tenant_id), pending)
             raise HTTPException(400, "Verification has expired. Please start the setup process again.")
@@ -426,7 +426,7 @@ async def verify_custom_domain(
 
         # Increment attempt counter
         pending["attempts"] = pending.get("attempts", 0) + 1
-        pending["last_checked"] = datetime.utcnow().isoformat()
+        pending["last_checked"] = datetime.now(timezone.utc).isoformat()
 
         # Perform verification
         verified = False

@@ -7,7 +7,7 @@ Uses the new RBAC system from src/rbac/ with 8 roles:
 - Client: direct_client, firm_client
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Set
 from uuid import uuid4
 
@@ -88,8 +88,8 @@ class User(Base):
     notification_preferences = Column(JSONB, default=dict)
 
     # Tracking
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     invited_by = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=True)
 
     # Relationships
@@ -128,7 +128,7 @@ class User(Base):
         """Check if user account is locked."""
         if self.locked_until is None:
             return False
-        return datetime.utcnow() < self.locked_until
+        return datetime.now(timezone.utc) < self.locked_until
 
     def get_role(self) -> Role:
         """Get the Role enum for this user."""
@@ -148,9 +148,9 @@ class User(Base):
 
     def record_login(self, ip_address: str, session_id: str) -> None:
         """Record successful login."""
-        self.last_login_at = datetime.utcnow()
+        self.last_login_at = datetime.now(timezone.utc)
         self.last_login_ip = ip_address
-        self.last_activity_at = datetime.utcnow()
+        self.last_activity_at = datetime.now(timezone.utc)
         self.current_session_id = session_id
         self.failed_login_attempts = 0
         self.locked_until = None
@@ -160,7 +160,7 @@ class User(Base):
         self.failed_login_attempts += 1
         if self.failed_login_attempts >= max_attempts:
             from datetime import timedelta
-            self.locked_until = datetime.utcnow() + timedelta(minutes=lockout_minutes)
+            self.locked_until = datetime.now(timezone.utc) + timedelta(minutes=lockout_minutes)
 
 
 # =============================================================================

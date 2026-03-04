@@ -5,7 +5,7 @@ Data models for firm impersonation (support mode) functionality.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
 from enum import Enum
 from uuid import UUID, uuid4
@@ -71,7 +71,7 @@ class ImpersonationSession:
     ticket_id: Optional[str] = None  # Link to support ticket
 
     # Session timing
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     expires_at: datetime = None
     ended_at: Optional[datetime] = None
 
@@ -92,12 +92,12 @@ class ImpersonationSession:
     def __post_init__(self):
         """Set default expiration if not provided."""
         if self.expires_at is None:
-            self.expires_at = datetime.utcnow() + timedelta(seconds=DEFAULT_SESSION_DURATION)
+            self.expires_at = datetime.now(timezone.utc) + timedelta(seconds=DEFAULT_SESSION_DURATION)
 
     @property
     def is_expired(self) -> bool:
         """Check if session has expired."""
-        return datetime.utcnow() > self.expires_at
+        return datetime.now(timezone.utc) > self.expires_at
 
     @property
     def is_active(self) -> bool:
@@ -109,31 +109,31 @@ class ImpersonationSession:
         """Get remaining seconds until expiration."""
         if self.is_expired:
             return 0
-        delta = self.expires_at - datetime.utcnow()
+        delta = self.expires_at - datetime.now(timezone.utc)
         return max(0, int(delta.total_seconds()))
 
     @property
     def duration_seconds(self) -> int:
         """Get total session duration in seconds."""
-        end = self.ended_at or datetime.utcnow()
+        end = self.ended_at or datetime.now(timezone.utc)
         return int((end - self.created_at).total_seconds())
 
     def end_session(self, reason: str = "Manual end"):
         """End the impersonation session."""
         self.status = ImpersonationStatus.ENDED
-        self.ended_at = datetime.utcnow()
+        self.ended_at = datetime.now(timezone.utc)
         self.reason_detail = f"{self.reason_detail} | Ended: {reason}"
 
     def revoke(self, revoked_by: str = "System"):
         """Revoke the session (force end)."""
         self.status = ImpersonationStatus.REVOKED
-        self.ended_at = datetime.utcnow()
+        self.ended_at = datetime.now(timezone.utc)
         self.reason_detail = f"{self.reason_detail} | Revoked by: {revoked_by}"
 
     def record_action(self):
         """Record an action during impersonation."""
         self.actions_count += 1
-        self.last_action_at = datetime.utcnow()
+        self.last_action_at = datetime.now(timezone.utc)
 
     def extend(self, additional_seconds: int = DEFAULT_SESSION_DURATION):
         """Extend the session duration."""
@@ -212,7 +212,7 @@ class ImpersonationAction:
     error_message: Optional[str] = None
 
     # Timing
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""

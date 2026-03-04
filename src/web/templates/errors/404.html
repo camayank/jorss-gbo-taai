@@ -4,17 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Page Not Found - Jorss-Gbo</title>
+    <link rel="stylesheet" href="/static/css/core/variables.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: var(--font-sans, 'DM Sans', system-ui, -apple-system, sans-serif);
-            background: #f8fafc;
+            background: var(--color-cream, #FAF8F4);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 1.25rem;
-            color: #1e293b;
+            color: var(--color-slate-800, #1e293b);
         }
         .error-page { text-align: center; max-width: 480px; }
         .error-illustration { margin-bottom: 1.5rem; }
@@ -23,17 +24,17 @@
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-8px); }
         }
-        .error-code { font-size: 96px; font-weight: 700; color: #0B1D3A; line-height: 1; margin-bottom: 0.5rem; }
+        .error-code { font-size: 96px; font-weight: 700; color: var(--color-navy); line-height: 1; margin-bottom: 0.5rem; }
         .error-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.75rem; }
-        .error-message { color: #64748b; line-height: 1.625; margin-bottom: 2rem; font-size: 1rem; }
+        .error-message { color: var(--color-slate, #64748b); line-height: 1.625; margin-bottom: 2rem; font-size: 1rem; }
         .error-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
         .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-size: 0.9rem; font-weight: 500; text-decoration: none; transition: all 0.2s ease; cursor: pointer; border: none; }
-        .btn-primary { background: #0B1D3A; color: #ffffff; }
-        .btn-primary:hover { background: #132844; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30, 58, 95, 0.3); }
-        .btn-secondary { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
-        .btn-secondary:hover { background: #e2e8f0; }
-        .brand { margin-top: 3rem; color: #94a3b8; font-size: 0.8rem; }
-        .brand a { color: #64748b; text-decoration: none; }
+        .btn-primary { background: var(--color-gold, #C9A84C); color: var(--color-navy, #0B1D3A); }
+        .btn-primary:hover { background: var(--color-gold-light, #E0C778); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(11, 29, 58, 0.3); }
+        .btn-secondary { background: var(--color-gray-100, #f1f5f9); color: var(--color-slate-700, #334155); border: 1px solid var(--color-gray-200, #e2e8f0); }
+        .btn-secondary:hover { background: var(--color-gray-200, #e2e8f0); }
+        .brand { margin-top: 3rem; color: var(--color-slate-light, #94a3b8); font-size: 0.8rem; }
+        .brand a { color: var(--color-slate, #64748b); text-decoration: none; }
     </style>
 </head>
 <body>

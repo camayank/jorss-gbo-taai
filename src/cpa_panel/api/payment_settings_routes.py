@@ -12,7 +12,7 @@ Platform collects its subscription fees separately (Mercury/bank transfer).
 import os
 import logging
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -200,7 +200,7 @@ async def update_payment_settings(
     await session.execute(update_query, {
         "cpa_id": cpa_id,
         "settings": json.dumps(current),
-        "updated_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     })
     await session.commit()
 
@@ -242,7 +242,7 @@ async def get_stripe_connect_url(
             expires_at = :expires_at
     """)
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     try:
         await session.execute(state_query, {
             "state": state,
@@ -387,7 +387,7 @@ async def stripe_connect_callback(
         WHERE cpa_id = :cpa_id
     """)
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     new_settings = json.dumps({
         "charges_enabled": True,
         "payouts_enabled": True,
@@ -448,7 +448,7 @@ async def disconnect_stripe(
 
     result = await session.execute(update_query, {
         "cpa_id": cpa_id,
-        "updated_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     })
     await session.commit()
 

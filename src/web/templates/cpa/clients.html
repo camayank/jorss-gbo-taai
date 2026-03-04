@@ -54,7 +54,7 @@
     }
 
     .client-card:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 4px 12px rgba(11, 29, 58, 0.08);
         transform: translateY(-2px);
     }
 
@@ -208,9 +208,14 @@
     </a>
 </div>
 
-<div class="search-bar">
-    <input type="text" class="search-input" placeholder="Search clients by name or email...">
-    <button class="btn btn-secondary">Search</button>
+<div class="search-bar" x-data="{ query: '' }">
+    <input type="text" class="search-input" placeholder="Search clients by name or email..." x-model="query" @input="
+        document.querySelectorAll('.client-card').forEach(card => {
+            const text = card.textContent.toLowerCase();
+            card.style.display = text.includes(query.toLowerCase()) ? '' : 'none';
+        })
+    ">
+    <button class="btn btn-secondary" @click="query = ''; document.querySelectorAll('.client-card').forEach(c => c.style.display = '')">Clear</button>
 </div>
 
 {% if clients %}
@@ -239,7 +244,7 @@
         </div>
         <div class="client-actions">
             <a href="/cpa/leads/{{ client.id }}" class="btn btn-secondary">View Details</a>
-            <button class="btn btn-primary">Contact</button>
+            <a href="mailto:{{ client.email }}?subject=Tax Advisory — {{ client.name or 'Client' }}" class="btn btn-primary" style="text-decoration:none; text-align:center;">Contact</a>
         </div>
     </div>
     {% endfor %}

@@ -7,7 +7,7 @@ Replaces in-memory Dict storage with database-backed persistence.
 
 import sqlite3
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from uuid import UUID
@@ -79,7 +79,7 @@ class ScenarioPersistence:
         Returns:
             scenario_id of saved scenario
         """
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         scenario_id = str(scenario_data.get("scenario_id", ""))
 
         with sqlite3.connect(self.db_path) as conn:

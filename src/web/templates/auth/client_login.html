@@ -11,107 +11,253 @@
   <link rel="stylesheet" href="/static/css/core/reset.css">
   <link rel="stylesheet" href="/static/css/core/typography.css">
   <link rel="stylesheet" href="/static/css/unified-theme.css">
+  <link rel="stylesheet" href="/static/css/components/auth.css">
   <style>
-    * { box-sizing: border-box; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
-      margin: 0;
-      min-height: 100vh;
       font-family: var(--font-sans, 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
-      background: linear-gradient(135deg, var(--color-cream, #FAF8F4), var(--color-cream-dark, #F0EDE6));
-      color: var(--color-gray-800);
-      display: grid;
-      place-items: center;
+      background: linear-gradient(135deg, var(--color-primary-800) 0%, var(--color-primary-500) 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      padding: var(--space-5) var(--space-6);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2-5);
+      text-decoration: none;
+      color: white;
+      font-weight: var(--font-bold);
+      font-size: 1.25rem;
+    }
+
+    .logo img { height: 32px; filter: brightness(0) invert(1); }
+
+    .main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       padding: var(--space-5);
-
     }
-    .card {
-      width: 100%;
-      max-width: 460px;
+
+    .auth-container { width: 100%; max-width: 460px; }
+
+    .auth-card {
       background: var(--white);
-      border: 1px solid var(--color-gray-200);
+      border-radius: var(--radius-2xl-plus);
+      box-shadow: var(--shadow-xl);
+      overflow: hidden;
+    }
+
+    .auth-header { padding: 40px 40px 24px; text-align: center; }
+
+    .auth-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, var(--color-primary-800) 0%, var(--color-primary-500) 100%);
       border-radius: var(--radius-2xl);
-
-      padding: var(--space-7);
-
-      box-shadow: 0 10px 24px rgba(11, 29, 58, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto var(--space-5);
     }
-    h1 {
-      font-size: 1.5rem;
-      margin: 0 0 var(--space-2);
 
-      color: var(--color-navy, #0B1D3A);
+    .auth-icon svg { width: 32px; height: 32px; color: var(--color-gold); }
+
+    .auth-title {
+      font-size: 1.75rem;
+      font-weight: var(--font-bold);
+      color: var(--color-gray-900);
+      margin-bottom: var(--space-2);
     }
-    p {
-      margin: 0 0 var(--space-5);
 
+    .auth-subtitle {
+      font-size: 1rem;
       color: var(--color-gray-500);
       line-height: var(--leading-normal);
-
     }
-    label {
+
+    .auth-body { padding: 0 40px 40px; }
+
+    .form-group { margin-bottom: 20px; }
+
+    .form-label {
       display: block;
-      margin: 0 0 var(--space-1-5);
-
-      font-size: 0.9rem;
+      font-size: 0.875rem;
       font-weight: var(--font-semibold);
-
+      color: var(--color-gray-900);
+      margin-bottom: var(--space-2);
     }
-    input {
+
+    .form-input {
       width: 100%;
       height: var(--space-12);
-
-      border-radius: var(--radius-lg-plus);
-      border: 1px solid #cfd9e6;
-      padding: 0 var(--space-3-5);
-
+      padding: var(--space-3-5) var(--space-4);
       font-size: 1rem;
-    }
-    input:focus {
+      border: 2px solid var(--color-gray-200);
+      border-radius: var(--radius-lg-plus);
       outline: none;
-      border-color: var(--color-gold, #C9A84C);
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus {
+      border-color: var(--color-gold);
       box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.15);
     }
-    button {
-      margin-top: var(--space-4);
 
+    .btn-submit {
       width: 100%;
-      height: var(--space-12);
-
-      border: 0;
-      border-radius: var(--radius-lg-plus);
-      background: var(--color-gold, #C9A84C);
-      color: var(--color-navy, #0B1D3A);
-      font-weight: 700;
+      padding: var(--space-4) var(--space-6);
+      font-size: 1rem;
       font-weight: var(--font-bold);
-
+      color: var(--color-navy);
+      background: var(--color-gold);
+      border: none;
+      border-radius: var(--radius-lg-plus);
       cursor: pointer;
+      transition: transform 0.2s, background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
     }
-    button[disabled] {
+
+    .btn-submit:hover:not(:disabled) {
+      transform: translateY(-2px);
+      background: var(--color-gold-light);
+    }
+
+    .btn-submit:disabled {
       opacity: 0.7;
       cursor: not-allowed;
+      transform: none;
     }
+
+    .btn-spinner {
+      width: var(--space-5);
+      height: var(--space-5);
+      border: 2px solid rgba(11,29,58,0.3);
+      border-top-color: var(--color-navy);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+
+    .btn-submit.loading .btn-spinner { display: block; }
+    .btn-submit.loading .btn-text { display: none; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .alert {
+      padding: var(--space-3) var(--space-4);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-5);
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .alert.show {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2-5);
+    }
+
+    .alert-error {
+      background: var(--color-error-50);
+      color: var(--color-error-700);
+      border: 1px solid var(--color-error-200);
+    }
+
+    .alert svg { width: 18px; height: 18px; flex-shrink: 0; }
+
     .message {
       margin-top: var(--space-3-5);
-
-      font-size: 0.9rem;
+      font-size: var(--text-sm);
       min-height: 1.2em;
+      text-align: center;
     }
+
     .message.error { color: var(--color-error-600); }
     .message.success { color: var(--color-accent-700); }
+
+    .auth-footer {
+      padding: var(--space-5) var(--space-10);
+      background: var(--color-gray-50);
+      text-align: center;
+      border-top: 1px solid var(--color-gray-200);
+    }
+
+    .auth-footer a {
+      color: var(--color-gold);
+      text-decoration: none;
+      font-weight: var(--font-semibold);
+    }
+
+    @media (max-width: 480px) {
+      .auth-header { padding: 32px 24px 20px; }
+      .auth-body { padding: 0 24px 32px; }
+      .auth-footer { padding: 16px 24px; }
+    }
   </style>
 </head>
 <body>
-  <main class="card">
-    <h1>Client Portal Access</h1>
-    <p>Enter the same email you use with your CPA. We will open your personalized portal instantly.</p>
+  <header class="header">
+    <a href="/" class="logo">Client Portal</a>
+  </header>
 
-    <form id="client-login-form">
-      <label for="email">Email Address</label>
-      <input id="email" name="email" type="email" autocomplete="email" required />
+  <main class="main">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="auth-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <h1 class="auth-title">Client Portal Access</h1>
+          <p class="auth-subtitle">Enter the same email you use with your CPA. We will open your personalized portal instantly.</p>
+        </div>
 
-      <button id="submit-btn" type="submit">Access My Portal</button>
-      <div id="message" class="message" aria-live="polite"></div>
-    </form>
+        <div class="auth-body">
+          <div class="alert alert-error" id="error-alert" role="alert">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            <span id="error-message"></span>
+          </div>
+
+          <form id="client-login-form" novalidate>
+            <div class="form-group">
+              <label class="form-label" for="email">Email Address</label>
+              <input type="email" id="email" name="email" class="form-input" placeholder="you@example.com" required autocomplete="email">
+            </div>
+
+            <button type="submit" class="btn-submit" id="submit-btn">
+              <span class="btn-text">Access My Portal</span>
+              <div class="btn-spinner" aria-hidden="true"></div>
+            </button>
+            <div id="message" class="message" aria-live="polite"></div>
+          </form>
+        </div>
+
+        <div class="auth-footer">
+          <p>Are you a CPA? <a href="/login">Sign in here</a></p>
+        </div>
+      </div>
+    </div>
   </main>
 
   <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
@@ -150,7 +296,12 @@
       event.preventDefault();
       const submitBtn = document.getElementById('submit-btn');
       const message = document.getElementById('message');
+      const errorAlert = document.getElementById('error-alert');
       const email = (document.getElementById('email').value || '').trim();
+
+      errorAlert.classList.remove('show');
+      message.textContent = '';
+      message.className = 'message';
 
       if (!email) {
         message.textContent = 'Email is required.';
@@ -158,9 +309,8 @@
         return;
       }
 
+      submitBtn.classList.add('loading');
       submitBtn.disabled = true;
-      message.textContent = '';
-      message.className = 'message';
 
       try {
         const headers = { 'Content-Type': 'application/json' };
@@ -186,8 +336,9 @@
         message.className = 'message success';
         redirectToPortal(payload.token);
       } catch (error) {
-        message.textContent = error.message || 'Login failed. Please try again.';
-        message.className = 'message error';
+        document.getElementById('error-message').textContent = error.message || 'Login failed. Please try again.';
+        errorAlert.classList.add('show');
+        submitBtn.classList.remove('loading');
         submitBtn.disabled = false;
       }
     });

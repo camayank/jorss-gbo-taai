@@ -25,7 +25,7 @@ from calculator.decimal_math import money, to_decimal
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Callable
 
 from .email_provider import (
@@ -265,7 +265,7 @@ Tax Filing Platform
     ):
         """Log delivery attempt for tracking."""
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "notification_type": notification_type,
             "recipient": recipient,
             "subject": subject,

@@ -9,7 +9,7 @@ Smart Tax Advisory Lead Magnet Flow endpoints:
 5. CPA lead management
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Query, Response, Depends, Request, status
 from pydantic import BaseModel, Field
 try:
@@ -529,7 +529,7 @@ async def capture_contact(session_id: str, request: CaptureContactRequest, http_
     _lead_contact_limiter.record_request(client_ip)
 
     if request.form_started_at_ms is not None:
-        now_ms = int(datetime.utcnow().timestamp() * 1000)
+        now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
         dwell_ms = now_ms - request.form_started_at_ms
         # Reject unrealistically fast submissions while tolerating minor clock skew.
         if dwell_ms >= 0 and dwell_ms < MIN_CONTACT_FORM_DWELL_MS:
@@ -755,17 +755,28 @@ async def get_tier_two_report(
     dependencies=[Depends(require_internal_cpa_auth)],
 )
 async def get_lead_magnet_leads(
-    cpa_id: Optional[str] = Query(None, max_length=100, pattern=r'^[a-zA-Z0-9_-]+$', description="Filter by CPA ID"),
+    cpa_id: Optional[str] = Query(None, max_length=100, pattern=r'^[a-zA-Z0-9_-]+$', description="Filter by CPA ID (overridden by auth context)"),
     temperature: Optional[str] = Query(None, description="Filter by temperature: hot, warm, cold"),
     engaged: Optional[bool] = Query(None, description="Filter by engagement status"),
+    state: Optional[str] = Query(None, description="Filter by lifecycle state: new, engaged, converted, all"),
+    search: Optional[str] = Query(None, max_length=200, description="Free-text search on name/email"),
     limit: int = Query(default=50, le=100, description="Max results to return"),
     offset: int = Query(default=0, ge=0, description="Offset for pagination"),
+    auth_ctx: Any = Depends(require_internal_cpa_auth),
 ):
     """
     Get leads from the lead magnet funnel.
 
     Returns leads with scoring data for CPA follow-up prioritization.
+    Leads are scoped to the authenticated CPA's identity.
     """
+    # Enforce firm scoping: use auth context's user_id if no explicit cpa_id
+    auth_cpa_id = str(getattr(auth_ctx, "user_id", None) or getattr(auth_ctx, "sub", None) or "") or None
+    # Platform admins can pass cpa_id to view any CPA's leads; firm users are scoped
+    is_platform = str(getattr(auth_ctx, "role", "") or getattr(auth_ctx, "user_type", "")).lower() in {"platform_admin", "super_admin"}
+    if not is_platform:
+        cpa_id = auth_cpa_id or cpa_id  # Enforce their own cpa_id
+
     _valid_temperatures = {"hot", "warm", "cold"}
     if temperature and temperature.lower() not in _valid_temperatures:
         raise HTTPException(
@@ -782,6 +793,8 @@ async def get_lead_magnet_leads(
             cpa_id=cpa_id,
             temperature=temperature,
             engaged=engaged,
+            state=state,
+            search=search,
             limit=limit,
             offset=offset,
         )
@@ -1044,28 +1057,33 @@ async def acknowledge_engagement_letter(lead_id: str, request: AcknowledgeEngage
     description="Convert an engaged lead to a full client",
     dependencies=[Depends(require_internal_cpa_auth)],
 )
-async def convert_lead(lead_id: str):
+async def convert_lead(lead_id: str, auth_ctx: Any = Depends(require_internal_cpa_auth)):
     """
     Convert a lead to a client.
 
-    This marks the lead as converted and can trigger
-    client onboarding flows. Returns a client_token that
-    grants access to the client dashboard.
+    This marks the lead as converted, creates a ClientRecord,
+    and can trigger client onboarding flows.
     """
-    from datetime import datetime
-
     try:
         service = get_lead_magnet_service()
 
-        result = service.convert_lead(lead_id)
+        # Extract firm_id and cpa_id from auth context
+        auth_firm_id = str(getattr(auth_ctx, "firm_id", None) or "") or None
+        auth_cpa_id = str(getattr(auth_ctx, "user_id", None) or "") or None
+
+        result = service.convert_lead(
+            lead_id,
+            cpa_id=auth_cpa_id,
+            firm_id=auth_firm_id,
+        )
 
         # Log activity: Lead converted
         try:
             activity_service = get_activity_service()
             activity_service.log_conversion(
                 lead_id=lead_id,
-                cpa_id="cpa-default",
-                cpa_name="CPA",
+                cpa_id=auth_cpa_id or "cpa-default",
+                cpa_name=getattr(auth_ctx, "display_name", "CPA"),
             )
 
             # Complete nurture sequence (lead converted)
