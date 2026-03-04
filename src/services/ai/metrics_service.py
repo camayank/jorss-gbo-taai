@@ -135,6 +135,7 @@ class AIMetricsService:
 
     def __init__(self, persist_path: Optional[str] = None):
         self._records: List[UsageRecord] = []
+        self._quality_records: List[Dict[str, Any]] = []
         self._persist_path = persist_path
         self._budget_alerts: List[Dict[str, Any]] = []
         self._max_records = 100000  # Keep last 100k records in memory
@@ -574,6 +575,120 @@ class AIMetricsService:
             }
             for ts, data in sorted(buckets.items())
         ]
+
+    def record_response_quality(
+        self,
+        service: str,
+        source: str,
+        response_fields_populated: int,
+        total_fields: int,
+        session_id: Optional[str] = None
+    ):
+        """Track AI vs fallback quality per service.
+
+        Args:
+            service: 'enhancer', 'opportunity_detector', 'advisor_reasoning', 'advisor_strategy'
+            source: 'ai', 'fallback', 'rules', 'template'
+            response_fields_populated: how many output fields have real content
+            total_fields: total possible output fields
+            session_id: optional session identifier
+        """
+        record = {
+            "timestamp": datetime.now().isoformat(),
+            "service": service,
+            "source": source,
+            "fields_populated": response_fields_populated,
+            "total_fields": total_fields,
+            "field_rate": response_fields_populated / total_fields if total_fields > 0 else 0,
+            "session_id": session_id,
+        }
+        self._quality_records.append(record)
+
+        # Trim old records
+        if len(self._quality_records) > self._max_records:
+            self._quality_records = self._quality_records[-self._max_records:]
+
+    def get_ai_delivery_stats(self, days: int = 7) -> Dict[str, Any]:
+        """Return per-service breakdown of AI vs fallback delivery rates.
+
+        Returns:
+            Dict keyed by service name with ai_count, fallback_count, ai_rate,
+            avg_ai_fields, avg_fallback_fields.
+        """
+        cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+        filtered = [r for r in self._quality_records if r["timestamp"] >= cutoff]
+
+        services: Dict[str, Dict[str, Any]] = {}
+        for r in filtered:
+            svc = r["service"]
+            if svc not in services:
+                services[svc] = {
+                    "ai_count": 0, "fallback_count": 0,
+                    "ai_fields_sum": 0, "fallback_fields_sum": 0,
+                }
+            is_ai = r["source"] == "ai"
+            if is_ai:
+                services[svc]["ai_count"] += 1
+                services[svc]["ai_fields_sum"] += r["fields_populated"]
+            else:
+                services[svc]["fallback_count"] += 1
+                services[svc]["fallback_fields_sum"] += r["fields_populated"]
+
+        result = {}
+        for svc, data in services.items():
+            total = data["ai_count"] + data["fallback_count"]
+            result[svc] = {
+                "ai_count": data["ai_count"],
+                "fallback_count": data["fallback_count"],
+                "ai_rate": data["ai_count"] / total if total > 0 else 0,
+                "avg_ai_fields": (
+                    data["ai_fields_sum"] / data["ai_count"]
+                    if data["ai_count"] > 0 else 0
+                ),
+                "avg_fallback_fields": (
+                    data["fallback_fields_sum"] / data["fallback_count"]
+                    if data["fallback_count"] > 0 else 0
+                ),
+            }
+        return result
+
+    def get_quality_comparison(self, service: str, days: int = 30) -> Dict[str, Any]:
+        """Compare AI vs fallback output richness for a service.
+
+        Returns:
+            Dict with ai and fallback sub-dicts containing count, avg_fields,
+            avg_field_rate, plus an improvement_factor.
+        """
+        cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+        filtered = [
+            r for r in self._quality_records
+            if r["timestamp"] >= cutoff and r["service"] == service
+        ]
+
+        ai_records = [r for r in filtered if r["source"] == "ai"]
+        fallback_records = [r for r in filtered if r["source"] != "ai"]
+
+        def _stats(records: List[Dict]) -> Dict[str, Any]:
+            if not records:
+                return {"count": 0, "avg_fields": 0, "avg_field_rate": 0}
+            return {
+                "count": len(records),
+                "avg_fields": sum(r["fields_populated"] for r in records) / len(records),
+                "avg_field_rate": sum(r["field_rate"] for r in records) / len(records),
+            }
+
+        ai_stats = _stats(ai_records)
+        fb_stats = _stats(fallback_records)
+        improvement = (
+            ai_stats["avg_fields"] / fb_stats["avg_fields"]
+            if fb_stats["avg_fields"] > 0 else 0
+        )
+
+        return {
+            "ai": ai_stats,
+            "fallback": fb_stats,
+            "improvement_factor": round(improvement, 2),
+        }
 
     def _check_budget_alerts(self):
         """Check and record budget alerts."""
