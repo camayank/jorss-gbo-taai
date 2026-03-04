@@ -534,43 +534,102 @@ class AIQuestionGenerator:
         """
         Use AI to generate enhanced, personalized questions.
 
+        AI reorders base questions by likely dollar impact, removes irrelevant ones,
+        and adds 1-2 personalized questions specific to this taxpayer.
+
         Falls back to rule-based if AI unavailable.
         """
         try:
             # Get rule-based questions first
             base_questions = self.generate_questions(parsed_data)
 
-            # Use AI to enhance and personalize
+            # Use AI to prioritize, filter, and add personalized questions
             prompt = self._build_ai_prompt(parsed_data, base_questions)
 
             ai = get_ai_service()
             response = await ai.complete(
                 prompt=prompt,
-                system_prompt="""You are a tax advisor helping identify the most important
-                follow-up questions to ask a client. Based on their tax return data,
-                suggest which questions are most likely to uncover tax savings opportunities.
-                Be specific about potential dollar impacts when possible.""",
+                system_prompt=(
+                    "You are a senior CPA identifying the most impactful follow-up questions "
+                    "for a tax client. Return ONLY valid JSON, no markdown code blocks."
+                ),
                 capability=ModelCapability.FAST,
                 temperature=0.3,
                 max_tokens=1000,
             )
 
-            # Parse AI response to enhance questions
-            ai_insights = response.content
+            # Parse structured AI response
+            content = response.content.strip()
+            if content.startswith("```"):
+                content = content.split("```")[1]
+                if content.startswith("json"):
+                    content = content[4:]
+                content = content.strip()
 
-            # For now, add AI insights to profile and return base questions
-            # Future: parse AI response to reorder/enhance questions
-            enhanced = QuestionSet(
-                questions=base_questions.questions,
-                taxpayer_profile=f"{base_questions.taxpayer_profile} | AI: {ai_insights[:200]}",
-                estimated_question_count=base_questions.estimated_question_count,
-                categories_covered=base_questions.categories_covered,
+            ai_result = json.loads(content)
+
+            # 1. Reorder by AI-determined priority
+            priority_order = ai_result.get("priority_order", [])
+            skip_indices = set(ai_result.get("skip_questions", []))
+            personalized = ai_result.get("personalized_questions", [])
+
+            questions = list(base_questions.questions)
+
+            # Remove questions AI marked as irrelevant
+            if skip_indices:
+                questions = [q for i, q in enumerate(questions) if i not in skip_indices]
+
+            # Reorder remaining by AI priority
+            if priority_order:
+                reordered = []
+                used = set()
+                for idx in priority_order:
+                    if isinstance(idx, int) and 0 <= idx < len(base_questions.questions):
+                        q = base_questions.questions[idx]
+                        if q in questions and idx not in used:
+                            reordered.append(q)
+                            used.add(idx)
+                # Append any not mentioned by AI
+                for q in questions:
+                    if q not in reordered:
+                        reordered.append(q)
+                questions = reordered
+
+            # Insert personalized questions at the top
+            for pq in reversed(personalized[:2]):  # Max 2 personalized questions
+                cat = pq.get("category", "income")
+                try:
+                    category = QuestionCategory(cat)
+                except ValueError:
+                    category = QuestionCategory.INCOME
+
+                questions.insert(0, SmartQuestion(
+                    id=f"ai_personalized_{len(questions)}",
+                    question=pq.get("question_text", ""),
+                    category=category,
+                    priority=QuestionPriority.HIGH,
+                    options=[
+                        {"value": "yes", "label": "Yes"},
+                        {"value": "no", "label": "No"},
+                        {"value": "unsure", "label": "Not sure"},
+                    ],
+                    reason=pq.get("reason", "AI-identified opportunity"),
+                    potential_impact=pq.get("potential_impact", "Potential savings identified"),
+                ))
+
+            # Limit to 8 questions
+            questions = questions[:8]
+            categories_covered = list({q.category.value for q in questions})
+
+            return QuestionSet(
+                questions=questions,
+                taxpayer_profile=base_questions.taxpayer_profile,
+                estimated_question_count=len(questions),
+                categories_covered=categories_covered,
             )
 
-            return enhanced
-
         except Exception as e:
-            logger.error(
+            logger.warning(
                 "AI fallback activated",
                 extra={
                     "service": "cpa_question_generator",
@@ -587,27 +646,40 @@ class AIQuestionGenerator:
         base_questions: QuestionSet
     ) -> str:
         """Build prompt for AI enhancement."""
-        return f"""
-        Analyze this tax return data and identify the top 3 areas where
-        follow-up questions could uncover significant tax savings:
+        questions_json = json.dumps([
+            {"index": i, "category": q.category.value, "text": q.question, "impact": q.potential_impact}
+            for i, q in enumerate(base_questions.questions)
+        ])
 
-        Tax Return Summary:
-        - Filing Status: {data.filing_status.value if data.filing_status else 'Unknown'}
-        - AGI: ${float(data.adjusted_gross_income or 0):,.0f}
-        - Wages: ${float(data.wages_salaries_tips or 0):,.0f}
-        - Dependents: {data.total_dependents or 0}
-        - Standard Deduction Used: ${float(data.standard_deduction or 0):,.0f}
-        - Itemized: ${float(data.itemized_deductions or 0):,.0f}
-        - Child Tax Credit: ${float(data.child_tax_credit or 0):,.0f}
-        - Total Tax: ${float(data.total_tax or 0):,.0f}
-        - Refund: ${float(data.refund_amount or 0):,.0f}
+        return f"""Given this taxpayer profile:
 
-        Current questions being asked: {[q.question for q in base_questions.questions[:5]]}
+Tax Return Summary:
+- Filing Status: {data.filing_status.value if data.filing_status else 'Unknown'}
+- AGI: ${float(data.adjusted_gross_income or 0):,.0f}
+- Wages: ${float(data.wages_salaries_tips or 0):,.0f}
+- Dependents: {data.total_dependents or 0}
+- Standard Deduction Used: ${float(data.standard_deduction or 0):,.0f}
+- Itemized: ${float(data.itemized_deductions or 0):,.0f}
+- Child Tax Credit: ${float(data.child_tax_credit or 0):,.0f}
+- Total Tax: ${float(data.total_tax or 0):,.0f}
+- Refund: ${float(data.refund_amount or 0):,.0f}
+- Capital Gains/Losses: ${float(data.capital_gain_or_loss or 0):,.0f}
+- Other Income: ${float(data.other_income or 0):,.0f}
 
-        What are the 3 most important areas to explore? Focus on:
-        1. Retirement savings opportunities
-        2. Credits they might be missing
-        3. Deduction strategies
+And these generated questions:
+{questions_json}
 
-        Be specific about potential dollar savings.
-        """
+Return JSON:
+{{
+  "priority_order": [indices of questions sorted by likely dollar impact for THIS taxpayer],
+  "personalized_questions": [
+    {{"category": "retirement|healthcare|deductions|credits|investments|self_employment|income|education|dependents|life_events", "question_text": "specific question", "reason": "why this matters for them", "potential_impact": "$X,XXX estimated savings"}}
+  ],
+  "skip_questions": [indices of questions irrelevant to this taxpayer's situation]
+}}
+
+Rules:
+- priority_order: reorder ALL question indices by likely dollar impact (highest first)
+- personalized_questions: add 1-2 questions not in the base set, specific to this taxpayer's profile
+- skip_questions: remove questions that clearly don't apply (e.g., don't ask about EITC if AGI > $200k)
+"""

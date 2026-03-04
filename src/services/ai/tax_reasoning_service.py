@@ -641,6 +641,275 @@ Recommend optimal deduction strategy."""
             response=response
         )
 
+    def _deterministic_roth_analysis(
+        self,
+        traditional_balance: float,
+        current_bracket: float,
+        projected_bracket: float,
+        years_to_retirement: int,
+        filing_status: str = "single",
+    ) -> ReasoningResult:
+        """Rule-based Roth conversion analysis when AI unavailable."""
+        tax_cost = traditional_balance * current_bracket
+        growth_rate = 0.07  # historical average
+        future_value = traditional_balance * (1 + growth_rate) ** years_to_retirement
+        tax_saved = future_value * projected_bracket
+        net_benefit = tax_saved - tax_cost
+        breakeven = (
+            int(tax_cost / (traditional_balance * growth_rate * projected_bracket))
+            if projected_bracket > 0
+            else 999
+        )
+        convert = projected_bracket >= current_bracket or breakeven <= years_to_retirement
+
+        analysis = f"""## Roth Conversion Analysis
+
+**Recommendation:** {'Convert to Roth' if convert else 'Hold traditional'}
+
+**Conversion tax cost:** ${tax_cost:,.0f}
+**Projected future value ({years_to_retirement} yrs at {growth_rate*100:.0f}%):** ${future_value:,.0f}
+**Tax saved on withdrawals:** ${tax_saved:,.0f}
+**Net benefit:** ${net_benefit:,.0f}
+**Break-even:** ~{breakeven} years
+
+### Key Factors
+- Current marginal bracket: {current_bracket*100:.0f}%
+- Projected retirement bracket: {projected_bracket*100:.0f}%
+- Years to retirement: {years_to_retirement}
+- Filing status: {filing_status}
+
+### Risks
+- Tax law changes could alter bracket structure
+- Market returns may differ from {growth_rate*100:.0f}% assumption
+- Large conversion may push you into higher bracket this year
+- RMDs from traditional accounts begin at age 73
+- IRMAA surcharges may apply if conversion increases MAGI"""
+
+        return ReasoningResult(
+            question="Roth conversion analysis",
+            reasoning_type=ReasoningType.ROTH_CONVERSION,
+            analysis=analysis,
+            recommendation="Convert to Roth" if convert else "Hold traditional",
+            key_factors=[
+                f"Current bracket: {current_bracket*100:.0f}%",
+                f"Projected retirement bracket: {projected_bracket*100:.0f}%",
+                f"Years to retirement: {years_to_retirement}",
+                f"Break-even period: ~{breakeven} years",
+            ],
+            risks=[
+                "Tax law changes could alter bracket structure",
+                "Market returns may differ from 7% assumption",
+                "Large conversion may push into higher bracket this year",
+            ],
+            action_items=[
+                "Model partial conversions to stay within current bracket",
+                "Consider converting in low-income years",
+                "Review IRMAA implications if age 63+",
+                "Ensure funds available to pay conversion tax from non-retirement accounts",
+            ],
+            assumptions=[
+                f"7% annual growth rate",
+                f"Current bracket {current_bracket*100:.0f}% remains stable",
+                "No major tax law changes",
+            ],
+            irc_references=["IRC §408A", "IRC §408(d)(3)"],
+            confidence=0.7,
+            requires_professional_review=True,
+            raw_response=analysis,
+            metadata={"_source": "deterministic", "traditional_balance": traditional_balance},
+        )
+
+    def _deterministic_entity_analysis(
+        self,
+        gross_revenue: float,
+        business_expenses: float,
+        owner_salary: float,
+        filing_status: str = "single",
+    ) -> ReasoningResult:
+        """Rule-based entity structure analysis when AI unavailable."""
+        net_income = gross_revenue - business_expenses
+
+        # Sole Prop: full SE tax on net income
+        se_tax_sole = net_income * 0.9235 * 0.153
+        qbi_sole = min(net_income * 0.20, net_income)
+
+        # S-Corp: SE tax only on salary, FICA savings on distribution
+        reasonable_salary = min(owner_salary, net_income * 0.7)
+        fica_salary = reasonable_salary * 0.153
+        distribution = net_income - reasonable_salary
+        se_savings = distribution * 0.153
+        scorp_annual_cost = 2000  # Estimated annual compliance cost
+        net_scorp_benefit = se_savings - scorp_annual_cost
+
+        recommend_scorp = net_scorp_benefit > 3000 and net_income > 50000
+
+        analysis = f"""## Business Entity Structure Analysis
+
+**Recommendation:** {'S-Corporation' if recommend_scorp else 'Sole Proprietorship'}
+
+### Sole Proprietorship (Schedule C)
+- Net business income: ${net_income:,.0f}
+- Self-employment tax: ${se_tax_sole:,.0f}
+- QBI deduction (est.): ${qbi_sole:,.0f}
+- Compliance cost: ~$500/yr
+- Total tax burden estimate: ${se_tax_sole:,.0f} SE tax + income tax
+
+### S-Corporation
+- Reasonable salary: ${reasonable_salary:,.0f}
+- FICA on salary: ${fica_salary:,.0f}
+- Distribution (no FICA): ${distribution:,.0f}
+- FICA savings vs sole prop: ${se_savings:,.0f}
+- Annual compliance cost: ~${scorp_annual_cost:,.0f}
+- **Net annual benefit: ${net_scorp_benefit:,.0f}**
+
+### Key Considerations
+- S-Corp requires reasonable salary (IRS scrutiny if too low)
+- Additional compliance: payroll, corporate return (Form 1120-S)
+- QBI deduction applies to both structures (income limits apply)
+- State-specific fees and taxes may apply"""
+
+        return ReasoningResult(
+            question="Entity structure analysis",
+            reasoning_type=ReasoningType.ENTITY_STRUCTURE,
+            analysis=analysis,
+            recommendation="S-Corporation" if recommend_scorp else "Sole Proprietorship",
+            key_factors=[
+                f"Net business income: ${net_income:,.0f}",
+                f"Potential FICA savings: ${se_savings:,.0f}/yr",
+                f"S-Corp compliance cost: ~${scorp_annual_cost:,.0f}/yr",
+                f"Net S-Corp benefit: ${net_scorp_benefit:,.0f}/yr",
+            ],
+            risks=[
+                "IRS may challenge unreasonably low S-Corp salary",
+                "State-specific taxes may reduce S-Corp benefit",
+                "Increased compliance complexity and cost",
+            ],
+            action_items=[
+                "Compare total tax under each structure with a CPA",
+                "Determine reasonable salary based on industry benchmarks",
+                "Consider state-specific S-Corp fees and taxes",
+                "Evaluate timing — S-Corp election due by March 15",
+            ],
+            assumptions=[
+                f"Reasonable salary at ${reasonable_salary:,.0f}",
+                f"Annual S-Corp compliance cost ~${scorp_annual_cost:,.0f}",
+                "No state-specific complications",
+            ],
+            irc_references=["IRC §1361-1379", "IRC §199A"],
+            confidence=0.65,
+            requires_professional_review=True,
+            raw_response=analysis,
+            metadata={"_source": "deterministic", "gross_revenue": gross_revenue},
+        )
+
+    def _deterministic_amt_analysis(
+        self,
+        regular_income: float,
+        salt_deduction: float,
+        misc_deductions: float = 0,
+        iso_spread: float = 0,
+        filing_status: str = "single",
+    ) -> ReasoningResult:
+        """Rule-based AMT analysis when AI unavailable."""
+        # 2024 AMT parameters
+        if filing_status in ("married_filing_jointly", "qualifying_widow"):
+            exemption = 133300
+            phaseout_start = 1218700
+        else:
+            exemption = 85700
+            phaseout_start = 609350
+
+        # Calculate AMTI
+        amti = regular_income + salt_deduction + misc_deductions + iso_spread
+
+        # Phaseout exemption
+        if amti > phaseout_start:
+            exemption_reduction = (amti - phaseout_start) * 0.25
+            exemption = max(0, exemption - exemption_reduction)
+
+        # AMT taxable income
+        amt_taxable = max(0, amti - exemption)
+
+        # AMT tax (26% up to $232,600 / 28% above for 2024)
+        amt_breakpoint = 232600 if filing_status != "married_filing_jointly" else 232600
+        if amt_taxable <= amt_breakpoint:
+            tentative_amt = amt_taxable * 0.26
+        else:
+            tentative_amt = amt_breakpoint * 0.26 + (amt_taxable - amt_breakpoint) * 0.28
+
+        # Estimate regular tax for comparison (simplified)
+        regular_tax_est = regular_income * 0.24  # rough approximation
+
+        amt_exposure = max(0, tentative_amt - regular_tax_est)
+        subject_to_amt = amt_exposure > 0
+
+        analysis = f"""## Alternative Minimum Tax (AMT) Analysis
+
+**AMT Status:** {'Subject to AMT' if subject_to_amt else 'Not subject to AMT'}
+
+### AMT Calculation
+- Regular taxable income: ${regular_income:,.0f}
+- Add back: SALT deduction: ${salt_deduction:,.0f}
+- Add back: Misc. deductions: ${misc_deductions:,.0f}
+- Add back: ISO spread: ${iso_spread:,.0f}
+- **AMTI (Alt. Min. Taxable Income): ${amti:,.0f}**
+- AMT exemption: ${exemption:,.0f}
+- AMT taxable amount: ${amt_taxable:,.0f}
+- Tentative minimum tax: ${tentative_amt:,.0f}
+- Regular tax (est.): ${regular_tax_est:,.0f}
+- **AMT exposure: ${amt_exposure:,.0f}**
+
+### Key Triggers
+{'- SALT deduction adds back $' + f'{salt_deduction:,.0f} to AMTI' if salt_deduction > 0 else ''}
+{'- ISO exercise spread adds $' + f'{iso_spread:,.0f} to AMTI' if iso_spread > 0 else ''}
+
+### Mitigation Strategies
+- Time ISO exercises across multiple tax years
+- Consider SALT-heavy deductions strategically
+- AMT credit may offset regular tax in future years"""
+
+        return ReasoningResult(
+            question="AMT analysis",
+            reasoning_type=ReasoningType.AMT_ANALYSIS,
+            analysis=analysis,
+            recommendation=(
+                f"You may owe approximately ${amt_exposure:,.0f} in AMT. Consider timing strategies to reduce exposure."
+                if subject_to_amt
+                else "AMT is unlikely to apply based on current income and deductions."
+            ),
+            key_factors=[
+                f"AMTI: ${amti:,.0f}",
+                f"AMT exemption: ${exemption:,.0f}",
+                f"Tentative minimum tax: ${tentative_amt:,.0f}",
+                f"Estimated AMT exposure: ${amt_exposure:,.0f}",
+            ],
+            risks=[
+                "AMT calculation is approximate — actual tax depends on full return",
+                "ISO exercises can dramatically increase AMT exposure",
+                "SALT cap already limits deduction, reducing AMT risk",
+            ],
+            action_items=(
+                [
+                    "Model ISO exercise timing across multiple years",
+                    "Consider exercising ISOs in low-income years",
+                    "Track AMT credit carryforward from prior years",
+                    "Review with CPA before year-end for planning",
+                ]
+                if subject_to_amt
+                else ["No AMT action needed based on current projections"]
+            ),
+            assumptions=[
+                "2024 AMT exemption amounts",
+                f"Filing status: {filing_status}",
+                "Regular tax estimated at 24% effective rate",
+            ],
+            irc_references=["IRC §55-59"],
+            confidence=0.6,
+            requires_professional_review=subject_to_amt,
+            raw_response=analysis,
+            metadata={"_source": "deterministic", "amt_exposure": amt_exposure},
+        )
+
     def _parse_reasoning_response(
         self,
         question: str,

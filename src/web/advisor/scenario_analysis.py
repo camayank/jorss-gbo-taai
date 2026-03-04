@@ -97,19 +97,24 @@ async def analyze_roth_conversion(request=None, _session: str = Depends(verify_s
                     },
                 )
 
-        # Fallback
-        current_tax = calculation.total_tax
+        # Deterministic fallback with real calculations
+        from services.ai.tax_reasoning_service import get_tax_reasoning_service
+        reasoning = get_tax_reasoning_service()
+        result = reasoning._deterministic_roth_analysis(
+            traditional_balance=profile.get("traditional_ira_balance", 0) or 50000,
+            current_bracket=calculation.marginal_rate / 100,
+            projected_bracket=max(calculation.marginal_rate - 5, 10) / 100,
+            years_to_retirement=max(65 - (profile.get("age", 40) or 40), 5),
+            filing_status=profile.get("filing_status", "single"),
+        )
         return {
             "session_id": request.session_id,
-            "analysis": "Basic Roth conversion comparison based on current vs projected bracket.",
-            "recommendation": "Convert if projected retirement bracket is lower than current bracket."
-                if calculation.marginal_rate > 22 else "Consider keeping traditional if bracket is low.",
-            "key_factors": [
-                f"Current marginal rate: {calculation.marginal_rate}%",
-                f"Current total tax: ${current_tax:,.0f}",
-            ],
-            "action_items": ["Consult with a CPA for personalized Roth conversion strategy"],
-            "confidence": 0.5,
+            "analysis": result.analysis[:1500],
+            "recommendation": result.recommendation,
+            "key_factors": result.key_factors,
+            "action_items": result.action_items[:5],
+            "risks": result.risks,
+            "confidence": result.confidence,
             "disclaimer": STANDARD_DISCLAIMER,
         }
     except Exception as e:
@@ -164,19 +169,23 @@ async def analyze_entity_structure(request=None, _session: str = Depends(verify_
                     },
                 )
 
-        # Fallback
-        calculation = await chat_engine.get_tax_calculation(profile)
-        se_tax = calculation.self_employment_tax if hasattr(calculation, 'self_employment_tax') else 0
+        # Deterministic fallback with real calculations
+        from services.ai.tax_reasoning_service import get_tax_reasoning_service
+        reasoning = get_tax_reasoning_service()
+        result = reasoning._deterministic_entity_analysis(
+            gross_revenue=business_income,
+            business_expenses=profile.get("business_expenses", 0) or business_income * 0.3,
+            owner_salary=business_income * 0.6,
+            filing_status=profile.get("filing_status", "single"),
+        )
         return {
             "session_id": request.session_id,
-            "analysis": "Basic entity comparison: Sole Prop vs S-Corp.",
-            "recommendation": "S-Corp recommended" if business_income > 50000 else "Sole proprietorship sufficient",
-            "key_factors": [
-                f"Business income: ${business_income:,.0f}",
-                f"Potential SE tax savings: ${business_income * 0.5 * 0.153:,.0f}",
-            ],
-            "action_items": ["Consult with a CPA for entity structure optimization"],
-            "confidence": 0.5,
+            "analysis": result.analysis[:1500],
+            "recommendation": result.recommendation,
+            "key_factors": result.key_factors,
+            "action_items": result.action_items[:5],
+            "risks": result.risks,
+            "confidence": result.confidence,
             "disclaimer": STANDARD_DISCLAIMER,
         }
     except Exception as e:
@@ -387,21 +396,29 @@ async def analyze_amt_exposure(request=None, _session: str = Depends(verify_sess
                     },
                 )
 
-        # Fallback
+        # Deterministic fallback with real AMT calculation
+        from services.ai.tax_reasoning_service import get_tax_reasoning_service
+        reasoning = get_tax_reasoning_service()
         income = profile.get("total_income", 0) or 0
         filing_status = profile.get("filing_status", "single")
-        exemption = 85700 if filing_status == "single" else 133300
-        salt = min((profile.get("state_income_tax", 0) or 0) + (profile.get("property_taxes", 0) or 0), 10000)
-        amt_income = income + salt
-        amt_liable = amt_income > exemption
-
+        salt = min(
+            (profile.get("state_income_tax", 0) or 0) + (profile.get("property_taxes", 0) or 0),
+            10000,
+        )
+        result = reasoning._deterministic_amt_analysis(
+            regular_income=income,
+            salt_deduction=salt,
+            misc_deductions=profile.get("medical_expenses", 0) or 0,
+            iso_spread=0,
+            filing_status=filing_status,
+        )
         return {
             "session_id": request.session_id,
-            "analysis": f"Based on your income of ${income:,.0f}, {'you may be subject to AMT' if amt_liable else 'AMT is unlikely to apply'}.",
-            "recommendation": "Consult a CPA for detailed AMT planning" if amt_liable else "No AMT action needed",
-            "key_factors": ["income_level", "salt_deductions"],
-            "action_items": ["Review SALT deduction impact on AMT"] if amt_liable else [],
-            "confidence": 0.5,
+            "analysis": result.analysis[:1500],
+            "recommendation": result.recommendation,
+            "key_factors": result.key_factors,
+            "action_items": result.action_items[:5],
+            "confidence": result.confidence,
             "ai_powered": False,
         }
     except Exception as e:

@@ -267,6 +267,7 @@ class IntelligentTaxAgent:
 
         # Core state
         self.MAX_CONVERSATION_HISTORY = 50  # Keep last N messages to prevent unbounded growth
+        self.MAX_CONTEXT_TOKENS = 12000  # Leave room for system prompt + response
         self.tax_return: Optional[TaxReturn] = None
         self.messages: List[Dict[str, str]] = []
         self.context = ConversationContext(
@@ -1563,13 +1564,24 @@ Keep responses conversational, friendly, and professional. Always acknowledge wh
 
             ai_response = None
             max_retries = 2
+
+            # Trim conversation to fit context window
+            trimmed_messages = self._trim_context(self.messages)
+            if len(trimmed_messages) < len(self.messages):
+                logger.info(
+                    f"Context trimmed: {len(self.messages)} → {len(trimmed_messages)} messages "
+                    f"(~{self._estimate_tokens(trimmed_messages)} tokens)"
+                )
+
             for attempt in range(max_retries + 1):
                 try:
                     ai = get_ai_service()
-                    ai_messages = [
+                    # System prompt first (conventional placement), then conversation
+                    ai_messages = [UnifiedAIMessage(role="system", content=system_prompt)] + [
                         UnifiedAIMessage(role=m["role"], content=m["content"])
-                        for m in self.messages
-                    ] + [UnifiedAIMessage(role="system", content=system_prompt)]
+                        for m in trimmed_messages
+                        if m.get("role") != "system"
+                    ]
                     ai_response = run_async(ai.chat(
                         messages=ai_messages,
                         capability=ModelCapability.STANDARD,
@@ -1578,6 +1590,11 @@ Keep responses conversational, friendly, and professional. Always acknowledge wh
                     ))
                     break  # Success
                 except Exception as e:
+                    error_str = str(e).lower()
+                    if "context" in error_str or "token" in error_str or "length" in error_str:
+                        logger.warning(f"Context overflow detected, trimming further: {e}")
+                        trimmed_messages = self._trim_context(trimmed_messages[:len(trimmed_messages)//2 + 2])
+                        continue
                     logger.warning(f"AI error on response generation (attempt {attempt + 1}/{max_retries + 1}): {e}")
                     if attempt < max_retries:
                         time.sleep(2 ** attempt)
@@ -1605,6 +1622,23 @@ Keep responses conversational, friendly, and professional. Always acknowledge wh
         except Exception as e:
             # Phase 2.4: User-friendly error messages
             return self._get_friendly_error_message(str(e))
+
+    def _estimate_tokens(self, messages: List[Dict]) -> int:
+        """Rough token count: ~4 chars per token."""
+        return sum(len(m.get("content", "")) for m in messages) // 4
+
+    def _trim_context(self, messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        """Trim messages to fit within context window, preserving system and recent messages."""
+        working = list(messages)
+        while self._estimate_tokens(working) > self.MAX_CONTEXT_TOKENS and len(working) > 4:
+            # Remove oldest non-system message
+            for i, m in enumerate(working):
+                if m.get("role") != "system":
+                    working.pop(i)
+                    break
+            else:
+                break  # Only system messages left
+        return working
 
     def _get_friendly_error_message(self, error: str) -> str:
         """
