@@ -2258,6 +2258,7 @@ Always note this is not official tax advice and they should consult a CPA.""",
                         irs_reference=opp.irs_reference or "",
                         tier="free" if priority_str == "high" else "premium",
                         risk_level="low",
+                        metadata={"_source": "ai"},
                     ))
                 logger.info(f"AI detected {len(opportunities)} opportunities")
             except Exception as e:
@@ -2709,6 +2710,11 @@ Estimated tax savings: **${savings:,.0f}**""",
                             pass  # Individual enhancement failure is non-critical
             except Exception as e:
                 logger.warning(f"AI enhancement failed: {e}")
+
+        # Tag any untagged strategies as templates
+        for s in strategies:
+            if s.metadata is None:
+                s.metadata = {"_source": "template"}
 
         # Sort by estimated savings (highest first)
         strategies.sort(key=lambda x: (-x.estimated_savings,))
@@ -4012,6 +4018,7 @@ To get started, what's your filing status?"""
             t = target.dict() if hasattr(target, 'dict') else target
             # Build rich detail response using AI reasoning if available
             full_detail = t.get("detailed_explanation", t.get("summary", ""))
+            detail_source = "fallback_template"
             if AI_CHAT_ENABLED:
                 try:
                     detail_prompt = (
@@ -4022,6 +4029,7 @@ To get started, what's your filing status?"""
                     ai_detail = await chat_engine._ai_reason_about_tax_question(detail_prompt, session)
                     if ai_detail:
                         full_detail = ai_detail
+                        detail_source = "ai"
                 except Exception as e:
                     logger.debug(f"AI drill-down reasoning failed, using fallback: {e}")
 
@@ -4047,6 +4055,7 @@ To get started, what's your filing status?"""
                     {"label": "Generate Report", "value": "generate_report"},
                     {"label": "Ask a Question", "value": "ask_question"},
                 ],
+                metadata={"_source": detail_source},
             )
 
     # Detect user intent

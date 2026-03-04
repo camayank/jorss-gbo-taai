@@ -122,6 +122,8 @@ class StrategyRecommendation(BaseModel):
     tier: Optional[str] = "free"  # "free" or "premium"
     risk_level: Optional[str] = "low"  # "low", "medium", "high"
     implementation_complexity: Optional[str] = "simple"  # "simple", "moderate", "complex"
+    # Source tracking
+    metadata: Optional[Dict[str, Any]] = None
 
 
 class TaxCalculationResult(BaseModel):

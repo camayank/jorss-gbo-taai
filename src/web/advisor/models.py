@@ -134,6 +134,8 @@ class StrategyRecommendation(BaseModel):
     tier: Optional[str] = "free"  # "free" or "premium"
     risk_level: Optional[str] = "low"  # "low", "medium", "high"
     implementation_complexity: Optional[str] = "simple"  # "simple", "moderate", "complex"
+    # Source tracking
+    metadata: Optional[Dict[str, Any]] = None
 
 
 class TaxCalculationResult(BaseModel):
@@ -225,6 +227,9 @@ class ChatResponse(BaseModel):
     # Response confidence
     response_confidence: str = "high"  # high, medium, low
     confidence_reason: Optional[str] = None  # Why confidence is reduced
+
+    # Source tracking
+    metadata: Optional[Dict[str, Any]] = None
 
     # AI savings tracking
     detected_savings: float = 0.0  # Running total of AI-detected potential savings

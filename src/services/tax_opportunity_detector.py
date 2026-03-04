@@ -61,6 +61,7 @@ class TaxOpportunity:
     confidence: float = 0.8  # 0-1 confidence score
     prerequisites: List[str] = field(default_factory=list)
     follow_up_questions: List[str] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -212,18 +213,24 @@ class TaxOpportunityDetector:
         opportunities = []
 
         # Rule-based detection (fast, reliable)
-        opportunities.extend(self._detect_retirement_opportunities(profile))
-        opportunities.extend(self._detect_deduction_opportunities(profile))
-        opportunities.extend(self._detect_credit_opportunities(profile))
-        opportunities.extend(self._detect_hsa_opportunities(profile))
-        opportunities.extend(self._detect_business_opportunities(profile))
-        opportunities.extend(self._detect_education_opportunities(profile))
-        opportunities.extend(self._detect_filing_status_opportunities(profile))
-        opportunities.extend(self._detect_timing_opportunities(profile))
+        rule_opps = []
+        rule_opps.extend(self._detect_retirement_opportunities(profile))
+        rule_opps.extend(self._detect_deduction_opportunities(profile))
+        rule_opps.extend(self._detect_credit_opportunities(profile))
+        rule_opps.extend(self._detect_hsa_opportunities(profile))
+        rule_opps.extend(self._detect_business_opportunities(profile))
+        rule_opps.extend(self._detect_education_opportunities(profile))
+        rule_opps.extend(self._detect_filing_status_opportunities(profile))
+        rule_opps.extend(self._detect_timing_opportunities(profile))
+        for opp in rule_opps:
+            opp.metadata["_source"] = "rules"
+        opportunities.extend(rule_opps)
 
         # AI-powered analysis for nuanced opportunities
         if self._ai_available:
             ai_opportunities = self._ai_detect_opportunities(profile)
+            for opp in ai_opportunities:
+                opp.metadata["_source"] = "ai"
             opportunities.extend(ai_opportunities)
 
         # Sort by priority and estimated savings

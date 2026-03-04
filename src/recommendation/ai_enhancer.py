@@ -40,6 +40,7 @@ class AIEnhancedRecommendation:
     irs_reference: str
     priority: str
     category: str
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -133,6 +134,7 @@ class AIRecommendationEnhancer:
                     irs_reference=opportunity.irs_reference,
                     priority=opportunity.priority,
                     category=opportunity.category,
+                    metadata={"_source": "ai", "_provider": "openai"},
                 )
         except Exception as e:
             logger.warning(f"AI enhancement failed: {e}")
@@ -311,6 +313,7 @@ Be concise, professional, and helpful. Return only valid JSON, no markdown code 
             irs_reference=opportunity.irs_reference,
             priority=opportunity.priority,
             category=opportunity.category,
+            metadata={"_source": "fallback", "_provider": "none"},
         )
 
     def _fallback_summary(self, recommendation: "ComprehensiveRecommendation") -> AIRecommendationSummary:
