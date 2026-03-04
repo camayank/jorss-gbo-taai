@@ -156,3 +156,119 @@ class TestMetricsRecordQualityData:
         comparison = metrics.get_quality_comparison("enhancer", days=1)
         assert comparison["ai"]["avg_fields"] > comparison["fallback"]["avg_fields"]
         assert comparison["improvement_factor"] > 1.0
+
+
+class TestChatResponseMetadataPropagation:
+    """Validate that metadata actually appears in user-visible JSON output."""
+
+    def test_chat_response_serializes_metadata(self):
+        """ChatResponse.metadata should appear in .dict() / JSON output."""
+        from web.advisor.models import ChatResponse
+        resp = ChatResponse(
+            session_id="test-123",
+            response="Hello!",
+            response_type="greeting",
+            metadata={"_source": "template"},
+        )
+        data = resp.dict()
+        assert "metadata" in data
+        assert data["metadata"]["_source"] == "template"
+
+    def test_chat_response_metadata_none_when_unset(self):
+        """ChatResponse without metadata should serialize metadata as None."""
+        from web.advisor.models import ChatResponse
+        resp = ChatResponse(
+            session_id="test-123",
+            response="Hello!",
+            response_type="greeting",
+        )
+        data = resp.dict()
+        assert "metadata" in data
+        assert data["metadata"] is None
+
+    def test_strategy_recommendation_serializes_metadata(self):
+        """StrategyRecommendation.metadata should appear in .dict() output."""
+        from web.advisor.models import StrategyRecommendation
+        strategy = StrategyRecommendation(
+            id="strat-1",
+            category="retirement",
+            title="Max 401k",
+            summary="Maximize your 401k contributions",
+            detailed_explanation="Contributing the full $23,500...",
+            estimated_savings=5000.0,
+            confidence="high",
+            priority="immediate",
+            action_steps=["Increase 401k contribution"],
+            metadata={"_source": "ai"},
+        )
+        data = strategy.dict()
+        assert data["metadata"]["_source"] == "ai"
+
+    def test_chat_response_with_tagged_strategies(self):
+        """ChatResponse containing tagged strategies should propagate all metadata."""
+        from web.advisor.models import ChatResponse, StrategyRecommendation
+        strategies = [
+            StrategyRecommendation(
+                id="s1", category="retirement", title="Max 401k",
+                summary="Maximize contributions", detailed_explanation="...",
+                estimated_savings=5000, confidence="high", priority="immediate",
+                action_steps=["Step 1"], metadata={"_source": "ai"},
+            ),
+            StrategyRecommendation(
+                id="s2", category="credits", title="Child Tax Credit",
+                summary="Claim CTC", detailed_explanation="...",
+                estimated_savings=2000, confidence="high", priority="immediate",
+                action_steps=["Step 1"], metadata={"_source": "rules"},
+            ),
+        ]
+        resp = ChatResponse(
+            session_id="test-123",
+            response="Here are your strategies",
+            response_type="calculation",
+            strategies=strategies,
+            metadata={"_source": "ai"},
+        )
+        data = resp.dict()
+        assert data["metadata"]["_source"] == "ai"
+        assert data["strategies"][0]["metadata"]["_source"] == "ai"
+        assert data["strategies"][1]["metadata"]["_source"] == "rules"
+
+    def test_enhanced_recommendation_metadata_in_dict(self):
+        """AIEnhancedRecommendation metadata should appear in dataclass asdict."""
+        from dataclasses import asdict
+        from recommendation.ai_enhancer import AIEnhancedRecommendation
+        rec = AIEnhancedRecommendation(
+            original_title="Test",
+            original_description="Test desc",
+            estimated_savings=1000,
+            personalized_explanation="Personalized",
+            action_steps=["Step 1"],
+            common_questions=[],
+            risk_considerations=[],
+            related_opportunities=[],
+            confidence_explanation="High confidence",
+            irs_reference="IRC 24",
+            priority="immediate",
+            category="credits",
+            metadata={"_source": "ai", "_provider": "openai"},
+        )
+        data = asdict(rec)
+        assert data["metadata"]["_source"] == "ai"
+        assert data["metadata"]["_provider"] == "openai"
+
+    def test_summary_metadata_in_dict(self):
+        """AIRecommendationSummary metadata should appear in dataclass asdict."""
+        from dataclasses import asdict
+        from recommendation.ai_enhancer import AIRecommendationSummary
+        summary = AIRecommendationSummary(
+            executive_summary="Summary",
+            key_takeaways=["T1"],
+            priority_actions=["A1"],
+            estimated_total_savings=5000,
+            confidence_summary="High",
+            personalized_advice="Advice",
+            warnings=["W1"],
+            metadata={"_source": "fallback"},
+        )
+        data = asdict(summary)
+        assert data["metadata"]["_source"] == "fallback"
