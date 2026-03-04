@@ -866,7 +866,15 @@ Life Events This Year:
                 ))
 
         except Exception as e:
-            logger.error(f"AI opportunity detection failed: {e}")
+            logger.warning(
+                "AI fallback activated",
+                extra={
+                    "service": "opportunity_detector",
+                    "source": "rules",
+                    "reason": str(e),
+                    "impact": "user receives only rule-based opportunities, no AI-detected ones",
+                },
+            )
 
         return opportunities
 

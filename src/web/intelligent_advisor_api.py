@@ -2263,7 +2263,15 @@ Always note this is not official tax advice and they should consult a CPA.""",
                     ))
                 logger.info(f"AI detected {len(opportunities)} opportunities")
             except Exception as e:
-                logger.warning(f"AI opportunity detection failed, falling back to rules: {e}")
+                logger.warning(
+                    "AI fallback activated",
+                    extra={
+                        "service": "advisor_strategy",
+                        "source": "template",
+                        "reason": str(e),
+                        "impact": "user receives only hardcoded strategy templates, no AI-detected opportunities",
+                    },
+                )
 
         # --- EXISTING HARDCODED STRATEGIES (as fallback/supplement) ---
         marginal_rate = calculation.marginal_rate / 100
@@ -4039,7 +4047,15 @@ To get started, what's your filing status?"""
                         full_detail = ai_detail
                         detail_source = "ai"
                 except Exception as e:
-                    logger.debug(f"AI drill-down reasoning failed, using fallback: {e}")
+                    logger.warning(
+                        "AI fallback activated",
+                        extra={
+                            "service": "advisor_reasoning",
+                            "source": "fallback_template",
+                            "reason": str(e),
+                            "impact": "user receives template explanation instead of AI-personalized detail",
+                        },
+                    )
 
             # Include ALL action steps (not truncated)
             steps_text = "\n".join(f"  {i+1}. {step}" for i, step in enumerate(t.get("action_steps", [])))

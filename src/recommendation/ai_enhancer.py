@@ -164,7 +164,15 @@ class AIRecommendationEnhancer:
                 )
                 return result
         except Exception as e:
-            logger.warning(f"AI enhancement failed: {e}")
+            logger.warning(
+                "AI fallback activated",
+                extra={
+                    "service": "enhancer",
+                    "source": "fallback",
+                    "reason": str(e),
+                    "impact": "user receives template response instead of AI-personalized",
+                },
+            )
 
         return self._fallback_enhancement(opportunity)
 
