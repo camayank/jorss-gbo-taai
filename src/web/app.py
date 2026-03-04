@@ -369,6 +369,7 @@ _ROUTER_REGISTRY = [
     ("web.routers.auth_pages", "router", None, "Auth Pages"),
     ("web.routers.interview_api", "router", None, "Interview & Validation API"),
     ("web.routers.tax_tools", "router", None, "Tax Tools API"),
+    ("web.routers.journey_api", "router", None, "Journey API"),
     # WebSocket real-time events
     ("realtime.websocket_routes", "websocket_router", None, "WebSocket Real-Time"),
 ]
@@ -657,7 +658,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
             dashboard_url = _dashboard_urls.get(role_bucket, "/")
             return templates.TemplateResponse(
                 f"errors/{exc.status_code}.html",
-                {"request": request, "dashboard_url": dashboard_url},
+                {"request": request, "dashboard_url": dashboard_url, "branding": _get_default_branding()},
                 status_code=exc.status_code,
             )
         except Exception as template_err:
@@ -699,7 +700,7 @@ async def general_exception_handler(request: Request, exc: Exception):
         dashboard_url = _dashboard_urls.get(role_bucket, "/")
         return templates.TemplateResponse(
             "errors/500.html",
-            {"request": request, "dashboard_url": dashboard_url},
+            {"request": request, "dashboard_url": dashboard_url, "branding": _get_default_branding()},
             status_code=500,
         )
     except Exception as template_err:
@@ -816,6 +817,34 @@ templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "t
 # Add CSRF token function to Jinja2 template globals
 # This allows templates to use {{ csrf_token() }} to get a CSRF token
 templates.env.globals["csrf_token"] = generate_csrf_token
+
+# ---------------------------------------------------------------------------
+# BRANDING AUTO-INJECTION: Every template automatically gets branding context.
+# This prevents hardcoded brand names from leaking in a white-label setup.
+# Templates use: {{ branding.platform_name }}, {{ branding.support_email }}, etc.
+# ---------------------------------------------------------------------------
+def _get_default_branding() -> dict:
+    """Return default branding dict for templates. Cached after first call."""
+    try:
+        from config.branding import get_branding_config
+        return get_branding_config().to_dict()
+    except Exception:
+        return {
+            "platform_name": "Tax Advisory Platform",
+            "company_name": "Professional Tax Advisory",
+            "support_email": "support@example.com",
+        }
+
+# Inject branding as a lazy-evaluated global available in ALL templates.
+# Individual routes can override by passing their own 'branding' context.
+templates.env.globals["branding"] = _get_default_branding()
+
+# Also inject flat convenience aliases used by some templates (sidebar.html)
+_default_brand = _get_default_branding()
+templates.env.globals["brand_name"] = _default_brand.get("platform_name", "Tax Advisory Platform")
+templates.env.globals["platform_name"] = _default_brand.get("platform_name", "Tax Advisory Platform")
+templates.env.globals["platform_url"] = _default_brand.get("website_url", "")
+templates.env.globals["contact_email"] = _default_brand.get("support_email", "support@example.com")
 
 # Static files (for PWA manifest, icons, etc.)
 from fastapi.staticfiles import StaticFiles
@@ -1815,15 +1844,8 @@ async def resilience_status():
 
 
 @app.post("/api/health/resilience/reset")
+@require_auth(roles=[Role.ADMIN])
 async def reset_circuit_breakers(request: Request):
-    """Reset all circuit breakers to closed state. Admin only.
-
-    Use with caution - this will allow requests through to potentially
-    failing services.
-    """
-    redirect = _require_admin_page_access(request)
-    if redirect:
-        return JSONResponse(status_code=403, content={"detail": "Admin access required"})
     try:
         from resilience import get_circuit_breaker_registry
 
@@ -1883,15 +1905,8 @@ async def cache_status():
 
 
 @app.post("/api/health/cache/flush")
+@require_auth(roles=[Role.ADMIN])
 async def flush_cache(request: Request):
-    """Flush all cached calculations. Admin only.
-
-    Use with caution - this will clear all cached data and may
-    temporarily increase computation load.
-    """
-    redirect = _require_admin_page_access(request)
-    if redirect:
-        return JSONResponse(status_code=403, content={"detail": "Admin access required"})
     try:
         from cache import CacheInvalidator, get_calculation_cache
 
@@ -2301,7 +2316,7 @@ async def calculate_complete_return(request: Request):
     # AUTO-SAVE: Persist the calculated return to database
     return_id = None
     try:
-        from database.persistence import save_tax_return as db_save
+        from database.persistence_adapter import save_tax_return as db_save
         return_data = tax_return.model_dump()
         return_id = db_save(session_id, return_data)
         logger.info(f"Auto-saved tax return {return_id} after calculation")
@@ -3257,7 +3272,7 @@ async def save_tax_return(request: Request):
 
     SECURITY: Rate limited to 30 requests per minute to prevent abuse.
     """
-    from database.persistence import save_tax_return as db_save
+    from database.persistence_adapter import save_tax_return as db_save
 
     session_id = request.cookies.get("tax_session_id") or ""
     tax_return = _get_tax_return_for_session(session_id)
@@ -3323,7 +3338,7 @@ async def get_saved_return(return_id: str, request: Request):
 
     SECURITY: Requires authentication and validates ownership/access rights.
     """
-    from database.persistence import load_tax_return as db_load, get_persistence
+    from database.persistence_adapter import load_tax_return as db_load, get_persistence
 
     return_data = db_load(return_id)
 
@@ -3488,7 +3503,7 @@ async def list_saved_returns(
 
     Returns paginated results with total_count for client pagination UI.
     """
-    from database.persistence import list_tax_returns, get_persistence
+    from database.persistence_adapter import list_tax_returns, get_persistence
 
     # Get paginated results
     returns = list_tax_returns(tax_year, limit)
@@ -3533,7 +3548,7 @@ async def delete_saved_return(return_id: str, request: Request):
 
     SECURITY: Requires authentication and validates ownership before deletion.
     """
-    from database.persistence import get_persistence, load_tax_return as db_load
+    from database.persistence_adapter import get_persistence, load_tax_return as db_load
 
     # SECURITY FIX: IDOR Protection - Verify user has access before deletion
     return_data = db_load(return_id)
