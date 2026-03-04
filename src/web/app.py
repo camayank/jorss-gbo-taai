@@ -1988,6 +1988,27 @@ async def migration_status():
 
 
 # =============================================================================
+# AI DELIVERY DASHBOARD ENDPOINT
+# =============================================================================
+
+@app.get("/api/admin/ai-delivery")
+@require_auth(roles=[Role.ADMIN])
+async def ai_delivery_dashboard(request: Request, days: int = 7):
+    """Admin dashboard for AI vs fallback delivery rates and quality metrics."""
+    from services.ai.metrics_service import get_ai_metrics_service
+    metrics = get_ai_metrics_service()
+    services = ["enhancer", "opportunity_detector", "advisor_reasoning", "advisor_strategy"]
+    return JSONResponse(content={
+        "delivery_stats": metrics.get_ai_delivery_stats(days=days),
+        "quality_comparison": {
+            svc: metrics.get_quality_comparison(svc, days=days)
+            for svc in services
+        },
+        "period_days": days,
+    })
+
+
+# =============================================================================
 # TAX OPTIMIZATION & RECOMMENDATION ENDPOINTS
 # =============================================================================
 
