@@ -143,6 +143,8 @@ class LeadPipelineService:
                     "converted_leads": 0,
                     "conversion_rate": 0,
                     "avg_conversion_time_days": 0,
+                    "average_score": 0,
+                    "avg_value": 0,
                 },
                 "message": "No leads found",
             }
@@ -174,6 +176,14 @@ class LeadPipelineService:
             rate = (state_count / prev_count * 100) if prev_count > 0 else 0
             stage_rates[state.name] = round(rate, 1)
 
+        # Calculate average lead score (priority score across all leads)
+        lead_scores = [self._calculate_priority_score(lead) for lead in all_leads]
+        average_score = sum(lead_scores) / len(lead_scores) if lead_scores else 0
+
+        # Calculate average lead value
+        lead_values = [self._estimate_lead_value(lead.to_dict()) for lead in all_leads]
+        avg_value = sum(lead_values) / len(lead_values) if lead_values else 0
+
         return {
             "success": True,
             "metrics": {
@@ -181,6 +191,8 @@ class LeadPipelineService:
                 "converted_leads": converted_count,
                 "conversion_rate": round(conversion_rate, 1),
                 "avg_conversion_time_days": round(avg_conversion_time, 1),
+                "average_score": round(average_score, 1),
+                "avg_value": round(avg_value, 2),
                 "stage_conversion_rates": stage_rates,
                 "leads_by_state": {
                     state.name: len([l for l in all_leads if l.current_state == state])

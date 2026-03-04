@@ -309,7 +309,7 @@
                     <div class="conversion-stat-label">Overall Conversion</div>
                 </div>
                 <div class="conversion-stat">
-                    <div class="conversion-stat-value">{% if velocity_metrics and velocity_metrics.metrics and velocity_metrics.metrics.avg_days_to_convert %}{{ velocity_metrics.metrics.avg_days_to_convert|round|int }}{% else %}0{% endif %}d</div>
+                    <div class="conversion-stat-value">{% if velocity_metrics and velocity_metrics.metrics and velocity_metrics.metrics.avg_time_to_conversion %}{{ velocity_metrics.metrics.avg_time_to_conversion|round|int }}{% else %}0{% endif %}d</div>
                     <div class="conversion-stat-label">Avg. Time to Convert</div>
                 </div>
                 <div class="conversion-stat">
