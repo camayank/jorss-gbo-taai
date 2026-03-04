@@ -74,6 +74,7 @@ class AIRecommendationSummary:
     confidence_summary: str
     personalized_advice: str
     warnings: List[str]
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 class AIRecommendationEnhancer:
@@ -217,7 +218,7 @@ class AIRecommendationEnhancer:
 
             if response:
                 summary = json.loads(response)
-                return AIRecommendationSummary(
+                result = AIRecommendationSummary(
                     executive_summary=summary.get("executive_summary", recommendation.executive_summary),
                     key_takeaways=summary.get("key_takeaways", []),
                     priority_actions=summary.get("priority_actions", []),
@@ -225,7 +226,14 @@ class AIRecommendationEnhancer:
                     confidence_summary=summary.get("confidence_summary", ""),
                     personalized_advice=summary.get("personalized_advice", ""),
                     warnings=summary.get("warnings", recommendation.warnings),
+                    metadata={"_source": "ai"},
                 )
+                get_ai_metrics_service().record_response_quality(
+                    service="enhancer_summary", source="ai",
+                    response_fields_populated=sum(1 for v in [result.executive_summary, result.key_takeaways, result.priority_actions, result.confidence_summary, result.personalized_advice] if v),
+                    total_fields=5,
+                )
+                return result
         except Exception as e:
             logger.warning(f"AI summary generation failed: {e}")
 
@@ -359,7 +367,7 @@ Be concise, professional, and helpful. Return only valid JSON, no markdown code 
 
     def _fallback_summary(self, recommendation: "ComprehensiveRecommendation") -> AIRecommendationSummary:
         """Create a fallback summary without AI."""
-        return AIRecommendationSummary(
+        result = AIRecommendationSummary(
             executive_summary=recommendation.executive_summary,
             key_takeaways=[
                 f"Total potential savings: ${recommendation.total_potential_savings:,.0f}",
@@ -371,7 +379,14 @@ Be concise, professional, and helpful. Return only valid JSON, no markdown code 
             confidence_summary=f"Overall confidence: {recommendation.overall_confidence:.0f}%",
             personalized_advice="Review each recommendation carefully and consult a tax professional if needed.",
             warnings=recommendation.warnings,
+            metadata={"_source": "fallback"},
         )
+        get_ai_metrics_service().record_response_quality(
+            service="enhancer_summary", source="fallback",
+            response_fields_populated=2,  # executive_summary + confidence_summary are template-copied
+            total_fields=5,
+        )
+        return result
 
     def _get_income_range(self, agi: float) -> str:
         """Get income range description for context."""

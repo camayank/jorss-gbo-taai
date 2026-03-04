@@ -4175,7 +4175,15 @@ To get started, what's your filing status?"""
                     metadata={"_source": "ai"},
                 )
         except Exception as e:
-            logger.warning(f"AI routing failed, falling back to rules: {e}")
+            logger.warning(
+                "AI fallback activated",
+                extra={
+                    "service": "advisor_chat",
+                    "source": "fallback",
+                    "reason": str(e),
+                    "impact": "user question falls through to rule-based or fallback reasoning",
+                },
+            )
 
     # --- FALLBACK: UnifiedAIService deep reasoning for unanswered questions ---
     if user_intent in ("ask_question", "request_advice"):
@@ -4228,7 +4236,15 @@ To get started, what's your filing status?"""
                     metadata={"_source": "ai"},
                 )
         except Exception as e:
-            logger.warning(f"AI reasoning fallback failed: {e}")
+            logger.warning(
+                "AI fallback activated",
+                extra={
+                    "service": "advisor_reasoning",
+                    "source": "fallback",
+                    "reason": str(e),
+                    "impact": "user question not answered by AI, falls through to profile extraction",
+                },
+            )
 
     # =========================================================================
     # MULTI-TURN UNDO SYSTEM - Handle various undo requests dynamically
