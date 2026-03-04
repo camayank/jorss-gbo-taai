@@ -1987,6 +1987,37 @@ async def migration_status():
         })
 
 
+@app.get("/api/health/ai")
+async def ai_health():
+    """AI services health check — no auth required for load balancers."""
+    try:
+        from config.ai_providers import get_available_providers, validate_ai_configuration
+        from services.ai.metrics_service import get_ai_metrics_service
+
+        providers = get_available_providers()
+        metrics = get_ai_metrics_service()
+        stats = metrics.get_ai_delivery_stats(days=1)
+
+        # Calculate overall AI delivery rate
+        total_ai = sum(s.get("ai_count", 0) for s in stats.values())
+        total_all = total_ai + sum(s.get("fallback_count", 0) for s in stats.values())
+        ai_rate = total_ai / total_all if total_all > 0 else None
+
+        return JSONResponse({
+            "status": "healthy" if providers else "degraded",
+            "available_providers": [p.value for p in providers],
+            "provider_count": len(providers),
+            "ai_delivery_rate_24h": round(ai_rate, 3) if ai_rate is not None else None,
+            "services": list(stats.keys()),
+        })
+    except Exception as e:
+        logger.error(f"AI health check failed: {e}")
+        return JSONResponse(
+            {"status": "error", "error": "AI health check failed"},
+            status_code=500,
+        )
+
+
 # =============================================================================
 # AI DELIVERY DASHBOARD ENDPOINT
 # =============================================================================

@@ -44,14 +44,35 @@ async def on_startup_banner():
     elif missing:
         logger.warning("Missing env vars (non-critical in dev):\n" + "\n".join(missing))
 
-    from config.ai_providers import get_available_providers
-    if not get_available_providers():
+    from config.ai_providers import get_available_providers, validate_ai_configuration
+    providers = get_available_providers()
+    if not providers:
         if _is_production:
             msg = "No AI provider API keys configured. Set at least one of: OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY"
             logger.error(msg)
             raise RuntimeError(msg)
         logger.warning(
             "No AI provider API keys configured; AI-dependent features are disabled"
+        )
+    else:
+        # Log provider availability details
+        config_status = validate_ai_configuration()
+        for provider_name, status in config_status.items():
+            if provider_name.startswith("_"):
+                continue
+            if status.get("available"):
+                models = status.get("models", [])
+                model_str = ", ".join(str(m.value) if hasattr(m, "value") else str(m) for m in models)
+                logger.info(f"AI provider {provider_name}: available ({len(models)} capabilities: {model_str})")
+            else:
+                logger.info(f"AI provider {provider_name}: unavailable (no API key)")
+
+    # Coherence check: warn if AI chat enabled but no providers available
+    ai_chat_enabled = os.environ.get("AI_CHAT_ENABLED", "").lower() in ("true", "1", "yes")
+    if ai_chat_enabled and not providers:
+        logger.warning(
+            "COHERENCE WARNING: AI_CHAT_ENABLED=true but no AI providers are available. "
+            "Chat features will fall back to rule-based responses."
         )
 
     # Warn if JWT secret is weak
