@@ -638,15 +638,19 @@ async def cpa_lead_detail(
         if not lead:
             raise HTTPException(status_code=404, detail="Lead not found")
 
+        # Convert dataclass to dict for safe .get() access
+        lead_dict = lead.to_dict(include_cpa_only=True)
+
         # Get lead's tax profile and insights
-        session_id = lead.get("session_id")
+        session_id = lead_dict.get("session_id")
         tax_profile = None
         insights = []
 
         if session_id:
             session = service.get_session(session_id)
             if session:
-                tax_profile = session.get("tax_profile")
+                session_dict = session.to_dict()
+                tax_profile = session_dict.get("tax_profile")
 
             # Get Tier 1 report for insights
             try:
@@ -656,24 +660,39 @@ async def cpa_lead_detail(
             except Exception:
                 pass
 
+        # Derive state from engagement status
+        if lead_dict.get("converted"):
+            lead_state = "converted"
+            lead_state_display = "Converted"
+        elif lead_dict.get("engaged"):
+            lead_state = "engaged"
+            lead_state_display = "Engaged"
+        else:
+            lead_state = "new_lead"
+            lead_state_display = "New Lead"
+
+        # Compute estimated savings midpoint from range
+        savings_low = lead_dict.get("savings_range_low", 0) or 0
+        savings_high = lead_dict.get("savings_range_high", 0) or 0
+        estimated_savings = int(round((savings_low + savings_high) / 2))
+
         lead_data = {
-            "id": lead.get("lead_id"),
-            "name": f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() or lead.get("email", "").split("@")[0],
-            "first_name": lead.get("first_name", ""),
-            "last_name": lead.get("last_name", ""),
-            "email": lead.get("email", ""),
-            "phone": lead.get("phone"),
-            "state": lead.get("state", "browsing"),
-            "state_display": lead.get("state_display", "Browsing"),
-            "temperature": lead.get("temperature", "cold"),
-            "estimated_savings": lead.get("estimated_savings", 0),
-            "complexity": lead.get("complexity", "simple"),
-            "score": lead.get("score", 0),
-            "created_at": lead.get("created_at"),
-            "age": _format_age(lead.get("created_at")),
+            "id": lead_dict.get("lead_id"),
+            "name": lead_dict.get("first_name", "") or lead_dict.get("email", "").split("@")[0],
+            "first_name": lead_dict.get("first_name", ""),
+            "email": lead_dict.get("email", ""),
+            "phone": lead_dict.get("phone"),
+            "state": lead_state,
+            "state_display": lead_state_display,
+            "temperature": lead_dict.get("lead_temperature", "cold"),
+            "estimated_savings": estimated_savings,
+            "complexity": lead_dict.get("complexity", "simple"),
+            "score": lead_dict.get("lead_score", 0),
+            "created_at": lead_dict.get("created_at"),
+            "age": _format_age(lead_dict.get("created_at")),
             "session_id": session_id,
-            "engaged": lead.get("engaged", False),
-            "engagement_letter_acknowledged": lead.get("engagement_letter_acknowledged", False),
+            "engaged": lead_dict.get("engaged", False),
+            "engagement_letter_acknowledged": lead_dict.get("engagement_letter_acknowledged", False),
             "tax_profile": tax_profile,
             "insights": insights,
         }
