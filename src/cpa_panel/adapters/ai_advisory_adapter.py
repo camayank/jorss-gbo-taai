@@ -120,7 +120,15 @@ class AIAdvisoryAdapter:
                         "warnings": summary.warnings,
                     }
                 except Exception as e:
-                    logger.warning(f"AI summary generation failed: {e}")
+                    logger.warning(
+                        "AI fallback activated",
+                        extra={
+                            "service": "cpa_advisory_summary",
+                            "source": "fallback",
+                            "reason": str(e),
+                            "impact": "CPA receives template summary instead of AI-generated insights",
+                        },
+                    )
 
             # Enhance top opportunities
             enhanced_opportunities = []
@@ -209,7 +217,15 @@ class AIAdvisoryAdapter:
                         opportunity, education_level
                     )
                 except Exception as e:
-                    logger.warning(f"AI explanation failed: {e}")
+                    logger.warning(
+                        "AI fallback activated",
+                        extra={
+                            "service": "cpa_advisory_explanation",
+                            "source": "fallback",
+                            "reason": str(e),
+                            "impact": "CPA receives raw description instead of AI plain-language explanation",
+                        },
+                    )
 
             return {
                 "success": True,

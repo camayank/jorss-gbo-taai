@@ -87,7 +87,15 @@ async def analyze_roth_conversion(request=None, _session: str = Depends(verify_s
                     "disclaimer": STANDARD_DISCLAIMER,
                 }
             except Exception as e:
-                logger.warning(f"AI Roth analysis failed, using fallback: {e}")
+                logger.warning(
+                    "AI fallback activated",
+                    extra={
+                        "service": "scenario_roth_analysis",
+                        "source": "fallback",
+                        "reason": str(e),
+                        "impact": "user receives basic bracket comparison instead of AI Roth analysis",
+                    },
+                )
 
         # Fallback
         current_tax = calculation.total_tax
@@ -146,7 +154,15 @@ async def analyze_entity_structure(request=None, _session: str = Depends(verify_
                     "disclaimer": STANDARD_DISCLAIMER,
                 }
             except Exception as e:
-                logger.warning(f"AI entity analysis failed, using fallback: {e}")
+                logger.warning(
+                    "AI fallback activated",
+                    extra={
+                        "service": "scenario_entity_analysis",
+                        "source": "fallback",
+                        "reason": str(e),
+                        "impact": "user receives basic Sole Prop vs S-Corp comparison instead of AI analysis",
+                    },
+                )
 
         # Fallback
         calculation = await chat_engine.get_tax_calculation(profile)
@@ -216,7 +232,15 @@ async def analyze_deduction_strategy(request=None, _session: str = Depends(verif
                     "disclaimer": STANDARD_DISCLAIMER,
                 }
             except Exception as e:
-                logger.warning(f"AI deduction analysis failed, using fallback: {e}")
+                logger.warning(
+                    "AI fallback activated",
+                    extra={
+                        "service": "scenario_deduction_analysis",
+                        "source": "fallback",
+                        "reason": str(e),
+                        "impact": "user receives standard vs itemized comparison instead of AI deduction strategy",
+                    },
+                )
 
         # Fallback
         itemized_est = (
@@ -271,7 +295,15 @@ async def get_audit_risk(session_id: str, _session: str = Depends(verify_session
                     "comparable_audit_rate": assessment.comparable_audit_rate,
                 }
             except Exception as e:
-                logger.warning(f"AI audit risk assessment failed: {e}")
+                logger.warning(
+                    "AI fallback activated",
+                    extra={
+                        "service": "scenario_audit_risk",
+                        "source": "fallback",
+                        "reason": str(e),
+                        "impact": "user receives rule-based risk score instead of AI audit assessment",
+                    },
+                )
 
         # Fallback: rule-based risk estimation
         income = profile.get("total_income", 0) or 0
@@ -345,7 +377,15 @@ async def analyze_amt_exposure(request=None, _session: str = Depends(verify_sess
                     "ai_powered": True,
                 }
             except Exception as e:
-                logger.warning(f"AI AMT analysis failed: {e}")
+                logger.warning(
+                    "AI fallback activated",
+                    extra={
+                        "service": "scenario_amt_analysis",
+                        "source": "fallback",
+                        "reason": str(e),
+                        "impact": "user receives basic AMT estimate instead of AI AMT analysis",
+                    },
+                )
 
         # Fallback
         income = profile.get("total_income", 0) or 0

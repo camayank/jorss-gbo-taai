@@ -2203,7 +2203,15 @@ class IntelligentChatEngine:
                 logger.info(f"AI extracted {len(extracted)} entities: {list(extracted.keys())}")
             return extracted
         except Exception as e:
-            logger.warning(f"AI entity extraction failed: {e}")
+            logger.warning(
+                "AI fallback activated",
+                extra={
+                    "service": "advisor_entity_extraction",
+                    "source": "fallback",
+                    "reason": str(e),
+                    "impact": "user message entities not extracted, relying on rule-based parsing",
+                },
+            )
             return {}
 
     async def _ai_reason_about_tax_question(self, question: str, session: dict) -> Optional[str]:
@@ -2224,7 +2232,15 @@ Always note this is not official tax advice and they should consult a CPA.""",
             )
             return response.content
         except Exception as e:
-            logger.warning(f"AI reasoning failed: {e}")
+            logger.warning(
+                "AI fallback activated",
+                extra={
+                    "service": "advisor_reasoning",
+                    "source": "fallback",
+                    "reason": str(e),
+                    "impact": "user receives template response instead of AI-reasoned answer",
+                },
+            )
             return None
 
     async def get_tax_strategies(self, profile: Dict[str, Any], calculation: TaxCalculationResult) -> List[StrategyRecommendation]:
@@ -2718,7 +2734,15 @@ Estimated tax savings: **${savings:,.0f}**""",
                         except Exception:
                             pass  # Individual enhancement failure is non-critical
             except Exception as e:
-                logger.warning(f"AI enhancement failed: {e}")
+                logger.warning(
+                    "AI fallback activated",
+                    extra={
+                        "service": "advisor_strategy_enhancement",
+                        "source": "fallback",
+                        "reason": str(e),
+                        "impact": "strategies returned without AI-personalized explanations",
+                    },
+                )
 
         # Tag any untagged strategies as templates and record quality
         metrics = get_ai_metrics_service()
@@ -2778,7 +2802,15 @@ Estimated tax savings: **${savings:,.0f}**""",
                 )
                 return narrative.content
             except Exception as e:
-                logger.warning(f"AI narrative failed, using template: {e}")
+                logger.warning(
+                    "AI fallback activated",
+                    extra={
+                        "service": "advisor_narrative",
+                        "source": "fallback",
+                        "reason": str(e),
+                        "impact": "user receives template executive summary instead of AI narrative",
+                    },
+                )
 
         # --- Fallback: template summary ---
         top_strategies = strategies[:3]
@@ -4568,7 +4600,15 @@ To get started, what's your filing status?"""
                     if key not in extracted_fields:
                         extracted_fields.append(key)
         except Exception as e:
-            logger.warning(f"AI extraction augmentation failed: {e}")
+            logger.warning(
+                "AI fallback activated",
+                extra={
+                    "service": "advisor_extraction_augmentation",
+                    "source": "fallback",
+                    "reason": str(e),
+                    "impact": "AI extraction skipped, relying on rule-based extraction only",
+                },
+            )
 
         if extracted:
             # Check if this is a correction
@@ -5222,7 +5262,15 @@ async def full_analysis(request: FullAnalysisRequest, _session: str = Depends(ve
                         "confidence": result.confidence,
                     }
                 except Exception as e:
-                    logger.warning(f"AI entity analysis failed, using fallback: {e}")
+                    logger.warning(
+                        "AI fallback activated",
+                        extra={
+                            "service": "advisor_entity_analysis",
+                            "source": "fallback",
+                            "reason": str(e),
+                            "impact": "user receives hardcoded entity comparison instead of AI analysis",
+                        },
+                    )
             # Fallback: keep existing hardcoded comparison
             if not entity_comparison:
                 entity_comparison = {
@@ -5257,7 +5305,15 @@ async def full_analysis(request: FullAnalysisRequest, _session: str = Depends(ve
                     "key_factors": multi_year_result.key_factors,
                 }
             except Exception as e:
-                logger.warning(f"AI multi-year analysis failed, using fallback: {e}")
+                logger.warning(
+                    "AI fallback activated",
+                    extra={
+                        "service": "advisor_multi_year",
+                        "source": "fallback",
+                        "reason": str(e),
+                        "impact": "user receives hardcoded 3% growth projection instead of AI strategy",
+                    },
+                )
 
         if not five_year:
             # Fallback: existing hardcoded 3% growth

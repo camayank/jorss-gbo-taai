@@ -639,7 +639,15 @@ Let's start with the basics. What's your first name?"""
                 return entities
 
         except (json.JSONDecodeError, KeyError, TypeError) as e:
-            logger.warning(f"AI extraction failed, using fallback: {e}")
+            logger.warning(
+                "AI fallback activated",
+                extra={
+                    "service": "agent_entity_extraction",
+                    "source": "fallback",
+                    "reason": str(e),
+                    "impact": "using basic extraction fallback instead of AI entity extraction",
+                },
+            )
             # Fallback to basic extraction
             return self._basic_extraction_fallback(user_input)
         except Exception as e:

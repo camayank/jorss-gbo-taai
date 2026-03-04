@@ -235,7 +235,15 @@ class AIRecommendationEnhancer:
                 )
                 return result
         except Exception as e:
-            logger.warning(f"AI summary generation failed: {e}")
+            logger.warning(
+                "AI fallback activated",
+                extra={
+                    "service": "enhancer_summary",
+                    "source": "fallback",
+                    "reason": str(e),
+                    "impact": "user receives template summary instead of AI-personalized",
+                },
+            )
 
         return self._fallback_summary(recommendation)
 
@@ -277,7 +285,15 @@ Keep it concise (2-3 sentences for general, 4-5 for detailed)."""
             response = self._call_openai(prompt, as_json=False)
             return response or opportunity.description
         except Exception as e:
-            logger.warning(f"Plain language explanation failed: {e}")
+            logger.warning(
+                "AI fallback activated",
+                extra={
+                    "service": "enhancer_explain",
+                    "source": "fallback",
+                    "reason": str(e),
+                    "impact": "user receives raw description instead of plain-language explanation",
+                },
+            )
             return opportunity.description
 
     def _build_enhancement_prompt(self, context: Dict[str, Any]) -> str:
@@ -338,7 +354,15 @@ Be concise, professional, and helpful. Return only valid JSON, no markdown code 
             ))
             return response.content
         except Exception as e:
-            logger.error(f"AI API call failed: {e}")
+            logger.error(
+                "AI API call failed",
+                extra={
+                    "service": "enhancer",
+                    "source": "error",
+                    "reason": str(e),
+                    "impact": "upstream caller will receive None and use fallback path",
+                },
+            )
             return None
 
     def _fallback_enhancement(self, opportunity: "TaxSavingOpportunity") -> AIEnhancedRecommendation:

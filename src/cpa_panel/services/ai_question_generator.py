@@ -570,7 +570,15 @@ class AIQuestionGenerator:
             return enhanced
 
         except Exception as e:
-            logger.error(f"AI question generation failed: {e}, falling back to rule-based")
+            logger.error(
+                "AI fallback activated",
+                extra={
+                    "service": "cpa_question_generator",
+                    "source": "fallback",
+                    "reason": str(e),
+                    "impact": "CPA receives rule-based questions instead of AI-enhanced questions",
+                },
+            )
             return self.generate_questions(parsed_data)
 
     def _build_ai_prompt(
