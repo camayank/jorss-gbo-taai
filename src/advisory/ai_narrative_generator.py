@@ -167,7 +167,7 @@ class AINarrativeGenerator:
             from config.ai_providers import AIProvider
             response = await self.ai_service.complete(
                 prompt=prompt,
-                provider=AIProvider.ANTHROPIC,
+                preferred_provider=AIProvider.ANTHROPIC,
                 system_prompt=self._get_system_prompt(client_profile),
             )
 
@@ -238,7 +238,7 @@ Keep it concise but complete."""
             from config.ai_providers import AIProvider
             response = await self.ai_service.complete(
                 prompt=prompt,
-                provider=AIProvider.ANTHROPIC,
+                preferred_provider=AIProvider.ANTHROPIC,
                 system_prompt=self._get_system_prompt(client_profile),
             )
 
@@ -316,7 +316,7 @@ Make it feel like a personalized roadmap, not a generic checklist."""
             from config.ai_providers import AIProvider
             response = await self.ai_service.complete(
                 prompt=prompt,
-                provider=AIProvider.ANTHROPIC,
+                preferred_provider=AIProvider.ANTHROPIC,
                 system_prompt=self._get_system_prompt(client_profile),
             )
 
@@ -388,7 +388,7 @@ Keep technical explanations appropriate for {client_profile.tax_sophistication.v
             from config.ai_providers import AIProvider
             response = await self.ai_service.complete(
                 prompt=prompt,
-                provider=AIProvider.ANTHROPIC,
+                preferred_provider=AIProvider.ANTHROPIC,
                 system_prompt=self._get_system_prompt(client_profile),
             )
 

@@ -53,14 +53,24 @@ class TestEnhancerSourceTagging:
         assert result.metadata.get("_source") == "fallback"
         assert result.metadata.get("_provider") == "none"
 
-    def test_fallback_has_fewer_populated_fields(self):
-        """Fallback should have fewer populated fields than max possible."""
+    def test_fallback_populates_fields_from_templates(self):
+        """Fallback should populate fields from category templates."""
         enhancer = AIRecommendationEnhancer()
-        opp = _make_test_opportunity()
+        opp = _make_test_opportunity()  # category="credits"
         result = enhancer._fallback_enhancement(opp)
 
-        # Fallback copies description and confidence, but leaves
-        # common_questions, risk_considerations, related_opportunities empty
+        # Fallback now uses CATEGORY_TEMPLATES to populate these fields
+        assert len(result.common_questions) > 0, "common_questions should be populated from templates"
+        assert len(result.risk_considerations) > 0, "risk_considerations should be populated from templates"
+        assert len(result.related_opportunities) > 0, "related_opportunities should be populated from templates"
+
+    def test_fallback_unknown_category_has_empty_fields(self):
+        """Fallback for unknown categories should have empty template fields."""
+        enhancer = AIRecommendationEnhancer()
+        opp = _make_test_opportunity()
+        opp.category = "unknown_category"
+        result = enhancer._fallback_enhancement(opp)
+
         assert result.common_questions == []
         assert result.risk_considerations == []
         assert result.related_opportunities == []

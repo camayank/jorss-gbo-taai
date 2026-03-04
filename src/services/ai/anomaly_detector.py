@@ -467,6 +467,117 @@ Return JSON:
                     recommendation="Keep receipts and appraisals for all donations"
                 ))
 
+        # Business expense ratio check
+        business_income = return_data.get("business_income", 0)
+        business_expenses = return_data.get("business_expenses", 0)
+        if business_income > 0 and business_expenses > 0:
+            expense_ratio = business_expenses / business_income
+            norm = STATISTICAL_NORMS["business_expense_ratio"]
+
+            if expense_ratio > norm["audit_threshold"]:
+                anomalies.append(Anomaly(
+                    category=AnomalyCategory.STATISTICAL,
+                    severity=AnomalySeverity.HIGH,
+                    field="business_expenses",
+                    description=f"Business expense ratio ({expense_ratio:.1%}) exceeds audit threshold",
+                    current_value=business_expenses,
+                    expected_range=f"{norm['typical_range'][0]:.0%} - {norm['typical_range'][1]:.0%} of business income",
+                    recommendation="Ensure all business expenses are documented and ordinary/necessary per IRS guidelines",
+                    irs_reference="Publication 535"
+                ))
+            elif expense_ratio > norm["typical_range"][1]:
+                anomalies.append(Anomaly(
+                    category=AnomalyCategory.STATISTICAL,
+                    severity=AnomalySeverity.MEDIUM,
+                    field="business_expenses",
+                    description=f"Business expense ratio ({expense_ratio:.1%}) above typical range",
+                    current_value=business_expenses,
+                    expected_range=f"{norm['typical_range'][0]:.0%} - {norm['typical_range'][1]:.0%} of business income",
+                    recommendation="Review expense categories for proper classification"
+                ))
+
+        # Home office square footage check
+        home_office_sqft = return_data.get("home_office_sqft", 0)
+        if home_office_sqft > 0:
+            norm = STATISTICAL_NORMS["home_office_sqft"]
+
+            if home_office_sqft > norm["audit_threshold"]:
+                anomalies.append(Anomaly(
+                    category=AnomalyCategory.STATISTICAL,
+                    severity=AnomalySeverity.HIGH,
+                    field="home_office_sqft",
+                    description=f"Home office square footage ({home_office_sqft} sq ft) exceeds audit threshold",
+                    current_value=home_office_sqft,
+                    expected_range=f"{norm['typical_range'][0]} - {norm['typical_range'][1]} sq ft",
+                    recommendation="Ensure home office is used regularly and exclusively for business",
+                    irs_reference="Publication 587"
+                ))
+            elif home_office_sqft > norm["typical_range"][1]:
+                anomalies.append(Anomaly(
+                    category=AnomalyCategory.STATISTICAL,
+                    severity=AnomalySeverity.MEDIUM,
+                    field="home_office_sqft",
+                    description=f"Home office square footage ({home_office_sqft} sq ft) above typical range",
+                    current_value=home_office_sqft,
+                    expected_range=f"{norm['typical_range'][0]} - {norm['typical_range'][1]} sq ft",
+                    recommendation="Keep documentation of office measurements and exclusive business use"
+                ))
+
+        # Vehicle business use percentage check
+        vehicle_business_pct = return_data.get("vehicle_business_pct", 0)
+        if vehicle_business_pct > 0:
+            norm = STATISTICAL_NORMS["vehicle_business_pct"]
+
+            if vehicle_business_pct > norm["audit_threshold"]:
+                anomalies.append(Anomaly(
+                    category=AnomalyCategory.STATISTICAL,
+                    severity=AnomalySeverity.HIGH,
+                    field="vehicle_business_pct",
+                    description=f"Vehicle business use ({vehicle_business_pct:.0%}) exceeds audit threshold",
+                    current_value=vehicle_business_pct,
+                    expected_range=f"{norm['typical_range'][0]:.0%} - {norm['typical_range'][1]:.0%}",
+                    recommendation="Maintain contemporaneous mileage log with dates, destinations, and business purpose",
+                    irs_reference="Publication 463"
+                ))
+            elif vehicle_business_pct > norm["typical_range"][1]:
+                anomalies.append(Anomaly(
+                    category=AnomalyCategory.STATISTICAL,
+                    severity=AnomalySeverity.MEDIUM,
+                    field="vehicle_business_pct",
+                    description=f"Vehicle business use ({vehicle_business_pct:.0%}) above typical range",
+                    current_value=vehicle_business_pct,
+                    expected_range=f"{norm['typical_range'][0]:.0%} - {norm['typical_range'][1]:.0%}",
+                    recommendation="Keep detailed mileage log to support business use percentage"
+                ))
+
+        # Meal expense ratio check
+        meal_expenses = return_data.get("meal_expenses", 0)
+        if meal_expenses > 0 and business_income > 0:
+            meal_ratio = meal_expenses / business_income
+            norm = STATISTICAL_NORMS["meal_expense_ratio"]
+
+            if meal_ratio > norm["audit_threshold"]:
+                anomalies.append(Anomaly(
+                    category=AnomalyCategory.STATISTICAL,
+                    severity=AnomalySeverity.HIGH,
+                    field="meal_expenses",
+                    description=f"Meal expense ratio ({meal_ratio:.1%} of business income) exceeds audit threshold",
+                    current_value=meal_expenses,
+                    expected_range=f"{norm['typical_range'][0]:.0%} - {norm['typical_range'][1]:.0%} of business income",
+                    recommendation="Document business purpose, attendees, and topics discussed for each meal expense",
+                    irs_reference="Publication 463"
+                ))
+            elif meal_ratio > norm["typical_range"][1]:
+                anomalies.append(Anomaly(
+                    category=AnomalyCategory.STATISTICAL,
+                    severity=AnomalySeverity.MEDIUM,
+                    field="meal_expenses",
+                    description=f"Meal expense ratio ({meal_ratio:.1%} of business income) above typical range",
+                    current_value=meal_expenses,
+                    expected_range=f"{norm['typical_range'][0]:.0%} - {norm['typical_range'][1]:.0%} of business income",
+                    recommendation="Keep receipts and document business purpose for all meal expenses"
+                ))
+
         return anomalies
 
     def _check_year_over_year(
