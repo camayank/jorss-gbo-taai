@@ -1024,6 +1024,79 @@ Return a structured analysis with confidence scores for each extracted field."""
             "by_provider": by_provider,
         }
 
+    async def complete_with_fallback(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        capability: ModelCapability = ModelCapability.STANDARD,
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+        deterministic_fallback: Optional[str] = None,
+        **kwargs
+    ) -> AIResponse:
+        """
+        Complete with cross-provider fallback chain.
+
+        Tries each available provider in priority order. If all fail,
+        returns a deterministic fallback response (no AI call).
+
+        Args:
+            prompt: User prompt
+            system_prompt: Optional system prompt
+            capability: Required capability
+            temperature: Sampling temperature
+            max_tokens: Maximum output tokens
+            deterministic_fallback: Static fallback text if all providers fail
+        """
+        providers = list(self._adapters.keys())
+        last_error = None
+
+        for provider in providers:
+            try:
+                return await self.complete(
+                    prompt=prompt,
+                    system_prompt=system_prompt,
+                    capability=capability,
+                    preferred_provider=provider,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    **kwargs,
+                )
+            except (RuntimeError, RateLimitExceededError) as e:
+                logger.warning(
+                    f"Provider {provider.value} failed, trying next",
+                    extra={"service": "ai_fallback", "provider": provider.value, "error": str(e)},
+                )
+                last_error = e
+                continue
+            except Exception as e:
+                logger.warning(
+                    f"Provider {provider.value} error, trying next",
+                    extra={"service": "ai_fallback", "provider": provider.value, "error": str(e)},
+                )
+                last_error = e
+                continue
+
+        # All providers failed — use deterministic fallback
+        fallback_text = deterministic_fallback or (
+            "I'm unable to process this request right now. "
+            "Please try again shortly, or consult a tax professional for immediate assistance."
+        )
+        logger.error(
+            "All AI providers failed, using deterministic fallback",
+            extra={"service": "ai_fallback", "last_error": str(last_error)},
+        )
+        return AIResponse(
+            content=fallback_text,
+            model="deterministic-fallback",
+            provider=AIProvider.OPENAI,  # Nominal; no actual provider used
+            input_tokens=0,
+            output_tokens=0,
+            latency_ms=0,
+            cost_estimate=0.0,
+            metadata={"fallback": True},
+        )
+
 
 # =============================================================================
 # SINGLETON INSTANCE
