@@ -645,6 +645,7 @@ async def cpa_lead_detail(
         session_id = lead_dict.get("session_id")
         tax_profile = None
         insights = []
+        session_dict = None
 
         if session_id:
             session = service.get_session(session_id)
@@ -659,6 +660,18 @@ async def cpa_lead_detail(
                     insights = report.get("insights", [])[:5]
             except Exception:
                 pass
+
+        # Extract Q&A conversation trail from session data
+        session_data = session_dict.get("data", {}) if session_dict else {}
+        qa_trail = []
+        qa_tax_profile = session_data.get("tax_profile", {})
+        if not qa_tax_profile and session_dict:
+            # tax_profile might be at the top level of session_dict
+            qa_tax_profile = session_dict.get("tax_profile", {})
+        if isinstance(qa_tax_profile, dict):
+            for key, value in qa_tax_profile.items():
+                if value is not None:
+                    qa_trail.append({"field": key, "value": value})
 
         # Derive state from engagement status
         if lead_dict.get("converted"):
@@ -710,6 +723,8 @@ async def cpa_lead_detail(
             "cpa": cpa_profile,
             "stats": stats,
             "lead": lead_data,
+            "qa_trail": qa_trail,
+            "session_data": session_data,
             "active_page": "leads",
         }
     )
