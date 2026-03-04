@@ -251,25 +251,25 @@ async def get_dashboard_stats(cpa_id: str) -> dict:
             "conversion_trend": 0,
         }
 
-        if pipeline and "stages" in pipeline:
-            for stage in pipeline["stages"]:
-                state = stage.get("state", "").lower()
-                count = stage.get("count", 0)
-                value = stage.get("total_value", 0)
+        pipeline_data = pipeline.get("pipeline", {}) if pipeline else {}
+        for state_name, stage in pipeline_data.items():
+            count = stage.get("count", 0)
+            value = stage.get("total_value", 0)
 
-                stats["total_leads"] += count
-                stats["total_revenue"] += value
+            stats["total_leads"] += count
+            stats["total_revenue"] += value
 
-                if state in ("browsing", "curious"):
-                    stats["new_leads"] += count
-                elif state == "evaluating":
-                    stats["evaluating"] = count
-                elif state == "advisory_ready":
-                    stats["advisory_ready"] = count
-                elif state == "high_leverage":
-                    stats["high_leverage"] = count
-                elif state == "converted":
-                    stats["converted"] = count
+            state_lower = state_name.lower()
+            if state_lower in ("browsing", "curious"):
+                stats["new_leads"] += count
+            elif state_lower == "evaluating":
+                stats["evaluating"] = count
+            elif state_lower == "advisory_ready":
+                stats["advisory_ready"] = count
+            elif state_lower == "high_leverage":
+                stats["high_leverage"] = count
+            elif state_lower == "converted":
+                stats["converted"] = count
 
         # Calculate conversion rate
         if stats["total_leads"] > 0:
