@@ -1,0 +1,1 @@
+Extract structured data from the following text. Return valid JSON only.
