@@ -1146,89 +1146,14 @@ class LeadMagnetService:
         return session, complexity, insights
 
     def _detect_complexity(self, profile: TaxProfile) -> TaxComplexity:
-        """
-        Detect tax complexity from profile.
-
-        Rules:
-        - SIMPLE: W-2 only + standard deduction signals
-        - MODERATE: Multiple W-2s OR investments OR homeowner
-        - COMPLEX: Self-employment OR rental OR multi-state
-        - PROFESSIONAL: Business owner + high income (>$200k) OR complex + high income
-        """
-        sources = set(profile.income_sources)
-        income = self._parse_income_range(profile.income_range)
-
-        # Flags
-        has_self_employed = IncomeSource.SELF_EMPLOYED in sources
-        has_rental = IncomeSource.RENTAL in sources
-        has_investments = IncomeSource.INVESTMENTS in sources
-        has_business = profile.has_business or has_self_employed
-        high_income = income >= 200000  # Lowered threshold
-        very_high_income = income >= 500000
-
-        # PROFESSIONAL: Complex situation + high income
-        # OR any business/self-employed + very high income
-        if very_high_income and (has_business or has_rental or has_investments):
-            return TaxComplexity.PROFESSIONAL
-
-        if high_income and has_business:
-            return TaxComplexity.PROFESSIONAL
-
-        if has_business and has_rental and has_investments:
-            return TaxComplexity.PROFESSIONAL
-
-        # COMPLEX: Self-employment OR rental income OR starting a business
-        if has_self_employed or has_rental or has_business:
-            return TaxComplexity.COMPLEX
-
-        # Check for business start life event
-        if LifeEvent.BUSINESS_START in profile.life_events:
-            return TaxComplexity.COMPLEX
-
-        # MODERATE: Investments OR homeowner OR multiple income sources
-        multiple_sources = len(sources) > 1
-
-        if multiple_sources or has_investments or profile.is_homeowner:
-            return TaxComplexity.MODERATE
-
-        # SIMPLE: W-2 only with standard deduction indicators
-        return TaxComplexity.SIMPLE
+        """Detect tax complexity from profile. Delegates to calculator sub-module."""
+        from cpa_panel.services.lead_magnet.calculator import detect_complexity
+        return detect_complexity(profile)
 
     def _parse_income_range(self, range_str: str) -> int:
-        """Parse income range string to approximate value.
-
-        Supports multiple formats:
-        - Frontend format: under_50k, 50k_75k, over_500k
-        - Legacy format: 0-25k, 50k-75k, 500k+
-        """
-        # Normalize the string
-        normalized = range_str.lower().replace("-", "_").replace("+", "")
-
-        range_map = {
-            # Frontend format
-            "under_50k": 25000,
-            "50k_75k": 62500,
-            "75k_100k": 87500,
-            "100k_150k": 125000,
-            "150k_200k": 175000,
-            "200k_500k": 350000,
-            "over_200k": 350000,
-            "over_500k": 750000,
-            # Transitional format
-            "50k_100k": 87500,
-            "100k_200k": 175000,
-            # Legacy format (normalized)
-            "0_25k": 12500,
-            "25k_50k": 37500,
-            "50k_75k": 62500,
-            "75k_100k": 87500,
-            "100k_150k": 125000,
-            "150k_200k": 175000,
-            "200k_300k": 250000,
-            "300k_500k": 400000,
-            "500k": 600000,
-        }
-        return range_map.get(normalized, 62500)
+        """Parse income range string to approximate value. Delegates to calculator sub-module."""
+        from cpa_panel.services.lead_magnet.calculator import parse_income_range
+        return parse_income_range(range_str)
 
     # =========================================================================
     # INSIGHT GENERATION
@@ -1239,540 +1164,69 @@ class LeadMagnetService:
         profile: TaxProfile,
         complexity: TaxComplexity,
     ) -> List[TaxInsight]:
-        """Generate tax insights based on profile."""
-        insights = []
-        income = self._parse_income_range(profile.income_range)
+        """Generate tax insights based on profile. Delegates to generator sub-module."""
+        from cpa_panel.services.lead_magnet.generator import generate_insights
+        return generate_insights(profile, complexity)
 
-        # Child Tax Credit
-        if profile.children_under_17:
-            savings = 2000 * profile.dependents_count
-            insights.append(TaxInsight(
-                insight_id=f"ctc-{uuid.uuid4().hex[:8]}",
-                title="Child Tax Credit Optimization",
-                category="credits",
-                description_teaser="You may be eligible for significant child tax credits.",
-                description_full=(
-                    f"With {profile.dependents_count} qualifying child(ren) under 17, you may be "
-                    f"eligible for the Child Tax Credit worth up to $2,000 per child. The credit "
-                    f"is partially refundable up to $1,600 per child."
-                ),
-                savings_low=savings * 0.5,
-                savings_high=savings,
-                action_items=[
-                    "Verify children's SSNs are valid for work",
-                    "Confirm residency requirements (lived with you > 6 months)",
-                    "Check income phase-out thresholds",
-                ],
-                irs_reference="IRS Publication 972",
-                priority="high",
-            ))
-
-        # Retirement savings opportunity
-        if profile.retirement_savings != "maxed" and income > 30000:
-            max_401k = 23500  # 2025 limit (IRS Rev. Proc. 2024-40)
-            marginal_rate = self._estimate_marginal_rate(income, profile.filing_status)
-            savings = max_401k * marginal_rate
-
-            insights.append(TaxInsight(
-                insight_id=f"ret-{uuid.uuid4().hex[:8]}",
-                title="Retirement Contribution Opportunity",
-                category="retirement",
-                description_teaser="Maximize tax-advantaged retirement savings.",
-                description_full=(
-                    f"Based on your income, increasing your 401(k) or IRA contributions could "
-                    f"significantly reduce your taxable income. The 2025 401(k) limit is $23,500 "
-                    f"($31,000 if over 50). Each dollar contributed saves approximately "
-                    f"{marginal_rate * 100:.0f}% in taxes."
-                ),
-                savings_low=savings * 0.3,
-                savings_high=savings,
-                action_items=[
-                    "Review current 401(k) contribution percentage",
-                    "Check if employer offers matching",
-                    "Consider catch-up contributions if over 50",
-                    "Evaluate Roth vs Traditional based on tax bracket",
-                ],
-                irs_reference="IRS Publication 590-A",
-                priority="high",
-            ))
-
-        # HSA opportunity
-        if profile.healthcare_type == "hdhp_hsa":
-            hsa_limit = 8550 if profile.filing_status == FilingStatus.MARRIED_JOINTLY else 4300  # 2025 limits
-            marginal_rate = self._estimate_marginal_rate(income, profile.filing_status)
-            savings = hsa_limit * marginal_rate
-
-            insights.append(TaxInsight(
-                insight_id=f"hsa-{uuid.uuid4().hex[:8]}",
-                title="HSA Triple Tax Advantage",
-                category="healthcare",
-                description_teaser="Maximize your Health Savings Account benefits.",
-                description_full=(
-                    f"Your HDHP eligibility allows HSA contributions up to ${hsa_limit:,}. "
-                    f"HSAs offer triple tax benefits: deductible contributions, tax-free growth, "
-                    f"and tax-free withdrawals for medical expenses."
-                ),
-                savings_low=savings * 0.5,
-                savings_high=savings,
-                action_items=[
-                    "Verify HDHP eligibility requirements",
-                    f"Contribute maximum ${hsa_limit:,} for the year",
-                    "Consider investing HSA funds for long-term growth",
-                ],
-                irs_reference="IRS Publication 969",
-                priority="high",
-            ))
-
-        # Homeowner deductions
-        if profile.is_homeowner:
-            # Estimate based on income (rough proxy for home value)
-            estimated_property_tax = income * 0.015
-            estimated_mortgage_interest = income * 0.02
-
-            insights.append(TaxInsight(
-                insight_id=f"home-{uuid.uuid4().hex[:8]}",
-                title="Homeowner Tax Benefits",
-                category="deductions",
-                description_teaser="Review mortgage interest and property tax deductions.",
-                description_full=(
-                    "As a homeowner, you may benefit from itemizing deductions including "
-                    "mortgage interest and property taxes. The SALT deduction cap is $10,000, "
-                    "which includes state income taxes and property taxes combined."
-                ),
-                savings_low=2000,
-                savings_high=min(10000, estimated_property_tax + estimated_mortgage_interest) * 0.22,
-                action_items=[
-                    "Gather Form 1098 for mortgage interest",
-                    "Compile property tax statements",
-                    "Compare itemized vs standard deduction",
-                ],
-                irs_reference="IRS Schedule A",
-                priority="medium",
-            ))
-
-        # Self-employment deductions
-        if IncomeSource.SELF_EMPLOYED in profile.income_sources:
-            insights.append(TaxInsight(
-                insight_id=f"se-{uuid.uuid4().hex[:8]}",
-                title="Self-Employment Tax Strategies",
-                category="business",
-                description_teaser="Multiple deductions available for self-employed individuals.",
-                description_full=(
-                    "Self-employment opens numerous tax planning opportunities including "
-                    "the QBI deduction (up to 20% of qualified income), home office deduction, "
-                    "health insurance premiums, retirement plans (SEP-IRA, Solo 401k), and "
-                    "business expense deductions."
-                ),
-                savings_low=income * 0.05,
-                savings_high=income * 0.15,
-                action_items=[
-                    "Track all business expenses",
-                    "Calculate home office deduction",
-                    "Review QBI deduction eligibility",
-                    "Consider SEP-IRA or Solo 401(k)",
-                ],
-                irs_reference="IRS Schedule C, Form 8829",
-                priority="high",
-            ))
-
-        # Life events
-        if LifeEvent.BABY in profile.life_events:
-            insights.append(TaxInsight(
-                insight_id=f"baby-{uuid.uuid4().hex[:8]}",
-                title="New Baby Tax Benefits",
-                category="credits",
-                description_teaser="Several tax benefits are available for new parents.",
-                description_full=(
-                    "Congratulations on your new addition! This triggers several tax benefits "
-                    "including the Child Tax Credit, potential dependent care FSA, and if "
-                    "applicable, the Earned Income Tax Credit."
-                ),
-                savings_low=1500,
-                savings_high=3600,
-                action_items=[
-                    "Get SSN for newborn ASAP",
-                    "Update W-4 withholding",
-                    "Sign up for dependent care FSA if available",
-                ],
-                priority="high",
-            ))
-
-        if LifeEvent.HOME_PURCHASE in profile.life_events:
-            insights.append(TaxInsight(
-                insight_id=f"newh-{uuid.uuid4().hex[:8]}",
-                title="New Home Tax Considerations",
-                category="deductions",
-                description_teaser="First-year homeowner tax planning opportunities.",
-                description_full=(
-                    "Your home purchase may result in significant deductible expenses "
-                    "including mortgage points, PMI (if income qualifies), and prorated "
-                    "property taxes. Keep all closing documents for tax preparation."
-                ),
-                savings_low=1000,
-                savings_high=5000,
-                action_items=[
-                    "Keep HUD-1 settlement statement",
-                    "Note any points paid on mortgage",
-                    "Track property tax payments",
-                ],
-                priority="high",
-            ))
-
-        # Ensure minimum insights
-        if len(insights) < 3:
-            # Add generic opportunities
-            insights.append(TaxInsight(
-                insight_id=f"gen-{uuid.uuid4().hex[:8]}",
-                title="Tax Filing Optimization",
-                category="planning",
-                description_teaser="Review your overall tax strategy with a professional.",
-                description_full=(
-                    "A professional tax review can identify additional savings opportunities "
-                    "based on your complete financial picture. This includes timing strategies, "
-                    "charitable giving optimization, and education credits if applicable."
-                ),
-                savings_low=200,
-                savings_high=1500,
-                action_items=["Schedule consultation with tax professional"],
-                priority="medium",
-            ))
-
-        return insights
-
-    def _estimate_marginal_rate(
-        self,
-        income: int,
-        filing_status: FilingStatus,
-    ) -> float:
-        """Estimate marginal tax rate (2025 brackets)."""
-        # 2025 brackets (IRS Rev. Proc. 2024-40)
-        if filing_status == FilingStatus.MARRIED_JOINTLY:
-            if income < 23850:
-                return 0.10
-            elif income < 96950:
-                return 0.12
-            elif income < 206700:
-                return 0.22
-            elif income < 394600:
-                return 0.24
-            else:
-                return 0.32
-        else:
-            if income < 11925:
-                return 0.10
-            elif income < 48475:
-                return 0.12
-            elif income < 103350:
-                return 0.22
-            elif income < 197300:
-                return 0.24
-            else:
-                return 0.32
+    def _estimate_marginal_rate(self, income: int, filing_status: FilingStatus) -> float:
+        """Estimate marginal tax rate. Delegates to calculator sub-module."""
+        from cpa_panel.services.lead_magnet.calculator import estimate_marginal_rate
+        return estimate_marginal_rate(income, filing_status)
 
     def _normalize_state_code(self, state_code: Optional[str]) -> str:
-        """Normalize a state code and return US for unknown values."""
-        normalized = (state_code or "US").strip().upper()
-        if normalized in STATE_DISPLAY_NAMES:
-            return normalized
-        return "US"
+        """Normalize a state code. Delegates to generator sub-module."""
+        from cpa_panel.services.lead_magnet.generator import normalize_state_code
+        return normalize_state_code(state_code)
 
     def _filing_status_display(self, filing_status: FilingStatus) -> str:
-        mapping = {
-            FilingStatus.SINGLE: "single filers",
-            FilingStatus.MARRIED_JOINTLY: "married filers",
-            FilingStatus.MARRIED_SEPARATELY: "married-separate filers",
-            FilingStatus.HEAD_OF_HOUSEHOLD: "head-of-household filers",
-            FilingStatus.QUALIFYING_WIDOW: "qualifying surviving spouse filers",
-        }
-        return mapping.get(filing_status, "taxpayers")
+        """Human-readable filing status. Delegates to generator sub-module."""
+        from cpa_panel.services.lead_magnet.generator import filing_status_display
+        return filing_status_display(filing_status)
 
     def _income_range_display(self, income_range: str) -> str:
-        mapping = {
-            "under_50k": "under $50K",
-            "50k_75k": "$50K-$75K",
-            "75k_100k": "$75K-$100K",
-            "100k_150k": "$100K-$150K",
-            "150k_200k": "$150K-$200K",
-            "200k_500k": "$200K-$500K",
-            "over_500k": "over $500K",
-            "50k_100k": "$50K-$100K",
-            "100k_200k": "$100K-$200K",
-            "over_200k": "over $200K",
-        }
-        return mapping.get(income_range, income_range)
+        """Human-readable income range. Delegates to generator sub-module."""
+        from cpa_panel.services.lead_magnet.generator import income_range_display
+        return income_range_display(income_range)
 
     def _normalize_occupation_type(self, occupation_type: Optional[str], profile: Optional[TaxProfile] = None) -> str:
-        """Normalize occupation type to a controlled taxonomy."""
-        normalized = (occupation_type or "").strip().lower().replace("-", "_").replace(" ", "_")
-        allowed = {"w2", "self_employed", "business_owner", "investor", "mixed"}
-        if normalized in allowed:
-            return normalized
-
-        if profile:
-            sources = {s.value if hasattr(s, "value") else str(s) for s in profile.income_sources}
-            if "self_employed" in sources or profile.has_business:
-                return "business_owner"
-            if "investments" in sources and len(sources) > 1:
-                return "mixed"
-            if "investments" in sources:
-                return "investor"
-
-        return "w2"
+        """Normalize occupation type. Delegates to payloads sub-module."""
+        from cpa_panel.services.lead_magnet.payloads import normalize_occupation_type
+        return normalize_occupation_type(occupation_type, profile)
 
     def _occupation_display(self, profile: TaxProfile) -> str:
-        normalized = self._normalize_occupation_type(profile.occupation_type, profile)
-        mapping = {
-            "w2": "W-2 households",
-            "self_employed": "self-employed households",
-            "business_owner": "business-owner households",
-            "investor": "investor households",
-            "mixed": "mixed-income households",
-        }
-        return mapping.get(normalized, "W-2 households")
+        """Human-readable occupation label. Delegates to payloads sub-module."""
+        from cpa_panel.services.lead_magnet.payloads import occupation_display
+        return occupation_display(profile)
 
-    def _build_personalization_payload(
-        self,
-        profile: Optional[TaxProfile],
-        complexity: TaxComplexity,
-        savings_low: float,
-        savings_high: float,
-    ) -> Dict[str, Any]:
-        """Build taxpayer-facing personalization tokens used across funnel steps."""
-        if not profile:
-            return {
-                "line": "Your answers suggest meaningful tax optimization opportunities.",
-                "tokens": {},
-            }
+    def _build_personalization_payload(self, profile, complexity, savings_low, savings_high):
+        """Build personalization tokens. Delegates to payloads sub-module."""
+        from cpa_panel.services.lead_magnet.payloads import build_personalization_payload
+        return build_personalization_payload(profile, complexity, savings_low, savings_high)
 
-        state_code = self._normalize_state_code(profile.state_code)
-        state_name = STATE_DISPLAY_NAMES.get(state_code, "your state")
-        filing_label = self._filing_status_display(profile.filing_status)
-        occupation_label = self._occupation_display(profile)
-        income_label = self._income_range_display(profile.income_range)
-        complexity_label = complexity.value.replace("_", " ").title()
-        avg_savings = int(round((savings_low + savings_high) / 2)) if (savings_low or savings_high) else 0
+    def _build_deadline_payload(self):
+        """Build deadline urgency context. Delegates to payloads sub-module."""
+        from cpa_panel.services.lead_magnet.payloads import build_deadline_payload
+        return build_deadline_payload()
 
-        line = (
-            f"For {filing_label} and {occupation_label} in {state_name} with {income_label} income, "
-            f"profiles like yours commonly miss around ${avg_savings:,.0f} in savings."
-        )
+    def _build_comparison_chart_payload(self, savings_low, savings_high, score_overall):
+        """Build comparison chart data. Delegates to payloads sub-module."""
+        from cpa_panel.services.lead_magnet.payloads import build_comparison_chart_payload
+        return build_comparison_chart_payload(savings_low, savings_high, score_overall)
 
-        return {
-            "line": line,
-            "tokens": {
-                "occupation_type": self._normalize_occupation_type(profile.occupation_type, profile),
-                "filing_status": profile.filing_status.value,
-                "filing_status_label": filing_label,
-                "occupation_type_label": occupation_label,
-                "state_code": state_code,
-                "state_name": state_name,
-                "income_range_label": income_label,
-                "complexity_label": complexity_label,
-                "avg_missed_savings": avg_savings,
-            },
-        }
+    def _build_strategy_waterfall_payload(self, insights, limit=None):
+        """Build strategy waterfall data. Delegates to payloads sub-module."""
+        from cpa_panel.services.lead_magnet.payloads import build_strategy_waterfall_payload
+        return build_strategy_waterfall_payload(insights, limit)
 
-    def _build_deadline_payload(self) -> Dict[str, Any]:
-        """
-        Build deadline urgency context for tax-season-aware messaging.
-        Uses the next April 15 filing deadline.
-        """
-        today = date.today()
-        deadline = date(today.year, 4, 15)
-        if today > deadline:
-            deadline = date(today.year + 1, 4, 15)
+    def _build_tax_calendar_payload(self, max_items=5):
+        """Build tax calendar events. Delegates to payloads sub-module."""
+        from cpa_panel.services.lead_magnet.payloads import build_tax_calendar_payload
+        return build_tax_calendar_payload(max_items)
 
-        days_remaining = (deadline - today).days
-        if days_remaining <= 30:
-            urgency = "critical"
-        elif days_remaining <= 75:
-            urgency = "high"
-        elif days_remaining <= 150:
-            urgency = "moderate"
-        else:
-            urgency = "planning"
-
-        if urgency == "critical":
-            message = f"Tax deadline in {days_remaining} days. High-impact moves should be prioritized now."
-        elif urgency == "high":
-            message = f"{days_remaining} days until the tax deadline. There is still time to lock in savings."
-        elif urgency == "moderate":
-            message = f"{days_remaining} days to filing day. This is the best window for proactive planning."
-        else:
-            message = f"{days_remaining} days until the next filing deadline. Planning early increases tax control."
-
-        return {
-            "deadline_date": deadline.isoformat(),
-            "deadline_display": deadline.strftime("%b %d, %Y"),
-            "days_remaining": days_remaining,
-            "urgency": urgency,
-            "message": message,
-        }
-
-    def _build_comparison_chart_payload(
-        self,
-        savings_low: float,
-        savings_high: float,
-        score_overall: int,
-    ) -> Dict[str, Any]:
-        """Build chart payload for teaser/report comparison visualizations."""
-        missed_mid = max(0, int(round((savings_low + savings_high) / 2)))
-        current_path = max(1200, int(round(missed_mid * 2.2)))
-        optimized_path = max(0, current_path - missed_mid)
-        optimized_pct = int(round((optimized_path / current_path) * 100)) if current_path else 0
-
-        return {
-            "bars": [
-                {"label": "Current Tax Path", "value": current_path},
-                {"label": "Optimized Path", "value": optimized_path},
-            ],
-            "waterfall": [
-                {"label": "Current Path", "value": current_path, "kind": "base"},
-                {"label": "Missed Savings", "value": -missed_mid, "kind": "delta"},
-                {"label": "Optimized Path", "value": optimized_path, "kind": "total"},
-            ],
-            "score_to_savings_ratio": round(missed_mid / max(score_overall, 1), 2),
-            "optimized_vs_current_percent": optimized_pct,
-        }
-
-    def _build_strategy_waterfall_payload(
-        self,
-        insights: List[TaxInsight],
-        limit: Optional[int] = None,
-    ) -> Dict[str, Any]:
-        """
-        Build canonical strategy waterfall payload consumed by teaser/report templates.
-
-        Contract:
-        {
-            "bars": [{"label", "value", "percent", "cumulative"}],
-            "total_value": int,
-            "currency": "USD"
-        }
-        """
-        selected = insights[:limit] if isinstance(limit, int) and limit > 0 else insights
-        impacts: List[Tuple[str, int]] = []
-        for insight in selected:
-            value = int(round((insight.savings_low + insight.savings_high) / 2))
-            impacts.append((insight.title, max(0, value)))
-
-        max_value = max((value for _, value in impacts), default=0)
-        running_total = 0
-        bars: List[Dict[str, Any]] = []
-        for label, value in impacts:
-            running_total += value
-            percent = int(round((value / max_value) * 100)) if max_value > 0 else 0
-            bars.append({
-                "label": label,
-                "value": value,
-                "percent": percent,
-                "cumulative": running_total,
-            })
-
-        return {
-            "bars": bars,
-            "total_value": running_total,
-            "currency": "USD",
-        }
-
-    def _build_tax_calendar_payload(self, max_items: int = 5) -> List[Dict[str, Any]]:
-        """
-        Build dynamic taxpayer calendar events relative to current date.
-        Never hardcodes year and always returns month/day display fields.
-        """
-        today = date.today()
-        years = (today.year, today.year + 1)
-        candidates: List[Tuple[date, str, str]] = []
-
-        for year in years:
-            candidates.extend([
-                (
-                    date(year, 1, 15),
-                    "Q4 Estimated Tax Payment Due",
-                    "Fourth-quarter estimated payment deadline.",
-                ),
-                (
-                    date(year, 4, 15),
-                    "Federal Filing Deadline",
-                    "File return or extension; IRA/HSA contribution deadline.",
-                ),
-                (
-                    date(year, 6, 15),
-                    "Q2 Estimated Tax Payment Due",
-                    "Second-quarter estimated payment deadline.",
-                ),
-                (
-                    date(year, 9, 15),
-                    "Q3 Estimated Tax Payment Due",
-                    "Third-quarter estimated payment deadline.",
-                ),
-                (
-                    date(year, 10, 15),
-                    "Extension Filing Deadline",
-                    "Extended individual return due date.",
-                ),
-            ])
-
-        upcoming = sorted(
-            [entry for entry in candidates if entry[0] >= today],
-            key=lambda entry: entry[0],
-        )[:max_items]
-
-        payload: List[Dict[str, Any]] = []
-        for entry_date, title, description in upcoming:
-            days_remaining = (entry_date - today).days
-            if days_remaining <= 7:
-                urgency = "critical"
-            elif days_remaining <= 30:
-                urgency = "high"
-            elif days_remaining <= 60:
-                urgency = "moderate"
-            else:
-                urgency = "low"
-            payload.append({
-                "date_iso": entry_date.isoformat(),
-                "month": entry_date.strftime("%b"),
-                "day": entry_date.strftime("%d"),
-                "title": title,
-                "description": description,
-                "days_remaining": days_remaining,
-                "urgency": urgency,
-            })
-
-        return payload
-
-    def _build_share_payload(
-        self,
-        session_id: str,
-        score_overall: int,
-        score_band: str,
-        state_code: str,
-        cpa_slug: Optional[str] = None,
-        estimated_savings: Optional[int] = None,
-    ) -> Dict[str, Any]:
-        """Build share text/url payload for organic funnel distribution."""
-        share_text = (
-            f"My Tax Health Score is {score_overall}/100 ({score_band}). "
-            f"I found hidden tax opportunities in {state_code}. Check your score."
-        )
-        if cpa_slug:
-            share_url = f"/lead-magnet/?cpa={cpa_slug}&share=1&score={score_overall}"
-        else:
-            share_url = f"/lead-magnet/?share=1&score={score_overall}"
-        share_image_params = {
-            "score": int(score_overall),
-            "band": score_band,
-        }
-        if cpa_slug:
-            share_image_params["cpa"] = cpa_slug
-        if estimated_savings and estimated_savings > 0:
-            share_image_params["savings"] = f"${estimated_savings:,.0f}"
-        share_image_url = f"/lead-magnet/share-card.svg?{urlencode(share_image_params)}"
-        return {
-            "text": share_text,
-            "url": share_url,
-            "image_url": share_image_url,
-        }
+    def _build_share_payload(self, session_id, score_overall, score_band, state_code, cpa_slug=None, estimated_savings=None):
+        """Build share payload. Delegates to payloads sub-module."""
+        from cpa_panel.services.lead_magnet.payloads import build_share_payload
+        return build_share_payload(session_id, score_overall, score_band, state_code, cpa_slug, estimated_savings)
 
     # =========================================================================
     # CONTACT CAPTURE & LEAD CREATION
@@ -1953,73 +1407,9 @@ class LeadMagnetService:
         insights: List[TaxInsight],
         time_spent: int,
     ) -> Tuple[int, LeadTemperature, float]:
-        """
-        Calculate lead score, temperature, and engagement value.
-
-        Factors:
-        - Complexity (more complex = higher value)
-        - Income range (higher = higher value)
-        - Number of insights (more opportunities = higher value)
-        - Total potential savings
-        - Time spent (engagement indicator)
-        """
-        score = 50  # Base score
-
-        # Complexity bonus
-        complexity_bonus = {
-            TaxComplexity.SIMPLE: 0,
-            TaxComplexity.MODERATE: 10,
-            TaxComplexity.COMPLEX: 20,
-            TaxComplexity.PROFESSIONAL: 30,
-        }
-        score += complexity_bonus.get(complexity, 0)
-
-        # Income bonus
-        income = self._parse_income_range(profile.income_range)
-        if income >= 200000:
-            score += 20
-        elif income >= 100000:
-            score += 10
-        elif income >= 75000:
-            score += 5
-
-        # Savings potential
-        total_savings = sum(i.savings_high for i in insights)
-        if total_savings >= 5000:
-            score += 15
-        elif total_savings >= 2500:
-            score += 10
-        elif total_savings >= 1000:
-            score += 5
-
-        # Time spent engagement
-        if time_spent >= 180:  # 3+ minutes
-            score += 5
-        elif time_spent >= 120:  # 2+ minutes
-            score += 3
-
-        # Cap at 100
-        score = min(100, score)
-
-        # Determine temperature
-        if score >= 80:
-            temperature = LeadTemperature.HOT
-        elif score >= 60:
-            temperature = LeadTemperature.WARM
-        else:
-            temperature = LeadTemperature.COLD
-
-        # Estimate engagement value (simplified)
-        # Complex returns typically have higher fees
-        base_value = {
-            TaxComplexity.SIMPLE: 200,
-            TaxComplexity.MODERATE: 400,
-            TaxComplexity.COMPLEX: 800,
-            TaxComplexity.PROFESSIONAL: 1500,
-        }
-        engagement_value = base_value.get(complexity, 300) * (score / 50)
-
-        return score, temperature, engagement_value
+        """Calculate lead score, temperature, and engagement value. Delegates to calculator sub-module."""
+        from cpa_panel.services.lead_magnet.calculator import calculate_lead_score
+        return calculate_lead_score(profile, complexity, insights, time_spent)
 
     def _build_tax_health_score(
         self,
@@ -2029,169 +1419,9 @@ class LeadMagnetService:
         savings_low: float,
         savings_high: float,
     ) -> Dict[str, Any]:
-        """
-        Build proprietary Tax Health Score with explainable sub-scores.
-
-        Lower score => larger optimization gap / urgency to consult CPA.
-        """
-        source_values = {
-            s.value if hasattr(s, "value") else str(s)
-            for s in (profile.income_sources if profile else [])
-        }
-        life_events = {
-            e.value if hasattr(e, "value") else str(e)
-            for e in (profile.life_events if profile else [])
-        }
-        state_code = self._normalize_state_code(profile.state_code if profile else None)
-
-        opportunity_pressure = min(42, len(insights) * 4)
-        opportunity_pressure += min(18, int(savings_high / 3000)) if savings_high else 0
-        deduction_score = max(30, 88 - opportunity_pressure)
-
-        structure_score = 84
-        if "self_employed" in source_values or (profile and profile.has_business):
-            structure_score -= 18
-        if "rental" in source_values:
-            structure_score -= 7
-        if profile and profile.filing_status == FilingStatus.MARRIED_SEPARATELY:
-            structure_score -= 6
-        structure_score = max(30, structure_score)
-
-        timing_score = 82
-        if "investments" in source_values:
-            timing_score -= 10
-        if "new_job" in life_events or "business_start" in life_events:
-            timing_score -= 8
-        if profile and profile.retirement_savings == "none":
-            timing_score -= 8
-        timing_score = max(30, timing_score)
-
-        risk_map = {
-            TaxComplexity.SIMPLE: 86,
-            TaxComplexity.MODERATE: 72,
-            TaxComplexity.COMPLEX: 60,
-            TaxComplexity.PROFESSIONAL: 52,
-        }
-        risk_score = max(30, risk_map.get(complexity, 70))
-
-        confidence_points = 44
-        if profile:
-            confidence_points += 8 if profile.filing_status else 0
-            confidence_points += 8 if profile.income_range else 0
-            confidence_points += min(12, len(source_values) * 4)
-            confidence_points += 7 if (profile.is_homeowner or profile.children_under_17) else 0
-            confidence_points += 5 if profile.retirement_savings else 0
-            confidence_points += 5 if state_code != "US" else 0
-        confidence_score = min(92, max(38, confidence_points))
-
-        state_tax_score = 82
-        if state_code in HIGH_TAX_STATES:
-            state_tax_score -= 11
-        if state_code in PROPERTY_TAX_HEAVY_STATES and profile and profile.is_homeowner:
-            state_tax_score -= 8
-        if "self_employed" in source_values and state_code in {"CA", "NY", "NJ", "MA", "OR"}:
-            state_tax_score -= 6
-        state_tax_score = max(30, state_tax_score)
-
-        weights = get_score_weights()
-        overall = int(round(
-            (deduction_score * weights["deduction_optimization"]) +
-            (structure_score * weights["entity_structure"]) +
-            (timing_score * weights["timing_strategy"]) +
-            (risk_score * weights["compliance_risk"]) +
-            (state_tax_score * weights["state_tax_efficiency"]) +
-            (confidence_score * weights["confidence"])
-        ))
-        overall = max(28, min(95, overall))
-
-        if overall >= 80:
-            band = "Strong"
-            band_color = "green"
-        elif overall >= 65:
-            band = "Watchlist"
-            band_color = "amber"
-        elif overall >= 50:
-            band = "Needs Attention"
-            band_color = "orange"
-        else:
-            band = "High Opportunity"
-            band_color = "red"
-
-        subscores = {
-            "deduction_optimization": int(deduction_score),
-            "entity_structure": int(structure_score),
-            "timing_strategy": int(timing_score),
-            "compliance_risk": int(risk_score),
-            "state_tax_efficiency": int(state_tax_score),
-            "confidence": int(confidence_score),
-        }
-
-        explanation_map = {
-            "deduction_optimization": "Multiple deduction and credit opportunities are currently unclaimed.",
-            "entity_structure": "Entity and filing setup may not yet be optimized for your profile.",
-            "timing_strategy": "Income and deduction timing can be improved to lower annual tax burden.",
-            "compliance_risk": "Complexity indicators suggest stronger compliance planning is needed.",
-            "state_tax_efficiency": "State-level tax rules indicate additional optimization is available.",
-            "confidence": "A few more profile details would improve precision and strategy targeting.",
-        }
-
-        actions_map = {
-            "deduction_optimization": "Prioritize deduction substantiation and credit eligibility review.",
-            "entity_structure": "Run an entity and filing-status optimization review with your CPA.",
-            "timing_strategy": "Model contribution and expense-timing scenarios before filing.",
-            "compliance_risk": "Validate recordkeeping and estimated payment coverage.",
-            "state_tax_efficiency": "Apply state-specific deduction and withholding adjustments.",
-            "confidence": "Upload documents for higher-confidence strategy scoring.",
-        }
-
-        sorted_subscores = sorted(subscores.items(), key=lambda item: item[1])
-        lowest_keys = [key for key, _ in sorted_subscores[:3]]
-
-        explainers = [
-            explanation_map.get(lowest_keys[0], "Your profile has meaningful tax optimization opportunities."),
-            f"We identified {len(insights)} strategy candidates from your initial answers.",
-            f"Potential missed savings estimate: ${savings_low:,.0f} - ${savings_high:,.0f}.",
-        ]
-
-        recommended_actions = [
-            {
-                "key": key,
-                "label": key.replace("_", " ").title(),
-                "next_step": actions_map.get(key, "Review this area with your CPA."),
-            }
-            for key in lowest_keys
-        ]
-
-        benchmark_average = SCORE_BENCHMARKS["average_taxpayer"]
-        benchmark_cpa_client = SCORE_BENCHMARKS["cpa_optimized_target"]
-
-        return {
-            "overall": overall,
-            "band": band,
-            "band_color": band_color,
-            "zones": {
-                "critical": {"min": 0, "max": 40, "label": "Critical", "color": "#dc2626"},
-                "needs_attention": {"min": 41, "max": 60, "label": "Needs Attention", "color": "#f97316"},
-                "good": {"min": 61, "max": 80, "label": "Good", "color": "#84cc16"},
-                "excellent": {"min": 81, "max": 100, "label": "Excellent", "color": "#16a34a"},
-            },
-            "missed_savings_range": f"${savings_low:,.0f} - ${savings_high:,.0f}",
-            "subscores": subscores,
-            "explainers": explainers,
-            "recommended_actions": recommended_actions,
-            "confidence_label": "high" if confidence_score >= 80 else ("medium" if confidence_score >= 60 else "low"),
-            "benchmark": {
-                "average_taxpayer": benchmark_average,
-                "cpa_optimized_target": benchmark_cpa_client,
-                "delta_vs_average": overall - benchmark_average,
-                "delta_to_target": benchmark_cpa_client - overall,
-                "average_score": benchmark_average,
-                "cpa_planned_average": benchmark_cpa_client,
-            },
-            "average_score": benchmark_average,
-            "cpa_planned_average": benchmark_cpa_client,
-            "weights": weights,
-        }
+        """Build proprietary Tax Health Score. Delegates to calculator sub-module."""
+        from cpa_panel.services.lead_magnet.calculator import build_tax_health_score
+        return build_tax_health_score(profile, complexity, insights, savings_low, savings_high)
 
     # =========================================================================
     # LEAD MANAGEMENT (CPA SIDE)
@@ -3238,6 +2468,43 @@ class LeadMagnetService:
         except Exception as e:
             logger.error(f"Failed to update CPA profile: {e}")
             raise ValueError(f"Failed to update profile: {e}")
+
+
+# =============================================================================
+# RE-EXPORTS FROM DECOMPOSED SUB-MODULES (backward compatibility)
+# =============================================================================
+# These sub-modules extract logic from this monolith for maintainability.
+# Import them here so existing consumers can use the original import paths.
+try:
+    from cpa_panel.services.lead_magnet.calculator import (  # noqa: F401
+        detect_complexity as _ext_detect_complexity,
+        parse_income_range as _ext_parse_income_range,
+        estimate_marginal_rate as _ext_estimate_marginal_rate,
+        calculate_lead_score as _ext_calculate_lead_score,
+        build_tax_health_score as _ext_build_tax_health_score,
+    )
+    from cpa_panel.services.lead_magnet.generator import (  # noqa: F401
+        normalize_state_code as _ext_normalize_state,
+        filing_status_display as _ext_filing_display,
+        income_range_display as _ext_income_display,
+        generate_insights as _ext_generate_insights,
+    )
+    from cpa_panel.services.lead_magnet.payloads import (  # noqa: F401
+        build_personalization_payload as _ext_build_personalization,
+        build_deadline_payload as _ext_build_deadline,
+        build_comparison_chart_payload as _ext_build_comparison,
+        build_strategy_waterfall_payload as _ext_build_waterfall,
+        build_tax_calendar_payload as _ext_build_calendar,
+        build_share_payload as _ext_build_share,
+        normalize_occupation_type as _ext_normalize_occupation,
+        occupation_display as _ext_occupation_display,
+    )
+    from cpa_panel.services.lead_magnet.delivery import (  # noqa: F401
+        send_lead_notifications as _ext_send_notifications,
+    )
+    logger.debug("Lead magnet sub-modules loaded successfully")
+except ImportError as e:
+    logger.debug(f"Lead magnet sub-modules not yet available: {e}")
 
 
 # =============================================================================

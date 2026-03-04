@@ -288,6 +288,15 @@ async def stripe_connect_callback(
 
     Exchanges authorization code for connected account ID.
     """
+    # Production guard: require real Stripe credentials
+    stripe_secret = os.environ.get("STRIPE_SECRET_KEY", "")
+    if not stripe_secret:
+        logger.error("Stripe OAuth callback received but STRIPE_SECRET_KEY not configured")
+        return RedirectResponse(
+            url="/cpa/settings/payments?error=stripe_not_configured",
+            status_code=302,
+        )
+
     # Handle errors from Stripe
     if error:
         logger.error(f"Stripe Connect error: {error} - {error_description}")
@@ -344,6 +353,7 @@ async def stripe_connect_callback(
 
             token_data = response.json()
             stripe_account_id = token_data.get("stripe_user_id")
+            stripe_refresh_token = token_data.get("refresh_token")
 
             if not stripe_account_id:
                 logger.error("Stripe token response missing stripe_user_id")
@@ -364,10 +374,6 @@ async def stripe_connect_callback(
             url="/cpa/settings/payments?error=connection_failed",
             status_code=302,
         )
-    except ImportError:
-        # httpx not available, simulate for development
-        stripe_account_id = f"acct_demo_{uuid4().hex[:12]}"
-        logger.warning("httpx not available, using demo Stripe account ID")
     except Exception as e:
         logger.error(f"Stripe Connect callback error: {e}")
         return RedirectResponse(

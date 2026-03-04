@@ -17,6 +17,7 @@ SECURITY: All sensitive endpoints have rate limiting to prevent brute force atta
 from fastapi import APIRouter, HTTPException, Depends, Header, Query, status, Request
 from typing import Optional
 import logging
+import os
 import time
 from collections import defaultdict
 
@@ -40,10 +41,31 @@ router = APIRouter(prefix="/auth", tags=["Core Authentication"])
 # SECURITY: Simple in-memory rate limiter for auth endpoints
 # In production, this should use Redis for distributed rate limiting
 
-_auth_rate_limits: dict = defaultdict(list)
+_auth_rate_limits: dict = defaultdict(list)  # In-memory fallback for dev
 _AUTH_RATE_LIMIT_WINDOW = 60  # seconds
 _AUTH_LOGIN_LIMIT = 5  # max login attempts per window
 _AUTH_FORGOT_PASSWORD_LIMIT = 3  # max forgot password requests per window
+
+_rate_limit_redis = None
+
+
+def _get_rate_limit_backend():
+    """Get Redis client for rate limiting. Falls back to in-memory in dev."""
+    global _rate_limit_redis
+    if _rate_limit_redis is not None:
+        return _rate_limit_redis
+    try:
+        import redis as _sync_redis
+        redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+        client = _sync_redis.from_url(redis_url, decode_responses=True)
+        client.ping()
+        _rate_limit_redis = client
+        return _rate_limit_redis
+    except Exception:
+        if os.environ.get("APP_ENVIRONMENT") in ("production", "prod", "staging"):
+            raise RuntimeError("Redis required for rate limiting in production")
+        logger.debug("Redis unavailable for rate limiting, using in-memory")
+        return None
 
 
 def _check_auth_rate_limit(identifier: str, limit: int) -> bool:
@@ -51,20 +73,29 @@ def _check_auth_rate_limit(identifier: str, limit: int) -> bool:
     Check if identifier has exceeded rate limit.
 
     Returns True if request is allowed, False if rate limited.
+    Uses Redis sorted sets when available, in-memory fallback for dev.
     """
+    backend = _get_rate_limit_backend()
+    if backend:
+        import time as _time
+        now = _time.time()
+        key = f"rate_limit:auth:{identifier}"
+        pipe = backend.pipeline()
+        pipe.zremrangebyscore(key, 0, now - _AUTH_RATE_LIMIT_WINDOW)
+        pipe.zcard(key)
+        pipe.zadd(key, {str(now): now})
+        pipe.expire(key, _AUTH_RATE_LIMIT_WINDOW)
+        results = pipe.execute()
+        current_count = results[1]
+        return current_count < limit
+    # In-memory fallback (dev only)
     now = time.time()
     window_start = now - _AUTH_RATE_LIMIT_WINDOW
-
-    # Clean old entries
     _auth_rate_limits[identifier] = [
         ts for ts in _auth_rate_limits[identifier] if ts > window_start
     ]
-
-    # Check limit
     if len(_auth_rate_limits[identifier]) >= limit:
         return False
-
-    # Record this request
     _auth_rate_limits[identifier].append(now)
     return True
 

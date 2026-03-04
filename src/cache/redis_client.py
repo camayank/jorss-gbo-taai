@@ -486,8 +486,12 @@ class RedisClient:
             return False
 
 
+import asyncio
+_redis_client_lock = asyncio.Lock()
+
+
 async def get_redis_client() -> RedisClient:
-    """Get or create the global Redis client.
+    """Get or create the global Redis client (async-safe).
 
     Returns:
         Connected RedisClient instance.
@@ -495,8 +499,10 @@ async def get_redis_client() -> RedisClient:
     global _redis_client
 
     if _redis_client is None:
-        _redis_client = RedisClient()
-        await _redis_client.connect()
+        async with _redis_client_lock:
+            if _redis_client is None:
+                _redis_client = RedisClient()
+                await _redis_client.connect()
 
     return _redis_client
 

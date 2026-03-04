@@ -405,6 +405,26 @@ class Settings(BaseSettings):
                 "AWS_SES_REGION, or SMTP_HOST to enable email notifications."
             )
 
+        # DATABASE_URL must be PostgreSQL in production
+        db_url = os.environ.get("DATABASE_URL", "")
+        if db_url and not db_url.startswith(("postgresql://", "postgres://")):
+            errors.append(
+                "DATABASE_URL: Must be PostgreSQL in production (not SQLite)"
+            )
+
+        # REDIS_URL required in production
+        if not os.environ.get("REDIS_URL"):
+            errors.append(
+                "REDIS_URL: Required in production for caching, rate limiting, and token storage"
+            )
+
+        # STRIPE_SECRET_KEY format validation (if set)
+        stripe_key = os.environ.get("STRIPE_SECRET_KEY", "")
+        if stripe_key and not stripe_key.startswith(("sk_test_", "sk_live_", "rk_")):
+            errors.append(
+                "STRIPE_SECRET_KEY: Invalid format — must start with sk_test_, sk_live_, or rk_"
+            )
+
         return errors
 
 

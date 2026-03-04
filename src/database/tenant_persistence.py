@@ -5,11 +5,14 @@ Database operations for multi-tenant white-labeling system.
 Supports SQLite with JSON columns for flexible schema.
 """
 
+import logging
 import sqlite3
 import json
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from .tenant_models import (
     Tenant,
@@ -259,7 +262,7 @@ class TenantPersistence:
                 return cursor.rowcount > 0
 
         except Exception as e:
-            print(f"Error updating tenant: {e}")
+            logger.error("Error updating tenant: %s", e, exc_info=True)
             return False
 
     def update_tenant_branding(self, tenant_id: str, branding: TenantBranding) -> bool:
@@ -283,7 +286,7 @@ class TenantPersistence:
                 return cursor.rowcount > 0
 
         except Exception as e:
-            print(f"Error updating tenant branding: {e}")
+            logger.error("Error updating tenant branding: %s", e, exc_info=True)
             return False
 
     def update_tenant_features(self, tenant_id: str, features: TenantFeatureFlags) -> bool:
@@ -307,7 +310,7 @@ class TenantPersistence:
                 return cursor.rowcount > 0
 
         except Exception as e:
-            print(f"Error updating tenant features: {e}")
+            logger.error("Error updating tenant features: %s", e, exc_info=True)
             return False
 
     def list_tenants(
@@ -355,7 +358,7 @@ class TenantPersistence:
                 return cursor.rowcount > 0
 
         except Exception as e:
-            print(f"Error deleting tenant: {e}")
+            logger.error("Error deleting tenant: %s", e, exc_info=True)
             return False
 
     # =============================================================================
@@ -402,7 +405,7 @@ class TenantPersistence:
                 return True
 
         except Exception as e:
-            print(f"Error saving CPA branding: {e}")
+            logger.error("Error saving CPA branding: %s", e, exc_info=True)
             return False
 
     def get_cpa_branding(self, cpa_id: str) -> Optional[CPABranding]:
@@ -446,7 +449,7 @@ class TenantPersistence:
                 return cursor.rowcount > 0
 
         except Exception as e:
-            print(f"Error deleting CPA branding: {e}")
+            logger.error("Error deleting CPA branding: %s", e, exc_info=True)
             return False
 
     # =============================================================================
@@ -484,7 +487,7 @@ class TenantPersistence:
                 return cursor.rowcount > 0
 
         except Exception as e:
-            print(f"Error verifying domain: {e}")
+            logger.error("Error verifying domain: %s", e, exc_info=True)
             return False
 
     # =============================================================================
@@ -565,19 +568,23 @@ class TenantPersistence:
                 return cursor.rowcount > 0
 
         except Exception as e:
-            print(f"Error incrementing tenant stats: {e}")
+            logger.error("Error incrementing tenant stats: %s", e, exc_info=True)
             return False
 
 
-# Global instance (singleton pattern)
+# Global instance (singleton pattern) with thread-safe locking
+import threading
 _tenant_persistence: Optional[TenantPersistence] = None
+_tenant_persistence_lock = threading.Lock()
 
 
 def get_tenant_persistence(db_path: str = "./data/tax_returns.db") -> TenantPersistence:
-    """Get global tenant persistence instance"""
+    """Get global tenant persistence instance (thread-safe)"""
     global _tenant_persistence
 
     if _tenant_persistence is None:
-        _tenant_persistence = TenantPersistence(db_path)
+        with _tenant_persistence_lock:
+            if _tenant_persistence is None:
+                _tenant_persistence = TenantPersistence(db_path)
 
     return _tenant_persistence

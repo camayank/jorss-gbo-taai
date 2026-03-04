@@ -72,6 +72,7 @@ def create_celery_app(
             "tasks.ocr_tasks",
             "tasks.data_retention",
             "tasks.notification_tasks",
+            "tasks.backup",
         ],
     )
 
@@ -143,6 +144,10 @@ def create_celery_app(
             "compile-daily-digest": {
                 "task": "tasks.notifications.compile_and_send_daily_digest",
                 "schedule": crontab(hour=7, minute=0),  # Daily at 7 AM
+            },
+            "nightly-database-backup": {
+                "task": "tasks.backup.run_database_backup",
+                "schedule": crontab(hour=2, minute=0),  # Daily at 2 AM UTC
             },
         },
     )

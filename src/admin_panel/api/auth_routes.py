@@ -10,8 +10,10 @@ Provides:
 All routes use database-backed authentication when available.
 """
 
+import os
 import secrets
 import logging
+import threading
 from typing import Optional
 from datetime import datetime, timedelta, timezone
 
@@ -34,12 +36,52 @@ from database.async_engine import get_async_session
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 logger = logging.getLogger(__name__)
 
-# Token blacklist for logout (in production, use Redis)
-_token_blacklist: set = set()
+# Token blacklist for logout — Redis-backed with in-memory fallback (dev only)
+_token_blacklist: set = set()  # In-memory fallback for dev
+_blacklist_redis = None
+
+
+def _get_blacklist_backend():
+    """Get Redis client for token blacklist. Falls back to in-memory in dev."""
+    global _blacklist_redis
+    if _blacklist_redis is not None:
+        return _blacklist_redis
+    try:
+        import redis as _sync_redis
+        redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+        client = _sync_redis.from_url(redis_url, decode_responses=True)
+        client.ping()
+        _blacklist_redis = client
+        return _blacklist_redis
+    except Exception:
+        if os.environ.get("APP_ENVIRONMENT") in ("production", "prod", "staging"):
+            raise RuntimeError("Redis required for token storage in production")
+        logger.debug("Redis unavailable for token blacklist, using in-memory")
+        return None
+
+
+def _blacklist_add(token_or_jti: str, ttl: int = 86400):
+    """Add a token or JTI to the blacklist with optional TTL."""
+    backend = _get_blacklist_backend()
+    if backend:
+        backend.setex(f"blacklist:{token_or_jti}", ttl, "1")
+    else:
+        _token_blacklist.add(token_or_jti)
+
+
+def _blacklist_check(token_or_jti: str) -> bool:
+    """Check if a token or JTI is blacklisted. Returns True if blacklisted."""
+    backend = _get_blacklist_backend()
+    if backend:
+        return backend.exists(f"blacklist:{token_or_jti}") > 0
+    return token_or_jti in _token_blacklist
 
 # Password reset tokens — Redis-backed with in-memory fallback
 _reset_tokens: dict = {}  # In-memory fallback for dev
 _reset_token_redis = None
+
+
+_token_backend_lock = threading.Lock()
 
 
 def _get_token_backend():
@@ -47,17 +89,21 @@ def _get_token_backend():
     global _reset_token_redis
     if _reset_token_redis is not None:
         return _reset_token_redis
-    try:
-        import os
-        import redis as _sync_redis
-        redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
-        client = _sync_redis.from_url(redis_url, decode_responses=True)
-        client.ping()
-        _reset_token_redis = client
-        return _reset_token_redis
-    except Exception:
-        logger.debug("Redis unavailable for admin reset tokens, using in-memory")
-        return None
+    with _token_backend_lock:
+        if _reset_token_redis is not None:
+            return _reset_token_redis
+        try:
+            import redis as _sync_redis
+            redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+            client = _sync_redis.from_url(redis_url, decode_responses=True)
+            client.ping()
+            _reset_token_redis = client
+            return _reset_token_redis
+        except Exception:
+            if os.environ.get("APP_ENVIRONMENT") in ("production", "prod", "staging"):
+                raise RuntimeError("Redis required for token storage in production")
+            logger.debug("Redis unavailable for admin reset tokens, using in-memory")
+            return None
 
 
 def _store_token(token: str, data: dict, ttl_seconds: int = 3600):
@@ -410,7 +456,7 @@ async def logout(
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
         token = auth_header[7:]
-        _token_blacklist.add(token)
+        _blacklist_add(token)
 
     # Log logout event
     try:
@@ -447,14 +493,14 @@ async def refresh_token(
         payload = decode_token(request.refresh_token, verify_type=TokenType.REFRESH)
 
         # Check if the token has been revoked (blacklisted via logout)
-        if getattr(payload, "jti", None) and payload.jti in _token_blacklist:
+        if getattr(payload, "jti", None) and _blacklist_check(payload.jti):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token has been revoked",
             )
 
         # Also check if the raw token itself is blacklisted
-        if request.refresh_token in _token_blacklist:
+        if _blacklist_check(request.refresh_token):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token has been revoked",

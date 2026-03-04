@@ -71,6 +71,12 @@
   {% block stores %}{% endblock %}
   {% include 'partials/foot_scripts.html' %}
 
+  <script>
+  if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/static/service-worker.js').catch(function() {});
+  }
+  </script>
+
   {# Additional scripts #}
   {% block scripts_extra %}{% endblock %}
 </body>

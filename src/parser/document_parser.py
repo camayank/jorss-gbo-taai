@@ -2,7 +2,10 @@
 Document parser for tax forms (W-2, 1099, etc.)
 Supports PDF and image files with OCR capability
 """
+import logging
 import re
+
+logger = logging.getLogger(__name__)
 from typing import Optional, Dict, List
 from pathlib import Path
 import pdfplumber
@@ -94,7 +97,7 @@ class DocumentParser:
                 state_tax_withheld=w2_data.get('state_tax_withheld'),
             )
         except Exception as e:
-            print(f"Error creating W2Info: {e}")
+            logger.error("Error creating W2Info: %s", e, exc_info=True)
             return None
     
     def parse_1099(self, file_path: str, form_type: str = "1099-MISC") -> Optional[Form1099Info]:
@@ -131,7 +134,7 @@ class DocumentParser:
                 amount=data.get('amount', 0.0),
             )
         except Exception as e:
-            print(f"Error creating Form1099Info: {e}")
+            logger.error("Error creating Form1099Info: %s", e, exc_info=True)
             return None
     
     def _extract_text(self, file_path: str) -> str:
@@ -150,7 +153,7 @@ class DocumentParser:
                     for page in pdf.pages:
                         text += page.extract_text() or ""
             except Exception as e:
-                print(f"Error reading PDF: {e}")
+                logger.error("Error reading PDF: %s", e, exc_info=True)
         
         # Try image with OCR
         elif path.suffix.lower() in ['.jpg', '.jpeg', '.png', '.tiff', '.bmp']:
@@ -161,6 +164,6 @@ class DocumentParser:
                 else:
                     return ""
             except Exception as e:
-                print(f"Error reading image: {e}")
+                logger.error("Error reading image: %s", e, exc_info=True)
         
         return text

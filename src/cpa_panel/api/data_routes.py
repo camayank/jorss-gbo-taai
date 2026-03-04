@@ -108,39 +108,37 @@ async def list_clients(
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
-            # Build query with tenant isolation
+            # Build WHERE clause for reuse across count and data queries
             # SECURITY: Always filter by tenant_id to prevent cross-tenant data access
-            query = "SELECT * FROM clients WHERE 1=1"
+            where_clauses = ["1=1"]
             params = []
 
             # Add tenant filter — firm_id takes precedence, then tenant_id
             if tenant_id and tenant_id != "default":
-                query += " AND (tenant_id = ? OR firm_id = ? )"
+                where_clauses.append("(tenant_id = ? OR firm_id = ?)")
                 params.extend([tenant_id, tenant_id])
 
             if complexity:
-                query += " AND complexity = ?"
+                where_clauses.append("complexity = ?")
                 params.append(complexity)
 
             if filing_status:
-                query += " AND filing_status = ?"
+                where_clauses.append("filing_status = ?")
                 params.append(filing_status)
 
             if search:
-                query += " AND (first_name LIKE ? OR last_name LIKE ? OR email LIKE ?)"
+                where_clauses.append("(first_name LIKE ? OR last_name LIKE ? OR email LIKE ?)")
                 search_param = f"%{search}%"
                 params.extend([search_param, search_param, search_param])
 
+            where_sql = " AND ".join(where_clauses)
+
             # Get total count
-            count_query = query.replace("SELECT *", "SELECT COUNT(*)")
-            cursor.execute(count_query, params)
+            cursor.execute(f"SELECT COUNT(*) FROM clients WHERE {where_sql}", params)
             total = cursor.fetchone()[0]
 
             # Get paginated results
-            query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
-            params.extend([limit, offset])
-
-            cursor.execute(query, params)
+            cursor.execute(f"SELECT * FROM clients WHERE {where_sql} ORDER BY created_at DESC LIMIT ? OFFSET ?", params + [limit, offset])
             rows = cursor.fetchall()
 
             clients = []
@@ -273,34 +271,32 @@ async def list_tax_returns(
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
-            query = "SELECT * FROM tax_returns WHERE 1=1"
+            where_clauses = ["1=1"]
             params = []
 
             # SECURITY: Scope by tenant/firm
             if tenant_id and tenant_id != "default":
-                query += " AND (tenant_id = ? OR firm_id = ?)"
+                where_clauses.append("(tenant_id = ? OR firm_id = ?)")
                 params.extend([tenant_id, tenant_id])
 
             if complexity:
-                query += " AND complexity_tier = ?"
+                where_clauses.append("complexity_tier = ?")
                 params.append(complexity)
 
             if has_refund is not None:
                 if has_refund:
-                    query += " AND refund_amount > 0"
+                    where_clauses.append("refund_amount > 0")
                 else:
-                    query += " AND balance_due > 0"
+                    where_clauses.append("balance_due > 0")
+
+            where_sql = " AND ".join(where_clauses)
 
             # Get total count
-            count_query = query.replace("SELECT *", "SELECT COUNT(*)")
-            cursor.execute(count_query, params)
+            cursor.execute(f"SELECT COUNT(*) FROM tax_returns WHERE {where_sql}", params)
             total = cursor.fetchone()[0]
 
             # Get paginated results
-            query += " ORDER BY agi DESC LIMIT ? OFFSET ?"
-            params.extend([limit, offset])
-
-            cursor.execute(query, params)
+            cursor.execute(f"SELECT * FROM tax_returns WHERE {where_sql} ORDER BY agi DESC LIMIT ? OFFSET ?", params + [limit, offset])
             rows = cursor.fetchall()
 
             tax_returns = []
@@ -379,41 +375,39 @@ async def list_recommendations(
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
-            query = "SELECT r.*, c.first_name, c.last_name FROM recommendations r LEFT JOIN clients c ON r.client_id = c.client_id WHERE 1=1"
+            from_join = "FROM recommendations r LEFT JOIN clients c ON r.client_id = c.client_id"
+            where_clauses = ["1=1"]
             params = []
 
             # Tenant scoping
             if tenant_id and tenant_id != "default":
-                query += " AND (c.tenant_id = ? OR c.firm_id = ? )"
+                where_clauses.append("(c.tenant_id = ? OR c.firm_id = ?)")
                 params.extend([tenant_id, tenant_id])
 
             if category:
-                query += " AND r.category = ?"
+                where_clauses.append("r.category = ?")
                 params.append(category)
 
             if status:
-                query += " AND r.status = ?"
+                where_clauses.append("r.status = ?")
                 params.append(status)
 
             if client_id:
-                query += " AND (r.client_id = ? OR r.session_id = ?)"
+                where_clauses.append("(r.client_id = ? OR r.session_id = ?)")
                 params.extend([client_id, client_id])
 
+            where_sql = " AND ".join(where_clauses)
+
             # Get total count
-            count_query = query.replace("SELECT r.*, c.first_name, c.last_name", "SELECT COUNT(*)")
-            cursor.execute(count_query, params)
+            cursor.execute(f"SELECT COUNT(*) {from_join} WHERE {where_sql}", params)
             total = cursor.fetchone()[0]
 
             # Get total savings
-            savings_query = query.replace("SELECT r.*, c.first_name, c.last_name", "SELECT SUM(r.estimated_savings)")
-            cursor.execute(savings_query, params)
+            cursor.execute(f"SELECT SUM(r.estimated_savings) {from_join} WHERE {where_sql}", params)
             total_savings = cursor.fetchone()[0] or 0
 
             # Get paginated results
-            query += " ORDER BY r.estimated_savings DESC LIMIT ? OFFSET ?"
-            params.extend([limit, offset])
-
-            cursor.execute(query, params)
+            cursor.execute(f"SELECT r.*, c.first_name, c.last_name {from_join} WHERE {where_sql} ORDER BY r.estimated_savings DESC LIMIT ? OFFSET ?", params + [limit, offset])
             recommendations = [row_to_dict(r) for r in cursor.fetchall()]
 
             # Get category counts (scoped by tenant)
@@ -458,26 +452,26 @@ async def list_engagements(
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
-            query = "SELECT * FROM engagement_letters WHERE 1=1"
+            where_clauses = ["1=1"]
             params = []
 
             # Tenant scoping
             if tenant_id and tenant_id != "default":
-                query += " AND (tenant_id = ? OR firm_id = ? )"
+                where_clauses.append("(tenant_id = ? OR firm_id = ?)")
                 params.extend([tenant_id, tenant_id])
 
             if status:
-                query += " AND status = ?"
+                where_clauses.append("status = ?")
                 params.append(status)
 
+            where_sql = " AND ".join(where_clauses)
+
             # Get total count
-            count_query = query.replace("SELECT *", "SELECT COUNT(*)")
-            cursor.execute(count_query, params)
+            cursor.execute(f"SELECT COUNT(*) FROM engagement_letters WHERE {where_sql}", params)
             total = cursor.fetchone()[0]
 
             # Get total fees
-            fees_query = query.replace("SELECT *", "SELECT SUM(total_fee)")
-            cursor.execute(fees_query, params)
+            cursor.execute(f"SELECT SUM(total_fee) FROM engagement_letters WHERE {where_sql}", params)
             total_fees = cursor.fetchone()[0] or 0
 
             # Get status counts (scoped by tenant)
@@ -490,10 +484,7 @@ async def list_engagements(
             status_summary = {r["status"]: {"count": r["count"], "fees": r["fees"]} for r in cursor.fetchall()}
 
             # Get paginated results
-            query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
-            params.extend([limit, offset])
-
-            cursor.execute(query, params)
+            cursor.execute(f"SELECT * FROM engagement_letters WHERE {where_sql} ORDER BY created_at DESC LIMIT ? OFFSET ?", params + [limit, offset])
             engagements = []
             for row in cursor.fetchall():
                 eng = row_to_dict(row)
@@ -526,7 +517,8 @@ async def get_dashboard_summary(request: Request) -> Dict[str, Any]:
     Scoped by tenant_id to prevent cross-firm data leakage.
     """
     tenant_id = get_tenant_id(request)
-    tenant_filter = "AND (tenant_id = ? OR firm_id = ? )" if tenant_id and tenant_id != "default" else ""
+    tenant_filter = "AND (tenant_id = ? OR firm_id = ?)" if tenant_id and tenant_id != "default" else ""
+    tenant_filter_c = "AND (c.tenant_id = ? OR c.firm_id = ?)" if tenant_id and tenant_id != "default" else ""
     tenant_params = (tenant_id, tenant_id) if tenant_id and tenant_id != "default" else ()
 
     try:
@@ -571,7 +563,7 @@ async def get_dashboard_summary(request: Request) -> Dict[str, Any]:
 
             # Recommendation stats (scoped by tenant via client join)
             cursor.execute(
-                f"SELECT COUNT(*), SUM(r.estimated_savings) FROM recommendations r JOIN clients c ON r.client_id = c.client_id WHERE 1=1 {tenant_filter.replace('tenant_id', 'c.tenant_id').replace('firm_id', 'c.firm_id')}",
+                f"SELECT COUNT(*), SUM(r.estimated_savings) FROM recommendations r JOIN clients c ON r.client_id = c.client_id WHERE 1=1 {tenant_filter_c}",
                 tenant_params,
             )
             row = cursor.fetchone()
@@ -581,7 +573,7 @@ async def get_dashboard_summary(request: Request) -> Dict[str, Any]:
             }
 
             cursor.execute(
-                f"SELECT r.category, COUNT(*) as count, SUM(r.estimated_savings) as savings FROM recommendations r JOIN clients c ON r.client_id = c.client_id WHERE 1=1 {tenant_filter.replace('tenant_id', 'c.tenant_id').replace('firm_id', 'c.firm_id')} GROUP BY r.category ORDER BY savings DESC",
+                f"SELECT r.category, COUNT(*) as count, SUM(r.estimated_savings) as savings FROM recommendations r JOIN clients c ON r.client_id = c.client_id WHERE 1=1 {tenant_filter_c} GROUP BY r.category ORDER BY savings DESC",
                 tenant_params,
             )
             summary["recommendations_by_category"] = [
@@ -590,7 +582,7 @@ async def get_dashboard_summary(request: Request) -> Dict[str, Any]:
             ]
 
             cursor.execute(
-                f"SELECT r.status, COUNT(*) as count FROM recommendations r JOIN clients c ON r.client_id = c.client_id WHERE 1=1 {tenant_filter.replace('tenant_id', 'c.tenant_id').replace('firm_id', 'c.firm_id')} GROUP BY r.status",
+                f"SELECT r.status, COUNT(*) as count FROM recommendations r JOIN clients c ON r.client_id = c.client_id WHERE 1=1 {tenant_filter_c} GROUP BY r.status",
                 tenant_params,
             )
             summary["recommendations_by_status"] = {r["status"]: r["count"] for r in cursor.fetchall()}
@@ -619,7 +611,7 @@ async def get_dashboard_summary(request: Request) -> Dict[str, Any]:
                        COUNT(r.rec_id) as rec_count
                 FROM clients c
                 JOIN recommendations r ON c.client_id = r.client_id
-                WHERE 1=1 {tenant_filter.replace('tenant_id', 'c.tenant_id').replace('firm_id', 'c.firm_id')}
+                WHERE 1=1 {tenant_filter_c}
                 GROUP BY c.client_id
                 ORDER BY total_savings DESC
                 LIMIT 10
@@ -640,7 +632,7 @@ async def get_dashboard_summary(request: Request) -> Dict[str, Any]:
                 SELECT r.*, c.first_name, c.last_name
                 FROM recommendations r
                 JOIN clients c ON r.client_id = c.client_id
-                WHERE r.estimated_savings > 5000 {tenant_filter.replace('tenant_id', 'c.tenant_id').replace('firm_id', 'c.firm_id')}
+                WHERE r.estimated_savings > 5000 {tenant_filter_c}
                 ORDER BY r.estimated_savings DESC
                 LIMIT 20
             """, tenant_params)

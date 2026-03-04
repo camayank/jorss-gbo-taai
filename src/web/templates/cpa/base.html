@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ request.state.csrf_token | default('') }}">
     <title>{% block title %}CPA Dashboard{% endblock %} | {{ cpa.firm_name or 'Tax Practice' }}</title>
     {% if cpa.favicon_url %}
     <link rel="icon" href="{{ cpa.favicon_url }}">
@@ -281,6 +282,24 @@
                 document.getElementById('sidebarOverlay').classList.remove('show');
             }
         });
+    </script>
+
+    <script>
+    document.querySelectorAll('form[method="post"], form[method="POST"]').forEach(function(form) {
+        if (!form.querySelector('input[name="csrf_token"]')) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'csrf_token';
+            input.value = document.querySelector('meta[name="csrf-token"]')?.content || '';
+            form.appendChild(input);
+        }
+    });
+    </script>
+
+    <script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/static/service-worker.js').catch(function() {});
+    }
     </script>
 
     {% block extra_scripts %}{% endblock %}
