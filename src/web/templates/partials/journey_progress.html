@@ -1,0 +1,32 @@
+{#
+  Journey Progress Bar — shows in sidebar for client role.
+  Requires: Alpine journey store to be loaded.
+#}
+
+{% if user and user.role | default('client') | lower == 'client' %}
+<div class="journey-progress" x-data x-show="$store.journey && $store.journey.loaded" x-cloak
+     style="padding: 0.75rem 1rem; border-top: 1px solid var(--color-gray-700); border-bottom: 1px solid var(--color-gray-700);">
+
+  <h4 style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-gray-400); margin: 0 0 0.5rem;">
+    Your Tax Journey
+  </h4>
+
+  <div style="display: flex; gap: 0.25rem; margin-bottom: 0.5rem;">
+    <template x-for="stage in $store.journey.stages" :key="stage.name">
+      <div style="flex: 1; height: 4px; border-radius: 2px; transition: background 0.3s;"
+           :style="{
+             background: stage.status === 'completed' ? 'var(--color-success-500)'
+               : stage.status === 'active' ? 'var(--color-primary-500)'
+               : 'var(--color-gray-700)'
+           }"
+           :title="stage.label">
+      </div>
+    </template>
+  </div>
+
+  <div style="font-size: 0.75rem; color: var(--color-gray-300); display: flex; justify-content: space-between;">
+    <span x-text="$store.journey.stageLabel"></span>
+    <span x-text="$store.journey.completionPct + '%'"></span>
+  </div>
+</div>
+{% endif %}

@@ -1,0 +1,40 @@
+{#
+  Context-aware Next Step Banner — shows at top of content area.
+  Dismissible per session. Only shows for client role.
+#}
+
+{% if user and user.role | default('client') | lower == 'client' %}
+<div x-data x-show="$store.journey && $store.journey.hasNextStep" x-cloak x-transition
+     style="background: linear-gradient(135deg, var(--color-primary-50), var(--color-primary-100));
+            border: 1px solid var(--color-primary-200);
+            border-radius: var(--radius-lg, 0.5rem);
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;">
+
+  <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1;">
+    <span style="font-size: 1.1rem;">&#10024;</span>
+    <span style="font-size: 0.875rem; color: var(--color-primary-900);"
+          x-text="$store.journey.nextStep?.message">
+    </span>
+  </div>
+
+  <div style="display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0;">
+    <a :href="$store.journey.nextStep?.cta_url"
+       x-text="$store.journey.nextStep?.cta_label"
+       style="background: var(--color-primary-600); color: white; padding: 0.375rem 0.75rem;
+              border-radius: var(--radius-md, 0.375rem); font-size: 0.8rem; font-weight: 600;
+              text-decoration: none; white-space: nowrap;">
+    </a>
+    <button @click="$store.journey.dismissBanner()"
+            style="background: none; border: none; cursor: pointer; color: var(--color-primary-400);
+                   font-size: 1rem; padding: 0.25rem;"
+            aria-label="Dismiss">
+      &times;
+    </button>
+  </div>
+</div>
+{% endif %}

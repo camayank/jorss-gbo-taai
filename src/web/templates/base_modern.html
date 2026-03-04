@@ -63,6 +63,7 @@
 
   {# Main content area #}
   <main class="main-content">
+    {% include 'partials/next_step_banner.html' ignore missing %}
     {% block content %}{% endblock %}
   </main>
 

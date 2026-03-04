@@ -215,12 +215,15 @@
     {% endfor %}
   </nav>
 
+  {# Journey Progress (client role only) #}
+  {% include 'partials/journey_progress.html' ignore missing %}
+
   {# Sidebar Footer - User Menu #}
   <div class="sidebar-footer">
     {# Powered By - Only show if tenant hasn't disabled it #}
     {% if not (tenant_features.remove_branding | default(false)) and (branding.show_powered_by | default(true)) %}
     <div class="powered-by" style="padding: 0.5rem 1rem; text-align: center; font-size: 0.75rem; color: var(--color-gray-500); border-top: 1px solid var(--color-gray-700);">
-      Powered by <a href="https://ca4cpa.com" target="_blank" rel="noopener" style="color: var(--color-primary-400); text-decoration: none;">{{ platform_name | default('CA4CPA') }}</a>
+      Powered by <a href="{{ branding.website_url | default(platform_url) | default('#') }}" target="_blank" rel="noopener" style="color: var(--color-primary-400); text-decoration: none;">{{ platform_name | default(branding.platform_name) | default('Tax Platform') }}</a>
     </div>
     {% endif %}
 
