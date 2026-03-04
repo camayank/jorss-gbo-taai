@@ -11,8 +11,6 @@ Provides endpoints for:
 Extracted from app.py for better modularity and maintainability.
 """
 
-from __future__ import annotations
-
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -23,6 +21,14 @@ from pydantic import BaseModel, Field
 # NOTE: Uses legacy Role enum from auth_decorators (TAXPAYER, CPA, PREPARER, etc.)
 # These map to RBAC roles via legacy_role_to_rbac() — see auth_decorators.py
 from security.auth_decorators import require_auth, Role
+
+# Journey event bus integration
+try:
+    from events.event_bus import get_event_bus
+    from events.journey_events import ScenarioCreated as ScenarioCreatedEvent
+    _JOURNEY_EVENTS_AVAILABLE = True
+except ImportError:
+    _JOURNEY_EVENTS_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -153,6 +159,22 @@ async def create_scenario(request: Request, request_body: CreateScenarioRequest)
             modifications=modifications,
             description=request_body.description,
         )
+
+        # Journey event: scenario created
+        if _JOURNEY_EVENTS_AVAILABLE:
+            try:
+                bus = get_event_bus()
+                user = getattr(request.state, "user", {}) or {}
+                if bus:
+                    bus.emit(ScenarioCreatedEvent(
+                        scenario_id=str(scenario.scenario_id),
+                        tenant_id=user.get("tenant_id", "default"),
+                        user_id=user.get("id", "unknown"),
+                        return_id=request_body.return_id,
+                        name=scenario.name,
+                    ))
+            except Exception:
+                pass
 
         return JSONResponse({
             "success": True,

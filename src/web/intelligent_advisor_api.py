@@ -27,6 +27,14 @@ import os
 
 from security.session_token import verify_session_token, generate_session_token, SESSION_TOKEN_KEY
 
+# Journey event bus integration
+try:
+    from events.event_bus import get_event_bus
+    from events.journey_events import AdvisorMessageSent, AdvisorProfileComplete
+    _JOURNEY_EVENTS_AVAILABLE = True
+except ImportError:
+    _JOURNEY_EVENTS_AVAILABLE = False
+
 # RBAC admin dependency for privileged endpoints
 try:
     from rbac.dependencies import require_platform_admin
@@ -3890,6 +3898,20 @@ async def intelligent_chat(request: ChatRequest, _session: str = Depends(verify_
 
     msg_lower = msg_original.lower()
 
+    # Journey event: notify that a message was sent (for input guard / orchestrator)
+    if _JOURNEY_EVENTS_AVAILABLE and msg_original:
+        try:
+            bus = get_event_bus()
+            if bus:
+                bus.emit(AdvisorMessageSent(
+                    session_id=session_id,
+                    tenant_id=session.get("tenant_id", "default"),
+                    user_id=session.get("user_id", session_id),
+                    message_text=msg_original,
+                ))
+        except Exception:
+            pass  # Never block chat on event emission failure
+
     # =========================================================================
     # GRACEFUL EDGE CASE HANDLING - Handle problematic inputs early
     # =========================================================================
@@ -4677,6 +4699,21 @@ To get started, what's your filing status?"""
     completeness = chat_engine.calculate_profile_completeness(profile)
     lead_score = chat_engine.calculate_lead_score(profile)
     complexity = chat_engine.determine_complexity(profile)
+
+    # Journey event: emit profile complete when threshold crossed
+    if _JOURNEY_EVENTS_AVAILABLE and completeness >= 0.6:
+        try:
+            bus = get_event_bus()
+            if bus:
+                bus.emit(AdvisorProfileComplete(
+                    session_id=session_id,
+                    tenant_id=session.get("tenant_id", "default"),
+                    user_id=session.get("user_id", session_id),
+                    profile_completeness=completeness,
+                    extracted_forms=list(profile.get("_extracted_forms", [])),
+                ))
+        except Exception:
+            pass  # Never block chat on event emission failure
 
     # Get urgency info from CPAIntelligenceService
     urgency_level = "PLANNING"

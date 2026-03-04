@@ -29,6 +29,14 @@ from rbac.dependencies import require_auth, require_role
 from rbac.context import AuthContext
 from rbac.roles import Role
 
+# Journey event bus integration
+try:
+    from events.event_bus import get_event_bus
+    from events.journey_events import DocumentProcessed as DocumentProcessedEvent
+    _JOURNEY_EVENTS_AVAILABLE = True
+except ImportError:
+    _JOURNEY_EVENTS_AVAILABLE = False
+
 # File upload security validation
 from web.utils.file_validation import (
     validate_upload,
@@ -144,6 +152,22 @@ async def upload_document(
                 samesite="lax",
                 max_age=86400 * 7  # 7 days
             )
+
+            # Journey event: document processed
+            if _JOURNEY_EVENTS_AVAILABLE:
+                try:
+                    bus = get_event_bus()
+                    if bus:
+                        extracted = result.get_extracted_data() or {}
+                        bus.emit(DocumentProcessedEvent(
+                            document_id=document_id,
+                            tenant_id=str(ctx.firm_id) if ctx.firm_id else "default",
+                            user_id=str(ctx.user_id),
+                            document_type=result.document_type,
+                            fields_extracted=len(extracted),
+                        ))
+                except Exception:
+                    pass
 
             return JSONResponse({
                 "status": "success",

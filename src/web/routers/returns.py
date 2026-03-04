@@ -28,6 +28,14 @@ from datetime import datetime, timezone
 
 from rbac.dependencies import require_auth, require_role
 from rbac.context import AuthContext
+
+# Journey event bus integration
+try:
+    from events.event_bus import get_event_bus
+    from events.journey_events import ReturnDraftSaved, ReturnSubmittedForReview
+    _JOURNEY_EVENTS_AVAILABLE = True
+except ImportError:
+    _JOURNEY_EVENTS_AVAILABLE = False
 from rbac.roles import Role
 
 logger = logging.getLogger(__name__)
@@ -50,7 +58,7 @@ def _get_persistence():
     """Get tax return persistence."""
     global _persistence
     if _persistence is None:
-        from database.persistence import TaxReturnPersistence
+        from database.persistence_adapter import TaxReturnPersistence
         _persistence = TaxReturnPersistence()
     return _persistence
 
@@ -104,6 +112,20 @@ async def save_return(request: Request, ctx: AuthContext = Depends(require_auth)
             return_data=tax_return_data,
             tax_year=tax_return_data.get("tax_year", 2025),
         )
+
+        # Journey event: return draft saved
+        if _JOURNEY_EVENTS_AVAILABLE:
+            try:
+                bus = get_event_bus()
+                if bus:
+                    bus.emit(ReturnDraftSaved(
+                        return_id=saved_id,
+                        tenant_id=str(ctx.firm_id) if ctx.firm_id else "default",
+                        user_id=str(ctx.user_id),
+                        session_id=session_id,
+                    ))
+            except Exception:
+                pass
 
         return JSONResponse({
             "status": "success",
@@ -268,6 +290,19 @@ async def submit_for_review(session_id: str, request: Request, ctx: AuthContext 
             session_id=session_id,
             status="IN_REVIEW",
         )
+
+        # Journey event: return submitted for review
+        if _JOURNEY_EVENTS_AVAILABLE:
+            try:
+                bus = get_event_bus()
+                if bus:
+                    bus.emit(ReturnSubmittedForReview(
+                        session_id=session_id,
+                        tenant_id=str(ctx.firm_id) if ctx.firm_id else "default",
+                        user_id=str(ctx.user_id),
+                    ))
+            except Exception:
+                pass
 
         return JSONResponse({
             "status": "success",

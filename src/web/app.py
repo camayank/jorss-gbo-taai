@@ -894,6 +894,17 @@ _calculator = TaxCalculator()
 _forms = FormGenerator()
 _document_processor = DocumentProcessor()
 
+# =============================================================================
+# JOURNEY ORCHESTRATOR INITIALIZATION
+# =============================================================================
+try:
+    from services.journey_orchestrator import get_orchestrator
+    _journey_orchestrator = get_orchestrator()
+    logging.getLogger(__name__).info("[Journey] Orchestrator initialized and listening for events")
+except Exception as _e:
+    logging.getLogger(__name__).warning(f"[Journey] Orchestrator not available: {_e}")
+    _journey_orchestrator = None
+
 # In-memory document tracking (for tests and quick lookups)
 # Note: Production document data is also stored via persistence layer
 _DOCUMENTS: Dict[str, Dict[str, Any]] = {}
