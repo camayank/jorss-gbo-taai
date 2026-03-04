@@ -608,6 +608,10 @@ class AIMetricsService:
         if len(self._quality_records) > self._max_records:
             self._quality_records = self._quality_records[-self._max_records:]
 
+        # Persist periodically (every 10 records to avoid excessive I/O)
+        if len(self._quality_records) % 10 == 0:
+            self.persist()
+
     def get_ai_delivery_stats(self, days: int = 7) -> Dict[str, Any]:
         """Return per-service breakdown of AI vs fallback delivery rates.
 
@@ -700,8 +704,14 @@ class AIMetricsService:
         try:
             with open(self._persist_path, 'r') as f:
                 data = json.load(f)
+                # Handle both old format (list of usage records) and new format (dict with sections)
+                if isinstance(data, dict):
+                    usage_records = data.get("usage_records", [])
+                    self._quality_records = data.get("quality_records", [])
+                else:
+                    usage_records = data
                 # Convert to UsageRecord objects
-                for item in data:
+                for item in usage_records:
                     item['timestamp'] = datetime.fromisoformat(item['timestamp'])
                     item['provider'] = AIProvider(item['provider'])
                     if item.get('capability'):
@@ -716,9 +726,9 @@ class AIMetricsService:
             return
 
         try:
-            data = []
+            usage_data = []
             for r in self._records[-10000:]:  # Keep last 10k for persistence
-                data.append({
+                usage_data.append({
                     'timestamp': r.timestamp.isoformat(),
                     'provider': r.provider.value,
                     'model': r.model,
@@ -734,6 +744,11 @@ class AIMetricsService:
                     'session_id': r.session_id,
                     'request_type': r.request_type,
                 })
+
+            data = {
+                "usage_records": usage_data,
+                "quality_records": self._quality_records[-10000:],
+            }
 
             with open(self._persist_path, 'w') as f:
                 json.dump(data, f)
@@ -799,7 +814,10 @@ def get_ai_metrics_service() -> AIMetricsService:
     """Get the singleton AI metrics service instance."""
     global _ai_metrics_service
     if _ai_metrics_service is None:
-        _ai_metrics_service = AIMetricsService()
+        persist_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data")
+        os.makedirs(persist_dir, exist_ok=True)
+        persist_path = os.path.join(persist_dir, "ai_metrics.json")
+        _ai_metrics_service = AIMetricsService(persist_path=persist_path)
     return _ai_metrics_service
 
 
