@@ -16,9 +16,30 @@ if TYPE_CHECKING:
     from recommendation.recommendation_engine import ComprehensiveRecommendation, TaxSavingOpportunity
 
 from services.ai import get_ai_service, run_async
+from services.ai.metrics_service import get_ai_metrics_service
 from config.ai_providers import ModelCapability, get_available_providers
 
 logger = logging.getLogger(__name__)
+
+
+def _count_populated_enhancement(rec: "AIEnhancedRecommendation") -> int:
+    """Count non-empty fields in an AIEnhancedRecommendation."""
+    count = 0
+    if rec.personalized_explanation:
+        count += 1
+    if rec.action_steps:
+        count += 1
+    if rec.common_questions:
+        count += 1
+    if rec.risk_considerations:
+        count += 1
+    if rec.related_opportunities:
+        count += 1
+    if rec.confidence_explanation:
+        count += 1
+    if rec.irs_reference:
+        count += 1
+    return count
 
 
 @dataclass
@@ -121,7 +142,7 @@ class AIRecommendationEnhancer:
 
             if response:
                 enhanced = json.loads(response)
-                return AIEnhancedRecommendation(
+                result = AIEnhancedRecommendation(
                     original_title=opportunity.title,
                     original_description=opportunity.description,
                     estimated_savings=opportunity.estimated_savings,
@@ -136,6 +157,12 @@ class AIRecommendationEnhancer:
                     category=opportunity.category,
                     metadata={"_source": "ai", "_provider": "openai"},
                 )
+                get_ai_metrics_service().record_response_quality(
+                    service="enhancer", source="ai",
+                    response_fields_populated=_count_populated_enhancement(result),
+                    total_fields=7,
+                )
+                return result
         except Exception as e:
             logger.warning(f"AI enhancement failed: {e}")
 
@@ -300,7 +327,7 @@ Be concise, professional, and helpful. Return only valid JSON, no markdown code 
 
     def _fallback_enhancement(self, opportunity: "TaxSavingOpportunity") -> AIEnhancedRecommendation:
         """Create a fallback enhancement without AI."""
-        return AIEnhancedRecommendation(
+        result = AIEnhancedRecommendation(
             original_title=opportunity.title,
             original_description=opportunity.description,
             estimated_savings=opportunity.estimated_savings,
@@ -315,6 +342,12 @@ Be concise, professional, and helpful. Return only valid JSON, no markdown code 
             category=opportunity.category,
             metadata={"_source": "fallback", "_provider": "none"},
         )
+        get_ai_metrics_service().record_response_quality(
+            service="enhancer", source="fallback",
+            response_fields_populated=_count_populated_enhancement(result),
+            total_fields=7,
+        )
+        return result
 
     def _fallback_summary(self, recommendation: "ComprehensiveRecommendation") -> AIRecommendationSummary:
         """Create a fallback summary without AI."""

@@ -61,6 +61,7 @@ from web.advisor.parsers import (  # noqa: F401
 
 # --- AI/ML Integration ---
 from services.ai.unified_ai_service import get_ai_service
+from services.ai.metrics_service import get_ai_metrics_service
 from services.tax_opportunity_detector import TaxOpportunityDetector, TaxpayerProfile
 from web.recommendation.orchestrator import get_recommendations
 from agent.intelligent_tax_agent import IntelligentTaxAgent
@@ -2711,10 +2712,17 @@ Estimated tax savings: **${savings:,.0f}**""",
             except Exception as e:
                 logger.warning(f"AI enhancement failed: {e}")
 
-        # Tag any untagged strategies as templates
+        # Tag any untagged strategies as templates and record quality
+        metrics = get_ai_metrics_service()
         for s in strategies:
             if s.metadata is None:
                 s.metadata = {"_source": "template"}
+            populated = sum(1 for v in [s.summary, s.detailed_explanation, s.action_steps, s.irs_reference, s.estimated_savings, s.confidence] if v)
+            source = s.metadata.get("_source", "template")
+            metrics.record_response_quality(
+                service="advisor_strategy", source=source,
+                response_fields_populated=populated, total_fields=6,
+            )
 
         # Sort by estimated savings (highest first)
         strategies.sort(key=lambda x: (-x.estimated_savings,))
@@ -4042,6 +4050,12 @@ To get started, what's your filing status?"""
             if t.get("estimated_savings"):
                 full_detail += f"\n\n**Estimated Savings:** ${t['estimated_savings']:,.0f}"
             full_detail += f"\n\n---\n*{STANDARD_DISCLAIMER}*"
+
+            get_ai_metrics_service().record_response_quality(
+                service="advisor_reasoning", source=detail_source,
+                response_fields_populated=1 if detail_source == "ai" else 0,
+                total_fields=1,
+            )
 
             return ChatResponse(
                 session_id=request.session_id,

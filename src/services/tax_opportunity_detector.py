@@ -19,9 +19,28 @@ from enum import Enum
 from datetime import datetime
 
 from services.ai import get_ai_service, run_async
+from services.ai.metrics_service import get_ai_metrics_service
 from config.ai_providers import ModelCapability, get_available_providers
 
 logger = logging.getLogger(__name__)
+
+
+def _count_opp_fields(opp: "TaxOpportunity") -> int:
+    """Count populated fields in a TaxOpportunity."""
+    count = 0
+    if opp.title:
+        count += 1
+    if opp.description:
+        count += 1
+    if opp.estimated_savings is not None:
+        count += 1
+    if opp.action_required:
+        count += 1
+    if opp.confidence is not None:
+        count += 1
+    if opp.irs_reference:
+        count += 1
+    return count
 
 
 class OpportunityCategory(Enum):
@@ -225,12 +244,24 @@ class TaxOpportunityDetector:
         for opp in rule_opps:
             opp.metadata["_source"] = "rules"
         opportunities.extend(rule_opps)
+        metrics = get_ai_metrics_service()
+        for opp in rule_opps:
+            metrics.record_response_quality(
+                service="opportunity_detector", source="rules",
+                response_fields_populated=_count_opp_fields(opp),
+                total_fields=6,
+            )
 
         # AI-powered analysis for nuanced opportunities
         if self._ai_available:
             ai_opportunities = self._ai_detect_opportunities(profile)
             for opp in ai_opportunities:
                 opp.metadata["_source"] = "ai"
+                metrics.record_response_quality(
+                    service="opportunity_detector", source="ai",
+                    response_fields_populated=_count_opp_fields(opp),
+                    total_fields=6,
+                )
             opportunities.extend(ai_opportunities)
 
         # Sort by priority and estimated savings
