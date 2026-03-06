@@ -293,6 +293,40 @@ class AdvisoryReportGenerator:
             "taxable_income": float(tax_result.taxable_income or 0),
         }
 
+        # Try AI-enhanced narrative
+        try:
+            import asyncio
+            import concurrent.futures
+            from advisory.ai_narrative_generator import get_narrative_generator, ClientProfile
+
+            def _generate_ai():
+                loop = asyncio.new_event_loop()
+                try:
+                    generator = get_narrative_generator()
+                    client_profile = ClientProfile(
+                        name=taxpayer_name,
+                        occupation=None,
+                        financial_goals=[],
+                    )
+                    report_data = {
+                        "agi": content["agi"],
+                        "filing_status": content["filing_status"],
+                        "total_tax": content["current_liability"]["total"],
+                        "taxable_income": content["taxable_income"],
+                    }
+                    return loop.run_until_complete(
+                        generator.generate_executive_summary(report_data, client_profile)
+                    )
+                finally:
+                    loop.close()
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                narrative = pool.submit(_generate_ai).result(timeout=5)
+                if narrative and narrative.content:
+                    content["ai_narrative"] = narrative.content
+        except Exception as e:
+            logger.warning(f"AI narrative generation failed, using static summary: {e}")
+
         return AdvisoryReportSection(
             section_id="executive_summary",
             title="Executive Summary",

@@ -650,6 +650,48 @@ class TaxRecommendationEngine:
         top_opportunities: List[TaxSavingOpportunity]
     ) -> str:
         """Generate executive summary of recommendations."""
+        # Try AI-enhanced narrative first
+        try:
+            import asyncio
+            import concurrent.futures
+            from advisory.ai_narrative_generator import get_narrative_generator, ClientProfile
+
+            taxpayer_name = getattr(tax_return.taxpayer, 'name', 'Taxpayer')
+            if not taxpayer_name:
+                first = getattr(tax_return.taxpayer, 'first_name', '')
+                last = getattr(tax_return.taxpayer, 'last_name', '')
+                taxpayer_name = f"{first} {last}".strip() or "Taxpayer"
+
+            def _generate_ai():
+                loop = asyncio.new_event_loop()
+                try:
+                    generator = get_narrative_generator()
+                    client_profile = ClientProfile(name=taxpayer_name)
+                    report_data = {
+                        "agi": float(tax_return.adjusted_gross_income or 0),
+                        "filing_status": tax_return.taxpayer.filing_status.value,
+                        "total_tax": float(tax_return.tax_liability or 0),
+                        "total_savings": total_savings,
+                        "top_opportunities": [
+                            {"title": o.title, "estimated_savings": o.estimated_savings}
+                            for o in top_opportunities[:3]
+                        ],
+                    }
+                    return loop.run_until_complete(
+                        generator.generate_executive_summary(report_data, client_profile)
+                    )
+                finally:
+                    loop.close()
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                narrative = pool.submit(_generate_ai).result(timeout=5)
+                if narrative and narrative.content:
+                    return narrative.content
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"AI narrative failed, using static summary: {e}")
+
+        # Static fallback (existing code)
         agi = tax_return.adjusted_gross_income or 0
         tax = tax_return.tax_liability or 0
         filing_status = tax_return.taxpayer.filing_status.value
