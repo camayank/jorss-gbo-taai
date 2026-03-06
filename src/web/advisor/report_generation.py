@@ -81,6 +81,43 @@ async def get_session_report(request: SessionReportRequest, _session: str = Depe
         except Exception:
             pass
 
+        # Try full report generation via AdvisoryReportGenerator (same as PDF route)
+        try:
+            from advisory.report_generator import AdvisoryReportGenerator, ReportType
+            from web.intelligent_advisor_api import build_tax_return_from_profile
+
+            tax_return = build_tax_return_from_profile(profile)
+            generator = AdvisoryReportGenerator()
+            report = generator.generate_report(
+                tax_return=tax_return,
+                report_type=ReportType.FULL_ANALYSIS,
+                include_entity_comparison=profile.get("is_self_employed", False),
+                include_multi_year=True,
+                years_ahead=3,
+            )
+
+            report_dict = report.to_dict()
+
+            # Build action_plan for backward compat with intelligent-advisor.js
+            action_plan = None
+            try:
+                for sec in report.sections:
+                    if sec.section_id == "action_plan":
+                        action_plan = sec.content
+                        break
+            except Exception:
+                pass
+
+            return {
+                "session_id": request.session_id,
+                **report_dict,
+                "cpa_branding": cpa_branding,
+                "report": {"action_plan": action_plan},
+            }
+        except Exception as gen_err:
+            logger.warning(f"AdvisoryReportGenerator failed, falling back to raw response: {gen_err}")
+
+        # Fallback: return raw calculation/strategies/profile
         return {
             "session_id": request.session_id,
             "tax_calculation": calculation.dict() if hasattr(calculation, 'dict') else calculation,

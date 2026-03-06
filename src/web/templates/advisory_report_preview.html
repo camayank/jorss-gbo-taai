@@ -954,6 +954,27 @@
 
         // Transform advisor API response to standard report format
         function transformAdvisorReport(advisorData) {
+            // New format: AdvisoryReportGenerator response has sections array + report_id
+            if (advisorData.sections && Array.isArray(advisorData.sections) && advisorData.report_id) {
+                // Already in the right shape from report.to_dict() — pass through
+                // Compute effective_rate for header metric if not in metrics
+                const metrics = advisorData.metrics || {};
+                let computedEffectiveRate = metrics.effective_rate;
+                if (!computedEffectiveRate && metrics.current_tax_liability) {
+                    const execSection = advisorData.sections.find(s => s.section_id === 'executive_summary');
+                    const agi = execSection?.content?.agi || 1;
+                    computedEffectiveRate = agi > 0 ? (metrics.current_tax_liability / agi) * 100 : 0;
+                }
+                return {
+                    ...advisorData,
+                    metrics: {
+                        ...metrics,
+                        effective_rate: computedEffectiveRate,
+                        confidence_score: metrics.confidence_score != null ? metrics.confidence_score : 85,
+                    },
+                };
+            }
+
             const report = advisorData.report || {};
             // Support both response shapes: /report returns tax_calculation, /generate-report returns report.tax_position
             const calculation = advisorData.tax_calculation || report.tax_calculation || report.tax_position || {};
@@ -1147,8 +1168,16 @@
                 }
 
                 // Render savings breakdown if recommendations exist
-                if (data.recommendations?.items && Array.isArray(data.recommendations.items) && data.recommendations.items.length > 0) {
-                    renderSavingsBreakdown(data.recommendations.items);
+                // New format uses recommendations.immediate_actions; old format uses recommendations.items
+                const recsItems = data.recommendations?.immediate_actions?.map(a => ({
+                        title: a.title || a.action || 'Strategy',
+                        savings: a.savings || a.estimated_savings || 0,
+                        priority: a.priority || 'current_year',
+                    }))
+                    || data.recommendations?.items
+                    || [];
+                if (Array.isArray(recsItems) && recsItems.length > 0) {
+                    renderSavingsBreakdown(recsItems);
                 }
 
                 // Hide loading, show content
@@ -1266,19 +1295,224 @@
                 sectionDiv.className = 'section';
                 sectionDiv.innerHTML = `<h2>${escapeHtml(section.title)}</h2>`;
 
-                // Handle different section types
-                if (section.section_id === 'recommendations') {
-                    sectionDiv.appendChild(buildRecommendationsSection(section.content));
-                } else if (section.section_id === 'current_position') {
-                    sectionDiv.appendChild(buildCurrentPositionSection(section.content));
-                } else if (section.section_id === 'action_plan') {
-                    sectionDiv.appendChild(buildActionPlanSection(section.content));
-                } else {
-                    sectionDiv.innerHTML += `<pre>${JSON.stringify(section.content, null, 2)}</pre>`;
+                switch (section.section_id) {
+                    case 'executive_summary':
+                        sectionDiv.appendChild(buildExecutiveSummarySection(section.content));
+                        break;
+                    case 'current_position':
+                        sectionDiv.appendChild(buildCurrentPositionSection(section.content));
+                        break;
+                    case 'recommendations':
+                        sectionDiv.appendChild(buildRecommendationsSection(section.content));
+                        break;
+                    case 'entity_comparison':
+                        sectionDiv.appendChild(buildEntityComparisonSection(section.content));
+                        break;
+                    case 'multi_year_projection':
+                        sectionDiv.appendChild(buildMultiYearProjectionSection(section.content));
+                        break;
+                    case 'action_plan':
+                        sectionDiv.appendChild(buildActionPlanSection(section.content));
+                        break;
+                    case 'disclaimers':
+                        sectionDiv.appendChild(buildDisclaimersSection(section.content));
+                        break;
+                    default:
+                        sectionDiv.innerHTML += `<pre>${escapeHtml(JSON.stringify(section.content, null, 2))}</pre>`;
                 }
 
                 container.appendChild(sectionDiv);
             });
+        }
+
+        function buildExecutiveSummarySection(content) {
+            const div = document.createElement('div');
+            const safeNum = (v, d = 0) => { const n = Number(v); return isNaN(n) ? d : n; };
+
+            // Navy gradient overview card
+            const card = document.createElement('div');
+            card.style.cssText = 'background: linear-gradient(135deg, #1e3a5f 0%, #2c5aa0 100%); color: white; padding: 24px; border-radius: 12px; margin-bottom: 20px;';
+
+            const overview = content?.overview || content?.narrative || '';
+            if (overview) {
+                card.innerHTML = `<p style="font-size: 1.05em; line-height: 1.6; margin: 0;">${escapeHtml(overview)}</p>`;
+            }
+            div.appendChild(card);
+
+            // Key metrics grid
+            const filingStatus = escapeHtml((content?.filing_status || '').replace(/_/g, ' '));
+            const agi = safeNum(content?.agi);
+            const taxableIncome = safeNum(content?.taxable_income);
+            const totalLiability = safeNum(content?.total_liability || content?.current_liability?.total || content?.total_tax);
+
+            const metricsHtml = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
+                    ${filingStatus ? `<div class="metric-card"><div style="font-size: 0.85em; color: var(--color-gray-500);">Filing Status</div><div style="font-size: 1.2em; font-weight: 600; text-transform: capitalize;">${filingStatus}</div></div>` : ''}
+                    ${agi ? `<div class="metric-card"><div style="font-size: 0.85em; color: var(--color-gray-500);">Adjusted Gross Income</div><div style="font-size: 1.2em; font-weight: 600;">$${agi.toLocaleString('en-US')}</div></div>` : ''}
+                    ${taxableIncome ? `<div class="metric-card"><div style="font-size: 0.85em; color: var(--color-gray-500);">Taxable Income</div><div style="font-size: 1.2em; font-weight: 600;">$${taxableIncome.toLocaleString('en-US')}</div></div>` : ''}
+                    ${totalLiability ? `<div class="metric-card"><div style="font-size: 0.85em; color: var(--color-gray-500);">Total Tax Liability</div><div style="font-size: 1.2em; font-weight: 600; color: var(--color-error-500);">$${totalLiability.toLocaleString('en-US')}</div></div>` : ''}
+                </div>
+            `;
+            div.innerHTML += metricsHtml;
+            return div;
+        }
+
+        function buildEntityComparisonSection(content) {
+            const div = document.createElement('div');
+            const safeNum = (v, d = 0) => { const n = Number(v); return isNaN(n) ? d : n; };
+
+            // Content may have entity_comparison as a dict of entity types, or entities as an array
+            let entities = content?.entities || content?.comparisons || [];
+            const entityMap = content?.entity_comparison || {};
+            if ((!Array.isArray(entities) || entities.length === 0) && typeof entityMap === 'object' && Object.keys(entityMap).length > 0) {
+                // Convert dict format {sole_proprietor: {...}, s_corporation: {...}} to array
+                entities = Object.entries(entityMap).map(([key, val]) => ({
+                    name: key.replace(/_/g, ' '),
+                    entity_type: key,
+                    ...val,
+                    _is_recommended: val.recommended === true,
+                }));
+            }
+            if (!Array.isArray(entities) || entities.length === 0) {
+                div.innerHTML = '<p>No entity comparison data available.</p>';
+                return div;
+            }
+
+            const recommended = content?.recommended_entity || entities.find(e => e._is_recommended || e.recommended)?.entity_type || '';
+
+            const table = document.createElement('table');
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Entity Type</th>
+                        <th style="text-align: right;">Total Tax</th>
+                        <th style="text-align: right;">SE / Payroll Tax</th>
+                        <th style="text-align: right;">Net Benefit</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${entities.map(e => {
+                        const name = escapeHtml(e.entity_type || e.name || 'Unknown');
+                        const totalTax = safeNum(e.total_tax);
+                        const seTax = safeNum(e.self_employment_tax || e.payroll_tax || e.se_tax);
+                        const benefit = safeNum(e.net_benefit || e.annual_savings);
+                        const isRec = (e.entity_type || e.name || '').toLowerCase() === recommended.toLowerCase();
+                        return `<tr${isRec ? ' style="background: var(--color-success-50, #f0fdf4);"' : ''}>
+                            <td>${name}</td>
+                            <td style="text-align: right;" class="amount">$${totalTax.toLocaleString('en-US')}</td>
+                            <td style="text-align: right;" class="amount">$${seTax.toLocaleString('en-US')}</td>
+                            <td style="text-align: right;" class="amount">${benefit >= 0 ? '+' : '-'}$${Math.abs(benefit).toLocaleString('en-US')}</td>
+                            <td>${isRec ? '<span style="background: var(--color-success-500, #22c55e); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: 600;">Recommended</span>' : ''}</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            `;
+            div.appendChild(table);
+
+            if (content?.analysis || content?.summary) {
+                div.innerHTML += `<p style="margin-top: 12px; color: var(--color-gray-600);">${escapeHtml(content.analysis || content.summary)}</p>`;
+            }
+            return div;
+        }
+
+        function buildMultiYearProjectionSection(content) {
+            const div = document.createElement('div');
+            const safeNum = (v, d = 0) => { const n = Number(v); return isNaN(n) ? d : n; };
+
+            const projections = content?.projections || content?.yearly_data || content?.years || [];
+            if (!Array.isArray(projections) || projections.length === 0) {
+                div.innerHTML = '<p>No multi-year projection data available.</p>';
+                return div;
+            }
+
+            // Year-by-year table
+            const table = document.createElement('table');
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Year</th>
+                        <th style="text-align: right;">Projected Income</th>
+                        <th style="text-align: right;">Taxable Income</th>
+                        <th style="text-align: right;">Projected Tax</th>
+                        <th style="text-align: right;">Effective Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${projections.map(p => {
+                        const year = p.year || p.tax_year || '';
+                        const income = safeNum(p.projected_income || p.total_income || p.income);
+                        const taxable = safeNum(p.taxable_income);
+                        const tax = safeNum(p.projected_tax || p.total_tax || p.tax);
+                        const rate = safeNum(p.effective_rate);
+                        return `<tr>
+                            <td>${escapeHtml(String(year))}</td>
+                            <td style="text-align: right;" class="amount">$${income.toLocaleString('en-US')}</td>
+                            <td style="text-align: right;" class="amount">$${taxable.toLocaleString('en-US')}</td>
+                            <td style="text-align: right;" class="amount">$${tax.toLocaleString('en-US')}</td>
+                            <td style="text-align: right;">${rate.toFixed(1)}%</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            `;
+            div.appendChild(table);
+
+            // Summary cards
+            const totalIncome = safeNum(content?.total_projected_income || content?.summary?.total_income);
+            const totalTax = safeNum(content?.total_projected_tax || content?.summary?.total_tax);
+            const strategySavings = safeNum(content?.strategy_savings || content?.summary?.total_savings);
+
+            if (totalIncome || totalTax || strategySavings) {
+                div.innerHTML += `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-top: 20px;">
+                        ${totalIncome ? `<div class="metric-card"><div style="font-size: 0.85em; color: var(--color-gray-500);">Total Projected Income</div><div style="font-size: 1.2em; font-weight: 600;">$${totalIncome.toLocaleString('en-US')}</div></div>` : ''}
+                        ${totalTax ? `<div class="metric-card"><div style="font-size: 0.85em; color: var(--color-gray-500);">Total Projected Tax</div><div style="font-size: 1.2em; font-weight: 600;">$${totalTax.toLocaleString('en-US')}</div></div>` : ''}
+                        ${strategySavings ? `<div class="metric-card"><div style="font-size: 0.85em; color: var(--color-gray-500);">Strategy Savings</div><div style="font-size: 1.2em; font-weight: 600; color: var(--color-success-500, #22c55e);">$${strategySavings.toLocaleString('en-US')}</div></div>` : ''}
+                    </div>
+                `;
+            }
+            return div;
+        }
+
+        function buildDisclaimersSection(content) {
+            const div = document.createElement('div');
+
+            const disclaimers = content?.legal_disclaimers || content?.disclaimers || [];
+            const methodology = content?.methodology_notes || content?.methodology || [];
+
+            if (Array.isArray(disclaimers) && disclaimers.length > 0) {
+                div.innerHTML += '<h3>Legal Disclaimers</h3>';
+                const ul = document.createElement('ul');
+                ul.style.cssText = 'list-style: disc; padding-left: 20px; color: var(--color-gray-600);';
+                disclaimers.forEach(d => {
+                    const li = document.createElement('li');
+                    li.style.marginBottom = '8px';
+                    li.textContent = typeof d === 'string' ? d : (d.text || d.content || JSON.stringify(d));
+                    ul.appendChild(li);
+                });
+                div.appendChild(ul);
+            } else if (typeof content === 'string') {
+                div.innerHTML += `<p style="color: var(--color-gray-600);">${escapeHtml(content)}</p>`;
+            }
+
+            if (Array.isArray(methodology) && methodology.length > 0) {
+                div.innerHTML += '<h3 style="margin-top: 16px;">Methodology Notes</h3>';
+                const ul = document.createElement('ul');
+                ul.style.cssText = 'list-style: disc; padding-left: 20px; color: var(--color-gray-600);';
+                methodology.forEach(m => {
+                    const li = document.createElement('li');
+                    li.style.marginBottom = '8px';
+                    li.textContent = typeof m === 'string' ? m : (m.text || m.content || JSON.stringify(m));
+                    ul.appendChild(li);
+                });
+                div.appendChild(ul);
+            }
+
+            if (div.children.length === 0) {
+                div.innerHTML = `<p style="color: var(--color-gray-600);">${escapeHtml(typeof content === 'string' ? content : 'This report is for informational purposes only.')}</p>`;
+            }
+
+            return div;
         }
 
         function buildRecommendationsSection(content) {
@@ -1372,10 +1606,10 @@
             // Show visualization
             visualizationDiv.style.display = 'block';
 
-            // Render top 5 recommendations as bars
+            // Render top 10 recommendations as bars
             container.innerHTML = recommendations
                 .filter(rec => rec && rec.title && safeNumber(rec.savings) > 0)
-                .slice(0, 5)
+                .slice(0, 10)
                 .map(rec => {
                     const savings = safeNumber(rec.savings);
                     const percentage = Math.min(100, (savings / total * 100)).toFixed(1);
