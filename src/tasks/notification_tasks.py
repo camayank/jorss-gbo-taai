@@ -9,6 +9,7 @@ Tasks:
 """
 
 import asyncio
+import concurrent.futures
 import logging
 from datetime import datetime, timezone
 
@@ -186,6 +187,53 @@ def scan_client_opportunities():
                             )
                         )
                         alerts_created += 1
+
+                        # Generate AI narrative for high-value opportunity
+                        ai_narrative = None
+                        if float(getattr(rec, "estimated_savings", 0)) >= 1000:
+                            try:
+                                from advisory.ai_narrative_generator import get_narrative_generator, ClientProfile
+
+                                def _generate_narrative():
+                                    loop = asyncio.new_event_loop()
+                                    try:
+                                        generator = get_narrative_generator()
+                                        profile = ClientProfile(name=client.full_name)
+                                        report_data = {
+                                            "recommendations": {
+                                                "top_recommendations": [{
+                                                    "title": getattr(rec, "title", "Tax Opportunity"),
+                                                    "estimated_savings": float(getattr(rec, "estimated_savings", 0)),
+                                                    "description": getattr(rec, "description", ""),
+                                                }]
+                                            },
+                                        }
+                                        return loop.run_until_complete(
+                                            generator.generate_executive_summary(report_data, profile)
+                                        )
+                                    finally:
+                                        loop.close()
+
+                                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                                    narrative = pool.submit(_generate_narrative).result(timeout=5)
+                                    if narrative and narrative.content:
+                                        ai_narrative = narrative.content
+                            except Exception:
+                                pass  # Silent — alert still works without AI
+
+                        # Send notification to CPA
+                        try:
+                            from cpa_panel.services.notification_service import NotificationService
+                            notifier = NotificationService.get_instance()
+                            notifier.notify_tax_opportunity(
+                                cpa_email=getattr(client, 'cpa_email', '') or getattr(client, 'preparer_email', ''),
+                                client_name=client.full_name,
+                                opportunity_title=getattr(rec, "title", "Tax Opportunity"),
+                                potential_savings=float(getattr(rec, "estimated_savings", 0)),
+                                ai_narrative=ai_narrative,
+                            )
+                        except Exception as e:
+                            logger.warning(f"Failed to notify CPA of opportunity: {e}")
 
             except Exception as e:
                 logger.error(f"Error scanning client {client.client_id}: {e}")

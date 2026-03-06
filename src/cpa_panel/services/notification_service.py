@@ -283,6 +283,45 @@ Tax Advisory Platform
 
         return notification
 
+    def notify_tax_opportunity(
+        self,
+        cpa_email: str,
+        client_name: str,
+        opportunity_title: str,
+        potential_savings: float,
+        ai_narrative: Optional[str] = None,
+    ) -> Optional[Notification]:
+        """
+        Notify CPA of a proactive tax opportunity for their client.
+
+        Uses AI narrative if available, otherwise a static summary.
+        """
+        if not cpa_email:
+            logger.warning("Cannot send tax opportunity notification: no CPA email")
+            return None
+
+        body = ai_narrative or (
+            f"Tax opportunity identified for {client_name}: {opportunity_title}. "
+            f"Estimated savings: ${potential_savings:,.0f}."
+        )
+
+        subject = f"Tax Opportunity: {client_name} \u2014 {opportunity_title}"
+
+        return self._create_notification(
+            notification_type=NotificationType.NEW_LEAD,  # Reuse existing type
+            channel=NotificationChannel.EMAIL,
+            recipient_email=cpa_email,
+            recipient_name=None,
+            subject=subject,
+            body=body,
+            data={
+                "client_name": client_name,
+                "opportunity_title": opportunity_title,
+                "potential_savings": potential_savings,
+                "has_ai_narrative": ai_narrative is not None,
+            },
+        )
+
     def _generate_new_lead_html(
         self,
         cpa_name: str,
