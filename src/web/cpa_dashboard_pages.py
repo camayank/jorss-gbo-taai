@@ -871,11 +871,15 @@ async def cpa_analytics(
 
         conversion_metrics = service.get_conversion_metrics(cpa_id)
         velocity_metrics = service.get_velocity_metrics(cpa_id)
+        trends = service.get_lead_trends(cpa_id)
+        max_leads = max(trends["new_leads"]) if trends["new_leads"] and max(trends["new_leads"]) > 0 else 1
 
     except Exception as e:
         logger.warning(f"Failed to get analytics: {e}")
         conversion_metrics = {}
         velocity_metrics = {}
+        trends = {"dates": [], "new_leads": [], "conversions": []}
+        max_leads = 1
 
     return templates.TemplateResponse(
         "cpa/analytics.html",
@@ -885,6 +889,8 @@ async def cpa_analytics(
             "stats": stats,
             "conversion_metrics": conversion_metrics,
             "velocity_metrics": velocity_metrics,
+            "trends": trends,
+            "max_leads": max_leads,
             "active_page": "analytics",
         }
     )
