@@ -901,6 +901,46 @@ async def cpa_analytics(
         trends = {"dates": [], "new_leads": [], "conversions": []}
         max_leads = 1
 
+    # AI practice summary
+    ai_practice_summary = None
+    try:
+        from advisory.ai_narrative_generator import get_narrative_generator, ClientProfile
+        import asyncio
+        import concurrent.futures
+
+        cpa_name = cpa_profile.get("display_name", "CPA")
+
+        practice_data = {
+            "metrics": {
+                "conversion_rate": conversion_metrics.get("conversion_rate", 0),
+                "avg_velocity_days": velocity_metrics.get("avg_days_to_convert", 0),
+                "total_leads": trends.get("total", len(trends.get("new_leads", []))),
+                "active_leads": trends.get("active", 0),
+            },
+            "recommendations": {
+                "total_count": 0,
+                "top_recommendations": [],
+            },
+        }
+
+        def _gen():
+            loop = asyncio.new_event_loop()
+            try:
+                generator = get_narrative_generator()
+                profile = ClientProfile(name=cpa_name)
+                return loop.run_until_complete(
+                    generator.generate_executive_summary(practice_data, profile)
+                )
+            finally:
+                loop.close()
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            narrative = pool.submit(_gen).result(timeout=5)
+            if narrative and narrative.content:
+                ai_practice_summary = narrative.content
+    except Exception as e:
+        logger.warning(f"AI practice summary failed: {e}")
+
     return templates.TemplateResponse(
         "cpa/analytics.html",
         {
@@ -911,6 +951,7 @@ async def cpa_analytics(
             "velocity_metrics": velocity_metrics,
             "trends": trends,
             "max_leads": max_leads,
+            "ai_practice_summary": ai_practice_summary,
             "active_page": "analytics",
         }
     )

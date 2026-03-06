@@ -212,6 +212,19 @@
 {% endblock %}
 
 {% block content %}
+{% if ai_practice_summary %}
+<!-- AI Practice Insights -->
+<div class="chart-card" style="margin-bottom: var(--space-8);">
+    <div class="chart-header">
+        <h3 class="chart-title">AI Practice Insights</h3>
+        <span style="font-size: 0.75rem; color: var(--text-muted); background: var(--bg-light); padding: var(--space-1) var(--space-3); border-radius: var(--radius-lg); font-weight: var(--font-semibold);">AI-generated</span>
+    </div>
+    <div style="padding: var(--space-6); line-height: 1.7; color: var(--text-primary);">
+        {{ ai_practice_summary }}
+    </div>
+</div>
+{% endif %}
+
 <!-- Key Metrics -->
 <div class="metrics-grid">
     <div class="metric-card">
