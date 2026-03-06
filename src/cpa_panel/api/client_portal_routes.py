@@ -1516,3 +1516,100 @@ async def get_client_scenarios(
         "scenarios": scenarios,
         "count": len(scenarios),
     }
+
+
+# =============================================================================
+# CLIENT CHAT - Authenticated AI Chat with Tax Context
+# =============================================================================
+
+class ClientChatRequest(BaseModel):
+    """Client chat message request."""
+    message: str = Field(..., min_length=1, max_length=5000)
+    conversation_id: Optional[str] = None
+
+
+def _build_client_tax_context(client_id: str) -> str:
+    """Build tax context string from client's latest session data."""
+    if not client_id:
+        return ""
+    try:
+        from database.session_persistence import SessionPersistence
+        persistence = SessionPersistence()
+
+        # Try to find client's latest session
+        # The persistence layer may store sessions by client_id
+        sessions = persistence.list_sessions_by_client(client_id) if hasattr(persistence, 'list_sessions_by_client') else []
+
+        if not sessions:
+            return ""
+
+        # Get the most recent session
+        latest_session = sessions[0] if sessions else None
+        if not latest_session:
+            return ""
+
+        session_id = latest_session.get("session_id") or str(latest_session) if isinstance(latest_session, dict) else str(latest_session)
+        session_data = persistence.load_session(session_id)
+        if not session_data:
+            return ""
+
+        tc = session_data.get("tax_computation") or {}
+        if not tc:
+            return ""
+
+        context = (
+            f"\n[Client Tax Context]\n"
+            f"Filing Status: {tc.get('filing_status', 'unknown')}\n"
+            f"AGI: ${tc.get('agi', 0):,.0f}\n"
+            f"Total Tax: ${tc.get('total_tax', 0):,.0f}\n"
+            f"Effective Rate: {tc.get('effective_rate', 0):.1f}%\n"
+        )
+
+        potential_savings = tc.get("potential_savings", 0)
+        if potential_savings:
+            context += f"Potential Savings: ${potential_savings:,.0f}\n"
+
+        return context
+    except Exception as e:
+        logger.warning(f"Could not load tax context for client {client_id}: {e}")
+        return ""
+
+
+@router.post("/chat/message")
+async def client_chat_message(
+    request: ClientChatRequest,
+    client: ClientContext = Depends(get_current_client),
+):
+    """
+    Authenticated client chat with tax-aware AI context.
+
+    Injects the client's actual tax data into the AI conversation.
+    """
+    try:
+        from services.ai.chat_router import IntelligentChatRouter
+
+        chat_router = IntelligentChatRouter()
+
+        # Build tax context from client's data
+        tax_context = _build_client_tax_context(client.client_id)
+        tax_context += f"\nAuthenticated client: {client.name} (ID: {client.client_id})\n"
+
+        conversation_id = request.conversation_id or f"client_{client.client_id}"
+
+        response = await chat_router.route_query(
+            query=request.message,
+            conversation_id=conversation_id,
+            additional_context=tax_context,
+        )
+
+        return {
+            "response": response.content if hasattr(response, 'content') else str(response),
+            "conversation_id": conversation_id,
+            "sources": response.sources if hasattr(response, 'sources') else [],
+        }
+    except Exception as e:
+        logger.error(f"Client chat error for {client.client_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Chat service temporarily unavailable"
+        )
