@@ -449,6 +449,25 @@ class LeadStateEngine:
             f"(trigger: {trigger_signal.signal_id})"
         )
 
+        # Emit event to EventBus for journey orchestration
+        try:
+            from events.event_bus import get_event_bus
+            from events.journey_events import LeadStateChanged
+            bus = get_event_bus()
+            if bus:
+                # Determine trigger type from signal metadata
+                trigger = "manual" if (metadata or {}).get("forced") else "score_threshold"
+                bus.emit(LeadStateChanged(
+                    lead_id=lead.lead_id,
+                    tenant_id=lead.tenant_id or "",
+                    user_id=lead.metadata.get("user_id", "") if lead.metadata else "",
+                    from_state=old_state.name if hasattr(old_state, 'name') else str(old_state),
+                    to_state=new_state.name if hasattr(new_state, 'name') else str(new_state),
+                    trigger=trigger,
+                ))
+        except Exception:
+            pass  # Non-critical — don't block state transition
+
     def force_transition(
         self,
         lead_id: str,

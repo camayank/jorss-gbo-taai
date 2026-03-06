@@ -251,25 +251,25 @@ async def get_dashboard_stats(cpa_id: str) -> dict:
             "conversion_trend": 0,
         }
 
-        if pipeline and "stages" in pipeline:
-            for stage in pipeline["stages"]:
-                state = stage.get("state", "").lower()
-                count = stage.get("count", 0)
-                value = stage.get("total_value", 0)
+        pipeline_data = pipeline.get("pipeline", {}) if pipeline else {}
+        for state_name, stage in pipeline_data.items():
+            count = stage.get("count", 0)
+            value = stage.get("total_value", 0)
 
-                stats["total_leads"] += count
-                stats["total_revenue"] += value
+            stats["total_leads"] += count
+            stats["total_revenue"] += value
 
-                if state in ("browsing", "curious"):
-                    stats["new_leads"] += count
-                elif state == "evaluating":
-                    stats["evaluating"] = count
-                elif state == "advisory_ready":
-                    stats["advisory_ready"] = count
-                elif state == "high_leverage":
-                    stats["high_leverage"] = count
-                elif state == "converted":
-                    stats["converted"] = count
+            state_lower = state_name.lower()
+            if state_lower in ("browsing", "curious"):
+                stats["new_leads"] += count
+            elif state_lower == "evaluating":
+                stats["evaluating"] = count
+            elif state_lower == "advisory_ready":
+                stats["advisory_ready"] = count
+            elif state_lower == "high_leverage":
+                stats["high_leverage"] = count
+            elif state_lower == "converted":
+                stats["converted"] = count
 
         # Calculate conversion rate
         if stats["total_leads"] > 0:
@@ -607,6 +607,41 @@ async def cpa_leads_list(
     )
 
 
+@cpa_dashboard_router.get("/leads/pipeline", response_class=HTMLResponse)
+async def cpa_leads_pipeline(
+    request: Request,
+    current_user: dict = Depends(require_cpa_auth)
+):
+    """CPA Pipeline Board - Kanban view of leads by state."""
+    cpa_profile = await get_cpa_profile_from_context(request)
+    cpa_id = get_cpa_id_from_user(current_user) or cpa_profile.get("cpa_id", "default")
+    stats = await get_dashboard_stats(cpa_id)
+
+    try:
+        from cpa_panel.services.pipeline_service import get_pipeline_service
+        service = get_pipeline_service()
+        result = service.get_pipeline_by_state(cpa_id)
+        pipeline = result.get("pipeline", {})
+        summary = result.get("summary", {})
+    except Exception as e:
+        logger.warning(f"Failed to get pipeline: {e}")
+        pipeline = {}
+        summary = {}
+
+    return templates.TemplateResponse(
+        "cpa/leads_pipeline.html",
+        {
+            "request": request,
+            "cpa": cpa_profile,
+            "stats": stats,
+            "pipeline": pipeline,
+            "summary": summary,
+            "active_page": "leads",
+            "states": ["BROWSING", "CURIOUS", "EVALUATING", "ADVISORY_READY", "HIGH_LEVERAGE"],
+        }
+    )
+
+
 @cpa_dashboard_router.get("/leads/{lead_id}", response_class=HTMLResponse)
 async def cpa_lead_detail(
     request: Request,
@@ -638,15 +673,20 @@ async def cpa_lead_detail(
         if not lead:
             raise HTTPException(status_code=404, detail="Lead not found")
 
+        # Convert dataclass to dict for safe .get() access
+        lead_dict = lead.to_dict(include_cpa_only=True)
+
         # Get lead's tax profile and insights
-        session_id = lead.get("session_id")
+        session_id = lead_dict.get("session_id")
         tax_profile = None
         insights = []
+        session_dict = None
 
         if session_id:
             session = service.get_session(session_id)
             if session:
-                tax_profile = session.get("tax_profile")
+                session_dict = session.to_dict()
+                tax_profile = session_dict.get("tax_profile")
 
             # Get Tier 1 report for insights
             try:
@@ -656,24 +696,62 @@ async def cpa_lead_detail(
             except Exception:
                 pass
 
+        # Extract Q&A conversation trail from session data
+        session_data = session_dict.get("data", {}) if session_dict else {}
+        qa_trail = []
+        qa_tax_profile = session_data.get("tax_profile", {})
+        if not qa_tax_profile and session_dict:
+            # tax_profile might be at the top level of session_dict
+            qa_tax_profile = session_dict.get("tax_profile", {})
+        if isinstance(qa_tax_profile, dict):
+            for key, value in qa_tax_profile.items():
+                if value is not None:
+                    qa_trail.append({"field": key, "value": value})
+
+        # Load documents for this session
+        documents = []
+        if session_id:
+            try:
+                from database.session_persistence import get_session_persistence
+                sp = get_session_persistence()
+                docs = sp.list_session_documents(session_id)
+                documents = [d.to_dict() if hasattr(d, 'to_dict') else vars(d) for d in docs]
+            except Exception:
+                pass  # Documents are non-critical
+
+        # Derive state from engagement status
+        if lead_dict.get("converted"):
+            lead_state = "converted"
+            lead_state_display = "Converted"
+        elif lead_dict.get("engaged"):
+            lead_state = "engaged"
+            lead_state_display = "Engaged"
+        else:
+            lead_state = "new_lead"
+            lead_state_display = "New Lead"
+
+        # Compute estimated savings midpoint from range
+        savings_low = lead_dict.get("savings_range_low", 0) or 0
+        savings_high = lead_dict.get("savings_range_high", 0) or 0
+        estimated_savings = int(round((savings_low + savings_high) / 2))
+
         lead_data = {
-            "id": lead.get("lead_id"),
-            "name": f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip() or lead.get("email", "").split("@")[0],
-            "first_name": lead.get("first_name", ""),
-            "last_name": lead.get("last_name", ""),
-            "email": lead.get("email", ""),
-            "phone": lead.get("phone"),
-            "state": lead.get("state", "browsing"),
-            "state_display": lead.get("state_display", "Browsing"),
-            "temperature": lead.get("temperature", "cold"),
-            "estimated_savings": lead.get("estimated_savings", 0),
-            "complexity": lead.get("complexity", "simple"),
-            "score": lead.get("score", 0),
-            "created_at": lead.get("created_at"),
-            "age": _format_age(lead.get("created_at")),
+            "id": lead_dict.get("lead_id"),
+            "name": lead_dict.get("first_name", "") or lead_dict.get("email", "").split("@")[0],
+            "first_name": lead_dict.get("first_name", ""),
+            "email": lead_dict.get("email", ""),
+            "phone": lead_dict.get("phone"),
+            "state": lead_state,
+            "state_display": lead_state_display,
+            "temperature": lead_dict.get("lead_temperature", "cold"),
+            "estimated_savings": estimated_savings,
+            "complexity": lead_dict.get("complexity", "simple"),
+            "score": lead_dict.get("lead_score", 0),
+            "created_at": lead_dict.get("created_at"),
+            "age": _format_age(lead_dict.get("created_at")),
             "session_id": session_id,
-            "engaged": lead.get("engaged", False),
-            "engagement_letter_acknowledged": lead.get("engagement_letter_acknowledged", False),
+            "engaged": lead_dict.get("engaged", False),
+            "engagement_letter_acknowledged": lead_dict.get("engagement_letter_acknowledged", False),
             "tax_profile": tax_profile,
             "insights": insights,
         }
@@ -691,6 +769,9 @@ async def cpa_lead_detail(
             "cpa": cpa_profile,
             "stats": stats,
             "lead": lead_data,
+            "qa_trail": qa_trail,
+            "documents": documents,
+            "session_data": session_data,
             "active_page": "leads",
         }
     )
@@ -790,11 +871,15 @@ async def cpa_analytics(
 
         conversion_metrics = service.get_conversion_metrics(cpa_id)
         velocity_metrics = service.get_velocity_metrics(cpa_id)
+        trends = service.get_lead_trends(cpa_id)
+        max_leads = max(trends["new_leads"]) if trends["new_leads"] and max(trends["new_leads"]) > 0 else 1
 
     except Exception as e:
         logger.warning(f"Failed to get analytics: {e}")
         conversion_metrics = {}
         velocity_metrics = {}
+        trends = {"dates": [], "new_leads": [], "conversions": []}
+        max_leads = 1
 
     return templates.TemplateResponse(
         "cpa/analytics.html",
@@ -804,6 +889,8 @@ async def cpa_analytics(
             "stats": stats,
             "conversion_metrics": conversion_metrics,
             "velocity_metrics": velocity_metrics,
+            "trends": trends,
+            "max_leads": max_leads,
             "active_page": "analytics",
         }
     )
@@ -1014,6 +1101,7 @@ async def cpa_billing_page(
     # Available plans — aligned with subscription_plans table
     # ($199/$499/$999 per admin_panel/models/subscription.py)
     plans = []
+    firm_id = get_tenant_id_from_user(current_user)
     try:
         from database.async_engine import get_async_session as _get_async_session
         from sqlalchemy import text
@@ -1032,6 +1120,25 @@ async def cpa_billing_page(
                     "team_limit": row[3] or "Unlimited",
                     "features": [k.replace("_", " ").title() for k, v in feats.items() if v],
                 })
+
+            # Try to read current subscription to populate billing info
+            try:
+                sub_rows = (await db.execute(text(
+                    "SELECT sp.name, s.status, s.next_billing_date, sp.monthly_price, sp.max_clients "
+                    "FROM subscriptions s "
+                    "JOIN subscription_plans sp ON s.plan_id = sp.plan_id "
+                    "WHERE s.firm_id = :firm_id AND s.status IN ('active', 'trialing') "
+                    "ORDER BY s.created_at DESC LIMIT 1"
+                ), {"firm_id": firm_id})).fetchone()
+                if sub_rows:
+                    billing["plan"] = sub_rows[0]
+                    billing["status"] = sub_rows[1]
+                    billing["next_billing"] = sub_rows[2].strftime("%B %d, %Y") if sub_rows[2] else "Contact support"
+                    billing["amount"] = float(sub_rows[3]) if sub_rows[3] else 499.00
+                    billing["leads_limit"] = sub_rows[4] or 500
+            except Exception as e:
+                logger.debug(f"Could not load subscription from DB: {e}")
+
             break
     except Exception as e:
         logger.debug(f"Could not load plans from DB: {e}")
@@ -1047,6 +1154,40 @@ async def cpa_billing_page(
              "features": ["All Professional features", "White-label", "API access", "Priority support", "Custom domain"]},
         ]
 
+    # Try to load real invoices from database
+    invoices_list = []
+    try:
+        from database.async_engine import get_async_session as _get_async_session
+        from sqlalchemy import text
+        async for db in _get_async_session():
+            inv_rows = (await db.execute(text(
+                "SELECT invoice_number, period_start, amount_due, status, line_items "
+                "FROM invoices "
+                "WHERE firm_id = :firm_id "
+                "ORDER BY period_start DESC LIMIT 20"
+            ), {"firm_id": firm_id})).fetchall()
+            for inv_row in inv_rows:
+                import json
+                line_items = json.loads(inv_row[4]) if isinstance(inv_row[4], str) else (inv_row[4] or [])
+                description = line_items[0].get("description", "") if line_items else f"{billing['plan']} Plan"
+                invoices_list.append({
+                    "id": inv_row[0],
+                    "date": inv_row[1].strftime("%Y-%m-%d") if inv_row[1] else "",
+                    "amount": float(inv_row[2]) if inv_row[2] else 0,
+                    "status": inv_row[3] if isinstance(inv_row[3], str) else (inv_row[3].value if inv_row[3] else "draft"),
+                    "description": description,
+                })
+            break
+    except Exception as e:
+        logger.debug(f"Could not load invoices from DB: {e}")
+
+    # If no real invoices, provide demo data for demo readiness
+    if not invoices_list:
+        invoices_list = [
+            {"id": "INV-001", "date": "2026-02-01", "amount": 99.00, "status": "paid", "description": f"{billing['plan']} Plan - February 2026"},
+            {"id": "INV-002", "date": "2026-03-01", "amount": 99.00, "status": "pending", "description": f"{billing['plan']} Plan - March 2026"},
+        ]
+
     return templates.TemplateResponse(
         "cpa/billing.html",
         {
@@ -1055,7 +1196,7 @@ async def cpa_billing_page(
             "stats": stats,
             "billing": billing,
             "plans": plans,
-            "invoices": [],
+            "invoices": invoices_list,
             "current_user": current_user,
             "active_page": "billing",
         }

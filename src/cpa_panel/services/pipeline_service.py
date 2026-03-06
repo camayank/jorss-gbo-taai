@@ -143,6 +143,8 @@ class LeadPipelineService:
                     "converted_leads": 0,
                     "conversion_rate": 0,
                     "avg_conversion_time_days": 0,
+                    "average_score": 0,
+                    "avg_value": 0,
                 },
                 "message": "No leads found",
             }
@@ -174,6 +176,14 @@ class LeadPipelineService:
             rate = (state_count / prev_count * 100) if prev_count > 0 else 0
             stage_rates[state.name] = round(rate, 1)
 
+        # Calculate average lead score (priority score across all leads)
+        lead_scores = [self._calculate_priority_score(lead) for lead in all_leads]
+        average_score = sum(lead_scores) / len(lead_scores) if lead_scores else 0
+
+        # Calculate average lead value
+        lead_values = [self._estimate_lead_value(lead.to_dict()) for lead in all_leads]
+        avg_value = sum(lead_values) / len(lead_values) if lead_values else 0
+
         return {
             "success": True,
             "metrics": {
@@ -181,6 +191,8 @@ class LeadPipelineService:
                 "converted_leads": converted_count,
                 "conversion_rate": round(conversion_rate, 1),
                 "avg_conversion_time_days": round(avg_conversion_time, 1),
+                "average_score": round(average_score, 1),
+                "avg_value": round(avg_value, 2),
                 "stage_conversion_rates": stage_rates,
                 "leads_by_state": {
                     state.name: len([l for l in all_leads if l.current_state == state])
@@ -362,6 +374,47 @@ class LeadPipelineService:
             "lead": lead.to_dict() if lead else None,
             "current_state": lead.current_state.name if lead else None,
         }
+
+    def get_lead_trends(self, tenant_id: Optional[str] = None, days: int = 30) -> dict:
+        """Get daily lead counts for the last N days."""
+        from cpa_panel.lead_state import LeadState
+
+        end = datetime.now(timezone.utc)
+        start = end - timedelta(days=days)
+
+        # Get all leads
+        all_leads = []
+        for state in LeadState:
+            leads = self.engine.get_leads_by_state(state, tenant_id)
+            all_leads.extend(leads)
+
+        # Group by date
+        dates = []
+        new_leads = []
+        conversions = []
+
+        for day_offset in range(days):
+            day = start + timedelta(days=day_offset)
+            day_str = day.strftime("%Y-%m-%d")
+            dates.append(day_str)
+
+            # Count leads created on this day
+            day_new = sum(
+                1 for l in all_leads
+                if hasattr(l, 'created_at') and l.created_at
+                and l.created_at.strftime("%Y-%m-%d") == day_str
+            )
+            new_leads.append(day_new)
+
+            # Count conversions on this day (leads that converted)
+            day_conv = sum(
+                1 for l in all_leads
+                if hasattr(l, 'converted_at') and l.converted_at
+                and l.converted_at.strftime("%Y-%m-%d") == day_str
+            )
+            conversions.append(day_conv)
+
+        return {"dates": dates, "new_leads": new_leads, "conversions": conversions}
 
     def _calculate_priority_score(self, lead) -> float:
         """Calculate priority score for a lead."""

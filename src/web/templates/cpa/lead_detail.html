@@ -689,6 +689,54 @@
         </div>
         {% endif %}
 
+        <!-- Q&A Conversation Trail -->
+        {% if qa_trail %}
+        <div class="info-card">
+            <div class="info-card-header">
+                <h3>Advisor Conversation Trail</h3>
+            </div>
+            <div class="info-card-body" style="padding: 0;">
+                {% for item in qa_trail %}
+                <div class="insight-item">
+                    <span class="insight-category">{{ item.field | replace('_', ' ') | title }}</span>
+                    <span class="insight-title">{{ item.value }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Documents -->
+        {% if documents %}
+        <div class="info-card">
+            <div class="info-card-header">
+                <h3>Uploaded Documents</h3>
+            </div>
+            <div class="info-card-body" style="padding: 0;">
+                <table class="data-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Document</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Uploaded</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for doc in documents %}
+                    <tr>
+                        <td>{{ doc.filename or doc.document_type or 'Document' }}</td>
+                        <td>{{ doc.document_type or 'Unknown' }}</td>
+                        <td><span class="badge badge-{{ 'success' if doc.status == 'processed' else 'warning' }}">{{ doc.status or 'Pending' }}</span></td>
+                        <td>{{ doc.created_at or '' }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Tax Insights -->
         {% if lead.insights and lead.insights|length > 0 %}
         <div class="info-card">
@@ -700,8 +748,8 @@
                 <div class="insight-item">
                     <div class="insight-header">
                         <span class="insight-category">{{ insight.category or 'General' }}</span>
-                        {% if insight.savings_estimate %}
-                        <span class="insight-savings">${{ '{:,.0f}'.format(insight.savings_estimate) }}</span>
+                        {% if insight.savings_range %}
+                        <span class="insight-savings">{{ insight.savings_range }}</span>
                         {% endif %}
                     </div>
                     <div class="insight-title">{{ insight.title }}</div>

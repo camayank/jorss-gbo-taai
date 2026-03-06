@@ -309,7 +309,7 @@
                     <div class="conversion-stat-label">Overall Conversion</div>
                 </div>
                 <div class="conversion-stat">
-                    <div class="conversion-stat-value">{% if velocity_metrics and velocity_metrics.metrics and velocity_metrics.metrics.avg_days_to_convert %}{{ velocity_metrics.metrics.avg_days_to_convert|round|int }}{% else %}0{% endif %}d</div>
+                    <div class="conversion-stat-value">{% if velocity_metrics and velocity_metrics.metrics and velocity_metrics.metrics.avg_time_to_conversion %}{{ velocity_metrics.metrics.avg_time_to_conversion|round|int }}{% else %}0{% endif %}d</div>
                     <div class="conversion-stat-label">Avg. Time to Convert</div>
                 </div>
                 <div class="conversion-stat">
@@ -326,15 +326,21 @@
 </div>
 
 <!-- Lead Trends Chart -->
-<div class="chart-card">
-    <div class="chart-header">
-        <h3 class="chart-title">Lead Trends</h3>
-        <span style="font-size: 0.85rem; color: var(--text-muted);">Coming soon</span>
+<div class="info-card">
+    <div class="info-card-header">
+        <h3>Lead Trends (30 Days)</h3>
     </div>
-    <div class="chart-body">
-        <div class="chart-placeholder">
-            <div class="chart-placeholder-icon">{{ icon('chart-bar') }}</div>
-            <p>Time-series trend charts are on the roadmap.<br>Use the metrics above for current pipeline health.</p>
+    <div class="info-card-body">
+        <div style="display: flex; align-items: flex-end; gap: 2px; height: 200px; padding: 1rem 0;">
+            {% for i in range(trends.dates|length) %}
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
+                <div style="width: 100%; background: var(--cpa-primary, #2563eb); border-radius: 2px 2px 0 0; min-height: 2px; height: {{ (trends.new_leads[i] / max_leads * 100)|int }}%;" title="{{ trends.dates[i] }}: {{ trends.new_leads[i] }} leads"></div>
+            </div>
+            {% endfor %}
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #999; padding: 0 0.25rem;">
+            <span>{{ trends.dates[0][-5:] if trends.dates else '' }}</span>
+            <span>{{ trends.dates[-1][-5:] if trends.dates else '' }}</span>
         </div>
     </div>
 </div>

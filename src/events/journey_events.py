@@ -86,3 +86,14 @@ class ReportGenerated:
     user_id: str
     session_id: str
     download_url: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class LeadStateChanged:
+    """Lead state changed in the CPA pipeline."""
+    lead_id: str
+    tenant_id: str
+    user_id: str
+    from_state: str
+    to_state: str
+    trigger: str  # "manual", "score_threshold", "time_based"
