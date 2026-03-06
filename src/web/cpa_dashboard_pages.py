@@ -673,6 +673,17 @@ async def cpa_lead_detail(
                 if value is not None:
                     qa_trail.append({"field": key, "value": value})
 
+        # Load documents for this session
+        documents = []
+        if session_id:
+            try:
+                from database.session_persistence import get_session_persistence
+                sp = get_session_persistence()
+                docs = sp.list_session_documents(session_id)
+                documents = [d.to_dict() if hasattr(d, 'to_dict') else vars(d) for d in docs]
+            except Exception:
+                pass  # Documents are non-critical
+
         # Derive state from engagement status
         if lead_dict.get("converted"):
             lead_state = "converted"
@@ -724,6 +735,7 @@ async def cpa_lead_detail(
             "stats": stats,
             "lead": lead_data,
             "qa_trail": qa_trail,
+            "documents": documents,
             "session_data": session_data,
             "active_page": "leads",
         }

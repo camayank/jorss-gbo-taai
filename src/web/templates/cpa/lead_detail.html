@@ -706,6 +706,37 @@
         </div>
         {% endif %}
 
+        <!-- Documents -->
+        {% if documents %}
+        <div class="info-card">
+            <div class="info-card-header">
+                <h3>Uploaded Documents</h3>
+            </div>
+            <div class="info-card-body" style="padding: 0;">
+                <table class="data-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Document</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Uploaded</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for doc in documents %}
+                    <tr>
+                        <td>{{ doc.filename or doc.document_type or 'Document' }}</td>
+                        <td>{{ doc.document_type or 'Unknown' }}</td>
+                        <td><span class="badge badge-{{ 'success' if doc.status == 'processed' else 'warning' }}">{{ doc.status or 'Pending' }}</span></td>
+                        <td>{{ doc.created_at or '' }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Tax Insights -->
         {% if lead.insights and lead.insights|length > 0 %}
         <div class="info-card">
