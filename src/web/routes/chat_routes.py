@@ -17,6 +17,39 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Chat"])
 
 
+def _build_tax_context(session_id: str) -> str:
+    """Build tax context string from session data for chat personalization."""
+    if not session_id:
+        return ""
+    try:
+        from database.session_persistence import SessionPersistence
+        persistence = SessionPersistence()
+        session_data = persistence.load_session_state(session_id)
+        if not session_data:
+            return ""
+
+        tc = session_data.get("tax_computation") or {}
+        if not tc:
+            return ""
+
+        context = (
+            f"\n[Tax Context - use to personalize your answer]\n"
+            f"Filing Status: {tc.get('filing_status', 'unknown')}\n"
+            f"AGI: ${tc.get('agi', 0):,.0f}\n"
+            f"Total Tax: ${tc.get('total_tax', 0):,.0f}\n"
+            f"Effective Rate: {tc.get('effective_rate', 0):.1f}%\n"
+        )
+
+        potential_savings = tc.get("potential_savings", 0)
+        if potential_savings:
+            context += f"Potential Savings: ${potential_savings:,.0f}\n"
+
+        return context
+    except Exception as e:
+        logger.warning(f"Could not load tax context for chat: {e}")
+        return ""
+
+
 def _get_app_dependencies():
     """Lazy import of app-level dependencies to avoid circular imports."""
     from web.app import (
@@ -118,7 +151,14 @@ async def chat(request: Request, response: Response):
     if not user_message or len(user_message.strip()) == 0:
         return JSONResponse({"reply": "Please type a message."})
 
-    reply = agent.process_message(user_message)
+    # Inject tax context if available
+    tax_context = _build_tax_context(session_id)
+    if tax_context:
+        contextualized_message = f"{tax_context}\nUser question: {user_message}"
+    else:
+        contextualized_message = user_message
+
+    reply = agent.process_message(contextualized_message)
 
     # Persist agent state after message processing
     try:
