@@ -431,14 +431,58 @@ class AdaptiveQuestionGenerator:
             if "has_energy_improvements" not in user_answers:
                 questions.append(self.QUESTION_TEMPLATES["has_energy_improvements"])
 
-        # Sort by priority
-        priority_order = {
-            QuestionPriority.CRITICAL: 0,
-            QuestionPriority.HIGH: 1,
-            QuestionPriority.MEDIUM: 2,
-            QuestionPriority.LOW: 3,
-        }
-        questions.sort(key=lambda q: priority_order.get(q.priority, 99))
+        # Try AI-informed question prioritization
+        try:
+            from services.ai.unified_ai_service import get_ai_service
+            import asyncio
+            import concurrent.futures
+            import json as _json
+
+            ai_service = get_ai_service()
+            income = extracted_data.get("wages", 0) or extracted_data.get("total_income", 0) or 0
+
+            question_titles = [q.title for q in questions[:10]]
+            prompt = (
+                f"Given a {filing_status} taxpayer with income ~${income:,.0f}, "
+                f"rank these tax intake questions by importance (most impactful first). "
+                f"Return ONLY a JSON array of indices (0-based): {_json.dumps(question_titles)}"
+            )
+
+            def _get_priority():
+                loop = asyncio.new_event_loop()
+                try:
+                    return loop.run_until_complete(
+                        ai_service.generate(prompt)
+                    )
+                finally:
+                    loop.close()
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                response = pool.submit(_get_priority).result(timeout=3)
+
+            if response and hasattr(response, 'content') and response.content:
+                priority_indices = _json.loads(response.content)
+                if (isinstance(priority_indices, list)
+                    and len(priority_indices) == len(questions[:10])
+                    and all(isinstance(i, int) and 0 <= i < len(questions[:10]) for i in priority_indices)):
+                    # Reorder the first 10 questions, keep any beyond 10 at the end
+                    reordered = [questions[i] for i in priority_indices]
+                    if len(questions) > 10:
+                        reordered.extend(questions[10:])
+                    questions = reordered
+                else:
+                    raise ValueError("AI returned invalid index list")
+            else:
+                raise ValueError("Empty AI response")
+        except Exception:
+            # Fall back to static priority sort
+            priority_order = {
+                QuestionPriority.CRITICAL: 0,
+                QuestionPriority.HIGH: 1,
+                QuestionPriority.MEDIUM: 2,
+                QuestionPriority.LOW: 3,
+            }
+            questions.sort(key=lambda q: priority_order.get(q.priority, 99))
 
         return questions
 
