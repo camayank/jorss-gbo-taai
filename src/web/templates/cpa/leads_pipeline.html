@@ -1,0 +1,194 @@
+{% extends "cpa/base.html" %}
+
+{% block title %}Pipeline Board{% endblock %}
+{% block page_title %}Lead Pipeline{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .pipeline-summary {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .pipeline-summary .stat-card {
+        flex: 1;
+        padding: 1rem;
+        background: var(--cpa-surface, #f8f9fa);
+        border-radius: 8px;
+        text-align: center;
+    }
+    .pipeline-summary .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--cpa-primary, #2563eb);
+    }
+    .pipeline-summary .stat-label {
+        font-size: 0.85rem;
+        color: #666;
+    }
+    .kanban-board {
+        display: flex;
+        gap: 1rem;
+        overflow-x: auto;
+        min-height: 500px;
+        padding-bottom: 1rem;
+    }
+    .kanban-column {
+        flex: 1;
+        min-width: 220px;
+        background: var(--cpa-surface, #f5f5f5);
+        border-radius: 8px;
+        padding: 0.75rem;
+        display: flex;
+        flex-direction: column;
+    }
+    .kanban-column.drag-over {
+        background: color-mix(in srgb, var(--cpa-primary, #2563eb) 8%, white) !important;
+        outline: 2px dashed var(--cpa-primary, #2563eb);
+    }
+    .kanban-column-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--cpa-primary, #2563eb);
+    }
+    .kanban-column-header h4 {
+        margin: 0;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .kanban-column-count {
+        background: var(--cpa-primary, #2563eb);
+        color: white;
+        border-radius: 12px;
+        padding: 0.15rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .kanban-cards {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .kanban-card {
+        background: white;
+        border-radius: 6px;
+        padding: 0.75rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        cursor: grab;
+        border-left: 3px solid var(--cpa-primary, #2563eb);
+    }
+    .kanban-card:active {
+        cursor: grabbing;
+        opacity: 0.7;
+    }
+    .kanban-card-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+    }
+    .kanban-card-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        color: #666;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-header-actions">
+        <a href="/cpa/leads" class="btn btn-outline">List View</a>
+        <a href="/cpa/leads/pipeline" class="btn btn-primary">Pipeline View</a>
+    </div>
+</div>
+
+<div class="pipeline-summary">
+    <div class="stat-card">
+        <div class="stat-value">{{ summary.total_leads or 0 }}</div>
+        <div class="stat-label">Total Leads</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">${{ '{:,.0f}'.format(summary.total_pipeline_value or 0) }}</div>
+        <div class="stat-label">Pipeline Value</div>
+    </div>
+</div>
+
+<div class="kanban-board" x-data="pipelineBoard()">
+    {% for state in states %}
+    <div class="kanban-column"
+         @dragover.prevent="dragOverColumn = '{{ state }}'"
+         @dragleave="dragOverColumn = null"
+         @drop="dropLead($event, '{{ state }}')"
+         :class="{ 'drag-over': dragOverColumn === '{{ state }}' }">
+
+        <div class="kanban-column-header">
+            <h4>{{ state.replace('_', ' ') }}</h4>
+            <span class="kanban-column-count">
+                {{ pipeline[state].count if pipeline.get(state) else 0 }}
+            </span>
+        </div>
+
+        <div class="kanban-cards">
+        {% if pipeline.get(state) %}
+            {% for lead in pipeline[state].leads %}
+            <div class="kanban-card"
+                 draggable="true"
+                 @dragstart="dragStart($event, '{{ lead.lead_id or lead.id }}')">
+                <div class="kanban-card-name">
+                    {{ lead.first_name or lead.email or 'Unknown' }}
+                </div>
+                <div class="kanban-card-meta">
+                    <span>Score: {{ lead.lead_score or lead.score or 0 }}</span>
+                    <span>${{ '{:,.0f}'.format(lead.estimated_value or 0) }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function pipelineBoard() {
+    return {
+        dragOverColumn: null,
+        draggedLeadId: null,
+        dragStart(event, leadId) {
+            this.draggedLeadId = leadId;
+            event.dataTransfer.setData('text/plain', leadId);
+            event.dataTransfer.effectAllowed = 'move';
+        },
+        async dropLead(event, newState) {
+            event.preventDefault();
+            this.dragOverColumn = null;
+            const leadId = event.dataTransfer.getData('text/plain') || this.draggedLeadId;
+            if (!leadId) return;
+
+            try {
+                const response = await fetch(`/api/cpa/leads/${leadId}/state`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ state: newState })
+                });
+                if (response.ok) {
+                    window.location.reload();
+                }
+            } catch (err) {
+                console.error('Failed to move lead:', err);
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

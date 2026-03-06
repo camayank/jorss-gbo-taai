@@ -607,6 +607,41 @@ async def cpa_leads_list(
     )
 
 
+@cpa_dashboard_router.get("/leads/pipeline", response_class=HTMLResponse)
+async def cpa_leads_pipeline(
+    request: Request,
+    current_user: dict = Depends(require_cpa_auth)
+):
+    """CPA Pipeline Board - Kanban view of leads by state."""
+    cpa_profile = await get_cpa_profile_from_context(request)
+    cpa_id = get_cpa_id_from_user(current_user) or cpa_profile.get("cpa_id", "default")
+    stats = await get_dashboard_stats(cpa_id)
+
+    try:
+        from cpa_panel.services.pipeline_service import get_pipeline_service
+        service = get_pipeline_service()
+        result = service.get_pipeline_by_state(cpa_id)
+        pipeline = result.get("pipeline", {})
+        summary = result.get("summary", {})
+    except Exception as e:
+        logger.warning(f"Failed to get pipeline: {e}")
+        pipeline = {}
+        summary = {}
+
+    return templates.TemplateResponse(
+        "cpa/leads_pipeline.html",
+        {
+            "request": request,
+            "cpa": cpa_profile,
+            "stats": stats,
+            "pipeline": pipeline,
+            "summary": summary,
+            "active_page": "leads",
+            "states": ["BROWSING", "CURIOUS", "EVALUATING", "ADVISORY_READY", "HIGH_LEVERAGE"],
+        }
+    )
+
+
 @cpa_dashboard_router.get("/leads/{lead_id}", response_class=HTMLResponse)
 async def cpa_lead_detail(
     request: Request,
