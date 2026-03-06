@@ -719,6 +719,25 @@ async def cpa_lead_detail(
             except Exception:
                 pass  # Documents are non-critical
 
+        # Anomaly detection
+        anomaly_report = None
+        if session_id and session_dict:
+            try:
+                from services.ai.anomaly_detector import AnomalyDetector
+                tc = session_dict.get("tax_computation") or session_dict.get("data", {}).get("tax_computation")
+                if tc:
+                    detector = AnomalyDetector()
+                    return_data = {
+                        "filing_status": (tax_profile or {}).get("filing_status", "single"),
+                        "income": tc.get("agi", 0),
+                        "deductions": tc.get("total_deductions", 0),
+                        "tax_liability": tc.get("total_tax", 0),
+                        "dependents": (tax_profile or {}).get("dependents_count", 0),
+                    }
+                    anomaly_report = await detector.analyze_return(return_data)
+            except Exception as e:
+                logger.warning(f"Anomaly detection failed for lead {lead_id}: {e}")
+
         # Derive state from engagement status
         if lead_dict.get("converted"):
             lead_state = "converted"
@@ -772,6 +791,7 @@ async def cpa_lead_detail(
             "qa_trail": qa_trail,
             "documents": documents,
             "session_data": session_data,
+            "anomaly_report": anomaly_report,
             "active_page": "leads",
         }
     )

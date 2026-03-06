@@ -759,6 +759,98 @@
             </div>
         </div>
         {% endif %}
+
+        <!-- Anomaly Risk Assessment -->
+        {% if anomaly_report %}
+        <div class="info-card">
+            <div class="info-card-header">
+                <h3 class="info-card-title">{{ icon('shield-check') }} Risk Assessment</h3>
+                <span class="status-badge {% if anomaly_report.audit_risk_level == 'low' %}state{% elif anomaly_report.audit_risk_level == 'medium' %}temperature warm{% else %}temperature{% endif %}">
+                    {% if anomaly_report.audit_risk_level == 'low' %}Low Risk
+                    {% elif anomaly_report.audit_risk_level == 'medium' %}Medium Risk
+                    {% else %}High Risk{% endif %}
+                </span>
+            </div>
+            <div class="info-card-body">
+                <!-- Risk Score -->
+                <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-5);">
+                    <div style="flex: 1;">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-1);">Audit Risk Score</div>
+                        <div style="display: flex; align-items: baseline; gap: var(--space-2);">
+                            <span style="font-size: 2rem; font-weight: var(--font-bold); color: {% if anomaly_report.overall_risk_score < 40 %}var(--color-success-500){% elif anomaly_report.overall_risk_score < 70 %}var(--badge-pending-text){% else %}var(--color-error-500){% endif %};">{{ anomaly_report.overall_risk_score|round(0)|int }}</span>
+                            <span style="font-size: 0.9rem; color: var(--text-muted);">/ 100</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: var(--space-2);">
+                        <div class="profile-item" style="text-align: center; min-width: 60px;">
+                            <div class="profile-item-label">Total</div>
+                            <div class="profile-item-value">{{ anomaly_report.total_anomalies }}</div>
+                        </div>
+                        {% if anomaly_report.critical_count > 0 %}
+                        <div class="profile-item" style="text-align: center; min-width: 60px; background: var(--badge-error-bg);">
+                            <div class="profile-item-label" style="color: var(--badge-error-text);">Critical</div>
+                            <div class="profile-item-value" style="color: var(--badge-error-text);">{{ anomaly_report.critical_count }}</div>
+                        </div>
+                        {% endif %}
+                        {% if anomaly_report.high_count > 0 %}
+                        <div class="profile-item" style="text-align: center; min-width: 60px; background: var(--badge-pending-bg);">
+                            <div class="profile-item-label" style="color: var(--badge-pending-text);">High</div>
+                            <div class="profile-item-value" style="color: var(--badge-pending-text);">{{ anomaly_report.high_count }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Anomalies List -->
+                {% if anomaly_report.anomalies %}
+                <div style="border-top: 1px solid var(--border-color); padding-top: var(--space-4);">
+                    {% for anomaly in anomaly_report.anomalies %}
+                    <div class="insight-item">
+                        <div class="insight-header">
+                            <span class="insight-category">{{ anomaly.category.value|replace('_', ' ')|title }}</span>
+                            <span class="status-badge" style="font-size: 0.7rem; padding: 2px 8px;
+                                {% if anomaly.severity.value == 'critical' %}background: var(--badge-error-bg); color: var(--badge-error-text);
+                                {% elif anomaly.severity.value == 'high' %}background: var(--badge-pending-bg); color: var(--badge-pending-text);
+                                {% elif anomaly.severity.value == 'medium' %}background: var(--badge-primary-bg); color: var(--badge-primary-text);
+                                {% else %}background: var(--bg-light); color: var(--text-muted);{% endif %}">
+                                {{ anomaly.severity.value|upper }}
+                            </span>
+                        </div>
+                        <div class="insight-title">{{ anomaly.description }}</div>
+                        {% if anomaly.irs_reference %}
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: var(--space-1);">
+                            {{ icon('document-text') }} IRS Ref: {{ anomaly.irs_reference }}
+                        </div>
+                        {% endif %}
+                        {% if anomaly.recommendation %}
+                        <div style="font-size: 0.85rem; color: var(--primary-color); margin-top: var(--space-1);">
+                            {{ anomaly.recommendation }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Recommendations (collapsible) -->
+                {% if anomaly_report.recommendations %}
+                <details style="border-top: 1px solid var(--border-color); padding-top: var(--space-4); margin-top: var(--space-2);">
+                    <summary style="cursor: pointer; font-weight: var(--font-semibold); color: var(--text-dark); padding: var(--space-2) 0;">
+                        {{ icon('light-bulb') }} Recommendations ({{ anomaly_report.recommendations|length }})
+                    </summary>
+                    <div style="padding-top: var(--space-3);">
+                        {% for rec in anomaly_report.recommendations %}
+                        <div style="display: flex; gap: var(--space-2); padding: var(--space-2) 0; font-size: 0.9rem; color: var(--text-muted);">
+                            <span style="color: var(--primary-color);">{{ icon('check-circle') }}</span>
+                            <span>{{ rec }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </details>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Sidebar -->
