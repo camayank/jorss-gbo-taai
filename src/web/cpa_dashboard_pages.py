@@ -1465,7 +1465,7 @@ async def cpa_return_review_page(
 
     except Exception as e:
         logger.error(f"Error loading return for review: {e}")
-        # Use demo data
+        # Use demo data fallback
         return_data = {
             "status": "pending_review",
             "filing_status": "Single",
@@ -1489,6 +1489,26 @@ async def cpa_return_review_page(
         }
         client_name = "Demo Client"
 
+    # Compliance review
+    compliance_report = None
+    if return_data and return_data.get("agi", 0) > 0:
+        try:
+            from services.ai.compliance_reviewer import ComplianceReviewer
+            reviewer = ComplianceReviewer()
+
+            preparer_info = None
+            if cpa_profile:
+                ptin = cpa_profile.get("ptin")
+                if ptin:
+                    preparer_info = {
+                        "name": cpa_profile.get("display_name", ""),
+                        "ptin": ptin,
+                    }
+
+            compliance_report = await reviewer.review_return(return_data, preparer_info)
+        except Exception as e:
+            logger.warning(f"Compliance review failed for session {session_id}: {e}")
+
     return templates.TemplateResponse(
         "cpa/return_review.html",
         {
@@ -1501,6 +1521,7 @@ async def cpa_return_review_page(
             "return_data": return_data,
             "client_name": client_name,
             "tax_year": tax_year,
-            "notes": notes
+            "notes": notes,
+            "compliance_report": compliance_report
         }
     )
