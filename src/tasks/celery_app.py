@@ -352,3 +352,44 @@ def revoke_task(task_id: str, terminate: bool = False) -> bool:
     except Exception as e:
         logger.error(f"Failed to revoke task {task_id}: {e}")
         return False
+
+
+class _SyncResult:
+    """Mimics a Celery AsyncResult for sync fallback."""
+
+    def __init__(self, result, task_id: str = "sync-fallback"):
+        self.id = task_id
+        self.result = result
+        self.status = "SUCCESS"
+
+    def ready(self):
+        return True
+
+    def successful(self):
+        return True
+
+    def get(self, timeout=None):
+        return self.result
+
+
+def safe_delay(task, *args, **kwargs):
+    """
+    Submit a Celery task with sync fallback.
+
+    Tries .delay() first. If the broker is unreachable (Redis down),
+    runs the task function synchronously so the caller isn't broken.
+
+    Returns an AsyncResult (or _SyncResult for the fallback).
+    """
+    try:
+        return task.delay(*args, **kwargs)
+    except Exception as e:
+        logger.warning(
+            f"Celery broker unavailable, running {task.name} synchronously: {e}"
+        )
+        try:
+            result = task.run(*args, **kwargs)
+            return _SyncResult(result, task_id=f"sync-{task.name}")
+        except Exception as run_err:
+            logger.error(f"Sync fallback for {task.name} also failed: {run_err}")
+            raise

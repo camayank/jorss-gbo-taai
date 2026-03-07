@@ -652,8 +652,10 @@ def submit_document_for_processing(
         status=TaskStatus.PENDING,
     )
 
-    # Submit task
-    task = process_document_task.delay(
+    # Submit task (with sync fallback if broker unavailable)
+    from tasks.celery_app import safe_delay
+    task = safe_delay(
+        process_document_task,
         file_path=file_path,
         document_id=document_id,
         document_type=document_type,
@@ -710,8 +712,10 @@ def submit_document_bytes_for_processing(
     # Encode data as base64 for Celery serialization
     data_base64 = base64.b64encode(data).decode("utf-8")
 
-    # Submit task
-    task = process_document_bytes_task.delay(
+    # Submit task (with sync fallback if broker unavailable)
+    from tasks.celery_app import safe_delay
+    task = safe_delay(
+        process_document_bytes_task,
         data_base64=data_base64,
         mime_type=mime_type,
         original_filename=original_filename,

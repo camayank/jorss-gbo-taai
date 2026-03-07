@@ -8,7 +8,7 @@ Provides:
 - Task monitoring and retry logic
 """
 
-from .celery_app import celery_app, get_celery_app
+from .celery_app import celery_app, get_celery_app, safe_delay
 from .ocr_tasks import (
     process_document_task,
     process_document_bytes_task,
@@ -26,6 +26,7 @@ __all__ = [
     # Celery app
     "celery_app",
     "get_celery_app",
+    "safe_delay",
     # OCR tasks
     "process_document_task",
     "process_document_bytes_task",
