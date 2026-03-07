@@ -245,6 +245,9 @@ class ChatResponse(BaseModel):
     safety_summary: Optional[Dict[str, Any]] = None
     safety_checks: Optional[Dict[str, Any]] = None  # Raw safety check results for frontend badges
 
+    # FSM state for frontend restoration (when window.__USE_FSM is enabled)
+    fsm_state: Optional[Dict[str, Any]] = None
+
 
 class FullAnalysisRequest(BaseModel):
     """Request for comprehensive tax analysis."""

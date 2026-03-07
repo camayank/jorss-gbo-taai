@@ -7951,10 +7951,11 @@ If they're ready to move forward, suggest generating their comprehensive advisor
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            extracted_data: extractedData,
+            extracted_data: extractedData.__raw || extractedData,
             conversation_history: conversationHistory.slice(-30), // Last 30 messages
             current_phase: getCurrentPhase(),
-            completion_percentage: getCompletionPercentage()
+            completion_percentage: getCompletionPercentage(),
+            fsm_state: (USE_FSM && advisorFSM) ? advisorFSM.toJSON() : undefined
           })
         });
 
@@ -7975,6 +7976,9 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
     // Get current phase for saving
     function getCurrentPhase() {
+      if (USE_FSM && advisorFSM) {
+        return advisorFSM.getPhase() || 'personal_info';
+      }
       if (extractedData.review_confirmed) return 'ready_to_file';
       if (extractedData.deductions_explored || extractedData.itemize_choice) return 'review';
       if (extractedData.income_explored || extractedData.w2_wages) return 'deductions';
@@ -8108,6 +8112,19 @@ If they're ready to move forward, suggest generating their comprehensive advisor
       // Restore extracted data using safe merge
       if (sessionData.extracted_data) {
         await updateExtractedDataSafe(sessionData.extracted_data, 'session_restore');
+      }
+
+      // Restore FSM state if available
+      if (USE_FSM && sessionData.fsm_state && window.AdvisorFSM) {
+        advisorFSM = window.AdvisorFSM.fromJSON(sessionData.fsm_state, extractedData);
+        // Re-wire event listeners
+        advisorFSM.on('phaseChange', function(fromPhase, toPhase) {
+          const phaseInfo = typeof PHASE_MAPPING !== 'undefined' ? PHASE_MAPPING[toPhase] : null;
+          if (phaseInfo) {
+            if (typeof updatePhaseLabel === 'function') updatePhaseLabel(phaseInfo.label);
+            if (typeof updateActiveStep === 'function') updateActiveStep(phaseInfo.step);
+          }
+        });
       }
 
       // Restore conversation history
