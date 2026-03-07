@@ -162,9 +162,9 @@
 
     // =========================================================================
     // FSM INTEGRATION (feature-flagged)
-    // Enable with: window.__USE_FSM = true  (before page load)
+    // Disable with: window.__USE_FSM = false  (before page load)
     // =========================================================================
-    const USE_FSM = window.__USE_FSM || false;
+    const USE_FSM = window.__USE_FSM !== undefined ? window.__USE_FSM : true;
     let advisorFSM = null;
 
     if (USE_FSM && window.AdvisorFSM && window.AdvisorFSMSchema) {
