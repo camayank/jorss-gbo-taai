@@ -57,7 +57,7 @@ var NESTED_KEYS = {};
   for (var i = 0; i < sections.length; i++) {
     var section = sections[i];
     var fields = TAX_PROFILE_SCHEMA[section];
-    if (typeof fields === 'object' && !fields.type) {
+    if (typeof fields === 'object' && !(typeof fields.type === 'string' && 'default_val' in fields)) {
       var keys = Object.keys(fields);
       for (var j = 0; j < keys.length; j++) {
         NESTED_KEYS[keys[j]] = section;
