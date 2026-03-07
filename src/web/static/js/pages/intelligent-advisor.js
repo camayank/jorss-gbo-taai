@@ -717,8 +717,8 @@
         try {
           const savedData = JSON.parse(storedData);
 
-          // Verify session still exists on server
-          const response = await fetch(`/api/sessions/${storedSessionId}/restore`);
+          // Verify session still exists on server (use secureFetch for CSRF protection)
+          const response = await secureFetch(`/api/sessions/${storedSessionId}/restore`);
           if (response.ok) {
             sessionId = storedSessionId;
 
@@ -776,13 +776,16 @@
         // Handle QuotaExceededError
         if (error.name === 'QuotaExceededError' || error.code === 22) {
           if (!localStorageWarningShown) {
-            showToast('Storage full - some data may not be saved locally', 'warning');
+            showToast('Storage full - your data is saved on our server but local backup failed. Consider clearing browser storage.', 'warning');
             localStorageWarningShown = true;
           }
-          // Try to clear old data and retry
+          // Try to free space by removing only non-essential cached data (NOT current session)
           try {
-            sessionStorage.removeItem('tax_advisor_data');
-            DevLogger.warn('Cleared old storage due to quota exceeded');
+            var keysToTry = ['tax_advisor_cache', 'tax_advisor_preferences'];
+            for (var ki = 0; ki < keysToTry.length; ki++) {
+              sessionStorage.removeItem(keysToTry[ki]);
+            }
+            DevLogger.warn('Cleared non-essential storage due to quota exceeded');
           } catch (e) {
             DevLogger.error('Failed to clear storage:', e);
           }
@@ -1480,7 +1483,7 @@
 
         for (let i = 0; i < words.length; i++) {
           currentText += (i > 0 ? ' ' : '') + words[i];
-          textSpan.innerHTML = currentText;
+          textSpan.textContent = currentText;  // textContent prevents XSS during streaming
 
           // Scroll to bottom
           const messages = document.getElementById('messages');
@@ -1492,9 +1495,9 @@
           await new Promise(resolve => setTimeout(resolve, 20 + Math.random() * 30));
         }
 
-        // Remove cursor, restore full content
+        // Remove cursor, restore full sanitized content
         cursor.remove();
-        bubble.innerHTML = fullText;
+        bubble.innerHTML = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(fullText) : fullText;
 
         // Re-add copy button and timestamp
         if (copyBtn) bubble.appendChild(copyBtn);
@@ -3078,10 +3081,10 @@
             const nameEl = document.getElementById('nameInput');
             const nameBtn = document.getElementById('nameSubmitBtn');
             if (nameEl) {
-              nameEl.addEventListener('keypress', function(e) { if (e.key === 'Enter') captureName(); });
+              nameEl.addEventListener('keypress', function(e) { if (e.key === 'Enter') captureName(); }, { once: true });
               nameEl.focus();
             }
-            if (nameBtn) nameBtn.addEventListener('click', function() { captureName(); });
+            if (nameBtn) nameBtn.addEventListener('click', function() { captureName(); }, { once: true });
           }, 100);
         }, 1000);
 
@@ -3100,10 +3103,10 @@
             const emailEl = document.getElementById('emailInput');
             const emailBtn = document.getElementById('emailSubmitBtn');
             if (emailEl) {
-              emailEl.addEventListener('keypress', function(e) { if (e.key === 'Enter') captureEmail(); });
+              emailEl.addEventListener('keypress', function(e) { if (e.key === 'Enter') captureEmail(); }, { once: true });
               emailEl.focus();
             }
-            if (emailBtn) emailBtn.addEventListener('click', function() { captureEmail(); });
+            if (emailBtn) emailBtn.addEventListener('click', function() { captureEmail(); }, { once: true });
           }, 100);
         }, 1000);
 
@@ -8245,10 +8248,20 @@ If they're ready to move forward, suggest generating their comprehensive advisor
     }
 
     async function handleFileSelect(event) {
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+      const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
       const files = event.target.files;
       if (files.length === 0) return;
 
       for (const file of files) {
+        if (file.size > MAX_FILE_SIZE) {
+          showToast(`File "${file.name}" exceeds 10MB limit`, 'error');
+          continue;
+        }
+        if (ALLOWED_TYPES.length > 0 && !ALLOWED_TYPES.includes(file.type)) {
+          showToast(`File type not supported: ${file.type || 'unknown'}. Please upload PDF, JPG, or PNG.`, 'error');
+          continue;
+        }
         addMessage('user', `Uploading: ${file.name}`);
         await uploadFileToAI(file);
       }
@@ -8531,7 +8544,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
     }
 
     function calculateLeadScore() {
-      let score = extractedData.lead_data.score;
+      let score = 0;  // Always recalculate from zero to prevent inflation
 
       // Add points for completeness
       if (extractedData.contact.name) score += 10;
@@ -8733,7 +8746,7 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
       // Ensure we have a session ID
       if (!sessionId) {
-        sessionId = 'advisor-' + crypto.randomUUID();
+        sessionId = 'session-' + crypto.randomUUID();
         sessionStorage.setItem('tax_session_id', sessionId);
         DevLogger.log('Created new session ID:', sessionId);
       }

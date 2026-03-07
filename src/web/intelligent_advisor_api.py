@@ -67,14 +67,49 @@ from web.advisor.parsers import (  # noqa: F401
     EnhancedParser, ConversationContext, detect_user_intent,
 )
 
-# --- AI/ML Integration ---
-from services.ai.unified_ai_service import get_ai_service
-from services.ai.metrics_service import get_ai_metrics_service
-from services.tax_opportunity_detector import TaxOpportunityDetector, TaxpayerProfile
-from web.recommendation.orchestrator import get_recommendations
-from agent.intelligent_tax_agent import IntelligentTaxAgent
-from ml.document_classifier import DocumentClassifier
-from recommendation.ai_enhancer import get_ai_enhancer
+# --- AI/ML Integration (graceful fallback if dependencies missing) ---
+try:
+    from services.ai.unified_ai_service import get_ai_service
+except ImportError:
+    get_ai_service = None
+    logger.warning("unified_ai_service not available - AI features disabled")
+
+try:
+    from services.ai.metrics_service import get_ai_metrics_service
+except ImportError:
+    get_ai_metrics_service = None
+    logger.warning("metrics_service not available")
+
+try:
+    from services.tax_opportunity_detector import TaxOpportunityDetector, TaxpayerProfile
+except ImportError:
+    TaxOpportunityDetector = None
+    TaxpayerProfile = None
+    logger.warning("tax_opportunity_detector not available")
+
+try:
+    from web.recommendation.orchestrator import get_recommendations
+except ImportError:
+    get_recommendations = None
+    logger.warning("recommendation orchestrator not available")
+
+try:
+    from agent.intelligent_tax_agent import IntelligentTaxAgent
+except ImportError:
+    IntelligentTaxAgent = None
+    logger.warning("IntelligentTaxAgent not available")
+
+try:
+    from ml.document_classifier import DocumentClassifier
+except ImportError:
+    DocumentClassifier = None
+    logger.warning("DocumentClassifier not available")
+
+try:
+    from recommendation.ai_enhancer import get_ai_enhancer
+except ImportError:
+    get_ai_enhancer = None
+    logger.warning("AI enhancer not available")
 
 # Liability disclaimer constant
 STANDARD_DISCLAIMER = (
@@ -3823,6 +3858,39 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
     return (None, None)
 
 
+# Simple in-memory rate limiter for chat endpoint
+_chat_rate_limits: dict = {}  # session_id -> list of timestamps
+_CHAT_RATE_LIMIT = 30  # max requests per window
+_CHAT_RATE_WINDOW = 60  # seconds
+
+
+def _check_chat_rate_limit(session_id: str) -> bool:
+    """Return True if request is allowed, False if rate limited."""
+    now = datetime.now().timestamp()
+    window_start = now - _CHAT_RATE_WINDOW
+
+    if session_id not in _chat_rate_limits:
+        _chat_rate_limits[session_id] = []
+
+    # Prune old entries
+    _chat_rate_limits[session_id] = [
+        t for t in _chat_rate_limits[session_id] if t > window_start
+    ]
+
+    if len(_chat_rate_limits[session_id]) >= _CHAT_RATE_LIMIT:
+        return False
+
+    _chat_rate_limits[session_id].append(now)
+
+    # Cleanup stale sessions periodically (every 100th check)
+    if len(_chat_rate_limits) > 1000:
+        stale = [k for k, v in _chat_rate_limits.items() if not v or v[-1] < window_start]
+        for k in stale:
+            del _chat_rate_limits[k]
+
+    return True
+
+
 @router.post("/chat", response_model=ChatResponse)
 async def intelligent_chat(request: ChatRequest, _session: str = Depends(verify_session_token)):
     """
@@ -3840,6 +3908,14 @@ async def intelligent_chat(request: ChatRequest, _session: str = Depends(verify_
     # Initialize session_id early for error handling
     session_id = request.session_id or f"auto-{datetime.now().timestamp()}"
     request.session_id = session_id
+
+    # Rate limiting
+    if not _check_chat_rate_limit(session_id):
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Too many requests. Please wait a moment before sending more messages."}
+        )
 
     try:
         # Get or create session
@@ -5614,21 +5690,21 @@ try:
     router.include_router(_scenario_router)
     logger.info("Included scenario_analysis sub-router")
 except ImportError as e:
-    logger.debug(f"scenario_analysis sub-router not available: {e}")
+    logger.warning(f"scenario_analysis sub-router not available: {e}")
 
 try:
     from web.advisor.recommendations import router as _rec_router
     router.include_router(_rec_router)
     logger.info("Included recommendations sub-router")
 except ImportError as e:
-    logger.debug(f"recommendations sub-router not available: {e}")
+    logger.warning(f"recommendations sub-router not available: {e}")
 
 try:
     from web.advisor.report_generation import router as _report_gen_router
     router.include_router(_report_gen_router)
     logger.info("Included report_generation sub-router")
 except ImportError as e:
-    logger.debug(f"report_generation sub-router not available: {e}")
+    logger.warning(f"report_generation sub-router not available: {e}")
 
 
 # Register the router
