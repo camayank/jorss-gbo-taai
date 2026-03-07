@@ -36,10 +36,12 @@ FROM python:3.11-slim as production
 
 WORKDIR /app
 
-# Install runtime dependencies only
+# Install runtime dependencies (libpq for PostgreSQL, tesseract for OCR, poppler for PDF→image)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
+    tesseract-ocr \
+    poppler-utils \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 

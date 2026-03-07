@@ -83,7 +83,8 @@ async def _get_session_data(session_id: str, access_token: str, session: AsyncSe
                 "extension_deadline": return_data.get("extension_deadline"),
             }
     except Exception as e:
-        logger.debug(f"Could not fetch session data: {e}")
+        logger.error(f"Database error fetching session data for {session_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error while fetching session data")
 
     return None
 

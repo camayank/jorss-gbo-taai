@@ -496,10 +496,22 @@ async def get_stripe_account_status(
     stripe_account_id = row[0]
     config = get_stripe_config()
 
-    # In production, retrieve account from Stripe:
-    # stripe.Account.retrieve(stripe_account_id)
+    if config["secret_key"]:
+        try:
+            import stripe
+            stripe.api_key = config["secret_key"]
+            account = stripe.Account.retrieve(stripe_account_id)
+            return {
+                "connected": True,
+                "account_id": stripe_account_id,
+                "charges_enabled": account.charges_enabled,
+                "payouts_enabled": account.payouts_enabled,
+                "requirements": account.requirements.currently_due if account.requirements else [],
+                "dashboard_url": f"https://dashboard.stripe.com/{stripe_account_id}",
+            }
+        except Exception as e:
+            logger.warning(f"Could not fetch Stripe account status: {e}")
 
-    # For now, return basic status
     return {
         "connected": True,
         "account_id": stripe_account_id,
@@ -554,30 +566,42 @@ async def create_payment_intent(
     amount_cents = int(request.amount * 100)
     platform_fee = int(amount_cents * platform_fee_percent + platform_fee_fixed * 100)
 
-    # In production, create Stripe PaymentIntent:
-    # stripe.PaymentIntent.create(
-    #     amount=amount_cents,
-    #     currency=request.currency.lower(),
-    #     application_fee_amount=platform_fee,
-    #     stripe_account=stripe_account_id,
-    #     metadata={
-    #         "cpa_id": cpa_id,
-    #         "client_id": request.client_id,
-    #         **request.metadata,
-    #     }
-    # )
+    config = get_stripe_config()
+    if not config["secret_key"]:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Stripe is not configured. Set STRIPE_SECRET_KEY."
+        )
 
-    # FREEZE & FINISH: Payment processing deferred to Phase 2
-    # Return clear message that payments are handled outside the platform
-    return {
-        "success": False,
-        "feature_status": "coming_soon",
-        "message": "Online payment processing is coming soon.",
-        "instructions": "Please contact your CPA directly for payment arrangements.",
-        "amount_requested": request.amount,
-        "currency": request.currency,
-        "help_text": "Your CPA can provide invoice details and accepted payment methods."
-    }
+    try:
+        import stripe
+        stripe.api_key = config["secret_key"]
+
+        payment_intent = stripe.PaymentIntent.create(
+            amount=amount_cents,
+            currency=request.currency.lower(),
+            application_fee_amount=platform_fee,
+            stripe_account=stripe_account_id,
+            metadata={
+                "cpa_id": cpa_id,
+                "client_id": request.client_id,
+                **request.metadata,
+            },
+        )
+
+        return {
+            "success": True,
+            "client_secret": payment_intent.client_secret,
+            "payment_intent_id": payment_intent.id,
+            "amount": request.amount,
+            "currency": request.currency,
+            "platform_fee": platform_fee / 100,
+            "publishable_key": config["publishable_key"],
+            "stripe_account": stripe_account_id,
+        }
+    except stripe.StripeError as e:
+        logger.error(f"Stripe PaymentIntent failed: {e}")
+        raise HTTPException(status_code=400, detail=str(e.user_message or e))
 
 
 @router.get("/payment-history")
@@ -630,3 +654,167 @@ async def get_payment_history(
     except Exception:
         # Table doesn't exist
         return {"payments": [], "count": 0}
+
+
+# =============================================================================
+# STRIPE CHECKOUT SESSION (simplest way to collect payment from clients)
+# =============================================================================
+
+class CreateCheckoutRequest(BaseModel):
+    """Request to create a Stripe Checkout session."""
+    invoice_id: Optional[str] = None
+    amount: float = Field(..., gt=0)
+    currency: str = "USD"
+    client_email: str
+    description: str
+    success_url: Optional[str] = None
+    cancel_url: Optional[str] = None
+
+
+@router.post("/checkout-session")
+async def create_checkout_session(
+    cpa_id: str,
+    request: CreateCheckoutRequest,
+    session: AsyncSession = Depends(get_async_session),
+):
+    """
+    Create a Stripe Checkout session for client payment.
+
+    Returns a checkout URL the client can visit to pay.
+    Uses CPA's connected Stripe account (Stripe Connect).
+    """
+    config = get_stripe_config()
+    if not config["secret_key"]:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Stripe is not configured."
+        )
+
+    # Get CPA's connected account
+    query = text("SELECT stripe_account_id FROM cpa_profiles WHERE cpa_id = :cpa_id")
+    result = await session.execute(query, {"cpa_id": cpa_id})
+    row = result.fetchone()
+
+    if not row or not row[0]:
+        raise HTTPException(
+            status_code=400,
+            detail="Stripe account not connected."
+        )
+
+    stripe_account_id = row[0]
+    amount_cents = int(request.amount * 100)
+    platform_fee = int(amount_cents * 0.029 + 30)  # 2.9% + $0.30
+
+    app_base_url = os.environ.get("APP_URL", "http://localhost:8000")
+    success_url = request.success_url or f"{app_base_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = request.cancel_url or f"{app_base_url}/payment/cancelled"
+
+    try:
+        import stripe
+        stripe.api_key = config["secret_key"]
+
+        checkout = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{
+                "price_data": {
+                    "currency": request.currency.lower(),
+                    "product_data": {"name": request.description},
+                    "unit_amount": amount_cents,
+                },
+                "quantity": 1,
+            }],
+            mode="payment",
+            customer_email=request.client_email,
+            success_url=success_url,
+            cancel_url=cancel_url,
+            payment_intent_data={
+                "application_fee_amount": platform_fee,
+            },
+            metadata={
+                "cpa_id": cpa_id,
+                "invoice_id": request.invoice_id or "",
+            },
+            stripe_account=stripe_account_id,
+        )
+
+        return {
+            "checkout_url": checkout.url,
+            "session_id": checkout.id,
+            "amount": request.amount,
+            "currency": request.currency,
+        }
+    except Exception as e:
+        logger.error(f"Stripe Checkout creation failed: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# =============================================================================
+# STRIPE WEBHOOK (receives payment confirmations)
+# =============================================================================
+
+@router.post("/stripe/webhook")
+async def stripe_webhook(
+    request: Request,
+    session: AsyncSession = Depends(get_async_session),
+):
+    """
+    Stripe webhook endpoint for payment events.
+
+    Handles: checkout.session.completed, payment_intent.succeeded,
+    payment_intent.payment_failed, charge.refunded
+    """
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+    webhook_secret = os.environ.get("STRIPE_WEBHOOK_SECRET")
+
+    if not webhook_secret:
+        logger.warning("STRIPE_WEBHOOK_SECRET not set, skipping signature verification")
+        import json
+        event_data = json.loads(payload)
+    else:
+        try:
+            import stripe
+            stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
+            event_data = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
+        except Exception as e:
+            logger.error(f"Stripe webhook verification failed: {e}")
+            raise HTTPException(status_code=400, detail="Invalid signature")
+
+    event_type = event_data.get("type") if isinstance(event_data, dict) else event_data.type
+    obj = event_data.get("data", {}).get("object", {}) if isinstance(event_data, dict) else event_data.data.object
+
+    logger.info(f"Stripe webhook: {event_type}")
+
+    if event_type == "checkout.session.completed":
+        # Client completed payment
+        cpa_id = obj.get("metadata", {}).get("cpa_id")
+        invoice_id = obj.get("metadata", {}).get("invoice_id")
+        amount = (obj.get("amount_total") or 0) / 100
+        client_email = obj.get("customer_email") or obj.get("customer_details", {}).get("email")
+
+        logger.info(f"Payment received: ${amount:.2f} for CPA {cpa_id} from {client_email}")
+
+        # Record payment in database
+        try:
+            insert_query = text("""
+                INSERT INTO cpa_payments (payment_id, cpa_id, client_email, amount, currency, status, stripe_session_id, invoice_id, created_at)
+                VALUES (:payment_id, :cpa_id, :client_email, :amount, :currency, 'succeeded', :stripe_session_id, :invoice_id, :created_at)
+            """)
+            await session.execute(insert_query, {
+                "payment_id": uuid4().hex,
+                "cpa_id": cpa_id,
+                "client_email": client_email or "",
+                "amount": amount,
+                "currency": obj.get("currency", "usd"),
+                "stripe_session_id": obj.get("id"),
+                "invoice_id": invoice_id or None,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
+            await session.commit()
+        except Exception as e:
+            logger.warning(f"Could not record payment: {e}")
+
+    elif event_type == "charge.refunded":
+        logger.info(f"Refund processed: {obj.get('id')}")
+
+    return {"received": True}
