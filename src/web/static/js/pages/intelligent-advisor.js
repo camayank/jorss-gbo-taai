@@ -2933,8 +2933,16 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `Perfect! Please enter your full name below so I can personalize your tax advisory report.<br><br><input type="text" id="nameInput" placeholder="Your full name" style="width: 100%; padding: var(--space-3-5); margin: var(--space-3) 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: var(--radius-lg); color: var(--text); font-size: var(--text-base);" onkeypress="if(event.key==='Enter') captureName()"><br><button onclick="captureName()" style="padding: var(--space-3) var(--space-8); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold); margin-top: var(--space-2);">Continue →</button>`);
-          setTimeout(() => document.getElementById('nameInput').focus(), 100);
+          addMessage('ai', `Perfect! Please enter your full name below so I can personalize your tax advisory report.<br><br><input type="text" id="nameInput" placeholder="Your full name" style="width: 100%; padding: var(--space-3-5); margin: var(--space-3) 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: var(--radius-lg); color: var(--text); font-size: var(--text-base);"><br><button id="nameSubmitBtn" style="padding: var(--space-3) var(--space-8); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold); margin-top: var(--space-2);">Continue →</button>`);
+          setTimeout(() => {
+            const nameEl = document.getElementById('nameInput');
+            const nameBtn = document.getElementById('nameSubmitBtn');
+            if (nameEl) {
+              nameEl.addEventListener('keypress', function(e) { if (e.key === 'Enter') captureName(); });
+              nameEl.focus();
+            }
+            if (nameBtn) nameBtn.addEventListener('click', function() { captureName(); });
+          }, 100);
         }, 1000);
 
       } else if (value === 'skip_name') {
@@ -2947,8 +2955,16 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `Great! Please enter your email address below.<br><br><input type="email" id="emailInput" placeholder="your.email@example.com" style="width: 100%; padding: var(--space-3-5); margin: var(--space-3) 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: var(--radius-lg); color: var(--text); font-size: var(--text-base);" onkeypress="if(event.key==='Enter') captureEmail()"><br><button onclick="captureEmail()" style="padding: var(--space-3) var(--space-8); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold); margin-top: var(--space-2);">Continue →</button>`);
-          setTimeout(() => document.getElementById('emailInput').focus(), 100);
+          addMessage('ai', `Great! Please enter your email address below.<br><br><input type="email" id="emailInput" placeholder="your.email@example.com" style="width: 100%; padding: var(--space-3-5); margin: var(--space-3) 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: var(--radius-lg); color: var(--text); font-size: var(--text-base);"><br><button id="emailSubmitBtn" style="padding: var(--space-3) var(--space-8); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold); margin-top: var(--space-2);">Continue →</button>`);
+          setTimeout(() => {
+            const emailEl = document.getElementById('emailInput');
+            const emailBtn = document.getElementById('emailSubmitBtn');
+            if (emailEl) {
+              emailEl.addEventListener('keypress', function(e) { if (e.key === 'Enter') captureEmail(); });
+              emailEl.focus();
+            }
+            if (emailBtn) emailBtn.addEventListener('click', function() { captureEmail(); });
+          }, 100);
         }, 1000);
 
       } else if (value === 'skip_email') {
@@ -3282,8 +3298,16 @@
           showTyping();
           setTimeout(() => {
             hideTyping();
-            addMessage('ai', `Please enter your total annual income for 2025:<br><br><input type="number" id="incomeInput" placeholder="Enter amount" style="width: 100%; padding: var(--space-3-5); margin: var(--space-3) 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: var(--radius-lg); color: var(--text); font-size: var(--text-base);" onkeypress="if(event.key==='Enter') captureIncome()"><br><button onclick="captureIncome()" style="padding: var(--space-3) var(--space-8); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold); margin-top: var(--space-2);">Continue →</button>`);
-            setTimeout(() => document.getElementById('incomeInput').focus(), 100);
+            addMessage('ai', `Please enter your total annual income for 2025:<br><br><input type="number" id="incomeInput" placeholder="Enter amount" style="width: 100%; padding: var(--space-3-5); margin: var(--space-3) 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: var(--radius-lg); color: var(--text); font-size: var(--text-base);"><br><button id="incomeSubmitBtn" style="padding: var(--space-3) var(--space-8); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold); margin-top: var(--space-2);">Continue →</button>`);
+            setTimeout(() => {
+              const incomeEl = document.getElementById('incomeInput');
+              const incomeBtn = document.getElementById('incomeSubmitBtn');
+              if (incomeEl) {
+                incomeEl.addEventListener('keypress', function(e) { if (e.key === 'Enter') captureIncome(); });
+                incomeEl.focus();
+              }
+              if (incomeBtn) incomeBtn.addEventListener('click', function() { captureIncome(); });
+            }, 100);
           }, 1000);
           return;
         } else if (value === 'income_0_50k') {
@@ -6604,8 +6628,16 @@
         showTyping();
         setTimeout(() => {
           hideTyping();
-          addMessage('ai', `What's your correct total annual income?<br><br><input type="number" id="incomeInput" placeholder="Enter amount" style="width: 100%; padding: var(--space-3-5); margin: var(--space-3) 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: var(--radius-lg); color: var(--text); font-size: var(--text-base);" onkeypress="if(event.key==='Enter') captureIncome()"><br><button onclick="captureIncome()" style="padding: var(--space-3) var(--space-8); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold); margin-top: var(--space-2);">Update Income</button>`);
-          setTimeout(() => document.getElementById('incomeInput').focus(), 100);
+          addMessage('ai', `What's your correct total annual income?<br><br><input type="number" id="incomeInput" placeholder="Enter amount" style="width: 100%; padding: var(--space-3-5); margin: var(--space-3) 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: var(--radius-lg); color: var(--text); font-size: var(--text-base);"><br><button id="incomeSubmitBtn" style="padding: var(--space-3) var(--space-8); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold); margin-top: var(--space-2);">Update Income</button>`);
+          setTimeout(() => {
+            const incomeEl = document.getElementById('incomeInput');
+            const incomeBtn = document.getElementById('incomeSubmitBtn');
+            if (incomeEl) {
+              incomeEl.addEventListener('keypress', function(e) { if (e.key === 'Enter') captureIncome(); });
+              incomeEl.focus();
+            }
+            if (incomeBtn) incomeBtn.addEventListener('click', function() { captureIncome(); });
+          }, 100);
         }, 500);
 
       } else if (value === 'change_state') {
