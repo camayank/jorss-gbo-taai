@@ -159,6 +159,42 @@
       // Documents uploaded
       documents: []
     };
+
+    // =========================================================================
+    // FSM INTEGRATION (feature-flagged)
+    // Enable with: window.__USE_FSM = true  (before page load)
+    // =========================================================================
+    const USE_FSM = window.__USE_FSM || false;
+    let advisorFSM = null;
+
+    if (USE_FSM && window.AdvisorFSM && window.AdvisorFSMSchema) {
+      // Wrap extractedData in schema validator
+      extractedData = window.AdvisorFSMSchema.createValidatedProfile(extractedData);
+
+      // Initialize FSM controller
+      advisorFSM = new window.AdvisorFSM(extractedData);
+
+      // Wire FSM phase changes to existing progress bar
+      advisorFSM.on('phaseChange', function(fromPhase, toPhase) {
+        const phaseInfo = typeof PHASE_MAPPING !== 'undefined' ? PHASE_MAPPING[toPhase] : null;
+        if (phaseInfo) {
+          if (typeof updatePhaseLabel === 'function') updatePhaseLabel(phaseInfo.label);
+          if (typeof updateActiveStep === 'function') updateActiveStep(phaseInfo.step);
+        }
+      });
+
+      // Log transitions in dev mode
+      advisorFSM.on('transition', function(from, to, action) {
+        if (typeof DevLogger !== 'undefined' && DevLogger.log) {
+          DevLogger.log('[FSM] Transition:', from, '->', to, 'via', action);
+        }
+      });
+
+      advisorFSM.on('error', function(err) {
+        console.warn('[FSM] Error:', err);
+      });
+    }
+
     let isProcessing = false;
     let taxCalculations = null;
     let leadQualified = false;
@@ -2898,12 +2934,116 @@
     // Initialize keyboard navigation on page load
     document.addEventListener('DOMContentLoaded', initKeyboardNavigation);
 
+    // =========================================================================
+    // FSM SIDE EFFECT DISPATCHER
+    // Maps sideEffect strings from ACTION_CONFIG to existing functions.
+    // Returns true if the side effect was handled (caller should return).
+    // =========================================================================
+    function dispatchFSMSideEffect(effect, value, displayLabel) {
+      switch (effect) {
+        case 'unlock_strategies':
+          window.unlockPremiumStrategies();
+          return true;
+        case 'process_ai':
+          processAIResponse('none');
+          return true;
+        case 'show_name_input':
+        case 'show_email_input':
+        case 'show_upload_ui':
+        case 'show_smart_upload':
+        case 'show_filing_status_question':
+        case 'show_doc_help':
+        case 'handle_filing_status':
+        case 'handle_divorce':
+        case 'handle_income':
+        case 'handle_deduction':
+        case 'show_edit_options':
+          // These side effects have complex UI logic that still lives in handleQuickAction.
+          // For now, fall through to legacy code by returning false.
+          // As migration progresses (Tasks 7-9), these will be extracted.
+          return false;
+        case 'trigger_file_input':
+          var fileInput = document.getElementById('fileInput');
+          if (fileInput) fileInput.click();
+          return true;
+        case 'proceed_to_data_gathering':
+          if (typeof proceedToDataGathering === 'function') proceedToDataGathering();
+          return true;
+        case 'start_intelligent_questioning':
+          if (typeof startIntelligentQuestioning === 'function') startIntelligentQuestioning();
+          return true;
+        case 'perform_tax_calculation':
+          if (typeof performTaxCalculation === 'function') performTaxCalculation();
+          return true;
+        case 'generate_report':
+          // Re-dispatch through handleQuickAction legacy path for generate_report
+          // since it has complex async logic with API calls
+          return false;
+        case 'analyze_deductions':
+          if (typeof analyzeDeductions === 'function') analyzeDeductions();
+          return true;
+        case 'show_all_strategies':
+          if (typeof showAllStrategies === 'function') showAllStrategies();
+          return true;
+        case 'explore_strategies':
+          currentStrategyIndex = 0;
+          if (typeof showNextStrategy === 'function') showNextStrategy();
+          return true;
+        case 'show_strategy_summary':
+          if (typeof showStrategySummary === 'function') showStrategySummary();
+          return true;
+        case 'next_strategy':
+          currentStrategyIndex++;
+          if (typeof showNextStrategy === 'function') showNextStrategy();
+          return true;
+        case 'previous_strategy':
+          currentStrategyIndex = Math.max(0, currentStrategyIndex - 1);
+          if (typeof showNextStrategy === 'function') showNextStrategy();
+          return true;
+        case 'schedule_cpa':
+        case 'email_cpa':
+          // These have inline UI rendering — fall through to legacy for now
+          return false;
+        case 'request_cpa_connection':
+          if (typeof requestCPAConnection === 'function') requestCPAConnection();
+          return true;
+        default:
+          DevLogger.log('[FSM] Unknown side effect:', effect);
+          return false;
+      }
+    }
+
     async function handleQuickAction(value, displayLabel = null) {
       DevLogger.log('====== handleQuickAction CALLED ======');
       DevLogger.log('Quick action clicked:', value);
       DevLogger.log('Display label:', displayLabel);
       DevLogger.log('Current extracted data:', extractedData);
       DevLogger.log('Messages container exists:', !!document.getElementById('messages'));
+
+      // FSM dispatch (when enabled via window.__USE_FSM)
+      if (USE_FSM && advisorFSM) {
+        const result = advisorFSM.handleAction(value);
+        if (result.handled) {
+          DevLogger.log('[FSM] Action handled:', value, '-> state:', result.toState, 'sideEffect:', result.sideEffect);
+
+          // Show user message in chat if provided
+          if (result.userMessage) {
+            addMessage('user', result.userMessage);
+          }
+
+          // Dispatch side effects to existing functions
+          if (result.sideEffect) {
+            const dispatched = dispatchFSMSideEffect(result.sideEffect, value, displayLabel);
+            if (dispatched) return;
+          }
+
+          // Default: process via AI response
+          await processAIResponse(result.userMessage || value);
+          return;
+        }
+        // Not handled by FSM — fall through to legacy code
+        DevLogger.log('[FSM] Action not handled, falling through to legacy:', value);
+      }
 
       // Handle unlock strategies action
       if (value === 'unlock_strategies') {
@@ -7755,6 +7895,18 @@ If they're ready to move forward, suggest generating their comprehensive advisor
 
     // Update phase based on extracted data (for local tracking)
     function updatePhaseFromData() {
+      // FSM-driven phase tracking (when enabled)
+      if (USE_FSM && advisorFSM) {
+        const fsmPhase = advisorFSM.getPhase();
+        const phaseInfo = PHASE_MAPPING[fsmPhase];
+        if (phaseInfo) {
+          updatePhaseLabel(phaseInfo.label);
+          updateActiveStep(phaseInfo.step);
+        }
+        return;
+      }
+
+      // Legacy phase detection
       let phase = 'personal_info';
 
       if (extractedData.first_name || extractedData.filing_status) {

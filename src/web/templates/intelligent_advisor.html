@@ -20,7 +20,12 @@
   <script src="/static/js/core/icons.js" defer></script>
   <!-- DOMPurify for XSS-safe HTML sanitization of AI responses -->
   <script src="/static/js/vendor/purify.min.js"></script>
-  <script src="/static/js/pages/intelligent-advisor.js?v=2" defer></script>
+  <!-- FSM modules for declarative advisor state management (loaded before main script) -->
+  <script src="/static/js/advisor/fsm/states.js" defer></script>
+  <script src="/static/js/advisor/fsm/action-config.js" defer></script>
+  <script src="/static/js/advisor/fsm/controller.js" defer></script>
+  <script src="/static/js/advisor/schema/tax-profile.js" defer></script>
+  <script src="/static/js/pages/intelligent-advisor.js?v=3" defer></script>
 </head>
 <body class="has-sidebar has-mobile-header">
   {% include 'partials/sidebar.html' %}
