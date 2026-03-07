@@ -2942,74 +2942,1593 @@
     // Maps sideEffect strings from ACTION_CONFIG to existing functions.
     // Returns true if the side effect was handled (caller should return).
     // =========================================================================
+    /**
+     * Helper: show an AI message after a typing delay.
+     * @param {string} html - The HTML content for the AI message.
+     * @param {Array} [quickActions] - Optional quick action buttons.
+     * @param {number} [delay] - Typing delay in ms (default 800).
+     * @param {Object} [opts] - Optional options passed to addMessage.
+     */
+    function showQuestion(html, quickActions, delay, opts) {
+      showTyping();
+      setTimeout(function() {
+        hideTyping();
+        if (opts) {
+          addMessage('ai', html, quickActions || [], opts);
+        } else {
+          addMessage('ai', html, quickActions || []);
+        }
+      }, delay || 800);
+    }
+
     function dispatchFSMSideEffect(effect, value, displayLabel) {
       switch (effect) {
+
+        // =============================================================
+        // CORE / SPECIAL
+        // =============================================================
         case 'unlock_strategies':
           window.unlockPremiumStrategies();
           return true;
+
         case 'process_ai':
           processAIResponse('none');
           return true;
-        case 'show_name_input':
-        case 'show_email_input':
-        case 'show_upload_ui':
-        case 'show_smart_upload':
-        case 'show_filing_status_question':
-        case 'show_doc_help':
-        case 'handle_filing_status':
-        case 'handle_divorce':
-        case 'handle_income':
-        case 'handle_deduction':
-        case 'show_edit_options':
-          // These side effects have complex UI logic that still lives in handleQuickAction.
-          // For now, fall through to legacy code by returning false.
-          // As migration progresses (Tasks 7-9), these will be extracted.
-          return false;
-        case 'trigger_file_input':
+
+        case 'trigger_file_input': {
           var fileInput = document.getElementById('fileInput');
           if (fileInput) fileInput.click();
           return true;
+        }
+
         case 'proceed_to_data_gathering':
           if (typeof proceedToDataGathering === 'function') proceedToDataGathering();
           return true;
+
         case 'start_intelligent_questioning':
+          calculateLeadScore();
           if (typeof startIntelligentQuestioning === 'function') startIntelligentQuestioning();
           return true;
+
         case 'perform_tax_calculation':
           if (typeof performTaxCalculation === 'function') performTaxCalculation();
           return true;
-        case 'generate_report':
-          // Re-dispatch through handleQuickAction legacy path for generate_report
-          // since it has complex async logic with API calls
-          return false;
+
         case 'analyze_deductions':
           if (typeof analyzeDeductions === 'function') analyzeDeductions();
           return true;
+
         case 'show_all_strategies':
           if (typeof showAllStrategies === 'function') showAllStrategies();
           return true;
+
         case 'explore_strategies':
           currentStrategyIndex = 0;
           if (typeof showNextStrategy === 'function') showNextStrategy();
           return true;
+
         case 'show_strategy_summary':
           if (typeof showStrategySummary === 'function') showStrategySummary();
           return true;
+
         case 'next_strategy':
           currentStrategyIndex++;
           if (typeof showNextStrategy === 'function') showNextStrategy();
           return true;
+
         case 'previous_strategy':
           currentStrategyIndex = Math.max(0, currentStrategyIndex - 1);
           if (typeof showNextStrategy === 'function') showNextStrategy();
           return true;
-        case 'schedule_cpa':
-        case 'email_cpa':
-          // These have inline UI rendering — fall through to legacy for now
-          return false;
+
         case 'request_cpa_connection':
           if (typeof requestCPAConnection === 'function') requestCPAConnection();
           return true;
+
+        // =============================================================
+        // LEAD CAPTURE — Name & Email input forms
+        // =============================================================
+        case 'show_name_input': {
+          showTyping();
+          setTimeout(function() {
+            hideTyping();
+            addMessage('ai', 'Perfect! Please enter your full name below so I can personalize your tax advisory report.<br><br><input type="text" id="nameInput" placeholder="Your full name" style="width: 100%; padding: var(--space-3-5); margin: var(--space-3) 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: var(--radius-lg); color: var(--text); font-size: var(--text-base);"><br><button id="nameSubmitBtn" style="padding: var(--space-3) var(--space-8); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold); margin-top: var(--space-2);">Continue \u2192</button>');
+            setTimeout(function() {
+              var nameEl = document.getElementById('nameInput');
+              var nameBtn = document.getElementById('nameSubmitBtn');
+              if (nameEl) {
+                nameEl.addEventListener('keypress', function(e) { if (e.key === 'Enter') captureName(); }, { once: true });
+                nameEl.focus();
+              }
+              if (nameBtn) nameBtn.addEventListener('click', function() { captureName(); }, { once: true });
+            }, 100);
+          }, 1000);
+          return true;
+        }
+
+        case 'show_email_input': {
+          showTyping();
+          setTimeout(function() {
+            hideTyping();
+            addMessage('ai', 'Great! Please enter your email address below.<br><br><input type="email" id="emailInput" placeholder="your.email@example.com" style="width: 100%; padding: var(--space-3-5); margin: var(--space-3) 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: var(--radius-lg); color: var(--text); font-size: var(--text-base);"><br><button id="emailSubmitBtn" style="padding: var(--space-3) var(--space-8); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold); margin-top: var(--space-2);">Continue \u2192</button>');
+            setTimeout(function() {
+              var emailEl = document.getElementById('emailInput');
+              var emailBtn = document.getElementById('emailSubmitBtn');
+              if (emailEl) {
+                emailEl.addEventListener('keypress', function(e) { if (e.key === 'Enter') captureEmail(); }, { once: true });
+                emailEl.focus();
+              }
+              if (emailBtn) emailBtn.addEventListener('click', function() { captureEmail(); }, { once: true });
+            }, 100);
+          }, 1000);
+          return true;
+        }
+
+        // =============================================================
+        // DOCUMENT UPLOAD UI
+        // =============================================================
+        case 'show_upload_ui': {
+          var mode = value.replace('_qualified', '');
+          if (mode === 'upload_docs' || mode === 'hybrid') {
+            showTyping();
+            setTimeout(function() {
+              hideTyping();
+              addMessage('ai', '<strong>Perfect! Let\'s use our Express Lane document analysis.</strong><br><br>\ud83d\udcc4 <strong>Upload any of these documents:</strong><br>\u2022 W-2 forms (employment income)<br>\u2022 1099 forms (freelance, interest, dividends)<br>\u2022 Previous tax returns<br>\u2022 Business financial statements<br>\u2022 Receipts for deductions<br><br>I\'ll use advanced OCR and AI to extract all relevant information automatically.<br><br><div style="text-align: center; margin: var(--space-5) 0;"><button onclick="document.getElementById(\'fileInput\').click()" style="padding: var(--space-4) var(--space-10); background: var(--gradient); color: white; border: none; border-radius: var(--radius-xl); cursor: pointer; font-weight: var(--font-bold); font-size: var(--text-lg);">\ud83d\udce4 Upload Documents</button></div>Or <strong>drag and drop</strong> files anywhere on this page.');
+            }, 1000);
+          } else {
+            startIntelligentQuestioning();
+          }
+          return true;
+        }
+
+        case 'show_smart_upload': {
+          showTyping();
+          setTimeout(function() {
+            hideTyping();
+            addMessage('ai', '<div style="background: linear-gradient(135deg, rgba(33, 150, 243, 0.1), rgba(76, 175, 80, 0.1)); border-radius: var(--radius-xl); padding: var(--space-4); margin-bottom: var(--space-4);"><div style="font-size: var(--text-lg); font-weight: var(--font-semibold); margin-bottom: var(--space-2);">\ud83d\udcc4 Smart Document Analysis</div><div style="font-size: var(--text-xs-plus); color: var(--text-secondary);">I\'ll extract all tax data automatically using AI</div></div><strong>Supported documents:</strong> W-2, 1099, 1098, Prior Tax Returns<br><br><div style="text-align: center; margin: var(--space-4) 0;"><button onclick="document.getElementById(\'fileInput\').click()" style="padding: var(--space-4) var(--space-8); background: var(--gradient); color: white; border: none; border-radius: var(--radius-xl); cursor: pointer; font-weight: var(--font-bold); font-size: var(--text-base);">\ud83d\udce4 Select Files to Upload</button></div><div style="font-size: var(--text-xs); color: var(--text-secondary); text-align: center;">Or drag & drop files anywhere on this page</div>', [
+              { label: getIcon('chat-bubble-left-right', 'sm') + ' Skip upload, answer questions', value: 'no_manual' }
+            ]);
+          }, 800);
+          return true;
+        }
+
+        case 'show_filing_status_question': {
+          showQuestion('What\'s your filing status?', [
+            { label: 'Single', value: 'filing_single' },
+            { label: 'Married Filing Jointly', value: 'filing_married' },
+            { label: 'Head of Household', value: 'filing_hoh' },
+            { label: 'Married Filing Separately', value: 'filing_mfs' },
+            { label: 'Qualifying Surviving Spouse', value: 'filing_qss' }
+          ], 1500);
+          return true;
+        }
+
+        case 'show_doc_help': {
+          showQuestion('Great question! Here\'s what I typically review for a comprehensive tax advisory:<br><br><strong>\ud83d\udcca Income Documents:</strong><br>\u2022 W-2 forms (from employers)<br>\u2022 1099 forms (interest, dividends, freelance income)<br>\u2022 Business income records<br>\u2022 Rental property income<br><br><strong>\ud83d\udcb0 Deduction & Credit Records:</strong><br>\u2022 Mortgage interest statements (1098)<br>\u2022 Property tax records<br>\u2022 Charitable contribution receipts<br>\u2022 Education expenses (1098-T)<br>\u2022 Medical expense receipts<br>\u2022 Retirement contributions<br><br><strong>\ud83d\udcc8 Investment Records:</strong><br>\u2022 Brokerage statements<br>\u2022 Cryptocurrency transactions<br>\u2022 Capital gains/losses<br><br>Don\'t worry if you don\'t have everything right now. <strong>What would you like to do next?</strong>', [
+            { label: getIcon('document-text', 'sm') + ' I have some documents ready', value: 'yes_upload' },
+            { label: getIcon('chat-bubble-left-right', 'sm') + ' Let\'s discuss my situation', value: 'no_manual' }
+          ], 2000);
+          return true;
+        }
+
+        // =============================================================
+        // FILING STATUS
+        // =============================================================
+        case 'handle_filing_status': {
+          var statusText = extractedData.tax_profile.filing_status;
+          setConfirmedValue('tax_profile.filing_status', statusText);
+          updateStats({ filing_status: statusText });
+          calculateLeadScore();
+          updateSavingsEstimate();
+
+          var status = value.replace('filing_', '');
+          if ((status === 'single' || status === 'hoh' || status === 'mfs') && !extractedData.tax_profile.divorce_explored) {
+            showQuestion('<strong>Did your marital status change this year?</strong><br><small>Divorce can affect filing status, dependency claims, and alimony treatment.</small>', [
+              { label: 'Yes, recently divorced', value: 'divorce_recent' },
+              { label: 'Yes, legally separated', value: 'divorce_separated' },
+              { label: 'Widowed this year', value: 'divorce_widowed' },
+              { label: 'No change', value: 'divorce_none' }
+            ]);
+            return true;
+          }
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        // =============================================================
+        // DIVORCE
+        // =============================================================
+        case 'handle_divorce': {
+          var divorceType = value.replace('divorce_', '');
+          if (divorceType === 'recent') {
+            showQuestion('<strong>When was your divorce finalized?</strong><br><small>Alimony tax treatment changed for divorces after Dec 31, 2018.</small>', [
+              { label: 'Before 2019', value: 'divorce_year_pre2019' },
+              { label: '2019 or later', value: 'divorce_year_post2019' }
+            ]);
+            return true;
+          } else if (divorceType === 'separated') {
+            extractedData.tax_profile.is_separated = true;
+            showQuestion('<strong>Are you living apart from your spouse?</strong><br><small>This may affect whether you can file as Head of Household.</small>', [
+              { label: 'Yes, we live separately', value: 'separated_live_apart' },
+              { label: 'No, still living together', value: 'separated_same_home' }
+            ]);
+            return true;
+          } else if (divorceType === 'widowed') {
+            extractedData.tax_profile.is_widowed = true;
+            showQuestion('I\'m sorry for your loss. <strong>Do you have dependent children living with you?</strong><br><small>You may qualify for Qualifying Surviving Spouse status (same tax rates as Married Filing Jointly) for up to 2 years.</small>', [
+              { label: 'Yes, dependents in my home', value: 'widowed_with_deps' },
+              { label: 'No dependents', value: 'widowed_no_deps' }
+            ]);
+            return true;
+          }
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_divorce_year': {
+          var yearType = value.replace('divorce_year_', '');
+          if (yearType === 'pre2019') {
+            showQuestion('<strong>Did you pay or receive alimony this year?</strong><br><small>Pre-2019 divorces: Alimony is deductible for the payer and taxable income for the recipient.</small>', [
+              { label: 'I paid alimony', value: 'alimony_paid' },
+              { label: 'I received alimony', value: 'alimony_received' },
+              { label: 'No alimony', value: 'alimony_none' }
+            ]);
+            return true;
+          } else {
+            showQuestion('<strong>Do you have children from this marriage?</strong><br><small>Understanding custody arrangements helps determine who can claim dependents.</small>', [
+              { label: 'Yes, I have primary custody', value: 'custody_primary' },
+              { label: 'Yes, shared custody', value: 'custody_shared' },
+              { label: 'Yes, ex has primary custody', value: 'custody_ex' },
+              { label: 'No children', value: 'custody_none' }
+            ]);
+            return true;
+          }
+        }
+
+        case 'handle_alimony': {
+          var alimonyType = value.replace('alimony_', '');
+          if (alimonyType === 'paid' || alimonyType === 'received') {
+            showQuestion('<strong>How much alimony did you ' + (alimonyType === 'paid' ? 'pay' : 'receive') + ' this year?</strong>', [
+              { label: 'Under $10,000', value: 'alimony_amt_' + alimonyType + '_under10k' },
+              { label: '$10,000 - $25,000', value: 'alimony_amt_' + alimonyType + '_10_25k' },
+              { label: '$25,000 - $50,000', value: 'alimony_amt_' + alimonyType + '_25_50k' },
+              { label: 'Over $50,000', value: 'alimony_amt_' + alimonyType + '_over50k' }
+            ]);
+            return true;
+          }
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_custody': {
+          var custodyType = value.replace('custody_', '');
+          if (custodyType === 'primary' || custodyType === 'shared') {
+            showQuestion('<strong>Did you sign Form 8332 to release your claim to the child\'s exemption?</strong><br><small>The custodial parent typically claims the child, but can release this right to the other parent.</small>', [
+              { label: 'Yes, I signed Form 8332', value: 'form8332_signed' },
+              { label: 'No, I will claim my children', value: 'form8332_no' },
+              { label: 'We alternate years', value: 'form8332_alternate' },
+              { label: 'Not sure', value: 'form8332_unsure' }
+            ]);
+            return true;
+          }
+          calculateLeadScore();
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_separated': {
+          var sepType = value.replace('separated_', '');
+          if (sepType === 'live_apart') {
+            showQuestion('<strong>Have you lived apart for the last 6 months of the year?</strong><br><small>This is one requirement for filing as Head of Household while married.</small>', [
+              { label: 'Yes, 6+ months apart', value: 'apart_6months_yes' },
+              { label: 'No, less than 6 months', value: 'apart_6months_no' }
+            ]);
+            return true;
+          }
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_widowed': {
+          var widowedType = value.replace('widowed_', '');
+          if (widowedType === 'with_deps') {
+            showTyping();
+            setTimeout(function() {
+              hideTyping();
+              addMessage('ai', 'You may qualify for <strong>Qualifying Surviving Spouse</strong> status, which provides the same tax rates as Married Filing Jointly for up to 2 years after your spouse\'s passing. This can result in significant tax savings.<br><br>Let\'s continue gathering your information.');
+              setTimeout(function() { startIntelligentQuestioning(); }, 1500);
+            }, 800);
+            return true;
+          }
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        // =============================================================
+        // INCOME
+        // =============================================================
+        case 'handle_income': {
+          if (value === 'income_custom') {
+            showTyping();
+            setTimeout(function() {
+              hideTyping();
+              addMessage('ai', 'Please enter your total annual income for 2025:<br><br><input type="number" id="incomeInput" placeholder="Enter amount" style="width: 100%; padding: var(--space-3-5); margin: var(--space-3) 0; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: var(--radius-lg); color: var(--text); font-size: var(--text-base);"><br><button id="incomeSubmitBtn" style="padding: var(--space-3) var(--space-8); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold); margin-top: var(--space-2);">Continue \u2192</button>');
+              setTimeout(function() {
+                var incomeEl = document.getElementById('incomeInput');
+                var incomeBtn = document.getElementById('incomeSubmitBtn');
+                if (incomeEl) {
+                  incomeEl.addEventListener('keypress', function(e) { if (e.key === 'Enter') captureIncome(); });
+                  incomeEl.focus();
+                }
+                if (incomeBtn) incomeBtn.addEventListener('click', function() { captureIncome(); });
+              }, 100);
+            }, 1000);
+            return true;
+          }
+          // Range-based income — extract() already set the amounts
+          var incomeAmount = extractedData.tax_profile.total_income;
+          if (incomeAmount) {
+            setConfirmedValues({
+              'tax_profile.total_income': incomeAmount,
+              'tax_profile.w2_income': incomeAmount
+            });
+            updateStats({ total_income: incomeAmount });
+          }
+          calculateLeadScore();
+          updateSavingsEstimate();
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_income_source': {
+          calculateLeadScore();
+          var source = value.replace('source_', '');
+          if (source === 'investments') {
+            showQuestion('<strong>What types of retirement income do you have?</strong>', [
+              { label: 'Social Security benefits', value: 'retire_income_ss' },
+              { label: 'Pension income', value: 'retire_income_pension' },
+              { label: 'IRA/401k withdrawals', value: 'retire_income_ira' },
+              { label: 'Investment dividends/interest', value: 'retire_income_invest' },
+              { label: 'Multiple types', value: 'retire_income_multiple' }
+            ]);
+            return true;
+          }
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_retirement_income': {
+          var retireType = value.replace('retire_income_', '');
+          if (retireType === 'ss' || retireType === 'multiple') {
+            showQuestion('<strong>What\'s your approximate annual Social Security benefit?</strong><br><small>Up to 85% of SS may be taxable depending on total income.</small>', [
+              { label: 'Under $20,000', value: 'ss_amt_under20k' },
+              { label: '$20,000 - $35,000', value: 'ss_amt_20_35k' },
+              { label: '$35,000 - $50,000', value: 'ss_amt_35_50k' },
+              { label: 'Over $50,000', value: 'ss_amt_over50k' }
+            ]);
+            return true;
+          } else if (retireType === 'pension') {
+            showQuestion('<strong>What\'s your approximate annual pension income?</strong>', [
+              { label: 'Under $25,000', value: 'pension_amt_under25k' },
+              { label: '$25,000 - $50,000', value: 'pension_amt_25_50k' },
+              { label: '$50,000 - $100,000', value: 'pension_amt_50_100k' },
+              { label: 'Over $100,000', value: 'pension_amt_over100k' }
+            ]);
+            return true;
+          } else if (retireType === 'ira') {
+            showQuestion('<strong>Are you 73 or older (required to take RMDs)?</strong><br><small>Required Minimum Distributions must be taken from traditional IRAs/401ks.</small>', [
+              { label: 'Yes, I take RMDs', value: 'rmd_yes' },
+              { label: 'No, not yet 73', value: 'rmd_no' },
+              { label: 'I\'m close to RMD age', value: 'rmd_soon' }
+            ]);
+            return true;
+          }
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_ss_amount': {
+          var ssAmount = extractedData.tax_profile.social_security_amount || 27500;
+          var otherIncome = extractedData.tax_profile.total_income || 50000;
+          var provisionalIncome = otherIncome + (ssAmount / 2);
+          var filingStatus = extractedData.tax_profile.filing_status;
+          var threshold1 = filingStatus === 'Married Filing Jointly' ? 32000 : 25000;
+          var threshold2 = filingStatus === 'Married Filing Jointly' ? 44000 : 34000;
+          var taxablePct = 0;
+          if (provisionalIncome > threshold2) {
+            taxablePct = 0.85;
+          } else if (provisionalIncome > threshold1) {
+            taxablePct = 0.50;
+          }
+          extractedData.tax_profile.ss_taxable_percentage = taxablePct;
+          extractedData.tax_profile.ss_taxable_amount = Math.round(ssAmount * taxablePct);
+          if (taxablePct > 0) {
+            showQuestion('Based on your income, approximately <strong>' + Math.round(taxablePct * 100) + '% of your Social Security</strong> (~$' + extractedData.tax_profile.ss_taxable_amount.toLocaleString() + ') may be taxable.<br><br>Would you like strategies to reduce this?', [
+              { label: 'Yes, show me strategies', value: 'ss_strategy_yes' },
+              { label: 'No, continue with assessment', value: 'ss_strategy_no' }
+            ], 1000);
+            return true;
+          }
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_rmd': {
+          var rmdStatus = value.replace('rmd_', '');
+          if (rmdStatus === 'yes') {
+            showQuestion('<strong>What\'s your approximate annual RMD amount?</strong>', [
+              { label: 'Under $10,000', value: 'rmd_amt_under10k' },
+              { label: '$10,000 - $30,000', value: 'rmd_amt_10_30k' },
+              { label: '$30,000 - $75,000', value: 'rmd_amt_30_75k' },
+              { label: 'Over $75,000', value: 'rmd_amt_over75k' }
+            ]);
+            return true;
+          }
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        // =============================================================
+        // DEDUCTIONS
+        // =============================================================
+        case 'handle_deduction': {
+          var deduction = value.replace('deduction_', '');
+          if (deduction === 'none') {
+            calculateLeadScore();
+            startIntelligentQuestioning();
+            return true;
+          }
+          if (deduction === 'retirement') {
+            extractedData.tax_profile.has_retirement_contributions = true;
+          }
+          if (deduction === 'investment_loss') {
+            extractedData.tax_profile.has_investment_losses = true;
+          }
+          if (deduction === 'mortgage') {
+            extractedData.tax_profile.has_mortgage = true;
+            extractedData.tax_profile.owns_home = true;
+            showQuestion('Great! Mortgage interest is a valuable deduction. <strong>What\'s your approximate annual mortgage interest?</strong>', [
+              { label: 'Under $5,000', value: 'mortgageamt_under5k' },
+              { label: '$5,000 - $15,000', value: 'mortgageamt_5_15k' },
+              { label: '$15,000 - $30,000', value: 'mortgageamt_15_30k' },
+              { label: 'Over $30,000', value: 'mortgageamt_over30k' }
+            ]);
+            return true;
+          }
+          if (deduction === 'charity') {
+            extractedData.tax_profile.has_charitable = true;
+            showQuestion('<strong>How much do you typically donate to charity annually?</strong>', [
+              { label: 'Under $500', value: 'charityamt_under500' },
+              { label: '$500 - $2,500', value: 'charityamt_500_2500' },
+              { label: '$2,500 - $10,000', value: 'charityamt_2500_10k' },
+              { label: 'Over $10,000', value: 'charityamt_over10k' }
+            ]);
+            return true;
+          }
+          if (deduction === 'medical') {
+            showQuestion('Medical expenses can potentially be deducted if they exceed 7.5% of your income. <strong>What\'s your estimated annual medical expense?</strong>', [
+              { label: 'Under $5,000', value: 'medical_amount_low' },
+              { label: '$5,000 - $15,000', value: 'medical_amount_medium' },
+              { label: '$15,000 - $30,000', value: 'medical_amount_high' },
+              { label: 'Over $30,000', value: 'medical_amount_very_high' }
+            ]);
+            return true;
+          }
+          extractedData.tax_profile.deductions_explored = true;
+          calculateLeadScore();
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_mortgage_amount': {
+          showQuestion('<strong>What\'s your approximate annual property tax?</strong>', [
+            { label: 'Under $3,000', value: 'proptaxamt_under3k' },
+            { label: '$3,000 - $8,000', value: 'proptaxamt_3_8k' },
+            { label: '$8,000 - $15,000', value: 'proptaxamt_8_15k' },
+            { label: 'Over $15,000', value: 'proptaxamt_over15k' }
+          ]);
+          return true;
+        }
+
+        case 'continue_to_deductions': {
+          if (typeof continueToDeductionsFromFocus === 'function') {
+            continueToDeductionsFromFocus();
+          } else {
+            calculateLeadScore();
+            startIntelligentQuestioning();
+          }
+          return true;
+        }
+
+        // =============================================================
+        // STATE SELECTION
+        // =============================================================
+        case 'handle_state_selection': {
+          var stateCode = value.replace('state_', '');
+          var stateText = displayLabel || stateCode;
+          setConfirmedValue('tax_profile.state', stateCode === 'other' ? 'OTHER' : stateCode);
+          calculateLeadScore();
+
+          var statesWithLocalTax = {
+            'NY': { name: 'New York', cities: ['New York City', 'Yonkers', 'Other NY area'], question: 'Do you live or work in a city with local income tax?' },
+            'OH': { name: 'Ohio', cities: ['Columbus', 'Cleveland', 'Cincinnati', 'Toledo', 'Other OH city'], question: 'Most Ohio cities have their own income tax. Which city do you live in?' },
+            'PA': { name: 'Pennsylvania', cities: ['Philadelphia', 'Pittsburgh', 'Other PA city', 'None (rural)'], question: 'Pennsylvania has local earned income taxes. Do you live in a city with additional taxes?' },
+            'MD': { name: 'Maryland', cities: ['Baltimore City', 'Montgomery County', 'Prince George\'s County', 'Other MD county'], question: 'Maryland counties have varying tax rates. Which county do you live in?' },
+            'IN': { name: 'Indiana', cities: ['Indianapolis/Marion', 'Fort Wayne', 'Other IN county'], question: 'Indiana has county income taxes. Which county do you live in?' },
+            'KY': { name: 'Kentucky', cities: ['Louisville', 'Lexington', 'Other KY city'], question: 'Kentucky has local occupational taxes. Do you live or work in a major city?' }
+          };
+
+          if (statesWithLocalTax[stateCode] && !extractedData.tax_profile.local_tax_explored) {
+            var stateInfo = statesWithLocalTax[stateCode];
+            showTyping();
+            setTimeout(function() {
+              hideTyping();
+              var cityOptions = stateInfo.cities.map(function(city, idx) {
+                return { label: city, value: 'localtax_' + stateCode + '_' + idx };
+              });
+              cityOptions.push({ label: 'Not sure', value: 'localtax_' + stateCode + '_unsure' });
+              addMessage('ai', '<strong>' + stateInfo.question + '</strong><br><small>This helps calculate your total state and local tax obligation.</small>', cityOptions);
+            }, 800);
+            return true;
+          }
+
+          var noIncomeTaxStates = ['AK', 'FL', 'NV', 'SD', 'TN', 'TX', 'WA', 'WY', 'NH'];
+          if (noIncomeTaxStates.indexOf(stateCode) !== -1) {
+            showTyping();
+            setTimeout(function() {
+              hideTyping();
+              addMessage('ai', 'Great! ' + stateText + ' has <strong>no state income tax</strong>, which is a nice advantage. Let\'s continue.');
+              setTimeout(function() { startIntelligentQuestioning(); }, 1000);
+            }, 800);
+            return true;
+          }
+
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_local_tax': {
+          var ltParts = value.replace('localtax_', '').split('_');
+          var ltStateCode = ltParts[0];
+          var ltCityIdx = ltParts[1];
+          var localTaxInfo = {
+            'NY': { cities: ['New York City', 'Yonkers', 'Other NY area'], rates: [3.876, 1.5, 0] },
+            'OH': { cities: ['Columbus', 'Cleveland', 'Cincinnati', 'Toledo', 'Other OH city'], rates: [2.5, 2.5, 2.1, 2.25, 1.5] },
+            'PA': { cities: ['Philadelphia', 'Pittsburgh', 'Other PA city', 'None'], rates: [3.79, 3.0, 1.0, 0] },
+            'MD': { cities: ['Baltimore City', 'Montgomery County', 'Prince George\'s County', 'Other MD county'], rates: [3.2, 3.2, 3.2, 2.5] },
+            'IN': { cities: ['Indianapolis/Marion', 'Fort Wayne', 'Other IN county'], rates: [2.02, 1.35, 1.5] },
+            'KY': { cities: ['Louisville', 'Lexington', 'Other KY city'], rates: [2.2, 2.25, 1.5] }
+          };
+
+          if (ltCityIdx !== 'unsure') {
+            var ltInfo = localTaxInfo[ltStateCode];
+            var ltIdx = parseInt(ltCityIdx);
+            if (ltInfo && ltInfo.cities[ltIdx]) {
+              extractedData.tax_profile.local_tax_city = ltInfo.cities[ltIdx];
+              extractedData.tax_profile.local_tax_rate = ltInfo.rates[ltIdx];
+              if (ltInfo.rates[ltIdx] > 0) {
+                showTyping();
+                setTimeout(function() {
+                  hideTyping();
+                  addMessage('ai', 'Got it. ' + ltInfo.cities[ltIdx] + ' has a local income tax rate of approximately <strong>' + ltInfo.rates[ltIdx] + '%</strong>. This will be factored into your tax estimate.');
+                  setTimeout(function() { startIntelligentQuestioning(); }, 1000);
+                }, 800);
+                return true;
+              }
+            }
+          } else {
+            extractedData.tax_profile.local_tax_city = 'unknown';
+          }
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        // =============================================================
+        // EDIT PROFILE
+        // =============================================================
+        case 'show_edit_options': {
+          addMessage('ai', 'No problem! What would you like to change?', [
+            { label: 'Change filing status', value: 'edit_filing' },
+            { label: 'Change income', value: 'edit_income' },
+            { label: 'Change state', value: 'edit_state' },
+            { label: 'Continue with analysis', value: 'run_full_analysis', primary: true }
+          ]);
+          return true;
+        }
+
+        // =============================================================
+        // REPORT GENERATION & DELIVERY
+        // =============================================================
+        case 'generate_report': {
+          updateProgress(95);
+          showTyping();
+          addMessage('ai', '<strong>Generating your personalized tax advisory report...</strong><br><br>I\'m analyzing your information and creating strategic recommendations tailored to your unique situation.<br><br>Your report will include:<br>\u2022 Comprehensive tax analysis<br>\u2022 Optimization strategies<br>\u2022 Estimated savings opportunities<br>\u2022 Action plan with timelines<br>\u2022 Filing strategy recommendations<br><br><em>Please wait while I prepare your report...</em>');
+
+          fetchWithRetry('/api/advisor/report', {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, getCSRFToken() ? { 'X-CSRF-Token': getCSRFToken() } : {}),
+            body: JSON.stringify({ session_id: sessionId })
+          }).then(function(reportResponse) {
+            hideTyping();
+            if (reportResponse.ok) {
+              return reportResponse.json().then(function(reportData) {
+                updateProgress(100);
+                var reportMsg = '<div class="insight-card"><div class="insight-header" style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3);"><span style="font-size: 32px;">\ud83c\udf89</span><strong style="font-size: var(--text-xl);">Your Tax Advisory Report is Ready!</strong></div><div style="color: var(--text-secondary); line-height: 1.6;">I\'ve completed a comprehensive analysis of your tax situation. Your personalized report includes strategic recommendations that could save you thousands of dollars.</div></div>';
+                if (reportData.report && reportData.report.action_plan && reportData.report.action_plan.narrative) {
+                  var ap = reportData.report.action_plan;
+                  reportMsg += '<div class="action-plan-card" style="background:var(--bg-secondary, #f0fdf4);border:1px solid #bbf7d0;border-radius:8px;padding:12px;margin-top:12px;">';
+                  reportMsg += '<div style="font-weight:600;margin-bottom:8px;color:#166534;">Your Action Plan</div>';
+                  reportMsg += '<div style="font-size:0.85rem;line-height:1.5;">' + escapeHtml(ap.narrative) + '</div>';
+                  if (ap.key_points && ap.key_points.length > 0) {
+                    reportMsg += '<div style="margin-top:8px;"><strong style="font-size:0.8rem;">Key Steps:</strong><ul style="margin:4px 0;padding-left:18px;font-size:0.8rem;">';
+                    ap.key_points.forEach(function(pt) { reportMsg += '<li>' + escapeHtml(pt) + '</li>'; });
+                    reportMsg += '</ul></div>';
+                  }
+                  reportMsg += '</div>';
+                }
+                reportMsg += '<br><strong>What would you like to do next?</strong>';
+                addMessage('ai', reportMsg, [
+                  { label: getIcon('arrow-down-tray', 'sm') + ' Download Full Report (PDF)', value: 'download_report' },
+                  { label: getIcon('eye', 'sm') + ' View Report Online', value: 'view_report' },
+                  { label: getIcon('envelope', 'sm') + ' Email Report to Me', value: 'email_report' },
+                  { label: getIcon('phone', 'sm') + ' Schedule CPA Consultation', value: 'schedule_consult' }
+                ]);
+              });
+            } else {
+              updateProgress(90);
+              addMessage('ai', '<strong>Report generation encountered an issue.</strong><br><br>Don\'t worry \u2014 your data is saved. Please try again or download a quick summary.', [
+                { label: getIcon('arrow-path', 'sm') + ' Try Again', value: 'generate_report' },
+                { label: getIcon('document-text', 'sm') + ' Quick Summary', value: 'show_strategies' }
+              ]);
+            }
+          }).catch(function(error) {
+            hideTyping();
+            DevLogger.error('Report generation failed:', error);
+            addMessage('ai', '<strong>Connection issue while generating report.</strong><br><br>Your data is saved. Please check your connection and try again.', [
+              { label: getIcon('arrow-path', 'sm') + ' Retry', value: 'generate_report' },
+              { label: getIcon('document-text', 'sm') + ' View Strategies', value: 'show_strategies' }
+            ]);
+          });
+          return true;
+        }
+
+        case 'handle_download_report': {
+          showTyping();
+          setTimeout(function() {
+            hideTyping();
+            addMessage('ai', '<strong>Perfect! Preparing your PDF report...</strong><br><br>Your comprehensive tax advisory report is being generated with:<br>\u2022 Executive summary<br>\u2022 Detailed analysis of your tax situation<br>\u2022 Strategic recommendations<br>\u2022 Action items and timelines<br>\u2022 Potential savings breakdown<br><br><em>The download will begin automatically...</em>');
+            setTimeout(function() {
+              if (typeof generateAndDownloadReport === 'function') generateAndDownloadReport();
+            }, 1500);
+          }, 1000);
+          return true;
+        }
+
+        case 'handle_view_report': {
+          showTyping();
+          setTimeout(function() {
+            hideTyping();
+            addMessage('ai', 'Opening your interactive tax advisory report in a new window...<br><br>You\'ll be able to:<br>\u2022 Review all recommendations<br>\u2022 See detailed calculations<br>\u2022 Print or save as needed<br>\u2022 Share with your CPA if desired');
+            setTimeout(function() {
+              window.open('/advisory-report-preview?session_id=' + sessionId, '_blank');
+            }, 1000);
+          }, 1000);
+          return true;
+        }
+
+        case 'handle_email_report': {
+          showTyping();
+          setTimeout(function() {
+            hideTyping();
+            addMessage('ai', 'I\'d be happy to email your report to you.<br><br><strong>What email address should I send it to?</strong><br><br><input type="email" id="emailInput" placeholder="your.email@example.com" style="width: 100%; padding: var(--space-3); margin: var(--space-3) 0; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: var(--radius-lg); color: var(--text); font-size: var(--text-sm);"><button onclick="sendReportEmail()" style="padding: var(--space-3) var(--space-6); background: var(--primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; font-weight: var(--font-semibold);">Send Report</button>');
+          }, 1000);
+          return true;
+        }
+
+        // =============================================================
+        // CPA SCHEDULING
+        // =============================================================
+        case 'schedule_cpa': {
+          showQuestion('Great! Our CPA team will reach out within 24 hours to schedule at your convenience.<br><br>In the meantime, would you like your detailed tax report?', [
+            { label: 'Yes, generate my report \u2192', value: 'generate_report' },
+            { label: 'I\'ll wait for the CPA call', value: 'finish_satisfied' }
+          ], 1000);
+          return true;
+        }
+
+        case 'email_cpa': {
+          showQuestion('Perfect! We\'ll send your tax analysis summary to your email.<br><br>Would you also like your full advisory report?', [
+            { label: 'Yes, generate full report \u2192', value: 'generate_report' },
+            { label: 'Email summary is enough', value: 'finish_satisfied' }
+          ], 1000);
+          return true;
+        }
+
+        // =============================================================
+        // BUSINESS / SELF-EMPLOYMENT
+        // =============================================================
+        case 'handle_farm': {
+          showQuestion('<strong>What type of farming operation?</strong><br><small>Farm income is reported on Schedule F with special provisions.</small>', [
+            { label: 'Crop production', value: 'farm_type_crops' },
+            { label: 'Livestock', value: 'farm_type_livestock' },
+            { label: 'Dairy', value: 'farm_type_dairy' },
+            { label: 'Mixed farming', value: 'farm_type_mixed' },
+            { label: 'Timber/forestry', value: 'farm_type_timber' }
+          ]);
+          calculateLeadScore();
+          return true;
+        }
+
+        case 'handle_farm_type': {
+          showQuestion('<strong>What\'s your approximate gross farm income for the year?</strong>', [
+            { label: 'Under $50,000', value: 'farm_income_under50k' },
+            { label: '$50,000 - $150,000', value: 'farm_income_50_150k' },
+            { label: '$150,000 - $500,000', value: 'farm_income_150_500k' },
+            { label: 'Over $500,000', value: 'farm_income_over500k' }
+          ]);
+          return true;
+        }
+
+        case 'handle_farm_income': {
+          showQuestion('<strong>What are your major farm expense categories?</strong> (Select all that apply)', [
+            { label: '\ud83c\udf3e Seeds, feed, fertilizer', value: 'farm_exp_supplies' },
+            { label: '\ud83d\ude9c Equipment & machinery', value: 'farm_exp_equipment' },
+            { label: '\ud83d\udc77 Labor costs', value: 'farm_exp_labor' },
+            { label: '\ud83c\udfde\ufe0f Land rent/lease', value: 'farm_exp_land' },
+            { label: '\u26fd Fuel & utilities', value: 'farm_exp_fuel' }
+          ], 800, { multiSelect: true });
+          return true;
+        }
+
+        case 'handle_entity_type': {
+          var entityType = value.replace('entity_', '');
+          calculateLeadScore();
+          if (entityType === 'scorp') {
+            showQuestion('<strong>As an S-Corp owner, do you pay yourself a W-2 salary?</strong><br><small>IRS requires S-Corp owners to take "reasonable compensation" as W-2 wages before distributions.</small>', [
+              { label: 'Yes, I take a W-2 salary', value: 'scorp_salary_yes' },
+              { label: 'No, only distributions', value: 'scorp_salary_no' },
+              { label: 'Not sure', value: 'scorp_salary_unsure' }
+            ]);
+            return true;
+          }
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_scorp_salary': {
+          var salaryStatus = value.replace('scorp_salary_', '');
+          if (salaryStatus === 'no') {
+            showQuestion(getIcon('exclamation-triangle', 'sm') + ' <strong>Important:</strong> IRS requires S-Corp owner-employees to receive reasonable compensation. Taking only distributions may trigger reclassification and payroll tax penalties.<br><br><strong>What\'s your approximate annual distributions/draws?</strong>', [
+              { label: 'Under $50,000', value: 'scorp_dist_under50k' },
+              { label: '$50,000 - $100,000', value: 'scorp_dist_50_100k' },
+              { label: '$100,000 - $200,000', value: 'scorp_dist_100_200k' },
+              { label: 'Over $200,000', value: 'scorp_dist_over200k' }
+            ], 1000);
+            return true;
+          } else if (salaryStatus === 'yes') {
+            showQuestion('<strong>What\'s your approximate annual W-2 salary from the S-Corp?</strong>', [
+              { label: 'Under $50,000', value: 'scorp_w2_under50k' },
+              { label: '$50,000 - $80,000', value: 'scorp_w2_50_80k' },
+              { label: '$80,000 - $120,000', value: 'scorp_w2_80_120k' },
+              { label: '$120,000 - $160,000', value: 'scorp_w2_120_160k' },
+              { label: 'Over $160,000', value: 'scorp_w2_over160k' }
+            ]);
+            return true;
+          }
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_revenue': {
+          calculateLeadScore();
+          var isRetail = extractedData.tax_profile.business_type === 'retail';
+          if (isRetail) {
+            showQuestion('<strong>Do you have Cost of Goods Sold (inventory purchases)?</strong><br><small>COGS is deducted from revenue before calculating profit.</small>', [
+              { label: 'Yes, significant inventory costs', value: 'cogs_yes_high' },
+              { label: 'Yes, moderate inventory', value: 'cogs_yes_moderate' },
+              { label: 'Minimal (mostly services/digital)', value: 'cogs_minimal' },
+              { label: 'No inventory costs', value: 'cogs_none' }
+            ]);
+            return true;
+          }
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_cogs': {
+          var cogsLevel = value.replace('cogs_', '');
+          if (cogsLevel === 'yes_high' || cogsLevel === 'yes_moderate') {
+            showQuestion('<strong>What percentage of your revenue goes to inventory/COGS?</strong>', [
+              { label: 'Under 25%', value: 'cogs_pct_under25' },
+              { label: '25-40% (typical retail)', value: 'cogs_pct_25_40' },
+              { label: '40-60% (product-heavy)', value: 'cogs_pct_40_60' },
+              { label: 'Over 60%', value: 'cogs_pct_over60' }
+            ]);
+            return true;
+          }
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_qbi': {
+          var qbiStatus = value.replace('qbi_', '');
+          if (qbiStatus === 'yes') {
+            var netIncome = extractedData.tax_profile.net_business_income || 0;
+            var qbiDeduction = Math.min(netIncome * 0.20, 50000);
+            extractedData.tax_profile.estimated_qbi_deduction = qbiDeduction;
+          }
+          if (qbiStatus === 'learn') {
+            var qbiLimit = extractedData.tax_profile.filing_status === 'Married Filing Jointly' ? '364,200' : '182,100';
+            showQuestion('<strong>QBI Deduction Explained:</strong><br><br>The Qualified Business Income (QBI) deduction lets you deduct up to <strong>20% of your net business income</strong> from your taxes.<br><br>' + getIcon('check-circle', 'sm') + ' <strong>You may qualify if:</strong><br>\u2022 You\'re self-employed or own a pass-through business<br>\u2022 Your income is below $' + qbiLimit + ' (full deduction)<br>\u2022 Higher incomes may still qualify for partial deduction<br><br>This is one of the biggest tax savings opportunities for business owners!', [
+              { label: 'I\'ll look into this', value: 'qbi_noted' },
+              { label: 'My CPA can help', value: 'qbi_cpa_help' }
+            ], 1000);
+            return true;
+          }
+          calculateLeadScore();
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_business_expense': {
+          var bizExpType = value.replace('bizexp_', '');
+          if (bizExpType === 'skip') {
+            calculateLeadScore();
+            startIntelligentQuestioning();
+            return true;
+          }
+          showTyping();
+          setTimeout(function() {
+            hideTyping();
+            if (bizExpType === 'home_office') {
+              addMessage('ai', '<strong>What\'s the approximate square footage of your home office?</strong>', [
+                { label: 'Under 100 sq ft', value: 'homeoffice_under100' },
+                { label: '100-300 sq ft', value: 'homeoffice_100_300' },
+                { label: '300-500 sq ft', value: 'homeoffice_300_500' },
+                { label: 'Over 500 sq ft', value: 'homeoffice_over500' }
+              ]);
+            } else if (bizExpType === 'vehicle') {
+              addMessage('ai', '<strong>Approximately how many business miles do you drive per year?</strong>', [
+                { label: 'Under 5,000 miles', value: 'vehicle_under5k' },
+                { label: '5,000 - 15,000 miles', value: 'vehicle_5_15k' },
+                { label: '15,000 - 30,000 miles', value: 'vehicle_15_30k' },
+                { label: 'Over 30,000 miles', value: 'vehicle_over30k' }
+              ]);
+            } else if (bizExpType === 'equipment') {
+              addMessage('ai', '<strong>How much did you spend on equipment & software this year?</strong>', [
+                { label: 'Under $2,500', value: 'equipment_under2500' },
+                { label: '$2,500 - $10,000', value: 'equipment_2500_10k' },
+                { label: '$10,000 - $50,000', value: 'equipment_10_50k' },
+                { label: 'Over $50,000', value: 'equipment_over50k' }
+              ]);
+            } else if (bizExpType === 'marketing') {
+              addMessage('ai', '<strong>How much do you spend on marketing & advertising annually?</strong>', [
+                { label: 'Under $1,000', value: 'marketing_under1k' },
+                { label: '$1,000 - $5,000', value: 'marketing_1_5k' },
+                { label: '$5,000 - $20,000', value: 'marketing_5_20k' },
+                { label: 'Over $20,000', value: 'marketing_over20k' }
+              ]);
+            } else {
+              calculateLeadScore();
+              startIntelligentQuestioning();
+            }
+          }, 800);
+          return true;
+        }
+
+        // =============================================================
+        // RENTAL PROPERTY
+        // =============================================================
+        case 'handle_rental_count': {
+          calculateLeadScore();
+          showQuestion('<strong>Do you claim depreciation on your rental properties?</strong><br><small>Depreciation is a major tax benefit - typically deducting the building cost over 27.5 years.</small>', [
+            { label: 'Yes, I claim depreciation', value: 'rental_deprec_yes' },
+            { label: 'No, I don\'t claim it', value: 'rental_deprec_no' },
+            { label: 'My CPA handles this', value: 'rental_deprec_cpa' },
+            { label: 'Not sure', value: 'rental_deprec_unsure' }
+          ]);
+          return true;
+        }
+
+        case 'handle_rental_depreciation': {
+          var deprecStatus = value.replace('rental_deprec_', '');
+          if (deprecStatus === 'yes' || deprecStatus === 'cpa') {
+            showQuestion('<strong>What\'s the approximate total cost basis of your rental properties (purchase price + improvements)?</strong><br><small>Important for depreciation and future sale planning.</small>', [
+              { label: 'Under $200,000', value: 'rental_basis_under200k' },
+              { label: '$200,000 - $500,000', value: 'rental_basis_200_500k' },
+              { label: '$500,000 - $1,000,000', value: 'rental_basis_500k_1m' },
+              { label: 'Over $1,000,000', value: 'rental_basis_over1m' }
+            ]);
+            return true;
+          }
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_rental_basis': {
+          showQuestion('<strong>What are your approximate annual rental expenses?</strong><br><small>Include repairs, insurance, property management, utilities paid by you.</small>', [
+            { label: 'Under $5,000', value: 'rental_exp_under5k' },
+            { label: '$5,000 - $15,000', value: 'rental_exp_5_15k' },
+            { label: '$15,000 - $30,000', value: 'rental_exp_15_30k' },
+            { label: 'Over $30,000', value: 'rental_exp_over30k' }
+          ]);
+          return true;
+        }
+
+        case 'handle_rental_props': {
+          showQuestion('<strong>What\'s your total annual rental income (before expenses)?</strong>', [
+            { label: 'Under $20,000', value: 'rental_income_under20k' },
+            { label: '$20,000 - $50,000', value: 'rental_income_20_50k' },
+            { label: '$50,000 - $100,000', value: 'rental_income_50_100k' },
+            { label: 'Over $100,000', value: 'rental_income_over100k' }
+          ]);
+          return true;
+        }
+
+        // =============================================================
+        // CAPITAL GAINS / LOSSES
+        // =============================================================
+        case 'handle_capgain': {
+          var capType = value.replace('capgain_', '');
+          // If this is a holding period response (longterm/shortterm/mixed/unsure), just continue
+          if (capType === 'longterm' || capType === 'shortterm' || capType === 'mixed' || capType === 'unsure') {
+            calculateLeadScore();
+            startIntelligentQuestioning();
+            return true;
+          }
+          calculateLeadScore();
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_capgain_amount': {
+          calculateLeadScore();
+          showQuestion('<strong>Were these primarily long-term (held > 1 year) or short-term gains?</strong><br><small>Long-term gains are taxed at lower rates (0-20%).</small>', [
+            { label: 'Mostly long-term (held > 1 year)', value: 'capgain_longterm' },
+            { label: 'Mostly short-term (held < 1 year)', value: 'capgain_shortterm' },
+            { label: 'Mix of both', value: 'capgain_mixed' },
+            { label: 'Not sure', value: 'capgain_unsure' }
+          ]);
+          return true;
+        }
+
+        case 'handle_cap_loss_amount': {
+          showQuestion('<strong>Did you repurchase any of these securities within 30 days of selling at a loss?</strong><br><small>The IRS "wash sale" rule disallows losses if you buy back within 30 days.</small>', [
+            { label: 'Yes, I repurchased some', value: 'washsale_yes' },
+            { label: 'No, did not repurchase', value: 'washsale_no' },
+            { label: 'Not sure', value: 'washsale_unsure' }
+          ]);
+          return true;
+        }
+
+        case 'handle_wash_sale': {
+          var washStatus = value.replace('washsale_', '');
+          if (washStatus === 'yes') {
+            showQuestion('<strong>Approximately what percentage of your losses were wash sales?</strong><br><small>These losses are deferred, not permanently lost - they add to your cost basis.</small>', [
+              { label: 'Under 25% of losses', value: 'washsale_pct_under25' },
+              { label: '25-50% of losses', value: 'washsale_pct_25_50' },
+              { label: 'Over 50% of losses', value: 'washsale_pct_over50' },
+              { label: 'Not sure', value: 'washsale_pct_unsure' }
+            ]);
+            return true;
+          }
+          calculateLeadScore();
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        // =============================================================
+        // DEPENDENTS & FAMILY
+        // =============================================================
+        case 'handle_dep_age': {
+          var ageGroup = value.replace('dep_age_', '');
+          var hasChildrenUnder17 = ageGroup === 'under6' || ageGroup === '6_17' || ageGroup === 'mixed';
+          if (hasChildrenUnder17) {
+            var numDependents = extractedData.tax_profile.dependents || 1;
+            var qualifyingChildren = ageGroup === 'mixed' ? Math.ceil(numDependents / 2) : numDependents;
+            var ctcPerChild = 2000;
+            var income = extractedData.tax_profile.total_income || 0;
+            var depFilingStatus = extractedData.tax_profile.filing_status;
+            var phaseOutStart = (depFilingStatus === 'Married Filing Jointly') ? 400000 : 200000;
+            var estimatedCTC = qualifyingChildren * ctcPerChild;
+            if (income > phaseOutStart) {
+              var reduction = Math.floor((income - phaseOutStart) / 1000) * 50;
+              estimatedCTC = Math.max(0, estimatedCTC - reduction);
+            }
+            extractedData.tax_profile.qualifying_children_ctc = qualifyingChildren;
+            extractedData.tax_profile.estimated_child_tax_credit = estimatedCTC;
+            extractedData.tax_profile.has_child_tax_credit = estimatedCTC > 0;
+          }
+          calculateLeadScore();
+
+          var hasMinorChildren = ageGroup === 'under6' || ageGroup === '6_17' || ageGroup === 'mixed';
+          if (hasMinorChildren) {
+            showQuestion('<strong>Do any of your children have investment income?</strong><br><small>Children\'s unearned income over $2,500 may be taxed at parent\'s rate ("kiddie tax").</small>', [
+              { label: 'Yes, child has investment/interest income', value: 'kiddie_yes' },
+              { label: 'Yes, child has trust income', value: 'kiddie_trust' },
+              { label: 'No unearned income', value: 'kiddie_no' }
+            ]);
+            return true;
+          }
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_kiddie': {
+          var kiddieStatus = value.replace('kiddie_', '');
+          if (kiddieStatus === 'yes' || kiddieStatus === 'trust') {
+            showQuestion('<strong>What\'s the child\'s approximate unearned income?</strong><br><small>First $1,250 tax-free, next $1,250 at child\'s rate, above $2,500 at parent\'s rate.</small>', [
+              { label: 'Under $1,250 (tax-free)', value: 'kiddie_amt_under1250' },
+              { label: '$1,250 - $2,500 (child\'s rate)', value: 'kiddie_amt_1250_2500' },
+              { label: '$2,500 - $10,000 (kiddie tax applies)', value: 'kiddie_amt_2500_10k' },
+              { label: 'Over $10,000', value: 'kiddie_amt_over10k' }
+            ]);
+            return true;
+          }
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        // =============================================================
+        // CRYPTOCURRENCY
+        // =============================================================
+        case 'handle_crypto': {
+          var cryptoType = value.replace('crypto_', '');
+          if (cryptoType === 'sold') {
+            showQuestion('<strong>Approximately how many crypto transactions did you have this year?</strong><br><small>Each trade (including crypto-to-crypto swaps) is a taxable event.</small>', [
+              { label: 'Under 10 trades', value: 'crypto_trades_under10' },
+              { label: '10-50 trades', value: 'crypto_trades_10_50' },
+              { label: '50-200 trades', value: 'crypto_trades_50_200' },
+              { label: 'Over 200 trades (active trader)', value: 'crypto_trades_over200' }
+            ]);
+            return true;
+          } else if (cryptoType === 'earned') {
+            showQuestion('<strong>How did you earn cryptocurrency?</strong><br><small>Different earning methods have different tax treatments.</small>', [
+              { label: 'Mining', value: 'crypto_earn_mining' },
+              { label: 'Staking rewards', value: 'crypto_earn_staking' },
+              { label: 'DeFi yield farming', value: 'crypto_earn_defi' },
+              { label: 'Airdrops/rewards', value: 'crypto_earn_airdrops' },
+              { label: 'Payment for services', value: 'crypto_earn_payment' }
+            ]);
+            return true;
+          }
+          calculateLeadScore();
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_crypto_trades': {
+          showQuestion('<strong>What\'s your approximate net crypto gain or loss this year?</strong>', [
+            { label: 'Net gain under $5,000', value: 'crypto_gl_gain_under5k' },
+            { label: 'Net gain $5,000-$25,000', value: 'crypto_gl_gain_5_25k' },
+            { label: 'Net gain over $25,000', value: 'crypto_gl_gain_over25k' },
+            { label: 'Net loss under $10,000', value: 'crypto_gl_loss_under10k' },
+            { label: 'Net loss over $10,000', value: 'crypto_gl_loss_over10k' },
+            { label: 'About break-even', value: 'crypto_gl_even' }
+          ]);
+          return true;
+        }
+
+        case 'handle_crypto_earn': {
+          showQuestion('<strong>What\'s the approximate fair market value of crypto you earned this year?</strong><br><small>This is taxed as ordinary income when received.</small>', [
+            { label: 'Under $1,000', value: 'crypto_earned_under1k' },
+            { label: '$1,000 - $5,000', value: 'crypto_earned_1_5k' },
+            { label: '$5,000 - $20,000', value: 'crypto_earned_5_20k' },
+            { label: 'Over $20,000', value: 'crypto_earned_over20k' }
+          ]);
+          return true;
+        }
+
+        // =============================================================
+        // STOCK OPTIONS & EQUITY
+        // =============================================================
+        case 'handle_options': {
+          var optionType = value.replace('options_', '');
+          if (optionType === 'iso') {
+            showQuestion('<strong>Did you exercise any ISOs this year?</strong><br><small>ISO exercises can trigger Alternative Minimum Tax (AMT).</small>', [
+              { label: 'Yes, I exercised ISOs', value: 'iso_exercised_yes' },
+              { label: 'No, haven\'t exercised yet', value: 'iso_exercised_no' },
+              { label: 'Planning to exercise soon', value: 'iso_exercised_planning' }
+            ]);
+            return true;
+          } else if (optionType === 'nso' || optionType === 'rsu') {
+            var equityLabel = optionType === 'nso' ? 'NSOs exercised' : 'RSUs vested';
+            var equitySmall = optionType === 'nso' ? 'The bargain element is taxed as ordinary income.' : 'RSU value at vesting is taxed as ordinary income.';
+            showQuestion('<strong>What\'s the approximate value of ' + equityLabel + ' this year?</strong><br><small>' + equitySmall + '</small>', [
+              { label: 'Under $25,000', value: optionType + '_value_under25k' },
+              { label: '$25,000 - $100,000', value: optionType + '_value_25_100k' },
+              { label: '$100,000 - $250,000', value: optionType + '_value_100_250k' },
+              { label: 'Over $250,000', value: optionType + '_value_over250k' }
+            ]);
+            return true;
+          }
+          calculateLeadScore();
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_iso_exercise': {
+          var exerciseStatus = value.replace('iso_exercised_', '');
+          if (exerciseStatus === 'yes') {
+            showQuestion('<strong>What\'s the approximate "spread" (difference between FMV and exercise price)?</strong><br><small>This spread is an AMT preference item that may trigger AMT liability.</small>', [
+              { label: 'Under $50,000 spread', value: 'iso_spread_under50k' },
+              { label: '$50,000 - $150,000 spread', value: 'iso_spread_50_150k' },
+              { label: '$150,000 - $500,000 spread', value: 'iso_spread_150_500k' },
+              { label: 'Over $500,000 spread', value: 'iso_spread_over500k' }
+            ]);
+            return true;
+          }
+          calculateLeadScore();
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_iso_spread': {
+          var spread = extractedData.tax_profile.iso_spread || 100000;
+          var potentialAMT = extractedData.tax_profile.potential_amt_liability || Math.round(spread * 0.28);
+          if (spread >= 150000) {
+            showQuestion(getIcon('exclamation-triangle', 'sm') + ' <strong>High AMT Risk Alert:</strong> With a $' + spread.toLocaleString() + ' spread, you may owe significant AMT (potentially $' + potentialAMT.toLocaleString() + ').<br><br><strong>Did you already make estimated tax payments for AMT?</strong>', [
+              { label: 'Yes, made AMT estimated payments', value: 'amt_estimated_yes' },
+              { label: 'No, need to plan for this', value: 'amt_estimated_no' },
+              { label: 'My CPA is handling this', value: 'amt_estimated_cpa' }
+            ], 1000);
+            return true;
+          }
+          calculateLeadScore();
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        // =============================================================
+        // ESTIMATED TAX PAYMENTS
+        // =============================================================
+        case 'handle_estimated_payments': {
+          var estType = value.replace('estimated_', '');
+          if (estType === 'no' || estType === 'unsure') {
+            var profile = extractedData.tax_profile;
+            if (profile.is_self_employed || profile.has_rental_income ||
+                profile.has_crypto_gains || profile.has_investment_income) {
+              extractedData.tax_profile.possible_underpayment_penalty = true;
+            }
+            calculateLeadScore();
+            startIntelligentQuestioning();
+            return true;
+          } else if (estType === 'yes' || estType === 'sometimes') {
+            showQuestion('<strong>What\'s your approximate total estimated tax payments so far this year?</strong><br><small>This helps us calculate if you\'ll owe or get a refund.</small>', [
+              { label: 'Under $5,000', value: 'estamt_under5k' },
+              { label: '$5,000 - $15,000', value: 'estamt_5_15k' },
+              { label: '$15,000 - $30,000', value: 'estamt_15_30k' },
+              { label: '$30,000 - $50,000', value: 'estamt_30_50k' },
+              { label: 'Over $50,000', value: 'estamt_over50k' },
+              { label: 'Skip - I\'ll check later', value: 'estamt_skip' }
+            ]);
+            return true;
+          }
+          calculateLeadScore();
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        // =============================================================
+        // FOREIGN INCOME
+        // =============================================================
+        case 'handle_foreign': {
+          var foreignType = value.replace('foreign_', '');
+          if (foreignType === 'income' || foreignType === 'both') {
+            showQuestion('<strong>What type of foreign income do you have?</strong><br><small>Different types qualify for different exclusions/credits.</small>', [
+              { label: 'Wages from foreign employer', value: 'foreign_type_wages' },
+              { label: 'Self-employment abroad', value: 'foreign_type_self' },
+              { label: 'Foreign rental property', value: 'foreign_type_rental' },
+              { label: 'Foreign investments/dividends', value: 'foreign_type_invest' },
+              { label: 'Foreign pension', value: 'foreign_type_pension' }
+            ]);
+            return true;
+          } else if (foreignType === 'accounts') {
+            showQuestion('<strong>What\'s the highest aggregate balance of all foreign accounts this year?</strong><br><small>FBAR filing required if > $10,000 at any time.</small>', [
+              { label: 'Under $10,000', value: 'fbar_under10k' },
+              { label: '$10,000 - $50,000', value: 'fbar_10_50k' },
+              { label: '$50,000 - $200,000', value: 'fbar_50_200k' },
+              { label: 'Over $200,000', value: 'fbar_over200k' }
+            ]);
+            return true;
+          }
+          calculateLeadScore();
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_foreign_income_type': {
+          var fIncomeType = value.replace('foreign_type_', '');
+          if (fIncomeType === 'wages' || fIncomeType === 'self') {
+            showQuestion('<strong>Did you live outside the US for most of the year?</strong><br><small>You may qualify for the Foreign Earned Income Exclusion (up to $126,500 in 2024).</small>', [
+              { label: 'Yes, lived abroad full year', value: 'feie_full_year' },
+              { label: 'Yes, 330+ days abroad', value: 'feie_330_days' },
+              { label: 'Partial year abroad', value: 'feie_partial' },
+              { label: 'No, worked remotely from US', value: 'feie_remote_us' }
+            ]);
+            return true;
+          } else {
+            showQuestion('<strong>Did you pay foreign taxes on this income?</strong><br><small>You may claim a Foreign Tax Credit to avoid double taxation.</small>', [
+              { label: 'Yes, taxes withheld/paid', value: 'ftc_yes' },
+              { label: 'No foreign taxes paid', value: 'ftc_no' },
+              { label: 'Not sure', value: 'ftc_unsure' }
+            ]);
+            return true;
+          }
+        }
+
+        case 'handle_feie': {
+          var feieStatus = value.replace('feie_', '');
+          if (feieStatus === 'full_year' || feieStatus === '330_days') {
+            showQuestion('<strong>What\'s your approximate foreign earned income?</strong><br><small>Up to $126,500 may be excluded from US taxes.</small>', [
+              { label: 'Under $50,000', value: 'foreign_earned_under50k' },
+              { label: '$50,000 - $100,000', value: 'foreign_earned_50_100k' },
+              { label: '$100,000 - $126,500', value: 'foreign_earned_100_126k' },
+              { label: 'Over $126,500', value: 'foreign_earned_over126k' }
+            ]);
+            return true;
+          }
+          calculateLeadScore();
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_foreign_earned': {
+          var earnedAmt = value.replace('foreign_earned_', '');
+          if (earnedAmt === 'over126k') {
+            showQuestion('Since your income exceeds the FEIE limit, you may also qualify for the <strong>Foreign Housing Exclusion</strong>.<br><br><strong>What\'s your annual housing expense abroad?</strong>', [
+              { label: 'Under $20,000', value: 'foreign_housing_under20k' },
+              { label: '$20,000 - $40,000', value: 'foreign_housing_20_40k' },
+              { label: 'Over $40,000', value: 'foreign_housing_over40k' }
+            ]);
+            return true;
+          }
+          calculateLeadScore();
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_ftc': {
+          var ftcStatus = value.replace('ftc_', '');
+          if (ftcStatus === 'yes') {
+            showQuestion('<strong>Approximately how much foreign tax did you pay?</strong>', [
+              { label: 'Under $1,000', value: 'ftc_amt_under1k' },
+              { label: '$1,000 - $5,000', value: 'ftc_amt_1_5k' },
+              { label: '$5,000 - $20,000', value: 'ftc_amt_5_20k' },
+              { label: 'Over $20,000', value: 'ftc_amt_over20k' }
+            ]);
+            return true;
+          }
+          calculateLeadScore();
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        // =============================================================
+        // MULTI-STATE
+        // =============================================================
+        case 'handle_multistate': {
+          var msType = value.replace('multistate_', '');
+          if (msType !== 'no') {
+            showTyping();
+            setTimeout(function() {
+              hideTyping();
+              if (msType === 'moved') {
+                addMessage('ai', '<strong>When did you move?</strong><br><small>This affects your part-year resident status.</small>', [
+                  { label: 'January - March', value: 'moved_q1' },
+                  { label: 'April - June', value: 'moved_q2' },
+                  { label: 'July - September', value: 'moved_q3' },
+                  { label: 'October - December', value: 'moved_q4' }
+                ]);
+              } else if (msType === 'work') {
+                addMessage('ai', '<strong>How many days did you work in the other state?</strong><br><small>Many states require filing if you work there 10+ days.</small>', [
+                  { label: 'Under 10 days', value: 'workdays_under10' },
+                  { label: '10-30 days', value: 'workdays_10_30' },
+                  { label: '30-60 days', value: 'workdays_30_60' },
+                  { label: 'Over 60 days', value: 'workdays_over60' }
+                ]);
+              } else if (msType === 'remote') {
+                addMessage('ai', '<strong>How many states did you work from remotely?</strong>', [
+                  { label: '2 states', value: 'remote_states_2' },
+                  { label: '3 states', value: 'remote_states_3' },
+                  { label: '4+ states', value: 'remote_states_4plus' }
+                ]);
+              }
+            }, 800);
+            return true;
+          }
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        // =============================================================
+        // FOCUS FLOW
+        // =============================================================
+        case 'handle_focus': {
+          var focusVal = value;
+          showTyping();
+          setTimeout(function() {
+            hideTyping();
+            if (focusVal === 'focus_real_estate') {
+              addMessage('ai', 'Excellent choice! Real estate offers significant tax advantages. Let me understand your situation better.<br><br><strong>Do you own your primary residence?</strong>', [
+                { label: 'Yes, I own my home', value: 'homeowner_yes' },
+                { label: 'No, I rent', value: 'homeowner_no' },
+                { label: 'I own rental properties', value: 'homeowner_rental' }
+              ]);
+            } else if (focusVal === 'focus_education') {
+              addMessage('ai', 'Education expenses can provide valuable tax benefits. Let\'s explore your situation.<br><br><strong>Are you currently paying for education expenses?</strong>', [
+                { label: 'Yes, for myself', value: 'edu_self' },
+                { label: 'Yes, for dependents', value: 'edu_dependents' },
+                { label: 'I have student loan interest', value: 'edu_loans' },
+                { label: 'Multiple of these', value: 'edu_multiple' }
+              ]);
+            } else if (focusVal === 'focus_business') {
+              addMessage('ai', 'Self-employment and business income create unique opportunities for tax optimization. Tell me more.<br><br><strong>What\'s your business structure?</strong>', [
+                { label: 'Sole Proprietor / Freelancer', value: 'biz_sole' },
+                { label: 'LLC / Partnership', value: 'biz_llc' },
+                { label: 'S-Corp / C-Corp', value: 'biz_corp' },
+                { label: 'Side business / Gig work', value: 'biz_side' }
+              ]);
+            } else if (focusVal === 'focus_healthcare') {
+              addMessage('ai', 'Healthcare expenses can add up, but there are ways to reduce your tax burden. Let\'s review your situation.<br><br><strong>Do you have significant medical expenses?</strong>', [
+                { label: 'Yes, over $5,000 annually', value: 'medical_high' },
+                { label: 'Moderate expenses', value: 'medical_moderate' },
+                { label: 'I have an HSA', value: 'medical_hsa' },
+                { label: 'Long-term care expenses', value: 'medical_ltc' }
+              ]);
+            } else if (focusVal === 'focus_investments') {
+              addMessage('ai', 'Investment and retirement planning are crucial for long-term tax efficiency. Let\'s dive in.<br><br><strong>What types of investment accounts do you have?</strong>', [
+                { label: '401(k) / Traditional IRA', value: 'inv_traditional' },
+                { label: 'Roth IRA', value: 'inv_roth' },
+                { label: 'Brokerage / Taxable accounts', value: 'inv_brokerage' },
+                { label: 'Multiple account types', value: 'inv_multiple' }
+              ]);
+            } else {
+              startIntelligentQuestioning();
+            }
+          }, 1500);
+          return true;
+        }
+
+        case 'handle_homeowner': {
+          var homeType = value.replace('homeowner_', '');
+          showTyping();
+          setTimeout(function() {
+            hideTyping();
+            if (homeType === 'yes') {
+              addMessage('ai', 'Homeownership offers great tax benefits! Let me understand your situation better.<br><br><strong>What\'s your approximate annual mortgage interest?</strong>', [
+                { label: 'Under $5,000', value: 'mortgageamt_under5k' },
+                { label: '$5,000 - $15,000', value: 'mortgageamt_5_15k' },
+                { label: '$15,000 - $30,000', value: 'mortgageamt_15_30k' },
+                { label: 'Over $30,000', value: 'mortgageamt_over30k' },
+                { label: 'No mortgage / Paid off', value: 'mortgageamt_none' }
+              ]);
+            } else if (homeType === 'rental') {
+              addMessage('ai', 'Rental properties can provide significant tax advantages. Let me learn more.<br><br><strong>How many rental properties do you own?</strong>', [
+                { label: '1 property', value: 'rental_props_1' },
+                { label: '2-4 properties', value: 'rental_props_2_4' },
+                { label: '5+ properties', value: 'rental_props_5plus' }
+              ]);
+            } else {
+              if (typeof continueToDeductionsFromFocus === 'function') continueToDeductionsFromFocus();
+              else startIntelligentQuestioning();
+            }
+          }, 1000);
+          return true;
+        }
+
+        case 'handle_edu': {
+          var eduType = value.replace('edu_', '');
+          showTyping();
+          setTimeout(function() {
+            hideTyping();
+            if (eduType === 'loans' || eduType === 'multiple') {
+              addMessage('ai', 'Student loan interest can be deductible up to $2,500.<br><br><strong>How much student loan interest do you pay annually?</strong>', [
+                { label: 'Under $1,000', value: 'student_loan_under1k' },
+                { label: '$1,000 - $2,500', value: 'student_loan_1_2.5k' },
+                { label: 'Over $2,500', value: 'student_loan_over2.5k' },
+                { label: 'Not sure', value: 'student_loan_unsure' }
+              ]);
+            } else if (eduType === 'dependents') {
+              addMessage('ai', 'Education credits can save you up to $2,500 per student!<br><br><strong>How many dependents are in college or vocational school?</strong>', [
+                { label: '1 student', value: 'college_students_1' },
+                { label: '2 students', value: 'college_students_2' },
+                { label: '3+ students', value: 'college_students_3plus' }
+              ]);
+            } else {
+              addMessage('ai', '<strong>What\'s your approximate annual education expense?</strong>', [
+                { label: 'Under $5,000', value: 'edu_expense_under5k' },
+                { label: '$5,000 - $15,000', value: 'edu_expense_5_15k' },
+                { label: 'Over $15,000', value: 'edu_expense_over15k' }
+              ]);
+            }
+          }, 800);
+          return true;
+        }
+
+        case 'handle_educredit': {
+          var creditType = value.replace('educredit_', '');
+          if (creditType === 'dependents') {
+            showQuestion('<strong>How many students are you paying college tuition for?</strong><br><small>AOTC credit: up to $2,500 per student (first 4 years).</small>', [
+              { label: '1 student', value: 'students_1' },
+              { label: '2 students', value: 'students_2' },
+              { label: '3+ students', value: 'students_3plus' }
+            ]);
+            return true;
+          } else if (creditType === 'self') {
+            showQuestion('<strong>What type of education?</strong><br><small>Lifetime Learning Credit: up to $2,000 for any level of education.</small>', [
+              { label: 'College degree program', value: 'selfed_degree' },
+              { label: 'Graduate school', value: 'selfed_graduate' },
+              { label: 'Professional certifications', value: 'selfed_cert' },
+              { label: 'Job-related courses', value: 'selfed_courses' }
+            ]);
+            return true;
+          } else if (creditType === '529') {
+            showQuestion('<strong>How much did you contribute to 529 plans this year?</strong><br><small>Many states offer tax deductions for 529 contributions.</small>', [
+              { label: 'Under $5,000', value: '529amt_under5k' },
+              { label: '$5,000 - $15,000', value: '529amt_5_15k' },
+              { label: 'Over $15,000', value: '529amt_over15k' }
+            ]);
+            return true;
+          }
+          calculateLeadScore();
+          startIntelligentQuestioning();
+          return true;
+        }
+
+        case 'handle_medical_focus': {
+          showTyping();
+          setTimeout(function() {
+            hideTyping();
+            if (value === 'medical_hsa') {
+              addMessage('ai', 'HSA offers triple tax benefits - contributions are deductible, growth is tax-free, and withdrawals for medical expenses are tax-free!<br><br><strong>How much do you contribute to your HSA annually?</strong>', [
+                { label: 'Under $2,000', value: 'hsa_under2k' },
+                { label: '$2,000 - $4,000', value: 'hsa_2_4k' },
+                { label: 'Maxing out ($4,150 single / $8,300 family)', value: 'hsa_max' },
+                { label: 'Not sure', value: 'hsa_unsure' }
+              ]);
+            } else if (value === 'medical_high' || value === 'medical_ltc') {
+              addMessage('ai', '<strong>What\'s your estimated annual out-of-pocket medical expense?</strong>', [
+                { label: '$5,000 - $10,000', value: 'medical_amt_5_10k' },
+                { label: '$10,000 - $25,000', value: 'medical_amt_10_25k' },
+                { label: '$25,000 - $50,000', value: 'medical_amt_25_50k' },
+                { label: 'Over $50,000', value: 'medical_amt_over50k' }
+              ]);
+            } else if (value === 'medical_moderate') {
+              addMessage('ai', '<strong>What\'s your estimated annual out-of-pocket medical expense?</strong>', [
+                { label: 'Under $2,000', value: 'medical_amt_under2k' },
+                { label: '$2,000 - $5,000', value: 'medical_amt_2_5k' },
+                { label: '$5,000 - $10,000', value: 'medical_amt_5_10k' },
+                { label: 'Skip this', value: 'medical_amt_skip' }
+              ]);
+            } else {
+              if (typeof continueToDeductionsFromFocus === 'function') continueToDeductionsFromFocus();
+              else startIntelligentQuestioning();
+            }
+          }, 800);
+          return true;
+        }
+
+        case 'handle_inv_focus': {
+          var invType = value.replace('inv_', '');
+          showTyping();
+          setTimeout(function() {
+            hideTyping();
+            if (invType === 'brokerage' || invType === 'multiple') {
+              addMessage('ai', 'Taxable investment accounts have important tax implications.<br><br><strong>Did you have any capital gains or losses this year?</strong>', [
+                { label: 'Net gains (profit)', value: 'capgain_gains' },
+                { label: 'Net losses', value: 'capgain_losses' },
+                { label: 'About break-even', value: 'capgain_even' },
+                { label: 'Haven\'t sold anything', value: 'capgain_none' }
+              ]);
+            } else if (invType === 'traditional') {
+              addMessage('ai', '<strong>How much are you contributing to your 401(k) or Traditional IRA this year?</strong>', [
+                { label: 'Under $10,000', value: 'trad_contrib_under10k' },
+                { label: '$10,000 - $20,000', value: 'trad_contrib_10_20k' },
+                { label: 'Maxing out 401(k) ($23,500)', value: 'trad_contrib_max401k' },
+                { label: 'Maxing out IRA ($7,000)', value: 'trad_contrib_maxira' }
+              ]);
+            } else {
+              addMessage('ai', '<strong>How much are you contributing to your Roth IRA this year?</strong>', [
+                { label: 'Under $3,000', value: 'roth_contrib_under3k' },
+                { label: '$3,000 - $7,000', value: 'roth_contrib_3_7k' },
+                { label: 'Maxing out ($7,000)', value: 'roth_contrib_max' },
+                { label: 'Using Backdoor Roth', value: 'roth_contrib_backdoor' }
+              ]);
+            }
+          }, 800);
+          return true;
+        }
+
+        case 'handle_biz_focus': {
+          showQuestion('<strong>What\'s your approximate annual business income (before expenses)?</strong>', [
+            { label: 'Under $25,000', value: 'bizinc_under25k' },
+            { label: '$25,000 - $75,000', value: 'bizinc_25_75k' },
+            { label: '$75,000 - $150,000', value: 'bizinc_75_150k' },
+            { label: 'Over $150,000', value: 'bizinc_over150k' }
+          ]);
+          return true;
+        }
+
+        // =============================================================
+        // DEDUCTIONS/CREDITS FLOW
+        // =============================================================
+        case 'handle_deduct_flow': {
+          showTyping();
+          setTimeout(function() {
+            hideTyping();
+            addMessage('ai', 'Perfect! Now let\'s explore tax credits you might qualify for. Credits directly reduce your tax bill dollar-for-dollar.<br><br><strong>Do any of these situations apply to you?</strong>', [
+              { label: '\ud83d\udc76 Child Tax Credit', value: 'credit_child' },
+              { label: getIcon('academic-cap', 'sm') + ' Education Credits (AOTC/LLC)', value: 'credit_education' },
+              { label: getIcon('bolt', 'sm') + ' Energy Efficiency Credits', value: 'credit_energy' },
+              { label: getIcon('briefcase', 'sm') + ' Earned Income Credit', value: 'credit_eitc' },
+              { label: 'Not sure / Continue', value: 'credit_skip' }
+            ]);
+          }, 1500);
+          return true;
+        }
+
+        case 'handle_credit_flow': {
+          showTyping();
+          setTimeout(function() {
+            hideTyping();
+            var summary = (typeof generateSummary === 'function') ? generateSummary() : '';
+            addMessage('ai', '<strong>Excellent! I now have a comprehensive understanding of your tax situation.</strong><br><br>Here\'s what we\'ve covered:<br><br>' + summary + '<br><br>Based on this information, I can provide you with a detailed strategic tax advisory report including:<br><br>\u2713 <strong>Personalized tax optimization strategies</strong><br>\u2713 <strong>Estimated tax savings opportunities</strong><br>\u2713 <strong>Action items for the current tax year</strong><br>\u2713 <strong>Long-term planning recommendations</strong><br>\u2713 <strong>Compliance checklist</strong><br><br><strong>Would you like me to generate your comprehensive tax advisory report now?</strong>', [
+              { label: getIcon('chart-bar', 'sm') + ' Yes, generate my report', value: 'generate_report' },
+              { label: getIcon('chat-bubble-left-right', 'sm') + ' I have more questions first', value: 'more_questions' },
+              { label: getIcon('document-text', 'sm') + ' Let me add documents', value: 'add_documents' }
+            ]);
+          }, 2000);
+          return true;
+        }
+
+        case 'handle_has_deduction': {
+          var deductionType = value.replace('has_', '');
+          var deductionLabels = {
+            'mortgage': 'Mortgage interest', 'charity': 'Charitable donations',
+            'medical': 'Medical expenses', 'education': 'Education expenses',
+            'business': 'Business expenses', 'retirement': 'Retirement contributions'
+          };
+          var dedLabel = deductionLabels[deductionType] || deductionType;
+          showQuestion('Approximately how much in ' + dedLabel.toLowerCase() + ' for 2025?', [
+            { label: 'Under $5,000', value: 'amount_' + deductionType + '_low' },
+            { label: '$5,000 - $15,000', value: 'amount_' + deductionType + '_mid' },
+            { label: 'Over $15,000', value: 'amount_' + deductionType + '_high' },
+            { label: 'Skip this', value: 'deduction_next' }
+          ]);
+          return true;
+        }
+
+        case 'handle_amount_selection': {
+          showTyping();
+          setTimeout(function() {
+            hideTyping();
+            if (typeof askNextDeductionOrCredits === 'function') askNextDeductionOrCredits();
+            else startIntelligentQuestioning();
+          }, 800);
+          return true;
+        }
+
+        case 'handle_deduction_next': {
+          showTyping();
+          setTimeout(function() {
+            hideTyping();
+            if (typeof askNextDeductionOrCredits === 'function') askNextDeductionOrCredits();
+            else startIntelligentQuestioning();
+          }, 500);
+          return true;
+        }
+
+        case 'handle_deductions_done': {
+          showQuestion('Got it! Now let\'s check for tax credits you might qualify for.', [
+            { label: 'Child Tax Credit', value: 'credit_child' },
+            { label: 'Education Credits', value: 'credit_education' },
+            { label: 'Energy Credits', value: 'credit_energy' },
+            { label: 'Skip to report \u2192', value: 'generate_report' }
+          ]);
+          return true;
+        }
+
         default:
           DevLogger.log('[FSM] Unknown side effect:', effect);
           return false;
