@@ -2882,7 +2882,7 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "intelligent-advisor",
-        "persistence_enabled": chat_engine._persistence is not None,
+        "persistence_enabled": chat_engine._sqlite_persistence is not None or chat_engine._redis_persistence is not None,
         "sessions": session_counts,
         "ai": ai_status,
         "feature_flags": {
