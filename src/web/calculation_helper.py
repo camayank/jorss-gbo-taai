@@ -111,6 +111,19 @@ class CalculationResult:
         }
 
 
+def _run_invariant_checks(tax_return, warnings_list):
+    """Run invariant checks on a calculated TaxReturn, appending warnings."""
+    try:
+        from validation.invariant_checker import InvariantChecker
+        violations = InvariantChecker.check(tax_return)
+        for v in violations:
+            warnings_list.append(f"[{v.code}] {v.message}")
+            if v.severity == "error":
+                logger.warning("Invariant violation: %s", v.to_dict())
+    except Exception as e:
+        logger.debug("Invariant checker unavailable: %s", e)
+
+
 def _get_validator():
     """Get or create ValidationService singleton."""
     global _validator
@@ -447,6 +460,8 @@ async def calculate_taxes(
 
             if context.is_valid and context.breakdown:
                 breakdown_dict = _convert_breakdown_to_dict(context.breakdown)
+                # Run invariant checks on calculated return
+                _run_invariant_checks(tax_return, warnings)
                 # Record metrics for observability
                 latency_ms = (time.time() - start_time) * 1000
                 _record_calculation_metrics(
@@ -479,6 +494,8 @@ async def calculate_taxes(
         engine = FederalTaxEngine()
         breakdown = engine.calculate(tax_return)
         breakdown_dict = _convert_breakdown_to_dict(breakdown)
+        # Run invariant checks on calculated return
+        _run_invariant_checks(tax_return, warnings)
 
         # Record metrics for observability (fallback = cache miss)
         latency_ms = (time.time() - start_time) * 1000

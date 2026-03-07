@@ -10,6 +10,11 @@ from .tax_rules_engine import (
     get_rules_engine,
 )
 
+from .invariant_checker import (
+    InvariantChecker,
+    InvariantViolation,
+)
+
 from .dependent_validator import (
     DependentValidator,
     DependentQualificationType,
@@ -23,6 +28,9 @@ from .dependent_validator import (
 )
 
 __all__ = [
+    # Invariant Checker
+    'InvariantChecker',
+    'InvariantViolation',
     # Tax Rules Engine
     'TaxRulesEngine',
     'TaxContext',

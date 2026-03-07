@@ -17,6 +17,20 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Chat"])
 
 
+def _run_invariant_checks(tax_return):
+    """Run runtime invariant checks on a calculated TaxReturn and log violations."""
+    try:
+        from validation.invariant_checker import InvariantChecker
+        violations = InvariantChecker.check(tax_return)
+        if violations:
+            logger.warning(
+                "Invariant violations detected: %s",
+                [v.to_dict() for v in violations],
+            )
+    except Exception as e:
+        logger.debug("Invariant checker unavailable: %s", e)
+
+
 def _build_tax_context(session_id: str) -> str:
     """Build tax context string from session data for chat personalization."""
     if not session_id:
@@ -139,6 +153,7 @@ async def chat(request: Request, response: Response):
             return JSONResponse({"reply": "No information collected yet."})
         if agent.is_complete():
             _calculator.calculate_complete_return(tax_return)
+            _run_invariant_checks(tax_return)
         return JSONResponse({"reply": _forms.generate_summary(tax_return)})
 
     if action == "calculate":
@@ -146,6 +161,7 @@ async def chat(request: Request, response: Response):
         if not tax_return or not agent.is_complete():
             return JSONResponse({"reply": "Not enough information yet. Please continue answering questions."})
         _calculator.calculate_complete_return(tax_return)
+        _run_invariant_checks(tax_return)
         return JSONResponse({"reply": _forms.generate_summary(tax_return)})
 
     if not user_message or len(user_message.strip()) == 0:
