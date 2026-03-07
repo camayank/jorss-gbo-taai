@@ -2623,6 +2623,10 @@ function buildActionIndex(config) {
     }
   }
 
+  // Sort prefixes longest-first so more specific prefixes match before generic ones
+  // e.g. 'divorce_year_' matches before 'divorce_'
+  prefixes.sort(function(a, b) { return b.prefix.length - a.prefix.length; });
+
   return { exact: exact, prefixes: prefixes };
 }
 
