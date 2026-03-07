@@ -7024,10 +7024,20 @@
               mergedHeaders['X-Session-Token'] = sessionToken;
           }
 
+          // SECURITY: Add CSRF token for state-changing requests
+          const method = (options.method || 'GET').toUpperCase();
+          if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+            const csrfToken = getCSRFToken();
+            if (csrfToken) {
+              mergedHeaders['X-CSRF-Token'] = csrfToken;
+            }
+          }
+
           const response = await fetch(url, {
             ...options,
             signal: controller.signal,
-            headers: mergedHeaders
+            headers: mergedHeaders,
+            credentials: 'same-origin'
           });
 
           clearTimeout(timeoutId);
@@ -7216,6 +7226,8 @@
       }
 
       // Use the intelligent advisor API for dynamic NLU parsing
+      let thinkingTimer = null;
+      let extendedTimer = null;
       try {
         // Build profile from extracted data for the advisor API
         const statusMap = {
@@ -7241,11 +7253,12 @@
         };
 
         // Show extended "Thinking..." indicator for AI responses (may take longer)
-        let thinkingTimer = setTimeout(() => {
+        // Declared outside try so catch block can safely clear them
+        thinkingTimer = setTimeout(() => {
           const typingEl = document.querySelector('.typing-indicator .typing-text');
           if (typingEl) typingEl.textContent = 'Thinking deeply...';
         }, 4000);
-        let extendedTimer = setTimeout(() => {
+        extendedTimer = setTimeout(() => {
           const typingEl = document.querySelector('.typing-indicator .typing-text');
           if (typingEl) typingEl.textContent = 'Taking a bit longer than usual, still working...';
         }, 12000);
