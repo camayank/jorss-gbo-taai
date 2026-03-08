@@ -1,0 +1,218 @@
+# =============================================================================
+# Jorss-Gbo CPA Lead Platform — Production Docker Compose (VPS)
+# =============================================================================
+# Full production stack: App + PostgreSQL + Redis + Celery + Nginx + SSL
+#
+# Usage:
+#   docker compose -f docker-compose.production.yml up -d
+#   docker compose -f docker-compose.production.yml logs -f
+#   docker compose -f docker-compose.production.yml down
+#
+# Prerequisites:
+#   - .env.production file (copy from .env.production.template)
+#   - SSL certs via scripts/deploy.sh (handles certbot)
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Main Application — Gunicorn + Uvicorn Workers
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      target: production
+    container_name: jorss-gbo-app
+    env_file: .env.production
+    environment:
+      - PYTHONPATH=/app/src
+    command: >
+      gunicorn src.web.app:app
+      --bind 0.0.0.0:8000
+      --workers ${WORKERS:-4}
+      --worker-class uvicorn.workers.UvicornWorker
+      --timeout 120
+      --keep-alive 5
+      --access-logfile -
+      --error-logfile -
+    volumes:
+      - app-data:/app/data
+      - app-logs:/app/logs
+      - app-uploads:/app/uploads
+      - app-static:/app/src/web/static:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    networks:
+      - jorss-network
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 16
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: jorss-gbo-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-jorss_gbo}
+      POSTGRES_USER: ${POSTGRES_USER:-jorss}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jorss} -d ${POSTGRES_DB:-jorss_gbo}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - jorss-network
+    # Not exposed to host — only accessible within Docker network
+
+  # ---------------------------------------------------------------------------
+  # Redis 7 — Sessions, Cache, Celery Broker
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: jorss-gbo-redis
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - jorss-network
+
+  # ---------------------------------------------------------------------------
+  # Celery Worker — Background Task Processing
+  # ---------------------------------------------------------------------------
+  worker:
+    build:
+      context: .
+      target: production
+    container_name: jorss-gbo-worker
+    env_file: .env.production
+    environment:
+      - PYTHONPATH=/app/src
+    command: >
+      celery -A tasks.celery_app worker
+      --loglevel=info
+      --concurrency=${CELERY_CONCURRENCY:-2}
+      --max-tasks-per-child=1000
+    volumes:
+      - app-data:/app/data
+      - app-logs:/app/logs
+      - app-uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - jorss-network
+
+  # ---------------------------------------------------------------------------
+  # Celery Beat — Periodic Task Scheduler
+  # ---------------------------------------------------------------------------
+  beat:
+    build:
+      context: .
+      target: production
+    container_name: jorss-gbo-beat
+    env_file: .env.production
+    environment:
+      - PYTHONPATH=/app/src
+    command: >
+      celery -A tasks.celery_app beat
+      --loglevel=info
+      --schedule=/app/data/celerybeat-schedule
+    volumes:
+      - app-data:/app/data
+      - app-logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - jorss-network
+
+  # ---------------------------------------------------------------------------
+  # Nginx — Reverse Proxy + SSL Termination
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: jorss-gbo-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.production.conf:/etc/nginx/nginx.conf:ro
+      - app-static:/app/src/web/static:ro
+      - certbot-certs:/etc/letsencrypt:ro
+      - certbot-www:/var/www/certbot:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - jorss-network
+
+  # ---------------------------------------------------------------------------
+  # Certbot — Let's Encrypt Auto-Renewal
+  # ---------------------------------------------------------------------------
+  certbot:
+    image: certbot/certbot
+    container_name: jorss-gbo-certbot
+    volumes:
+      - certbot-certs:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    # Renew certs every 12 hours (certbot is a no-op if not due)
+    entrypoint: /bin/sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
+    restart: unless-stopped
+    networks:
+      - jorss-network
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  jorss-network:
+    driver: bridge
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  app-data:
+    driver: local
+  app-logs:
+    driver: local
+  app-uploads:
+    driver: local
+  app-static:
+    driver: local
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  certbot-certs:
+    driver: local
+  certbot-www:
+    driver: local
