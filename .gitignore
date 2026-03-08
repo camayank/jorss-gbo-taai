@@ -85,4 +85,5 @@ tmp_route_audit*
 .env.*
 !.env.example
 !.env.*.example
+!.env.production.template
 .worktrees/
