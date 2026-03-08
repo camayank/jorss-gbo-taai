@@ -1,0 +1,172 @@
+# =============================================================================
+# Jorss-Gbo CPA Lead Platform — Coolify Docker Compose
+# =============================================================================
+# Deploy via Coolify (self-hosted PaaS). PostgreSQL and Redis are deployed
+# as separate Coolify resources — enable "Connect to Predefined Network"
+# on all services so they can communicate.
+#
+# Build pack: Docker Compose
+# Compose location: docker-compose.coolify.yml
+#
+# Required: Set all ${VAR:?} variables in Coolify's Environment Variables UI.
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Main Application — Gunicorn + Uvicorn Workers
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      target: production
+    environment:
+      - PYTHONPATH=/app/src
+      - APP_ENVIRONMENT=production
+      - DEBUG=false
+      - APP_ENFORCE_HTTPS=true
+      - DATABASE_URL=${DATABASE_URL:?}
+      - REDIS_URL=${REDIS_URL:?}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - SESSION_STORAGE_TYPE=redis
+      - SESSION_EXPIRY_HOURS=24
+      - SESSION_TIMEOUT_MINUTES=30
+      # Security secrets (all required)
+      - APP_SECRET_KEY=${APP_SECRET_KEY:?}
+      - JWT_SECRET=${JWT_SECRET:?}
+      - AUTH_SECRET_KEY=${AUTH_SECRET_KEY:?}
+      - CSRF_SECRET_KEY=${CSRF_SECRET_KEY:?}
+      - PASSWORD_SALT=${PASSWORD_SALT:?}
+      - ENCRYPTION_MASTER_KEY=${ENCRYPTION_MASTER_KEY:?}
+      - SSN_HASH_SECRET=${SSN_HASH_SECRET:?}
+      - SERIALIZER_SECRET_KEY=${SERIALIZER_SECRET_KEY:?}
+      - AUDIT_HMAC_KEY=${AUDIT_HMAC_KEY:?}
+      # AI provider
+      - OPENAI_API_KEY=${OPENAI_API_KEY:?}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # Celery
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      # Application
+      - APP_URL=${APP_URL}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ENABLE_MONITORING=${ENABLE_MONITORING:-true}
+      # External services (optional)
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
+      - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL:-}
+      # Feature flags
+      - UNIFIED_FILING=${UNIFIED_FILING:-true}
+      - DB_PERSISTENCE=${DB_PERSISTENCE:-true}
+      - NEW_LANDING=${NEW_LANDING:-true}
+    command: >
+      gunicorn src.web.app:app
+      --bind 0.0.0.0:8000
+      --workers ${WORKERS:-4}
+      --worker-class uvicorn.workers.UvicornWorker
+      --timeout 120
+      --keep-alive 5
+      --access-logfile -
+      --error-logfile -
+    volumes:
+      - type: bind
+        source: ./app-data
+        target: /app/data
+        is_directory: true
+      - type: bind
+        source: ./app-logs
+        target: /app/logs
+        is_directory: true
+      - type: bind
+        source: ./app-uploads
+        target: /app/uploads
+        is_directory: true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Celery Worker — Background Task Processing
+  # ---------------------------------------------------------------------------
+  worker:
+    build:
+      context: .
+      target: production
+    environment:
+      - PYTHONPATH=/app/src
+      - APP_ENVIRONMENT=production
+      - DATABASE_URL=${DATABASE_URL:?}
+      - REDIS_URL=${REDIS_URL:?}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - APP_SECRET_KEY=${APP_SECRET_KEY:?}
+      - JWT_SECRET=${JWT_SECRET:?}
+      - AUTH_SECRET_KEY=${AUTH_SECRET_KEY:?}
+      - ENCRYPTION_MASTER_KEY=${ENCRYPTION_MASTER_KEY:?}
+      - SSN_HASH_SECRET=${SSN_HASH_SECRET:?}
+      - SERIALIZER_SECRET_KEY=${SERIALIZER_SECRET_KEY:?}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:?}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
+      - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL:-}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+    command: >
+      celery -A tasks.celery_app worker
+      --loglevel=info
+      --concurrency=${CELERY_CONCURRENCY:-2}
+      --max-tasks-per-child=1000
+    volumes:
+      - type: bind
+        source: ./app-data
+        target: /app/data
+        is_directory: true
+      - type: bind
+        source: ./app-logs
+        target: /app/logs
+        is_directory: true
+      - type: bind
+        source: ./app-uploads
+        target: /app/uploads
+        is_directory: true
+    exclude_from_hc: true
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Celery Beat — Periodic Task Scheduler
+  # ---------------------------------------------------------------------------
+  beat:
+    build:
+      context: .
+      target: production
+    environment:
+      - PYTHONPATH=/app/src
+      - APP_ENVIRONMENT=production
+      - DATABASE_URL=${DATABASE_URL:?}
+      - REDIS_URL=${REDIS_URL:?}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - APP_SECRET_KEY=${APP_SECRET_KEY:?}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+    command: >
+      celery -A tasks.celery_app beat
+      --loglevel=info
+      --schedule=/app/data/celerybeat-schedule
+    volumes:
+      - type: bind
+        source: ./app-data
+        target: /app/data
+        is_directory: true
+      - type: bind
+        source: ./app-logs
+        target: /app/logs
+        is_directory: true
+    exclude_from_hc: true
+    restart: unless-stopped
