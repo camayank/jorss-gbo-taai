@@ -232,7 +232,17 @@ def get_email_provider() -> EmailProvider:
         logger.info("Email provider: SMTP")
         return _email_provider
 
-    # Fallback to null provider
+    # Fallback — block in production, allow null provider in dev
+    _environment = os.environ.get("APP_ENVIRONMENT", "production")
+    _is_production = _environment in ("production", "prod", "staging")
+
+    if _is_production:
+        raise RuntimeError(
+            "CRITICAL: No email provider configured in production. "
+            "Set SENDGRID_API_KEY, AWS_SES_REGION, or SMTP_HOST. "
+            "Emails (password resets, notifications) will silently fail without this."
+        )
+
     logger.warning(
         "No email provider configured. Emails will be logged but not sent. "
         "Set SENDGRID_API_KEY, AWS_SES_REGION, or SMTP_HOST to enable email delivery."

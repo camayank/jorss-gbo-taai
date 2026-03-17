@@ -18,7 +18,8 @@ import {
   secureFetch,
   DevLogger,
   showToast,
-  lastUserMessage
+  lastUserMessage,
+  trapFocus
 } from './advisor-core.js';
 
 import {
@@ -53,7 +54,7 @@ export const CelebrationSystem = {
     overlay.className = 'celebration-overlay';
     document.body.appendChild(overlay);
 
-    const colors = ['#C9A84C', '#E0C778', '#0B1D3A', '#1A3560', '#B5953F', '#F0DBAA'];
+    const colors = ['#14b8a6', '#2dd4bf', '#f97316', '#fb923c', '#0d9488', '#5eead4'];
 
     for (let i = 0; i < count; i++) {
       const confetti = document.createElement('div');
@@ -2140,12 +2141,18 @@ export function enableOfflineMode() {
 // CPA MODAL
 // ============================================================
 
+let _cpaFocusTrapRelease = null;
+
 export function openCpaModal() {
   var backdrop = document.getElementById('cpaModalBackdrop');
-  if (backdrop) backdrop.style.display = 'flex';
+  if (backdrop) {
+    backdrop.style.display = 'flex';
+    _cpaFocusTrapRelease = trapFocus(backdrop);
+  }
 }
 
 export function closeCpaModal() {
+  if (_cpaFocusTrapRelease) { _cpaFocusTrapRelease(); _cpaFocusTrapRelease = null; }
   var backdrop = document.getElementById('cpaModalBackdrop');
   if (backdrop) backdrop.style.display = 'none';
 }

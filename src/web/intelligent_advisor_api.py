@@ -15,15 +15,98 @@ tax advisory chatbot experience:
 NO ONE IN USA HAS DONE THIS.
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Depends
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Depends, Request as FastAPIRequest
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 from enum import Enum
+from uuid import UUID
 import asyncio
 import logging
 import os
+import re
+import time
+
+_raw_logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# PII Redaction — prevent SSNs, EINs, emails leaking into logs
+# ---------------------------------------------------------------------------
+PII_PATTERNS = [
+    (r'\b\d{3}-\d{2}-\d{4}\b', '***-**-****'),      # SSN
+    (r'\b\d{9}\b', '*********'),                       # SSN without dashes
+    (r'\b\d{2}-\d{7}\b', '**-*******'),                # EIN
+    (r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[EMAIL]'),
+    (r'\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b', '[CARD]'),
+]
+
+
+def _redact_pii(text: str) -> str:
+    """Strip PII patterns from text before logging."""
+    if not text:
+        return text
+    result = str(text)
+    for pattern, replacement in PII_PATTERNS:
+        result = re.sub(pattern, replacement, result)
+    return result
+
+
+class _SecureLogger:
+    """Logger wrapper that auto-redacts PII from all messages."""
+    def __init__(self, inner):
+        self._inner = inner
+
+    def info(self, msg, *a, **kw):
+        self._inner.info(_redact_pii(str(msg)), *a, **kw)
+
+    def warning(self, msg, *a, **kw):
+        self._inner.warning(_redact_pii(str(msg)), *a, **kw)
+
+    def error(self, msg, *a, **kw):
+        self._inner.error(_redact_pii(str(msg)), *a, **kw)
+
+    def debug(self, msg, *a, **kw):
+        self._inner.debug(_redact_pii(str(msg)), *a, **kw)
+
+    def exception(self, msg, *a, **kw):
+        self._inner.exception(_redact_pii(str(msg)), *a, **kw)
+
+
+logger = _SecureLogger(_raw_logger)
+
+
+# ---------------------------------------------------------------------------
+# UUID Validation — prevent session fixation with arbitrary strings
+# ---------------------------------------------------------------------------
+def _validate_uuid(value: str) -> bool:
+    try:
+        UUID(value)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
+# ---------------------------------------------------------------------------
+# IP-based Rate Limiting — prevents session-rotation bypass
+# ---------------------------------------------------------------------------
+_ip_rate_limits: dict = {}  # ip -> list of timestamps
+_IP_RATE_LIMIT = 100  # max requests per window per IP
+_IP_RATE_WINDOW = 60  # seconds
+
+
+def _get_client_ip(request) -> str:
+    """Extract client IP from proxy headers."""
+    if hasattr(request, 'headers'):
+        forwarded = request.headers.get("X-Forwarded-For")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+        real_ip = request.headers.get("X-Real-IP")
+        if real_ip:
+            return real_ip.strip()
+    if hasattr(request, 'client') and request.client:
+        return request.client.host
+    return "unknown"
 
 from security.session_token import verify_session_token, generate_session_token, SESSION_TOKEN_KEY
 
@@ -66,6 +149,16 @@ from web.advisor.parsers import (  # noqa: F401
     parse_user_message, enhanced_parse_user_message,
     EnhancedParser, ConversationContext, detect_user_intent,
 )
+
+# --- Input Guard (prompt injection + PII sanitization) ---
+try:
+    from security.input_guard import InputGuard
+    _input_guard = InputGuard()
+    _INPUT_GUARD_AVAILABLE = True
+except ImportError:
+    _input_guard = None
+    _INPUT_GUARD_AVAILABLE = False
+    logger.warning("InputGuard not available - prompt injection protection disabled")
 
 # --- AI/ML Integration (graceful fallback if dependencies missing) ---
 try:
@@ -348,8 +441,6 @@ import uuid
 import json
 from decimal import Decimal, ROUND_HALF_UP
 from calculator.decimal_math import money, to_decimal
-
-logger = logging.getLogger(__name__)
 
 # Import rate limiter and logo handler
 try:
@@ -1056,6 +1147,7 @@ class IntelligentChatEngine:
                 #   "summary": "Single, $75k"  # Human-readable summary
                 # }
             }
+            new_session["_renewed"] = True  # Flag: session was not found, created fresh
             self.sessions[session_id] = new_session
             self._session_access_times[session_id] = datetime.now()
 
@@ -3858,41 +3950,58 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
     return (None, None)
 
 
-# Simple in-memory rate limiter for chat endpoint
+# In-memory rate limiter — session + IP based
 _chat_rate_limits: dict = {}  # session_id -> list of timestamps
-_CHAT_RATE_LIMIT = 30  # max requests per window
+_CHAT_RATE_LIMIT = 30  # max requests per window per session
 _CHAT_RATE_WINDOW = 60  # seconds
 
 
-def _check_chat_rate_limit(session_id: str) -> bool:
-    """Return True if request is allowed, False if rate limited."""
-    now = datetime.now().timestamp()
+def _check_chat_rate_limit(session_id: str, client_ip: str = None) -> bool:
+    """Return True if request is allowed, False if rate limited.
+
+    Checks both per-session and per-IP limits to prevent
+    session-rotation bypass attacks.
+    """
+    now = time.time()
     window_start = now - _CHAT_RATE_WINDOW
 
+    # Session-based check
     if session_id not in _chat_rate_limits:
         _chat_rate_limits[session_id] = []
-
-    # Prune old entries
     _chat_rate_limits[session_id] = [
         t for t in _chat_rate_limits[session_id] if t > window_start
     ]
-
     if len(_chat_rate_limits[session_id]) >= _CHAT_RATE_LIMIT:
         return False
 
+    # IP-based check (prevents session rotation)
+    if client_ip:
+        if client_ip not in _ip_rate_limits:
+            _ip_rate_limits[client_ip] = []
+        _ip_rate_limits[client_ip] = [
+            t for t in _ip_rate_limits[client_ip] if t > window_start
+        ]
+        if len(_ip_rate_limits[client_ip]) >= _IP_RATE_LIMIT:
+            return False
+        _ip_rate_limits[client_ip].append(now)
+
     _chat_rate_limits[session_id].append(now)
 
-    # Cleanup stale sessions periodically (every 100th check)
+    # Cleanup stale entries periodically
     if len(_chat_rate_limits) > 1000:
         stale = [k for k, v in _chat_rate_limits.items() if not v or v[-1] < window_start]
         for k in stale:
             del _chat_rate_limits[k]
+    if len(_ip_rate_limits) > 1000:
+        stale = [k for k, v in _ip_rate_limits.items() if not v or v[-1] < window_start]
+        for k in stale:
+            del _ip_rate_limits[k]
 
     return True
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def intelligent_chat(request: ChatRequest, _session: str = Depends(verify_session_token)):
+async def intelligent_chat(request: ChatRequest, http_request: FastAPIRequest = None, _session: str = Depends(verify_session_token)):
     """
     Main intelligent chat endpoint with dynamic flow handling.
 
@@ -3909,9 +4018,9 @@ async def intelligent_chat(request: ChatRequest, _session: str = Depends(verify_
     session_id = request.session_id or f"auto-{datetime.now().timestamp()}"
     request.session_id = session_id
 
-    # Rate limiting
-    if not _check_chat_rate_limit(session_id):
-        from fastapi.responses import JSONResponse
+    # Rate limiting (session + IP)
+    client_ip = _get_client_ip(http_request) if http_request else None
+    if not _check_chat_rate_limit(session_id, client_ip):
         return JSONResponse(
             status_code=429,
             content={"detail": "Too many requests. Please wait a moment before sending more messages."}
@@ -3920,6 +4029,7 @@ async def intelligent_chat(request: ChatRequest, _session: str = Depends(verify_
     try:
         # Get or create session
         session = await chat_engine.get_or_create_session(session_id)
+        _session_was_renewed = session.pop("_renewed", False)
         profile = session["profile"]
 
         # Populate CPA/firm context from request if not already set.
@@ -3971,6 +4081,24 @@ async def intelligent_chat(request: ChatRequest, _session: str = Depends(verify_
     # Limit message length
     if len(msg_original) > 5000:
         msg_original = msg_original[:5000]
+
+    # --- InputGuard: Block prompt injection + sanitize PII before AI ---
+    if _INPUT_GUARD_AVAILABLE:
+        guard_result, msg_original = _input_guard.check_and_sanitize(msg_original)
+        if not guard_result.is_safe:
+            logger.warning(
+                f"[InputGuard] Blocked message in session {session_id}: "
+                f"type={guard_result.violation_type}"
+            )
+            return ChatResponse(
+                session_id=request.session_id,
+                message="I can only help with tax-related questions. Could you please rephrase your question about your tax situation?",
+                quick_actions=[
+                    {"label": "What deductions can I claim?", "value": "ask_deductions"},
+                    {"label": "Help me file my taxes", "value": "start_filing"},
+                ],
+                profile=profile,
+            )
 
     msg_lower = msg_original.lower()
 
@@ -4691,7 +4819,7 @@ To get started, what's your filing status?"""
 
         # Augment regex extraction with AI entity extraction (fills gaps only)
         try:
-            ai_updates = await chat_engine._ai_extract_profile_data(request.message, session)
+            ai_updates = await chat_engine._ai_extract_profile_data(msg_original, session)
             for key, value in ai_updates.items():
                 if key not in extracted or not extracted[key]:
                     extracted[key] = value
@@ -5286,6 +5414,7 @@ To get started, what's your filing status?"""
             estimated_savings_preview=chat_engine.estimate_partial_savings(profile) if response_type != "calculation" else None,
             safety_summary=_build_safety_summary(safety_data),
             safety_checks=safety_data,
+            session_renewed=_session_was_renewed,
             metadata={"_source": _main_source},
         )
         # Clear alerts after sending
@@ -5534,6 +5663,7 @@ async def upload_document(
     file: UploadFile = File(...),
     session_id: str = Form(...),
     document_type: str = Form(None),
+    http_request: FastAPIRequest = None,
     _session: str = Depends(verify_session_token),
 ):
     """
@@ -5541,6 +5671,10 @@ async def upload_document(
 
     Supported documents: W-2, 1099, 1098, K-1, etc.
     """
+    # SECURITY: Validate session_id (Form fields bypass Pydantic validators)
+    if not _validate_uuid(session_id):
+        raise HTTPException(400, "Invalid session ID format")
+
     try:
         # Try to use the unified tax advisor for OCR
         from services.unified_tax_advisor import UnifiedTaxAdvisor, DocumentType
@@ -5556,6 +5690,13 @@ async def upload_document(
         safe_suffix = raw_ext if raw_ext in _SAFE_DOC_EXTENSIONS else ".bin"
         with tempfile.NamedTemporaryFile(delete=False, suffix=safe_suffix) as tmp:
             content = await file.read()
+
+            # SECURITY: Magic-byte validation — reject spoofed files
+            from web.utils.file_validation import validate_magic_bytes as _validate_magic
+            detected_mime, _ = _validate_magic(content)
+            if not detected_mime:
+                raise HTTPException(400, "File content does not match a supported type (PDF, PNG, JPG, TIFF, GIF)")
+
             tmp.write(content)
             tmp_path = tmp.name
 

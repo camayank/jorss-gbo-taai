@@ -3,10 +3,11 @@
 Extracted from intelligent_advisor_api.py for maintainability.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
+from uuid import UUID
 
 __all__ = [
     "FilingStatus",
@@ -113,6 +114,18 @@ class ChatRequest(BaseModel):
     profile: Optional[TaxProfileInput] = None
     conversation_history: Optional[List[ChatMessage]] = []
     context: Optional[Dict[str, Any]] = {}
+
+    @validator('session_id')
+    def validate_session_id(cls, v):
+        """Validate session ID is a valid UUID to prevent session fixation."""
+        if not v:
+            raise ValueError("Session ID is required")
+        v = v.strip()
+        try:
+            UUID(v)
+        except (ValueError, TypeError):
+            raise ValueError("Session ID must be a valid UUID format")
+        return v
 
 
 class StrategyRecommendation(BaseModel):
@@ -247,6 +260,9 @@ class ChatResponse(BaseModel):
 
     # FSM state for frontend restoration (when window.__USE_FSM is enabled)
     fsm_state: Optional[Dict[str, Any]] = None
+
+    # Session lifecycle — true when session was not found and was recreated fresh
+    session_renewed: bool = False
 
 
 class FullAnalysisRequest(BaseModel):

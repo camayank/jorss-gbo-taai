@@ -45,7 +45,7 @@ def get_default_cpa_profile() -> dict:
         "firm_name": "Your Tax Advisor",
         "credentials": ["CPA", "EA"],
         "logo_url": None,
-        "primary_color": "#0B1D3A",
+        "primary_color": "#0f766e",
         "secondary_color": "#005A99",
         "accent_color": "#10b981",
         "booking_link": "#",
@@ -130,7 +130,7 @@ def normalize_cpa_profile(profile: dict) -> dict:
     elif not credentials:
         normalized["credentials"] = ["CPA"]
 
-    normalized.setdefault("primary_color", "#0B1D3A")
+    normalized.setdefault("primary_color", "#0f766e")
     normalized.setdefault("secondary_color", "#005A99")
     normalized.setdefault("accent_color", "#10b981")
     return normalized
@@ -229,7 +229,7 @@ async def lead_magnet_share_card(
     """Render OG-compatible share card for taxpayer score sharing."""
     safe_score = max(0, min(100, int(score)))
     cpa_profile = await get_cpa_profile_for_page(cpa)
-    primary = cpa_profile.get("primary_color") or "#0B1D3A"
+    primary = cpa_profile.get("primary_color") or "#0f766e"
     accent = cpa_profile.get("accent_color") or "#10b981"
     firm_name = cpa_profile.get("firm_name") or cpa_profile.get("display_name") or "Your CPA"
     savings_line = savings or "Potential savings identified"
@@ -714,7 +714,7 @@ async def universal_report_page(
             "firm_name": cpa_profile.get("firm_name", "Tax Advisory"),
             "advisor_name": cpa_profile.get("display_name"),
             "credentials": cpa_profile.get("credentials", []),
-            "primary_color": cpa_profile.get("primary_color", "#0B1D3A"),
+            "primary_color": cpa_profile.get("primary_color", "#0f766e"),
             "secondary_color": cpa_profile.get("secondary_color", "#005A99"),
             "accent_color": cpa_profile.get("accent_color", "#10b981"),
             "logo_url": cpa_profile.get("logo_url"),

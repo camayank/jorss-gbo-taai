@@ -240,8 +240,8 @@ class UploadDocumentResponse(BaseModel):
     warnings: List[str] = []
 
 
-# File upload validation - use shared utility
-from web.helpers.file_validation import validate_uploaded_file, MAX_FILE_SIZE
+# File upload validation - canonical module
+from web.utils.file_validation import validate_upload, FileValidationError, ALLOWED_MIME_TYPES
 
 
 @router.post("/sessions/{session_id}/upload", response_model=UploadDocumentResponse)
@@ -269,7 +269,12 @@ async def upload_document(
     try:
         # Read and validate file
         content = await file.read()
-        validate_uploaded_file(file, content)
+        try:
+            safe_filename, detected_mime, ext = validate_upload(
+                content, file.filename, max_size_bytes=50 * 1024 * 1024
+            )
+        except FileValidationError as fve:
+            raise HTTPException(400, str(fve))
 
         # Process document with OCR
         from services.ocr.ocr_engine import OCREngine

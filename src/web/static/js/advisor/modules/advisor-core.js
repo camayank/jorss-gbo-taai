@@ -86,10 +86,17 @@ export function checkAdvisorConsent() {
 
   // No valid consent found — show modal and disable chat
   var modal = document.getElementById('advisorConsentModal');
-  if (modal) modal.classList.remove('hidden');
+  if (modal) {
+    modal.classList.remove('hidden');
+    // Activate focus trap so keyboard users stay inside the modal
+    _consentFocusTrapRelease = trapFocus(modal);
+  }
   disableChat();
   return false;
 }
+
+// Handle to release the consent modal focus trap
+let _consentFocusTrapRelease = null;
 
 /** Wire up consent modal checkbox + button */
 export function setupAdvisorConsent() {
@@ -108,6 +115,9 @@ export function setupAdvisorConsent() {
     // even if the server call or localStorage write fails.
     sessionStorage.setItem('advisor_consent', 'true');
     sessionStorage.setItem('advisor_consent_at', acknowledgedAt);
+
+    // Release focus trap before hiding modal
+    if (_consentFocusTrapRelease) { _consentFocusTrapRelease(); _consentFocusTrapRelease = null; }
 
     var modal = document.getElementById('advisorConsentModal');
     if (modal) modal.classList.add('hidden');
@@ -149,6 +159,41 @@ export function setupAdvisorConsent() {
     initializeSession();
     showToast('Welcome! Your data will be handled securely.', 'success');
   });
+}
+
+// ======================== FOCUS TRAP (WCAG 2.1 AA) ========================
+
+/**
+ * Trap keyboard focus inside a modal element.
+ * Returns a cleanup function that removes the trap when called.
+ */
+export function trapFocus(modalEl) {
+  const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  let previouslyFocused = document.activeElement;
+
+  function handler(e) {
+    if (e.key !== 'Tab') return;
+    const focusable = Array.from(modalEl.querySelectorAll(FOCUSABLE));
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+
+  modalEl.addEventListener('keydown', handler);
+
+  // Focus the first focusable element inside the modal
+  const firstFocusable = modalEl.querySelector(FOCUSABLE);
+  if (firstFocusable) firstFocusable.focus();
+
+  return function releaseTrap() {
+    modalEl.removeEventListener('keydown', handler);
+    if (previouslyFocused && previouslyFocused.focus) previouslyFocused.focus();
+  };
 }
 
 /** Wire up the dismissible notice banner */

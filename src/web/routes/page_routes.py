@@ -13,7 +13,6 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from web.feature_flags import should_use_ux_v2, get_template_path, set_ux_version_cookie
 from web.constants import (
     ADMIN_UI_ROLES as _ADMIN_UI_ROLES,
     CPA_UI_ROLES as _CPA_UI_ROLES,
@@ -175,9 +174,7 @@ def dashboard(request: Request):
     denied = _require_any_auth(request)
     if denied:
         return denied
-    template_name = get_template_path(request, "dashboard.html")
-    response = templates.TemplateResponse(template_name, {"request": request})
-    set_ux_version_cookie(response, should_use_ux_v2(request))
+    response = templates.TemplateResponse("dashboard.html", {"request": request})
     return response
 
 
@@ -480,11 +477,11 @@ def workflow_hub(request: Request):
     return templates.TemplateResponse("workflow_hub.html", {"request": request})
 
 
-@router.get("/test-dashboard", response_class=HTMLResponse)
-@router.get("/qa", response_class=HTMLResponse)
+@router.get("/test-dashboard", response_class=HTMLResponse, include_in_schema=False)
+@router.get("/qa", response_class=HTMLResponse, include_in_schema=False)
 def test_dashboard(request: Request):
-    """QA Test Dashboard - Test all user types, flows, and API endpoints."""
-    return templates.TemplateResponse("_deprecated/test_dashboard.html", {"request": request})
+    """QA Test Dashboard — disabled (templates removed)."""
+    return RedirectResponse(url="/intelligent-advisor", status_code=302)
 
 
 @router.get("/smart-tax", response_class=HTMLResponse)
@@ -496,8 +493,8 @@ def smart_tax_redirect(request: Request, path: str = ""):
 
 @router.get("/smart-tax-legacy", response_class=HTMLResponse, include_in_schema=False, deprecated=True)
 def smart_tax_app_legacy(request: Request, path: str = ""):
-    """LEGACY: Smart Tax - Document-First Tax Preparation."""
-    return templates.TemplateResponse("smart_tax.html", {"request": request})
+    """LEGACY: Smart Tax — template removed, redirect to advisor."""
+    return RedirectResponse(url="/intelligent-advisor", status_code=302)
 
 
 @router.get("/guided", response_class=HTMLResponse)
@@ -566,7 +563,7 @@ def filing_results(request: Request, session_id: str = None):
         "upgrade_prompt" in filtered_report
     )
 
-    template_name = get_template_path(request, "results.html")
+    template_name = "results.html"
     context = {
         "request": request,
         "session_id": session_id,
@@ -591,7 +588,6 @@ def filing_results(request: Request, session_id: str = None):
         }
     }
     response = templates.TemplateResponse(template_name, context)
-    set_ux_version_cookie(response, should_use_ux_v2(request))
     return response
 
 

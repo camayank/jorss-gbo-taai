@@ -41,7 +41,8 @@ import {
   restoreSession,
   dismissResumeBanner,
   startAutoSave,
-  initRobustnessFeatures
+  initRobustnessFeatures,
+  performTaxCalculation
 } from './advisor-data.js';
 
 import {
@@ -103,6 +104,7 @@ window.captureIncome       = captureIncome;
 // Data / Session
 window.restoreSession      = restoreSession;
 window.dismissResumeBanner = dismissResumeBanner;
+window.performTaxCalculation = performTaxCalculation;
 
 // Display / UI
 window.handleFileSelect    = handleFileSelect;

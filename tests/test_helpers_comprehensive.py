@@ -35,18 +35,25 @@ from web.helpers.error_responses import (
     safe_error_message,
     create_loading_response,
 )
-from web.helpers.file_validation import (
-    MAX_FILE_SIZE,
-    ALLOWED_CONTENT_TYPES,
+from web.utils.file_validation import (
+    validate_upload,
+    validate_magic_bytes,
+    sanitize_filename,
+    FileValidationError,
+    ALLOWED_MIME_TYPES,
     ALLOWED_EXTENSIONS,
-    MAGIC_BYTES,
-    validate_uploaded_file,
-    get_file_type_from_content,
-    _validate_file_size,
-    _validate_content_type,
-    _validate_extension,
-    _validate_magic_bytes,
+    MAGIC_SIGNATURES,
 )
+# Compatibility aliases for old test references
+MAX_FILE_SIZE = 50 * 1024 * 1024  # Old default was 50MB
+ALLOWED_CONTENT_TYPES = ALLOWED_MIME_TYPES
+MAGIC_BYTES = {ext: True for sig in MAGIC_SIGNATURES for ext in sig[3]}
+validate_uploaded_file = None  # Removed — use validate_upload()
+get_file_type_from_content = None  # Removed — use validate_magic_bytes()
+_validate_file_size = None  # Internal — removed
+_validate_content_type = None  # Internal — removed
+_validate_extension = None  # Internal — removed
+_validate_magic_bytes = None  # Internal — removed
 
 
 # ===================================================================
