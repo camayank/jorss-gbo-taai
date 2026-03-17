@@ -567,6 +567,10 @@ class AdvisoryReportGenerator:
                 "Consult with a licensed tax professional before making tax decisions.",
                 "Individual results may vary based on complete financial picture.",
             ],
+            "circular_230": (
+                "Any tax advice contained in this communication was not intended or written to be used, "
+                "and cannot be used, for the purpose of avoiding penalties under the Internal Revenue Code."
+            ),
             "methodology": [
                 "Calculations use IRS Publication 17 and current tax brackets.",
                 "Recommendations based on proven tax optimization strategies.",

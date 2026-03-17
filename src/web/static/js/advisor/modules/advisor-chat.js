@@ -279,7 +279,7 @@ export function showTyping() {
   typing.className = 'message ai';
   typing.id = 'typing-indicator';
   typing.setAttribute('role', 'status');
-  typing.setAttribute('aria-live', 'polite');
+  typing.setAttribute('aria-live', 'assertive');
   typing.setAttribute('aria-label', 'AI assistant is typing a response');
   typing.innerHTML = `
     <div class="avatar" aria-hidden="true">${typeof getIcon === 'function' ? getIcon('briefcase', 'md') : '&#128188;'}</div>
@@ -448,6 +448,7 @@ export function addMessage(type, text, quickActions = [], options = {}) {
       const submitBtn = document.createElement('button');
       submitBtn.className = 'submit-btn';
       submitBtn.textContent = 'Continue with Selected';
+      submitBtn.setAttribute('aria-label', 'Continue with selected options');
       submitBtn.disabled = true;
       submitBtn.onclick = () => {
         const selected = Array.from(selectedValues);
@@ -462,6 +463,7 @@ export function addMessage(type, text, quickActions = [], options = {}) {
       const skipBtn = document.createElement('button');
       skipBtn.className = 'skip-btn';
       skipBtn.textContent = 'Skip';
+      skipBtn.setAttribute('aria-label', 'Skip this question');
       skipBtn.onclick = () => {
         handleQuickAction('skip_multi_select', 'None selected');
       };
@@ -951,6 +953,11 @@ export async function processAIResponse(userMessage) {
 
     if (data.safety_summary && data.response_type === 'calculation') {
       aiResponse += renderSafetySummary(data.safety_summary);
+    }
+
+    // IRS Circular 230 disclaimer — shown on tax calculation and strategy responses
+    if (data.response_type === 'calculation' || data.response_type === 'strategy' || data.response_type === 'report') {
+      aiResponse += '<p class="circular230-disclaimer">Any tax advice contained in this communication was not intended or written to be used, and cannot be used, for the purpose of avoiding penalties under the Internal Revenue Code.</p>';
     }
 
     addMessage('ai', aiResponse, quickActions);

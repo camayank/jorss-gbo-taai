@@ -1078,6 +1078,18 @@ class AdvisoryPDFExporter:
 
             story.append(Spacer(1, 0.2 * inch))
 
+        # IRS Circular 230 disclaimer — legally required wording
+        circular_230_text = content.get(
+            "circular_230",
+            (
+                "Any tax advice contained in this communication was not intended or written to be used, "
+                "and cannot be used, for the purpose of avoiding penalties under the Internal Revenue Code."
+            ),
+        )
+        story.append(Paragraph("IRS Circular 230 Disclosure", self.styles['SubsectionHeading']))
+        story.append(Paragraph(circular_230_text, self.styles['Disclaimer']))
+        story.append(Spacer(1, 0.2 * inch))
+
         # Methodology
         if "methodology" in content:
             story.append(Paragraph("Methodology", self.styles['SubsectionHeading']))

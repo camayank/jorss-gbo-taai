@@ -91,7 +91,7 @@
     [data-theme="advisor-dark"] .advisor-notice-banner {
       background: rgba(30, 58, 95, 0.4);
       border-color: var(--color-gray-700);
-      color: var(--color-gray-400);
+      color: var(--color-gray-300);
     }
 
     [data-theme="advisor-dark"] .progress-bar {
@@ -109,7 +109,7 @@
 
     [data-theme="advisor-dark"] #questionCounterText {
       background: var(--color-gray-700);
-      color: var(--color-gray-400);
+      color: var(--color-gray-300);
     }
 
     [data-theme="advisor-dark"] .cpa-modal {
@@ -2989,6 +2989,27 @@
       box-shadow: var(--shadow-accent-hover);
     }
 
+    /* IRS Circular 230 disclaimer footer in consent modal */
+    .consent-circular230 {
+      font-size: var(--text-xs, 0.75rem);
+      color: var(--color-gray-500);
+      line-height: var(--leading-relaxed, 1.625);
+      margin-top: var(--space-4);
+      padding-top: var(--space-3);
+      border-top: 1px solid var(--color-gray-200);
+      text-align: center;
+    }
+
+    /* IRS Circular 230 disclaimer appended to tax calculation / strategy chat messages */
+    .circular230-disclaimer {
+      font-size: var(--text-xs, 0.75rem);
+      color: var(--color-gray-500);
+      line-height: var(--leading-relaxed, 1.625);
+      margin-top: var(--space-3);
+      padding-top: var(--space-2);
+      border-top: 1px solid var(--color-gray-100);
+    }
+
     /* Message Timestamp */
     .message-time {
       font-size: var(--text-2xs);
@@ -4187,4 +4208,16 @@
     color: var(--color-gold, #C9A84C);
     font-size: 20px;
     margin-left: var(--space-2);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .typing-indicator span,
+    .celebration-animation,
+    .toast-notification,
+    .savings-counter,
+    .loading-overlay,
+    .skeleton-loader {
+      animation: none !important;
+      transition-duration: 0.01ms !important;
+    }
   }
