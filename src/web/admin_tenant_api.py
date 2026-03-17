@@ -13,10 +13,10 @@ from uuid import uuid4
 import logging
 import sqlite3
 
-from ..rbac.dependencies import require_auth, AuthContext
-from ..rbac.roles import Role
-from ..database.tenant_persistence import get_tenant_persistence
-from ..database.tenant_models import (
+from rbac.dependencies import require_auth, AuthContext
+from rbac.roles import Role
+from database.tenant_persistence import get_tenant_persistence
+from database.tenant_models import (
     Tenant,
     TenantBranding,
     TenantFeatureFlags,

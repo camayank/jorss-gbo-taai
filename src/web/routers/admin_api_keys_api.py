@@ -124,8 +124,8 @@ class APIKey:
         return result
 
 
-# Thread-safe in-memory storage
-_api_keys: dict[str, APIKey] = {}
+# Persistent storage (SQLite-backed, survives restarts)
+from database.admin_store import api_key_store
 
 # Available scopes
 AVAILABLE_SCOPES = [
@@ -144,6 +144,21 @@ AVAILABLE_SCOPES = [
 # =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
+
+
+def _is_key_active(key_data: dict) -> bool:
+    """Check if a stored API key is active (not revoked or expired)."""
+    if key_data.get("revoked"):
+        return False
+    expires_at = key_data.get("expires_at")
+    if expires_at:
+        try:
+            exp = datetime.fromisoformat(expires_at) if isinstance(expires_at, str) else expires_at
+            if datetime.now(timezone.utc) > exp:
+                return False
+        except (ValueError, TypeError):
+            pass
+    return True
 
 
 def _generate_api_key() -> tuple[str, str, str]:
@@ -187,13 +202,15 @@ async def list_api_keys(
     """
     firm_id = str(ctx.firm_id) if ctx.firm_id else str(ctx.user_id)
 
+    all_keys = api_key_store.query("$.firm_id", firm_id)
     keys = [
-        k.to_dict() for k in _api_keys.values()
-        if k.firm_id == firm_id and (include_revoked or not k.revoked)
+        {**k, "is_active": _is_key_active(k)}
+        for k in all_keys
+        if include_revoked or not k.get("revoked")
     ]
 
     # Sort by created_at descending
-    keys.sort(key=lambda k: k["created_at"], reverse=True)
+    keys.sort(key=lambda k: k.get("created_at", ""), reverse=True)
 
     return {
         "api_keys": keys,
@@ -239,29 +256,37 @@ async def create_api_key(
     if data.expires_in_days:
         expires_at = datetime.now(timezone.utc) + timedelta(days=data.expires_in_days)
 
-    # Create key object
-    api_key = APIKey(
-        key_id=str(uuid4()),
-        firm_id=firm_id,
-        name=data.name,
-        key_hash=key_hash,
-        prefix=prefix,
-        scopes=valid_scopes,
-        description=data.description,
-        created_by=str(ctx.user_id),
-        expires_at=expires_at,
-    )
+    # Create key record
+    key_id = str(uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    key_data = {
+        "key_id": key_id,
+        "firm_id": firm_id,
+        "name": data.name,
+        "key_hash": key_hash,
+        "prefix": prefix,
+        "scopes": valid_scopes,
+        "description": data.description,
+        "created_by": str(ctx.user_id),
+        "created_at": now,
+        "expires_at": expires_at.isoformat() if expires_at else None,
+        "last_used_at": None,
+        "use_count": 0,
+        "revoked": False,
+        "revoked_at": None,
+        "is_active": True,
+    }
 
-    _api_keys[api_key.key_id] = api_key
+    api_key_store.put(key_id, key_data)
 
     logger.info(
         f"[AUDIT] API key created | firm={firm_id} | "
-        f"key_id={api_key.key_id} | name={data.name} | "
+        f"key_id={key_id} | name={data.name} | "
         f"scopes={valid_scopes} | created_by={ctx.user_id}"
     )
 
     return {
-        "api_key": api_key.to_dict(),
+        "api_key": key_data,
         "secret": raw_key,
         "warning": "Store this key securely. It will NOT be shown again.",
     }
@@ -308,11 +333,12 @@ async def get_api_key(
     """
     firm_id = str(ctx.firm_id) if ctx.firm_id else str(ctx.user_id)
 
-    api_key = _api_keys.get(key_id)
-    if not api_key or api_key.firm_id != firm_id:
+    api_key = api_key_store.get(key_id)
+    if not api_key or api_key.get("firm_id") != firm_id:
         raise HTTPException(status_code=404, detail="API key not found")
 
-    return {"api_key": api_key.to_dict(include_sensitive=True)}
+    api_key["is_active"] = _is_key_active(api_key)
+    return {"api_key": api_key}
 
 
 @router.patch("/{key_id}")
@@ -328,29 +354,32 @@ async def update_api_key(
     """
     firm_id = str(ctx.firm_id) if ctx.firm_id else str(ctx.user_id)
 
-    api_key = _api_keys.get(key_id)
-    if not api_key or api_key.firm_id != firm_id:
+    api_key = api_key_store.get(key_id)
+    if not api_key or api_key.get("firm_id") != firm_id:
         raise HTTPException(status_code=404, detail="API key not found")
 
-    if api_key.revoked:
+    if api_key.get("revoked"):
         raise HTTPException(status_code=400, detail="Cannot update a revoked key")
 
     if data.name is not None:
-        api_key.name = data.name
+        api_key["name"] = data.name
 
     if data.description is not None:
-        api_key.description = data.description
+        api_key["description"] = data.description
 
     if data.scopes is not None:
-        api_key.scopes = _validate_scopes(data.scopes)
+        api_key["scopes"] = _validate_scopes(data.scopes)
+
+    api_key_store.put(key_id, api_key)
 
     logger.info(
         f"[AUDIT] API key updated | key_id={key_id} | "
         f"updated_by={ctx.user_id}"
     )
 
+    api_key["is_active"] = _is_key_active(api_key)
     return {
-        "api_key": api_key.to_dict(),
+        "api_key": api_key,
         "message": "API key updated successfully",
     }
 
@@ -367,28 +396,30 @@ async def revoke_api_key(
     """
     firm_id = str(ctx.firm_id) if ctx.firm_id else str(ctx.user_id)
 
-    api_key = _api_keys.get(key_id)
-    if not api_key or api_key.firm_id != firm_id:
+    api_key = api_key_store.get(key_id)
+    if not api_key or api_key.get("firm_id") != firm_id:
         raise HTTPException(status_code=404, detail="API key not found")
 
-    if api_key.revoked:
+    if api_key.get("revoked"):
         return {
             "message": "API key was already revoked",
-            "revoked_at": api_key.revoked_at.isoformat(),
+            "revoked_at": api_key.get("revoked_at"),
         }
 
-    api_key.revoked = True
-    api_key.revoked_at = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc).isoformat()
+    api_key["revoked"] = True
+    api_key["revoked_at"] = now
+    api_key_store.put(key_id, api_key)
 
     logger.info(
         f"[AUDIT] API key revoked | key_id={key_id} | "
-        f"name={api_key.name} | revoked_by={ctx.user_id}"
+        f"name={api_key.get('name')} | revoked_by={ctx.user_id}"
     )
 
     return {
         "status": "revoked",
         "key_id": key_id,
-        "revoked_at": api_key.revoked_at.isoformat(),
+        "revoked_at": now,
         "message": "API key revoked successfully. It will no longer work.",
     }
 
@@ -405,16 +436,16 @@ async def get_api_key_usage(
     """
     firm_id = str(ctx.firm_id) if ctx.firm_id else str(ctx.user_id)
 
-    api_key = _api_keys.get(key_id)
-    if not api_key or api_key.firm_id != firm_id:
+    api_key = api_key_store.get(key_id)
+    if not api_key or api_key.get("firm_id") != firm_id:
         raise HTTPException(status_code=404, detail="API key not found")
 
     return {
         "key_id": key_id,
-        "name": api_key.name,
-        "use_count": api_key.use_count,
-        "last_used_at": api_key.last_used_at.isoformat() if api_key.last_used_at else None,
-        "is_active": api_key.is_active,
+        "name": api_key.get("name"),
+        "use_count": api_key.get("use_count", 0),
+        "last_used_at": api_key.get("last_used_at"),
+        "is_active": _is_key_active(api_key),
     }
 
 
@@ -431,43 +462,52 @@ async def rotate_api_key(
     """
     firm_id = str(ctx.firm_id) if ctx.firm_id else str(ctx.user_id)
 
-    old_key = _api_keys.get(key_id)
-    if not old_key or old_key.firm_id != firm_id:
+    old_key = api_key_store.get(key_id)
+    if not old_key or old_key.get("firm_id") != firm_id:
         raise HTTPException(status_code=404, detail="API key not found")
 
-    if old_key.revoked:
+    if old_key.get("revoked"):
         raise HTTPException(status_code=400, detail="Cannot rotate a revoked key")
 
     # Generate new key
     raw_key, key_hash, prefix = _generate_api_key()
 
     # Create new key with same metadata
-    new_key = APIKey(
-        key_id=str(uuid4()),
-        firm_id=firm_id,
-        name=old_key.name,
-        key_hash=key_hash,
-        prefix=prefix,
-        scopes=old_key.scopes,
-        description=old_key.description,
-        created_by=str(ctx.user_id),
-        expires_at=old_key.expires_at,
-    )
+    now = datetime.now(timezone.utc).isoformat()
+    new_key_id = str(uuid4())
+    new_key_data = {
+        "key_id": new_key_id,
+        "firm_id": firm_id,
+        "name": old_key.get("name"),
+        "key_hash": key_hash,
+        "prefix": prefix,
+        "scopes": old_key.get("scopes", []),
+        "description": old_key.get("description"),
+        "created_by": str(ctx.user_id),
+        "created_at": now,
+        "expires_at": old_key.get("expires_at"),
+        "last_used_at": None,
+        "use_count": 0,
+        "revoked": False,
+        "revoked_at": None,
+        "is_active": True,
+    }
 
-    _api_keys[new_key.key_id] = new_key
+    api_key_store.put(new_key_id, new_key_data)
 
     # Revoke old key
-    old_key.revoked = True
-    old_key.revoked_at = datetime.now(timezone.utc)
+    old_key["revoked"] = True
+    old_key["revoked_at"] = now
+    api_key_store.put(key_id, old_key)
 
     logger.info(
         f"[AUDIT] API key rotated | old_key={key_id} | "
-        f"new_key={new_key.key_id} | rotated_by={ctx.user_id}"
+        f"new_key={new_key_id} | rotated_by={ctx.user_id}"
     )
 
     return {
         "old_key_id": key_id,
-        "new_api_key": new_key.to_dict(),
+        "new_api_key": new_key_data,
         "secret": raw_key,
         "warning": "Store this key securely. It will NOT be shown again.",
         "message": "API key rotated. Old key has been revoked.",

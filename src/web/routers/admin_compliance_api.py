@@ -124,22 +124,26 @@ class ComplianceAlert:
         }
 
 
-# Thread-safe in-memory storage
-_reports: dict[str, ComplianceReport] = {}
-_alerts: dict[str, ComplianceAlert] = {}
+# Persistent storage (SQLite-backed, survives restarts)
+from database.admin_store import compliance_report_store, compliance_alert_store
 
-# Demo alerts only in development
+# Seed demo alert in development (idempotent — only inserts if not present)
 import os as _os
 _compliance_env = _os.environ.get("APP_ENVIRONMENT", "").lower().strip()
 if _compliance_env in {"development", "dev", "local", "test", "testing"}:
-    _alerts["alert-001"] = ComplianceAlert(
-        alert_id="alert-001",
-        alert_type="data_access",
-        severity="medium",
-        title="Unusual data access pattern",
-        description="User accessed 50+ client records in 5 minutes",
-        firm_id="firm-001",
-    )
+    if not compliance_alert_store.get("alert-001"):
+        compliance_alert_store.put("alert-001", {
+            "alert_id": "alert-001",
+            "alert_type": "data_access",
+            "severity": "medium",
+            "title": "Unusual data access pattern",
+            "description": "User accessed 50+ client records in 5 minutes",
+            "firm_id": "firm-001",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "acknowledged_at": None,
+            "acknowledged_by": None,
+            "notes": None,
+        })
 
 
 # =============================================================================
@@ -159,18 +163,18 @@ async def list_compliance_reports(
 
     Platform admins can view all reports.
     """
-    reports = list(_reports.values())
+    reports = compliance_report_store.list_all()
 
     if report_type:
-        reports = [r for r in reports if r.report_type == report_type]
+        reports = [r for r in reports if r.get("report_type") == report_type]
     if status:
-        reports = [r for r in reports if r.status == status]
+        reports = [r for r in reports if r.get("status") == status]
 
     # Sort by created_at descending
-    reports.sort(key=lambda r: r.created_at, reverse=True)
+    reports.sort(key=lambda r: r.get("created_at", ""), reverse=True)
 
     return {
-        "reports": [r.to_dict() for r in reports[:limit]],
+        "reports": reports[:limit],
         "total": len(reports),
     }
 
@@ -196,18 +200,23 @@ async def create_compliance_report(
             detail=f"Invalid audit type. Must be one of: {', '.join(valid_types)}"
         )
 
-    report = ComplianceReport(
-        report_id=str(uuid4()),
-        report_type=data.audit_type,
-        status="pending",
-        firm_id=data.firm_id,
-        triggered_by=str(ctx.user_id),
-    )
+    report_id = str(uuid4())
+    report_data = {
+        "report_id": report_id,
+        "report_type": data.audit_type,
+        "status": "pending",
+        "firm_id": data.firm_id,
+        "triggered_by": str(ctx.user_id),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": None,
+        "findings_count": 0,
+        "findings": [],
+    }
 
-    _reports[report.report_id] = report
+    compliance_report_store.put(report_id, report_data)
 
     logger.info(
-        f"[AUDIT] Compliance report triggered | report_id={report.report_id} | "
+        f"[AUDIT] Compliance report triggered | report_id={report_id} | "
         f"type={data.audit_type} | firm={data.firm_id or 'platform-wide'} | "
         f"triggered_by={ctx.user_id}"
     )
@@ -215,7 +224,7 @@ async def create_compliance_report(
     # Report stays in pending status until async processing is implemented.
     # Real compliance audits require scanning audit logs, access patterns, etc.
     return {
-        "report": report.to_dict(),
+        "report": report_data,
         "message": "Compliance report queued. Check back for results via GET /reports/{report_id}.",
     }
 
@@ -228,14 +237,11 @@ async def get_compliance_report(
     """
     Get detailed compliance report with findings.
     """
-    report = _reports.get(report_id)
+    report = compliance_report_store.get(report_id)
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
 
-    result = report.to_dict()
-    result["findings"] = report.findings
-
-    return {"report": result}
+    return {"report": report}
 
 
 # =============================================================================
@@ -255,21 +261,22 @@ async def list_compliance_alerts(
 
     Filterable by severity and acknowledgment status.
     """
-    alerts = list(_alerts.values())
+    alerts = compliance_alert_store.list_all()
 
     if severity:
-        alerts = [a for a in alerts if a.severity == severity]
+        alerts = [a for a in alerts if a.get("severity") == severity]
     if acknowledged is not None:
-        alerts = [a for a in alerts if (a.acknowledged_at is not None) == acknowledged]
+        alerts = [a for a in alerts if (a.get("acknowledged_at") is not None) == acknowledged]
 
     # Sort by severity (critical first), then by created_at
     severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-    alerts.sort(key=lambda a: (severity_order.get(a.severity, 4), -a.created_at.timestamp()))
+    alerts.sort(key=lambda a: (severity_order.get(a.get("severity", "low"), 4), a.get("created_at", "")))
 
+    all_alerts = compliance_alert_store.list_all()
     return {
-        "alerts": [a.to_dict() for a in alerts[:limit]],
+        "alerts": alerts[:limit],
         "total": len(alerts),
-        "unacknowledged_count": sum(1 for a in _alerts.values() if a.acknowledged_at is None),
+        "unacknowledged_count": sum(1 for a in all_alerts if a.get("acknowledged_at") is None),
     }
 
 
@@ -284,28 +291,31 @@ async def acknowledge_alert(
 
     Records who acknowledged and when.
     """
-    alert = _alerts.get(alert_id)
+    alert = compliance_alert_store.get(alert_id)
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
 
-    if alert.acknowledged_at:
+    if alert.get("acknowledged_at"):
         return {
             "message": "Alert was already acknowledged",
-            "acknowledged_by": alert.acknowledged_by,
-            "acknowledged_at": alert.acknowledged_at.isoformat(),
+            "acknowledged_by": alert.get("acknowledged_by"),
+            "acknowledged_at": alert.get("acknowledged_at"),
         }
 
-    alert.acknowledged_at = datetime.now(timezone.utc)
-    alert.acknowledged_by = str(ctx.user_id)
-    alert.notes = data.notes
+    now = datetime.now(timezone.utc).isoformat()
+    alert["acknowledged_at"] = now
+    alert["acknowledged_by"] = str(ctx.user_id)
+    alert["notes"] = data.notes
+    compliance_alert_store.put(alert_id, alert)
 
     logger.info(
         f"[AUDIT] Alert acknowledged | alert_id={alert_id} | "
-        f"severity={alert.severity} | acknowledged_by={ctx.user_id}"
+        f"severity={alert.get('severity')} | acknowledged_by={ctx.user_id}"
     )
 
+    alert["acknowledged"] = True
     return {
-        "alert": alert.to_dict(),
+        "alert": alert,
         "message": "Alert acknowledged",
     }
 

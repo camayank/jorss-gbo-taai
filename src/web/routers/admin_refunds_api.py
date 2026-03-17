@@ -73,8 +73,8 @@ class Refund:
     transaction_id: Optional[str] = None  # Payment processor reference
 
 
-# Thread-safe in-memory storage
-_refunds: dict[str, Refund] = {}
+# Persistent storage (SQLite-backed, survives restarts)
+from database.admin_store import refund_store
 
 # =============================================================================
 # HELPER FUNCTIONS
@@ -126,23 +126,23 @@ async def list_refunds(
     Platform admins see all refunds.
     Filterable by status and firm.
     """
-    refunds = list(_refunds.values())
+    refunds = refund_store.list_all()
 
     # Apply filters
     if status:
-        refunds = [r for r in refunds if r.status == status]
+        refunds = [r for r in refunds if r.get("status") == status]
     if firm_id:
-        refunds = [r for r in refunds if r.firm_id == firm_id]
+        refunds = [r for r in refunds if r.get("firm_id") == firm_id]
 
     # Sort by requested_at descending
-    refunds.sort(key=lambda r: r.requested_at, reverse=True)
+    refunds.sort(key=lambda r: r.get("requested_at", ""), reverse=True)
 
     # Paginate
     total = len(refunds)
     refunds = refunds[offset:offset + limit]
 
     return {
-        "refunds": [asdict(r) for r in refunds],
+        "refunds": refunds,
         "total": total,
         "limit": limit,
         "offset": offset,
@@ -204,7 +204,8 @@ async def create_refund(
         requested_at=datetime.now(timezone.utc),
     )
 
-    _refunds[refund.refund_id] = refund
+    refund_dict = asdict(refund)
+    refund_store.put(refund.refund_id, refund_dict)
 
     logger.info(
         f"[AUDIT] Refund requested | refund_id={refund.refund_id} | "
@@ -213,7 +214,7 @@ async def create_refund(
     )
 
     return {
-        "refund": asdict(refund),
+        "refund": refund_dict,
         "message": "Refund request created and pending review",
     }
 
@@ -227,11 +228,11 @@ async def list_pending_refunds(
 
     Sorted by oldest first (FIFO processing).
     """
-    pending = [r for r in _refunds.values() if r.status == "pending"]
-    pending.sort(key=lambda r: r.requested_at)
+    pending = refund_store.query("$.status", "pending")
+    pending.sort(key=lambda r: r.get("requested_at", ""))
 
     return {
-        "refunds": [asdict(r) for r in pending],
+        "refunds": pending,
         "count": len(pending),
     }
 
@@ -244,17 +245,17 @@ async def get_refund(
     """
     Get details about a specific refund request.
     """
-    refund = _refunds.get(refund_id)
+    refund = refund_store.get(refund_id)
     if not refund:
         raise HTTPException(status_code=404, detail="Refund not found")
 
     # Check access
     if not ctx.is_platform:
         firm_id = str(ctx.firm_id) if ctx.firm_id else str(ctx.user_id)
-        if refund.firm_id != firm_id:
+        if refund.get("firm_id") != firm_id:
             raise HTTPException(status_code=403, detail="Access denied")
 
-    return {"refund": asdict(refund)}
+    return {"refund": refund}
 
 
 @router.post("/{refund_id}/decision")
@@ -268,14 +269,14 @@ async def decide_refund(
 
     Only platform admins can make refund decisions.
     """
-    refund = _refunds.get(refund_id)
+    refund = refund_store.get(refund_id)
     if not refund:
         raise HTTPException(status_code=404, detail="Refund not found")
 
-    if refund.status != "pending":
+    if refund.get("status") != "pending":
         raise HTTPException(
             status_code=400,
-            detail=f"Refund has already been {refund.status}"
+            detail=f"Refund has already been {refund.get('status')}"
         )
 
     if data.status not in ("approved", "rejected"):
@@ -284,14 +285,15 @@ async def decide_refund(
             detail="Status must be 'approved' or 'rejected'"
         )
 
-    refund.status = data.status
-    refund.decided_by = str(ctx.user_id)
-    refund.decided_at = datetime.now(timezone.utc)
-    refund.decision_notes = data.notes
+    refund["status"] = data.status
+    refund["decided_by"] = str(ctx.user_id)
+    refund["decided_at"] = datetime.now(timezone.utc).isoformat()
+    refund["decision_notes"] = data.notes
+    refund_store.put(refund_id, refund)
 
     logger.info(
         f"[AUDIT] Refund {data.status} | refund_id={refund_id} | "
-        f"amount=${refund.amount} | firm={refund.firm_id} | "
+        f"amount=${refund.get('amount')} | firm={refund.get('firm_id')} | "
         f"decided_by={ctx.user_id} | notes={data.notes or 'None'}"
     )
 
@@ -301,7 +303,7 @@ async def decide_refund(
         logger.info(f"Refund {refund_id} queued for payment processing")
 
     return {
-        "refund": asdict(refund),
+        "refund": refund,
         "message": f"Refund {data.status}",
     }
 
@@ -316,32 +318,34 @@ async def process_refund(
 
     Only approved refunds can be processed.
     """
-    refund = _refunds.get(refund_id)
+    refund = refund_store.get(refund_id)
     if not refund:
         raise HTTPException(status_code=404, detail="Refund not found")
 
-    if refund.status != "approved":
+    if refund.get("status") != "approved":
         raise HTTPException(
             status_code=400,
-            detail=f"Only approved refunds can be processed (current: {refund.status})"
+            detail=f"Only approved refunds can be processed (current: {refund.get('status')})"
         )
 
     # In production, call payment processor here
     # For now, simulate processing
-    refund.status = "processed"
-    refund.processed_at = datetime.now(timezone.utc)
-    refund.transaction_id = f"txn_{uuid4().hex[:12]}"
+    transaction_id = f"txn_{uuid4().hex[:12]}"
+    refund["status"] = "processed"
+    refund["processed_at"] = datetime.now(timezone.utc).isoformat()
+    refund["transaction_id"] = transaction_id
+    refund_store.put(refund_id, refund)
 
     logger.info(
         f"[AUDIT] Refund processed | refund_id={refund_id} | "
-        f"amount=${refund.amount} | transaction={refund.transaction_id} | "
+        f"amount=${refund.get('amount')} | transaction={transaction_id} | "
         f"processed_by={ctx.user_id}"
     )
 
     return {
-        "refund": asdict(refund),
+        "refund": refund,
         "message": "Refund processed successfully",
-        "transaction_id": refund.transaction_id,
+        "transaction_id": transaction_id,
     }
 
 
@@ -354,7 +358,7 @@ async def get_refund_stats(
 
     Returns counts and totals by status.
     """
-    refunds = list(_refunds.values())
+    refunds = refund_store.list_all()
 
     stats = {
         "total_requests": len(refunds),
@@ -371,12 +375,14 @@ async def get_refund_stats(
     }
 
     for r in refunds:
-        stats["by_status"][r.status] = stats["by_status"].get(r.status, 0) + 1
-        stats["total_amount_requested"] += r.amount
+        status = r.get("status", "pending")
+        amount = float(r.get("amount", 0))
+        stats["by_status"][status] = stats["by_status"].get(status, 0) + 1
+        stats["total_amount_requested"] += amount
 
-        if r.status == "processed":
-            stats["total_amount_processed"] += r.amount
-        elif r.status in ("pending", "approved"):
-            stats["total_amount_pending"] += r.amount
+        if status == "processed":
+            stats["total_amount_processed"] += amount
+        elif status in ("pending", "approved"):
+            stats["total_amount_pending"] += amount
 
     return stats

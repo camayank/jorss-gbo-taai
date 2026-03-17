@@ -11,17 +11,17 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
 
-from ..rbac.dependencies import require_auth, AuthContext
-from ..rbac.enhanced_permissions import Permissions, get_permissions_for_role, Permission
-from ..rbac.permission_enforcement import require_permission
-from ..rbac.roles import Role
-from ..audit.audit_logger import (
+from rbac.dependencies import require_auth, AuthContext
+from rbac.enhanced_permissions import Permissions, get_permissions_for_role, Permission
+from rbac.permission_enforcement import require_permission
+from rbac.roles import Role
+from audit.audit_logger import (
     get_audit_logger,
     AuditEventType,
     AuditSeverity,
     audit_permission_change
 )
-from ..database.async_engine import get_db_connection
+from database.async_engine import get_async_session as get_db_connection
 
 router = APIRouter(prefix="/api/admin/users", tags=["admin-user-management"])
 

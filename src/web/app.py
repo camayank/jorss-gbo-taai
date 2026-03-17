@@ -61,9 +61,6 @@ import re
 import logging
 import json as _json_mod
 
-# UX v2 Feature Flags
-from web.feature_flags import should_use_ux_v2, get_template_path, set_ux_version_cookie
-
 # =============================================================================
 # LOGGING CONFIGURATION
 # =============================================================================
@@ -330,7 +327,6 @@ _ROUTER_REGISTRY = [
     ("web.auto_save_api", "router", None, "Auto-Save API"),
     # Advisory & intelligence routers
     ("web.advisory_api", "router", None, "Advisory Reports API"),
-    ("web.unified_advisor_api", "router", None, "Unified Tax Advisor API"),
     ("web.ai_chat_api", "router", None, "AI Chat API"),
     ("web.intelligent_advisor_api", "router", None, "Intelligent Advisor API"),
     # Compliance & audit routers
@@ -356,6 +352,8 @@ _ROUTER_REGISTRY = [
     # This avoids duplicate route collisions with weaker auth posture.
     ("web.routers.validation", "router", None, "Validation API"),
     ("webhooks.router", "router", None, "Webhooks API"),
+    # Platform admin tenant management (user management needs permission enum update first)
+    ("web.admin_tenant_api", "router", None, "Admin Tenant Management API"),
     # Admin routers
     ("web.routers.support_api", "router", None, "Support Tickets API"),
     ("web.routers.admin_impersonation_api", "router", None, "Admin Impersonation API"),
@@ -365,6 +363,7 @@ _ROUTER_REGISTRY = [
     ("web.routers.gdpr_api", "router", None, "GDPR Data Erasure API"),
     # Feature pages (wires orphaned templates to routes)
     ("web.routers.feature_pages", "router", None, "Feature Pages"),
+    ("web.routes.advisor_embed", "router", None, "Advisor Embed (iframe)"),
     # Extracted from app.py monolith
     ("web.routers.auth_pages", "router", None, "Auth Pages"),
     ("web.routers.interview_api", "router", None, "Interview & Validation API"),
@@ -1224,7 +1223,7 @@ if _ENABLE_TEST_ROUTES:
         - API Documentation
         - Health checks
         """
-        return templates.TemplateResponse("_deprecated/test_auth.html", {"request": request})
+        return RedirectResponse(url="/intelligent-advisor", status_code=302)
 
 
 def _require_admin_page_access(request: Request) -> Optional[RedirectResponse]:
@@ -1294,7 +1293,7 @@ if _ENABLE_TEST_ROUTES:
 
         Access: http://127.0.0.1:8000/test-hub (only when ENABLE_TEST_ROUTES=true)
         """
-        return templates.TemplateResponse("_deprecated/test_hub.html", {"request": request})
+        return RedirectResponse(url="/intelligent-advisor", status_code=302)
 
 
 # Test dashboard (/test-dashboard, /qa) => Extracted to web/routes/page_routes.py
