@@ -27,6 +27,9 @@ wheels/
 .env
 .env.local
 
+# Per-install dev encryption key (never commit — contains a secret)
+.dev-encryption-key
+
 # IDE
 .vscode/
 .idea/

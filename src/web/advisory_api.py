@@ -8,7 +8,7 @@ Provides endpoints to:
 - List reports for a session
 """
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Response
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Response, Depends
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List
@@ -40,6 +40,7 @@ from advisory import generate_advisory_report, ReportType
 from advisory.report_generator import AdvisoryReportResult
 from export import export_advisory_report_to_pdf
 from database.session_persistence import get_session_persistence
+from rbac.dependencies import require_auth
 from database.advisory_models import (
     create_advisory_report_from_result,
     get_advisory_report_by_id,
@@ -64,7 +65,11 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/api/v1/advisory-reports", tags=["Advisory Reports"])
+router = APIRouter(
+    prefix="/api/v1/advisory-reports",
+    tags=["Advisory Reports"],
+    dependencies=[Depends(require_auth)],
+)
 
 # Database setup
 DB_PATH = Path(__file__).parent.parent.parent / "data" / "tax_returns.db"

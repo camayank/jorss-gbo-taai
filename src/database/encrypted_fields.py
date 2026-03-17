@@ -23,6 +23,8 @@ import os
 import base64
 import hashlib
 import logging
+import pathlib
+import secrets
 from typing import Optional, Tuple
 from functools import lru_cache
 
@@ -60,15 +62,17 @@ def _get_encryption_key() -> bytes:
                 "CRITICAL: ENCRYPTION_MASTER_KEY is required in production. "
                 "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
             )
-        # Development fallback - deterministic for testing
-        import warnings
-        warnings.warn(
-            "ENCRYPTION_MASTER_KEY not set - using insecure development key. "
-            "PII will NOT be securely encrypted.",
-            UserWarning
+        # Development fallback - per-install random key persisted in a local file
+        _DEV_KEY_FILE = pathlib.Path(".dev-encryption-key")
+        if _DEV_KEY_FILE.exists():
+            key_hex = _DEV_KEY_FILE.read_text().strip()
+        else:
+            key_hex = secrets.token_hex(32)
+            _DEV_KEY_FILE.write_text(key_hex)
+        logger.warning(
+            "ENCRYPTION_MASTER_KEY not set - using per-install dev key from .dev-encryption-key. "
+            "PII will NOT be securely encrypted. Set ENCRYPTION_MASTER_KEY for production."
         )
-        # Use a deterministic dev key so data can be read across restarts
-        key_hex = hashlib.sha256(b"DEV-ONLY-INSECURE-KEY").hexdigest()
 
     # Convert hex string to bytes
     try:

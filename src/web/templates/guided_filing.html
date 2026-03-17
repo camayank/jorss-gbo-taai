@@ -236,11 +236,11 @@
                 <hr>
                 <div class="summary-row highlight">
                   <span>Estimated Tax</span>
-                  <span class="amount" x-text="'$' + calculateTax().toLocaleString()"></span>
+                  <span class="amount">Calculated after submission</span>
                 </div>
-                <div class="summary-row" :class="{ 'refund': calculateRefund() > 0, 'owe': calculateRefund() < 0 }">
-                  <span x-text="calculateRefund() >= 0 ? 'Estimated Refund' : 'Amount Owed'"></span>
-                  <span class="amount" x-text="'$' + Math.abs(calculateRefund()).toLocaleString()"></span>
+                <div class="summary-row">
+                  <span>Estimated Refund / Amount Owed</span>
+                  <span class="amount">Calculated after submission</span>
                 </div>
               </div>
 
@@ -800,19 +800,9 @@ function guidedFiling() {
       return Math.max(0, this.calculateTotalIncome() - this.calculateDeductions());
     },
 
-    calculateTax() {
-      const income = this.calculateTaxableIncome();
-      // Simplified 2024 tax brackets for single
-      if (income <= 11600) return income * 0.10;
-      if (income <= 47150) return 1160 + (income - 11600) * 0.12;
-      if (income <= 100525) return 5426 + (income - 47150) * 0.22;
-      return 17168.50 + (income - 100525) * 0.24;
-    },
-
     calculateRefund() {
-      const tax = this.calculateTax();
-      const withheld = parseFloat((this.formData.income.w2.federalWithheld || '').replace(/[^\d.]/g, '')) || 0;
-      return withheld - tax;
+      // Tax is calculated server-side; refund estimate is not available at this step.
+      return null;
     },
 
     async saveProgress() {
