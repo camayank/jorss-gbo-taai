@@ -12,6 +12,7 @@ Contains:
 """
 
 import logging
+import time
 from typing import Optional, Dict, List, Any
 from datetime import datetime
 
@@ -47,7 +48,14 @@ async def acknowledge_standards(request: AcknowledgmentRequest, _session: str = 
             ip_address=None,
             user_agent=None,
         )
-        return {"status": "acknowledged", "session_id": request.session_id}
+        timestamp = int(time.time())
+        consent_token = f"v1_{request.session_id}_{timestamp}"
+        return {
+            "status": "acknowledged",
+            "session_id": request.session_id,
+            "token": consent_token,
+            "consent_version": "v1",
+        }
     except Exception as e:
         logger.error(f"Acknowledgment error: {e}")
         return {"status": "error", "message": "Unable to record acknowledgment."}

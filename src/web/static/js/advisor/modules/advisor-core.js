@@ -31,15 +31,60 @@ export function enableChat() {
   }
 }
 
-/** Returns true if user already consented this session */
+// Current consent version. Bump this string (e.g. to 'v2') to force all users
+// to re-consent after a material change to the privacy/standards notice.
+export const CONSENT_VERSION = 'v1';
+
+/**
+ * Try to read a value from localStorage. Returns null if localStorage is
+ * unavailable (e.g. private-browsing mode with storage blocked).
+ */
+function localStorageGet(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Try to write a value to localStorage. Returns false if unavailable.
+ */
+function localStorageSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/** Returns true if a stored consent token is present and matches the current version. */
+function hasValidPersistedConsent() {
+  const token = localStorageGet('advisor_consent_token');
+  const version = localStorageGet('advisor_consent_version');
+  return token !== null && version === CONSENT_VERSION;
+}
+
+/** Returns true if user already consented (persisted across sessions or this session) */
 export function checkAdvisorConsent() {
+  // Primary check: valid token in localStorage (survives tab close)
+  if (hasValidPersistedConsent()) {
+    var modal = document.getElementById('advisorConsentModal');
+    if (modal) modal.classList.add('hidden');
+    enableChat();
+    return true;
+  }
+
+  // Fallback check: sessionStorage consent set in the current tab
   if (sessionStorage.getItem('advisor_consent') === 'true') {
     var modal = document.getElementById('advisorConsentModal');
     if (modal) modal.classList.add('hidden');
     enableChat();
     return true;
   }
-  // Show consent modal, disable chat
+
+  // No valid consent found — show modal and disable chat
   var modal = document.getElementById('advisorConsentModal');
   if (modal) modal.classList.remove('hidden');
   disableChat();
@@ -57,22 +102,45 @@ export function setupAdvisorConsent() {
   });
 
   btn.addEventListener('click', async function () {
+    const acknowledgedAt = new Date().toISOString();
+
+    // Always set sessionStorage immediately so the current tab is unblocked
+    // even if the server call or localStorage write fails.
     sessionStorage.setItem('advisor_consent', 'true');
-    sessionStorage.setItem('advisor_consent_at', new Date().toISOString());
+    sessionStorage.setItem('advisor_consent_at', acknowledgedAt);
+
     var modal = document.getElementById('advisorConsentModal');
     if (modal) modal.classList.add('hidden');
     enableChat();
+    const chatInput = document.getElementById('userInput');
+    if (chatInput) chatInput.focus();
 
-    // Log acknowledgment to server
+    // Log acknowledgment to server and persist the returned token
     try {
-      await fetch('/api/advisor/acknowledge-standards', {
+      const response = await fetch('/api/advisor/acknowledge-standards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           session_id: typeof sessionId !== 'undefined' ? sessionId : 'unknown',
-          acknowledged_at: new Date().toISOString()
+          acknowledged_at: acknowledgedAt
         })
       });
+
+      if (response.ok) {
+        let responseData = {};
+        try { responseData = await response.json(); } catch (_) {}
+
+        // Persist the consent token in localStorage so it survives tab close.
+        // Fall back to a locally-generated token if the server omits one.
+        const token = responseData.token || ('v1_' + Date.now());
+        const stored = localStorageSet('advisor_consent_token', token);
+        localStorageSet('advisor_consent_version', CONSENT_VERSION);
+
+        if (!stored) {
+          // localStorage unavailable — sessionStorage fallback already set above.
+          console.warn('localStorage unavailable; consent will not persist across sessions.');
+        }
+      }
     } catch (e) {
       console.warn('Could not log acknowledgment:', e);
     }
@@ -490,12 +558,16 @@ export function showToast(message, type = 'info') {
 
   if (type === 'error') {
     toast.style.background = '#ef4444';
+    toast.setAttribute('role', 'alert');
   } else if (type === 'warning') {
     toast.style.background = '#f59e0b';
+    toast.setAttribute('role', 'status');
   } else if (type === 'success') {
     toast.style.background = '#10b981';
+    toast.setAttribute('role', 'status');
   } else {
     toast.style.background = '#2098d4';
+    toast.setAttribute('role', 'status');
   }
 
   toast.textContent = message;
