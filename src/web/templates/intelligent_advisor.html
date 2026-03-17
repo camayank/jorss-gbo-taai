@@ -20,12 +20,8 @@
   <script src="/static/js/core/icons.js" defer></script>
   <!-- DOMPurify for XSS-safe HTML sanitization of AI responses -->
   <script src="/static/js/vendor/purify.min.js"></script>
-  <!-- FSM modules for declarative advisor state management (loaded before main script) -->
-  <script src="/static/js/advisor/fsm/states.js" defer></script>
-  <script src="/static/js/advisor/fsm/action-config.js" defer></script>
-  <script src="/static/js/advisor/fsm/controller.js" defer></script>
-  <script src="/static/js/advisor/schema/tax-profile.js" defer></script>
-  <script src="/static/js/pages/intelligent-advisor.js?v=3" defer></script>
+  <!-- Advisor ES modules (replaces monolith + FSM scripts) -->
+  <script type="module" src="/static/js/advisor/modules/index.js?v=4"></script>
 </head>
 <body class="has-sidebar has-mobile-header">
   {% include 'partials/sidebar.html' %}
@@ -185,8 +181,8 @@
                 {{ icon('chart-bar', 'md') }}
                 <span>Average Client Savings</span>
               </div>
-              <div class="savings-amount">$4,200 - $12,500</div>
-              <div class="savings-subtitle">per year through strategic tax planning</div>
+              <div class="savings-amount">Discover potential tax savings</div>
+              <div class="savings-subtitle">through strategic tax planning</div>
             </div>
             <strong>How would you like to begin?</strong>
             <div class="quick-actions" id="initialQuickActions" role="group" aria-label="Quick response options">
