@@ -325,6 +325,120 @@ class CoreAuthService:
         self._users_db[platform_admin.email] = platform_admin
 
     # =========================================================================
+    # DATABASE USER LOOKUP HELPERS
+    # =========================================================================
+
+    async def _get_db_session(self):
+        """Get an async database session (lazy import to avoid circular deps)."""
+        try:
+            from database.async_engine import get_async_session
+            return get_async_session()
+        except ImportError:
+            logger.warning("database.async_engine not available")
+            return None
+
+    async def _find_user_by_email(self, email: str) -> Optional['UnifiedUser']:
+        """
+        Find a user by email, using database if enabled, else in-memory.
+
+        Returns a UnifiedUser instance or None.
+        """
+        if not self._use_database:
+            return self._users_db.get(email.lower())
+
+        try:
+            from database.repositories.user_auth_repository import UserAuthRepository
+            session_ctx = await self._get_db_session()
+            if session_ctx is None:
+                logger.warning("DB session unavailable, falling back to in-memory")
+                return self._users_db.get(email.lower())
+
+            async with session_ctx as session:
+                repo = UserAuthRepository(session)
+                user_data = await repo.get_user_by_email(email)
+                if user_data:
+                    return self._dict_to_unified_user(user_data)
+                return None
+        except Exception as e:
+            logger.error(f"DB user lookup by email failed: {e}")
+            # Fallback to in-memory in dev only
+            if not _IS_PRODUCTION:
+                return self._users_db.get(email.lower())
+            raise
+
+    async def _find_user_by_id(self, user_id: str) -> Optional['UnifiedUser']:
+        """
+        Find a user by ID, using database if enabled, else in-memory.
+
+        Returns a UnifiedUser instance or None.
+        """
+        if not self._use_database:
+            return self._users_db.get(user_id)
+
+        try:
+            from database.repositories.user_auth_repository import UserAuthRepository
+            session_ctx = await self._get_db_session()
+            if session_ctx is None:
+                logger.warning("DB session unavailable, falling back to in-memory")
+                return self._users_db.get(user_id)
+
+            async with session_ctx as session:
+                repo = UserAuthRepository(session)
+                user_data = await repo.get_user_by_id(user_id)
+                if user_data:
+                    return self._dict_to_unified_user(user_data)
+                return None
+        except Exception as e:
+            logger.error(f"DB user lookup by id failed: {e}")
+            if not _IS_PRODUCTION:
+                return self._users_db.get(user_id)
+            raise
+
+    def _dict_to_unified_user(self, data: dict) -> 'UnifiedUser':
+        """Convert a database row dict to a UnifiedUser instance."""
+        user_type_str = data.get("user_type", "consumer")
+        try:
+            user_type = UserType(user_type_str)
+        except ValueError:
+            # Map DB role names to UserType
+            role_map = {
+                "platform_admin": UserType.PLATFORM_ADMIN,
+                "cpa_team": UserType.CPA_TEAM,
+                "firm_admin": UserType.CPA_TEAM,
+                "cpa_client": UserType.CPA_CLIENT,
+                "consumer": UserType.CONSUMER,
+            }
+            user_type = role_map.get(user_type_str, UserType.CONSUMER)
+
+        cpa_role = None
+        if data.get("cpa_role") or data.get("role"):
+            role_str = data.get("cpa_role") or data.get("role", "")
+            try:
+                cpa_role = CPARole(role_str)
+            except (ValueError, KeyError):
+                pass
+
+        return UnifiedUser(
+            id=str(data["id"]),
+            email=data.get("email", ""),
+            user_type=user_type,
+            first_name=data.get("first_name", ""),
+            last_name=data.get("last_name", ""),
+            phone=data.get("phone"),
+            password_hash=data.get("password_hash", ""),
+            email_verified=data.get("is_email_verified", data.get("email_verified", False)),
+            is_active=data.get("is_active", True),
+            mfa_enabled=data.get("mfa_enabled", False),
+            mfa_secret=data.get("mfa_secret"),
+            firm_id=str(data["firm_id"]) if data.get("firm_id") else None,
+            firm_name=data.get("firm_name"),
+            cpa_role=cpa_role,
+            permissions=data.get("permissions", []),
+            last_login_at=data.get("last_login_at"),
+            created_at=data.get("created_at"),
+        )
+
+    # =========================================================================
     # REDIS TOKEN STORAGE HELPERS
     # =========================================================================
 
@@ -487,7 +601,10 @@ class CoreAuthService:
             "sub": user.id,
             "email": user.email,
             "user_type": user.user_type.value if isinstance(user.user_type, UserType) else user.user_type,
+            "first_name": user.first_name or "",
+            "last_name": user.last_name or "",
             "firm_id": user.firm_id,
+            "firm_name": user.firm_name,
             "permissions": user.permissions,
             "exp": now + timedelta(minutes=self.config.ACCESS_TOKEN_EXPIRE_MINUTES),
             "iat": now,
@@ -626,7 +743,24 @@ class CoreAuthService:
                 token, AuthConfig.get_jwt_secret(), algorithms=["HS256"]
             )
 
-            # Get user
+            # In database mode, build UserContext from JWT payload directly
+            # (JWT already contains user_type, permissions, firm_id from sign time)
+            if self._use_database:
+                first = payload.get("first_name", "")
+                last = payload.get("last_name", "")
+                full_name = f"{first} {last}".strip() or payload.get("email", "")
+                return UserContext(
+                    user_id=payload["sub"],
+                    email=payload.get("email", ""),
+                    user_type=payload.get("user_type", "consumer"),
+                    full_name=full_name,
+                    firm_id=payload.get("firm_id"),
+                    firm_name=payload.get("firm_name"),
+                    permissions=payload.get("permissions", []),
+                    request_id=payload.get("jti"),
+                )
+
+            # In-memory mode: look up user from dict
             user = self._users_db.get(payload["sub"])
             if not user:
                 return None
@@ -650,8 +784,8 @@ class CoreAuthService:
 
         Works for all user types: consumer, CPA client, CPA team, platform admin.
         """
-        # Find user by email
-        user = self._users_db.get(request.email.lower())
+        # Find user by email (database or in-memory)
+        user = await self._find_user_by_email(request.email)
 
         if not user:
             logger.warning(f"Login failed: user not found - {request.email}")
@@ -728,7 +862,7 @@ class CoreAuthService:
 
         Primarily used for consumer users.
         """
-        user = self._users_db.get(request.email.lower())
+        user = await self._find_user_by_email(request.email)
 
         if not user:
             # Don't reveal if user exists
@@ -786,7 +920,7 @@ class CoreAuthService:
             )
 
         # Get user
-        user = self._users_db.get(link_data["user_id"])
+        user = await self._find_user_by_id(link_data["user_id"])
         if not user:
             return AuthResponse(
                 success=False,
@@ -862,8 +996,9 @@ class CoreAuthService:
 
         Supports all user types with appropriate validation.
         """
-        # Check if email already exists
-        if request.email.lower() in self._users_db:
+        # Check if email already exists (database or in-memory)
+        existing = await self._find_user_by_email(request.email)
+        if existing:
             return AuthResponse(
                 success=False,
                 message="Email already registered"
@@ -907,9 +1042,44 @@ class CoreAuthService:
             is_self_service=request.user_type == UserType.CONSUMER
         )
 
-        # Save user
-        self._users_db[user.id] = user
-        self._users_db[user.email] = user
+        # Save user (database or in-memory)
+        if self._use_database:
+            try:
+                from database.repositories.user_auth_repository import UserAuthRepository
+                session_ctx = await self._get_db_session()
+                if session_ctx:
+                    async with session_ctx as session:
+                        repo = UserAuthRepository(session)
+                        user_type_val = user.user_type.value if isinstance(user.user_type, UserType) else user.user_type
+                        created_id = await repo.create_user({
+                            "email": user.email,
+                            "password_hash": user.password_hash,
+                            "first_name": user.first_name,
+                            "last_name": user.last_name,
+                            "phone": user.phone,
+                            "user_type": user_type_val,
+                            "firm_id": user.firm_id,
+                            "role": user.cpa_role.value if user.cpa_role else None,
+                            "assigned_cpa_id": user.assigned_cpa_id,
+                        })
+                        if created_id:
+                            user.id = created_id
+                            await session.commit()
+                        else:
+                            return AuthResponse(success=False, message="Registration failed")
+                else:
+                    logger.warning("DB session unavailable during registration")
+                    self._users_db[user.id] = user
+                    self._users_db[user.email] = user
+            except Exception as e:
+                logger.error(f"DB registration failed: {e}")
+                if _IS_PRODUCTION:
+                    return AuthResponse(success=False, message="Registration failed")
+                self._users_db[user.id] = user
+                self._users_db[user.email] = user
+        else:
+            self._users_db[user.id] = user
+            self._users_db[user.email] = user
 
         # Generate tokens (include refresh token so the session persists)
         access_token = self._generate_access_token(user)

@@ -156,6 +156,8 @@ def configure_middleware(app: FastAPI) -> dict:
 
         # SPEC-004: CSRF Exempt Paths Documentation
         csrf_exempt_paths = {
+            # Embeddable Advisor (uses session token auth instead of CSRF)
+            "/advisor-embed",
             # Read-Only Endpoints (Safe - No State Changes)
             "/api/health",
             "/api/sessions/check-active",
@@ -208,6 +210,16 @@ def configure_middleware(app: FastAPI) -> dict:
         logger.warning(f"CSRF middleware failed: {e}")
 
     # =========================================================================
+    # IDEMPOTENCY MIDDLEWARE (duplicate submission prevention)
+    # =========================================================================
+    try:
+        from web.idempotency import IdempotencyMiddleware
+        app.add_middleware(IdempotencyMiddleware)
+        logger.info("Idempotency middleware enabled (POST/PUT/PATCH duplicate protection)")
+    except ImportError:
+        logger.warning("Idempotency middleware not available")
+
+    # =========================================================================
     # ADDITIONAL MIDDLEWARE
     # =========================================================================
 
@@ -246,6 +258,7 @@ def configure_middleware(app: FastAPI) -> dict:
                     "/landing",
                     "/quick-estimate",
                     "/estimate",
+                    "/advisor-embed",
                     "/client/login",
                     "/api/v1/auth/login",
                     "/api/v1/auth/register",

@@ -32,6 +32,36 @@ from dataclasses import dataclass, asdict
 
 logger = logging.getLogger(__name__)
 
+# --- Session data encryption at rest ---
+try:
+    from database.encrypted_fields import encrypt_pii, decrypt_pii
+    _ENCRYPTION_AVAILABLE = True
+except ImportError:
+    _ENCRYPTION_AVAILABLE = False
+    logger.warning("encrypted_fields not available - Redis session data stored in plaintext")
+
+
+def _encrypt_session_data(data_dict: Dict[str, Any]) -> str:
+    """Encrypt session data dict as encrypted JSON string."""
+    if _ENCRYPTION_AVAILABLE and data_dict:
+        try:
+            return encrypt_pii(json.dumps(data_dict, default=str), field_type="generic")
+        except Exception as e:
+            logger.error(f"Redis session encryption failed: {e}")
+    return data_dict  # Return original dict if encryption unavailable
+
+
+def _decrypt_session_data(stored: Any) -> Dict[str, Any]:
+    """Decrypt session data. Handles both encrypted strings and plaintext dicts."""
+    if isinstance(stored, dict):
+        return stored  # Already a dict (plaintext or pre-migration)
+    if isinstance(stored, str) and stored.startswith("v") and _ENCRYPTION_AVAILABLE:
+        try:
+            return json.loads(decrypt_pii(stored, field_type="generic"))
+        except Exception:
+            pass
+    return stored if isinstance(stored, dict) else {}
+
 
 # =============================================================================
 # SECURITY: Restricted Unpickler to prevent RCE attacks
@@ -201,6 +231,9 @@ class RedisSessionPersistence:
             existing = await self.load_session(session_id, tenant_id)
             created_at = existing.get("created_at", now.isoformat()) if existing else now.isoformat()
 
+            # Encrypt session data at rest
+            encrypted_data = _encrypt_session_data(data) if _ENCRYPTION_AVAILABLE else data
+
             record = RedisSessionRecord(
                 session_id=session_id,
                 tenant_id=tenant_id,
@@ -208,7 +241,7 @@ class RedisSessionPersistence:
                 created_at=created_at,
                 last_activity=now.isoformat(),
                 expires_at=(now + timedelta(seconds=ttl)).isoformat(),
-                data=data,
+                data=encrypted_data,
                 metadata=metadata or {},
                 user_id=user_id,
                 is_anonymous=user_id is None,
@@ -262,6 +295,10 @@ class RedisSessionPersistence:
 
             # Touch session to extend TTL
             await self._redis.expire(key, self._ttl)
+
+            # Decrypt session data if encrypted
+            if isinstance(data, dict) and "data" in data:
+                data["data"] = _decrypt_session_data(data["data"])
 
             # Update last activity
             if isinstance(data, dict):

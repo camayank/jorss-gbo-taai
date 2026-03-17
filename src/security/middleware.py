@@ -128,6 +128,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         return "; ".join(directives)
 
+    # Paths that set their own CSP/frame headers (e.g., embeddable advisor)
+    _FRAMEABLE_PATHS = frozenset({"/advisor-embed", "/lead-magnet"})
+
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # Generate nonce for this request
         nonce = self._generate_nonce() if self.use_nonce else None
@@ -137,6 +140,16 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             request.state.csp_nonce = nonce
 
         response = await call_next(request)
+
+        # Skip security header overrides for frameable paths
+        # (their route handlers set their own CSP + frame headers)
+        if any(request.url.path.startswith(p) for p in self._FRAMEABLE_PATHS):
+            # Still add non-framing security headers
+            response.headers["Strict-Transport-Security"] = f"max-age={self.hsts_max_age}; includeSubDomains"
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            response.headers["X-XSS-Protection"] = "1; mode=block"
+            response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+            return response
 
         # Determine if this is an HTML response that needs nonce-based CSP
         content_type = response.headers.get("content-type", "")

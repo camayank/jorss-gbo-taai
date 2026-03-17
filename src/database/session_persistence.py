@@ -27,6 +27,40 @@ from .unified_session import UnifiedFilingSession
 
 logger = logging.getLogger(__name__)
 
+# --- Session data encryption at rest ---
+# Encrypts the data_json column using AES-256-GCM (same as PII fields)
+try:
+    from database.encrypted_fields import encrypt_pii, decrypt_pii
+    _ENCRYPTION_AVAILABLE = True
+except ImportError:
+    _ENCRYPTION_AVAILABLE = False
+    logger.warning("encrypted_fields not available - session data stored in plaintext")
+
+
+def _encrypt_session_data(data_json: str) -> str:
+    """Encrypt serialized session JSON before writing to database."""
+    if _ENCRYPTION_AVAILABLE and data_json:
+        try:
+            return encrypt_pii(data_json, field_type="generic")
+        except Exception as e:
+            logger.error(f"Session encryption failed, storing plaintext: {e}")
+    return data_json
+
+
+def _decrypt_session_data(stored: str) -> str:
+    """Decrypt session data read from database. Handles plaintext gracefully."""
+    if not stored:
+        return stored
+    # Encrypted values start with "v1:" prefix
+    if _ENCRYPTION_AVAILABLE and stored.startswith("v"):
+        try:
+            return decrypt_pii(stored, field_type="generic")
+        except Exception:
+            # Fallback: treat as plaintext (migration period or encryption key change)
+            pass
+    return stored
+
+
 # Use same database path as main persistence
 DEFAULT_DB_PATH = Path(__file__).parent.parent.parent / "data" / "tax_returns.db"
 
@@ -381,7 +415,7 @@ class SessionPersistence:
                     session_type,
                     now.isoformat(),
                     expires_at.isoformat(),
-                    json.dumps(data, default=str),
+                    _encrypt_session_data(json.dumps(data, default=str)),
                     json.dumps(metadata, default=str),
                     agent_state,
                     user_id,
@@ -406,7 +440,7 @@ class SessionPersistence:
                     now.isoformat(),
                     now.isoformat(),
                     expires_at.isoformat(),
-                    json.dumps(data, default=str),
+                    _encrypt_session_data(json.dumps(data, default=str)),
                     json.dumps(metadata, default=str),
                     agent_state,
                     user_id,
@@ -534,7 +568,7 @@ class SessionPersistence:
                 created_at=row[3],
                 last_activity=row[4],
                 expires_at=row[5],
-                data=json.loads(row[6]) if row[6] else {},
+                data=json.loads(_decrypt_session_data(row[6])) if row[6] else {},
                 metadata=json.loads(row[7]) if row[7] else {}
             )
 
@@ -615,7 +649,7 @@ class SessionPersistence:
                     created_at=row[3],
                     last_activity=row[4],
                     expires_at=row[5],
-                    data=json.loads(row[6]) if row[6] else {},
+                    data=json.loads(_decrypt_session_data(row[6])) if row[6] else {},
                     metadata=json.loads(row[7]) if row[7] else {}
                 ))
             return sessions
