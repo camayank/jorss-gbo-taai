@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terms of Service - TaxAdvisor Pro</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Terms of Service - {{ branding.platform_name }}</title>
     <link rel="stylesheet" href="/static/css/core/variables.css">
     <link rel="stylesheet" href="/static/css/core/reset.css">
     <link rel="stylesheet" href="/static/css/core/typography.css">
@@ -14,20 +13,20 @@
     <!-- Navigation -->
     <nav class="bg-white shadow-sm">
         <div class="max-w-4xl mx-auto px-4 py-4">
-            <a href="/" class="text-xl font-bold" style="color: var(--color-navy)">TaxAdvisor<span class="text-emerald-500">Pro</span></a>
+            <a href="/" class="text-xl font-bold" style="color: var(--color-navy)">{{ branding.platform_name }}</a>
         </div>
     </nav>
 
     <main class="max-w-4xl mx-auto px-4 py-12">
         <h1 class="text-3xl font-bold text-gray-900 mb-2">Terms of Service</h1>
-        <p class="text-gray-500 mb-8">Last updated: January 24, 2024</p>
+        <p class="text-gray-500 mb-8">Last updated: {{ current_date | default('March 2026') }}</p>
 
         <div class="bg-white rounded-lg shadow-sm p-8 space-y-8">
             <!-- Important Notice -->
             <div class="bg-amber-50 border-l-4 border-amber-500 p-4">
                 <h2 class="font-bold text-amber-800 mb-2">IMPORTANT NOTICE</h2>
                 <p class="text-amber-700">
-                    TaxAdvisor Pro is a tax information platform, NOT a tax preparation service. We provide educational
+                    {{ branding.platform_name }} is a tax information platform, NOT a tax preparation service. We provide educational
                     tax information and tools to help users understand potential tax savings. <strong>We do not provide
                     tax advice, and users must consult a licensed CPA or tax professional before making any tax decisions
                     or filing any tax returns.</strong>
@@ -37,7 +36,7 @@
             <section>
                 <h2 class="text-xl font-semibold text-gray-900 mb-4">1. Acceptance of Terms</h2>
                 <p class="text-gray-700 mb-4">
-                    By accessing or using TaxAdvisor Pro ("Service"), you agree to be bound by these Terms of Service
+                    By accessing or using {{ branding.platform_name }} ("Service"), you agree to be bound by these Terms of Service
                     ("Terms"). If you do not agree to these Terms, you may not use the Service.
                 </p>
                 <p class="text-gray-700">
@@ -48,7 +47,7 @@
 
             <section>
                 <h2 class="text-xl font-semibold text-gray-900 mb-4">2. Description of Service</h2>
-                <p class="text-gray-700 mb-4">TaxAdvisor Pro provides:</p>
+                <p class="text-gray-700 mb-4">{{ branding.platform_name }} provides:</p>
                 <ul class="list-disc pl-6 text-gray-700 space-y-2">
                     <li><strong>For CPAs:</strong> A white-label lead generation platform with tax assessment tools,
                     lead scoring, client management, and engagement letter generation.</li>
@@ -143,7 +142,7 @@
             <section>
                 <h2 class="text-xl font-semibold text-gray-900 mb-4">7. Indemnification</h2>
                 <p class="text-gray-700">
-                    You agree to indemnify and hold harmless TaxAdvisor Pro, its affiliates, officers, employees,
+                    You agree to indemnify and hold harmless {{ branding.platform_name }}, its affiliates, officers, employees,
                     and agents from any claims, damages, losses, or expenses arising from: (a) your use of the
                     Service; (b) your violation of these Terms; (c) your violation of any third-party rights; or
                     (d) any tax-related claims, penalties, or disputes arising from your reliance on information
@@ -165,7 +164,7 @@
             <section>
                 <h2 class="text-xl font-semibold text-gray-900 mb-4">9. Intellectual Property</h2>
                 <p class="text-gray-700 mb-4">
-                    All content, features, and functionality of the Service are owned by TaxAdvisor Pro and
+                    All content, features, and functionality of the Service are owned by {{ branding.platform_name }} and
                     protected by intellectual property laws. CPA Users retain rights to their own branding assets
                     uploaded to the platform.
                 </p>
@@ -201,7 +200,7 @@
                 <p class="text-gray-700">
                     For questions about these Terms, contact us at:<br>
                     Email: legal@taxadvisorpro.com<br>
-                    Address: [Your Business Address]
+                    Address: {{ branding.business_address | default('Address provided upon request') }}
                 </p>
             </section>
 
@@ -219,7 +218,7 @@
     <!-- Footer -->
     <footer class="bg-gray-900 text-gray-400 py-8 mt-12">
         <div class="max-w-4xl mx-auto px-4 text-center">
-            <p class="text-sm">&copy; 2024 TaxAdvisor Pro. All rights reserved.</p>
+            <p class="text-sm">&copy; 2026 {{ branding.platform_name }}. All rights reserved.</p>
             <div class="mt-4 space-x-4 text-sm">
                 <a href="/terms" class="hover:text-white">Terms</a>
                 <a href="/privacy" class="hover:text-white">Privacy</a>

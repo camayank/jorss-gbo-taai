@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Disclaimer - TaxAdvisor Pro</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Disclaimer - {{ branding.platform_name }}</title>
     <link rel="stylesheet" href="/static/css/core/variables.css">
     <link rel="stylesheet" href="/static/css/core/reset.css">
     <link rel="stylesheet" href="/static/css/core/typography.css">
@@ -14,13 +13,13 @@
     <!-- Navigation -->
     <nav class="bg-white shadow-sm">
         <div class="max-w-4xl mx-auto px-4 py-4">
-            <a href="/" class="text-xl font-bold" style="color: var(--color-navy)">TaxAdvisor<span class="text-emerald-500">Pro</span></a>
+            <a href="/" class="text-xl font-bold" style="color: var(--color-navy)">{{ branding.platform_name }}</a>
         </div>
     </nav>
 
     <main class="max-w-4xl mx-auto px-4 py-12">
         <h1 class="text-3xl font-bold text-gray-900 mb-2">Disclaimer</h1>
-        <p class="text-gray-500 mb-8">Last updated: January 24, 2024</p>
+        <p class="text-gray-500 mb-8">Last updated: {{ current_date | default('March 2026') }}</p>
 
         <div class="bg-white rounded-lg shadow-sm p-8 space-y-8">
             <!-- Primary Disclaimer -->
@@ -29,7 +28,7 @@
                     IMPORTANT: NOT TAX ADVICE
                 </h2>
                 <p class="text-red-700 text-lg mb-4">
-                    TaxAdvisor Pro is a <strong>tax information platform</strong>, NOT a tax preparation service
+                    {{ branding.platform_name }} is a <strong>tax information platform</strong>, NOT a tax preparation service
                     or tax advisory service. The information, calculations, estimates, and documents provided
                     through this platform are for <strong>informational and educational purposes only</strong>.
                 </p>
@@ -102,7 +101,7 @@
                     <li>You will verify all information with a qualified tax professional before acting on it</li>
                     <li>You will not file any draft returns without professional review</li>
                     <li>You understand that estimates are approximations only</li>
-                    <li>You will not hold TaxAdvisor Pro liable for any tax-related outcomes</li>
+                    <li>You will not hold {{ branding.platform_name }} liable for any tax-related outcomes</li>
                 </ul>
             </section>
 
@@ -186,7 +185,7 @@
     <!-- Footer -->
     <footer class="bg-gray-900 text-gray-400 py-8 mt-12">
         <div class="max-w-4xl mx-auto px-4 text-center">
-            <p class="text-sm">&copy; 2024 TaxAdvisor Pro. All rights reserved.</p>
+            <p class="text-sm">&copy; 2026 {{ branding.platform_name }}. All rights reserved.</p>
             <div class="mt-4 space-x-4 text-sm">
                 <a href="/terms" class="hover:text-white">Terms</a>
                 <a href="/privacy" class="hover:text-white">Privacy</a>
