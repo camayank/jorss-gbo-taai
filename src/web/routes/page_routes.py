@@ -151,10 +151,8 @@ def landing_page(request: Request):
 @router.get("/quick-estimate", response_class=HTMLResponse)
 @router.get("/estimate", response_class=HTMLResponse)
 def quick_estimate_page(request: Request):
-    """Quick Tax Estimate - Premium 30-second quiz."""
-    from config.branding import get_branding_config
-    branding = get_branding_config()
-    return templates.TemplateResponse("quick_estimate.html", {"request": request, "branding": branding})
+    """Redirect quick-estimate entry point to intelligent advisor."""
+    return RedirectResponse(url="/intelligent-advisor?entry=quick-estimate", status_code=302)
 
 
 @router.get("/profile", response_class=HTMLResponse)
@@ -505,33 +503,8 @@ def smart_tax_app_legacy(request: Request, path: str = ""):
 @router.get("/guided", response_class=HTMLResponse)
 @router.get("/guided/{session_id}", response_class=HTMLResponse)
 def guided_filing_page(request: Request, session_id: str = None):
-    """Guided tax filing - step-by-step workflow."""
-    denied = _require_any_auth(request)
-    if denied:
-        return denied
-    context = {
-        "request": request,
-        "session_id": session_id or "",
-    }
-    try:
-        from config.branding import get_branding_config
-        context["branding"] = get_branding_config()
-    except Exception as e:
-        logger.debug(f"Branding config not available: {e}")
-    try:
-        from database.tenant_persistence import get_tenant_persistence
-        tenant_id = request.cookies.get("tenant_id")
-        if tenant_id:
-            persistence = get_tenant_persistence()
-            tenant = persistence.get_tenant(tenant_id)
-            if tenant:
-                context["tenant_features"] = tenant.features.to_dict() if hasattr(tenant.features, 'to_dict') else {}
-    except Exception as e:
-        logger.debug(f"Tenant features not available: {e}")
-    template_name = get_template_path(request, "guided_filing.html")
-    response = templates.TemplateResponse(template_name, context)
-    set_ux_version_cookie(response, should_use_ux_v2(request))
-    return response
+    """Redirect guided filing entry points to intelligent advisor."""
+    return RedirectResponse(url="/intelligent-advisor", status_code=302)
 
 
 @router.get("/results", response_class=HTMLResponse)
