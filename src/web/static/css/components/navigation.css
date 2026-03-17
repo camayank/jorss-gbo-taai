@@ -260,7 +260,7 @@
   background: var(--color-accent-50);
   color: var(--color-accent-600);
   font-weight: var(--font-semibold);
-  border-left: 3px solid var(--color-gold, #C9A84C);
+  border-left: 3px solid var(--color-gold, #f97316);
 }
 
 .sidebar.collapsed .nav-item {

@@ -6,29 +6,15 @@
 
   Optional variables:
     - use_alpine: Whether to include Alpine.js (default: true)
-    - use_stores: List of Alpine stores to register (e.g., ['sidebar', 'tax-return', 'auto-save'])
-    - page_js: Page-specific JS file to include
+    - use_stores: List of Alpine stores to register (e.g., ['sidebar', 'tax-return', 'auto-save', 'journey'])
     - extra_scripts: Inline scripts to add
 #}
 
 {# Default use_alpine to true if not set #}
 {% set use_alpine = use_alpine | default(true) %}
 
-{# Core utilities - Always load #}
-<script src="/static/js/core/utils.js" type="module"></script>
-
-{# API client #}
-<script src="/static/js/core/api.js" type="module"></script>
-
-{# Validation utilities #}
-<script src="/static/js/core/validation.js" type="module"></script>
-
-{# Existing JS files #}
-{% if include_legacy_js %}
-<script src="/static/js/security-utils.js"></script>
-<script src="/static/js/feature-gate.js"></script>
-<script src="/static/js/loading-states.js"></script>
-{% endif %}
+{# Core JS modules (utils, api, validation) available for import by page scripts #}
+{# Not loaded globally — templates import them directly when needed #}
 
 {# Alpine.js and stores #}
 {% if use_alpine %}
@@ -44,6 +30,9 @@
     {% if 'auto-save' in use_stores %}
     import { registerAutoSaveStore } from '/static/js/alpine/stores/auto-save.js';
     {% endif %}
+    {% if 'journey' in use_stores %}
+    import { registerJourneyStore } from '/static/js/alpine/stores/journey.js';
+    {% endif %}
   {% endif %}
 
   // Register stores when Alpine initializes
@@ -58,6 +47,9 @@
       {% if 'auto-save' in use_stores %}
       registerAutoSaveStore(Alpine);
       {% endif %}
+      {% if 'journey' in use_stores %}
+      registerJourneyStore(Alpine);
+      {% endif %}
     {% endif %}
   });
 </script>
@@ -69,10 +61,7 @@
 <script defer src="/static/js/vendor/alpine-collapse.min.js"></script>
 {% endif %}
 
-{# Page-specific JS #}
-{% if page_js %}
-<script src="/static/js/pages/{{ page_js }}.js" type="module"></script>
-{% endif %}
+{# Page-specific JS loaded directly by templates that need it #}
 
 {# Extra inline scripts #}
 {% if extra_scripts %}

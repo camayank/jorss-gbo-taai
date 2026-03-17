@@ -46,7 +46,7 @@
             display: flex;
             align-items: center;
             gap: var(--space-2);
-            color: var(--color-navy, #0B1D3A);
+            color: var(--color-navy, #0f766e);
             text-decoration: none;
             font-size: 0.9rem;
             font-weight: 500;
@@ -55,7 +55,7 @@
         .results-nav-title {
             font-family: var(--font-serif);
             font-size: 1rem;
-            color: var(--color-navy, #0B1D3A);
+            color: var(--color-navy, #0f766e);
         }
 
         .results-nav-secure {
@@ -80,10 +80,10 @@
 
         /* --- HERO RESULTS CARD --- */
         .results-hero {
-            background: linear-gradient(170deg, #0B1D3A 0%, #0E2445 55%, #1A3560 100%);
+            background: linear-gradient(160deg, #f0fdfa 0%, #f8fafc 40%, #fff7ed 100%);
             border-radius: var(--radius-2xl-plus);
             padding: var(--space-10) var(--space-8);
-            color: white;
+            color: var(--color-slate-800, #1e293b);
             text-align: center;
             margin-bottom: var(--space-6);
             position: relative;
@@ -94,7 +94,7 @@
             content: '';
             position: absolute;
             inset: 0;
-            background: radial-gradient(circle at 50% 30%, rgba(201, 168, 76, 0.06) 0%, transparent 60%);
+            background: radial-gradient(circle at 50% 30%, rgba(249, 115, 22, 0.06) 0%, transparent 60%);
             pointer-events: none;
         }
 
@@ -141,7 +141,7 @@
         }
 
         .results-amount .dollar {
-            color: var(--color-gold, #C9A84C);
+            color: var(--color-gold, #f97316);
         }
 
         .results-amount-label {
@@ -191,7 +191,7 @@
         .results-comparison h2 {
             font-family: var(--font-serif);
             font-size: 1.3rem;
-            color: var(--color-navy, #0B1D3A);
+            color: var(--color-navy, #0f766e);
             margin-bottom: var(--space-6);
             text-align: center;
         }
@@ -242,7 +242,7 @@
 
         .comparison-arrow {
             font-size: 1.5rem;
-            color: var(--color-gold, #C9A84C);
+            color: var(--color-gold, #f97316);
         }
 
         .comparison-savings {
@@ -251,11 +251,11 @@
             background: var(--color-accent-50, #FDF8EB);
             border-radius: var(--radius-lg);
             font-weight: 600;
-            color: var(--color-navy, #0B1D3A);
+            color: var(--color-navy, #0f766e);
         }
 
         .comparison-savings strong {
-            color: var(--color-gold, #C9A84C);
+            color: var(--color-gold, #f97316);
         }
 
         /* --- STRATEGIES --- */
@@ -266,7 +266,7 @@
         .strategies-header {
             font-family: var(--font-serif);
             font-size: 1.3rem;
-            color: var(--color-navy, #0B1D3A);
+            color: var(--color-navy, #0f766e);
             margin-bottom: var(--space-5);
         }
 
@@ -280,7 +280,7 @@
         }
 
         .strategy-card:hover {
-            box-shadow: 0 2px 8px rgba(11, 29, 58, 0.05);
+            box-shadow: 0 2px 8px rgba(15, 118, 110, 0.05);
         }
 
         .strategy-header {
@@ -295,7 +295,7 @@
         .strategy-num {
             width: 32px;
             height: 32px;
-            background: var(--color-navy, #0B1D3A);
+            background: var(--color-navy, #0f766e);
             color: white;
             border-radius: var(--radius-lg);
             display: flex;
@@ -312,7 +312,7 @@
 
         .strategy-title {
             font-weight: 600;
-            color: var(--color-navy, #0B1D3A);
+            color: var(--color-navy, #0f766e);
             font-size: 0.95rem;
             margin-bottom: var(--space-1);
         }
@@ -368,7 +368,7 @@
 
         .strategy-steps li::before {
             content: '\2192';
-            color: var(--color-gold, #C9A84C);
+            color: var(--color-gold, #f97316);
             font-weight: 700;
             flex-shrink: 0;
             margin-top: 1px;
@@ -408,7 +408,7 @@
             justify-content: center;
             background: rgba(250, 248, 244, 0.6);
             font-weight: 600;
-            color: var(--color-navy, #0B1D3A);
+            color: var(--color-navy, #0f766e);
             font-size: 0.9rem;
             border-radius: var(--radius-xl);
         }
@@ -416,7 +416,7 @@
         /* --- LEAD CAPTURE --- */
         .lead-capture {
             background: white;
-            border: 2px solid var(--color-gold, #C9A84C);
+            border: 2px solid var(--color-gold, #f97316);
             border-radius: var(--radius-2xl);
             padding: var(--space-10);
             margin-bottom: var(--space-6);
@@ -426,7 +426,7 @@
         .lead-capture h2 {
             font-family: var(--font-serif);
             font-size: 1.5rem;
-            color: var(--color-navy, #0B1D3A);
+            color: var(--color-navy, #0f766e);
             margin-bottom: var(--space-4);
         }
 
@@ -455,7 +455,7 @@
 
         .lead-benefit::before {
             content: '\25C6';
-            color: var(--color-gold, #C9A84C);
+            color: var(--color-gold, #f97316);
             font-size: 0.5rem;
             margin-top: 6px;
             flex-shrink: 0;
@@ -480,13 +480,13 @@
         }
 
         .lead-input:focus {
-            border-color: var(--color-gold, #C9A84C);
-            box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.1);
+            border-color: var(--color-gold, #f97316);
+            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
         }
 
         .lead-btn {
-            background: var(--color-gold, #C9A84C);
-            color: var(--color-navy, #0B1D3A);
+            background: var(--color-gold, #f97316);
+            color: var(--color-navy, #0f766e);
             padding: var(--space-3) var(--space-6);
             border: none;
             border-radius: var(--radius-lg);
@@ -499,7 +499,7 @@
         }
 
         .lead-btn:hover {
-            background: var(--color-gold-light, #E0C778);
+            background: var(--color-gold-light, #fb923c);
             transform: translateY(-1px);
         }
 
@@ -509,7 +509,7 @@
         }
 
         .lead-secondary a {
-            color: var(--color-navy, #0B1D3A);
+            color: var(--color-navy, #0f766e);
             font-weight: 600;
             text-decoration: none;
         }
@@ -591,17 +591,17 @@
         }
 
         .results-action-btn.primary {
-            background: var(--color-navy, #0B1D3A);
+            background: var(--color-navy, #0f766e);
             color: white;
         }
 
         .results-action-btn.primary:hover {
-            background: var(--color-navy-light, #132B50);
+            background: var(--color-navy-light, #0d9488);
         }
 
         .results-action-btn.secondary {
             background: var(--color-cream, #FAF8F4);
-            color: var(--color-navy, #0B1D3A);
+            color: var(--color-navy, #0f766e);
             border: 1px solid var(--color-cream-dark);
         }
 

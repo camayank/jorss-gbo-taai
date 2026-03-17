@@ -1,10 +1,10 @@
 {% from 'macros/icons.html' import icon %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" {% if theme == 'dark' %}data-theme="dark"{% endif %}>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Premium Tax Advisory | Individual Tax Strategy</title>
+  <title>AI Tax Advisor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -14,27 +14,45 @@
   <link rel="stylesheet" href="/static/css/unified-theme.css">
   <link rel="stylesheet" href="/static/css/pages/intelligent-advisor.css">
   <link rel="stylesheet" href="/static/css/advisor-premium.css">
-  <link rel="stylesheet" href="/static/css/components/navigation.css">
-  <!-- Loading States Manager for accessible loading indicators -->
+  <link rel="stylesheet" href="/static/css/pages/advisor-embed.css">
   <script src="/static/js/loading-states.js" defer></script>
   <script src="/static/js/core/icons.js" defer></script>
   <!-- DOMPurify for XSS-safe HTML sanitization of AI responses -->
   <script src="/static/js/vendor/purify.min.js"></script>
-  <!-- Advisor ES modules (replaces monolith + FSM scripts) -->
+  <!-- Advisor ES modules -->
   <script type="module" src="/static/js/advisor/modules/index.js?v=4"></script>
+  {% if cpa_branding %}
+  <style>
+    :root {
+      --cpa-primary: {{ cpa_branding.primary_color | default('#0d9488') }};
+      --cpa-secondary: {{ cpa_branding.secondary_color | default('#14b8a6') }};
+      --cpa-accent: {{ cpa_branding.accent_color | default('#f97316') }};
+    }
+    .header .logo { color: var(--cpa-primary); }
+    .consent-continue-btn,
+    .send-btn { background: var(--cpa-primary); }
+    .consent-continue-btn:hover,
+    .send-btn:hover { background: var(--cpa-secondary); }
+    .quick-action.primary { background: var(--cpa-primary); color: #fff; }
+  </style>
+  {% endif %}
 </head>
-<body class="has-sidebar has-mobile-header">
-  <!-- Skip link for keyboard navigation (must be first focusable element) -->
-  <a href="#main-content" class="skip-link">Skip to main content</a>
-
-  {% include 'partials/sidebar.html' %}
+<body class="advisor-embed-body">
+  {# NO sidebar in embed mode #}
 
   <!-- Unified Advisor Consent Modal -->
   <div id="advisorConsentModal" class="advisor-consent-modal" role="dialog" aria-modal="true" aria-labelledby="advisorConsentTitle">
     <div class="advisor-consent-content">
       <div class="consent-header">
+        {% if cpa_branding and cpa_branding.logo_url %}
+        <img src="{{ cpa_branding.logo_url }}" alt="{{ cpa_branding.firm_name }}" class="embed-cpa-logo">
+        {% else %}
         {{ icon('shield-check', 'xl') }}
+        {% endif %}
         <h2 id="advisorConsentTitle">Before You Begin</h2>
+        {% if cpa_branding %}
+        <p class="embed-cpa-firm">Powered by {{ cpa_branding.firm_name }}</p>
+        {% endif %}
       </div>
       <div class="consent-points">
         <div class="consent-point">
@@ -71,37 +89,29 @@
     </div>
   </div>
 
-
-  <div class="main-content">
-
   <!-- Offline Detection Banner -->
   <div class="offline-banner" id="offlineBanner" role="alert" aria-live="assertive">
     {{ icon('signal', 'sm') }} You're offline. Your messages will be sent when connection is restored.
   </div>
 
   <!-- Loading Overlay for Heavy Operations -->
-  <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite">
+  <div class="loading-overlay" id="loadingOverlay" role="alert" aria-live="polite">
     <div class="loading-spinner"></div>
     <div class="loading-text" id="loadingText">Analyzing your tax situation...</div>
     <div class="loading-subtext" id="loadingSubtext">This may take a few moments</div>
   </div>
 
-  <div class="bg-animated" aria-hidden="true"></div>
-
-  <header class="header" role="banner">
+  <header class="header embed-header" role="banner">
     <div>
-      <div class="logo">JORSS-GBO Tax Advisory</div>
-      <div class="logo-subtitle">AI-Powered Wealth Strategy</div>
+      {% if cpa_branding and cpa_branding.logo_url %}
+      <img src="{{ cpa_branding.logo_url }}" alt="{{ cpa_branding.firm_name }}" class="embed-header-logo">
+      {% endif %}
+      <div class="logo">{{ cpa_branding.firm_name if cpa_branding else 'AI Tax Advisor' }}</div>
+      <div class="logo-subtitle">AI-Powered Tax Strategy</div>
     </div>
     <div class="header-right">
-      <button class="workflow-mode-btn" onclick="openWorkflowSelector()" title="Choose filing workflow" aria-label="Choose filing workflow">
-        {{ icon('bolt', 'sm') }} Choose Workflow
-      </button>
       <button class="clear-chat-btn" onclick="clearConversation()" title="Start new conversation" aria-label="Start new conversation">
         {{ icon('arrow-path', 'sm') }} New Chat
-      </button>
-      <button class="cpa-btn" onclick="openCpaModal()" aria-label="Talk to a CPA">
-        {{ icon('phone', 'sm') }} <span class="cpa-btn-text">Talk to a CPA</span>
       </button>
       <button class="theme-toggle-btn" id="themeToggle" onclick="toggleDarkMode()" aria-label="Toggle dark mode">
         {{ icon('moon', 'sm') }}
@@ -112,7 +122,6 @@
       </div>
     </div>
   </header>
-
 
   <!-- Photo Document Capture Modal -->
   <div class="photo-capture-modal" id="photoCaptureModal" role="dialog" aria-modal="true" aria-label="Capture document photo">
@@ -133,12 +142,12 @@
     </div>
   </div>
 
-  <main class="main" id="main-content" role="main">
+  <main class="main embed-main" id="main-content" role="main">
     <div class="chat-panel">
       <!-- Persistent Notice Banner -->
       <div class="advisor-notice-banner" id="advisorNoticeBanner" role="status">
         {{ icon('shield-check', 'sm') }}
-        <span>Estimates only &mdash; not professional tax advice. Your data is encrypted. <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a></span>
+        <span>Estimates only &mdash; not professional tax advice. Your data is encrypted.</span>
         <button class="notice-dismiss-btn" id="dismissNoticeBtn" aria-label="Dismiss notice">&times;</button>
       </div>
 
@@ -172,7 +181,7 @@
       </div>
 
       <div class="messages" id="messages" role="log" aria-live="polite" aria-label="Conversation with AI tax advisor">
-        <!-- Premium initial message -->
+        <!-- Welcome message -->
         <div class="message ai" role="article" aria-label="AI assistant message">
           <div class="avatar" aria-hidden="true">{{ icon('briefcase', 'md') }}</div>
           <div class="bubble">
@@ -190,7 +199,7 @@
             </div>
             <strong>How would you like to begin?</strong>
             <div class="quick-actions" id="initialQuickActions" role="group" aria-label="Quick response options">
-              <button class="quick-action primary" data-action="no_manual" aria-label="Start guided analysis">Start Guided Analysis →</button>
+              <button class="quick-action primary" data-action="no_manual" aria-label="Start guided analysis">Start Guided Analysis</button>
               <button class="quick-action" data-action="yes_upload" aria-label="Upload tax documents">Upload Documents</button>
               <button class="quick-action" data-action="what_docs" aria-label="Learn more about the process">Learn More</button>
             </div>
@@ -204,7 +213,7 @@
           <div class="input-box">
             <textarea
               id="userInput"
-              placeholder="Share your questions or financial situation with me..."
+              placeholder="Ask me about your tax situation..."
               rows="1"
               onkeydown="handleKeyDown(event)"
               aria-label="Type your message or question about taxes"
@@ -227,9 +236,10 @@
       </div>
     </div>
 
-    <div class="side-panel">
+    <!-- Compact side panel (collapsible on mobile) -->
+    <div class="side-panel embed-side-panel">
       <div class="panel-card">
-        <div class="panel-header">{{ icon('chart-bar', 'sm') }} Advisory Progress</div>
+        <div class="panel-header">{{ icon('chart-bar', 'sm') }} Progress</div>
         <div class="progress-bar">
           <div class="progress-fill" id="progressFill" style="width: 0%"></div>
         </div>
@@ -238,79 +248,39 @@
         </div>
         <div class="stats-grid" id="statsGrid">
           <div class="stat-item" style="text-align: center; color: var(--color-gray-500); font-size: var(--text-sm); grid-column: 1 / -1; padding: var(--space-2) 0;">
-            Start a conversation to track your tax profile completion.
+            Start a conversation to track progress.
           </div>
         </div>
       </div>
 
       <div class="panel-card">
-        <div class="panel-header">{{ icon('light-bulb', 'sm') }} Strategic Recommendations</div>
+        <div class="panel-header">{{ icon('light-bulb', 'sm') }} Recommendations</div>
         <div id="insights" class="insights-content">
           <div style="text-align: center; color: var(--color-gray-500); font-size: var(--text-sm); padding: var(--space-3) 0;">
-            Share your income and filing details to receive personalized tax-saving strategies.
+            Share your details to receive tax-saving strategies.
           </div>
         </div>
       </div>
 
       <div class="panel-card" id="uploadPanel">
-        <div class="panel-header">{{ icon('folder', 'sm') }} Quick Upload</div>
+        <div class="panel-header">{{ icon('folder', 'sm') }} Upload</div>
         <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
-          <div class="upload-icon">{{ icon('document-arrow-up', 'xl') }}</div>
+          <div class="upload-icon">{{ icon('document-arrow-up', 'lg') }}</div>
           <div class="upload-label">Drop documents here</div>
-          <div class="upload-hint">or click to browse</div>
         </div>
         <input type="file" id="fileInput" style="display: none" onchange="handleFileSelect(event)" accept=".pdf,.jpg,.jpeg,.png" multiple aria-label="Upload tax documents">
       </div>
     </div>
   </main>
 
+  {% if cpa_branding %}
+  <!-- Powered-by footer for CPA embeds -->
+  <footer class="embed-footer">
+    <span>Powered by <strong>{{ cpa_branding.firm_name }}</strong></span>
+  </footer>
+  {% endif %}
 
-  <!-- Workflow Selector Component -->
-  {% include 'components/workflow_selector.html' %}
-
-  <!-- CPA Contact Modal -->
-  <div class="cpa-modal-backdrop" id="cpaModalBackdrop" onclick="closeCpaModal()" role="dialog" aria-modal="true" aria-label="Contact a CPA" style="display:none;">
-    <div class="cpa-modal" onclick="event.stopPropagation()">
-      <div class="cpa-modal-header">
-        <h3>Connect with a Licensed CPA</h3>
-        <button class="cpa-modal-close" onclick="closeCpaModal()" aria-label="Close">&times;</button>
-      </div>
-      <div class="cpa-modal-body">
-        <div class="cpa-contact-option">
-          {{ icon('phone', 'md') }}
-          <div>
-            <div class="cpa-contact-label">Call Us</div>
-            <a href="tel:+18005551234" class="cpa-contact-value">(800) 555-1234</a>
-          </div>
-        </div>
-        <div class="cpa-contact-option">
-          {{ icon('envelope', 'md') }}
-          <div>
-            <div class="cpa-contact-label">Email</div>
-            <a href="mailto:cpa@jorss-gbo.com" class="cpa-contact-value">cpa@jorss-gbo.com</a>
-          </div>
-        </div>
-        <div class="cpa-contact-option">
-          {{ icon('calendar', 'md') }}
-          <div>
-            <div class="cpa-contact-label">Schedule a Consultation</div>
-            <a href="/contact" class="cpa-contact-value">Book Online</a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  </div><!-- /.main-content -->
-
-  <!-- Alpine.js sidebar store + Alpine CDN -->
-  <script type="module"{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
-    import { registerSidebarStore } from '/static/js/alpine/stores/sidebar.js';
-    document.addEventListener('alpine:init', () => {
-      registerSidebarStore(Alpine);
-    });
-  </script>
+  <!-- Alpine.js (no sidebar store needed in embed) -->
   <script defer src="/static/js/vendor/alpine.min.js"></script>
-  <script defer src="/static/js/vendor/alpine-collapse.min.js"></script>
 </body>
 </html>

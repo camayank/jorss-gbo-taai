@@ -10,10 +10,10 @@
     - extra_styles: Inline styles to add at the end
 #}
 
-{# Google Fonts: DM Sans + DM Serif Display #}
+{# Google Fonts: Plus Jakarta Sans (display + body) + JetBrains Mono (code) #}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 {# Core CSS - Variables, Reset, Typography, Layout #}
 <link rel="stylesheet" href="/static/css/core/variables.css">
@@ -46,11 +46,7 @@
 <link rel="stylesheet" href="/static/css/pages/{{ page_css }}.css">
 {% endif %}
 
-{# Existing CSS files that may still be needed #}
-{% if include_legacy_css %}
-<link rel="stylesheet" href="/static/css/advisory-report.css">
-<link rel="stylesheet" href="/static/css/chatbot-ux-enhancements.css">
-{% endif %}
+{# advisory-report.css loaded directly by templates that need it #}
 
 {# Extra inline styles #}
 {% if extra_styles %}

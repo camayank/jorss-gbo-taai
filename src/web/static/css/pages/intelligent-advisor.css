@@ -5,7 +5,7 @@
     :root {
       --advisor-gradient: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-400) 100%);
       --advisor-gradient-premium: linear-gradient(135deg, var(--color-primary-400) 0%, var(--color-primary-500) 100%);
-      --advisor-shadow-glow: 0 0 40px rgba(26, 54, 93, 0.1);
+      --advisor-shadow-glow: 0 0 40px rgba(15, 118, 110, 0.1);
     }
 
     /* ============================================
@@ -69,7 +69,7 @@
     }
 
     [data-theme="advisor-dark"] .phase-indicator {
-      background: linear-gradient(135deg, rgba(30, 58, 95, 0.3) 0%, rgba(44, 82, 130, 0.3) 100%);
+      background: linear-gradient(135deg, rgba(15, 118, 110, 0.3) 0%, rgba(13, 148, 136, 0.3) 100%);
       border-color: var(--color-gray-700);
     }
 
@@ -89,7 +89,7 @@
     }
 
     [data-theme="advisor-dark"] .advisor-notice-banner {
-      background: rgba(30, 58, 95, 0.4);
+      background: rgba(15, 118, 110, 0.4);
       border-color: var(--color-gray-700);
       color: var(--color-gray-300);
     }
@@ -450,7 +450,7 @@
     .message.ai .bubble {
       background: var(--color-cream, #FAF8F4);
       border: 1px solid var(--color-cream-dark, #F0EDE6);
-      border-left: 3px solid var(--color-gold, #C9A84C);
+      border-left: 3px solid var(--color-gold, #f97316);
       border-radius: 2px 12px 12px 12px;
       color: var(--color-gray-900);
       box-shadow: var(--shadow-sm);
@@ -461,7 +461,7 @@
     }
 
     .message.user .bubble {
-      background: var(--color-navy-light, #132B50);
+      background: var(--color-navy-light, #0d9488);
       color: white;
       border: none;
       box-shadow: var(--shadow-md);
@@ -510,7 +510,7 @@
 
     .quick-action:hover {
       background: var(--color-accent-50, #FDF8EB);
-      border-color: var(--color-gold, #C9A84C);
+      border-color: var(--color-gold, #f97316);
       color: var(--color-primary-800);
       transform: translateY(-2px);
       box-shadow: var(--shadow-md);
@@ -521,13 +521,13 @@
     }
 
     .quick-action.primary {
-      background: var(--color-gold, #C9A84C);
-      border-color: var(--color-gold, #C9A84C);
+      background: var(--color-gold, #f97316);
+      border-color: var(--color-gold, #f97316);
       color: var(--color-primary-800);
     }
 
     .quick-action.primary:hover {
-      background: var(--color-gold-light, #E0C778);
+      background: var(--color-gold-light, #fb923c);
       border-color: var(--color-accent-600);
       color: white;
       transform: translateY(-2px);
@@ -1104,7 +1104,7 @@
     .dropdown-search:focus {
       outline: none;
       border-color: var(--color-primary-500);
-      box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
     }
 
     .dropdown-list {
@@ -1423,7 +1423,7 @@
     .step.active .step-number {
       background: var(--color-primary-500);
       color: white;
-      box-shadow: 0 0 0 4px rgba(26, 54, 93, 0.2);
+      box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.2);
     }
 
     .step.pending .step-number {
@@ -1487,7 +1487,7 @@
     .currency-input:focus {
       outline: none;
       border-color: var(--color-primary-500);
-      box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
     }
 
     .currency-input::placeholder {
@@ -1527,7 +1527,7 @@
       border-radius: 50%;
       background: var(--color-primary-500);
       cursor: pointer;
-      box-shadow: 0 2px 8px rgba(26, 54, 93, 0.3);
+      box-shadow: 0 2px 8px rgba(15, 118, 110, 0.3);
       transition: transform var(--transition-base);
     }
 
@@ -1760,7 +1760,7 @@
     .input-box:focus-within {
       background: var(--white);
       border-color: var(--color-primary-500);
-      box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
     }
 
     #userInput {
@@ -1963,9 +1963,9 @@
     }
 
     .journey-step.active .step-icon {
-      background: var(--color-navy, #0B1D3A);
-      border-color: var(--color-navy, #0B1D3A);
-      box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.3);
+      background: var(--color-navy, #0f766e);
+      border-color: var(--color-navy, #0f766e);
+      box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.3);
     }
 
     .journey-step.active .step-icon svg.icon {
@@ -1973,8 +1973,8 @@
     }
 
     .journey-step.completed .step-icon {
-      background: var(--color-gold, #C9A84C);
-      border-color: var(--color-gold, #C9A84C);
+      background: var(--color-gold, #f97316);
+      border-color: var(--color-gold, #f97316);
     }
 
     .journey-step.completed .step-icon svg.icon {
@@ -1995,7 +1995,7 @@
     }
 
     .journey-step.completed .step-label {
-      color: var(--color-gold, #C9A84C);
+      color: var(--color-gold, #f97316);
     }
 
     /* Phase Indicator */
@@ -2012,7 +2012,7 @@
       font-weight: var(--font-semibold);
       color: var(--color-primary-500);
       padding: var(--space-1-5) var(--space-4);
-      background: rgba(26, 54, 93, 0.1);
+      background: rgba(15, 118, 110, 0.1);
       border-radius: var(--radius-2xl-plus);
       transition: all var(--transition-slow);
     }
@@ -2045,7 +2045,7 @@
 
     /* Resume Banner */
     .resume-banner {
-      background: linear-gradient(135deg, rgba(26, 54, 93, 0.95) 0%, rgba(44, 82, 130, 0.95) 100%);
+      background: linear-gradient(135deg, rgba(15, 118, 110, 0.95) 0%, rgba(13, 148, 136, 0.95) 100%);
       color: white;
       padding: var(--space-4) var(--space-6);
       animation: slideDown 0.3s ease;
@@ -2531,7 +2531,7 @@
 
     .upload-zone:hover {
       border-color: var(--color-primary-500);
-      background: rgba(30, 64, 175, 0.05);
+      background: rgba(15, 118, 110, 0.05);
     }
 
     .upload-zone.dragover {
@@ -2847,7 +2847,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(26, 54, 93, 0.6);
+      background: rgba(15, 118, 110, 0.6);
       backdrop-filter: blur(4px);
       display: flex;
       align-items: center;
@@ -4059,7 +4059,7 @@
 
     .personality-option.selected {
       border-color: var(--color-primary-500);
-      background: rgba(26, 54, 93, 0.05);
+      background: rgba(15, 118, 110, 0.05);
     }
 
     .personality-option .personality-avatar {
@@ -4195,7 +4195,7 @@
     position: sticky;
     top: 0;
     z-index: 10;
-    background: var(--gradient-navy, linear-gradient(135deg, #0B1D3A, #132B50));
+    background: var(--gradient-navy, linear-gradient(135deg, #0f766e, #0d9488));
     padding: 8px 16px;
     border-radius: 0 0 12px 12px;
     text-align: center;
@@ -4204,8 +4204,8 @@
   }
 
   .savings-counter .amount {
-    font-family: var(--font-serif);
-    color: var(--color-gold, #C9A84C);
+    font-family: var(--font-display);
+    color: var(--color-gold, #f97316);
     font-size: 20px;
     margin-left: var(--space-2);
   }

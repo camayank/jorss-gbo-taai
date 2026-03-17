@@ -8,6 +8,65 @@
     <link rel="stylesheet" href="/static/css/core/reset.css">
     <link rel="stylesheet" href="/static/css/core/typography.css">
     <link rel="stylesheet" href="/static/css/unified-theme.css">
+    <style>
+      .bg-gray-50 { background: var(--color-gray-50, #f8fafc); }
+      .bg-gray-100 { background: var(--color-gray-100, #f1f5f9); }
+      .bg-white { background: var(--color-white, #fff); }
+      .bg-gray-900 { background: var(--color-gray-900, #0f172a); }
+      .bg-amber-50 { background: #fffbeb; }
+      .bg-red-50 { background: #fef2f2; }
+      .shadow-sm { box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+      .rounded-lg { border-radius: 0.5rem; }
+      .max-w-4xl { max-width: 56rem; }
+      .mx-auto { margin-left: auto; margin-right: auto; }
+      .px-4 { padding-left: 1rem; padding-right: 1rem; }
+      .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+      .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+      .py-12 { padding-top: 3rem; padding-bottom: 3rem; }
+      .p-8 { padding: 2rem; }
+      .p-4 { padding: 1rem; }
+      .mt-4 { margin-top: 1rem; }
+      .mt-8 { margin-top: 2rem; }
+      .mt-12 { margin-top: 3rem; }
+      .mb-2 { margin-bottom: 0.5rem; }
+      .mb-3 { margin-bottom: 0.75rem; }
+      .mb-4 { margin-bottom: 1rem; }
+      .mb-8 { margin-bottom: 2rem; }
+      .pl-6 { padding-left: 1.5rem; }
+      .text-xl { font-size: 1.25rem; }
+      .text-3xl { font-size: 1.875rem; }
+      .text-sm { font-size: 0.875rem; }
+      .font-bold { font-weight: 700; }
+      .font-semibold { font-weight: 600; }
+      .font-medium { font-weight: 500; }
+      .text-gray-400 { color: var(--color-gray-400, #94a3b8); }
+      .text-gray-500 { color: var(--color-gray-500, #64748b); }
+      .text-gray-700 { color: var(--color-gray-700, #334155); }
+      .text-gray-800 { color: var(--color-gray-800, #1e293b); }
+      .text-gray-900 { color: var(--color-gray-900, #0f172a); }
+      .text-amber-700 { color: #b45309; }
+      .text-amber-800 { color: #92400e; }
+      .text-red-700 { color: #b91c1c; }
+      .text-red-800 { color: #991b1b; }
+      .text-center { text-align: center; }
+      .list-disc { list-style-type: disc; }
+      .border { border: 1px solid var(--color-gray-200, #e2e8f0); }
+      .border-l-4 { border-left: 4px solid; }
+      .border-amber-500 { border-color: #f59e0b; }
+      .border-red-200 { border-color: #fecaca; }
+      .border-gray-300 { border-color: var(--color-gray-300, #cbd5e1); }
+      .space-y-2 > * + * { margin-top: 0.5rem; }
+      .space-y-8 > * + * { margin-top: 2rem; }
+      .space-x-4 { display: inline-flex; gap: 1rem; }
+      nav a { text-decoration: none; color: var(--color-primary-700, #0d9488); }
+      footer a { text-decoration: none; }
+      footer a:hover { color: #fff; }
+      @media (max-width: 640px) {
+        .p-8 { padding: 1.25rem; }
+        .py-12 { padding-top: 2rem; padding-bottom: 2rem; }
+        .text-3xl { font-size: 1.5rem; }
+      }
+    </style>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
@@ -199,7 +258,7 @@
                 <h2 class="text-xl font-semibold text-gray-900 mb-4">13. Contact</h2>
                 <p class="text-gray-700">
                     For questions about these Terms, contact us at:<br>
-                    Email: legal@taxadvisorpro.com<br>
+                    Email: {{ branding.legal_email | default('legal@example.com') }}<br>
                     Address: {{ branding.business_address | default('Address provided upon request') }}
                 </p>
             </section>

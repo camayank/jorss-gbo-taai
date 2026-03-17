@@ -94,7 +94,7 @@
 
 .auth-input:focus {
   border-color: var(--color-gold);
-  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.15);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
 }
 
 /* ── Buttons (Gold primary — matches brand) ────────────── */
@@ -162,7 +162,7 @@
   display: inline-block;
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(11,29,58,0.3);
+  border: 2px solid rgba(15,118,110,0.3);
   border-top-color: var(--color-navy);
   border-radius: 50%;
   animation: auth-spin 0.8s linear infinite;

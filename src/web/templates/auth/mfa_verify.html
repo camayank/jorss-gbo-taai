@@ -10,7 +10,7 @@
     {% endif %}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/core/variables.css">
     <link rel="stylesheet" href="/static/css/core/reset.css">
     <link rel="stylesheet" href="/static/css/core/typography.css">
@@ -25,8 +25,8 @@
         }
 
         body {
-            font-family: var(--font-sans, 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
-            background: linear-gradient(135deg, var(--color-primary-800) 0%, var(--color-primary-500) 100%);
+            font-family: var(--font-sans, 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+            background: linear-gradient(160deg, #f0fdfa 0%, #f8fafc 40%, #fff7ed 100%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -49,7 +49,7 @@
             gap: var(--space-2-5);
 
             text-decoration: none;
-            color: white;
+            color: var(--color-gray-900, #1c1917);
             font-weight: var(--font-bold);
 
             font-size: 1.25rem;
@@ -57,8 +57,6 @@
 
         .logo img {
             height: var(--space-8);
-
-            filter: brightness(0) invert(1);
         }
 
         .back-link {
@@ -66,14 +64,14 @@
             align-items: center;
             gap: var(--space-1-5);
 
-            color: rgba(255,255,255,0.8);
+            color: var(--color-gray-500, #78716c);
             text-decoration: none;
             font-size: 0.9rem;
             transition: color 0.2s;
         }
 
         .back-link:hover {
-            color: white;
+            color: var(--color-gray-900, #1c1917);
         }
 
         .back-link svg {
@@ -104,7 +102,8 @@
         .auth-card {
             background: var(--white);
             border-radius: var(--radius-2xl-plus);
-            box-shadow: var(--shadow-xl);
+            box-shadow: 0 4px 24px rgb(28 25 23 / 0.06), 0 1px 3px rgb(28 25 23 / 0.04);
+            border: 1px solid var(--color-gray-100, #f1f5f9);
             overflow: hidden;
         }
 
@@ -117,7 +116,7 @@
         .auth-icon {
             width: 64px;
             height: 64px;
-            background: linear-gradient(135deg, var(--color-navy) 0%, var(--color-primary-500) 100%);
+            background: linear-gradient(135deg, var(--color-primary-500, #14b8a6), var(--color-primary-600, #0d9488));
             border-radius: var(--radius-2xl);
 
             display: flex;
@@ -132,7 +131,7 @@
 
             height: var(--space-8);
 
-            color: var(--color-gold);
+            color: white;
         }
 
         .auth-title {
@@ -212,7 +211,7 @@
             outline: none;
             background: var(--white);
             transition: border-color 0.2s, box-shadow 0.2s;
-            caret-color: var(--color-gold);
+            caret-color: var(--color-primary-500, #14b8a6);
             -moz-appearance: textfield;
         }
 
@@ -223,13 +222,13 @@
         }
 
         .otp-input:focus {
-            border-color: var(--color-gold);
-            box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.15);
+            border-color: var(--color-primary-400, #2dd4bf);
+            box-shadow: 0 0 0 3px rgb(20 184 166 / 0.12);
         }
 
         .otp-input.filled {
-            border-color: var(--color-primary-500);
-            background: var(--color-primary-50, #F0F3F8);
+            border-color: var(--color-primary-500, #14b8a6);
+            background: var(--color-primary-50, #f0fdfa);
         }
 
         .otp-input.error {
@@ -268,8 +267,8 @@
         }
 
         .backup-input:focus {
-            border-color: var(--color-gold);
-            box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.15);
+            border-color: var(--color-primary-400, #2dd4bf);
+            box-shadow: 0 0 0 3px rgb(20 184 166 / 0.12);
         }
 
         .backup-input::placeholder {
@@ -287,7 +286,7 @@
             margin-bottom: var(--space-6);
 
             font-size: 0.9rem;
-            color: var(--color-gold);
+            color: var(--color-primary-600, #0d9488);
             text-decoration: none;
             font-weight: var(--font-medium);
 
@@ -296,7 +295,7 @@
         }
 
         .toggle-link:hover {
-            color: var(--color-gold-light);
+            color: var(--color-primary-700, #0f766e);
             text-decoration: underline;
         }
 
@@ -310,14 +309,14 @@
             font-size: 1rem;
             font-weight: var(--font-semibold);
 
-            color: var(--color-navy);
-            background: var(--color-gold);
+            color: white;
+            background: var(--color-accent-500, #f97316);
             border: none;
             border-radius: var(--radius-lg-plus);
             cursor: pointer;
             font-weight: 700;
             transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s, background 0.2s;
-            box-shadow: 0 4px 15px rgba(201, 168, 76, 0.3);
+            box-shadow: 0 4px 15px rgb(249 115 22 / 0.25);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -327,8 +326,8 @@
 
         .btn-submit:hover:not(:disabled) {
             transform: translateY(-2px);
-            background: var(--color-gold-light);
-            box-shadow: 0 6px 20px rgba(201, 168, 76, 0.4);
+            background: var(--color-accent-600, #ea580c);
+            box-shadow: 0 6px 20px rgb(249 115 22 / 0.25);
         }
 
         .btn-submit:active:not(:disabled) {
@@ -346,8 +345,8 @@
 
             height: var(--space-5);
 
-            border: 2px solid rgba(11,29,58,0.3);
-            border-top-color: var(--color-navy);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
@@ -375,7 +374,7 @@
         }
 
         .auth-footer a {
-            color: var(--color-gold);
+            color: var(--color-primary-600, #0d9488);
             text-decoration: none;
             font-weight: var(--font-semibold);
 
@@ -395,7 +394,7 @@
 
             padding: var(--space-5);
 
-            color: rgba(255,255,255,0.8);
+            color: var(--color-gray-400, #a8a29e);
             font-size: 0.85rem;
         }
 
