@@ -1,7 +1,7 @@
 # Advisory Report Enhancements Design Spec
 
 **Date:** 2026-03-18
-**Status:** Approved
+**Status:** Approved (Rev 2 — post spec review)
 **Approach:** Incremental enhancement of existing `AdvisoryReportGenerator`
 
 ## Context
@@ -45,16 +45,31 @@ Add `_generate_pro_forma_comparison()` to `AdvisoryReportGenerator`:
 
 ### Strategy Application Mapping
 
-Each `TaxSavingOpportunity` category maps to a TaxReturn modification:
+Each `TaxSavingOpportunity` category maps to a concrete `TaxReturn` field modification. Only categories with directly modifiable fields are applied to the pro forma clone:
 
-| Category | Modification |
-|----------|-------------|
-| `retirement` | Increase `retirement_contributions` to recommended amount |
-| `healthcare` | Set `hsa_contributions` to max ($4,300 individual / $8,550 family) |
-| `deductions` | Switch `use_standard_deduction` flag; adjust itemized amounts |
-| `charitable` | Increase `charitable_donations` per bunching recommendation |
-| `business` | Add `home_office_deduction`, `vehicle_deduction` per recommendation |
-| `timing` | Defer income or accelerate expenses per recommendation |
+| Category | TaxReturn Field(s) Modified | Notes |
+|----------|---------------------------|-------|
+| `retirement` | `credits.elective_deferrals_401k` → max ($23,500 + $7,500 catch-up); `deductions.ira_contributions` → max ($7,000 + $1,000 catch-up) | Fields exist on `TaxCredits` and `Deductions` models |
+| `healthcare` | `deductions.hsa_contributions` → max ($4,300 individual / $8,550 family) | Field exists on `Deductions` model |
+| `deductions` | `deductions.use_standard_deduction` → toggle; adjust `deductions.itemized.*` amounts | Fields exist on `Deductions` and `ItemizedDeductions` models |
+| `charitable` | `deductions.itemized.charitable_cash` → increase per bunching recommendation | Field exists on `ItemizedDeductions` model |
+| `business` | `income.self_employment_expenses` → increase per recommendation | Field exists on `Income` model. Home office/vehicle are sub-categories that reduce SE income via expenses |
+| `timing` | **Excluded from pro forma** — income deferral and expense acceleration are cross-year operations that cannot be modeled by modifying a single-year TaxReturn | Noted in report as "timing strategies excluded from pro forma modeling" |
+
+**When a strategy cannot be applied** (category not in the table, or the field is already at the recommended amount): the strategy appears in `strategies_applied` with `marginal_impact: 0.0` and a note explaining why it was not modeled.
+
+### Return Type
+
+`_generate_pro_forma_comparison()` returns a tuple to share the optimized TaxReturn with Enhancement 7 (dual projections):
+
+```python
+def _generate_pro_forma_comparison(
+    self, tax_return: TaxReturn, recommendations: ComprehensiveRecommendation
+) -> tuple[AdvisoryReportSection, TaxReturn]:
+    """Returns (section, optimized_tax_return_clone)."""
+```
+
+The optimized `TaxReturn` is stored in `generate_report()` and passed to `_generate_multi_year_projection()`.
 
 ### Output Schema
 
@@ -113,29 +128,47 @@ Solved entirely by Enhancement 1. When the pro forma comparison runs `calculate_
 ### Problem
 In `report_generation.py`'s `generate_report` endpoint, 5-7 AI calls run sequentially, adding 10-20 seconds.
 
+### Design Decision: Async/Sync Boundary
+
+**Decision: `AdvisoryReportGenerator.generate_report()` stays synchronous.** Rationale:
+- It is called from both async endpoints and sync contexts (PDF generation, CLI tools)
+- Making it async would require changes to all call sites
+- AI calls within the generator use the existing thread pool pattern (sync wrapper around async AI service)
+
+**Consequence:** All AI calls within `report_generator.py` methods (Enhancements 6, AI narrative in executive summary) use the existing pattern:
+```python
+from services.ai import get_ai_service, run_async
+response = run_async(ai.complete(...))
+```
+
+**The `asyncio.gather()` optimization applies only to `report_generation.py`** (the async API endpoint layer), not to the generator itself.
+
 ### Solution
 
 **In `report_generation.py` (`generate_report` endpoint):**
 
-Replace sequential calls with `asyncio.gather()`:
+Replace sequential calls with `asyncio.gather()`. All AI calls from Enhancements 3 and 6 are included in the same gather to stay within the 15s budget:
 
 ```python
-summary, multi_summaries, action_plan, email_client, email_internal = await asyncio.gather(
+summary, multi_summaries, action_plan, email_client, email_internal, ai_strategies = await asyncio.gather(
     chat_engine.generate_executive_summary(profile, calculation, strategies),
     summarizer.generate_all_summaries(report_data, profile.get("name")),
     narrator.generate_action_plan_narrative(action_items, client_profile),
     summarizer.generate_summary_for_email(report_data, "client"),
     summarizer.generate_summary_for_email(report_data, "internal"),
+    ai_reasoning_service.discover_strategies(profile, calculation, strategies),  # Enhancement 6
     return_exceptions=True,
 )
-# Handle any exceptions individually
+# Handle any exceptions individually — if a call returned an Exception, use fallback
+for i, result in enumerate(results):
+    if isinstance(result, Exception):
+        logger.warning(f"AI call {i} failed: {result}")
+        # Use fallback value
 ```
 
 **In `report_generator.py` (`_generate_executive_summary`):**
 
-Replace the thread pool + 5-second timeout pattern with native async. Since `AdvisoryReportGenerator` is called from async endpoints, make `generate_report()` async and use `await` for AI calls.
-
-If the generator must remain sync (called from non-async contexts), keep the thread pool but increase timeout to 8 seconds and add `asyncio.gather()` inside the async function being submitted.
+Keep the thread pool + timeout pattern but increase timeout to 8 seconds. The thread pool is only used when `generate_report()` is called synchronously. When called from the async endpoint, the AI narrative is generated separately in the `asyncio.gather()` above.
 
 ### Target
 - AI-dependent sections: 3-5 seconds (parallel)
@@ -154,15 +187,21 @@ If the generator must remain sync (called from non-async contexts), keep the thr
 `src/web/advisor/scenario_analysis.py` has 7 scenario endpoints (Roth, entity, deduction, AMT, multi-year, estate, audit risk) with deterministic fallbacks. None are used in the report.
 
 ### Solution
-Add `_generate_scenario_comparisons()` to `AdvisoryReportGenerator`. It selects applicable scenarios based on the taxpayer's profile:
+Add `_generate_scenario_comparisons()` to `AdvisoryReportGenerator`. It selects applicable scenarios based on the taxpayer's profile.
 
-| Scenario | Condition |
-|----------|-----------|
-| Roth Conversion | Has traditional IRA/401k balance or retirement income |
-| Entity Structure | Self-employed with business income > $40k |
-| Deduction Strategy | Itemized total is within 20% of standard deduction |
-| AMT Exposure | High SALT, ISOs, or AMT-triggering deductions |
-| Estate Planning | AGI > $500k or has significant assets |
+**Important:** The deterministic analysis functions (`_deterministic_roth_analysis()`, etc.) take primitive parameters, not `TaxReturn` objects. The generator must extract these primitives from the `TaxReturn`. If required fields are absent, the scenario is skipped.
+
+### Data Field Availability Mapping
+
+| Scenario | Required TaxReturn Fields | Primitive Parameters for Deterministic Function | Skip Condition |
+|----------|--------------------------|------------------------------------------------|----------------|
+| Roth Conversion | `income.retirement_income` (>0) OR `deductions.ira_contributions` (>0) OR `credits.elective_deferrals_401k` (>0) | `traditional_balance`: estimated from `retirement_income` or contributions; `current_bracket`: from calculation result marginal rate; `projected_bracket`: estimated lower (default 22%); `years_to_retirement`: from age (default 65-age); `filing_status`: from taxpayer | Skip if no retirement fields populated AND age not provided |
+| Entity Structure | `income.self_employment_income` (>$40k) | `gross_revenue`: SE income + SE expenses; `business_expenses`: SE expenses; `owner_salary`: None (auto-calculated); `state`: taxpayer.state; `filing_status` | Skip if `self_employment_income` == 0 or < $40k |
+| Deduction Strategy | `deductions.itemized.*` (any populated) | `income`: AGI from calc result; `current_deductions`: itemized total; `potential_deductions`: itemized fields dict; `filing_status`; `state` | Skip if all itemized fields are 0 |
+| AMT Exposure | `income.amt_iso_exercise_spread` (>0) OR SALT > $10k OR `income.tax_exempt_interest` (>0) | `regular_income`: AGI; `salt_deduction`: SALT total from itemized; `iso_spread`: from income model; `tax_exempt_interest`: from income model; `filing_status` | Skip if no AMT-triggering fields populated |
+| Estate Planning | AGI > $500k (from calc result) | `estate_value`: estimated from AGI * 10 (rough proxy); `annual_gifting`: 0; `trusts`: []; `beneficiaries`: dependents count; `state`; `goals`: [] | Skip if AGI <= $500k |
+
+**Deduplication:** If a scenario (e.g., Roth Conversion) was already covered in the recommendations section, the scenario analysis provides the deeper what-if comparison but references the existing recommendation rather than duplicating the title.
 
 For each applicable scenario, call the deterministic analysis function directly (not via HTTP endpoint). Optionally enhance with `TaxReasoningService` AI analysis when `AI_REPORT_NARRATIVES_ENABLED`.
 
@@ -220,7 +259,7 @@ Add `_generate_data_improvement_ctas()` to `AdvisoryReportGenerator`. Analyzes t
 | Business expenses | `is_self_employed` but no expenses | "Add business expenses to reduce SE tax" | "Could save $X in SE tax deductions" |
 | Rental details | Has `property_tax` but no rental income | "Do you own rental property? Add details for depreciation deductions" | "$2,000-5,000 in annual deductions" |
 | Retirement contributions | No 401k/IRA data, income > $50k | "Add retirement contribution details" | "Up to $X tax reduction" |
-| HSA contributions | No HSA data, has health insurance | "HSA contributions are triple-tax-advantaged" | "Up to $X deduction" |
+| HSA contributions | `deductions.hsa_contributions` == 0 AND income > $30k (proxy for likely having health insurance) | "HSA contributions are triple-tax-advantaged" | "Up to $X deduction" |
 | State info | No state specified | "Add your state for accurate state tax calculation" | "State taxes can be 0-13% of income" |
 | Capital gains detail | Has `investment_income` but no gains breakdown | "Specify long-term vs short-term gains for accurate rates" | "Long-term gains taxed at 0/15/20% vs ordinary rates" |
 | Charitable donations | High income, no charitable data | "Charitable giving could reduce your taxable income" | "Potential savings at your marginal rate" |
@@ -272,11 +311,40 @@ Add `_generate_ai_discovered_strategies()` to `AdvisoryReportGenerator`:
    - If rules-engine has a matching rule: verified → full confidence
    - If neither: include with reduced confidence (70%) and "AI-identified — verify with CPA" tag
 
+### AI Response Parsing Contract
+
+The prompt instructs Claude to return strategies in a structured JSON format. The prompt ends with:
+
+```
+Respond ONLY with a JSON array. Each element:
+{
+  "title": "Strategy name",
+  "category": "retirement|investment|charitable|business|estate|timing",
+  "estimated_savings": 0,
+  "description": "Why this applies to this taxpayer",
+  "action_required": "Specific next step",
+  "priority": "immediate|current_year|next_year|long_term",
+  "irc_reference": "IRC Section or IRS Form number",
+  "confidence_explanation": "Why you believe this applies"
+}
+Return an empty array [] if no additional strategies found.
+```
+
+**Parsing function:** `_parse_ai_strategies(response_content: str) -> List[Dict]`:
+1. Extract JSON array from response (handle markdown code blocks)
+2. Validate each item has required keys (`title`, `category`, `estimated_savings`, `irc_reference`)
+3. Discard items missing required keys
+4. Cap at 5 strategies
+5. If JSON parsing fails entirely, return empty list (fallback)
+
+Each parsed strategy is converted to a `TaxSavingOpportunity` with `source="ai_reasoning"` in metadata.
+
 ### Output
 
 AI-discovered strategies are appended to the `recommendations` section with a `source: "ai_reasoning"` tag. They appear in the action plan with appropriate confidence levels.
 
 ### Guardrails
+- AI call is included in the `asyncio.gather()` from Enhancement 3 (not a separate sequential call)
 - AI call timeout: 10 seconds
 - Max 5 AI-discovered strategies per report
 - Each must have a plausible IRS reference (IRC section, form number)
@@ -346,10 +414,14 @@ Entity comparison shows a single salary point. CPAs explore a curve of salary/di
 ### Solution
 Enhance `_generate_entity_comparison()` to generate a salary curve:
 
-1. Get reasonable salary range from `calculate_reasonable_salary()`
-2. Generate 6-8 data points from IRS minimum to 100% of net income
-3. For each point, call `calculate_scorp_savings()` to get net tax savings
-4. Identify the optimal salary (max savings within reasonable range)
+1. Get reasonable salary range from `calculate_reasonable_salary(net_income, gross_revenue)`
+2. Generate 6-8 data points from IRS minimum ($40k floor) to 100% of net income
+3. For each salary point:
+   a. Call `calculate_scorp_savings(net_income, salary_point)` to get net tax savings
+   b. Call `calculate_reasonable_salary(net_income, gross_revenue, fixed_salary=salary_point)` to get the IRS risk level at that specific point
+4. Identify the optimal salary (max savings where `irs_risk_level` is "low" or "medium")
+
+The `optimizer` instance used is the one already created in `_generate_entity_comparison()` (lines 426-438), not a new instance.
 
 ### Output Schema
 
@@ -393,10 +465,29 @@ content={
 Add `_model_strategy_interactions()` to `AdvisoryReportGenerator`:
 
 1. Sort strategies by independent savings (highest first)
-2. Clone the TaxReturn
-3. Apply strategies one at a time, cumulatively
-4. After each: run `calculate_complete_return()` and record marginal savings
-5. Report both independent and marginal savings for each strategy
+2. For each step i (0 to N-1):
+   a. **Fresh deepcopy** of the original (unmodified) TaxReturn
+   b. Apply strategies 0 through i (cumulatively) to the fresh clone
+   c. Run `calculate_complete_return()` on the clone
+   d. Record marginal savings = (previous step's total tax) - (this step's total tax)
+3. Report both independent and marginal savings for each strategy
+
+**Critical:** Each cumulative step starts from a fresh `deepcopy()` of the original TaxReturn, NOT from the previously-mutated clone. This is required because `calculate_complete_return()` mutates the TaxReturn in place (writes `tax_liability`, `adjusted_gross_income`, `taxable_income`, etc.), which would corrupt subsequent strategy applications.
+
+```python
+# Correct pseudocode
+original = tax_return  # unmodified
+prev_total_tax = current_total_tax  # from existing calculation
+
+for i in range(len(sorted_strategies)):
+    working_copy = copy.deepcopy(original)
+    for j in range(i + 1):
+        apply_strategy(working_copy, sorted_strategies[j])
+    result = self.tax_calculator.calculate_complete_return(working_copy)
+    new_total_tax = result.combined_tax_liability
+    marginal_savings = prev_total_tax - new_total_tax if i == 0 else prev_step_tax - new_total_tax
+    prev_step_tax = new_total_tax
+```
 
 ### Output Schema
 
@@ -418,12 +509,15 @@ content={
 ```
 
 ### Performance Note
-This requires N+1 calculator runs (where N = number of strategies applied). For a typical report with 5-8 applicable strategies, this adds ~50-100ms. Acceptable.
+This requires N+1 calculator runs AND N+1 `deepcopy()` calls. For N=8 strategies: 9 calculator runs (~100ms) + 9 deepcopy calls (~50ms) = ~150ms total. Acceptable within the 15s budget.
+
+### Model Change
+Add `marginal_savings: Optional[float] = None` to `TaxSavingOpportunity` dataclass (default `None` preserves backward compatibility with existing 80+ tests). This field is populated only by the interaction modeling step, not by the recommendation engine itself.
 
 ### Files Modified
 - `src/advisory/report_generator.py` — new method `_model_strategy_interactions()`
 - Update `generate_report()` to use interaction-modeled total instead of naive sum
-- Update `ComprehensiveRecommendation` fields in `recommendation_engine.py` to include `marginal_savings`
+- `src/recommendation/recommendation_engine.py` — add `marginal_savings: Optional[float] = None` to `TaxSavingOpportunity`
 
 ---
 
@@ -453,6 +547,21 @@ After all enhancements, the `FULL_ANALYSIS` report contains:
 6. Enhancement 4 (Scenario analysis) — independent, uses existing services
 7. Enhancement 8 (Salary curve) — independent, uses existing optimizer
 8. Enhancement 6 (AI reasoning) — last because it's the most complex integration
+
+## Performance Budget (15s Target)
+
+| Component | Time | Notes |
+|-----------|------|-------|
+| Calculator runs (pro forma, interactions) | ~300ms | N+1 deepcopy + calculate calls |
+| Recommendation engine | ~200ms | 5 sub-analyzers |
+| Entity optimizer + salary curve | ~50ms | 8 `calculate_scorp_savings()` calls |
+| Multi-year projections (x2) | ~100ms | Baseline + optimized |
+| Scenario analysis (deterministic) | ~50ms | 3-5 deterministic functions |
+| **All AI calls (parallel via `asyncio.gather()`)** | **3-5s** | Enhancement 3 + 6 in single gather |
+| Report assembly + serialization | ~50ms | |
+| **Total** | **~4-6s** | Well within 15s budget |
+
+**Key:** Enhancement 6's AI reasoning call (10s timeout) is included in the same `asyncio.gather()` as all other AI calls. It does NOT run sequentially after them.
 
 ## Testing Strategy
 
