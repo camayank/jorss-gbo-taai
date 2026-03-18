@@ -9,7 +9,8 @@
     <link rel="stylesheet" href="/static/css/core/reset.css">
     <link rel="stylesheet" href="/static/css/core/typography.css">
     <link rel="stylesheet" href="/static/css/unified-theme.css">
-    <!-- Tailwind (legacy — this page should migrate to design system) -->
+    <!-- Tailwind (legacy — TODO: migrate to design system CSS, then remove CDN) -->
+    <!-- WARNING: cdn.tailwindcss.com adds ~300KB and is not meant for production -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script{% if request and request.state and request.state.csp_nonce %} nonce="{{ request.state.csp_nonce }}"{% endif %}>
         tailwind.config = {

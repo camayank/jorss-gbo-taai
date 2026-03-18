@@ -195,7 +195,7 @@ class TaxRecommendationEngine:
         current_federal = tax_return.tax_liability or 0.0
         current_state = tax_return.state_tax_liability or 0.0
         current_total = current_federal + current_state
-        agi = tax_return.adjusted_gross_income or 1.0
+        agi = tax_return.adjusted_gross_income or 0.0
         current_effective = (current_total / agi * 100) if agi > 0 else 0.0
 
         filing_status = tax_return.taxpayer.filing_status.value
@@ -264,7 +264,7 @@ class TaxRecommendationEngine:
             taxpayer_name = f"{first} {last}".strip() or "Taxpayer"
 
         return ComprehensiveRecommendation(
-            tax_year=2025,
+            tax_year=getattr(tax_return, 'tax_year', 2025),
             generated_at=datetime.now().isoformat(),
             taxpayer_name=taxpayer_name,
             filing_status=filing_status,
@@ -817,7 +817,7 @@ class TaxRecommendationEngine:
 
     def _calculate_data_completeness(self, tax_return: "TaxReturn") -> float:
         """Calculate how complete the tax return data is."""
-        completeness = 50.0  # Base
+        completeness = 0.0  # Start at zero, earn completeness from data
 
         # Check key fields
         if tax_return.adjusted_gross_income:

@@ -1982,6 +1982,14 @@ class LeadMagnetService:
         if not session:
             raise ValueError(f"Session not found: {session_id}")
 
+        # Bridge lead magnet profile to advisory-compatible format for richer analysis
+        if session.tax_profile:
+            try:
+                from cpa_panel.services.lead_magnet_report_builder import build_tax_profile_input
+                report["advisory_profile"] = build_tax_profile_input(session.tax_profile)
+            except Exception as e:
+                logger.warning("Schema bridge failed, continuing without advisory profile: %s", e)
+
         # Get all insights from tax profile
         all_insights = []
         if session.tax_profile:

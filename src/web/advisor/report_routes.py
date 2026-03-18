@@ -43,7 +43,9 @@ async def get_safety_check(session_id: str, _session: str = Depends(verify_sessi
     _build_safety_summary = _get_build_safety_summary()
 
     try:
-        session = await chat_engine.get_or_create_session(session_id)
+        session = await chat_engine.get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
         safety = session.get("safety_checks")
         if not safety:
             return {"session_id": session_id, "status": "pending", "safety_checks": None}
@@ -102,6 +104,7 @@ async def get_session_pdf(
 ):
     """Generate and download PDF report for a session."""
     from fastapi.responses import FileResponse
+    from subscription.tier_control import ReportAccessControl, get_effective_access_level
 
     chat_engine = _get_chat_engine()
 
@@ -131,9 +134,16 @@ async def get_session_pdf(
     session = chat_engine.sessions.get(session_id)
 
     if not session:
-        session = await chat_engine.get_or_create_session(session_id)
-        if not session.get("profile"):
+        session = await chat_engine.get_session(session_id)
+        if not session or not session.get("profile"):
             raise HTTPException(status_code=404, detail="Session not found or has no data")
+
+    # Unified tier check for PDF download (supports CPA override + session grants)
+    user_id = session.get("user_id")
+    cpa_override = bool(session.get("cpa_id"))
+    access = get_effective_access_level(user_id=user_id, session=session, cpa_override=cpa_override)
+    if not ReportAccessControl.can_access_feature(access["tier"], "pdf_download"):
+        raise HTTPException(403, "PDF download requires Basic or higher subscription")
 
     profile = session.get("profile", {})
 
@@ -198,14 +208,22 @@ async def get_session_pdf(
         pdf_path = tmp.name
         tmp.close()
 
-        export_advisory_report_to_pdf(
-            report=report,
-            output_path=pdf_path,
-            watermark=watermark,
-            include_charts=include_charts,
-            include_toc=include_toc,
-            brand_config=brand_config,
-        )
+        try:
+            export_advisory_report_to_pdf(
+                report=report,
+                output_path=pdf_path,
+                watermark=watermark,
+                include_charts=include_charts,
+                include_toc=include_toc,
+                brand_config=brand_config,
+            )
+        except Exception:
+            # Clean up temp file on failure
+            try:
+                os.unlink(pdf_path)
+            except OSError:
+                pass
+            raise
 
         background_tasks.add_task(os.unlink, pdf_path)
 
@@ -226,9 +244,21 @@ async def get_session_pdf(
 @_report_router.post("/report/{session_id}/generate-pdf")
 async def generate_session_pdf(session_id: str, _session: str = Depends(verify_session_token)):
     """Generate PDF via the advisory reports API."""
+    from subscription.tier_control import ReportAccessControl, get_effective_access_level
+
     chat_engine = _get_chat_engine()
 
-    session = await chat_engine.get_or_create_session(session_id)
+    session = await chat_engine.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Unified tier check for PDF download (supports CPA override + session grants)
+    user_id = session.get("user_id")
+    cpa_override = bool(session.get("cpa_id"))
+    access = get_effective_access_level(user_id=user_id, session=session, cpa_override=cpa_override)
+    if not ReportAccessControl.can_access_feature(access["tier"], "pdf_download"):
+        raise HTTPException(403, "PDF download requires Basic or higher subscription")
+
     profile = session.get("profile", {})
 
     if not profile.get("filing_status") or not profile.get("total_income"):
@@ -306,7 +336,9 @@ async def generate_universal_report(request: UniversalReportRequest, _session: s
     try:
         from universal_report import UniversalReportEngine
 
-        session = await chat_engine.get_or_create_session(request.session_id)
+        session = await chat_engine.get_session(request.session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
         profile = session.get("profile", {})
 
         if not profile.get("filing_status"):
@@ -384,11 +416,13 @@ async def get_universal_report_html(
     try:
         from universal_report import UniversalReportEngine
 
-        session = await chat_engine.get_or_create_session(session_id)
+        session = await chat_engine.get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
         profile = session.get("profile", {})
 
         if not profile.get("filing_status"):
-            raise HTTPException(status_code=404, detail="Session not found or has no data")
+            raise HTTPException(status_code=404, detail="Session has no data")
 
         cpa_profile = None
         if cpa:
@@ -445,16 +479,28 @@ async def get_universal_report_pdf(
     _session: str = Depends(verify_session_token),
 ):
     """Get PDF universal report for a session."""
+    from subscription.tier_control import ReportAccessControl, get_effective_access_level
+
     chat_engine = _get_chat_engine()
 
     try:
         from universal_report import UniversalReportEngine
 
-        session = await chat_engine.get_or_create_session(session_id)
+        session = await chat_engine.get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        # Unified tier check for PDF download (supports CPA override + session grants)
+        user_id = session.get("user_id")
+        cpa_override = bool(session.get("cpa_id"))
+        access = get_effective_access_level(user_id=user_id, session=session, cpa_override=cpa_override)
+        if not ReportAccessControl.can_access_feature(access["tier"], "pdf_download"):
+            raise HTTPException(403, "PDF download requires Basic or higher subscription")
+
         profile = session.get("profile", {})
 
         if not profile.get("filing_status"):
-            raise HTTPException(status_code=404, detail="Session not found or has no data")
+            raise HTTPException(status_code=404, detail="Session has no data")
 
         cpa_profile = None
         if cpa:

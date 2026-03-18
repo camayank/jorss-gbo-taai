@@ -381,10 +381,69 @@ def get_user_tier(user_id: Optional[str]) -> SubscriptionTier:
     return SubscriptionTier.FREE
 
 
+def get_effective_access_level(
+    user_id: Optional[str] = None,
+    session: Optional[Dict[str, Any]] = None,
+    cpa_override: bool = False,
+) -> Dict[str, Any]:
+    """
+    Unified gating: resolve the effective access level from all sources.
+
+    Priority order:
+    1. CPA firm override (white-label embed) → CPA_FIRM tier
+    2. Authenticated user subscription tier
+    3. Session-level tier (e.g. lead-magnet preview grants BASIC temporarily)
+    4. Default FREE tier
+
+    Returns a dict with ``tier``, ``limits``, and ``source`` (for audit).
+    """
+    # 1. CPA override (embed mode)
+    if cpa_override:
+        tier = SubscriptionTier.CPA_FIRM
+        return {
+            "tier": tier,
+            "limits": TIER_CONFIG[tier],
+            "source": "cpa_override",
+        }
+
+    # 2. Authenticated user tier
+    if user_id:
+        tier = get_user_tier(user_id)
+        if tier != SubscriptionTier.FREE:
+            return {
+                "tier": tier,
+                "limits": TIER_CONFIG[tier],
+                "source": "subscription",
+            }
+
+    # 3. Session-level tier (e.g. temporary preview access)
+    if session:
+        session_tier_str = session.get("granted_tier")
+        if session_tier_str:
+            try:
+                tier = SubscriptionTier(session_tier_str)
+                return {
+                    "tier": tier,
+                    "limits": TIER_CONFIG[tier],
+                    "source": "session_grant",
+                }
+            except ValueError:
+                logger.warning("Invalid session granted_tier: %s", session_tier_str)
+
+    # 4. Default
+    tier = SubscriptionTier.FREE
+    return {
+        "tier": tier,
+        "limits": TIER_CONFIG[tier],
+        "source": "default",
+    }
+
+
 __all__ = [
     'SubscriptionTier',
     'TierLimits',
     'TIER_CONFIG',
     'ReportAccessControl',
     'get_user_tier',
+    'get_effective_access_level',
 ]

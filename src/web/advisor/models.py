@@ -35,6 +35,18 @@ class ChatMessage(BaseModel):
     content: str
     timestamp: Optional[datetime] = None
 
+    @validator('role')
+    def validate_role(cls, v):
+        if v not in ('user', 'assistant'):
+            raise ValueError("Role must be 'user' or 'assistant'")
+        return v
+
+    @validator('content')
+    def validate_content_length(cls, v):
+        if len(v) > 10000:
+            raise ValueError("Message content too long")
+        return v
+
 
 class TaxProfileInput(BaseModel):
     """User's tax profile for analysis."""
@@ -106,6 +118,46 @@ class TaxProfileInput(BaseModel):
     federal_withholding: Optional[float] = None
     estimated_payments: Optional[float] = None
 
+    @validator('state')
+    def validate_state(cls, v):
+        if v is not None:
+            import re
+            if not re.match(r'^[A-Z]{2}$', v):
+                raise ValueError("State must be a 2-letter uppercase code (e.g., 'CA')")
+        return v
+
+    @validator('age', 'spouse_age')
+    def validate_age(cls, v):
+        if v is not None and (v < 0 or v > 120):
+            raise ValueError("Age must be between 0 and 120")
+        return v
+
+    @validator('dependents')
+    def validate_dependents(cls, v):
+        if v is not None and (v < 0 or v > 20):
+            raise ValueError("Dependents must be between 0 and 20")
+        return v
+
+    @validator(
+        'total_income', 'w2_income', 'business_income', 'investment_income',
+        'rental_income', 'capital_gains_long', 'capital_gains_short', 'capital_gains',
+        'dividend_income', 'qualified_dividends', 'interest_income',
+        'mortgage_interest', 'property_taxes', 'state_income_tax',
+        'charitable_donations', 'medical_expenses', 'retirement_401k',
+        'retirement_ira', 'hsa_contributions', 'business_expenses',
+        'health_insurance_premiums', 'w2_wages_paid',
+        'k1_ordinary_income', 'k1_rental_income', 'k1_interest_income',
+        'k1_dividends', 'k1_capital_gains', 'k1_section_179',
+        'k1_guaranteed_payments', 'k1_w2_wages', 'k1_ubia',
+        'rental_gross_income', 'rental_expenses', 'rental_depreciation',
+        'rental_mortgage_interest', 'rental_property_taxes',
+        'student_loan_interest', 'federal_withholding', 'estimated_payments',
+    )
+    def validate_dollar_amounts(cls, v):
+        if v is not None and (v < -10_000_000 or v > 100_000_000):
+            raise ValueError("Amount must be between -$10,000,000 and $100,000,000")
+        return v
+
 
 class ChatRequest(BaseModel):
     """Request for intelligent chat interaction."""
@@ -114,6 +166,18 @@ class ChatRequest(BaseModel):
     profile: Optional[TaxProfileInput] = None
     conversation_history: Optional[List[ChatMessage]] = []
     context: Optional[Dict[str, Any]] = {}
+
+    @validator('message')
+    def validate_message(cls, v):
+        if len(v) > 4000:
+            raise ValueError("Message too long")
+        return v
+
+    @validator('conversation_history')
+    def validate_history(cls, v):
+        if v and len(v) > 50:
+            raise ValueError("Conversation history too long")
+        return v
 
     @validator('session_id')
     def validate_session_id(cls, v):

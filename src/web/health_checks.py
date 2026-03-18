@@ -12,7 +12,10 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import Dict, Optional, List
 from datetime import datetime
-import psutil
+try:
+    import psutil
+except ImportError:
+    psutil = None
 import logging
 from decimal import Decimal, ROUND_HALF_UP
 from calculator.decimal_math import money, to_decimal
@@ -200,7 +203,7 @@ async def check_redis_async() -> DependencyStatus:
 def check_tax_calculator() -> DependencyStatus:
     """Check tax calculator service."""
     try:
-        from calculation.tax_calculator import TaxCalculator
+        from calculator.tax_calculator import TaxCalculator
 
         # Quick sanity check
         calculator = TaxCalculator()
@@ -410,6 +413,21 @@ def register_custom_health_check(name: str, check_function):
     """
     _custom_health_checks[name] = check_function
     logger.info(f"Registered custom health check: {name}")
+
+
+def check_ai_providers() -> DependencyStatus:
+    """Check if AI providers are configured and available."""
+    try:
+        from config.ai_providers import validate_ai_configuration
+        config = validate_ai_configuration()
+        if config.get("overall_status") == "critical":
+            return DependencyStatus(name="ai_providers", status="down", message="No AI provider available")
+        return DependencyStatus(name="ai_providers", status="up")
+    except Exception as e:
+        return DependencyStatus(name="ai_providers", status="down", message=str(e))
+
+
+register_custom_health_check("ai_providers", check_ai_providers)
 
 
 def get_custom_health_checks() -> list:

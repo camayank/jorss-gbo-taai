@@ -38,7 +38,11 @@ try:
     _ENCRYPTION_AVAILABLE = True
 except ImportError:
     _ENCRYPTION_AVAILABLE = False
-    logger.warning("encrypted_fields not available - Redis session data stored in plaintext")
+    import os as _os
+    if _os.environ.get("APP_ENVIRONMENT") in ("production", "prod"):
+        logger.error("encrypted_fields not available in production - Redis session data will be stored in plaintext!")
+    else:
+        logger.warning("encrypted_fields not available - Redis session data stored in plaintext")
 
 
 def _encrypt_session_data(data_dict: Dict[str, Any]) -> str:
@@ -48,7 +52,7 @@ def _encrypt_session_data(data_dict: Dict[str, Any]) -> str:
             return encrypt_pii(json.dumps(data_dict, default=str), field_type="generic")
         except Exception as e:
             logger.error(f"Redis session encryption failed: {e}")
-    return data_dict  # Return original dict if encryption unavailable
+    return json.dumps(data_dict, default=str)  # Return JSON string for consistent type
 
 
 def _decrypt_session_data(stored: Any) -> Dict[str, Any]:
@@ -670,6 +674,13 @@ async def get_redis_session_persistence() -> Optional[RedisSessionPersistence]:
         RedisSessionPersistence instance or None if Redis unavailable
     """
     global _redis_session_persistence
+
+    if _redis_session_persistence is not None:
+        try:
+            await _redis_session_persistence._redis.ping()
+        except Exception:
+            logger.warning("Redis connection lost, forcing re-initialization")
+            _redis_session_persistence = None
 
     if _redis_session_persistence is not None:
         return _redis_session_persistence

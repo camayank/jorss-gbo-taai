@@ -684,13 +684,16 @@ Contact us to discuss implementation of these tax-saving strategies."""
 # =============================================================================
 
 _report_summarizer: Optional[AIReportSummarizer] = None
+_report_summarizer_lock = __import__('threading').Lock()
 
 
 def get_report_summarizer() -> AIReportSummarizer:
-    """Get the singleton report summarizer instance."""
+    """Get the singleton report summarizer instance (thread-safe)."""
     global _report_summarizer
     if _report_summarizer is None:
-        _report_summarizer = AIReportSummarizer()
+        with _report_summarizer_lock:
+            if _report_summarizer is None:
+                _report_summarizer = AIReportSummarizer()
     return _report_summarizer
 
 

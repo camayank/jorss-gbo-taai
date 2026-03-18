@@ -916,6 +916,55 @@ export function dismissLeadCapture() {
   if (modal) modal.remove();
 }
 
+/**
+ * Show a consent dialog before transmitting lead data to the CPA firm.
+ * Returns a Promise that resolves to true (consented) or false (declined).
+ */
+export function showLeadConsentDialog(contactInfo) {
+  return new Promise((resolve) => {
+    const existing = document.getElementById('leadConsentModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'leadConsentModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width:500px;margin:10% auto;background:#fff;border-radius:12px;padding:2rem;box-shadow:0 8px 32px rgba(0,0,0,.18);">
+        <h3 style="margin-bottom:1rem;font-size:1.2rem;">Share Your Information?</h3>
+        <p style="margin-bottom:1rem;color:#555;">
+          Based on your tax analysis, a licensed CPA can help you implement these savings strategies.
+          By clicking <strong>Yes, Connect Me</strong>, you consent to sharing your contact information
+          and tax profile summary with the CPA firm for the purpose of providing personalized tax advice.
+        </p>
+        <p style="margin-bottom:1.5rem;color:#555;font-size:0.9rem;">
+          Your data will be handled in accordance with our
+          <a href="/privacy" target="_blank" style="color:#2c5aa0;">Privacy Policy</a>.
+          You can withdraw consent at any time.
+        </p>
+        <div style="display:flex;gap:1rem;justify-content:flex-end;">
+          <button id="leadConsentDecline" style="padding:.6rem 1.2rem;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;">
+            No Thanks
+          </button>
+          <button id="leadConsentAccept" style="padding:.6rem 1.2rem;border:none;border-radius:8px;background:#2c5aa0;color:#fff;cursor:pointer;font-weight:600;">
+            Yes, Connect Me
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    document.getElementById('leadConsentAccept').addEventListener('click', () => {
+      modal.remove();
+      resolve(true);
+    });
+    document.getElementById('leadConsentDecline').addEventListener('click', () => {
+      modal.remove();
+      resolve(false);
+    });
+  });
+}
+
 export function unlockAllCards() {
   unlockPremiumStrategies();
 }

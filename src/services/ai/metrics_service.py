@@ -695,9 +695,43 @@ class AIMetricsService:
         }
 
     def _check_budget_alerts(self):
-        """Check and record budget alerts."""
-        # This would typically integrate with alerting system
-        pass
+        """Check budget thresholds and emit alerts when exceeded."""
+        monthly_limit = float(os.environ.get("AI_MONTHLY_BUDGET_USD", "500"))
+        if monthly_limit <= 0:
+            return
+
+        now = datetime.now()
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        monthly_spend = sum(r.cost for r in self._records if r.timestamp >= month_start)
+        usage_pct = monthly_spend / monthly_limit
+
+        # Deduplicate: only alert once per level per month
+        month_key = month_start.isoformat()
+        existing_levels = {
+            a["level"] for a in self._budget_alerts if a.get("month") == month_key
+        }
+
+        alert_level = None
+        if usage_pct >= 0.95 and "critical" not in existing_levels:
+            alert_level = "critical"
+        elif usage_pct >= 0.80 and "warning" not in existing_levels:
+            alert_level = "warning"
+
+        if alert_level:
+            alert = {
+                "month": month_key,
+                "level": alert_level,
+                "spend": round(monthly_spend, 2),
+                "limit": monthly_limit,
+                "usage_pct": round(usage_pct * 100, 1),
+                "timestamp": now.isoformat(),
+            }
+            self._budget_alerts.append(alert)
+            logger.warning(
+                "AI budget %s: $%.2f / $%.2f (%.1f%%) for %s",
+                alert_level.upper(), monthly_spend, monthly_limit,
+                usage_pct * 100, month_start.strftime("%Y-%m"),
+            )
 
     def _load_persisted_data(self):
         """Load persisted metrics data."""

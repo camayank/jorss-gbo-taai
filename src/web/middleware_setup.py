@@ -52,9 +52,15 @@ def configure_middleware(app: FastAPI) -> dict:
             _environment,
         )
     elif not cors_origins:
-        logger.warning(
-            "CORS: No origins configured. Set CORS_ORIGINS env var for your production domain(s)."
-        )
+        if _is_production:
+            logger.error(
+                "CORS: No origins configured in production! Set CORS_ORIGINS env var. "
+                "Requests with Origin headers will be rejected."
+            )
+        else:
+            logger.warning(
+                "CORS: No origins configured. Set CORS_ORIGINS env var for your production domain(s)."
+            )
 
     app.add_middleware(
         CORSMiddleware,

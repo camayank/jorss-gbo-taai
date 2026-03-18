@@ -1295,6 +1295,14 @@
                 sectionDiv.className = 'section';
                 sectionDiv.innerHTML = `<h2>${escapeHtml(section.title)}</h2>`;
 
+                // Add AI-generated badge to AI-powered sections
+                if (['executive_summary', 'recommendations', 'action_plan'].includes(section.section_id)) {
+                    const aiBadge = document.createElement('div');
+                    aiBadge.style.cssText = 'display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:#f0f7ff;border:1px solid #bdd7ff;border-radius:6px;font-size:0.8rem;color:#2c5aa0;margin-bottom:12px;';
+                    aiBadge.innerHTML = '<strong>AI-Generated Analysis</strong> &mdash; Verify with a licensed tax professional';
+                    sectionDiv.appendChild(aiBadge);
+                }
+
                 switch (section.section_id) {
                     case 'executive_summary':
                         sectionDiv.appendChild(buildExecutiveSummarySection(section.content));
@@ -1511,6 +1519,15 @@
             if (div.children.length === 0) {
                 div.innerHTML = `<p style="color: var(--color-gray-600);">${escapeHtml(typeof content === 'string' ? content : 'This report is for informational purposes only.')}</p>`;
             }
+
+            // IRS Circular 230 Disclosure — always rendered, non-dismissible
+            const circular230 = document.createElement('div');
+            circular230.style.cssText = 'margin-top:24px;padding:16px;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;font-size:0.85rem;color:#92400e;';
+            const circular230Text = content?.circular_230 ||
+                'Any tax advice contained in this communication was not intended or written to be used, ' +
+                'and cannot be used, for the purpose of avoiding penalties under the Internal Revenue Code.';
+            circular230.innerHTML = `<strong>IRS Circular 230 Disclosure:</strong> ${escapeHtml(circular230Text)}`;
+            div.appendChild(circular230);
 
             return div;
         }

@@ -164,6 +164,7 @@ class AdvisoryReportGenerator:
         include_entity_comparison: bool = False,
         include_multi_year: bool = True,
         years_ahead: int = 3,
+        report_timeout_seconds: int = 30,
     ) -> AdvisoryReportResult:
         """
         Generate a comprehensive advisory report.
@@ -178,22 +179,45 @@ class AdvisoryReportGenerator:
         Returns:
             AdvisoryReportResult with all sections and data
         """
-        taxpayer_name = f"{tax_return.taxpayer.first_name} {tax_return.taxpayer.last_name}"
+        taxpayer = getattr(tax_return, 'taxpayer', None)
+        taxpayer_name = f"{getattr(taxpayer, 'first_name', '')} {getattr(taxpayer, 'last_name', '')}".strip() or "Taxpayer"
         logger.info(f"Generating {report_type.value} report for {taxpayer_name}")
 
         report_id = self._generate_report_id(tax_return)
         sections: List[AdvisoryReportSection] = []
 
         try:
-            # Section 1: Executive Summary
-            sections.append(self._generate_executive_summary(tax_return))
+            import concurrent.futures
 
-            # Section 2: Current Tax Position (uses existing calculator)
-            sections.append(self._generate_current_position(tax_return))
+            def _generate_all():
+                nonlocal sections
+                # Section 1: Executive Summary
+                sections.append(self._generate_executive_summary(tax_return))
+
+                # Section 2: Current Tax Position (uses existing calculator)
+                sections.append(self._generate_current_position(tax_return))
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(_generate_all)
+                future.result(timeout=report_timeout_seconds)
 
             # Section 3: Recommendations (uses existing recommendation engine)
-            recommendations_section, recommendation_data = self._generate_recommendations(tax_return)
-            sections.append(recommendations_section)
+            try:
+                recommendations_section, recommendation_data = self._generate_recommendations(tax_return)
+                sections.append(recommendations_section)
+            except Exception as rec_err:
+                logger.warning(f"Recommendation generation failed: {rec_err}")
+                # Create minimal recommendation data for downstream sections
+                recommendation_data = type('FallbackRec', (), {
+                    'total_potential_savings': 0,
+                    'overall_confidence': 0,
+                    'top_opportunities': [],
+                })()
+                sections.append(AdvisoryReportSection(
+                    section_id="recommendations",
+                    title="Tax Optimization Recommendations",
+                    content={"error": "Recommendation generation failed. Please try again."},
+                ))
 
             # Section 4: Entity Comparison (if business income exists)
             entity_section = None
@@ -249,7 +273,8 @@ class AdvisoryReportGenerator:
 
         except Exception as e:
             logger.error(f"Error generating report: {str(e)}", exc_info=True)
-            error_taxpayer_name = f"{tax_return.taxpayer.first_name} {tax_return.taxpayer.last_name}"
+            taxpayer = getattr(tax_return, 'taxpayer', None)
+            error_taxpayer_name = f"{getattr(taxpayer, 'first_name', '')} {getattr(taxpayer, 'last_name', '')}".strip() or "Taxpayer"
             return AdvisoryReportResult(
                 report_id=report_id,
                 report_type=report_type,
@@ -324,8 +349,10 @@ class AdvisoryReportGenerator:
                 narrative = pool.submit(_generate_ai).result(timeout=5)
                 if narrative and narrative.content:
                     content["ai_narrative"] = narrative.content
-        except Exception as e:
+        except (ImportError, ConnectionError, TimeoutError, RuntimeError, OSError) as e:
             logger.warning(f"AI narrative generation failed, using static summary: {e}")
+        except Exception as e:
+            logger.warning(f"Unexpected error in AI narrative generation: {e}")
 
         return AdvisoryReportSection(
             section_id="executive_summary",
@@ -604,7 +631,7 @@ class AdvisoryReportGenerator:
 
     def _calculate_effective_rate(self, tax_return: "TaxReturn") -> float:
         """Calculate effective tax rate."""
-        agi = float(tax_return.adjusted_gross_income or 1)
+        agi = float(tax_return.adjusted_gross_income or 0)
         total_tax = float((tax_return.tax_liability or 0) + (tax_return.state_tax_liability or 0))
         return float(money((total_tax / agi * 100))) if agi > 0 else 0.0
 

@@ -403,7 +403,7 @@ class ProfessionalAcknowledgment(BaseModel):
     ip_address: Optional[str] = None
     user_agent: Optional[str] = None
 
-# Store acknowledgments in memory (production would use database)
+# In-memory cache for acknowledgments (backed by DB)
 _acknowledgments: dict = {}
 
 
@@ -413,8 +413,8 @@ def check_acknowledgment(session_id: str) -> bool:
     return ack is not None and ack.acknowledged
 
 
-def store_acknowledgment(session_id: str, ip_address: str = None, user_agent: str = None):
-    """Store user acknowledgment of professional standards."""
+def store_acknowledgment(session_id: str, ip_address: str = None, user_agent: str = None, tenant_id: str = None):
+    """Store user acknowledgment of professional standards (persisted to DB)."""
     ack = ProfessionalAcknowledgment(
         session_id=session_id,
         acknowledged=True,
@@ -422,10 +422,31 @@ def store_acknowledgment(session_id: str, ip_address: str = None, user_agent: st
         ip_address=ip_address,
         user_agent=user_agent
     )
-    # Prevent unbounded growth
+
+    # Persist to consent_audit_log table
+    try:
+        from database.session_manager import get_db_session
+        from sqlalchemy import text
+        with get_db_session() as db:
+            db.execute(text(
+                "INSERT INTO consent_audit_log "
+                "(session_id, tenant_id, ip_address, user_agent, consent_version, acknowledged_at) "
+                "VALUES (:sid, :tid, :ip, :ua, :cv, :ack_at)"
+            ), {
+                "sid": session_id,
+                "tid": tenant_id,
+                "ip": ip_address,
+                "ua": user_agent,
+                "cv": "2026-03-18-v1",
+                "ack_at": datetime.now(timezone.utc),
+            })
+            db.commit()
+    except Exception as e:
+        _raw_logger.warning(f"Failed to persist consent to DB (in-memory still valid): {e}")
+
+    # Prevent unbounded in-memory growth
     if len(_acknowledgments) > 10000:
-        # Remove oldest entries
-        oldest_keys = sorted(_acknowledgments, key=lambda k: _acknowledgments[k].get('timestamp', ''))[:5000]
+        oldest_keys = sorted(_acknowledgments, key=lambda k: str(getattr(_acknowledgments[k], 'acknowledged_at', '')))[:5000]
         for k in oldest_keys:
             del _acknowledgments[k]
     _acknowledgments[session_id] = ack
@@ -448,7 +469,10 @@ try:
     RATE_LIMITER_AVAILABLE = True
 except ImportError:
     RATE_LIMITER_AVAILABLE = False
-    logger.warning("Rate limiter not available")
+    if os.environ.get("APP_ENVIRONMENT") in ("production", "prod"):
+        logger.critical("Rate limiter unavailable in production!")
+    else:
+        logger.warning("Rate limiter not available")
 
 try:
     from utils.logo_handler import LogoHandler, logo_handler
@@ -1081,6 +1105,16 @@ class IntelligentChatEngine:
             except Exception as e:
                 logger.warning(f"Failed to load session {session_id} from SQLite: {e}")
 
+        return None
+
+    async def get_session(self, session_id: str, tenant_id: str = None) -> Optional[Dict[str, Any]]:
+        """Get session without creating. Returns None if not found."""
+        if session_id in self.sessions:
+            return self.sessions[session_id]
+        loaded = await self._load_session_from_db(session_id, tenant_id=tenant_id)
+        if loaded:
+            self.sessions[session_id] = loaded
+            return loaded
         return None
 
     async def get_or_create_session(self, session_id: str, tenant_id: str = None) -> Dict[str, Any]:

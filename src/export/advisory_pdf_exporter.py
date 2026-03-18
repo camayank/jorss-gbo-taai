@@ -1054,7 +1054,7 @@ class AdvisoryPDFExporter:
         story.append(Paragraph("IMPORTANT LEGAL NOTICE", self.styles['SubsectionHeading']))
         story.append(Paragraph(
             "<b>NOT TAX ADVICE:</b> This document is for informational and educational purposes only. "
-            "TaxAdvisor Pro is a tax information platform, NOT a tax preparation service or tax advisory service. "
+            f"{self.brand_config.firm_name if self.brand_config else 'TaxAdvisor Pro'} is a tax information platform, NOT a tax preparation service or tax advisory service. "
             "All calculations, estimates, and recommendations are approximations based on general tax rules "
             "and may not reflect your actual tax situation.",
             self.styles['Disclaimer']

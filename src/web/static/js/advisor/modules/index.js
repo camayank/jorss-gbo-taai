@@ -42,7 +42,8 @@ import {
   dismissResumeBanner,
   startAutoSave,
   initRobustnessFeatures,
-  performTaxCalculation
+  performTaxCalculation,
+  _setProcessAIResponse
 } from './advisor-data.js';
 
 import {
@@ -84,6 +85,9 @@ import {
   editField
 } from './advisor-display.js';
 
+
+// ── Wire cross-module bridges ────────────────────────────────────────────────
+_setProcessAIResponse(processAIResponse);
 
 // ── Window globals (required by HTML onclick attributes) ─────────────────────
 

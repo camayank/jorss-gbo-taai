@@ -613,7 +613,12 @@ export async function performTaxCalculation() {
     updateProgress(75);
 
     if (extractedData.lead_data.score >= 60) {
-      sendLeadToCPA();
+      const { showLeadConsentDialog } = await import('./advisor-display.js');
+      showLeadConsentDialog(extractedData.contact).then(consent => {
+        if (consent) {
+          sendLeadToCPA();
+        }
+      }).catch(err => DevLogger.error('Lead consent dialog error:', err));
     }
   } else {
     DevLogger.error('Analysis failed. Current data:', {

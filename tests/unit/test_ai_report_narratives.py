@@ -6,6 +6,7 @@ Verifies that:
 3. Recommendation engine uses AI narratives when available
 4. Recommendation engine falls back to static summaries when AI fails
 5. Timeouts do not block report generation
+6. AINarrativeGenerator fallback paths for individual methods
 """
 
 import asyncio
@@ -277,3 +278,199 @@ class TestRecommendationEngineAINarrative:
         # Should have used static fallback
         assert "$75,000" in result
         assert "optimization opportunities" in result
+
+
+# ===================================================================
+# Tests for src/advisory/ai_narrative_generator.py fallback paths
+# ===================================================================
+
+class TestAINarrativeGeneratorFallbacks:
+    """Tests for AINarrativeGenerator fallback paths when AI service fails.
+
+    Each public method should gracefully degrade and return a
+    GeneratedNarrative with fallback content when the AI service
+    raises an exception.
+    """
+
+    def _make_failing_generator(self, exc=None):
+        """Create an AINarrativeGenerator with a failing AI service."""
+        from advisory.ai_narrative_generator import AINarrativeGenerator
+
+        exc = exc or RuntimeError("AI service unavailable")
+        mock_service = MagicMock()
+        mock_service.complete = AsyncMock(side_effect=exc)
+        return AINarrativeGenerator(ai_service=mock_service)
+
+    def _make_client_profile(self):
+        """Build a ClientProfile for testing."""
+        from advisory.ai_narrative_generator import ClientProfile
+        return ClientProfile(
+            name="Test User",
+            occupation="Engineer",
+            financial_goals=["Save on taxes"],
+            primary_concern="Reducing tax burden",
+        )
+
+    @pytest.mark.asyncio
+    async def test_generate_recommendation_explanation_fallback(self):
+        """When AI fails, recommendation explanation should return the original description."""
+        gen = self._make_failing_generator()
+        profile = self._make_client_profile()
+        recommendation = {
+            "title": "Maximize 401(k)",
+            "category": "retirement",
+            "savings": 5000.0,
+            "description": "Increase your 401(k) contributions to the annual limit.",
+            "action_required": "Contact HR",
+            "irs_reference": "IRC Section 401(k)",
+        }
+
+        result = await gen.generate_recommendation_explanation(recommendation, profile)
+
+        assert result.narrative_type == "recommendation_explanation"
+        assert result.content == recommendation["description"]
+        assert result.tone_used == "default"
+        assert "Maximize 401(k)" in result.key_points
+
+    @pytest.mark.asyncio
+    async def test_generate_recommendation_explanation_fallback_empty_description(self):
+        """When AI fails and description is empty, fallback should still work."""
+        gen = self._make_failing_generator()
+        profile = self._make_client_profile()
+        recommendation = {
+            "title": "Some Strategy",
+            "category": "general",
+            "savings": 0,
+        }
+
+        result = await gen.generate_recommendation_explanation(recommendation, profile)
+
+        assert result.narrative_type == "recommendation_explanation"
+        assert result.content == ""
+        assert result.tone_used == "default"
+
+    @pytest.mark.asyncio
+    async def test_generate_action_plan_narrative_fallback(self):
+        """When AI fails, action plan should use the text-based fallback."""
+        gen = self._make_failing_generator()
+        profile = self._make_client_profile()
+        action_items = [
+            {
+                "title": "Max 401(k)",
+                "action": "Contact HR to increase contributions",
+                "savings": 3000.0,
+                "priority": "immediate",
+            },
+            {
+                "title": "Open HSA",
+                "action": "Set up HSA account",
+                "savings": 1200.0,
+                "priority": "current_year",
+            },
+        ]
+
+        result = await gen.generate_action_plan_narrative(action_items, profile)
+
+        assert result.narrative_type == "action_plan"
+        assert "Your Tax Action Plan" in result.content
+        assert "Max 401(k)" in result.content
+        assert "Open HSA" in result.content
+        assert "$3,000.00" in result.content
+        assert result.tone_used == "default"
+        assert result.metadata.get("fallback") is True
+
+    @pytest.mark.asyncio
+    async def test_generate_action_plan_fallback_empty_items(self):
+        """Fallback action plan with no items should still produce valid output."""
+        gen = self._make_failing_generator()
+        profile = self._make_client_profile()
+
+        result = await gen.generate_action_plan_narrative([], profile)
+
+        assert result.narrative_type == "action_plan"
+        assert "Your Tax Action Plan" in result.content
+        assert result.metadata.get("fallback") is True
+
+    @pytest.mark.asyncio
+    async def test_generate_year_over_year_narrative_fallback(self):
+        """When AI fails, year-over-year narrative should return a brief fallback."""
+        gen = self._make_failing_generator()
+        profile = self._make_client_profile()
+        current_year = {
+            "tax_year": 2025,
+            "total_income": 100_000,
+            "taxable_income": 85_000,
+            "total_tax": 18_000,
+            "effective_rate": 18.0,
+        }
+        prior_year = {
+            "tax_year": 2024,
+            "total_income": 90_000,
+            "taxable_income": 75_000,
+            "total_tax": 15_000,
+            "effective_rate": 16.7,
+        }
+
+        result = await gen.generate_year_over_year_narrative(
+            current_year, prior_year, profile
+        )
+
+        assert result.narrative_type == "year_over_year"
+        assert "not available" in result.content.lower()
+        assert result.tone_used == "default"
+        assert result.word_count == 5
+
+    @pytest.mark.asyncio
+    async def test_generate_executive_summary_fallback(self):
+        """When AI fails, executive summary should use _generate_fallback_summary."""
+        gen = self._make_failing_generator()
+        profile = self._make_client_profile()
+        analysis = {
+            "tax_year": 2025,
+            "filing_status": "single",
+            "metrics": {
+                "current_tax_liability": 15000,
+                "potential_savings": 5000,
+                "confidence_score": 80,
+            },
+            "recommendations": {
+                "total_count": 5,
+                "immediate_actions": [],
+            },
+        }
+
+        result = await gen.generate_executive_summary(analysis, profile)
+
+        assert result.narrative_type == "executive_summary"
+        assert "Test User" in result.content  # Should be personalized
+        assert "$5,000.00" in result.content or "5,000" in result.content
+        assert result.metadata.get("fallback") is True
+
+    @pytest.mark.asyncio
+    async def test_fallback_on_connection_error(self):
+        """ConnectionError should trigger fallback, not crash."""
+        gen = self._make_failing_generator(ConnectionError("Network unreachable"))
+        profile = self._make_client_profile()
+        recommendation = {
+            "title": "Strategy X",
+            "description": "Do something.",
+        }
+
+        result = await gen.generate_recommendation_explanation(recommendation, profile)
+
+        assert result.narrative_type == "recommendation_explanation"
+        assert result.content == "Do something."
+
+    @pytest.mark.asyncio
+    async def test_fallback_on_timeout_error(self):
+        """TimeoutError should trigger fallback."""
+        gen = self._make_failing_generator(TimeoutError("Request timed out"))
+        profile = self._make_client_profile()
+        action_items = [
+            {"title": "Quick Win", "priority": "immediate"},
+        ]
+
+        result = await gen.generate_action_plan_narrative(action_items, profile)
+
+        assert result.narrative_type == "action_plan"
+        assert "Your Tax Action Plan" in result.content

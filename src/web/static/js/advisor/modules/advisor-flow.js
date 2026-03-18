@@ -344,7 +344,7 @@ export async function startIntelligentQuestioning() {
     }
 
     // Dependents
-    if (profile.dependents === null && profile.dependents === undefined && !wasQuestionAsked('dependents')) {
+    if (profile.dependents == null && !wasQuestionAsked('dependents')) {
       markQuestionAsked('dependents');
       addMessage('ai', `<strong>Do you have any dependents?</strong><br><small>This affects credits like Child Tax Credit ($2,000/child).</small>`, [
         { label: 'No dependents', value: 'deps_0' },

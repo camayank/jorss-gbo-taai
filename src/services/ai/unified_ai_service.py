@@ -447,11 +447,15 @@ class PerplexityAdapter(BaseProviderAdapter):
         start_time = time.time()
 
         try:
-            response = await self.client.chat.completions.create(
-                model=model,
-                messages=[{"role": m.role, "content": m.content} for m in messages],
-                temperature=temperature,
-                max_tokens=max_tokens,
+            import asyncio
+            response = await asyncio.wait_for(
+                self.client.chat.completions.create(
+                    model=model,
+                    messages=[{"role": m.role, "content": m.content} for m in messages],
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                ),
+                timeout=kwargs.get("timeout", 30.0),
             )
 
             latency_ms = int((time.time() - start_time) * 1000)

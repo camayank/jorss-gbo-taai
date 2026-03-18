@@ -50,9 +50,9 @@ async def get_session_report(request: SessionReportRequest, _session: str = Depe
         except ImportError:
             pass
 
-        session = await chat_engine.get_or_create_session(request.session_id)
+        session = await chat_engine.get_session(request.session_id)
 
-        if not session.get("profile"):
+        if not session or not session.get("profile"):
             raise HTTPException(status_code=404, detail="Session not found or has no data")
 
         calculation = session.get("calculations")
@@ -301,7 +301,11 @@ async def email_report(request: EmailReportRequest, _session: str = Depends(veri
     from web.intelligent_advisor_api import chat_engine
 
     try:
-        session = await chat_engine.get_or_create_session(request.session_id)
+        session = await chat_engine.get_session(request.session_id)
+
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
         profile = session.get("profile", {})
 
         if not profile:
@@ -320,6 +324,20 @@ async def email_report(request: EmailReportRequest, _session: str = Depends(veri
             for s in strategies
         )
 
+        # Get CPA branding for sender identification
+        cpa_firm_name = "Tax Advisory Services"
+        cpa_address = ""
+        try:
+            session_cpa = session.get("cpa_id") if session else None
+            if session_cpa:
+                from utils.cpa_branding_helper import get_cpa_branding_for_report
+                branding = get_cpa_branding_for_report(session_cpa)
+                if branding:
+                    cpa_firm_name = branding.get("firm_name", cpa_firm_name)
+                    cpa_address = branding.get("address", "")
+        except Exception:
+            pass
+
         email_body_client = f"""
 Hi {request.name or 'there'},
 
@@ -331,7 +349,13 @@ Number of Strategies Identified: {len(strategies)}
 A CPA will reach out within 24 hours to discuss your personalized plan.
 
 Best regards,
-Tax Advisory Team
+{cpa_firm_name}
+
+---
+{cpa_firm_name}
+{cpa_address}
+Privacy Policy: /privacy
+To unsubscribe from future communications, reply with "UNSUBSCRIBE" or visit /unsubscribe
 """
 
         email_body_internal = f"""
@@ -347,11 +371,11 @@ New Lead Report:
         # Try to send email
         email_sent = False
         try:
-            from services.email import send_email
+            from notifications.email_provider import send_email
             await send_email(
                 to=request.email,
                 subject="Your Tax Advisory Report",
-                body=email_body_client,
+                body_text=email_body_client,
             )
             email_sent = True
         except Exception as e:
@@ -368,7 +392,6 @@ New Lead Report:
                 else "Your information has been received. A CPA will reach out within 24 hours."
             ),
             "email_body_client": email_body_client,
-            "email_body_internal": email_body_internal,
         }
     except HTTPException:
         raise
@@ -393,7 +416,7 @@ async def upload_logo(
     except ImportError:
         raise HTTPException(status_code=503, detail="Logo handler not available")
 
-    allowed_types = {"image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml"}
+    allowed_types = {"image/png", "image/jpeg", "image/gif", "image/webp"}
     if file.content_type not in allowed_types:
         raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.content_type}")
 

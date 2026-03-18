@@ -695,7 +695,9 @@ function applyDarkMode(isDark) {
   }
   var btn = document.getElementById('themeToggle');
   if (btn) {
-    btn.innerHTML = isDark ? getIcon('sun', 'sm') : getIcon('moon', 'sm');
+    btn.innerHTML = isDark
+      ? (typeof getIcon === 'function' ? getIcon('sun', 'sm') : '☀️')
+      : (typeof getIcon === 'function' ? getIcon('moon', 'sm') : '🌙');
   }
 }
 
