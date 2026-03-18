@@ -49,7 +49,8 @@ Each `TaxSavingOpportunity` category maps to a concrete `TaxReturn` field modifi
 
 | Category | TaxReturn Field(s) Modified | Notes |
 |----------|---------------------------|-------|
-| `retirement` | `credits.elective_deferrals_401k` → max ($23,500 + $7,500 catch-up); `deductions.ira_contributions` → max ($7,000 + $1,000 catch-up) | Fields exist on `TaxCredits` and `Deductions` models |
+| `retirement` (SE taxpayer) | `deductions.self_employed_sep_simple` → max SEP-IRA/Solo 401k contribution (25% of net SE income, up to $69,000); `deductions.ira_contributions` → max ($7,000 + $1,000 catch-up) | Fields exist on `Deductions` model. Reduces AGI directly as above-the-line deduction. |
+| `retirement` (W-2 employee) | **Not modifiable in pro forma** — W-2 employee 401k deferrals are already excluded from Box 1 wages before they reach the `Income` model. The TaxReturn has no field to increase W-2 401k contributions retroactively. | Strategy appears in report with `marginal_impact: 0.0` and note: "W-2 401k maximization requires employer payroll change — cannot be modeled in pro forma. Estimated savings shown independently." |
 | `healthcare` | `deductions.hsa_contributions` → max ($4,300 individual / $8,550 family) | Field exists on `Deductions` model |
 | `deductions` | `deductions.use_standard_deduction` → toggle; adjust `deductions.itemized.*` amounts | Fields exist on `Deductions` and `ItemizedDeductions` models |
 | `charitable` | `deductions.itemized.charitable_cash` → increase per bunching recommendation | Field exists on `ItemizedDeductions` model |
@@ -168,7 +169,11 @@ for i, result in enumerate(results):
 
 **In `report_generator.py` (`_generate_executive_summary`):**
 
-Keep the thread pool + timeout pattern but increase timeout to 8 seconds. The thread pool is only used when `generate_report()` is called synchronously. When called from the async endpoint, the AI narrative is generated separately in the `asyncio.gather()` above.
+Add a `skip_ai_narrative: bool = False` parameter to `_generate_executive_summary()`. When `True`, the method skips the internal thread pool AI call and returns the section with static content only. The async endpoint sets `skip_ai_narrative=True` because it handles AI narrative generation in the `asyncio.gather()` above, then injects the AI narrative into the section content afterward.
+
+When `generate_report()` is called from a sync context (PDF generation, CLI), `skip_ai_narrative` defaults to `False` and the existing thread pool + 8-second timeout pattern fires as before.
+
+This prevents the dual AI call race condition where both the internal thread pool and the `asyncio.gather()` would fire simultaneously for the same content.
 
 ### Target
 - AI-dependent sections: 3-5 seconds (parallel)
@@ -423,6 +428,15 @@ Enhance `_generate_entity_comparison()` to generate a salary curve:
 
 The `optimizer` instance used is the one already created in `_generate_entity_comparison()` (lines 426-438), not a new instance.
 
+**IRS Risk Calculation Fix:** The current `calculate_reasonable_salary(fixed_salary=X)` returns `irs_risk_level="unknown"` when a fixed salary is provided (it skips the ratio-based risk logic). The implementer must compute the IRS risk level inline for each salary curve point using the salary-to-net-income ratio:
+```python
+ratio = salary_point / net_income
+if ratio >= 0.60: irs_risk = "low"
+elif ratio >= 0.40: irs_risk = "medium"
+else: irs_risk = "high"
+```
+This mirrors the ratio logic in the `else` branch of `calculate_reasonable_salary()`. Alternatively, the implementer may patch `calculate_reasonable_salary()` to compute risk for `fixed_salary` inputs — but that is an optional improvement, not required.
+
 ### Output Schema
 
 ```python
@@ -476,8 +490,9 @@ Add `_model_strategy_interactions()` to `AdvisoryReportGenerator`:
 
 ```python
 # Correct pseudocode
-original = tax_return  # unmodified
-prev_total_tax = current_total_tax  # from existing calculation
+original = tax_return  # unmodified original
+baseline_total_tax = tax_return.combined_tax_liability  # from existing calculation (Section 2)
+prev_step_tax = baseline_total_tax  # initialize to baseline before any strategies
 
 for i in range(len(sorted_strategies)):
     working_copy = copy.deepcopy(original)
@@ -485,7 +500,8 @@ for i in range(len(sorted_strategies)):
         apply_strategy(working_copy, sorted_strategies[j])
     result = self.tax_calculator.calculate_complete_return(working_copy)
     new_total_tax = result.combined_tax_liability
-    marginal_savings = prev_total_tax - new_total_tax if i == 0 else prev_step_tax - new_total_tax
+    marginal_savings = prev_step_tax - new_total_tax
+    cumulative_total = baseline_total_tax - new_total_tax
     prev_step_tax = new_total_tax
 ```
 
