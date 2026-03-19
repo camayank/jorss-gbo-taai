@@ -282,7 +282,7 @@ export function showTyping() {
   typing.setAttribute('aria-live', 'assertive');
   typing.setAttribute('aria-label', 'AI assistant is typing a response');
   typing.innerHTML = `
-    <div class="avatar" aria-hidden="true">${typeof getIcon === 'function' ? getIcon('briefcase', 'md') : '&#128188;'}</div>
+    <div class="avatar ai" aria-hidden="true">T</div>
     <div class="bubble">
       <div class="typing-indicator" role="img" aria-label="Typing">
         <span></span>
@@ -335,9 +335,10 @@ export function addMessage(type, text, quickActions = [], options = {}) {
   const avatar = document.createElement('div');
   avatar.className = 'avatar';
   avatar.setAttribute('aria-hidden', 'true');
+  avatar.classList.add(type === 'ai' ? 'ai' : 'user');
   avatar.innerHTML = type === 'ai'
-    ? (typeof getIcon === 'function' ? getIcon('briefcase', 'md') : '&#128188;')
-    : (typeof getIcon === 'function' ? getIcon('user', 'md') : '&#128100;');
+    ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 7h6M9 11h6M9 15h4"/><rect x="4" y="3" width="16" height="18" rx="2"/></svg>'
+    : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
 
   const bubble = document.createElement('div');
   bubble.className = 'bubble';

@@ -803,7 +803,7 @@ export async function generateAndDownloadReport() {
         if (statusData.pdf_available) {
           pdfReady = true;
           window.open(`/api/v1/advisory-reports/${data.report_id}/pdf`, '_blank');
-          addMessage('ai', `${typeof getIcon === 'function' ? getIcon('check-circle', 'sm') : '\u2705'} <strong>Your report is ready!</strong><br><br>The PDF download should begin automatically. If not, <a href="/api/v1/advisory-reports/${data.report_id}/pdf" target="_blank" style="color: var(--primary);">click here to download</a>.`);
+          addMessage('ai', `u2705 <strong>Your report is ready!</strong><br><br>The PDF download should begin automatically. If not, <a href="/api/v1/advisory-reports/${data.report_id}/pdf" target="_blank" style="color: var(--primary);">click here to download</a>.`);
         }
         attempts++;
       }

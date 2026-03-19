@@ -51,12 +51,12 @@ export function updateJourneyStep(stepNumber) {
 
     if (i < stepNumber) {
       stepEl.classList.add('completed');
-      if (typeof getIcon === 'function') stepIconEl.innerHTML = getIcon('check', 'md');
+      stepIconEl.textContent = 'u2713';
     } else if (i === stepNumber) {
       stepEl.classList.add('active');
-      if (typeof getIcon === 'function') stepIconEl.innerHTML = getIcon(journeySteps[i].icon, 'md');
+      // Icon handled by CSS
     } else {
-      if (typeof getIcon === 'function') stepIconEl.innerHTML = getIcon(journeySteps[i].icon, 'md');
+      // Icon handled by CSS
     }
   }
 }
@@ -100,24 +100,24 @@ export function getConfidenceDisclaimer(includeIRS = false) {
 
   if (confidence.level === 'high') {
     disclaimer = `<div class="confidence-indicator confidence-high">
-      <span>${typeof getIcon === 'function' ? getIcon('check-circle', 'sm') : ''} ${confidence.label} (${confidence.percentage}% data)</span>
+      <span>u2705 ${confidence.label} (${confidence.percentage}% data)</span>
       <span style="margin-left: auto; font-size: var(--text-2xs);">Verify with a tax professional before filing</span>
     </div>`;
   } else if (confidence.level === 'medium') {
     disclaimer = `<div class="confidence-indicator confidence-medium">
-      <span>${typeof getIcon === 'function' ? getIcon('exclamation-triangle', 'sm') : ''} ${confidence.label} (${confidence.percentage}% data)</span>
+      <span>u26A0uFE0F ${confidence.label} (${confidence.percentage}% data)</span>
       <span style="margin-left: auto; font-size: var(--text-2xs);">Provide more details for better accuracy</span>
     </div>`;
   } else {
     disclaimer = `<div class="confidence-indicator confidence-low">
-      <span>${typeof getIcon === 'function' ? getIcon('information-circle', 'sm') : ''} ${confidence.label} (${confidence.percentage}% data)</span>
+      <span>u2139uFE0F ${confidence.label} (${confidence.percentage}% data)</span>
       <span style="margin-left: auto; font-size: var(--text-2xs);">General guidance only - more info needed</span>
     </div>`;
   }
 
   if (includeIRS) {
     disclaimer += `<div style="font-size: var(--text-2xs); color: var(--text-secondary); margin-top: var(--space-2);">
-      ${typeof getIcon === 'function' ? getIcon('clipboard-document-list', 'sm') : ''} Based on 2025 IRS guidelines. See <a href="https://www.irs.gov/forms-instructions" target="_blank" rel="noopener" style="color: var(--primary);">IRS.gov</a> for official forms.
+      Based on 2025 IRS guidelines. See <a href="https://www.irs.gov/forms-instructions" target="_blank" rel="noopener" style="color: var(--primary);">IRS.gov</a> for official forms.
     </div>`;
   }
 
