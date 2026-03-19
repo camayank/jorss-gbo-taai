@@ -34,11 +34,11 @@ services:
     healthCheckPath: /health/live
 
     envVars:
-      # ----- Core -----
+      # ----- Core (beta = skip PostgreSQL/Redis startup requirement) -----
       - key: APP_ENVIRONMENT
-        value: production
+        value: beta
       - key: ENVIRONMENT
-        value: production
+        value: beta
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: PYTHONPATH
