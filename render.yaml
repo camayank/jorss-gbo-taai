@@ -20,14 +20,15 @@ services:
     # Build: install deps only (skip preflight/migrations for SQLite mode)
     buildCommand: pip install --upgrade pip && pip install -r requirements.txt
 
-    # Start command
+    # Start command (1 worker + preload to fit in 512MB free tier)
     startCommand: >-
       PYTHONPATH=src gunicorn web.app:app
       --bind 0.0.0.0:$PORT
-      --workers 2
+      --workers 1
       --worker-class uvicorn.workers.UvicornWorker
       --timeout 120
       --keep-alive 5
+      --preload
 
     # Health check
     healthCheckPath: /health/live
