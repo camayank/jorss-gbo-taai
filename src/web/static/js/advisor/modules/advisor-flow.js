@@ -185,6 +185,38 @@ export async function handleQuickAction(value, displayLabel = null) {
   DevLogger.log('Quick action clicked:', value);
   DevLogger.log('Display label:', displayLabel);
 
+  // Intercept report generation actions — call report endpoint directly
+  if (value === 'generate_report' || value === 'download_report') {
+    addMessage('user', 'Generate Full Report');
+    addMessage('ai', 'Generating your comprehensive tax advisory report... This may take a moment.');
+    try {
+      const reportUrl = '/api/advisor/report?session_id=' + sessionId;
+      const resp = await secureFetch(reportUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId, report_type: 'full_analysis' }) });
+      if (resp.ok) {
+        await resp.json();
+        const reportHtml = '<div class="tax-estimate-card" style="background:var(--slate-900);color:white;padding:1.25rem;border-radius:16px;margin-top:0.75rem;">' +
+          '<div style="font-size:0.75rem;color:var(--slate-400);text-transform:uppercase;letter-spacing:0.05em;">Advisory Report</div>' +
+          '<div style="font-size:1.25rem;font-weight:700;margin-top:0.25rem;">Your Tax Advisory Report is Ready</div>' +
+          '<div style="font-size:0.85rem;color:var(--slate-300);margin-top:0.5rem;">Comprehensive analysis with personalized strategies and IRS references.</div>' +
+          '</div>';
+        addMessage('ai', reportHtml, [
+          { label: 'View Report Details', value: 'show_strategies' },
+          { label: 'Ask a question', value: 'ask_question' }
+        ]);
+      } else {
+        addMessage('ai', 'Your report is being prepared. In the meantime, you can explore your strategies above or ask me any tax question.', [
+          { label: 'Show my strategies', value: 'show_strategies' },
+          { label: 'Ask a question', value: 'ask_question' }
+        ]);
+      }
+    } catch (e) {
+      addMessage('ai', 'Report generation is temporarily unavailable. Your tax analysis and strategies are displayed above.', [
+        { label: 'Review strategies', value: 'show_strategies' }
+      ]);
+    }
+    return;
+  }
+
   // All action handling falls through to AI processing
   var displayText = value.replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
   addMessage('user', displayLabel || displayText);
@@ -208,10 +240,6 @@ export async function startIntelligentQuestioning() {
     hideTyping();
 
     const profile = extractedData.tax_profile;
-    const items = extractedData.tax_items;
-    const isHighEarner = (profile.total_income || 0) >= 200000;
-    const isSelfEmployed = profile.is_self_employed || profile.income_source === 'Self-Employed / 1099';
-    const isBusinessOwner = profile.income_source === 'Business Owner';
 
     // PHASE 1: BASIC INFORMATION
 

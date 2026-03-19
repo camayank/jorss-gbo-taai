@@ -86,11 +86,14 @@ export function checkAdvisorConsent() {
 
   // No valid consent found — show modal and disable chat
   var modal = document.getElementById('advisorConsentModal');
-  if (modal) {
-    modal.classList.remove('hidden');
-    // Activate focus trap so keyboard users stay inside the modal
-    _consentFocusTrapRelease = trapFocus(modal);
+  if (!modal) {
+    // No consent modal in DOM — treat as pre-consented (clean chat template)
+    enableChat();
+    return true;
   }
+  modal.classList.remove('hidden');
+  // Activate focus trap so keyboard users stay inside the modal
+  _consentFocusTrapRelease = trapFocus(modal);
   disableChat();
   return false;
 }

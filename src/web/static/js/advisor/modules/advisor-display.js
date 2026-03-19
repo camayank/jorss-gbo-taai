@@ -817,7 +817,12 @@ export async function generateAndDownloadReport() {
 }
 
 export async function sendReportEmail() {
-  const email = document.getElementById('emailInput').value;
+  const emailEl = document.getElementById('emailInput');
+  if (!emailEl) {
+    showToast('Email feature not available in this view', 'warning');
+    return;
+  }
+  const email = emailEl.value;
   if (!email || !email.includes('@')) {
     showToast('Please enter a valid email address', 'warning');
     return;
@@ -920,7 +925,7 @@ export function dismissLeadCapture() {
  * Show a consent dialog before transmitting lead data to the CPA firm.
  * Returns a Promise that resolves to true (consented) or false (declined).
  */
-export function showLeadConsentDialog(contactInfo) {
+export function showLeadConsentDialog(_contactInfo) {
   return new Promise((resolve) => {
     const existing = document.getElementById('leadConsentModal');
     if (existing) existing.remove();
@@ -1242,6 +1247,7 @@ export function getCompletionPercentage() {
 
 export function updateInsights(insights) {
   const container = document.getElementById('insights');
+  if (!container) return;
   if (insights.length === 0) return;
 
   container.innerHTML = insights.map(insight => `
@@ -1259,6 +1265,7 @@ export function updateInsights(insights) {
 
 export function updateStats(summary) {
   const grid = document.getElementById('statsGrid');
+  if (!grid) return;
   const stats = [];
 
   if (summary.filing_status) stats.push({ label: 'Filing Status', value: summary.filing_status });
