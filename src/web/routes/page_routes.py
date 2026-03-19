@@ -122,10 +122,7 @@ def index(request: Request):
 @router.get("/file", response_class=HTMLResponse)
 @router.get("/intelligent-advisor", response_class=HTMLResponse)
 def intelligent_tax_advisor(request: Request):
-    """Intelligent Conversational Tax Advisory Platform."""
-    denied = _require_any_auth(request)
-    if denied:
-        return denied
+    """Intelligent Conversational Tax Advisory Platform — publicly accessible."""
     from config.branding import get_branding_config
     branding = get_branding_config()
     user_ctx = _ui_user_context(request, default_role="client")
