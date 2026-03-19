@@ -1145,6 +1145,17 @@ class IntelligentChatEngine:
                 self._session_access_times[session_id] = datetime.now()
                 return loaded_session
 
+            # Try to recover token from sessions_api persistence
+            existing_token = None
+            if self._sqlite_persistence:
+                try:
+                    existing_record = self._sqlite_persistence.load_session(session_id)
+                    if existing_record and existing_record.data:
+                        data = existing_record.data if isinstance(existing_record.data, dict) else {}
+                        existing_token = data.get(SESSION_TOKEN_KEY)
+                except Exception:
+                    pass
+
             # Create new session with FULL checkpoint support for multi-turn undo
             # This enables rolling back to ANY previous point in the conversation
             new_session = {
@@ -1156,7 +1167,7 @@ class IntelligentChatEngine:
                 "calculations": None,
                 "strategies": [],
                 "lead_score": 0,
-                SESSION_TOKEN_KEY: generate_session_token(),
+                SESSION_TOKEN_KEY: existing_token or generate_session_token(),
                 # Firm/CPA context for multi-tenant isolation
                 "firm_id": None,       # Set when CPA context is known
                 "cpa_id": None,        # CPA slug or ID for branding
@@ -2503,7 +2514,7 @@ while building your retirement wealth tax-deferred.""",
         # IRS 2025 Traditional IRA deduction limits when covered by workplace plan
         # Single: Phase-out $77,000 - $87,000
         # MFJ: Phase-out $123,000 - $143,000
-        if filing_status in ["married_filing_jointly", "married filing jointly"]:
+        if filing_status in ["married_joint", "married_filing_jointly", "married filing jointly"]:
             ira_deduction_limit = 143000
             ira_phaseout_start = 123000
         else:
@@ -2615,7 +2626,7 @@ This could add ${mega_contribution:,.0f} more per year to tax-free retirement sa
             ))
 
         # 3. HSA Contributions (if applicable)
-        if profile.get("hsa_contributions") is not None or True:  # Assume eligible
+        if profile.get("hsa_contributions") is not None or profile.get("has_hsa") or profile.get("income_type") in ("w2_employee", "self_employed"):
             current_hsa = profile.get("hsa_contributions", 0) or 0
             max_hsa = 4300 if profile.get("filing_status") == "single" else 8550
             if age >= 55:
@@ -2914,16 +2925,17 @@ Estimated tax savings: **${savings:,.0f}**""",
                 )
 
         # Tag any untagged strategies as templates and record quality
-        metrics = get_ai_metrics_service()
+        metrics = get_ai_metrics_service() if get_ai_metrics_service else None
         for s in strategies:
             if s.metadata is None:
                 s.metadata = {"_source": "template"}
             populated = sum(1 for v in [s.summary, s.detailed_explanation, s.action_steps, s.irs_reference, s.estimated_savings, s.confidence] if v)
             source = s.metadata.get("_source", "template")
-            metrics.record_response_quality(
-                service="advisor_strategy", source=source,
-                response_fields_populated=populated, total_fields=6,
-            )
+            if metrics:
+                metrics.record_response_quality(
+                    service="advisor_strategy", source=source,
+                    response_fields_populated=populated, total_fields=6,
+                )
 
         # Sort by estimated savings (highest first)
         strategies.sort(key=lambda x: (-x.estimated_savings,))
@@ -4126,12 +4138,12 @@ async def intelligent_chat(request: ChatRequest, http_request: FastAPIRequest = 
             )
             return ChatResponse(
                 session_id=request.session_id,
-                message="I can only help with tax-related questions. Could you please rephrase your question about your tax situation?",
+                response="I can only help with tax-related questions. Could you please rephrase your question about your tax situation?",
+                response_type="redirect",
                 quick_actions=[
                     {"label": "What deductions can I claim?", "value": "ask_deductions"},
                     {"label": "Help me file my taxes", "value": "start_filing"},
                 ],
-                profile=profile,
             )
 
     msg_lower = msg_original.lower()
@@ -4364,11 +4376,12 @@ To get started, what's your filing status?"""
                 full_detail += f"\n\n**Estimated Savings:** ${t['estimated_savings']:,.0f}"
             full_detail += f"\n\n---\n*{STANDARD_DISCLAIMER}*"
 
-            get_ai_metrics_service().record_response_quality(
-                service="advisor_reasoning", source=detail_source,
-                response_fields_populated=1 if detail_source == "ai" else 0,
-                total_fields=1,
-            )
+            if get_ai_metrics_service:
+                get_ai_metrics_service().record_response_quality(
+                    service="advisor_reasoning", source=detail_source,
+                    response_fields_populated=1 if detail_source == "ai" else 0,
+                    total_fields=1,
+                )
 
             return ChatResponse(
                 session_id=request.session_id,
@@ -5082,7 +5095,7 @@ To get started, what's your filing status?"""
             msg_lower = (request.message or "").lower()
             parts = msg_lower.split(" or ") if " or " in msg_lower else [msg_lower, "alternative approach"]
             comparison_result = await chat_router.compare_scenarios(
-                question=message,
+                question=msg_original,
                 scenarios=[
                     {"name": "Option A", "description": parts[0].strip()},
                     {"name": "Option B", "description": parts[1].strip() if len(parts) > 1 else "alternative approach"},
@@ -5099,7 +5112,7 @@ To get started, what's your filing status?"""
             response_type = "ai_response"
 
     # Check if there are still deep-dive questions to ask before calculating
-    has_basics = profile.get("total_income") and profile.get("filing_status") and profile.get("state")
+    has_basics = profile.get("total_income") is not None and profile.get("filing_status") and profile.get("state")
     next_deep_q, next_deep_actions = _get_dynamic_next_question(profile, session=session)
 
     # If basics are done but deep-dive questions remain, ask them first
