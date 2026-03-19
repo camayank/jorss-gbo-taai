@@ -5351,67 +5351,80 @@ To get started, what's your filing status?"""
             logger.warning("Strategy generation timed out — using basic strategies")
             strategies = []
 
-        # Enrich top strategies with AI reasoning (non-simple profiles only)
+        # Enrich top strategies with AI in background (non-blocking)
         if AI_CHAT_ENABLED and complexity != "simple" and strategies:
-            import time as _time
-            _ai_start = _time.monotonic()
-            # Parallel reasoning enrichment
-            try:
-                from services.ai.tax_reasoning_service import get_tax_reasoning_service
-                reasoning_svc = get_tax_reasoning_service()
-                reasoning_tasks = []
-                for s in strategies[:2]:
-                    reasoning_tasks.append(reasoning_svc.analyze(
-                        problem=f"Evaluate strategy: {s.title} with savings of ${s.estimated_savings:,.0f}",
-                        context=_summarize_profile(profile),
-                    ))
-                reasoning_results = await asyncio.wait_for(
-                    asyncio.gather(*reasoning_tasks, return_exceptions=True),
-                    timeout=5.0,
-                )
-                for s, result in zip(strategies[:2], reasoning_results):
-                    if isinstance(result, Exception):
-                        continue
-                    if result and result.confidence:
-                        s.confidence = "high" if result.confidence > 0.8 else "medium" if result.confidence > 0.5 else "low"
-                _ai_elapsed = (_time.monotonic() - _ai_start) * 1000
-                asyncio.create_task(_record_ai_usage("TaxReasoningService", "analyze", _ai_elapsed))
-            except Exception:
-                _ai_elapsed = (_time.monotonic() - _ai_start) * 1000
-                asyncio.create_task(_record_ai_usage("TaxReasoningService", "analyze", _ai_elapsed, success=False))
+            async def _enrich_strategies_background(sid, strats, prof):
+                """Background task: enrich strategies with AI reasoning + narratives."""
+                try:
+                    import time as _time
+                    _ai_start = _time.monotonic()
 
-            # Parallel narrative enrichment
-            try:
-                from advisory.ai_narrative_generator import get_narrative_generator, ClientProfile as NarrClientProfile
-                narrator = get_narrative_generator()
-                client_profile = NarrClientProfile(
-                    name=profile.get("name", "Client"),
-                    occupation=profile.get("occupation", ""),
-                    financial_goals=["Minimize tax liability"],
-                    primary_concern="Tax optimization",
-                )
-                narr_tasks = []
-                for s in strategies[:3]:
-                    rec_data = {
-                        "title": s.title,
-                        "savings": s.estimated_savings,
-                        "priority": s.priority,
-                        "explanation": s.detailed_explanation or "",
-                    }
-                    narr_tasks.append(narrator.generate_recommendation_explanation(rec_data, client_profile))
-                narr_results = await asyncio.wait_for(
-                    asyncio.gather(*narr_tasks, return_exceptions=True),
-                    timeout=5.0,
-                )
-                for s, narrative in zip(strategies[:3], narr_results):
-                    if isinstance(narrative, Exception):
-                        continue
-                    if narrative and narrative.content:
-                        s.detailed_explanation = narrative.content[:800]
-                asyncio.create_task(_record_ai_usage("AINarrativeGenerator", "generate_recommendation_explanation"))
-            except Exception as e:
-                logger.warning(f"Narrative enrichment failed (non-blocking): {e}")
-                asyncio.create_task(_record_ai_usage("AINarrativeGenerator", "generate_recommendation_explanation", success=False))
+                    # Reasoning enrichment
+                    try:
+                        from services.ai.tax_reasoning_service import get_tax_reasoning_service
+                        reasoning_svc = get_tax_reasoning_service()
+                        reasoning_tasks = [
+                            reasoning_svc.analyze(
+                                problem=f"Evaluate strategy: {s.title} with savings of ${s.estimated_savings:,.0f}",
+                                context=_summarize_profile(prof),
+                            ) for s in strats[:2]
+                        ]
+                        reasoning_results = await asyncio.wait_for(
+                            asyncio.gather(*reasoning_tasks, return_exceptions=True),
+                            timeout=10.0,
+                        )
+                        for s, result in zip(strats[:2], reasoning_results):
+                            if isinstance(result, Exception):
+                                continue
+                            if result and result.confidence:
+                                s.confidence = "high" if result.confidence > 0.8 else "medium" if result.confidence > 0.5 else "low"
+                    except Exception:
+                        pass
+
+                    # Narrative enrichment
+                    try:
+                        from advisory.ai_narrative_generator import get_narrative_generator, ClientProfile as NarrClientProfile
+                        narrator = get_narrative_generator()
+                        client_profile = NarrClientProfile(
+                            name=prof.get("name", "Client"),
+                            occupation=prof.get("occupation", ""),
+                            financial_goals=["Minimize tax liability"],
+                            primary_concern="Tax optimization",
+                        )
+                        narr_tasks = [
+                            narrator.generate_recommendation_explanation(
+                                {"title": s.title, "savings": s.estimated_savings, "priority": s.priority, "explanation": s.detailed_explanation or ""},
+                                client_profile,
+                            ) for s in strats[:3]
+                        ]
+                        narr_results = await asyncio.wait_for(
+                            asyncio.gather(*narr_tasks, return_exceptions=True),
+                            timeout=10.0,
+                        )
+                        for s, narrative in zip(strats[:3], narr_results):
+                            if isinstance(narrative, Exception):
+                                continue
+                            if narrative and narrative.content:
+                                s.detailed_explanation = narrative.content[:800]
+                    except Exception:
+                        pass
+
+                    # Save enriched strategies back to session
+                    try:
+                        session = chat_engine.sessions.get(sid)
+                        if session:
+                            session["strategies"] = strats
+                            await chat_engine._save_session_to_db(sid, session)
+                    except Exception:
+                        pass
+
+                    _ai_elapsed = (_time.monotonic() - _ai_start) * 1000
+                    logger.info(f"Background AI enrichment completed in {_ai_elapsed:.0f}ms for session {sid}")
+                except Exception as e:
+                    logger.warning(f"Background AI enrichment failed: {e}")
+
+            # Fire and forget — response returns immediately
+            asyncio.create_task(_enrich_strategies_background(request.session_id, strategies, profile))
 
         # Classify strategy tiers
         tier_session = await chat_engine.get_or_create_session(request.session_id)

@@ -261,7 +261,7 @@ def _build_tax_return_from_profile(profile: Dict[str, Any]):
         taxpayer=TaxpayerInfo(
             first_name=profile.get("first_name", "Taxpayer"),
             last_name=profile.get("last_name", "User"),
-            ssn=profile.get("ssn", "000-00-0000"),
+            ssn=profile.get("ssn"),
             date_of_birth=profile.get("date_of_birth"),
             filing_status=filing_status,
             occupation=profile.get("occupation"),
@@ -303,6 +303,30 @@ def _build_tax_return_from_profile(profile: Dict[str, Any]):
             other_credits=profile.get("other_credits", 0) or 0,
         ),
     )
+
+    # Add dependent objects for the engine's CTC/ODC calculation
+    num_dependents = profile.get("dependents", 0) or 0
+    deps_under_17 = profile.get("dependents_under_17")
+    if deps_under_17 is None or deps_under_17 == -1:
+        deps_under_17 = num_dependents  # assume all under 17 if not specified
+    deps_under_17 = min(deps_under_17, num_dependents)
+    deps_over_17 = num_dependents - deps_under_17
+
+    if num_dependents > 0:
+        from models.taxpayer import Dependent
+        for i in range(deps_under_17):
+            tax_return.taxpayer.dependents.append(Dependent(
+                name=f"Child {i+1}",
+                relationship="son" if i % 2 == 0 else "daughter",
+                age=10,  # under 17 for CTC
+            ))
+        for i in range(deps_over_17):
+            tax_return.taxpayer.dependents.append(Dependent(
+                name=f"Dependent {deps_under_17 + i + 1}",
+                relationship="son" if i % 2 == 0 else "daughter",
+                age=19,  # over 17 for ODC
+                is_student=True,
+            ))
 
     # Handle itemized deductions if provided
     mortgage_interest = profile.get("mortgage_interest", 0) or 0
