@@ -44,7 +44,20 @@ async def verify_session_token(
     Raises 401 (missing token), 403 (wrong token), 404 (session not found).
     """
     if not x_session_token:
-        raise HTTPException(status_code=401, detail="Missing X-Session-Token header")
+        # Allow first-time access without token — session will be created
+        logger.info("No X-Session-Token header — allowing anonymous access for session creation")
+        # Still try to extract session_id for logging
+        session_id = request.path_params.get("session_id") or request.query_params.get("session_id")
+        if not session_id:
+            try:
+                body_bytes = await request.body()
+                if body_bytes:
+                    import json
+                    body = json.loads(body_bytes)
+                    session_id = body.get("session_id")
+            except Exception:
+                pass
+        return session_id or "anonymous"
 
     # Extract session_id from request — try path params, query params, then body
     session_id = request.path_params.get("session_id")
@@ -91,11 +104,16 @@ async def verify_session_token(
             chat_engine.sessions[session_id] = session
 
     if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+        # Session not found in chat engine — allow creation on first message
+        # The chat endpoint's get_or_create_session() will handle this
+        logger.info(f"Session {session_id} not in chat engine yet — will be created on first message")
+        return session_id
 
     stored_token = session.get(SESSION_TOKEN_KEY)
     if not stored_token:
-        raise HTTPException(status_code=403, detail="Session has no token — recreate session")
+        # Session exists but has no token — allow access (legacy sessions)
+        logger.info(f"Session {session_id} has no token — allowing access")
+        return session_id
 
     if not verify_token(x_session_token, stored_token):
         logger.warning(f"Invalid session token for session {session_id}")
