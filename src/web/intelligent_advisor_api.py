@@ -2094,24 +2094,78 @@ class IntelligentChatEngine:
         return max(0, amt - regular_tax)
 
     def _calculate_child_tax_credit(self, profile: Dict[str, Any], agi: float) -> float:
-        """Calculate Child Tax Credit with phase-out - IRC §24."""
+        """Calculate Child Tax Credit + Other Dependent Credit with phase-out - IRC §24."""
         dependents = profile.get("dependents", 0) or 0
         if dependents <= 0:
             return 0.0
 
+        under_17 = profile.get("dependents_under_17")
+        if under_17 is None or under_17 == -1:
+            under_17 = dependents  # backward compat: assume all are CTC-eligible
+        under_17 = min(under_17, dependents)
+        over_17 = dependents - under_17
+
+        ctc_per_child = 2000
+        odc_per_dependent = 500
         filing_status = profile.get("filing_status", "single")
-        phaseout_start = self.CTC_PHASEOUT_START.get(filing_status, 200000)
 
-        # Full credit amount
-        full_credit = dependents * self.CTC_AMOUNT
+        # Phase-out thresholds (2025)
+        threshold = 400000 if filing_status in ("married_joint", "qualifying_widow") else 200000
 
-        # Phase-out: $50 reduction per $1,000 (or fraction) over threshold
-        if agi > phaseout_start:
-            excess = agi - phaseout_start
-            reduction = (int(excess / 1000) + (1 if excess % 1000 > 0 else 0)) * 50
-            full_credit = max(0, full_credit - reduction)
+        total_credit = (under_17 * ctc_per_child) + (over_17 * odc_per_dependent)
 
-        return full_credit
+        if agi > threshold:
+            reduction = ((agi - threshold) // 1000) * 50
+            total_credit = max(0, total_credit - reduction)
+
+        return total_credit
+
+    def _calculate_eitc(self, profile, agi):
+        """Calculate Earned Income Tax Credit (2025 parameters)."""
+        filing_status = profile.get("filing_status", "single")
+        dependents = profile.get("dependents", 0) or 0
+        earned_income = (profile.get("w2_income", 0) or 0) + (profile.get("business_income", 0) or 0)
+        investment_income = (profile.get("investment_income", 0) or 0) + (profile.get("interest_income", 0) or 0) + (profile.get("dividend_income", 0) or 0)
+
+        # Investment income disqualification ($11,950 for 2025)
+        if investment_income > 11950:
+            return 0
+
+        # Cannot use MFS
+        if filing_status == "married_separate":
+            return 0
+
+        # 2025 EITC parameters by number of qualifying children
+        # (max_credit, phase_in_rate, phase_out_rate, phase_out_start_single, phase_out_start_mfj, income_limit_single, income_limit_mfj)
+        eitc_params = {
+            0: (649, 0.0765, 0.0765, 10620, 17640, 19104, 26214),
+            1: (3733, 0.34, 0.1598, 12730, 19750, 46560, 53610),
+            2: (6164, 0.40, 0.2106, 12730, 19750, 52918, 59968),
+            3: (7830, 0.45, 0.2106, 12730, 19750, 56838, 63888),
+        }
+
+        children = min(dependents, 3)  # EITC maxes at 3 children
+        params = eitc_params[children]
+        max_credit, phase_in_rate, phase_out_rate, po_start_single, po_start_mfj, limit_single, limit_mfj = params
+
+        is_joint = filing_status in ("married_joint", "qualifying_widow")
+        po_start = po_start_mfj if is_joint else po_start_single
+        income_limit = limit_mfj if is_joint else limit_single
+
+        # Check income limit
+        compare_income = max(agi, earned_income)
+        if compare_income > income_limit:
+            return 0
+
+        # Phase-in: credit builds as earned income increases
+        credit = min(earned_income * phase_in_rate, max_credit)
+
+        # Phase-out: credit reduces as income exceeds threshold
+        if compare_income > po_start:
+            reduction = (compare_income - po_start) * phase_out_rate
+            credit = max(0, credit - reduction)
+
+        return round(min(credit, max_credit), 2)
 
     def _calculate_qbi_deduction(self, profile: Dict[str, Any], taxable_income: float) -> float:
         """
@@ -2301,15 +2355,31 @@ class IntelligentChatEngine:
         niit = self._calculate_niit(profile, agi)
         federal_tax += niit
 
+        # Calculate EITC (refundable credit — reduces total tax, can create refund)
+        eitc = self._calculate_eitc(profile, agi)
+
         # Calculate state tax using progressive brackets
         state_tax = self._calculate_state_tax(agi, state, filing_status)
 
         # Total tax
-        total_tax = federal_tax + se_tax + state_tax
+        total_tax = federal_tax + se_tax + state_tax - eitc
         effective_rate = (total_tax / income * 100) if income > 0 else 0
 
         # Calculate withholding/payments vs tax owed
         withholding = profile.get("federal_withholding", 0) or 0
+        # Auto-estimate withholding if user chose "estimate for me" or never answered
+        if withholding == 0 and not profile.get("is_self_employed"):
+            w2_income = profile.get("w2_income", 0) or profile.get("total_income", 0) or 0
+            if w2_income > 0:
+                # Average effective withholding rate approximation by income bracket
+                if w2_income < 40000:
+                    withholding = w2_income * 0.10
+                elif w2_income < 90000:
+                    withholding = w2_income * 0.15
+                elif w2_income < 200000:
+                    withholding = w2_income * 0.18
+                else:
+                    withholding = w2_income * 0.22
         estimated_payments = profile.get("estimated_payments", 0) or 0
         total_payments = withholding + estimated_payments
         refund_or_owed = total_payments - total_tax
@@ -2326,6 +2396,8 @@ class IntelligentChatEngine:
             tax_notices.append(f"SALT deduction capped at ${self.SALT_CAP:,}")
         if ctc > 0:
             tax_notices.append(f"Child Tax Credit applied: ${ctc:,.0f}")
+        if eitc > 0:
+            tax_notices.append(f"Earned Income Credit: ${eitc:,.0f} (refundable)")
 
         # Calculate capital gains info
         short_term_gains = profile.get("capital_gains_short", 0) or 0
@@ -3646,6 +3718,22 @@ def _score_next_questions(profile: dict, conversation: list = None) -> tuple:
             ]
         ))
 
+    # Federal withholding (critical for refund/owed accuracy)
+    if not profile.get("federal_withholding") and not profile.get("_asked_withholding"):
+        if profile.get("income_type") in ("w2", "w2_employee") or not profile.get("is_self_employed"):
+            score = 90  # Highest priority after basics — refund depends on this
+            candidates.append((score,
+                "Approximately how much federal tax was withheld from your paychecks this year? Check your last pay stub for the YTD Federal Tax amount.",
+                [
+                    {"label": "Under $5,000", "value": "withholding_under_5k"},
+                    {"label": "$5,000 - $10,000", "value": "withholding_5_10k"},
+                    {"label": "$10,000 - $20,000", "value": "withholding_10_20k"},
+                    {"label": "$20,000 - $40,000", "value": "withholding_20_40k"},
+                    {"label": "Over $40,000", "value": "withholding_over_40k"},
+                    {"label": "Not sure — estimate for me", "value": "withholding_estimate"}
+                ]
+            ))
+
     # Retirement (universally valuable)
     if not profile.get("retirement_401k") and not profile.get("retirement_ira") and not profile.get("_asked_retirement"):
         score = 60
@@ -3785,6 +3873,20 @@ def _score_next_questions(profile: dict, conversation: list = None) -> tuple:
             ]
         ))
 
+    # Dependent age split (CTC vs ODC)
+    dependents = profile.get("dependents", 0) or 0
+    if dependents > 0 and profile.get("dependents_under_17") is None and not profile.get("_asked_dependents_age"):
+        score = 85  # High priority — affects CTC calculation
+        candidates.append((score,
+            f"Of your {dependents} dependent(s), how many are under age 17?",
+            [
+                {"label": f"All {dependents}", "value": "all_under_17"},
+                {"label": "None — all 17 or older", "value": "none_under_17"},
+                *([{"label": f"{i}", "value": f"{i}_under_17"} for i in range(1, dependents)] if dependents > 1 else []),
+                {"label": "Skip", "value": "skip_dependents_age"}
+            ]
+        ))
+
     if not candidates:
         return (None, None)
     candidates.sort(key=lambda x: -x[0])
@@ -3811,7 +3913,8 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
                 {"label": "Single", "value": "single"},
                 {"label": "Married Filing Jointly", "value": "married_joint"},
                 {"label": "Head of Household", "value": "head_of_household"},
-                {"label": "Married Filing Separately", "value": "married_separate"}
+                {"label": "Married Filing Separately", "value": "married_separate"},
+                {"label": "Qualifying Surviving Spouse", "value": "qualifying_widow"}
             ]
         )
 
@@ -3877,6 +3980,21 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
     # Fall through to existing rigid ordering as fallback
 
     total_income = profile.get("total_income", 0) or 0
+
+    # --- Federal withholding (W-2 employees) ---
+    if not profile.get("federal_withholding") and not profile.get("_asked_withholding"):
+        if profile.get("income_type") in ("w2", "w2_employee") or not profile.get("is_self_employed"):
+            return (
+                "Approximately how much federal tax was withheld from your paychecks this year? Check your last pay stub for the YTD Federal Tax amount.",
+                [
+                    {"label": "Under $5,000", "value": "withholding_under_5k"},
+                    {"label": "$5,000 - $10,000", "value": "withholding_5_10k"},
+                    {"label": "$10,000 - $20,000", "value": "withholding_10_20k"},
+                    {"label": "$20,000 - $40,000", "value": "withholding_20_40k"},
+                    {"label": "Over $40,000", "value": "withholding_over_40k"},
+                    {"label": "Not sure — estimate for me", "value": "withholding_estimate"}
+                ]
+            )
 
     # --- Age (affects standard deduction for 65+) ---
     if not profile.get("age") and not profile.get("_asked_age"):
@@ -4815,6 +4933,19 @@ To get started, what's your filing status?"""
         "self_employed": {"income_type": "self_employed", "is_self_employed": True},
         "business_owner": {"income_type": "business", "is_self_employed": True},
         "retired": {"income_type": "retired", "is_self_employed": False},
+        # Federal withholding
+        "withholding_under_5k": {"federal_withholding": 3500, "_asked_withholding": True},
+        "withholding_5_10k": {"federal_withholding": 7500, "_asked_withholding": True},
+        "withholding_10_20k": {"federal_withholding": 15000, "_asked_withholding": True},
+        "withholding_20_40k": {"federal_withholding": 30000, "_asked_withholding": True},
+        "withholding_over_40k": {"federal_withholding": 50000, "_asked_withholding": True},
+        "withholding_estimate": {"_withholding_auto_estimate": True, "_asked_withholding": True},
+        # Dependent age split
+        "all_under_17": {"dependents_under_17": -1, "_asked_dependents_age": True},  # -1 = use full dependents count
+        "none_under_17": {"dependents_under_17": 0, "_asked_dependents_age": True},
+        "1_under_17": {"dependents_under_17": 1, "_asked_dependents_age": True},
+        "2_under_17": {"dependents_under_17": 2, "_asked_dependents_age": True},
+        "skip_dependents_age": {"_asked_dependents_age": True},
     }
 
     if msg_lower in _quick_action_map:
@@ -5165,6 +5296,19 @@ To get started, what's your filing status?"""
         if next_deep_actions and not any(a.get("value") == "skip_deep_dive" for a in next_deep_actions):
             next_deep_actions.append({"label": "Skip to Results", "value": "skip_deep_dive"})
 
+        # Compute running estimate to show progress
+        try:
+            running_calc = await chat_engine.get_tax_calculation(profile)
+            if running_calc and running_calc.total_tax > 0:
+                refund_or_owed = running_calc.refund_or_owed
+                if running_calc.is_refund:
+                    estimate_hint = f"\n\n\U0001f4a1 **Running estimate: ${abs(refund_or_owed):,.0f} refund** (updates as you answer more questions)"
+                else:
+                    estimate_hint = f"\n\n\U0001f4a1 **Running estimate: ${abs(refund_or_owed):,.0f} owed** (updates as you answer more questions)"
+                next_deep_q = estimate_hint + "\n\n" + next_deep_q
+        except Exception:
+            pass  # Don't let estimate failure block the question
+
         # Use contextual follow-up if available (from topic detection)
         contextual = session.get("_contextual_followup")
         if contextual:
@@ -5349,7 +5493,15 @@ To get started, what's your filing status?"""
         if extra_info:
             extra_display = "\n\n**Profile Details:** " + " | ".join(extra_info)
 
-        response_text = f"""{correction_prefix}Based on your profile ({filing_display}, {income_display}{state_display}{dependents_display}):{extra_display}
+        # Build response — lead with the emotional answer
+        if tax_calculation.is_refund:
+            headline = f"## \U0001f389 Estimated Refund: ${abs(tax_calculation.refund_or_owed):,.0f}\n"
+        else:
+            headline = f"## \U0001f4b0 Estimated Tax Owed: ${abs(tax_calculation.refund_or_owed):,.0f}\n"
+
+        headline += f"*Based on your {filing_display} filing in {profile.get('state', 'your state')}*\n\n"
+
+        response_text = f"""{correction_prefix}{headline}Based on your profile ({filing_display}, {income_display}{state_display}{dependents_display}):{extra_display}
 
 **Your Tax Position:**
 • Federal Tax: **${tax_calculation.federal_tax:,.0f}**
@@ -5362,13 +5514,14 @@ To get started, what's your filing status?"""
         if strategies:
             response_text += f"\n\nYour top opportunity: **{strategies[0].title}** could save you **${strategies[0].estimated_savings:,.0f}**."
 
-        response_text += "\n\nWould you like me to explain your top strategies, generate your full advisory report, or update any information?"
+        response_text += f"\n\n---\n\nI found **{len(strategies)} strategies** that could save you **${total_savings:,.0f}**. Want me to compile everything into a comprehensive advisory report?"
 
+        # Report is the natural next step — make it primary
         quick_actions = [
-            {"label": "Show Top Strategies", "value": "show_strategies", "primary": True},
-            {"label": "Generate Full Report", "value": "generate_report"},
-            {"label": "Update My Info", "value": "update_info"},
-            {"label": "Connect with CPA", "value": "connect_cpa"}
+            {"label": "\U0001f4c4 Generate My Advisory Report", "value": "generate_report", "primary": True},
+            {"label": "Show All Strategies", "value": "show_strategies"},
+            {"label": "What-If: Max 401(k)", "value": "whatif_max_401k"},
+            {"label": "Update My Info", "value": "edit_profile"},
         ]
 
         # Prepend quick wins (immediately actionable strategies) before other actions

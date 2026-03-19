@@ -250,7 +250,8 @@ export async function startIntelligentQuestioning() {
         { label: 'Single', value: 'filing_single', description: 'Unmarried or legally separated' },
         { label: 'Married Filing Jointly', value: 'filing_married', description: 'Married and filing together with spouse' },
         { label: 'Married Filing Separately', value: 'filing_mfs', description: 'Married but filing individual returns' },
-        { label: 'Head of Household', value: 'filing_hoh', description: 'Unmarried and paying 50%+ of household costs' }
+        { label: 'Head of Household', value: 'filing_hoh', description: 'Unmarried and paying 50%+ of household costs' },
+        { label: 'Qualifying Surviving Spouse', value: 'filing_qss', description: 'Spouse died in 2023 or 2024, with dependent child' }
       ], { inputType: 'radio' });
       return;
     }
