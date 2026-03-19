@@ -4238,6 +4238,9 @@ async def intelligent_chat(request: ChatRequest, http_request: FastAPIRequest = 
         # Get or create session
         session = await chat_engine.get_or_create_session(session_id)
         _session_was_renewed = session.pop("_renewed", False)
+        # Ensure profile exists (sessions_api creates sessions without it)
+        if "profile" not in session:
+            session["profile"] = {}
         profile = session["profile"]
 
         # Populate CPA/firm context from request if not already set.
@@ -4265,17 +4268,11 @@ async def intelligent_chat(request: ChatRequest, http_request: FastAPIRequest = 
         if ctx.get("review_mode") is not None:
             session["review_mode"] = bool(ctx["review_mode"])
     except Exception as e:
-        logger.error(f"Session initialization error: {e}")
-        return ChatResponse(
-            session_id=session_id,
-            response="I'm having trouble accessing your session. Let me start fresh for you.",
-            response_type="session_error",
-            quick_actions=[
-                {"label": "Start Fresh", "value": "start_fresh"},
-                {"label": "Try Again", "value": "retry"}
-            ],
-            metadata={"_source": "template"},
-        )
+        logger.error(f"Session initialization error: {type(e).__name__}: {e}", exc_info=True)
+        # Silently recover — create a fresh session instead of showing an error
+        session = {"profile": {}, "conversation": [], "state": "greeting", "id": session_id}
+        chat_engine.sessions[session_id] = session
+        profile = session["profile"]
 
     # Compute missing fields for progress transparency
     missing_fields, completion_hint = _compute_missing_fields(profile)
