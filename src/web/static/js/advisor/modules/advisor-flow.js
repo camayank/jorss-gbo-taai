@@ -185,8 +185,71 @@ export async function handleQuickAction(value, displayLabel = null) {
   DevLogger.log('Quick action clicked:', value);
   DevLogger.log('Display label:', displayLabel);
 
-  // Intercept "Start my estimate" — trigger local questioning flow, don't send to API
-  if (value === 'no_manual' || value === 'start_estimate' || value === 'continue_assessment') {
+  // Intercept Phase 1 actions — handle locally, don't send to API
+  // This prevents the server from returning its own 4-state question
+  // instead of the client's full 50-state searchable dropdown
+  const phase1Values = new Set([
+    'no_manual', 'start_estimate', 'continue_assessment',
+    // Filing status
+    'filing_single', 'filing_married', 'filing_mfs', 'filing_hoh', 'filing_qss',
+    // Income ranges
+    'income_under30k', 'income_30_50k', 'income_50_100k', 'income_100_200k',
+    'income_200_500k', 'income_500k_plus', 'income_custom',
+    // Income sources
+    'source_w2', 'source_self_employed', 'source_business',
+    'source_investments', 'source_multiple',
+    // Dependents
+    'deps_0', 'deps_1', 'deps_2', 'deps_3plus',
+  ]);
+
+  if (phase1Values.has(value)) {
+    // Update local profile from the action
+    const profileUpdates = {
+      'filing_single': { filing_status: 'single' },
+      'filing_married': { filing_status: 'married_joint' },
+      'filing_mfs': { filing_status: 'married_separate' },
+      'filing_hoh': { filing_status: 'head_of_household' },
+      'filing_qss': { filing_status: 'qualifying_widow' },
+      'income_under30k': { total_income: 15000 },
+      'income_30_50k': { total_income: 40000 },
+      'income_50_100k': { total_income: 75000 },
+      'income_100_200k': { total_income: 150000 },
+      'income_200_500k': { total_income: 350000 },
+      'income_500k_plus': { total_income: 750000 },
+      'source_w2': { income_source: 'W-2 Employee', income_type: 'w2', is_self_employed: false },
+      'source_self_employed': { income_source: 'Self-Employed / 1099', income_type: 'self_employed', is_self_employed: true },
+      'source_business': { income_source: 'Business Owner', income_type: 'business', is_self_employed: true },
+      'source_investments': { income_source: 'Investments / Retirement', income_type: 'retired' },
+      'source_multiple': { income_source: 'Multiple sources' },
+      'deps_0': { dependents: 0 },
+      'deps_1': { dependents: 1 },
+      'deps_2': { dependents: 2 },
+      'deps_3plus': { dependents: 3 },
+    };
+
+    const updates = profileUpdates[value];
+    if (updates) {
+      Object.assign(extractedData.tax_profile, updates);
+      if (updates.total_income) {
+        extractedData.tax_profile.w2_income = updates.total_income;
+      }
+    }
+
+    // Show user's selection as a message
+    if (displayLabel || value !== 'no_manual') {
+      const displayText = displayLabel || value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      addMessage('user', displayText);
+    }
+
+    // Continue to next question locally
+    startIntelligentQuestioning();
+    return;
+  }
+
+  // State selections (from the dropdown)
+  if (value.startsWith('state_')) {
+    extractedData.tax_profile.state = value.replace('state_', '');
+    addMessage('user', displayLabel || value.replace('state_', ''));
     startIntelligentQuestioning();
     return;
   }
