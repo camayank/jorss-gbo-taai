@@ -250,10 +250,12 @@
           <span>Settings</span>
         </a>
         <hr style="border-color: var(--color-gray-200); margin: 0.5rem 0;">
-        <a href="/logout">
-          {{ icon('arrow-left', 'sm') }}
-          <span>Sign out</span>
-        </a>
+        <form method="post" action="/logout" style="display:inline;">
+          <button type="submit" class="nav-link" style="background:none;border:none;cursor:pointer;width:100%;text-align:left;">
+            {{ icon('arrow-left', 'sm') }}
+            <span>Sign out</span>
+          </button>
+        </form>
       </div>
     </div>
   </div>

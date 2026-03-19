@@ -694,6 +694,8 @@ class CoreAuthService:
             )
 
         user = self._users_db.get(mfa_data["user_id"])
+        if user is None and self._use_database:
+            user = await self._find_user_by_id(mfa_data["user_id"])
         if not user:
             return AuthResponse(
                 success=False,
@@ -972,8 +974,10 @@ class CoreAuthService:
                 message="Refresh token has expired"
             )
 
-        # Get user
+        # Get user (try in-memory cache first, then database)
         user = self._users_db.get(token_data["user_id"])
+        if user is None and self._use_database:
+            user = await self._find_user_by_id(token_data["user_id"])
         if not user:
             return AuthResponse(
                 success=False,
@@ -1128,19 +1132,42 @@ class CoreAuthService:
 
     def get_user_by_id(self, user_id: str) -> Optional[UnifiedUser]:
         """Get user by ID."""
-        if self._use_database:
-            # Database mode - would need async context
-            # For sync calls, fall back to cache
-            return self._users_db.get(user_id)
-        return self._users_db.get(user_id)
+        user = self._users_db.get(user_id)
+        if user is None and self._use_database:
+            import asyncio
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop and loop.is_running():
+                # Already in an async context — caller should use get_user_by_id_async instead.
+                # Return None; the in-memory cache simply doesn't have this user yet.
+                logger.debug("get_user_by_id: async loop running, use get_user_by_id_async for DB lookup")
+                return None
+            else:
+                user = asyncio.run(self._find_user_by_id(user_id))
+        return user
 
     def get_user_by_email(self, email: str) -> Optional[UnifiedUser]:
         """Get user by email."""
-        if self._use_database:
-            # Database mode - would need async context
-            # For sync calls, fall back to cache
-            return self._users_db.get(email.lower())
-        return self._users_db.get(email.lower())
+        user = self._users_db.get(email.lower())
+        if user is None and self._use_database:
+            import asyncio
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop and loop.is_running():
+                # Already in an async context — caller should use get_user_by_email_async instead.
+                logger.debug("get_user_by_email: async loop running, use get_user_by_email_async for DB lookup")
+                return None
+            else:
+                user = asyncio.run(self._find_user_by_email(email))
+                if user:
+                    # Cache for subsequent sync lookups
+                    self._users_db[user.id] = user
+                    self._users_db[user.email] = user
+        return user
 
     async def get_user_by_id_async(self, user_id: str, session=None) -> Optional[UnifiedUser]:
         """

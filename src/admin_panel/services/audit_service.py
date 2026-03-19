@@ -77,7 +77,7 @@ class AuditAction(str, Enum):
 class AuditService:
     """Service for audit logging and compliance tracking."""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Optional[AsyncSession] = None):
         self.db = db
         self._audit_logs: List[Dict] = []  # In-memory for demo
 
@@ -102,6 +102,9 @@ class AuditService:
 
         Returns the audit log ID for reference.
         """
+        if self.db is None:
+            logger.debug("AuditService has no DB session; skipping log_action")
+            return ""
         log_id = str(uuid4())
         now = datetime.now(timezone.utc)
 
@@ -150,6 +153,8 @@ class AuditService:
         offset: int = 0,
     ) -> List[Dict[str, Any]]:
         """Query audit logs with filtering."""
+        if self.db is None:
+            return []
         logs = [log for log in self._audit_logs if log["firm_id"] == firm_id]
 
         if user_id:
@@ -176,6 +181,8 @@ class AuditService:
         log_id: str,
     ) -> Optional[Dict[str, Any]]:
         """Get a specific audit log entry."""
+        if self.db is None:
+            return None
         for log in self._audit_logs:
             if log["firm_id"] == firm_id and log["log_id"] == log_id:
                 return log
@@ -192,6 +199,8 @@ class AuditService:
         days: int = 30,
     ) -> Dict[str, Any]:
         """Get activity summary for a user."""
+        if self.db is None:
+            return {"user_id": user_id, "period_days": days, "total_actions": 0, "action_breakdown": {}, "last_login": None, "most_common_action": None}
         cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
         logs = [
             log for log in self._audit_logs
@@ -225,6 +234,8 @@ class AuditService:
         days: int = 7,
     ) -> Dict[str, Any]:
         """Get activity summary for entire firm."""
+        if self.db is None:
+            return {"firm_id": firm_id, "period_days": days, "total_actions": 0, "daily_counts": {}, "top_users": [], "unique_users": 0}
         cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
         logs = [
             log for log in self._audit_logs
@@ -262,6 +273,8 @@ class AuditService:
         limit: int = 20,
     ) -> List[Dict[str, Any]]:
         """Get recent activity feed for dashboard."""
+        if self.db is None:
+            return []
         logs = [log for log in self._audit_logs if log["firm_id"] == firm_id]
         logs.sort(key=lambda x: x["timestamp"], reverse=True)
 
@@ -291,6 +304,8 @@ class AuditService:
         end_date: datetime,
     ) -> Dict[str, Any]:
         """Generate compliance report for auditors."""
+        if self.db is None:
+            return {"firm_id": firm_id, "report_period": {"start": start_date.isoformat(), "end": end_date.isoformat()}, "generated_at": datetime.now(timezone.utc).isoformat(), "summary": {"total_events": 0, "security_events": 0, "data_access_events": 0, "user_management_events": 0, "impersonation_events": 0}, "security_events": [], "data_access_events": [], "user_events": [], "impersonation_events": [], "compliance_flags": []}
         logs = await self.get_audit_logs(
             firm_id=firm_id,
             start_date=start_date,
@@ -365,6 +380,8 @@ class AuditService:
         resource_id: str,
     ) -> Dict[str, Any]:
         """Generate access history for a specific resource."""
+        if self.db is None:
+            return {"resource_type": resource_type, "resource_id": resource_id, "total_accesses": 0, "unique_users": 0, "first_access": None, "last_access": None, "access_history": []}
         logs = await self.get_audit_logs(
             firm_id=firm_id,
             resource_type=resource_type,
@@ -393,6 +410,8 @@ class AuditService:
 
     async def get_retention_policy(self, firm_id: str) -> Dict[str, Any]:
         """Get data retention policy for a firm."""
+        if self.db is None:
+            return {}
         # Default retention policies (would be configurable)
         return {
             "audit_logs": {
@@ -410,6 +429,8 @@ class AuditService:
 
     async def check_retention_compliance(self, firm_id: str) -> Dict[str, Any]:
         """Check if firm is compliant with retention policies."""
+        if self.db is None:
+            return {"is_compliant": False, "checks": [], "next_review_date": None}
         # Placeholder - would check actual data
         return {
             "is_compliant": True,
@@ -487,6 +508,8 @@ class AuditService:
 
     async def verify_log_integrity(self, log_id: str) -> bool:
         """Verify integrity of an audit log entry."""
+        if self.db is None:
+            return False
         for log in self._audit_logs:
             if log["log_id"] == log_id:
                 # Recalculate hash

@@ -98,7 +98,7 @@ def upgrade() -> None:
         for fk in inspector.get_foreign_keys("tax_returns")
         if fk.get("name")
     }
-    if "fk_tax_returns_firm_id" not in existing_fks:
+    if "fk_tax_returns_firm_id" not in existing_fks and _table_exists(inspector, "firms"):
         op.create_foreign_key(
             "fk_tax_returns_firm_id",
             "tax_returns",
@@ -107,7 +107,7 @@ def upgrade() -> None:
             ["firm_id"],
             ondelete="SET NULL",
         )
-    if "fk_tax_returns_client_id" not in existing_fks:
+    if "fk_tax_returns_client_id" not in existing_fks and _table_exists(inspector, "clients"):
         op.create_foreign_key(
             "fk_tax_returns_client_id",
             "tax_returns",

@@ -14,13 +14,11 @@ Extracted from app.py for better modularity and maintainability.
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-# NOTE: Uses legacy Role enum from auth_decorators (TAXPAYER, CPA, PREPARER, etc.)
-# These map to RBAC roles via legacy_role_to_rbac() — see auth_decorators.py
-from security.auth_decorators import require_auth, Role
+from rbac.dependencies import require_auth
 
 # Journey event bus integration
 try:
@@ -45,19 +43,27 @@ class ScenarioModificationRequest(BaseModel):
 
 
 class CreateScenarioRequest(BaseModel):
-    """Request to create a new scenario."""
-    return_id: str = Field(..., description="ID of the base tax return")
-    name: str = Field(..., description="Name for this scenario")
-    scenario_type: str = Field("what_if", description="Type: what_if, filing_status, retirement, entity_structure, etc.")
-    modifications: List[ScenarioModificationRequest] = Field(..., description="List of modifications to apply")
+    """Request to create a new scenario.
+
+    Accepts frontend field aliases for backward compatibility:
+    - ``adjustments`` is accepted as an alias for ``modifications``
+    - ``filing_status`` is mapped to ``scenario_type`` when the latter is absent
+    """
+    return_id: Optional[str] = Field(None, description="ID of the base tax return (optional for frontend compat)")
+    name: str = Field("Untitled Scenario", description="Name for this scenario")
+    scenario_type: Optional[str] = Field(None, description="Type: what_if, filing_status, retirement, entity_structure, etc.")
+    modifications: Optional[List[ScenarioModificationRequest]] = Field(None, description="List of modifications to apply")
+    # Frontend aliases
+    adjustments: Optional[List[Dict[str, Any]]] = Field(None, description="Alias for modifications (frontend compat)")
+    filing_status: Optional[str] = Field(None, description="Alias: mapped to scenario_type='filing_status' if scenario_type missing")
     description: Optional[str] = Field(None, description="Optional description")
 
 
 class WhatIfScenarioRequest(BaseModel):
     """Request to create a quick what-if scenario."""
-    return_id: str = Field(..., description="ID of the base tax return")
-    name: str = Field(..., description="Name for this scenario")
-    modifications: dict = Field(..., description="Dict of field_path -> new_value")
+    return_id: Optional[str] = Field(None, description="ID of the base tax return (optional for frontend compat)")
+    name: str = Field("What-If Scenario", description="Name for this scenario")
+    modifications: Optional[dict] = Field(None, description="Dict of field_path -> new_value")
 
 
 class CompareScenarioRequest(BaseModel):
@@ -68,13 +74,13 @@ class CompareScenarioRequest(BaseModel):
 
 class FilingStatusScenariosRequest(BaseModel):
     """Request for filing status comparison scenarios."""
-    return_id: str = Field(..., description="ID of the base tax return")
+    return_id: Optional[str] = Field(None, description="ID of the base tax return (optional for frontend compat)")
     eligible_statuses: Optional[List[str]] = Field(None, description="Optional list of statuses to compare")
 
 
 class RetirementScenariosRequest(BaseModel):
     """Request for retirement contribution scenarios."""
-    return_id: str = Field(..., description="ID of the base tax return")
+    return_id: Optional[str] = Field(None, description="ID of the base tax return (optional for frontend compat)")
     contribution_amounts: Optional[List[float]] = Field(None, description="Optional list of amounts to test")
 
 
@@ -123,33 +129,62 @@ def _get_scenario_service():
 
 
 @router.post("")
-@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
-async def create_scenario(request: Request, request_body: CreateScenarioRequest):
+async def create_scenario(request: Request, request_body: CreateScenarioRequest, ctx=Depends(require_auth)):
     """
     Create a new tax scenario.
 
     Creates a scenario with specified modifications to compare against
     the base return. Use this for custom what-if analysis.
+
+    Frontend compatibility: accepts ``adjustments`` as alias for
+    ``modifications``, ``filing_status`` as fallback for ``scenario_type``,
+    and allows ``return_id`` to be omitted.
     """
     from domain import ScenarioType
 
+    # --- return_id guard ---
+    if not request_body.return_id:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "error": "return_id is required. Please load a tax return before creating scenarios.",
+            },
+        )
+
     service = _get_scenario_service()
 
-    # Convert string type to enum
+    # --- Resolve scenario_type (accept filing_status alias) ---
+    raw_type = request_body.scenario_type
+    if not raw_type and request_body.filing_status:
+        raw_type = "filing_status"
+    raw_type = raw_type or "what_if"
+
     try:
-        scenario_type = ScenarioType(request_body.scenario_type)
+        scenario_type = ScenarioType(raw_type)
     except ValueError:
         scenario_type = ScenarioType.WHAT_IF
 
-    # Convert modifications to dict format expected by service
-    modifications = [
-        {
-            "field_path": mod.field_path,
-            "new_value": mod.new_value,
-            "description": mod.description,
-        }
-        for mod in request_body.modifications
-    ]
+    # --- Resolve modifications (accept adjustments alias) ---
+    modifications: list = []
+    if request_body.modifications:
+        modifications = [
+            {
+                "field_path": mod.field_path,
+                "new_value": mod.new_value,
+                "description": mod.description,
+            }
+            for mod in request_body.modifications
+        ]
+    elif request_body.adjustments:
+        # Frontend sends adjustments as list of dicts; normalise to
+        # the field_path / new_value shape the service expects.
+        for adj in request_body.adjustments:
+            modifications.append({
+                "field_path": adj.get("field_path") or adj.get("field", "unknown"),
+                "new_value": adj.get("new_value") or adj.get("value"),
+                "description": adj.get("description"),
+            })
 
     try:
         scenario = service.create_scenario(
@@ -195,13 +230,21 @@ async def create_scenario(request: Request, request_body: CreateScenarioRequest)
 
 
 @router.get("")
-@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
-async def list_scenarios(request: Request, return_id: str):
+async def list_scenarios(request: Request, return_id: Optional[str] = None, ctx=Depends(require_auth)):
     """
     List all scenarios for a tax return.
 
     Returns summary of all scenarios created for the specified return.
+    If no return_id is provided, returns an empty list (frontend compat).
     """
+    if not return_id:
+        return JSONResponse({
+            "return_id": None,
+            "count": 0,
+            "scenarios": [],
+            "message": "No return_id provided. Load a tax return first to see scenarios.",
+        })
+
     service = _get_scenario_service()
 
     scenarios = service.get_scenarios_for_return(return_id)
@@ -226,8 +269,7 @@ async def list_scenarios(request: Request, return_id: str):
 
 
 @router.get("/{scenario_id}")
-@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
-async def get_scenario(request: Request, scenario_id: str):
+async def get_scenario(request: Request, scenario_id: str, ctx=Depends(require_auth)):
     """
     Get detailed information about a specific scenario.
 
@@ -280,8 +322,7 @@ async def get_scenario(request: Request, scenario_id: str):
 
 
 @router.post("/{scenario_id}/calculate")
-@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
-async def calculate_scenario(request: Request, scenario_id: str):
+async def calculate_scenario(request: Request, scenario_id: str, ctx=Depends(require_auth)):
     """
     Calculate tax results for a scenario.
 
@@ -322,8 +363,7 @@ async def calculate_scenario(request: Request, scenario_id: str):
 
 
 @router.delete("/{scenario_id}")
-@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
-async def delete_scenario(request: Request, scenario_id: str):
+async def delete_scenario(request: Request, scenario_id: str, ctx=Depends(require_auth)):
     """
     Delete a scenario.
 
@@ -347,8 +387,7 @@ async def delete_scenario(request: Request, scenario_id: str):
 
 
 @router.post("/compare")
-@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
-async def compare_scenarios(request: Request, request_body: CompareScenarioRequest):
+async def compare_scenarios(request: Request, request_body: CompareScenarioRequest, ctx=Depends(require_auth)):
     """
     Compare multiple scenarios to find the best option.
 
@@ -377,8 +416,7 @@ async def compare_scenarios(request: Request, request_body: CompareScenarioReque
 
 
 @router.post("/filing-status")
-@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
-async def generate_filing_status_scenarios(request: Request, request_body: FilingStatusScenariosRequest):
+async def generate_filing_status_scenarios(request: Request, request_body: FilingStatusScenariosRequest, ctx=Depends(require_auth)):
     """
     Generate and compare filing status scenarios.
 
@@ -386,6 +424,15 @@ async def generate_filing_status_scenarios(request: Request, request_body: Filin
     calculates the tax liability for each. Returns comparison with
     recommendation for the optimal status.
     """
+    if not request_body.return_id:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "error": "return_id is required. Please load a tax return before comparing filing statuses.",
+            },
+        )
+
     service = _get_scenario_service()
 
     try:
@@ -437,14 +484,22 @@ async def generate_filing_status_scenarios(request: Request, request_body: Filin
 
 
 @router.post("/retirement")
-@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
-async def generate_retirement_scenarios(request: Request, request_body: RetirementScenariosRequest):
+async def generate_retirement_scenarios(request: Request, request_body: RetirementScenariosRequest, ctx=Depends(require_auth)):
     """
     Generate retirement contribution comparison scenarios.
 
     Creates scenarios for different 401k/IRA contribution levels to
     show the tax impact of increasing retirement savings.
     """
+    if not request_body.return_id:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "error": "return_id is required. Please load a tax return before analyzing retirement scenarios.",
+            },
+        )
+
     service = _get_scenario_service()
 
     try:
@@ -491,21 +546,29 @@ async def generate_retirement_scenarios(request: Request, request_body: Retireme
 
 
 @router.post("/what-if")
-@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
-async def create_what_if_scenario(request: Request, request_body: WhatIfScenarioRequest):
+async def create_what_if_scenario(request: Request, request_body: WhatIfScenarioRequest, ctx=Depends(require_auth)):
     """
     Create a quick what-if scenario with simple field modifications.
 
     Simplified endpoint for ad-hoc what-if analysis. Pass a dict of
     field_path -> new_value and get immediate tax impact analysis.
     """
+    if not request_body.return_id:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "error": "return_id is required. Please load a tax return before running what-if analysis.",
+            },
+        )
+
     service = _get_scenario_service()
 
     try:
         scenario = service.create_what_if_scenario(
             return_id=request_body.return_id,
             name=request_body.name,
-            modifications=request_body.modifications,
+            modifications=request_body.modifications or {},
         )
 
         # Calculate immediately
@@ -542,8 +605,7 @@ async def create_what_if_scenario(request: Request, request_body: WhatIfScenario
 
 
 @router.post("/{scenario_id}/apply")
-@require_auth(roles=[Role.TAXPAYER, Role.CPA, Role.PREPARER])
-async def apply_scenario(request: Request, scenario_id: str, request_body: ApplyScenarioRequest):
+async def apply_scenario(request: Request, scenario_id: str, request_body: ApplyScenarioRequest, ctx=Depends(require_auth)):
     """
     Apply a scenario's modifications to the base return.
 

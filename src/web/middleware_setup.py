@@ -190,6 +190,8 @@ def configure_middleware(app: FastAPI) -> dict:
             "/api/leads/create",
             "/api/cpa/lead-magnet/",
             "/api/lead-magnet/",
+            # Logout (cookie-clearing only, no sensitive state change)
+            "/logout",
         }
 
         app.add_middleware(

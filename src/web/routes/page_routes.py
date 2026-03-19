@@ -174,7 +174,9 @@ def dashboard(request: Request):
     denied = _require_any_auth(request)
     if denied:
         return denied
-    response = templates.TemplateResponse("dashboard.html", {"request": request})
+    from config.branding import get_branding_config
+    branding = get_branding_config()
+    response = templates.TemplateResponse("dashboard.html", {"request": request, "branding": branding})
     return response
 
 
@@ -251,16 +253,11 @@ async def app_settings(request: Request):
 # LEGACY CPA ROUTES
 # =========================================================================
 
-@router.get("/legacy/cpa", response_class=HTMLResponse, include_in_schema=False, deprecated=True)
-def cpa_dashboard_legacy_alias(request: Request):
-    """DEPRECATED alias for legacy CPA homepage entry."""
-    return RedirectResponse(url="/cpa/dashboard", status_code=302)
-
-
-@router.get("/legacy/cpa/v2", response_class=HTMLResponse, include_in_schema=False, deprecated=True)
-def cpa_dashboard_v2_legacy_alias(request: Request):
-    """DEPRECATED alias for legacy CPA v2 entry."""
-    return RedirectResponse(url="/cpa/dashboard", status_code=302)
+@router.get("/legacy/cpa", include_in_schema=False)
+@router.get("/legacy/cpa/v2", include_in_schema=False)
+def legacy_cpa_dashboard_redirect():
+    """Legacy CPA routes — permanent redirect to CPA dashboard."""
+    return RedirectResponse(url="/cpa/dashboard", status_code=301)
 
 
 @router.get("/cpa/settings/payments", response_class=HTMLResponse)
@@ -278,27 +275,33 @@ def cpa_branding_settings(request: Request):
     denied = _require_cpa_or_admin_access(request)
     if denied:
         return denied
-    return templates.TemplateResponse("cpa_branding_settings.html", {"request": request})
+    from config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("cpa_branding_settings.html", {"request": request, "branding": branding})
 
 
-@router.get("/legacy/cpa/clients", response_class=HTMLResponse, include_in_schema=False, deprecated=True)
-def cpa_clients_legacy_alias(request: Request):
-    return RedirectResponse(url="/cpa/clients", status_code=302)
+@router.get("/legacy/cpa/clients", include_in_schema=False)
+def legacy_cpa_clients_redirect():
+    """Legacy CPA clients — permanent redirect."""
+    return RedirectResponse(url="/cpa/clients", status_code=301)
 
 
-@router.get("/legacy/cpa/settings", response_class=HTMLResponse, include_in_schema=False, deprecated=True)
-def cpa_settings_legacy_alias(request: Request):
-    return RedirectResponse(url="/cpa/settings", status_code=302)
+@router.get("/legacy/cpa/settings", include_in_schema=False)
+def legacy_cpa_settings_redirect():
+    """Legacy CPA settings — permanent redirect."""
+    return RedirectResponse(url="/cpa/settings", status_code=301)
 
 
-@router.get("/legacy/cpa/team", response_class=HTMLResponse, include_in_schema=False, deprecated=True)
-def cpa_team_legacy_alias(request: Request):
-    return RedirectResponse(url="/cpa/team", status_code=302)
+@router.get("/legacy/cpa/team", include_in_schema=False)
+def legacy_cpa_team_redirect():
+    """Legacy CPA team — permanent redirect."""
+    return RedirectResponse(url="/cpa/team", status_code=301)
 
 
-@router.get("/legacy/cpa/billing", response_class=HTMLResponse, include_in_schema=False, deprecated=True)
-def cpa_billing_legacy_alias(request: Request):
-    return RedirectResponse(url="/cpa/billing", status_code=302)
+@router.get("/legacy/cpa/billing", include_in_schema=False)
+def legacy_cpa_billing_redirect():
+    """Legacy CPA billing — permanent redirect."""
+    return RedirectResponse(url="/cpa/billing", status_code=301)
 
 
 # =========================================================================
@@ -309,34 +312,44 @@ def cpa_billing_legacy_alias(request: Request):
 @router.get("/for-cpas", response_class=HTMLResponse)
 def cpa_landing_page(request: Request):
     """CPA Landing Page - Marketing page for CPA lead generation platform."""
-    return templates.TemplateResponse("landing.html", {"request": request})
+    from config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("landing.html", {"request": request, "branding": branding})
 
 
 @router.get("/terms", response_class=HTMLResponse)
 @router.get("/terms-of-service", response_class=HTMLResponse)
 def terms_of_service(request: Request):
     """Terms of Service - Legal terms and conditions."""
-    return templates.TemplateResponse("terms.html", {"request": request})
+    from config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("terms.html", {"request": request, "branding": branding})
 
 
 @router.get("/privacy", response_class=HTMLResponse)
 @router.get("/privacy-policy", response_class=HTMLResponse)
 def privacy_policy(request: Request):
     """Privacy Policy - Data collection and usage policies."""
-    return templates.TemplateResponse("privacy.html", {"request": request})
+    from config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("privacy.html", {"request": request, "branding": branding})
 
 
 @router.get("/cookies", response_class=HTMLResponse)
 @router.get("/cookie-policy", response_class=HTMLResponse)
 def cookie_policy(request: Request):
     """Cookie Policy - Cookie usage disclosure."""
-    return templates.TemplateResponse("cookies.html", {"request": request})
+    from config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("cookies.html", {"request": request, "branding": branding})
 
 
 @router.get("/disclaimer", response_class=HTMLResponse)
 def disclaimer_page(request: Request):
     """Disclaimer - Important legal disclaimer."""
-    return templates.TemplateResponse("disclaimer.html", {"request": request})
+    from config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("disclaimer.html", {"request": request, "branding": branding})
 
 
 @router.get("/client", response_class=HTMLResponse)
@@ -359,9 +372,23 @@ def client_login_page(request: Request, next: str = "/app/portal"):
 # REDIRECT ROUTES
 # =========================================================================
 
-@router.get("/logout")
+@router.post("/logout")
 def logout_redirect(request: Request):
     """Logout and redirect to home page."""
+    response = RedirectResponse(url="/", status_code=302)
+    response.delete_cookie("tax_session_id")
+    response.delete_cookie("auth_token")
+    response.delete_cookie("client_token")
+    response.delete_cookie("user_role")
+    response.delete_cookie("user_name")
+    response.delete_cookie("user_email")
+    response.delete_cookie("cpa_id")
+    return response
+
+
+@router.get("/logout", include_in_schema=False)
+def logout_get_fallback(request: Request):
+    """GET fallback — clear cookies and redirect (for bookmarks/links)."""
     response = RedirectResponse(url="/", status_code=302)
     response.delete_cookie("tax_session_id")
     response.delete_cookie("auth_token")
@@ -454,7 +481,9 @@ def admin_dashboard(request: Request, path: str = ""):
     denied = _require_admin_page_access(request)
     if denied:
         return denied
-    return templates.TemplateResponse("admin_dashboard.html", {"request": request})
+    from config.branding import get_branding_config
+    branding = get_branding_config()
+    return templates.TemplateResponse("admin_dashboard.html", {"request": request, "branding": branding})
 
 
 @router.get("/hub", response_class=HTMLResponse)
@@ -491,10 +520,10 @@ def smart_tax_redirect(request: Request, path: str = ""):
     return RedirectResponse(url="/intelligent-advisor", status_code=302)
 
 
-@router.get("/smart-tax-legacy", response_class=HTMLResponse, include_in_schema=False, deprecated=True)
-def smart_tax_app_legacy(request: Request, path: str = ""):
-    """LEGACY: Smart Tax — template removed, redirect to advisor."""
-    return RedirectResponse(url="/intelligent-advisor", status_code=302)
+@router.get("/smart-tax-legacy", include_in_schema=False)
+def smart_tax_legacy_redirect():
+    """Legacy smart-tax — permanent redirect to intelligent advisor."""
+    return RedirectResponse(url="/intelligent-advisor", status_code=301)
 
 
 @router.get("/guided", response_class=HTMLResponse)
@@ -595,21 +624,17 @@ def filing_results(request: Request, session_id: str = None):
 # LEGACY ADVISOR REDIRECTS
 # =========================================================================
 
-@router.get("/advisor", response_class=HTMLResponse, include_in_schema=False)
-def ai_tax_advisor():
+@router.get("/advisor", include_in_schema=False)
+@router.get("/tax-advisory", include_in_schema=False)
+@router.get("/advisory", include_in_schema=False)
+@router.get("/start", include_in_schema=False)
+@router.get("/analysis", include_in_schema=False)
+@router.get("/tax-advisory/v2", include_in_schema=False)
+@router.get("/advisory/v2", include_in_schema=False)
+@router.get("/start/v2", include_in_schema=False)
+@router.get("/simple", include_in_schema=False)
+@router.get("/conversation", include_in_schema=False)
+@router.get("/chat", include_in_schema=False)
+def legacy_advisor_routes_redirect():
+    """Legacy advisor routes — permanent redirect to intelligent advisor."""
     return RedirectResponse(url="/intelligent-advisor", status_code=301)
-
-
-@router.get("/tax-advisory", include_in_schema=False, deprecated=True)
-@router.get("/advisory", include_in_schema=False, deprecated=True)
-@router.get("/start", include_in_schema=False, deprecated=True)
-@router.get("/analysis", include_in_schema=False, deprecated=True)
-@router.get("/tax-advisory/v2", include_in_schema=False, deprecated=True)
-@router.get("/advisory/v2", include_in_schema=False, deprecated=True)
-@router.get("/start/v2", include_in_schema=False, deprecated=True)
-@router.get("/simple", include_in_schema=False, deprecated=True)
-@router.get("/conversation", include_in_schema=False, deprecated=True)
-@router.get("/chat", include_in_schema=False, deprecated=True)
-def legacy_routes_redirect():
-    """Legacy routes redirected to AI Tax Advisor."""
-    return RedirectResponse(url="/intelligent-advisor", status_code=302)

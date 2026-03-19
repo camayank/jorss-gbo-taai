@@ -38,7 +38,9 @@
                 </div>
                 <div class="flex items-center space-x-4">
                     <a href="/cpa/settings" class="text-gray-600 hover:text-primary">Settings</a>
-                    <a href="/logout" class="text-gray-600 hover:text-red-600">Logout</a>
+                    <form method="post" action="/logout" style="display:inline;">
+                        <button type="submit" class="text-gray-600 hover:text-red-600" style="background:none;border:none;cursor:pointer;">Logout</button>
+                    </form>
                 </div>
             </div>
         </div>

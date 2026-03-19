@@ -79,11 +79,12 @@ class FirmService:
             user_id=user_id,
             firm_id=firm_id,
             email=admin_email,
-            name=admin_name,
+            first_name=admin_name.split(" ", 1)[0],
+            last_name=admin_name.split(" ", 1)[1] if " " in admin_name else "",
             password_hash=password_hash,
             role="firm_admin",
             is_active=True,
-            email_verified=False,
+            is_email_verified=False,
             created_at=now,
         )
         self.db.add(admin)
@@ -292,7 +293,7 @@ class FirmService:
 
         # Count clients (from cpa_panel integration)
         # For now, use stored count or estimate
-        client_count = firm.current_client_count or 0
+        client_count = getattr(firm, 'current_client_count', 0) or 0
 
         return {
             "firm_id": firm_id,
@@ -365,7 +366,7 @@ class FirmService:
             "profile_completed": bool(firm.phone and firm.email),
             "branding_configured": bool(settings and settings.branding_logo_url),
             "team_invited": team_count > 1,
-            "first_client_added": (firm.current_client_count or 0) > 0,
+            "first_client_added": (getattr(firm, 'current_client_count', 0) or 0) > 0,
             "payment_configured": firm.subscription_status == "active",
         }
 

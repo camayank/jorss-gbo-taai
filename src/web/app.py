@@ -345,6 +345,7 @@ _ROUTER_REGISTRY = [
     ("web.filing_package_api", "router", None, "Filing Package API"),
     ("web.custom_domain_api", "router", None, "Custom Domain API"),
     # Modular routers (extracted from app.py)
+    ("web.routers.tasks_api", "router", None, "/api/tasks stub"),
     ("web.routers.scenarios", "router", None, "Scenarios API"),
     ("web.routers.health", "router", None, "Health Check API"),
     # SECURITY: Keep legacy route owners for returns/calculations until
@@ -369,6 +370,8 @@ _ROUTER_REGISTRY = [
     ("web.routers.interview_api", "router", None, "Interview & Validation API"),
     ("web.routers.tax_tools", "router", None, "Tax Tools API"),
     ("web.routers.journey_api", "router", None, "Journey API"),
+    ("web.routers.appointments_api", "router", None, "Appointments API"),
+    ("web.routers.deadlines_api", "router", None, "Deadlines API stub"),
     # WebSocket real-time events
     ("realtime.websocket_routes", "websocket_router", None, "WebSocket Real-Time"),
 ]

@@ -49,10 +49,14 @@ def upgrade() -> None:
 
     # --- 2. Backfill from cpa_profiles if it exists --------------------------
     inspector = sa.inspect(bind)
+    cp_cols = {c["name"] for c in inspector.get_columns("cpa_profiles")} if _table_exists(inspector, "cpa_profiles") else set()
+    u_cols = {c["name"] for c in inspector.get_columns("users")} if _table_exists(inspector, "users") else set()
     if (
         _table_exists(inspector, "cpa_profiles")
         and _table_exists(inspector, "users")
         and _table_exists(inspector, "tenant_firm_mapping")
+        and "user_id" in cp_cols
+        and "firm_id" in u_cols
     ):
         op.execute(
             sa.text(
