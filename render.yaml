@@ -56,9 +56,9 @@ services:
       - key: ALLOW_MISSING_OPENAI
         value: "true"
 
-      # ----- Security -----
+      # ----- Security (Render handles HTTPS at load balancer level) -----
       - key: APP_ENFORCE_HTTPS
-        value: "true"
+        value: "false"
       - key: APP_SECRET_KEY
         generateValue: true
       - key: JWT_SECRET
