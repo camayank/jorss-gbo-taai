@@ -22,7 +22,7 @@ services:
 
     # Start command
     startCommand: >-
-      PYTHONPATH=src gunicorn src.web.app:app
+      PYTHONPATH=src gunicorn web.app:app
       --bind 0.0.0.0:$PORT
       --workers 2
       --worker-class uvicorn.workers.UvicornWorker
