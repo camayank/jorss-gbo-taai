@@ -129,13 +129,22 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # AI Feature Flags — each integration is independently toggleable
 # ---------------------------------------------------------------------------
-AI_CHAT_ENABLED = os.environ.get("AI_CHAT_ENABLED", "true").lower() == "true"
-AI_REPORT_NARRATIVES_ENABLED = os.environ.get("AI_REPORT_NARRATIVES_ENABLED", "true").lower() == "true"
-AI_SAFETY_CHECKS_ENABLED = os.environ.get("AI_SAFETY_CHECKS_ENABLED", "true").lower() == "true"
-AI_OPPORTUNITIES_ENABLED = os.environ.get("AI_OPPORTUNITIES_ENABLED", "true").lower() == "true"
-AI_RECOMMENDATIONS_ENABLED = os.environ.get("AI_RECOMMENDATIONS_ENABLED", "true").lower() == "true"
-AI_ENTITY_EXTRACTION_ENABLED = os.environ.get("AI_ENTITY_EXTRACTION_ENABLED", "true").lower() == "true"
-AI_ADAPTIVE_QUESTIONS_ENABLED = os.environ.get("AI_ADAPTIVE_QUESTIONS_ENABLED", "true").lower() == "true"
+# Check if any AI provider is actually configured (not placeholder values)
+def _is_real_key(key_name):
+    val = os.environ.get(key_name, "")
+    return val and not val.startswith("REPLACE") and not val.startswith("your_") and len(val) > 20
+
+_HAS_AI_PROVIDER = any(_is_real_key(k) for k in [
+    "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_API_KEY", "PERPLEXITY_API_KEY"
+])
+
+AI_CHAT_ENABLED = _HAS_AI_PROVIDER and os.environ.get("AI_CHAT_ENABLED", "true").lower() == "true"
+AI_REPORT_NARRATIVES_ENABLED = _HAS_AI_PROVIDER and os.environ.get("AI_REPORT_NARRATIVES_ENABLED", "true").lower() == "true"
+AI_SAFETY_CHECKS_ENABLED = _HAS_AI_PROVIDER and os.environ.get("AI_SAFETY_CHECKS_ENABLED", "true").lower() == "true"
+AI_OPPORTUNITIES_ENABLED = _HAS_AI_PROVIDER and os.environ.get("AI_OPPORTUNITIES_ENABLED", "true").lower() == "true"
+AI_RECOMMENDATIONS_ENABLED = _HAS_AI_PROVIDER and os.environ.get("AI_RECOMMENDATIONS_ENABLED", "true").lower() == "true"
+AI_ENTITY_EXTRACTION_ENABLED = _HAS_AI_PROVIDER and os.environ.get("AI_ENTITY_EXTRACTION_ENABLED", "true").lower() == "true"
+AI_ADAPTIVE_QUESTIONS_ENABLED = os.environ.get("AI_ADAPTIVE_QUESTIONS_ENABLED", "true").lower() == "true"  # This uses scoring, not LLM
 
 # ---------------------------------------------------------------------------
 # Re-export from decomposed sub-modules (backward compatibility)
@@ -5038,7 +5047,10 @@ To get started, what's your filing status?"""
 
         # Augment regex extraction with AI entity extraction (fills gaps only)
         try:
-            ai_updates = await chat_engine._ai_extract_profile_data(msg_original, session)
+            ai_updates = await asyncio.wait_for(
+                chat_engine._ai_extract_profile_data(msg_original, session),
+                timeout=5.0,
+            )
             for key, value in ai_updates.items():
                 if key not in extracted or not extracted[key]:
                     extracted[key] = value
@@ -5329,8 +5341,15 @@ To get started, what's your filing status?"""
     if has_basics:
         tax_calculation = await chat_engine.get_tax_calculation(profile)
 
-        # Get strategies
-        strategies = await chat_engine.get_tax_strategies(profile, tax_calculation)
+        # Get strategies (with timeout to prevent hangs when AI is unavailable)
+        try:
+            strategies = await asyncio.wait_for(
+                chat_engine.get_tax_strategies(profile, tax_calculation),
+                timeout=10.0,
+            )
+        except asyncio.TimeoutError:
+            logger.warning("Strategy generation timed out — using basic strategies")
+            strategies = []
 
         # Enrich top strategies with AI reasoning (non-simple profiles only)
         if AI_CHAT_ENABLED and complexity != "simple" and strategies:
@@ -5346,7 +5365,10 @@ To get started, what's your filing status?"""
                         problem=f"Evaluate strategy: {s.title} with savings of ${s.estimated_savings:,.0f}",
                         context=_summarize_profile(profile),
                     ))
-                reasoning_results = await asyncio.gather(*reasoning_tasks, return_exceptions=True)
+                reasoning_results = await asyncio.wait_for(
+                    asyncio.gather(*reasoning_tasks, return_exceptions=True),
+                    timeout=5.0,
+                )
                 for s, result in zip(strategies[:2], reasoning_results):
                     if isinstance(result, Exception):
                         continue
@@ -5377,7 +5399,10 @@ To get started, what's your filing status?"""
                         "explanation": s.detailed_explanation or "",
                     }
                     narr_tasks.append(narrator.generate_recommendation_explanation(rec_data, client_profile))
-                narr_results = await asyncio.gather(*narr_tasks, return_exceptions=True)
+                narr_results = await asyncio.wait_for(
+                    asyncio.gather(*narr_tasks, return_exceptions=True),
+                    timeout=5.0,
+                )
                 for s, narrative in zip(strategies[:3], narr_results):
                     if isinstance(narrative, Exception):
                         continue
@@ -5426,7 +5451,7 @@ To get started, what's your filing status?"""
             try:
                 safety_data = await asyncio.wait_for(
                     _run_safety_checks(request.session_id, profile, tax_calculation),
-                    timeout=8.0,
+                    timeout=5.0,
                 )
             except asyncio.TimeoutError:
                 logger.warning("Safety checks timed out — will show on next response")
