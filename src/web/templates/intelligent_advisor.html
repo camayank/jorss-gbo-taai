@@ -768,6 +768,27 @@ body::before {
 .currency-input { flex: 1; padding: 0.7rem 1rem; border: 1px solid var(--stone-200); border-radius: var(--radius-xs); font-family: var(--mono); font-size: 1.1rem; font-weight: 600; outline: none; transition: var(--transition); color: var(--ink); background: var(--white); }
 .currency-input:focus { border-color: var(--amber); box-shadow: 0 0 0 3px var(--amber-subtle); }
 
+/* ========== COPY BUTTON (hover-visible) ========== */
+.copy-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--stone-200);
+  border-radius: var(--radius-xs);
+  background: var(--white);
+  color: var(--stone-500);
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.bubble { position: relative; }
+.bubble:hover .copy-btn { opacity: 1; }
+.copy-btn:hover { background: var(--stone-50); color: var(--ink); }
+
 /* ========== RESPONSIVE ========== */
 @media (max-width: 640px) {
   .advisor-header { padding: 0 1rem; }

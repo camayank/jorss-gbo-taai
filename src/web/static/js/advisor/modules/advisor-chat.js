@@ -366,18 +366,18 @@ export function addMessage(type, text, quickActions = [], options = {}) {
     bubble.textContent = text;
   }
 
-  // Add copy button for AI messages
+  // Add copy button for AI messages (hidden until hover)
   if (type === 'ai') {
     const copyBtn = document.createElement('button');
     copyBtn.className = 'copy-btn';
-    copyBtn.innerHTML =  Copy';
+    copyBtn.textContent = 'Copy';
     copyBtn.setAttribute('aria-label', 'Copy this message');
     copyBtn.onclick = (e) => {
       e.stopPropagation();
-      const textContent = bubble.innerText.replace(/\s*Copy$/, '').trim();
+      const textContent = bubble.innerText.replace(/\s*Copy$/, '').replace(/\s*Copied$/, '').trim();
       navigator.clipboard.writeText(textContent).then(() => {
-        copyBtn.innerHTML =  Copied';
-        setTimeout(() => copyBtn.innerHTML =  Copy', 2000);
+        copyBtn.textContent = 'Copied';
+        setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
       });
     };
     bubble.appendChild(copyBtn);

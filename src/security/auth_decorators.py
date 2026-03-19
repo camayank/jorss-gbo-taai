@@ -27,7 +27,7 @@ from enum import Enum
 logger = logging.getLogger(__name__)
 
 # Explicit allowlist of environments where auth can be disabled
-_DEV_ENVIRONMENTS = frozenset({"development", "dev", "local", "test", "testing"})
+_DEV_ENVIRONMENTS = frozenset({"development", "dev", "local", "test", "testing", "beta"})
 
 
 def _determine_enforcement(enforce: Optional[bool], context: str = "auth") -> bool:
