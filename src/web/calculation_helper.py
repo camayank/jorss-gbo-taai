@@ -220,8 +220,8 @@ def _build_tax_return_from_profile(profile: Dict[str, Any]):
             federal_tax_withheld=profile.get("federal_withheld", 0) or 0,
             state_wages=w2_income,
             state_tax_withheld=profile.get("state_withheld", 0) or 0,
-            social_security_wages=min(w2_income, 168600),  # 2025 SS wage base
-            social_security_tax_withheld=min(w2_income, 168600) * 0.062,
+            social_security_wages=min(w2_income, 176100),  # 2025 SS wage base
+            social_security_tax_withheld=min(w2_income, 176100) * 0.062,
             medicare_wages=w2_income,
             medicare_tax_withheld=w2_income * 0.0145,
         ))
@@ -311,7 +311,11 @@ def _build_tax_return_from_profile(profile: Dict[str, Any]):
     medical = profile.get("medical_expenses", 0) or 0
     state_taxes = profile.get("state_taxes_paid", 0) or 0
 
-    if any([mortgage_interest, property_taxes, charitable, medical, state_taxes]):
+    total_itemized = mortgage_interest + property_taxes + charitable + medical + state_taxes
+    std_ded_map = {"single": 15000, "married_joint": 30000, "head_of_household": 22500, "married_separate": 15000, "qualifying_widow": 30000}
+    filing_status = profile.get("filing_status", "single")
+    std_ded = std_ded_map.get(filing_status, 15000)
+    if total_itemized > std_ded:
         from models.deductions import ItemizedDeductions
         tax_return.deductions.use_standard_deduction = False
         tax_return.deductions.itemized = ItemizedDeductions(

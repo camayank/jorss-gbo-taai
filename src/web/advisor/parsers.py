@@ -309,7 +309,7 @@ def parse_user_message(message: str, current_profile: dict) -> dict:
     k401_match = re.search(r'401\s*k?\s*(?:contribut)?\s*(?:of\s*)?\$?\s*([\d,]+)', msg_lower)
     if k401_match:
         try:
-            updates["retirement_401k"] = min(float(k401_match.group(1).replace(',', '')), 30500)
+            updates["retirement_401k"] = min(float(k401_match.group(1).replace(',', '')), 31000)  # 2025: $23,500 + $7,500 catch-up
         except ValueError:
             updates["_clarification_needed"] = {
                 "field": "retirement_401k",
@@ -322,7 +322,7 @@ def parse_user_message(message: str, current_profile: dict) -> dict:
     ira_match = re.search(r'(?:traditional\s*)?ira\s*(?:contribut)?\s*(?:of\s*)?\$?\s*([\d,]+)', msg_lower)
     if ira_match:
         try:
-            updates["retirement_ira"] = min(float(ira_match.group(1).replace(',', '')), 8000)
+            updates["retirement_ira"] = min(float(ira_match.group(1).replace(',', '')), 8000)  # 2025: $7,000 + $1,000 catch-up (50+)
         except ValueError:
             updates["_clarification_needed"] = {
                 "field": "retirement_ira",

@@ -1949,6 +1949,39 @@ class IntelligentChatEngine:
         "TN": [], "NH": []  # NH only taxes interest/dividends
     }
 
+    def _calculate_ltcg_tax(self, ltcg, filing_status, taxable_ordinary_income):
+        """Calculate long-term capital gains tax at preferential rates (0/15/20%)."""
+        thresholds = {
+            "single": (48350, 533400),
+            "married_joint": (96700, 600050),
+            "head_of_household": (64750, 566700),
+            "married_separate": (48350, 300025),
+            "qualifying_widow": (96700, 600050),
+        }
+        zero_thresh, fifteen_thresh = thresholds.get(filing_status, (48350, 533400))
+
+        # Stack LTCG on top of ordinary income
+        stacked_start = taxable_ordinary_income
+
+        tax = 0
+        # 0% bracket
+        if stacked_start < zero_thresh:
+            zero_amount = min(ltcg, zero_thresh - stacked_start)
+            tax += zero_amount * 0  # 0%
+            ltcg -= zero_amount
+            stacked_start += zero_amount
+        # 15% bracket
+        if ltcg > 0 and stacked_start < fifteen_thresh:
+            fifteen_amount = min(ltcg, fifteen_thresh - stacked_start)
+            tax += fifteen_amount * 0.15
+            ltcg -= fifteen_amount
+            stacked_start += fifteen_amount
+        # 20% bracket
+        if ltcg > 0:
+            tax += ltcg * 0.20
+
+        return tax
+
     def _calculate_federal_tax(self, taxable_income: float, filing_status: str) -> tuple:
         """Calculate federal income tax using progressive brackets."""
         brackets = self.TAX_BRACKETS_2025.get(filing_status, self.TAX_BRACKETS_2025["single"])
@@ -1982,7 +2015,7 @@ class IntelligentChatEngine:
             return 0.0
 
         # Adjust for married filing jointly (most states double brackets)
-        multiplier = 2.0 if filing_status in ["married_joint", "qualifying_widow"] else 1.0
+        multiplier = 1.5 if filing_status in ["married_joint", "qualifying_widow"] else 1.0
 
         tax = 0.0
         prev_limit = 0
@@ -2242,8 +2275,19 @@ class IntelligentChatEngine:
         qbi_deduction = self._calculate_qbi_deduction(profile, taxable_income_before_qbi)
         taxable_income = max(0, taxable_income_before_qbi - qbi_deduction)
 
-        # Calculate federal income tax
-        federal_tax, marginal_rate = self._calculate_federal_tax(taxable_income, filing_status)
+        # Separate LTCG from ordinary income for preferential rate treatment
+        ltcg_in_taxable = min(
+            profile.get("capital_gains_long", 0) or profile.get("capital_gains", 0) or 0,
+            taxable_income,
+        )
+        taxable_ordinary_income = max(0, taxable_income - ltcg_in_taxable)
+
+        # Calculate federal income tax on ordinary income only
+        federal_tax, marginal_rate = self._calculate_federal_tax(taxable_ordinary_income, filing_status)
+
+        # Calculate LTCG tax at preferential rates (0/15/20%)
+        if ltcg_in_taxable > 0:
+            federal_tax += self._calculate_ltcg_tax(ltcg_in_taxable, filing_status, taxable_ordinary_income)
 
         # Calculate Child Tax Credit
         ctc = self._calculate_child_tax_credit(profile, agi)
@@ -2268,7 +2312,7 @@ class IntelligentChatEngine:
         withholding = profile.get("federal_withholding", 0) or 0
         estimated_payments = profile.get("estimated_payments", 0) or 0
         total_payments = withholding + estimated_payments
-        refund_or_owed = total_payments - federal_tax
+        refund_or_owed = total_payments - total_tax
 
         # Build tax notices for transparency
         tax_notices = []
@@ -2286,8 +2330,8 @@ class IntelligentChatEngine:
         # Calculate capital gains info
         short_term_gains = profile.get("capital_gains_short", 0) or 0
         long_term_gains = profile.get("capital_gains_long", 0) or profile.get("capital_gains", 0) or 0
-        # Preferential rate on LTCG (simplified 15% rate)
-        capital_gains_tax = long_term_gains * 0.15 if long_term_gains > 0 else 0
+        # Preferential rate on LTCG (0/15/20% stacked on ordinary income)
+        capital_gains_tax = self._calculate_ltcg_tax(long_term_gains, filing_status, taxable_ordinary_income) if long_term_gains > 0 else 0
         # Net investment income for NIIT
         net_investment_income = (
             (profile.get("interest_income", 0) or 0) +
@@ -2598,7 +2642,7 @@ At your {calculation.marginal_rate}% marginal tax rate, every $1,000 you contrib
 
         # 2b. Mega Backdoor Roth for high earners with 401(k)
         if is_high_earner and has_workplace_plan:
-            mega_contribution = 46000  # 2025 limit: $69,000 total - $23,000 employee
+            mega_contribution = 46500  # 2025 limit: $70,000 total - $23,500 employee
             mega_future_value = mega_contribution * 0.07 * 20  # 7% for 20 years simplified
             strategies.append(StrategyRecommendation(
                 id="retirement-mega-backdoor",
@@ -2811,7 +2855,7 @@ Phase-out begins at $200,000 (single) or $400,000 (MFJ).""",
                 potential_offset = total_cap_gains
                 # ST gains save at ordinary rate, LT at preferential
                 savings = (short_term_gains * marginal_rate) + (long_term_gains * 0.15)
-                savings += min(3000, max(0, 10000 - total_cap_gains)) * marginal_rate  # Extra ordinary income offset
+                savings += 3000 * marginal_rate  # $3k ordinary income offset (Section 1211)
             else:
                 # No gains yet - estimate based on income level
                 estimated_harvesting_potential = min(10000, total_income * 0.02) if total_income > 200000 else 3000
@@ -4724,9 +4768,9 @@ To get started, what's your filing status?"""
         "no_rental": {"_asked_rental": True, "rental_income": 0},
         "skip_rental": {"_asked_rental": True},
         # Retirement
-        "has_401k": {"_has_401k": True, "retirement_401k": 23000},  # Max contribution as default
+        "has_401k": {"_has_401k": True, "retirement_401k": 23500},  # 2025 employee limit
         "has_ira": {"_has_ira": True, "retirement_ira": 7000},
-        "has_both_retirement": {"retirement_401k": 23000, "retirement_ira": 7000},
+        "has_both_retirement": {"retirement_401k": 23500, "retirement_ira": 7000},
         "no_retirement": {"_asked_retirement": True, "retirement_401k": 0, "retirement_ira": 0},
         "skip_retirement": {"_asked_retirement": True},
         # HSA
@@ -5607,7 +5651,7 @@ async def full_analysis(request: FullAnalysisRequest, _session: str = Depends(ve
         if not five_year:
             # Fallback: existing hardcoded 3% growth
             for year in range(2025, 2030):
-                growth_factor = 1 + (0.03 * (year - 2025))  # 3% annual growth
+                growth_factor = 1.03 ** (year - 2025)  # 3% compound annual growth
                 projected_income = (profile.get("total_income", 0) or 0) * growth_factor
                 projected_tax = calculation.total_tax * growth_factor
                 five_year[str(year)] = {
