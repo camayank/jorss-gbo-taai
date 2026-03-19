@@ -185,6 +185,12 @@ export async function handleQuickAction(value, displayLabel = null) {
   DevLogger.log('Quick action clicked:', value);
   DevLogger.log('Display label:', displayLabel);
 
+  // Intercept "Start my estimate" — trigger local questioning flow, don't send to API
+  if (value === 'no_manual' || value === 'start_estimate' || value === 'continue_assessment') {
+    startIntelligentQuestioning();
+    return;
+  }
+
   // Intercept upload action — trigger file picker directly
   if (value === 'yes_upload') {
     const fileInput = document.getElementById('fileInput');
