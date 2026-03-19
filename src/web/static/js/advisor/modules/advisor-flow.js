@@ -185,6 +185,29 @@ export async function handleQuickAction(value, displayLabel = null) {
   DevLogger.log('Quick action clicked:', value);
   DevLogger.log('Display label:', displayLabel);
 
+  // Intercept upload action — trigger file picker directly
+  if (value === 'yes_upload') {
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+      fileInput.click();
+    } else {
+      addMessage('ai', 'You can upload documents by clicking the attachment icon in the input area below.', [
+        { label: 'Start my estimate instead', value: 'no_manual' }
+      ]);
+    }
+    return;
+  }
+
+  // Intercept "how does this work" / "what docs" actions
+  if (value === 'what_docs') {
+    addMessage('user', 'How does this work?');
+    addMessage('ai', 'I\'ll ask you a few questions about your tax situation — filing status, income, state, and deductions. From that, I compute your actual federal and state tax using IRS formulas (not AI guessing). You can also upload W-2s or 1099s and I\'ll extract the data automatically.\n\nThe whole process takes about 2 minutes.', [
+      { label: 'Start my estimate', value: 'no_manual' },
+      { label: 'Upload a document', value: 'yes_upload' }
+    ]);
+    return;
+  }
+
   // Intercept report generation actions — call report endpoint directly
   if (value === 'generate_report' || value === 'download_report') {
     addMessage('user', 'Generate Full Report');
@@ -593,7 +616,7 @@ export async function captureName() {
   setTimeout(() => {
     hideTyping();
     addMessage('ai', `Thank you, ${name}! It's a pleasure to work with you.<br><br>Now, to provide you with the most accurate tax analysis and connect you with the right CPA specialist, <strong>may I have your email address?</strong>`, [
-      { label: (typeof getIcon === 'function' ? getIcon('envelope', 'sm') : '') + ' Enter email', value: 'enter_email' },
+      { label: 'Enter email', value: 'enter_email' },
       { label: 'Skip for now', value: 'skip_email' }
     ]);
   }, 1000);
@@ -622,9 +645,9 @@ export async function captureEmail() {
     hideTyping();
     const firstName = extractedData.contact.name ? extractedData.contact.name.split(' ')[0] : 'there';
     addMessage('ai', `Perfect, ${firstName}! I've saved your email.<br><br><strong>You're now qualified for our premium tax advisory service!</strong><br><br><strong>How would you like to provide your tax information?</strong>`, [
-      { label: (typeof getIcon === 'function' ? getIcon('document-text', 'sm') : '') + ' Upload tax documents (fastest)', value: 'upload_docs_qualified' },
-      { label: (typeof getIcon === 'function' ? getIcon('chat-bubble-left-right', 'sm') : '') + ' Answer questions conversationally', value: 'conversational_qualified' },
-      { label: (typeof getIcon === 'function' ? getIcon('sparkles', 'sm') : '') + ' Hybrid: docs + questions', value: 'hybrid_qualified' }
+      { label: 'Upload tax documents (fastest)', value: 'upload_docs_qualified' },
+      { label: 'Answer questions conversationally', value: 'conversational_qualified' },
+      { label: 'Hybrid: docs + questions', value: 'hybrid_qualified' }
     ]);
   }, 1500);
 }

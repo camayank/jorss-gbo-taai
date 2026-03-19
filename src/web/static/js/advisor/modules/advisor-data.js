@@ -893,8 +893,8 @@ async function uploadFileToAI(file) {
     hideTyping();
     DevLogger.error('Document upload error:', error);
     addMessage('ai', `I had trouble reading that document. Would you like to try again or enter the information manually?`, [
-      { label: (typeof getIcon === 'function' ? getIcon('arrow-path', 'sm') : '') + ' Try again', value: 'yes_upload' },
-      { label: (typeof getIcon === 'function' ? getIcon('chat-bubble-left-right', 'sm') : '') + ' Enter manually', value: 'no_manual' },
+      { label: 'Try again', value: 'yes_upload' },
+      { label: 'Enter manually', value: 'no_manual' },
       { label: '\u2753 What documents work best?', value: 'what_docs' }
     ]);
   }

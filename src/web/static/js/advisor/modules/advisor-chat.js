@@ -369,14 +369,14 @@ export function addMessage(type, text, quickActions = [], options = {}) {
   if (type === 'ai') {
     const copyBtn = document.createElement('button');
     copyBtn.className = 'copy-btn';
-    copyBtn.innerHTML = (typeof getIcon === 'function' ? getIcon('clipboard-document-list', 'sm') : '') + ' Copy';
+    copyBtn.innerHTML =  Copy';
     copyBtn.setAttribute('aria-label', 'Copy this message');
     copyBtn.onclick = (e) => {
       e.stopPropagation();
       const textContent = bubble.innerText.replace(/\s*Copy$/, '').trim();
       navigator.clipboard.writeText(textContent).then(() => {
-        copyBtn.innerHTML = (typeof getIcon === 'function' ? getIcon('check', 'sm') : '') + ' Copied';
-        setTimeout(() => copyBtn.innerHTML = (typeof getIcon === 'function' ? getIcon('clipboard-document-list', 'sm') : '') + ' Copy', 2000);
+        copyBtn.innerHTML =  Copied';
+        setTimeout(() => copyBtn.innerHTML =  Copy', 2000);
       });
     };
     bubble.appendChild(copyBtn);
@@ -1024,8 +1024,8 @@ export async function processAIResponse(userMessage) {
       setRetryCount(0);
       errorMessage = "Your session expired. I've preserved your tax data, but let's start our conversation fresh. How can I help you?";
       quickActions = [
-        { label: (typeof getIcon === 'function' ? getIcon('chat-bubble-left-right', 'sm') : '') + ' Continue with my data', value: 'no_manual' },
-        { label: (typeof getIcon === 'function' ? getIcon('arrow-path', 'sm') : '') + ' Start completely fresh', value: 'reset_conversation' }
+        { label: 'Continue with my data', value: 'no_manual' },
+        { label: 'Start completely fresh', value: 'reset_conversation' }
       ];
     } else if ((error.message && error.message.includes('504')) || (error.message && error.message.includes('timeout'))) {
       errorMessage = "That's taking longer than expected. Could you try rephrasing your question or asking something simpler?";
@@ -1069,27 +1069,27 @@ function generateSmartQuickActions() {
 
   if (progress < 20) {
     return [
-      { label: (typeof getIcon === 'function' ? getIcon('chat-bubble-left-right', 'sm') : '') + ' Tell you my situation', value: 'no_manual' },
-      { label: (typeof getIcon === 'function' ? getIcon('document-text', 'sm') : '') + ' Upload documents', value: 'yes_upload' },
+      { label: 'Tell you my situation', value: 'no_manual' },
+      { label: 'Upload documents', value: 'yes_upload' },
       { label: '\u2753 How does this work?', value: 'how_it_works' }
     ];
   } else if (progress < 50) {
     return [
-      { label: (typeof getIcon === 'function' ? getIcon('chart-bar', 'sm') : '') + ' Continue the assessment', value: 'continue_assessment' },
+      { label: 'Continue the assessment', value: 'continue_assessment' },
       { label: '\u2753 I have a question', value: 'ask_question' },
-      { label: (typeof getIcon === 'function' ? getIcon('document-text', 'sm') : '') + ' Add documents', value: 'add_documents' }
+      { label: 'Add documents', value: 'add_documents' }
     ];
   } else if (progress < 90) {
     return [
       { label: '\u2705 Continue to report', value: 'continue_to_report' },
-      { label: (typeof getIcon === 'function' ? getIcon('chat-bubble-left-right', 'sm') : '') + ' Ask something else', value: 'ask_question' },
-      { label: (typeof getIcon === 'function' ? getIcon('clipboard-document-list', 'sm') : '') + ' Review what we covered', value: 'review_summary' }
+      { label: 'Ask something else', value: 'ask_question' },
+      { label: 'Review what we covered', value: 'review_summary' }
     ];
   } else {
     return [
-      { label: (typeof getIcon === 'function' ? getIcon('chart-bar', 'sm') : '') + ' Generate my report', value: 'generate_report' },
-      { label: (typeof getIcon === 'function' ? getIcon('phone', 'sm') : '') + ' Schedule consultation', value: 'schedule_consult' },
-      { label: (typeof getIcon === 'function' ? getIcon('chat-bubble-left-right', 'sm') : '') + ' I have questions', value: 'more_questions' }
+      { label: 'Generate my report', value: 'generate_report' },
+      { label: 'Schedule consultation', value: 'schedule_consult' },
+      { label: 'I have questions', value: 'more_questions' }
     ];
   }
 }

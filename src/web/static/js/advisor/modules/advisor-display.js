@@ -848,22 +848,22 @@ export async function sendReportEmail() {
 
     if (response.ok) {
       addMessage('ai', `<strong>Report sent!</strong><br><br>Your tax advisory report has been emailed to <strong>${email}</strong>. Please check your inbox (and spam folder).<br><br><strong>What would you like to do next?</strong>`, [
-        { label: (typeof getIcon === 'function' ? getIcon('arrow-down-tray', 'sm') : '') + ' Also download PDF', value: 'download_report' },
-        { label: (typeof getIcon === 'function' ? getIcon('phone', 'sm') : '') + ' Schedule consultation', value: 'schedule_consult' },
+        { label: 'Also download PDF', value: 'download_report' },
+        { label: 'Schedule consultation', value: 'schedule_consult' },
         { label: '\u2705 I\'m all set', value: 'finish_satisfied' }
       ]);
     } else {
       addMessage('ai', `<strong>Email delivery is not available at this time.</strong><br><br>You can download your report as a PDF instead \u2014 it contains all the same information.<br><br><strong>What would you like to do?</strong>`, [
-        { label: (typeof getIcon === 'function' ? getIcon('arrow-down-tray', 'sm') : '') + ' Download PDF Report', value: 'download_report' },
-        { label: (typeof getIcon === 'function' ? getIcon('phone', 'sm') : '') + ' Schedule consultation', value: 'schedule_consult' }
+        { label: 'Download PDF Report', value: 'download_report' },
+        { label: 'Schedule consultation', value: 'schedule_consult' }
       ]);
     }
   } catch (error) {
     hideTyping();
     DevLogger.error('Email send failed:', error);
     addMessage('ai', `<strong>Unable to send email right now.</strong><br><br>Please download the PDF report instead. You can then email it manually or share it with your CPA.`, [
-      { label: (typeof getIcon === 'function' ? getIcon('arrow-down-tray', 'sm') : '') + ' Download PDF Report', value: 'download_report' },
-      { label: (typeof getIcon === 'function' ? getIcon('arrow-path', 'sm') : '') + ' Try Again', value: 'email_report' }
+      { label: 'Download PDF Report', value: 'download_report' },
+      { label: 'Try Again', value: 'email_report' }
     ]);
   }
 }
