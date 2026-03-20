@@ -3777,18 +3777,19 @@ def _score_next_questions(profile: dict, conversation: list = None) -> tuple:
             ]
         ))
 
-    # Deductions (mortgage, charitable)
+    # Deductions (mortgage, charitable, property taxes)
     if not profile.get("mortgage_interest") and not profile.get("_asked_deductions"):
         score = 50
         if total_income > 100000:
             score += 10
-        if any(kw in context_text for kw in ["mortgage", "house", "home", "bought", "deduct", "charit", "donat"]):
+        if any(kw in context_text for kw in ["mortgage", "house", "home", "bought", "deduct", "charit", "donat", "property tax"]):
             score += 25
         candidates.append((score,
             "Let's check your deductions. Do you have any of these? Select all that apply.",
             [
                 {"label": "Mortgage interest", "value": "has_mortgage"},
                 {"label": "Charitable donations", "value": "has_charitable"},
+                {"label": "Property taxes", "value": "has_property_taxes"},
                 {"label": "High medical expenses", "value": "has_medical"},
                 {"label": "None of these / Standard deduction", "value": "no_itemized_deductions"},
                 {"label": "Skip", "value": "skip_deductions"}
@@ -3879,6 +3880,90 @@ def _score_next_questions(profile: dict, conversation: list = None) -> tuple:
                 {"label": "Yes", "value": "has_estimated_payments"},
                 {"label": "No", "value": "no_estimated_payments"},
                 {"label": "Skip", "value": "skip_estimated"}
+            ]
+        ))
+
+    # Investment income amount follow-up
+    if profile.get("_has_investments") and not profile.get("investment_income") and not profile.get("_asked_invest_amount"):
+        score = 65
+        candidates.append((score,
+            "Approximately how much total investment income do you have? (dividends, interest, capital gains)",
+            [
+                {"label": "Under $5,000", "value": "invest_under_5k"},
+                {"label": "$5,000 - $25,000", "value": "invest_5_25k"},
+                {"label": "$25,000 - $100,000", "value": "invest_25_100k"},
+                {"label": "Over $100,000", "value": "invest_over_100k"},
+                {"label": "Skip", "value": "skip_invest_amount"}
+            ]
+        ))
+
+    # Capital gains follow-up
+    if profile.get("_has_investments") and profile.get("investment_income") and not profile.get("_asked_cap_gains"):
+        score = 64
+        candidates.append((score,
+            "Did you sell any stocks, crypto, or other investments this year? If so, approximately how much in long-term gains?",
+            [
+                {"label": "No sales / no gains", "value": "no_cap_gains"},
+                {"label": "Under $10,000", "value": "capgains_under_10k"},
+                {"label": "$10,000 - $50,000", "value": "capgains_10_50k"},
+                {"label": "Over $50,000", "value": "capgains_over_50k"},
+                {"label": "Skip", "value": "skip_cap_gains"}
+            ]
+        ))
+
+    # Rental income amount follow-up
+    if profile.get("_has_rental") and not profile.get("rental_income") and not profile.get("_asked_rental_amount"):
+        score = 55
+        candidates.append((score,
+            "What's your approximate annual net rental income (after expenses like mortgage, repairs, insurance)?",
+            [
+                {"label": "Under $10,000 profit", "value": "rental_under_10k"},
+                {"label": "$10,000 - $25,000", "value": "rental_10_25k"},
+                {"label": "$25,000 - $50,000", "value": "rental_25_50k"},
+                {"label": "Over $50,000", "value": "rental_over_50k"},
+                {"label": "Net loss (expenses > income)", "value": "rental_net_loss"},
+                {"label": "Skip", "value": "skip_rental_amount"}
+            ]
+        ))
+
+    # K-1 income amount follow-up
+    if profile.get("_has_k1") and not profile.get("k1_ordinary_income") and not profile.get("_asked_k1_amount"):
+        score = 50
+        candidates.append((score,
+            "What's your approximate K-1 ordinary income?",
+            [
+                {"label": "Under $25,000", "value": "k1_under_25k"},
+                {"label": "$25,000 - $100,000", "value": "k1_25_100k"},
+                {"label": "$100,000 - $250,000", "value": "k1_100_250k"},
+                {"label": "Over $250,000", "value": "k1_over_250k"},
+                {"label": "Skip", "value": "skip_k1_amount"}
+            ]
+        ))
+
+    # Estimated payments amount follow-up
+    if profile.get("_has_estimated_payments") and not profile.get("estimated_payments") and not profile.get("_asked_est_amount"):
+        score = 55
+        candidates.append((score,
+            "How much total in estimated tax payments have you made this year?",
+            [
+                {"label": "Under $5,000", "value": "est_under_5k"},
+                {"label": "$5,000 - $15,000", "value": "est_5_15k"},
+                {"label": "$15,000 - $30,000", "value": "est_15_30k"},
+                {"label": "Over $30,000", "value": "est_over_30k"},
+                {"label": "Skip", "value": "skip_est_amount"}
+            ]
+        ))
+
+    # Property taxes amount follow-up
+    if profile.get("_has_property_taxes") and not profile.get("property_taxes") and not profile.get("_asked_prop_tax_amount"):
+        score = 52
+        candidates.append((score,
+            "Approximately how much did you pay in property taxes this year?",
+            [
+                {"label": "Under $5,000", "value": "prop_tax_under_5k"},
+                {"label": "$5,000 - $10,000", "value": "prop_tax_5_10k"},
+                {"label": "Over $10,000 (SALT cap applies)", "value": "prop_tax_over_10k"},
+                {"label": "Skip", "value": "skip_prop_tax_amount"}
             ]
         ))
 
@@ -4051,6 +4136,19 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
             ]
         )
 
+    # --- K-1 income amount follow-up ---
+    if profile.get("_has_k1") and not profile.get("k1_ordinary_income") and not profile.get("_asked_k1_amount"):
+        return (
+            "What's your approximate K-1 ordinary income?",
+            [
+                {"label": "Under $25,000", "value": "k1_under_25k"},
+                {"label": "$25,000 - $100,000", "value": "k1_25_100k"},
+                {"label": "$100,000 - $250,000", "value": "k1_100_250k"},
+                {"label": "Over $250,000", "value": "k1_over_250k"},
+                {"label": "Skip", "value": "skip_k1_amount"}
+            ]
+        )
+
     # --- Investment income (dividends, capital gains) ---
     if not profile.get("investment_income") and not profile.get("capital_gains_long") and not profile.get("_asked_investments"):
         return (
@@ -4062,6 +4160,32 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
             ]
         )
 
+    # --- Investment income amount follow-up ---
+    if profile.get("_has_investments") and not profile.get("investment_income") and not profile.get("_asked_invest_amount"):
+        return (
+            "Approximately how much total investment income do you have? (dividends, interest, capital gains)",
+            [
+                {"label": "Under $5,000", "value": "invest_under_5k"},
+                {"label": "$5,000 - $25,000", "value": "invest_5_25k"},
+                {"label": "$25,000 - $100,000", "value": "invest_25_100k"},
+                {"label": "Over $100,000", "value": "invest_over_100k"},
+                {"label": "Skip", "value": "skip_invest_amount"}
+            ]
+        )
+
+    # --- Capital gains follow-up ---
+    if profile.get("_has_investments") and profile.get("investment_income") and not profile.get("_asked_cap_gains"):
+        return (
+            "Did you sell any stocks, crypto, or other investments this year? If so, approximately how much in long-term gains?",
+            [
+                {"label": "No sales / no gains", "value": "no_cap_gains"},
+                {"label": "Under $10,000", "value": "capgains_under_10k"},
+                {"label": "$10,000 - $50,000", "value": "capgains_10_50k"},
+                {"label": "Over $50,000", "value": "capgains_over_50k"},
+                {"label": "Skip", "value": "skip_cap_gains"}
+            ]
+        )
+
     # --- Rental income ---
     if not profile.get("rental_income") and not profile.get("_asked_rental"):
         return (
@@ -4070,6 +4194,20 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
                 {"label": "Yes, I have rental income", "value": "has_rental"},
                 {"label": "No rental properties", "value": "no_rental"},
                 {"label": "Skip", "value": "skip_rental"}
+            ]
+        )
+
+    # --- Rental income amount follow-up ---
+    if profile.get("_has_rental") and not profile.get("rental_income") and not profile.get("_asked_rental_amount"):
+        return (
+            "What's your approximate annual net rental income (after expenses like mortgage, repairs, insurance)?",
+            [
+                {"label": "Under $10,000 profit", "value": "rental_under_10k"},
+                {"label": "$10,000 - $25,000", "value": "rental_10_25k"},
+                {"label": "$25,000 - $50,000", "value": "rental_25_50k"},
+                {"label": "Over $50,000", "value": "rental_over_50k"},
+                {"label": "Net loss (expenses > income)", "value": "rental_net_loss"},
+                {"label": "Skip", "value": "skip_rental_amount"}
             ]
         )
 
@@ -4099,13 +4237,14 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
                 ]
             )
 
-    # --- Major deductions (mortgage, charitable, medical) ---
+    # --- Major deductions (mortgage, charitable, medical, property taxes) ---
     if not profile.get("mortgage_interest") and not profile.get("_asked_deductions"):
         return (
             "Let's check your deductions. Do you have any of these? Select all that apply.",
             [
                 {"label": "Mortgage interest", "value": "has_mortgage"},
                 {"label": "Charitable donations", "value": "has_charitable"},
+                {"label": "Property taxes", "value": "has_property_taxes"},
                 {"label": "High medical expenses", "value": "has_medical"},
                 {"label": "None of these / Standard deduction", "value": "no_itemized_deductions"},
                 {"label": "Skip", "value": "skip_deductions"}
@@ -4122,6 +4261,18 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
                 {"label": "$15,000 - $30,000", "value": "mortgage_15_30k"},
                 {"label": "Over $30,000", "value": "mortgage_over_30k"},
                 {"label": "Skip", "value": "skip_mortgage_amount"}
+            ]
+        )
+
+    # --- Property taxes amount follow-up ---
+    if profile.get("_has_property_taxes") and not profile.get("property_taxes") and not profile.get("_asked_prop_tax_amount"):
+        return (
+            "Approximately how much did you pay in property taxes this year?",
+            [
+                {"label": "Under $5,000", "value": "prop_tax_under_5k"},
+                {"label": "$5,000 - $10,000", "value": "prop_tax_5_10k"},
+                {"label": "Over $10,000 (SALT cap applies)", "value": "prop_tax_over_10k"},
+                {"label": "Skip", "value": "skip_prop_tax_amount"}
             ]
         )
 
@@ -4146,6 +4297,19 @@ def _get_dynamic_next_question(profile: dict, last_extracted: dict = None, sessi
                 {"label": "Yes", "value": "has_estimated_payments"},
                 {"label": "No", "value": "no_estimated_payments"},
                 {"label": "Skip", "value": "skip_estimated"}
+            ]
+        )
+
+    # --- Estimated payments amount follow-up ---
+    if profile.get("_has_estimated_payments") and not profile.get("estimated_payments") and not profile.get("_asked_est_amount"):
+        return (
+            "How much total in estimated tax payments have you made this year?",
+            [
+                {"label": "Under $5,000", "value": "est_under_5k"},
+                {"label": "$5,000 - $15,000", "value": "est_5_15k"},
+                {"label": "$15,000 - $30,000", "value": "est_15_30k"},
+                {"label": "Over $30,000", "value": "est_over_30k"},
+                {"label": "Skip", "value": "skip_est_amount"}
             ]
         )
 
@@ -4952,6 +5116,43 @@ To get started, what's your filing status?"""
         "1_under_17": {"dependents_under_17": 1, "_asked_dependents_age": True},
         "2_under_17": {"dependents_under_17": 2, "_asked_dependents_age": True},
         "skip_dependents_age": {"_asked_dependents_age": True},
+        # Investment income amounts (follow-up after has_investments)
+        "invest_under_5k": {"investment_income": 3000, "_asked_invest_amount": True},
+        "invest_5_25k": {"investment_income": 15000, "_asked_invest_amount": True},
+        "invest_25_100k": {"investment_income": 60000, "_asked_invest_amount": True},
+        "invest_over_100k": {"investment_income": 150000, "_asked_invest_amount": True},
+        "skip_invest_amount": {"_asked_invest_amount": True},
+        # Capital gains follow-up
+        "no_cap_gains": {"capital_gains_long": 0, "_asked_cap_gains": True},
+        "capgains_under_10k": {"capital_gains_long": 5000, "_asked_cap_gains": True},
+        "capgains_10_50k": {"capital_gains_long": 30000, "_asked_cap_gains": True},
+        "capgains_over_50k": {"capital_gains_long": 75000, "_asked_cap_gains": True},
+        "skip_cap_gains": {"_asked_cap_gains": True},
+        # Rental income amounts
+        "rental_under_10k": {"rental_income": 5000, "_asked_rental_amount": True},
+        "rental_10_25k": {"rental_income": 17500, "_asked_rental_amount": True},
+        "rental_25_50k": {"rental_income": 37500, "_asked_rental_amount": True},
+        "rental_over_50k": {"rental_income": 75000, "_asked_rental_amount": True},
+        "rental_net_loss": {"rental_income": -5000, "_asked_rental_amount": True},
+        "skip_rental_amount": {"_asked_rental_amount": True},
+        # K-1 income amounts
+        "k1_under_25k": {"k1_ordinary_income": 15000, "_asked_k1_amount": True},
+        "k1_25_100k": {"k1_ordinary_income": 60000, "_asked_k1_amount": True},
+        "k1_100_250k": {"k1_ordinary_income": 175000, "_asked_k1_amount": True},
+        "k1_over_250k": {"k1_ordinary_income": 375000, "_asked_k1_amount": True},
+        "skip_k1_amount": {"_asked_k1_amount": True},
+        # Estimated payments amounts
+        "est_under_5k": {"estimated_payments": 3000, "_asked_est_amount": True},
+        "est_5_15k": {"estimated_payments": 10000, "_asked_est_amount": True},
+        "est_15_30k": {"estimated_payments": 22000, "_asked_est_amount": True},
+        "est_over_30k": {"estimated_payments": 40000, "_asked_est_amount": True},
+        "skip_est_amount": {"_asked_est_amount": True},
+        # Property taxes
+        "has_property_taxes": {"_has_property_taxes": True, "_asked_deductions": True},
+        "prop_tax_under_5k": {"property_taxes": 3000, "_asked_prop_tax_amount": True},
+        "prop_tax_5_10k": {"property_taxes": 7500, "_asked_prop_tax_amount": True},
+        "prop_tax_over_10k": {"property_taxes": 10000, "_asked_prop_tax_amount": True},
+        "skip_prop_tax_amount": {"_asked_prop_tax_amount": True},
     }
 
     if msg_lower in _quick_action_map:
