@@ -803,18 +803,30 @@ export async function processAIResponse(userMessage) {
       'Qualifying Surviving Spouse': 'qualifying_widow'
     };
 
+    const tp = extractedData.tax_profile;
+    const ti = extractedData.tax_items || {};
     const profile = {
-      filing_status: statusMap[extractedData.tax_profile.filing_status] || extractedData.tax_profile.filing_status || null,
-      total_income: extractedData.tax_profile.total_income || null,
-      w2_income: extractedData.tax_profile.w2_income || null,
-      business_income: extractedData.tax_profile.business_income || null,
-      investment_income: extractedData.tax_profile.investment_income || null,
-      rental_income: extractedData.tax_profile.rental_income || null,
-      dependents: extractedData.tax_profile.dependents || null,
-      state: extractedData.tax_profile.state || null,
-      mortgage_interest: extractedData.tax_items.mortgage_interest || null,
-      charitable_donations: extractedData.tax_items.charitable || null,
-      is_self_employed: (extractedData.tax_profile.business_income || 0) > 0
+      filing_status: statusMap[tp.filing_status] || tp.filing_status || null,
+      total_income: tp.total_income != null ? tp.total_income : null,
+      w2_income: tp.w2_income || null,
+      business_income: tp.business_income || null,
+      investment_income: tp.investment_income || null,
+      rental_income: tp.rental_income || null,
+      dependents: tp.dependents != null ? tp.dependents : null,
+      dependents_under_17: tp.dependents_under_17 != null ? tp.dependents_under_17 : null,
+      state: tp.state || null,
+      income_type: tp.income_type || null,
+      income_source: tp.income_source || null,
+      is_self_employed: tp.is_self_employed || (tp.business_income || 0) > 0,
+      age: tp.age || null,
+      mortgage_interest: ti.mortgage_interest || tp.mortgage_interest || null,
+      charitable_donations: ti.charitable || tp.charitable_donations || null,
+      medical_expenses: ti.medical || tp.medical_expenses || null,
+      student_loan_interest: tp.student_loan_interest || null,
+      retirement_401k: tp.retirement_401k || null,
+      retirement_ira: tp.retirement_ira || null,
+      hsa_contributions: tp.hsa_contributions || null,
+      federal_withholding: tp.federal_withholding || null,
     };
 
     thinkingTimer = setTimeout(() => {

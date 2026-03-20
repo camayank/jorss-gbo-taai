@@ -254,6 +254,21 @@ export async function handleQuickAction(value, displayLabel = null) {
     return;
   }
 
+  // "Run Full Analysis" — send to API (this is the FIRST API call)
+  if (value === 'run_full_analysis') {
+    addMessage('user', 'Run Full Analysis');
+    await processAIResponse(value);
+    return;
+  }
+
+  // "Edit my information" — restart Phase 1
+  if (value === 'edit_profile') {
+    extractedData.tax_profile = {};
+    addMessage('user', 'Edit my information');
+    startIntelligentQuestioning();
+    return;
+  }
+
   // Intercept upload action — trigger file picker directly
   if (value === 'yes_upload') {
     const fileInput = document.getElementById('fileInput');
