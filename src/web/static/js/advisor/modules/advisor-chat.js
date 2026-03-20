@@ -634,6 +634,8 @@ export function addMessage(type, text, quickActions = [], options = {}) {
       ddSubmitBtn.addEventListener('click', () => {
         if (selectedValue) {
           const selectedOption = allOptions.find(a => a.value === selectedValue);
+          // Remove the dropdown UI before proceeding
+          actionsDiv.remove();
           handleQuickAction(selectedValue, selectedOption?.label);
         }
       });
